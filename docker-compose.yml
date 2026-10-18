@@ -1,0 +1,23 @@
+# Локальный PostgreSQL 16 + pgvector.
+# Схему БД сюда не кладём: ждём официальный DDL в db/.
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: fixrate-postgres
+    environment:
+      POSTGRES_USER: fixrate
+      POSTGRES_PASSWORD: fixrate
+      POSTGRES_DB: fixrate
+    ports:
+      - "5432:5432"
+    volumes:
+      - fixrate_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fixrate -d fixrate"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  fixrate_pg_data:

@@ -1,0 +1,36 @@
+# Env and secrets
+.env
+.env.local
+*.pem
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# Backend local artifacts (каталог оставляем, содержимое storage — нет)
+backend/var/**
+!backend/var/.gitkeep
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Normative corpora outside MVP DEMO (never commit full FER/TER dumps)
+data/private/
+*.xlsx.bak
+
+materials_for_ai/
