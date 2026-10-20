@@ -1,36 +1,25 @@
-# Env and secrets
+# секреты и окружения
 .env
-.env.local
-*.pem
-
-# Python
+.env.*
+!.env.example
 .venv/
 venv/
+
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
-*.egg-info/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-.coverage
-htmlcov/
-dist/
-build/
 
-# Backend local artifacts (каталог оставляем, содержимое storage — нет)
-backend/var/**
+# локальные данные backend (фото, артефакты) — не в git
+backend/var/*
 !backend/var/.gitkeep
 
-# IDE / OS
+# нормативные материалы с лицензией (ФЕР/ТЕР, прайсы) — НЕ коммитить, хранить локально
+data_private/
+
+# IDE / ОС
 .idea/
 .vscode/
-*.swp
 .DS_Store
-Thumbs.db
-
-# Normative corpora outside MVP DEMO (never commit full FER/TER dumps)
-data/private/
-*.xlsx.bak
-
-materials_for_ai/

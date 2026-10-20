@@ -1,23 +1,23 @@
-# Локальный PostgreSQL 16 + pgvector.
-# Схему БД сюда не кладём: ждём официальный DDL в db/.
-
+# Локальный PostgreSQL для разработки. ТОЛЬКО БД: API запускается через uvicorn (см. backend/README.md).
+# Схему здесь НЕ создаём: таблицы придут из официального DDL архитектора БД (папка db/).
+# Пароль — локальная заглушка; переопределяется переменной POSTGRES_PASSWORD.
 services:
-  db:
-    image: pgvector/pgvector:pg16
-    container_name: fixrate-postgres
+  postgres:
+    image: pgvector/pgvector:pg16   # PostgreSQL 16 + расширение pgvector (для будущего RAG)
+    container_name: fixrate_postgres
     environment:
-      POSTGRES_USER: fixrate
-      POSTGRES_PASSWORD: fixrate
       POSTGRES_DB: fixrate
+      POSTGRES_USER: fixrate
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ChangeMe-local-only}
     ports:
       - "5432:5432"
     volumes:
-      - fixrate_pg_data:/var/lib/postgresql/data
+      - fixrate_pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U fixrate -d fixrate"]
       interval: 5s
-      timeout: 5s
+      timeout: 3s
       retries: 10
 
 volumes:
-  fixrate_pg_data:
+  fixrate_pgdata:

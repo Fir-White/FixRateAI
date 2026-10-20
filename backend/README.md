@@ -1,113 +1,63 @@
-# FixRate AI — Backend
+# FixRate AI — backend
 
-Каркас FastAPI (карточка 1 YouGile). Сейчас доступны health и Swagger; заявки, JWT, БД и фото — в следующих карточках.
+FastAPI-сервер для приёма заявок на ремонт и формирования **черновика** сметы (ВОР).
+Сейчас реализован каркас (карточка YouGile FRAI-31): сервер, health, Swagger, ошибки, логи.
+Бизнес-логики (заявки, фото, сметы, JWT) ещё нет — она в следующих карточках.
+
+Подробное описание решений: [`../docs/backend/card-1-fastapi-skeleton.md`](../docs/backend/card-1-fastapi-skeleton.md).
 
 ## Требования
-
-- Python **3.12+** (рекомендуется 3.12)
-- Опционально: Docker для PostgreSQL (схема DDL ещё не подключена)
+- Python **3.12**
+- (опционально) Docker — только для локального PostgreSQL
 
 ## Установка и запуск
+Из каталога `backend/`:
 
+**Linux / macOS**
 ```bash
-cd backend
-python -m venv .venv
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+cp .env.example .env
+uvicorn app.main:app --reload
+```
 
-# Windows
-.venv\Scripts\activate
-
-# Linux / macOS
-# source .venv/bin/activate
-
+**Windows (PowerShell)**
+```powershell
+py -3.12 -m venv .venv
+.venv\Scripts\Activate.ps1
 pip install -r requirements-dev.txt
 copy .env.example .env
-# Linux / macOS: cp .env.example .env
-
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload
 ```
 
-Откройте:
+Сервер: http://127.0.0.1:8000
 
-| URL | Назначение |
+| Что | URL |
 |---|---|
-| http://127.0.0.1:8000/health | Проверка живости |
-| http://127.0.0.1:8000/docs | Swagger (демо UI до фронтенда) |
-| http://127.0.0.1:8000/openapi.json | OpenAPI JSON |
+| Проверка живости | http://127.0.0.1:8000/health → `{"status":"ok"}` |
+| Swagger UI | http://127.0.0.1:8000/docs |
+| ReDoc | http://127.0.0.1:8000/redoc |
+| OpenAPI JSON | http://127.0.0.1:8000/openapi.json |
 
-## Пример: health
-
-**Запрос**
-
-```http
-GET /health HTTP/1.1
-Host: 127.0.0.1:8000
-```
-
-или:
-
+## Проверка
 ```bash
-curl -i http://127.0.0.1:8000/health
+pytest -q          # ожидается: 9 passed
+curl -i http://127.0.0.1:8000/health          # 200 + заголовок X-Request-ID
+curl -i http://127.0.0.1:8000/no-such-path    # 404 + единый JSON ошибки
 ```
 
-**Ответ `200`**
+## PostgreSQL (опционально, пока пустая БД без таблиц)
+Из корня репозитория: `docker compose up -d`. Таблицы появятся из DDL в `db/` (карточка 2).
 
-```json
-{"status":"ok"}
+## Слои (не смешивать в одном модуле)
 ```
-
-В ответе всегда есть заголовок `X-Request-ID` (принятый от клиента или сгенерированный UUID).
-
-## Пример: неизвестный путь
-
-```bash
-curl -i http://127.0.0.1:8000/no-such-path
+api (роутеры, Pydantic) → services (правила) → repositories (SQL) → adapters (файлы, пайплайн, ML)
 ```
+Роуты, которые ходят в БД, объявляем как обычные `def` (не `async def`): стек sync (SQLAlchemy 2.0 + psycopg3).
 
-**Ответ `404`** (формат стабильный для всех ошибок):
-
-```json
-{
-  "error": {
-    "code": "NOT_FOUND",
-    "message": "Not Found",
-    "details": [],
-    "request_id": "…"
-  }
-}
-```
-
-## Самопроверка
-
-```bash
-cd backend
-pytest -q
-```
-
-Ожидается: все тесты зелёные; вручную — `/health` и `/docs` отдают `200`.
-
-## Конфигурация
-
-См. `.env.example`. Ключи `DATABASE_URL`, `STORAGE_DIR`, `ML_BASE_URL`, `JWT_SECRET` зарезервированы под следующие карточки; в карточке 1 приложение их только читает в settings.
-
-## PostgreSQL (опционально)
-
-Из корня репозитория:
-
-```bash
-docker compose up -d
-```
-
-Поднимается Postgres 16 с образом `pgvector/pgvector:pg16`. Таблицы появятся после официального DDL архитектора (папка `db/`). Пока `create_all` и самодельные миграции **не используются**.
-
-## Структура слоёв
-
-```
-app/
-  api/v1/       # роутеры + позже Pydantic на границе
-  core/         # config, logging, errors, middleware
-  schemas/      # схемы ответов/запросов
-  services/     # бизнес-правила
-  repositories/ # SQL
-  adapters/     # файлы, пайплайн, stubs
-  models/       # ORM — карточка 2
-```
+## Правила
+- Секреты только в `.env` (в git — `.env.example`).
+- Деньги и объёмы — `Decimal`/`NUMERIC`, не `float`.
+- Не хватает масштаба/норматива/цены → статус уточнения, **не выдумывать числа**.
+- Не логировать пароли, JWT, содержимое `.env`, тела файлов.

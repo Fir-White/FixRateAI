@@ -1,41 +1,70 @@
-"""HTTP middleware: X-Request-ID."""
+"""Middleware: X-Request-ID + access-лог.
 
-from __future__ import annotations
+Реализован как «чистый» ASGI-middleware (не BaseHTTPMiddleware), чтобы не ломать
+contextvars и порядок обработчиков исключений.
 
+Поведение:
+- входящий заголовок X-Request-ID принимается, если он безопасный (<=64 символов,
+  буквы/цифры/-/_); иначе генерируется новый UUID4;
+- request_id кладётся в scope["state"] (доступен как request.state.request_id),
+  в ContextVar для логов и возвращается клиенту в заголовке ответа X-Request-ID;
+- на каждый HTTP-запрос пишется одна строка: метод, путь, статус, время.
+"""
 import logging
+import re
+import time
 import uuid
 
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.requests import Request
-from starlette.responses import Response
+from starlette.datastructures import MutableHeaders
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.core.logging import request_id_ctx
 
-logger = logging.getLogger("app.request")
+REQUEST_ID_HEADER = "X-Request-ID"
+_SAFE_ID = re.compile(r"^[A-Za-z0-9_\-]{1,64}$")
+logger = logging.getLogger("app.access")
 
-HEADER_NAME = "X-Request-ID"
+
+def _extract_request_id(scope: Scope) -> str:
+    for name, value in scope.get("headers", []):
+        if name == b"x-request-id":
+            candidate = value.decode("latin-1")
+            if _SAFE_ID.match(candidate):
+                return candidate
+    return str(uuid.uuid4())
 
 
-class RequestIdMiddleware(BaseHTTPMiddleware):
-    async def dispatch(
-        self,
-        request: Request,
-        call_next: RequestResponseEndpoint,
-    ) -> Response:
-        incoming = request.headers.get(HEADER_NAME)
-        request_id = incoming.strip() if incoming and incoming.strip() else str(uuid.uuid4())
-        request.state.request_id = request_id
+class RequestIdMiddleware:
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        request_id = _extract_request_id(scope)
+        scope.setdefault("state", {})["request_id"] = request_id
         token = request_id_ctx.set(request_id)
-        try:
-            response = await call_next(request)
-        finally:
-            request_id_ctx.reset(token)
+        started = time.perf_counter()
+        status_code = 500  # если приложение упадёт до ответа
 
-        response.headers[HEADER_NAME] = request_id
-        logger.info(
-            "%s %s -> %s",
-            request.method,
-            request.url.path,
-            response.status_code,
-        )
-        return response
+        async def send_wrapper(message: Message) -> None:
+            nonlocal status_code
+            if message["type"] == "http.response.start":
+                status_code = message["status"]
+                MutableHeaders(scope=message)[REQUEST_ID_HEADER] = request_id
+            await send(message)
+
+        try:
+            await self.app(scope, receive, send_wrapper)
+        finally:
+            elapsed_ms = (time.perf_counter() - started) * 1000
+            logger.info(
+                "%s %s -> %s (%.1f ms)",
+                scope["method"],
+                scope["path"],  # только путь: query-строку не логируем (там могут быть секреты)
+                status_code,
+                elapsed_ms,
+            )
+            request_id_ctx.reset(token)
