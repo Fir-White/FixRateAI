@@ -9,8 +9,10 @@ services:
       POSTGRES_DB: fixrate
       POSTGRES_USER: fixrate
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ChangeMe-local-only}
+    # Хост-порт можно переопределить, если 5432 занят локальным PostgreSQL:
+    #   POSTGRES_PORT=5433 docker compose up -d
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - fixrate_pgdata:/var/lib/postgresql/data
     healthcheck:

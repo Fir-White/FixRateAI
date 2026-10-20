@@ -2,8 +2,9 @@
 
 Все настройки берутся из переменных окружения / файла `.env` (pydantic-settings).
 Секретов в коде нет: значения по умолчанию — безопасные заглушки.
-Часть ключей (DATABASE_URL, STORAGE_DIR, ML_BASE_URL, JWT_*) пока только зарезервирована
-под следующие карточки (2, 3, 5) — приложение их читает, но не использует.
+`DATABASE_URL` используется карточкой 2 (engine/session и ORM-модели).
+Часть ключей (STORAGE_DIR, ML_BASE_URL, JWT_*) пока только зарезервирована
+под следующие карточки (3, 4, 5).
 """
 from functools import lru_cache
 
@@ -22,7 +23,7 @@ class Settings(BaseSettings):
     app_env: str = "local"
     log_level: str = "INFO"
 
-    # Заделы под следующие карточки. Реальные значения — только в .env.
+    # PostgreSQL: используется engine/session и ORM-моделями (карточка 2).
     database_url: str = ""
     storage_dir: str = "var/storage"
     ml_base_url: str = ""
