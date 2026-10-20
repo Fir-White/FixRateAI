@@ -48,16 +48,25 @@ psql -X -v ON_ERROR_STOP=1 -h localhost -p 5432 -U fixrate -d fixrate_test -f db
 
 50 SQL-сценариев из `docs/database/test_scenarios.md` вынесены в исполняемый harness. Каждый сценарий запускается в отдельной транзакции и завершается `ROLLBACK`, поэтому база не изменяется. Нужна чистая БД с применённым `001_init.sql`.
 
+**Вариант 1 — PostgreSQL на хосте (psql в PATH):**
+
 ```bash
 createdb -h localhost -p 5432 -U fixrate fixrate_scenarios
 psql -X -v ON_ERROR_STOP=1 -h localhost -p 5432 -U fixrate -d fixrate_scenarios -f db/001_init.sql
 
-# вариант 1: psql внутри Docker-контейнера
-FIXRATE_PG_CONTAINER=fixrate_pg_test python db/tests/run_sql_scenarios.py
-
-# вариант 2: psql в PATH (PGHOST/PGPORT/PGUSER/PGPASSWORD читает psql)
-PGHOST=localhost PGPORT=5433 PGUSER=fixrate PGDATABASE=fixrate_scenarios \
+PGHOST=localhost PGPORT=5432 PGUSER=fixrate PGDATABASE=fixrate_scenarios \
   python db/tests/run_sql_scenarios.py
+```
+
+**Вариант 2 — psql внутри Docker-контейнера:**
+
+```bash
+docker exec fixrate_pg_test createdb -U fixrate fixrate_scenarios
+docker cp db/001_init.sql fixrate_pg_test:/tmp/001_init.sql
+docker exec fixrate_pg_test psql -X -v ON_ERROR_STOP=1 -U fixrate \
+  -d fixrate_scenarios -f /tmp/001_init.sql
+
+FIXRATE_PG_CONTAINER=fixrate_pg_test python db/tests/run_sql_scenarios.py
 ```
 
 В PowerShell переменные окружения задаются отдельно, например:
