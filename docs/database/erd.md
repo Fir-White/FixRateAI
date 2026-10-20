@@ -386,7 +386,7 @@ erDiagram
 
 ## Исходные файлы
 
-- [erd.svg](erd.svg) — прежняя версия из draw.io (один холст 3010×1870 со всеми атрибутами);
-- [erd.drawio](erd.drawio) — исходник для редактирования в draw.io;
+- [erd.svg](erd.svg) — полная схема одним холстом 3010×1870; содержит поля v3 (`is_current`, `rate_unit_multiplier`, `cost_treatment`, `embedding_model` и др.);
+- [erd.drawio](erd.drawio) — **устаревший исходник**: не содержит ряда полей v3 и имеет одну вкладку вместо заявленных четырёх. Не редактировать по нему схему до синхронизации с `erd.svg` и `specification.md`;
 - [specification.md](specification.md) — описание сущностей, ограничений и индексов;
 - [test_scenarios.md](test_scenarios.md) — сценарии проверки модели.

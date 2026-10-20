@@ -42,13 +42,25 @@ uvicorn app.main:app --reload
 
 ## Проверка
 ```bash
-pytest -q          # ожидается: 9 passed
+pytest -q          # ожидается: 13 passed
 curl -i http://127.0.0.1:8000/health          # 200 + заголовок X-Request-ID
 curl -i http://127.0.0.1:8000/no-such-path    # 404 + единый JSON ошибки
 ```
 
-## PostgreSQL (опционально, пока пустая БД без таблиц)
-Из корня репозитория: `docker compose up -d`. Таблицы появятся из DDL в `db/` (карточка 2).
+## PostgreSQL (локально)
+Схема приходит из `db/001_init.sql`; backend **не** создаёт таблицы через `Base.metadata.create_all()`.
+Из корня репозитория поднимите PostgreSQL и примените DDL + DEMO-данные:
+
+```bash
+docker compose up -d
+# если порт 5432 занят локальным PostgreSQL:
+# POSTGRES_PORT=5433 docker compose up -d
+
+psql -X -v ON_ERROR_STOP=1 -h localhost -p 5432 -U fixrate -d fixrate -f db/001_init.sql
+psql -X -v ON_ERROR_STOP=1 -h localhost -p 5432 -U fixrate -d fixrate -f db/002_seed_demo.sql
+```
+
+Подробности, проверка и smoke-тест — в [`../db/README.md`](../db/README.md). В `backend/.env` укажите `DATABASE_URL` с тем же портом. SQLAlchemy-модели и engine появятся в карточке 2.
 
 ## Слои (не смешивать в одном модуле)
 ```
