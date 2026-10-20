@@ -1,10 +1,12 @@
 # FixRate AI — backend
 
 FastAPI-сервер для приёма заявок на ремонт и формирования **черновика** сметы (ВОР).
-Сейчас реализован каркас (карточка YouGile FRAI-31): сервер, health, Swagger, ошибки, логи.
+Сейчас реализованы каркас (карточка 1): сервер, health, Swagger, ошибки, логи,
+и слой БД (карточка 2): SQLAlchemy 2.0 + psycopg3, engine/session, 18 ORM-моделей по DDL.
 Бизнес-логики (заявки, фото, сметы, JWT) ещё нет — она в следующих карточках.
 
-Подробное описание решений: [`../docs/backend/card-1-fastapi-skeleton.md`](../docs/backend/card-1-fastapi-skeleton.md).
+Подробное описание решений: [`../docs/backend/card-1-fastapi-skeleton.md`](../docs/backend/card-1-fastapi-skeleton.md)
+и [`../docs/backend/card-2-database-models.md`](../docs/backend/card-2-database-models.md).
 
 ## Требования
 - Python **3.12**
@@ -42,9 +44,23 @@ uvicorn app.main:app --reload
 
 ## Проверка
 ```bash
-pytest -q          # ожидается: 13 passed
+pytest -q          # ожидается: 24 passed, 10 skipped (без DATABASE_URL)
 curl -i http://127.0.0.1:8000/health          # 200 + заголовок X-Request-ID
 curl -i http://127.0.0.1:8000/no-such-path    # 404 + единый JSON ошибки
+```
+
+Интеграционные проверки моделей против живой схемы включаются переменной
+`DATABASE_URL` (нужен применённый `db/001_init.sql`):
+
+```bash
+# Linux / macOS
+DATABASE_URL='postgresql+psycopg://fixrate:ChangeMe-local-only@localhost:5432/fixrate' \
+  pytest -q tests/test_models_db.py
+
+# Windows PowerShell
+$env:DATABASE_URL="postgresql+psycopg://fixrate:ChangeMe-local-only@localhost:5432/fixrate"
+python -m pytest -q tests/test_models_db.py
+# с применённым DDL и DATABASE_URL полный прогон: 34 passed
 ```
 
 ## PostgreSQL (локально)
@@ -60,7 +76,17 @@ psql -X -v ON_ERROR_STOP=1 -h localhost -p 5432 -U fixrate -d fixrate -f db/001_
 psql -X -v ON_ERROR_STOP=1 -h localhost -p 5432 -U fixrate -d fixrate -f db/002_seed_demo.sql
 ```
 
-Подробности, проверка и smoke-тест — в [`../db/README.md`](../db/README.md). В `backend/.env` укажите `DATABASE_URL` с тем же портом. SQLAlchemy-модели и engine появятся в карточке 2.
+Подробности, проверка и smoke-тест — в [`../db/README.md`](../db/README.md). В `backend/.env` укажите `DATABASE_URL` с тем же портом. Модели и engine уже реализованы в `app/models/` и `app/db/`; они только читают/пишут существующую схему.
+
+## ORM и сессии
+- `app/db/base.py` — `Base` для декларативных моделей.
+- `app/db/session.py` — ленивый engine, `get_db()` для FastAPI, `session_scope()` для скриптов, `check_database_connection()`.
+- `app/models/` — 18 таблиц строго по `db/001_init.sql` (колонки, PK/FK, CHECK, UNIQUE, индексы, `ON DELETE RESTRICT`).
+- `app/models/__init__.py` — импорт всех моделей; он регистрирует таблицы в `Base.metadata`.
+- `app/db/session.py` не вызывает `Base.metadata.create_all()`: схема приходит только из SQL-миграций.
+- `DATABASE_URL` обязателен только при реальном обращении к БД; импорт приложения и unit-тесты работают без него.
+- Деньги и объёмы — `Decimal`/`NUMERIC`; в моделях нет `Float`.
+- `normative_chunks.embedding` — `pgvector.Vector` без размерности. HNSW/IVFFlat появится отдельной миграцией после выбора embedding-модели.
 
 ## Слои (не смешивать в одном модуле)
 ```

@@ -8,6 +8,9 @@ dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
     "pydantic-settings>=2.6.0",
+    "sqlalchemy>=2.0,<3.0",
+    "psycopg[binary]>=3.2,<4.0",
+    "pgvector>=0.3,<1.0",
 ]
 
 [project.optional-dependencies]
@@ -27,3 +30,6 @@ include = ["app*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = [
+    "integration: требует DATABASE_URL и применённый db/001_init.sql",
+]

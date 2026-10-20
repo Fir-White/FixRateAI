@@ -114,7 +114,7 @@ WHERE contype='f' AND connamespace='public'::regnamespace;
 
 ## Дальнейший шаг
 
-1. SQLAlchemy-модели backend (карточка 2) — строго по `001_init.sql`, без `create_all()`.
+1. SQLAlchemy-модели backend — реализованы в карточке 2 строго по `001_init.sql`, без `create_all()`; см. [`../docs/backend/card-2-database-models.md`](../docs/backend/card-2-database-models.md).
 2. Интеграционные проверки S1–S8; 13 сценариев `SQL+APP` и 34 сценария `APP`/`APP+INFRA` из `docs/database/test_scenarios.md` после появления backend/API/ML.
 3. Отдельная миграция для HNSW/IVFFlat после выбора embedding-модели и размерности `vector`.
 4. При изменении схемы добавляйте новую миграцию `003_*.sql`; `001_init.sql` остаётся снимком начальной схемы.
