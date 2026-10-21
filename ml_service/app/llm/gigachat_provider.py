@@ -24,13 +24,27 @@ SYSTEM_PROMPT = """Ты — эксперт по обследованию стр�
 - Переводи все размеры в базовые единицы СИ:
   * длина -> "length_m" (метры)
   * ширина/раскрытие -> "width_m" (метры, например 2 мм -> 0.002, 10 см -> 0.10)
+  * глубина -> "depth_m" (метры)
   * площадь -> "area_m2" (кв. метры)
-  * количество повреждённых элементов -> "count" (штуки, целое или дробное число)
+  * количество повреждённых элементов -> "count" (штуки, число)
 
 СТРОГИЙ ЗАПРЕТ:
 Ни при каких обстоятельствах не придумывай цены, расценки, стоимость материалов или валюту. Финансовые поля отсутствуют в схеме и запрещены.
 
-Верни ответ СТРОГО в виде JSON-объекта, соответствующего переданной схеме. Никакого дополнительного текста до или после JSON.
+Формат JSON строго следующий:
+{
+  "detected_defect_type": "facade_crack",
+  "defect_description": "Краткое описание повреждения",
+  "location_details": "Локализация (например, наружная стена)",
+  "materials": ["штукатурка"],
+  "extracted_measurements": {
+    "length_m": 4.5,
+    "width_m": 0.002
+  },
+  "unclear_aspects": []
+}
+
+Верни ответ СТРОГО в виде JSON-объекта. Никакого дополнительного текста до или после JSON.
 """
 
 
@@ -46,7 +60,7 @@ class GigaChatProvider(LLMProviderProtocol):
         timeout: float | None = None,
     ) -> None:
         settings = get_settings()
-        self.credentials = credentials or settings.gigachat_credentials
+        self.credentials = credentials if credentials is not None else settings.gigachat_credentials
         self.scope = scope or settings.gigachat_scope
         self.model = model or settings.gigachat_model
         self.verify_ssl_certs = (
@@ -86,16 +100,6 @@ class GigaChatProvider(LLMProviderProtocol):
             "temperature": 0.1,  # Низкая температура для максимальной детерминированности
         }
 
-        # Способ 1: Пытаемся использовать chat_parse из SDK (если поддерживается моделью)
-        try:
-            _, parsed = client.chat_parse(payload, response_format=schema_cls, strict=False)
-            if isinstance(parsed, schema_cls):
-                logger.info("Успешный structured-парсинг через GigaChat chat_parse: model=%s", self.model)
-                return parsed
-        except Exception as parse_exc:
-            logger.debug("chat_parse завершился с исключением (%s), переход на прямое извлечение JSON", parse_exc)
-
-        # Способ 2: Прямой вызов chat.create + парсинг JSON из текста ответа
         from gigachat.models import ChatCompletion
 
         response = client.chat(payload)
@@ -111,7 +115,16 @@ class GigaChatProvider(LLMProviderProtocol):
 
         # Очищаем markdown-блоки ```json ... ``` если модель их добавила
         json_str = self._extract_json_string(content)
-        return schema_cls.model_validate_json(json_str)
+        data = json.loads(json_str)
+
+        # Нормализация: если легковесная модель вынесла параметры на верхний уровень
+        if isinstance(data, dict):
+            measurements = data.setdefault("extracted_measurements", {})
+            for param in ["length_m", "width_m", "depth_m", "area_m2", "count"]:
+                if param in data and param not in measurements:
+                    measurements[param] = data.pop(param)
+
+        return schema_cls.model_validate(data)
 
     @staticmethod
     def _extract_json_string(text: str) -> str:

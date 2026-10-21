@@ -27,39 +27,38 @@ def test_gigachat_provider_missing_credentials_raises():
         provider.complete_structured("тест", NormalizedDefectDescription)
 
 
-def test_gigachat_provider_chat_parse_success():
-    expected_defect = NormalizedDefectDescription(
-        detected_defect_type="facade_crack",
-        defect_description="Трещина фасада",
-        location_details="наружная стена",
-        materials=["штукатурка"],
-        extracted_measurements={"length_m": Decimal("4.5")},
-    )
-
+def test_gigachat_provider_chat_json_success():
+    raw_json = """{
+        "detected_defect_type": "facade_crack",
+        "defect_description": "Трещина фасада",
+        "location_details": "наружная стена",
+        "materials": ["штукатурка"],
+        "extracted_measurements": {"length_m": 4.5}
+    }"""
     mock_client = MagicMock()
-    mock_client.chat_parse.return_value = (MagicMock(), expected_defect)
+    mock_response = MagicMock()
+    mock_choice = MagicMock()
+    mock_choice.message.content = raw_json
+    mock_response.choices = [mock_choice]
+    mock_client.chat.return_value = mock_response
 
     provider = GigaChatProvider(credentials="test_cred")
     provider._client = mock_client
 
     result = provider.complete_structured("Трещина фасада 4.5м", NormalizedDefectDescription)
-    assert result == expected_defect
-    mock_client.chat_parse.assert_called_once()
+    assert result.detected_defect_type == "facade_crack"
+    assert result.extracted_measurements["length_m"] == Decimal("4.5")
+    assert result.location_details == "наружная стена"
 
 
-def test_gigachat_provider_fallback_to_json_chat():
+def test_gigachat_provider_flattened_measurements_normalization():
     mock_client = MagicMock()
-    # chat_parse падает
-    mock_client.chat_parse.side_effect = Exception("Not supported")
-
-    # chat.create возвращает JSON
     raw_json = """{
         "detected_defect_type": "tile_chip",
         "defect_description": "Скол плитки на крыльце",
         "location_details": "крыльцо",
         "materials": ["керамогранит"],
-        "extracted_measurements": {"count": 2},
-        "unclear_aspects": []
+        "count": 2
     }"""
     mock_response = MagicMock()
     mock_choice = MagicMock()
