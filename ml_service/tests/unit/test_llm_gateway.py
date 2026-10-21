@@ -1,6 +1,7 @@
 """Unit-тесты LLM Gateway и эвристического нормализатора описаний."""
 from decimal import Decimal
 import pytest
+from pydantic import ValidationError
 from app.llm.gateway import LLMGateway
 from app.llm.mock_provider import MockLLMProvider
 from app.llm.schemas import NormalizedDefectDescription
@@ -38,6 +39,8 @@ def test_mock_provider_parking_leak():
     )
     assert res.detected_defect_type == "parking_leak"
     assert res.extracted_measurements.get("area_m2") == Decimal("6.2")
+    # «м2» не должно интерпретироваться как длина в метрах
+    assert "length_m" not in res.extracted_measurements
     assert res.location_details == "подземный паркинг"
 
 
@@ -56,3 +59,39 @@ def test_llm_gateway_anti_hallucination_guarantee():
     assert "price" not in data
     assert "cost" not in data
     assert "total" not in data
+
+
+def test_llm_schema_rejects_financial_measurement_keys():
+    with pytest.raises(ValidationError, match="Недопустимые параметры измерений"):
+        NormalizedDefectDescription(
+            extracted_measurements={"price": Decimal("10000"), "cost_rub": Decimal("500")}
+        )
+
+
+def test_llm_schema_rejects_non_physical_measurement_keys():
+    with pytest.raises(ValidationError, match="Недопустимые параметры измерений"):
+        NormalizedDefectDescription(extracted_measurements={"coefficient": Decimal("1.5")})
+
+
+def test_llm_schema_rejects_non_positive_measurements():
+    with pytest.raises(ValidationError, match="должно быть положительным"):
+        NormalizedDefectDescription(extracted_measurements={"length_m": Decimal("0")})
+
+
+class _SmugglingProvider:
+    """Провайдер, пытающийся протащить финансовое поле в обход схемы."""
+
+    def complete_structured(self, prompt: str, schema_cls: type) -> NormalizedDefectDescription:
+        return NormalizedDefectDescription.model_construct(
+            detected_defect_type="facade_crack",
+            extracted_measurements={"price": Decimal("10000")},
+        )
+
+
+def test_gateway_revalidates_provider_output_and_falls_back():
+    gateway = LLMGateway(provider=_SmugglingProvider())
+    res = gateway.normalize_user_text("Трещина на фасаде длиной 3 метра")
+
+    assert res.detected_defect_type == "facade_crack"
+    assert res.extracted_measurements.get("length_m") == Decimal("3")
+    assert "price" not in res.extracted_measurements

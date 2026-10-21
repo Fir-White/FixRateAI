@@ -137,3 +137,86 @@ def test_scenario_3_parking_leak(app_with_mock_cv):
         assert Decimal(str(item["quantity"])) == Decimal("11.5000")
         assert Decimal(str(item["line_total"])) == Decimal("17250.00")
         assert Decimal(str(data["total_cost"])) == Decimal("17250.00")
+
+
+def test_scenario_2_tile_chip_clarification(app_with_mock_cv):
+    """Сценарий 2 (ветка уточнения): без количества плиток сервис запрашивает его."""
+    app, mock_cv = app_with_mock_cv
+    mock_cv.set_scenario("tile_chip")
+
+    with TestClient(app) as client:
+        res1 = client.post(
+            "/api/v1/process",
+            json={
+                "description_text": "На крыльце скол плитки",
+                "files": [{"file_id": "photo-tile-2", "file_type": "image"}],
+            },
+        )
+        assert res1.status_code == 200
+        data1 = res1.json()
+        assert data1["status"] == "needs_clarification"
+        assert len(data1["clarification_questions"]) == 1
+        assert data1["clarification_questions"][0]["code"] == "MISSING_TILE_COUNT"
+        assert data1["clarification_questions"][0]["field_name"] == "count"
+        assert data1["total_cost"] is None
+
+        res2 = client.post(
+            "/api/v1/process",
+            json={
+                "description_text": "На крыльце скол плитки",
+                "files": [{"file_id": "photo-tile-2", "file_type": "image"}],
+                "known_measurements": [
+                    {"parameter_name": "count", "numeric_value": "3", "unit_code": "pcs"}
+                ],
+            },
+        )
+        assert res2.status_code == 200
+        data2 = res2.json()
+        assert data2["status"] == "completed"
+        assert len(data2["estimate_items"]) == 1
+        item = data2["estimate_items"][0]
+        assert item["rate_code"] == "DEMO-TILE-CHIP-01"
+        assert Decimal(str(item["quantity"])) == Decimal("0.2700")
+        assert Decimal(str(item["line_total"])) == Decimal("324.00")
+
+
+def test_scenario_3_parking_leak_clarification(app_with_mock_cv):
+    """Сценарий 3 (ветка уточнения): без площади сервис запрашивает её."""
+    app, mock_cv = app_with_mock_cv
+    mock_cv.set_scenario("parking_leak")
+
+    with TestClient(app) as client:
+        res1 = client.post(
+            "/api/v1/process",
+            json={
+                "description_text": "В подземном паркинге протечка",
+                "files": [{"file_id": "photo-leak-2", "file_type": "image"}],
+            },
+        )
+        assert res1.status_code == 200
+        data1 = res1.json()
+        assert data1["status"] == "needs_clarification"
+        assert len(data1["clarification_questions"]) == 1
+        assert data1["clarification_questions"][0]["code"] == "MISSING_LEAK_AREA"
+        assert data1["clarification_questions"][0]["field_name"] == "area_m2"
+        assert data1["total_cost"] is None
+
+        res2 = client.post(
+            "/api/v1/process",
+            json={
+                "description_text": "В подземном паркинге протечка",
+                "files": [{"file_id": "photo-leak-2", "file_type": "image"}],
+                "known_measurements": [
+                    {"parameter_name": "area_m2", "numeric_value": "10", "unit_code": "m2"}
+                ],
+            },
+        )
+        assert res2.status_code == 200
+        data2 = res2.json()
+        assert data2["status"] == "needs_review"
+        assert len(data2["estimate_items"]) == 1
+        item = data2["estimate_items"][0]
+        assert item["rate_code"] == "DEMO-PARKING-LEAK-01"
+        assert Decimal(str(item["quantity"])) == Decimal("11.5000")
+        assert Decimal(str(item["line_total"])) == Decimal("17250.00")
+        assert any("скрытых причин" in w for w in data2["warnings"])

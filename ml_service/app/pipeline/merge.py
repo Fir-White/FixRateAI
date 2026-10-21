@@ -5,8 +5,8 @@ from uuid import uuid4
 
 from app.cv.schemas import CVInferenceResult
 from app.llm.schemas import NormalizedDefectDescription
-from app.schemas.common import ExtractedField, SourceType, ValidationStatus
-from app.schemas.request import JobRequestDTO
+from app.schemas.common import ExtractedField, SourceType
+from app.schemas.request import JobRequestDTO, KnownMeasurementDTO
 from app.schemas.response import DetectedDefectDTO
 
 DEFECT_NAMES = {
@@ -14,6 +14,58 @@ DEFECT_NAMES = {
     "tile_chip": "Скол плитки",
     "parking_leak": "Протечка парковки",
 }
+
+TILE_MEASUREMENT_KEYS = frozenset({"count", "damaged_tiles_count", "tile_area_m2"})
+PARKING_MEASUREMENT_KEYS = frozenset({"leak_area_m2"})
+CRACK_MEASUREMENT_KEYS = frozenset(
+    {"length_m", "length", "width_m", "width", "depth_m", "depth"}
+)
+AREA_MEASUREMENT_KEYS = frozenset({"area_m2", "area"})
+
+
+def _unit_for_parameter(parameter_name: str) -> str:
+    """Определяет единицу измерения по имени физического параметра."""
+    if parameter_name.endswith("_m2") or parameter_name in {"area", "tile_area", "leak_area"}:
+        return "m2"
+    if parameter_name.endswith("_m3") or parameter_name == "volume":
+        return "m3"
+    if parameter_name.endswith("_m") or parameter_name in {
+        "length",
+        "width",
+        "depth",
+        "height",
+        "thickness",
+        "perimeter",
+    }:
+        return "m"
+    return "pcs"
+
+
+def _compatible_defect_codes(parameter_name: str) -> set[str]:
+    """Возвращает типы дефектов, для которых параметр имеет физический смысл."""
+    if parameter_name in TILE_MEASUREMENT_KEYS:
+        return {"tile_chip"}
+    if parameter_name in PARKING_MEASUREMENT_KEYS:
+        return {"parking_leak"}
+    if parameter_name in CRACK_MEASUREMENT_KEYS:
+        return {"facade_crack", "parking_leak"}
+    if parameter_name in AREA_MEASUREMENT_KEYS:
+        return {"tile_chip", "parking_leak"}
+    return set()
+
+
+def _infer_defect_code(measurements: list[KnownMeasurementDTO]) -> str | None:
+    """Выводит тип дефекта из набора пользовательских измерений, если он однозначен."""
+    keys = {m.parameter_name for m in measurements}
+    if keys & TILE_MEASUREMENT_KEYS:
+        return "tile_chip"
+    if keys & PARKING_MEASUREMENT_KEYS:
+        return "parking_leak"
+    if keys & CRACK_MEASUREMENT_KEYS:
+        return "facade_crack"
+    # area_m2 без других признаков неоднозначна (плитка или парковка) —
+    # не угадываем тип, чтобы не подобрать неверную расценку.
+    return None
 
 
 def merge_defect_sources(
@@ -61,36 +113,46 @@ def merge_defect_sources(
 
         # Переносим измерения из текста с source_type=USER (со слов заявителя)
         for param, val in text_norm.extracted_measurements.items():
-            unit = "m" if "length" in param or "width" in param else ("m2" if "area" in param else "pcs")
             defects_by_type[d_code].measurements[param] = ExtractedField[Decimal](
                 field_name=param,
                 value=val,
-                unit=unit,
+                unit=_unit_for_parameter(param),
                 source_type=SourceType.USER,
                 source_ref="user_description_text",
                 confidence=None,
             )
 
-    # 3. Приоритетное наложение явно переданных измерений пользователя (known_measurements)
+    # 3. Приоритетное наложение явно переданных измерений пользователя (known_measurements).
+    # Они применяются последними и перекрывают измерения, извлечённые из текста.
     if request.known_measurements:
-        # Если дефект один или дефектов пока нет, создаём дефект по умолчанию либо дополняем существующие
         target_defects = list(defects_by_type.values())
+
         if not target_defects:
-            # Создаём дефект по умолчанию, если передан параметр
-            first_param = request.known_measurements[0].parameter_name
-            d_code = "facade_crack" if "length" in first_param else "tile_chip"
-            d_obj = DetectedDefectDTO(
-                defect_id=f"def-known-{uuid4().hex[:8]}",
-                defect_type_code=d_code,
-                defect_type_name=DEFECT_NAMES.get(d_code, d_code),
-                confidence=None,
-                measurements={},
-            )
-            defects_by_type[d_code] = d_obj
-            target_defects = [d_obj]
+            inferred_code = _infer_defect_code(request.known_measurements)
+            if inferred_code is not None:
+                d_obj = DetectedDefectDTO(
+                    defect_id=f"def-known-{uuid4().hex[:8]}",
+                    defect_type_code=inferred_code,
+                    defect_type_name=DEFECT_NAMES.get(inferred_code, inferred_code),
+                    confidence=None,
+                    measurements={},
+                )
+                defects_by_type[inferred_code] = d_obj
+                target_defects = [d_obj]
 
         for m in request.known_measurements:
-            for defect in target_defects:
+            compatible = [
+                defect
+                for defect in target_defects
+                if not _compatible_defect_codes(m.parameter_name)
+                or defect.defect_type_code in _compatible_defect_codes(m.parameter_name)
+            ]
+            # Для единственного дефекта применяем явное измерение пользователя,
+            # даже если эвристика не смогла определить совместимость.
+            if not compatible and len(target_defects) == 1:
+                compatible = target_defects
+
+            for defect in compatible:
                 defect.measurements[m.parameter_name] = ExtractedField[Decimal](
                     field_name=m.parameter_name,
                     value=m.numeric_value,

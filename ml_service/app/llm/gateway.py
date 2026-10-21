@@ -43,7 +43,11 @@ class LLMGateway:
 
         try:
             result = self.provider.complete_structured(prompt, NormalizedDefectDescription)
-            return result
+            # Повторная валидация на стороне шлюза: провайдер не может вернуть
+            # сконструированный в обход схемы объект с финансовыми полями.
+            if isinstance(result, NormalizedDefectDescription):
+                return NormalizedDefectDescription.model_validate(result.model_dump())
+            return NormalizedDefectDescription.model_validate(result)
         except Exception as e:
             logger.error("Ошибка при вызове LLM провайдера: %s, переключение на эвристический fallback", e)
             fallback = MockLLMProvider()
