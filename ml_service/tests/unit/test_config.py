@@ -12,7 +12,7 @@ from app.core.errors import (
 
 
 def test_settings_default_values():
-    settings = Settings()
+    settings = Settings(_env_file=None)
     assert settings.app_name == "FixRate AI ML Service"
     assert settings.cv_enabled is True
     assert settings.cv_provider == "mock"
