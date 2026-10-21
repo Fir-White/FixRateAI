@@ -33,6 +33,19 @@ docker build -t fixrate-ml-service .
 docker run -p 8001:8001 fixrate-ml-service
 ```
 
+### 3. Подключение GigaChat (Сбер) для анализа текста
+Для перехода с эвристического mock-провайдера на боевую языковую модель GigaChat укажите в `.env`:
+```env
+ML_LLM_PROVIDER="gigachat"
+ML_GIGACHAT_CREDENTIALS="<auth_key_из_личного_кабинета_Сбера>"
+ML_GIGACHAT_SCOPE="GIGACHAT_API_PERS"   # или GIGACHAT_API_CORP
+ML_GIGACHAT_MODEL="GigaChat-Pro"       # или GigaChat-Lite / GigaChat-Max
+```
+Проверка подключения:
+```bash
+python scripts/test_gigachat.py
+```
+
 ## Ключевые эндпоинты API
 - `GET /health` — проверка работоспособности сервиса и доступности моделей.
 - `POST /api/v1/process` — сквозной запуск анализа дефектов и расчёта сметы.

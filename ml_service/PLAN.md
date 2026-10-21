@@ -54,6 +54,20 @@
 | **Модуль контроля качества (QA & Audit)** | `MISSING` | Отсутствует код в `ml_service/` | Нет верификатора полноты сметных позиций и предупреждений. |
 | **Тестовый набор ML Service** | `MISSING` | Тесты в `ml_service/tests/` отсутствуют | 0 тестов. Необходимо построить независимый тестовый набор с mock-моделями. |
 
+### 2.3. Фактический статус реализации компонентов
+
+| Компонент / Подсистема | Статус | Артефакты реализации | Текущее состояние |
+|:---|:---:|:---|:---|
+| **Ядро ML Service (Config, Logging, Errors)** | `IMPLEMENTED` | `app/core/config.py`, `errors.py`, `logging.py` | Полная конфигурация `pydantic-settings`, сквозной `X-Request-ID`, канонический формат `AppError`. |
+| **API и Schemas (FastAPI, DTO)** | `IMPLEMENTED` | `app/schemas/`, `app/api/v1/`, `app/main.py` | Контракты `JobRequestDTO`, `JobResponseDTO`, `GET /health`, `POST /api/v1/process`. |
+| **CV-подсистема (YOLO)** | `PARTIAL` | `app/cv/image_io.py`, `schemas.py`, `service.py`, `yolo_detector.py` | Защита от DecompressionBomb, EXIF, протокол детектора, адаптер Ultralytics, MockYoloDetector. Веса модели заблокированы отсутствием датасета (`ML-009`). |
+| **OCR / Обработка документов** | `PARTIAL` | `app/ocr/document_parser.py`, `protocol.py`, `schemas.py` | Протокол и структурированное извлечение дефектовок с постраничным provenance. |
+| **LLM Gateway (NLP)** | `IMPLEMENTED` | `app/llm/schemas.py`, `mock_provider.py`, `gigachat_provider.py`, `gateway.py` | Anti-hallucination схема `NormalizedDefectDescription`, боевой провайдер **GigaChat** (Сбер) и эвристический fallback. |
+| **RAG (Поиск расценок)** | `PARTIAL` | `app/rag/catalog.py`, `lexical_search.py`, `vector_search.py`, `hybrid.py` | DEMO-справочник расценок, BM25 + Vector Cosine + RRF гибрид, фильтр применимости. |
+| **Детерминированный калькулятор** | `IMPLEMENTED` | `app/calculation/formulas.py`, `engine.py`, `audit.py` | Строгий `Decimal` (`ROUND_HALF_UP`), расчёт объёмов, надбавка запаса, аудит. ИИ к расчету денег не прикасается. |
+| **Оркестратор (Pipeline)** | `IMPLEMENTED` | `app/pipeline/merge.py`, `validation.py`, `orchestrator.py` | Слияние данных с приоритетом источников, определение нехватки параметров и генерация `needs_clarification`. |
+| **Автотесты ML Service** | `IMPLEMENTED` | `tests/unit/`, `tests/integration/` | **83 автотеста**, 100% pass rate. Проверены все 3 пилотных сценария. |
+
 ---
 
 ## 3. Границы ответственности и взаимодействие
