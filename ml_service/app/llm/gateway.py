@@ -15,6 +15,14 @@ class LLMGateway:
         settings = get_settings()
         if provider is not None:
             self.provider = provider
+        elif settings.llm_provider == "gigachat" and settings.gigachat_credentials:
+            from app.llm.gigachat_provider import GigaChatProvider
+            try:
+                self.provider = GigaChatProvider()
+                logger.info("LLMGateway инициализирован с GigaChatProvider (model=%s)", settings.gigachat_model)
+            except Exception as e:
+                logger.warning("Не удалось инициализировать GigaChatProvider (%s), fallback на mock", e)
+                self.provider = MockLLMProvider()
         elif settings.llm_provider == "mock" or not settings.llm_api_key:
             self.provider = MockLLMProvider()
         else:

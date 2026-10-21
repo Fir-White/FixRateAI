@@ -43,7 +43,14 @@ class Settings(BaseSettings):
     llm_provider: str = "mock"  # "mock" | "gigachat" | "openai"
     llm_api_key: str = ""
     llm_model_name: str = "mock-normalizer"
-    llm_timeout_seconds: int = 10
+    llm_timeout_seconds: int = 15
+
+    # GigaChat (Сбер) настройки
+    gigachat_credentials: str = ""  # Base64 Auth Key (авторизационные данные)
+    gigachat_scope: str = "GIGACHAT_API_PERS"  # GIGACHAT_API_PERS | GIGACHAT_API_CORP | GIGACHAT_API_B2B
+    gigachat_model: str = "GigaChat-Pro"  # GigaChat-Pro | GigaChat-Lite | GigaChat-Max
+    gigachat_verify_ssl_certs: bool = False  # False для избежания проблем с НУЦ Минцифры в Linux
+    gigachat_timeout: float = 30.0
 
     # RAG и нормативно-справочная база
     rag_catalog_path: str = "data/demo_rates.json"
