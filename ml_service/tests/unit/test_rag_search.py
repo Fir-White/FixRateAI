@@ -21,9 +21,12 @@ def test_deterministic_embedding_similarity():
     sim_related = cosine_similarity(v1, v2)
     sim_unrelated = cosine_similarity(v1, v3)
 
-    # Нормализованные векторы дают косинус <= 1.0
     assert -1.0 <= sim_related <= 1.0
     assert -1.0 <= sim_unrelated <= 1.0
+    # Словоформы «трещин»/«трещины» нормализуются в один признак,
+    # а тексты про разные дефекты не должны быть похожи.
+    assert sim_related > sim_unrelated
+    assert sim_unrelated < 0.05
 
 
 def test_vector_search_engine(catalog):
@@ -32,6 +35,30 @@ def test_vector_search_engine(catalog):
     assert len(results) > 0
     top_rate, sim = results[0]
     assert top_rate.rate_code == "DEMO-FACADE-CRACK-01"
+
+
+def test_vector_search_pilot_scenarios_top1(catalog):
+    engine = VectorSearchEngine(catalog.list_all())
+    scenarios = [
+        ("заделка трещин на фасаде", "DEMO-FACADE-CRACK-01"),
+        ("скололась плитка", "DEMO-TILE-CHIP-01"),
+        ("протечка воды в подземном паркинге", "DEMO-PARKING-LEAK-01"),
+    ]
+    for query, expected_code in scenarios:
+        results = engine.search(query, top_k=3)
+        assert results, f"Нет кандидатов для запроса: {query}"
+        assert results[0][0].rate_code == expected_code, query
+
+
+def test_vector_search_filters_irrelevant_candidates(catalog):
+    engine = VectorSearchEngine(catalog.list_all())
+    assert engine.search("покраска забора", top_k=5) == []
+
+
+def test_vector_search_min_similarity_override(catalog):
+    engine = VectorSearchEngine(catalog.list_all(), min_similarity=0.0)
+    results = engine.search("покраска забора", top_k=5)
+    assert len(results) == len(catalog.list_all())
 
 
 def test_hybrid_rag_search_pilot_scenarios(catalog):
