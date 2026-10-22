@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from app.cv.schemas import CVInferenceResult
 from app.llm.schemas import NormalizedDefectDescription
+from app.ocr.schemas import DocumentExtractionResult
 from app.schemas.common import ExtractedField, SourceType
 from app.schemas.request import JobRequestDTO, KnownMeasurementDTO
 from app.schemas.response import DetectedDefectDTO
@@ -72,8 +73,9 @@ def merge_defect_sources(
     request: JobRequestDTO,
     cv_result: CVInferenceResult | None,
     text_norm: NormalizedDefectDescription | None,
+    ocr_results: list[DocumentExtractionResult] | None = None,
 ) -> list[DetectedDefectDTO]:
-    """Объединяет детекции CV, извлечённый текст и явные измерения пользователя."""
+    """Объединяет детекции CV, OCR-документы, извлечённый текст и явные измерения пользователя."""
     defects_by_type: dict[str, DetectedDefectDTO] = {}
 
     # 1. Добавляем дефекты от CV
@@ -121,6 +123,37 @@ def merge_defect_sources(
                 source_ref="user_description_text",
                 confidence=None,
             )
+
+    # 2.5. Добавляем данные из актов и документов (OCR)
+    if ocr_results:
+        from app.llm.mock_provider import MockLLMProvider
+        ocr_extractor = MockLLMProvider()
+        for doc in ocr_results:
+            for page in doc.pages:
+                if not page.text:
+                    continue
+                parsed = ocr_extractor.complete_structured(page.text, NormalizedDefectDescription)
+                doc_code = parsed.detected_defect_type
+                if doc_code:
+                    if doc_code not in defects_by_type:
+                        defects_by_type[doc_code] = DetectedDefectDTO(
+                            defect_id=f"def-ocr-{uuid4().hex[:8]}",
+                            defect_type_code=doc_code,
+                            defect_type_name=DEFECT_NAMES.get(doc_code, doc_code),
+                            confidence=page.confidence or 0.85,
+                            location_description=parsed.location_details,
+                            measurements={},
+                        )
+                    for param, val in parsed.extracted_measurements.items():
+                        if param not in defects_by_type[doc_code].measurements:
+                            defects_by_type[doc_code].measurements[param] = ExtractedField[Decimal](
+                                field_name=param,
+                                value=val,
+                                unit=_unit_for_parameter(param),
+                                source_type=SourceType.OCR,
+                                source_ref=f"{doc.file_name}:p{page.page_number}",
+                                confidence=page.confidence,
+                            )
 
     # 3. Приоритетное наложение явно переданных измерений пользователя (known_measurements).
     # Они применяются последними и перекрывают измерения, извлечённые из текста.

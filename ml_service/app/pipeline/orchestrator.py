@@ -5,11 +5,13 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
+from app.calculation.audit import EstimateAuditor
 from app.calculation.engine import CalculationEngine
 from app.core.config import get_settings
 from app.cv.schemas import CVInferenceResult
 from app.cv.service import CVService
 from app.llm.gateway import LLMGateway
+from app.ocr.document_parser import DocumentParser
 from app.pipeline.merge import merge_defect_sources
 from app.pipeline.state import InternalPipelineContext, PipelineStage
 from app.pipeline.validation import validate_defect_completeness
@@ -31,10 +33,12 @@ class PipelineOrchestrator:
         llm_gateway: LLMGateway | None = None,
         rag_engine: HybridRAGSearchEngine | None = None,
         calc_engine: CalculationEngine | None = None,
+        doc_parser: DocumentParser | None = None,
     ) -> None:
         settings = get_settings()
         self.cv_service = cv_service or CVService()
         self.llm_gateway = llm_gateway or LLMGateway()
+        self.doc_parser = doc_parser or DocumentParser()
 
         if rag_engine is not None:
             self.rag_engine = rag_engine
@@ -66,21 +70,56 @@ class PipelineOrchestrator:
                     import base64
                     raw_bytes = base64.b64decode(target_file.file_bytes_base64)
                     ctx.cv_result = self.cv_service.detect_image(raw_bytes)
+                elif target_file.file_path:
+                    logger.warning("Файл изображения не найден: %s", target_file.file_path)
+                    ctx.warnings.append(f"Файл изображения '{target_file.file_path}' не найден на диске")
                 else:
-                    # В режиме mock-тестирования при отсутствии физического файла вызываем детекцию dummy
-                    from app.cv.image_io import Image
-                    import io
-                    dummy = Image.new("RGB", (640, 480), color="gray")
-                    buf = io.BytesIO()
-                    dummy.save(buf, format="JPEG")
-                    ctx.cv_result = self.cv_service.detect_image(buf.getvalue())
+                    ctx.warnings.append(
+                        f"Изображение '{target_file.file_id}' не содержит данных (нет file_path или file_bytes_base64), CV пропущен"
+                    )
 
-                ctx.audit_trail.append(
-                    f"CV инференс: статус={ctx.cv_result.status}, детекций={len(ctx.cv_result.detections)}"
-                )
+                if ctx.cv_result is not None:
+                    ctx.audit_trail.append(
+                        f"CV инференс: статус={ctx.cv_result.status}, детекций={len(ctx.cv_result.detections)}"
+                    )
             except Exception as e:
                 logger.warning("Ошибка при вызове CV для файла %s: %s", target_file.file_id, e)
                 ctx.warnings.append(f"Ошибка анализа изображения {target_file.file_id}: {e}")
+
+        # -------------------------------------------------------------
+        # Этап 1.5: Извлечение текста и таблиц из документов (OCR)
+        # -------------------------------------------------------------
+        document_files = [f for f in request.files if f.file_type == "document"]
+        ocr_results = []
+        if document_files:
+            for doc_file in document_files:
+                try:
+                    if doc_file.file_path and Path(doc_file.file_path).is_file():
+                        doc_res = self.doc_parser.parse_document(
+                            doc_file.file_path,
+                            document_id=doc_file.file_id,
+                            file_name=Path(doc_file.file_path).name,
+                        )
+                        ocr_results.append(doc_res)
+                    elif doc_file.file_bytes_base64:
+                        import base64
+                        doc_bytes = base64.b64decode(doc_file.file_bytes_base64)
+                        doc_res = self.doc_parser.parse_document(
+                            doc_bytes,
+                            document_id=doc_file.file_id,
+                            file_name=doc_file.file_id,
+                        )
+                        ocr_results.append(doc_res)
+                    else:
+                        ctx.warnings.append(
+                            f"Документ '{doc_file.file_id}' не содержит данных (нет file_path или file_bytes_base64)"
+                        )
+                except Exception as e:
+                    logger.warning("Ошибка разбора документа %s: %s", doc_file.file_id, e)
+                    ctx.warnings.append(f"Ошибка обработки документа {doc_file.file_id}: {e}")
+
+            if ocr_results:
+                ctx.audit_trail.append(f"OCR разбор: обработано документов={len(ocr_results)}")
 
         # -------------------------------------------------------------
         # Этап 2: LLM нормализация текста описания
@@ -88,6 +127,10 @@ class PipelineOrchestrator:
         ctx.stage = PipelineStage.TEXT_NORMALIZATION
         if request.description_text:
             ctx.text_norm = self.llm_gateway.normalize_user_text(request.description_text)
+            if ctx.text_norm.is_fallback:
+                ctx.warnings.append("LLM недоступен: сработал локальный эвристический парсер (fallback)")
+                ctx.audit_trail.append(f"LLM fallback активирован: {ctx.text_norm.provider_info}")
+
             ctx.audit_trail.append(
                 f"LLM разбор текста: тип={ctx.text_norm.detected_defect_type}, "
                 f"измерений={len(ctx.text_norm.extracted_measurements)}"
@@ -101,8 +144,30 @@ class PipelineOrchestrator:
             request=request,
             cv_result=ctx.cv_result,
             text_norm=ctx.text_norm,
+            ocr_results=ocr_results if ocr_results else None,
         )
         ctx.audit_trail.append(f"Слияние данных: сформировано дефектов={len(ctx.merged_defects)}")
+
+        # Защита от пустого запроса без дефектов
+        if not ctx.merged_defects:
+            ctx.stage = PipelineStage.FAILED
+            ctx.status = PipelineStatus.FAILED
+            ctx.warnings.append("В запросе не обнаружено данных о дефектах для формирования сметы")
+            elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+            return JobResponseDTO(
+                job_id=request.job_id,
+                request_id=request.request_id,
+                status=ctx.status,
+                pipeline_version=request.pipeline_version,
+                processing_time_ms=elapsed_ms,
+                defects=[],
+                estimate_items=[],
+                total_cost=None,
+                currency="RUB",
+                clarification_questions=[],
+                warnings=ctx.warnings,
+                audit_trail=ctx.audit_trail,
+            )
 
         # -------------------------------------------------------------
         # Этап 4: Валидация полноты параметров (ветвление clarification)
@@ -194,6 +259,42 @@ class PipelineOrchestrator:
         # Этап 7: QA аудит и вычисление итоговой сметной стоимости
         # -------------------------------------------------------------
         ctx.stage = PipelineStage.QA_AUDIT
+
+        # Защита от ложного completed: если для дефектов не рассчитана ни одна позиция
+        if not ctx.estimate_items:
+            ctx.stage = PipelineStage.FAILED
+            ctx.status = PipelineStatus.FAILED
+            ctx.warnings.append("Не удалось сформировать ни одной сметной позиции для обнаруженных дефектов")
+            elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+            return JobResponseDTO(
+                job_id=request.job_id,
+                request_id=request.request_id,
+                status=ctx.status,
+                pipeline_version=request.pipeline_version,
+                processing_time_ms=elapsed_ms,
+                defects=ctx.merged_defects,
+                estimate_items=[],
+                total_cost=None,
+                currency="RUB",
+                clarification_questions=[],
+                warnings=ctx.warnings,
+                audit_trail=ctx.audit_trail,
+            )
+
+        # Вызов аудитора EstimateAuditor для каждой сметной позиции
+        for item in ctx.estimate_items:
+            audit_res = EstimateAuditor.audit_item(item)
+            if not audit_res.is_valid:
+                has_review_items = True
+                ctx.warnings.extend(audit_res.errors)
+            if audit_res.warnings:
+                has_review_items = True
+                ctx.warnings.extend(audit_res.warnings)
+
+        if len(ctx.estimate_items) < len(ctx.merged_defects):
+            has_review_items = True
+            ctx.warnings.append("Смета рассчитана не полностью: часть дефектов не получила применимой расценки")
+
         total_cost = self.calc_engine.calculate_total_cost(ctx.estimate_items)
         ctx.audit_trail.append(f"Итоговая стоимость сметы: {total_cost} RUB")
 

@@ -73,10 +73,15 @@ class GigaChatProvider(LLMProviderProtocol):
     def _get_client(self) -> Any:
         """Ленивая инициализация клиента GigaChat."""
         if self._client is None:
-            from gigachat import GigaChat
-
             if not self.credentials:
                 raise ValueError("GigaChat credentials не настроены. Укажите ML_GIGACHAT_CREDENTIALS в .env")
+
+            try:
+                from gigachat import GigaChat
+            except ImportError as e:
+                raise ImportError(
+                    "Пакет 'gigachat' не установлен в окружении. Установите: pip install gigachat"
+                ) from e
 
             self._client = GigaChat(
                 credentials=self.credentials,

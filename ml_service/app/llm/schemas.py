@@ -53,6 +53,14 @@ class NormalizedDefectDescription(BaseModel):
         default_factory=list,
         description="Неясности или противоречия в описании",
     )
+    is_fallback: bool = Field(
+        default=False,
+        description="Флаг деградации на локальный эвристический fallback",
+    )
+    provider_info: str | None = Field(
+        default=None,
+        description="Диагностическая информация о провайдере модели",
+    )
 
     @field_validator("extracted_measurements")
     @classmethod

@@ -101,3 +101,80 @@ def test_orchestrator_tile_chip_scenario(orchestrator):
     assert item.quantity == Decimal("0.2700")
     assert item.line_total == Decimal("324.00")
     assert res.total_cost == Decimal("324.00")
+
+
+def test_orchestrator_empty_request_returns_failed(orchestrator):
+    # Запрос без описания дефекта и без данных изображения возвращает FAILED
+    req = JobRequestDTO(
+        description_text="",
+        files=[FileInputDTO(file_id="empty-1", file_type="image", mime_type="image/jpeg")],
+    )
+    res = orchestrator.process_job(req)
+    assert res.status == PipelineStatus.FAILED
+    assert res.total_cost is None
+    assert len(res.estimate_items) == 0
+    assert any("не обнаружено" in w.lower() for w in res.warnings)
+
+
+def test_orchestrator_auditor_flags_anomalous_volume(orchestrator):
+    # Запрос с огромным объемом (>5000 м2) проходит расчет, но EstimateAuditor помечает needs_review
+    req = JobRequestDTO(
+        description_text="Огромная трещина на фасаде здания",
+        known_measurements=[
+            KnownMeasurementDTO(
+                parameter_name="length_m",
+                numeric_value=Decimal("60000.0"),  # S = 60000 * 0.1 = 6000 m2 > 5000
+                unit_code="m",
+            )
+        ],
+    )
+    res = orchestrator.process_job(req)
+    assert res.status == PipelineStatus.NEEDS_REVIEW
+    assert len(res.estimate_items) == 1
+    assert any("аномально большой объём" in w for w in res.warnings)
+
+
+def test_orchestrator_diagnostics_when_llm_fallback_used(orchestrator):
+    # Когда основной LLM провайдер падает, активируется fallback с явной диагностикой в warnings
+    from app.llm.gateway import LLMGateway
+
+    class FailingProvider:
+        def complete_structured(self, prompt, schema_cls):
+            raise ConnectionError("GigaChat API timeout")
+
+    failing_gateway = LLMGateway(provider=FailingProvider())
+    orch = PipelineOrchestrator(llm_gateway=failing_gateway)
+
+    req = JobRequestDTO(
+        description_text="Трещина на фасаде, длина 2.0 метра",
+    )
+    res = orch.process_job(req)
+    assert res.status == PipelineStatus.COMPLETED
+    assert any("fallback" in w.lower() for w in res.warnings)
+    assert any("LLM fallback" in a for a in res.audit_trail)
+
+
+def test_orchestrator_ocr_document_integration(orchestrator):
+    # Передача документа извлекает текст через DocumentParser и включает в смету
+    import base64
+    doc_text = "Дефектный акт: трещина на фасаде здания, длина 3.0 метра"
+    doc_b64 = base64.b64encode(doc_text.encode("utf-8")).decode("ascii")
+
+    req = JobRequestDTO(
+        description_text="",
+        files=[
+            FileInputDTO(
+                file_id="doc-1",
+                file_type="document",
+                mime_type="text/plain",
+                file_bytes_base64=doc_b64,
+            )
+        ],
+    )
+    res = orchestrator.process_job(req)
+    assert res.status == PipelineStatus.COMPLETED
+    assert len(res.estimate_items) == 1
+    assert res.estimate_items[0].rate_code == "DEMO-FACADE-CRACK-01"
+    # S = 3.0 * 0.1 = 0.3 m2; 0.3 * 850.00 = 255.00 RUB
+    assert res.estimate_items[0].line_total == Decimal("255.00")
+

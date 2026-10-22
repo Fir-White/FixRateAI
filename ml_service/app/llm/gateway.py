@@ -49,6 +49,9 @@ class LLMGateway:
                 return NormalizedDefectDescription.model_validate(result.model_dump())
             return NormalizedDefectDescription.model_validate(result)
         except Exception as e:
-            logger.error("Ошибка при вызове LLM провайдера: %s, переключение на эвристический fallback", e)
+            logger.warning("Ошибка при вызове LLM провайдера: %s, переключение на эвристический fallback", e)
             fallback = MockLLMProvider()
-            return fallback.complete_structured(prompt, NormalizedDefectDescription)
+            fb_res = fallback.complete_structured(prompt, NormalizedDefectDescription)
+            fb_res.is_fallback = True
+            fb_res.provider_info = f"fallback: {type(e).__name__} ({e})"
+            return fb_res
