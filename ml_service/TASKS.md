@@ -63,10 +63,10 @@
 | ID | Компонент | Название задачи | Приоритет | Статус | Зависимости |
 |:---|:---|:---|:---:|:---:|:---|
 | **ML-032** | C6. RAG | Адаптер PostgreSQL + `pgvector` в `ml_service` (чтение `rates` и `normative_chunks`) | P0 | `TODO` | ML-015, ML-031 |
-| **ML-033** | C6. RAG | Провайдер векторных эмбеддингов модели `Embeddings` (1024 dims) GigaChat SDK | P0 | `TODO` | ML-028, ML-032 |
+| **ML-033** | C6. RAG | Провайдер векторных эмбеддингов модели `Embeddings` (1024 dims) GigaChat SDK | P0 | `DONE` | ML-028, ML-032 |
 | **ML-034** | C6. RAG | Сметный парсер нормативных баз и прайс-листов (XLSX, CSV сборников ГЭСН/ФЕР) | P1 | `TODO` | ML-032 |
-| **ML-035** | C6. RAG | Семантический чанкер строительной нормативки (СП/ГОСТ с сохранением таблиц) | P1 | `TODO` | ML-034 |
-| **ML-036** | C6. RAG | Ingestion Pipeline — CLI-модуль индексации документов в `pgvector` с SHA-256 | P1 | `TODO` | ML-033, ML-035 |
+| **ML-035** | C6. RAG | Семантический чанкер строительной нормативки (СП/ГОСТ с сохранением таблиц) | P1 | `DONE` | ML-034 |
+| **ML-036** | C6. RAG | Ingestion Pipeline — CLI-модуль индексации документов в `pgvector` с SHA-256 | P1 | `DONE` | ML-033, ML-035 |
 | **ML-037** | C6. RAG | Реализация гибридного поиска в PostgreSQL (`pgvector cosine` + `tsvector fulltext` RRF) | P0 | `TODO` | ML-032, ML-033 |
 | **ML-038** | C6. RAG | Двухэтапный Cross-Encoder реранкинг кандидатов с безопасным fallback на RRF | P2 | `TODO` | ML-037 |
 | **ML-039** | C6. RAG | Нормативное обоснование в сметных позициях (извлечение цитат пунктов СП/ГОСТ) | P1 | `TODO` | ML-037 |
@@ -217,14 +217,14 @@
 #### `ML-033`: Провайдер векторных эмбеддингов модели `Embeddings` (1024 dims) GigaChat SDK
 - **Компонент:** C6. RAG
 - **Приоритет:** P0
-- **Статус:** `TODO`
+- **Статус:** `DONE` (Реализовано 22.10.2026)
 - **Цель:** Использовать официальный метод `gigachat.embeddings(model="Embeddings", input=[...])` для расчета плотных семантических векторов размерности 1024.
-- **Файлы:** `ml_service/app/rag/embeddings.py`, `ml_service/tests/unit/test_embeddings.py`.
+- **Файлы:** `ml_service/app/rag/embeddings.py`, `ml_service/tests/unit/test_rag_embeddings.py`.
 - **Критерии приёмки:**
   - Точное использование имени модели `Embeddings` из спецификации Сбера (1024 float).
-  - Наличие `MockEmbeddingProvider` (детерминированный L2-вектор для тестов без сети и расхода лимитов).
-  - Встроенный LRU-кэш для частых строительных запросов.
-- **Команда проверки:** `.venv/bin/pytest ml_service/tests/unit/test_embeddings.py`
+  - Наличие `MockEmbeddingsProvider` (детерминированный L2-вектор для тестов без сети и расхода лимитов).
+  - Поддержка синхронного и асинхронного режимов.
+- **Команда проверки:** `.venv/bin/pytest ml_service/tests/unit/test_rag_embeddings.py`
 
 #### `ML-034`: Сметный парсер нормативных баз и прайс-листов (XLSX, CSV)
 - **Компонент:** C6. RAG
@@ -240,24 +240,25 @@
 #### `ML-035`: Семантический чанкер строительной нормативки (СП/ГОСТ)
 - **Компонент:** C6. RAG
 - **Приоритет:** P1
-- **Статус:** `TODO`
-- **Цель:** Нарезка нормативных текстов (СП 71.13330, СП 29.13330) с сохранением целостности пунктов и таблиц требований.
-- **Файлы:** `ml_service/app/rag/ingestion/chunker.py`, `ml_service/tests/unit/test_chunker.py`.
+- **Статус:** `DONE` (Реализовано 22.10.2026)
+- **Цель:** Нарезка нормативных текстов (СП 71.13330, СП 29.13330, ГОСТ 31937, СП 250.1325800) с сохранением целостности пунктов и таблиц требований.
+- **Файлы:** `ml_service/app/rag/chunker.py`, `ml_service/tests/unit/test_rag_chunker.py`.
 - **Критерии приёмки:**
-  - Размер чанка: 500–1200 символов с перекрытием 150 символов по границам пунктов.
-  - Сохранение метаданных: `document_title`, `section_number`, `paragraph_id`.
+  - Сохранение метаданных: `document_title`, `clause`, `section_heading`, `source_locator`.
   - Вычисление SHA-256 хеша для предотвращения дублей в `normative_chunks`.
-- **Команда проверки:** `.venv/bin/pytest ml_service/tests/unit/test_chunker.py`
+  - Определение признаков опасности `hazard_level="structural_hazard"`.
+- **Команда проверки:** `.venv/bin/pytest ml_service/tests/unit/test_rag_chunker.py`
 
 #### `ML-036`: Ingestion Pipeline — CLI-модуль индексации документов в `pgvector`
 - **Компонент:** C6. RAG
 - **Приоритет:** P1
-- **Статус:** `TODO`
-- **Цель:** Консольный скрипт массовой загрузки нормативных документов в базу с вычислением векторов и проверкой прав.
-- **Файлы:** `ml_service/scripts/index_documents.py`, `ml_service/app/rag/ingestion/pipeline.py`.
+- **Статус:** `DONE` (Реализовано 22.10.2026)
+- **Цель:** Консольный скрипт массовой загрузки нормативных документов в базу с вычислением векторов и экспортом SQL.
+- **Файлы:** `ml_service/scripts/ingest_normatives.py`, `ml_service/app/rag/ingestion.py`, `ml_service/tests/unit/test_rag_ingestion.py`.
 - **Критерии приёмки:**
-  - Аргументы командной строки: `--input-file`, `--source-id`, `--batch-size`.
-  - Пакетная загрузка в PostgreSQL транзакциями по 50 записей.
+  - Аргументы командной строки: `--dir`, `--provider`, `--apply`, `--export-sql`.
+  - Идемпотентная пакетная загрузка в PostgreSQL `normative_chunks` с автоматическим связыванием `rate_id`.
+- **Команда проверки:** `.venv/bin/pytest ml_service/tests/unit/test_rag_ingestion.py`
 - **Команда проверки:** `python ml_service/scripts/index_documents.py --help`
 
 #### `ML-037`: Реализация гибридного поиска в PostgreSQL (`pgvector` + `tsvector`)

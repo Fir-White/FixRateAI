@@ -10,15 +10,35 @@
 ## 1. Общий прогресс разработки
 
 - **Всего микрозадач в целевом плане:** 70
-- **Выполнено (`DONE`):** 31 / 70 (44.3%) — *Фаза 1 (MVP-каркас) и Фаза 1.1 (Стабилизация ядра) завершены на 100%*
+- **Выполнено (`DONE`):** 34 / 70 (48.6%) — *Фаза 1, 1.1 и задачи RAG Ingestion (ML-033, ML-035, ML-036) завершены*
 - **Заменено (`SUPERSEDED`):** 1 / 70 (`ML-009`: заменена на фазу сбора датасета `ML-042`)
 - **В работе (`IN_PROGRESS`):** 0 / 70
 - **Заблокировано (`BLOCKED`):** 0 / 70
-- **Ожидают выполнения (`TODO`):** 38 / 70 (54.3%) — *Фазы 2–7 (PII/Safety, промышленный RAG, обучение YOLO, боевой OCR, асинхронные воркеры)*
+- **Ожидают выполнения (`TODO`):** 35 / 70 (50.0%) — *Фазы 2–7 (PII/Safety, гибридный RAG-поиск, обучение YOLO, боевой OCR, асинхронные воркеры)*
 
 ---
 
 ## 2. Хронологический журнал сессий
+
+### Сессия 7: Индексация и загрузка нормативов в pgvector ({RAG} Ingestion Pipeline) (22.10.2026)
+
+#### Что сделано:
+1. **Реализация провайдера векторных эмбеддингов (`ML-033`):**
+   - В [`app/rag/embeddings.py`](file:///home/handraqw/Projects/FixRate_AI/ml_service/app/rag/embeddings.py) реализован [`GigaChatEmbeddingsProvider`](file:///home/handraqw/Projects/FixRate_AI/ml_service/app/rag/embeddings.py#L86) (модель `Embeddings` Сбера размерности 1024) с пакетной обработкой, безопасным fallback и поддержкой асинхронных вызовов `aembeddings()`.
+   - Реализован [`MockEmbeddingsProvider`](file:///home/handraqw/Projects/FixRate_AI/ml_service/app/rag/embeddings.py#L42) с детерминированной L2-нормализацией и морфологическим стеммингом русского языка для герметичных тестов без внешних API.
+2. **Семантический чанкер нормативной документации (`ML-035`):**
+   - В [`app/rag/chunker.py`](file:///home/handraqw/Projects/FixRate_AI/ml_service/app/rag/chunker.py) создан [`NormativeChunker`](file:///home/handraqw/Projects/FixRate_AI/ml_service/app/rag/chunker.py#L52), разбирающий нормативные документы на пункты/статьи с формированием `source_locator`, `metadata`, определением признаков аварийности (`hazard_level="structural_hazard"`) и расчетом SHA-256 хеша.
+3. **Ingestion Pipeline и CLI-индексатор (`ML-036`):**
+   - В [`app/rag/ingestion.py`](file:///home/handraqw/Projects/FixRate_AI/ml_service/app/rag/ingestion.py) реализован [`NormativeIngestionPipeline`](file:///home/handraqw/Projects/FixRate_AI/ml_service/app/rag/ingestion.py#L41) с пакетной загрузкой в таблицу `normative_chunks` PostgreSQL `pgvector`, связыванием `rate_id` и экспортом готового SQL seed-файла [`data/seed_normative_chunks.sql`](file:///home/handraqw/Projects/FixRate_AI/ml_service/data/seed_normative_chunks.sql).
+   - Создана консольная утилита [`scripts/ingest_normatives.py`](file:///home/handraqw/Projects/FixRate_AI/ml_service/scripts/ingest_normatives.py) с поддержкой режимов `--apply`, `--dry-run` и `--export-sql`.
+4. **Корпус нормативных документов:**
+   - Подготовлены 4 регламента в [`data/normatives/`](file:///home/handraqw/Projects/FixRate_AI/ml_service/data/normatives/): СП 71.13330 (фасады), ГОСТ 31937 (аварийные трещины), СП 29.13330 (полы и плитка), СП 250.1325800 (гидроизоляция паркингов).
+   - Выполнена боевая индексация: 16 чанков успешно сохранены в PostgreSQL контейнера `fixrate_postgres` и проверены векторным поиском (`<=>`) и полнотекстовым поиском (`tsvector`).
+5. **Тестирование:**
+   - Написаны 17 новых модульных тестов (`test_rag_chunker.py`, `test_rag_embeddings.py`, `test_rag_ingestion.py`).
+   - Итог по тестам ML Service: **120 passed** (100% герметичны).
+
+---
 
 ### Сессия 6: Исправление замечаний аудита ядра и ревизия бэклога v3.0 (22.10.2026)
 
