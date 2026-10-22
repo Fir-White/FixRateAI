@@ -1,6 +1,6 @@
 """Схемы входных данных для ML Service."""
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid4
 from pydantic import BaseModel, Field
 from app.schemas.common import UnitCode
@@ -34,6 +34,7 @@ class FileInputDTO(BaseModel):
 
 class JobRequestDTO(BaseModel):
     """Входной контракт на запуск обработки AI-пайплайна."""
+    schema_version: Literal["1.0"] = "1.0"
     request_id: str = Field(default_factory=lambda: str(uuid4()))
     job_id: str = Field(default_factory=lambda: str(uuid4()))
     description_text: str | None = None

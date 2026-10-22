@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fixrate.ai/contracts/v1/fixrate-contracts.json",
+  "title": "FixRate AI module contracts",
+  "description": "Versioned JSON contracts for Backend, CV, NLP, RAG, validation and calculation.",
+  "$defs": {
+    "Source": {
+      "type": "string",
+      "enum": ["photo", "text", "object", "user", "ocr", "cv", "nlp", "rag", "calc"]
+    },
+    "Unit": {
+      "type": "string",
+      "enum": ["mm", "m", "m2", "m3", "pcs", "kg"]
+    },
+    "JobStatus": {
+      "type": "string",
+      "enum": ["completed", "needs_clarification", "not_found", "failed"]
+    },
+    "ValidationStatus": {
+      "type": "string",
+      "enum": ["valid", "missing", "invalid_unit", "conflict", "not_found", "failed"]
+    },
+    "Provenance": {
+      "type": "object",
+      "required": ["source"],
+      "properties": {
+        "source": {"$ref": "#/$defs/Source"},
+        "source_id": {"type": ["string", "null"]},
+        "source_ref": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    },
+    "Measurement": {
+      "type": "object",
+      "required": ["name", "value", "unit", "provenance", "validation_status"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "value": {"type": "number", "exclusiveMinimum": 0},
+        "unit": {"$ref": "#/$defs/Unit"},
+        "provenance": {"$ref": "#/$defs/Provenance"},
+        "validation_status": {"$ref": "#/$defs/ValidationStatus"},
+        "warnings": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "Photo": {
+      "type": "object",
+      "required": ["file_id", "mime_type"],
+      "properties": {
+        "file_id": {"type": "string", "minLength": 1},
+        "mime_type": {"type": "string", "pattern": "^image/"},
+        "file_path": {"type": ["string", "null"]},
+        "sha256": {"type": ["string", "null"], "pattern": "^[a-fA-F0-9]{64}$"}
+      },
+      "additionalProperties": false
+    },
+    "ObjectContext": {
+      "type": "object",
+      "properties": {
+        "building_id": {"type": ["string", "null"]},
+        "building_type": {"type": ["string", "null"]},
+        "wall_material": {"type": ["string", "null"]},
+        "construction_year": {"type": ["integer", "null"], "minimum": 1800},
+        "additional_properties": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "JobRequest": {
+      "type": "object",
+      "required": ["schema_version", "request_id", "job_id", "photos", "description", "object", "measurements"],
+      "properties": {
+        "schema_version": {"type": "string", "pattern": "^1\\.0$"},
+        "request_id": {"type": "string", "minLength": 1},
+        "job_id": {"type": "string", "minLength": 1},
+        "photos": {"type": "array", "items": {"$ref": "#/$defs/Photo"}},
+        "description": {"type": ["string", "null"]},
+        "object": {"anyOf": [{"$ref": "#/$defs/ObjectContext"}, {"type": "null"}]},
+        "measurements": {"type": "array", "items": {"$ref": "#/$defs/Measurement"}}
+      },
+      "additionalProperties": false
+    },
+    "CVResult": {
+      "type": "object",
+      "required": ["schema_version", "request_id", "job_id", "status", "detections", "warnings"],
+      "properties": {
+        "schema_version": {"type": "string", "pattern": "^1\\.0$"},
+        "request_id": {"type": "string"},
+        "job_id": {"type": "string"},
+        "status": {"$ref": "#/$defs/JobStatus"},
+        "detections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["defect_type", "confidence", "bbox", "provenance"],
+            "properties": {
+              "defect_type": {"type": "string"},
+              "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+              "bbox": {
+                "type": "object",
+                "required": ["x_min", "y_min", "x_max", "y_max"],
+                "properties": {
+                  "x_min": {"type": "number", "minimum": 0, "maximum": 1},
+                  "y_min": {"type": "number", "minimum": 0, "maximum": 1},
+                  "x_max": {"type": "number", "minimum": 0, "maximum": 1},
+                  "y_max": {"type": "number", "minimum": 0, "maximum": 1}
+                },
+                "additionalProperties": false
+              },
+              "provenance": {"$ref": "#/$defs/Provenance"}
+            },
+            "additionalProperties": false
+          }
+        },
+        "warnings": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "NLPResult": {
+      "type": "object",
+      "required": ["schema_version", "request_id", "job_id", "status", "defect_type", "measurements", "warnings"],
+      "properties": {
+        "schema_version": {"type": "string", "pattern": "^1\\.0$"},
+        "request_id": {"type": "string"},
+        "job_id": {"type": "string"},
+        "status": {"$ref": "#/$defs/JobStatus"},
+        "defect_type": {"type": ["string", "null"]},
+        "measurements": {"type": "array", "items": {"$ref": "#/$defs/Measurement"}},
+        "warnings": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "RateSearchResult": {
+      "type": "object",
+      "required": ["schema_version", "request_id", "job_id", "status", "candidates", "warnings"],
+      "properties": {
+        "schema_version": {"type": "string", "pattern": "^1\\.0$"},
+        "request_id": {"type": "string"},
+        "job_id": {"type": "string"},
+        "status": {"$ref": "#/$defs/JobStatus"},
+        "candidates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["rate_code", "work_type", "unit", "price", "source_id", "provenance"],
+            "properties": {
+              "rate_code": {"type": "string"},
+              "work_type": {"type": "string"},
+              "unit": {"$ref": "#/$defs/Unit"},
+              "price": {"type": "number", "minimum": 0},
+              "source_id": {"type": "string"},
+              "provenance": {"$ref": "#/$defs/Provenance"}
+            },
+            "additionalProperties": false
+          }
+        },
+        "warnings": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "EstimateItem": {
+      "type": "object",
+      "required": ["item_id", "work_type", "quantity", "unit", "rate_code", "price", "source_id", "formula", "validation_status", "warnings"],
+      "properties": {
+        "item_id": {"type": "string", "minLength": 1},
+        "work_type": {"type": "string", "minLength": 1},
+        "quantity": {"type": "number", "exclusiveMinimum": 0},
+        "unit": {"$ref": "#/$defs/Unit"},
+        "rate_code": {"type": "string", "minLength": 1},
+        "price": {"type": "number", "minimum": 0},
+        "source_id": {"type": "string", "minLength": 1},
+        "formula": {"type": "string", "minLength": 1},
+        "validation_status": {"$ref": "#/$defs/ValidationStatus"},
+        "warnings": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "JobResponse": {
+      "type": "object",
+      "required": ["schema_version", "request_id", "job_id", "status", "items", "warnings"],
+      "properties": {
+        "schema_version": {"type": "string", "pattern": "^1\\.0$"},
+        "request_id": {"type": "string"},
+        "job_id": {"type": "string"},
+        "status": {"$ref": "#/$defs/JobStatus"},
+        "items": {"type": "array", "items": {"$ref": "#/$defs/EstimateItem"}},
+        "total_cost": {"type": ["number", "null"], "minimum": 0},
+        "currency": {"type": "string", "const": "RUB"},
+        "clarifications": {"type": "array", "items": {"type": "string"}},
+        "warnings": {"type": "array", "items": {"type": "string"}},
+        "audit_trail": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "required": ["schema_version", "request_id", "job_id", "status", "error", "warnings"],
+      "properties": {
+        "schema_version": {"type": "string", "pattern": "^1\\.0$"},
+        "request_id": {"type": "string"},
+        "job_id": {"type": ["string", "null"]},
+        "status": {"enum": ["failed", "needs_clarification", "not_found"]},
+        "error": {
+          "type": "object",
+          "required": ["code", "message"],
+          "properties": {
+            "code": {"enum": ["INVALID_UNIT", "MISSING_SCALE", "NOT_FOUND", "MODULE_FAILED", "VALIDATION_ERROR"]},
+            "message": {"type": "string"},
+            "details": {"type": "array", "items": {"type": "string"}}
+          },
+          "additionalProperties": false
+        },
+        "warnings": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    }
+  }
+}
