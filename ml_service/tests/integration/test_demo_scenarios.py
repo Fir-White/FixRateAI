@@ -9,6 +9,8 @@ from fastapi.testclient import TestClient
 
 from app.cv.mock_detector import MockYoloDetector
 from app.cv.service import CVService
+from app.llm.gateway import LLMGateway
+from app.llm.mock_provider import MockLLMProvider
 from app.main import create_app
 from app.pipeline.orchestrator import PipelineOrchestrator
 from app.api.v1.process import get_orchestrator
@@ -19,7 +21,8 @@ def app_with_mock_cv():
     app = create_app()
     mock_cv = MockYoloDetector()
     cv_service = CVService(detector=mock_cv)
-    orchestrator = PipelineOrchestrator(cv_service=cv_service)
+    llm_gateway = LLMGateway(provider=MockLLMProvider())
+    orchestrator = PipelineOrchestrator(cv_service=cv_service, llm_gateway=llm_gateway)
 
     # Переопределяем зависимость оркестратора для тестов
     app.dependency_overrides[get_orchestrator] = lambda: orchestrator
