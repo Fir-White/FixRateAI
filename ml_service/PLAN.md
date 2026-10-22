@@ -66,7 +66,7 @@
 | **RAG (Поиск расценок)** | `PARTIAL` | `app/rag/catalog.py`, `lexical_search.py`, `vector_search.py`, `hybrid.py` | DEMO-справочник расценок, BM25 + Vector Cosine + RRF гибрид, фильтр применимости. |
 | **Детерминированный калькулятор** | `IMPLEMENTED` | `app/calculation/formulas.py`, `engine.py`, `audit.py` | Строгий `Decimal` (`ROUND_HALF_UP`), расчёт объёмов, надбавка запаса, аудит. ИИ к расчету денег не прикасается. |
 | **Оркестратор (Pipeline)** | `IMPLEMENTED` | `app/pipeline/merge.py`, `validation.py`, `orchestrator.py` | Слияние данных с приоритетом источников, определение нехватки параметров и генерация `needs_clarification`. |
-| **Автотесты ML Service** | `IMPLEMENTED` | `tests/unit/`, `tests/integration/` | **83 автотеста**, 100% pass rate. Проверены все 3 пилотных сценария. |
+| **Автотесты ML Service** | `IMPLEMENTED` | `tests/unit/`, `tests/integration/` | **99 автотестов**, 100% pass rate. Проверены все 3 пилотных сценария и ветки уточнений. |
 
 ---
 
