@@ -52,6 +52,8 @@ uvicorn app.main:app --reload
 | `GET` | `/api/v1/requests` | список с `limit`, `offset`, `status`, `building_id` |
 | `GET` | `/api/v1/requests/{request_id}` | получить заявку, фото и текущие размеры |
 | `PATCH` | `/api/v1/requests/{request_id}` | изменить текстовые поля, отменить или добавить размеры |
+| `POST` | `/api/v1/requests/{request_id}/estimate` | запустить MVP AI-пайплайн и сохранить черновик ВОР |
+| `GET` | `/api/v1/requests/{request_id}/estimate` | получить последнюю сохранённую версию сметы |
 
 Пример создания:
 
@@ -65,6 +67,31 @@ $body = @{
 Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/v1/requests `
   -ContentType "application/json" -Body $body
 ```
+
+После создания заявки запустите сквозной MVP с mock CV/LLM/RAG:
+
+```powershell
+$requestId = "<request_id из ответа POST>"
+Invoke-RestMethod -Method Post `
+  -Uri "http://127.0.0.1:8000/api/v1/requests/$requestId/estimate"
+```
+
+Ответ содержит `estimate.total_cost`, позиции ВОР, формулы, источники и
+`run.status`. Для демонстрационной заявки с текстом о трещине длиной 3 м
+ожидается площадь `0.3000 m2` и итог `255.00 RUB` по источнику `DEMO`.
+Демонстрационные расценки не являются ФЕР/ТЕР. Если масштаба недостаточно,
+ответ имеет `needs_clarification`, а смета не создаётся.
+
+ML Service должен быть запущен отдельно:
+
+```powershell
+cd ml_service
+..\venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8001
+```
+
+Backend использует `ML_BASE_URL=http://127.0.0.1:8001`. Каждый запуск
+сохраняется в `ai_runs` и `ai_results`, а сформированная версия — в
+`estimates` и `estimate_items`.
 
 В заявке можно передать уже сохранённую ссылку на фото вместо описания:
 

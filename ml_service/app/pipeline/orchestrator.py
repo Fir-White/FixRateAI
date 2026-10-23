@@ -19,7 +19,11 @@ from app.rag.catalog import RatesCatalog
 from app.rag.hybrid import HybridRAGSearchEngine
 from app.schemas.common import PipelineStatus
 from app.schemas.request import JobRequestDTO
-from app.schemas.response import EstimateItemDTO, JobResponseDTO
+from app.schemas.response import (
+    ClarificationQuestionDTO,
+    EstimateItemDTO,
+    JobResponseDTO,
+)
 
 logger = logging.getLogger("app.pipeline.orchestrator")
 
@@ -148,11 +152,24 @@ class PipelineOrchestrator:
         )
         ctx.audit_trail.append(f"Слияние данных: сформировано дефектов={len(ctx.merged_defects)}")
 
-        # Защита от пустого запроса без дефектов
+        # Без распознанного дефекта нельзя безопасно выбрать формулу и расценку.
         if not ctx.merged_defects:
-            ctx.stage = PipelineStage.FAILED
-            ctx.status = PipelineStatus.FAILED
-            ctx.warnings.append("В запросе не обнаружено данных о дефектах для формирования сметы")
+            ctx.stage = PipelineStage.CLARIFICATION_REQUIRED
+            ctx.status = PipelineStatus.NEEDS_CLARIFICATION
+            ctx.clarification_questions = [
+                ClarificationQuestionDTO(
+                    code="NO_DEFECT_DETECTED",
+                    field_name="defect_description",
+                    question_text=(
+                        "Опишите строительный дефект подробнее: что повреждено, "
+                        "где находится и какие есть измерения."
+                    ),
+                    severity="blocking",
+                )
+            ]
+            ctx.warnings.append(
+                "В запросе не обнаружено данных о дефектах для формирования сметы"
+            )
             elapsed_ms = int((time.perf_counter() - start_time) * 1000)
             return JobResponseDTO(
                 job_id=request.job_id,
@@ -164,7 +181,7 @@ class PipelineOrchestrator:
                 estimate_items=[],
                 total_cost=None,
                 currency="RUB",
-                clarification_questions=[],
+                clarification_questions=ctx.clarification_questions,
                 warnings=ctx.warnings,
                 audit_trail=ctx.audit_trail,
             )

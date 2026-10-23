@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     database_url: str = ""
     storage_dir: str = "var/storage"
     ml_base_url: str = ""
+    ml_timeout_seconds: float = 30.0
     jwt_secret: str = ""
     jwt_expire_minutes: int = 60
     demo_user_email: str = "demo.operator@fixrate.local"

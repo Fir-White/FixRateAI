@@ -33,6 +33,20 @@ def test_process_endpoint_needs_clarification(client):
     assert data["total_cost"] is None
 
 
+def test_process_endpoint_unknown_description_needs_clarification(client):
+    payload = {
+        "description_text": "Обнаружена пробоина в плите у реки",
+    }
+    response = client.post("/api/v1/process", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["status"] == "needs_clarification"
+    assert data["estimate_items"] == []
+    assert data["total_cost"] is None
+    assert data["clarification_questions"][0]["code"] == "NO_DEFECT_DETECTED"
+
+
 def test_process_endpoint_successful_estimate(client):
     payload = {
         "description_text": "Трещина на фасаде здания, длина 3.5 метра",

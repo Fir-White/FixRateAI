@@ -103,16 +103,17 @@ def test_orchestrator_tile_chip_scenario(orchestrator):
     assert res.total_cost == Decimal("324.00")
 
 
-def test_orchestrator_empty_request_returns_failed(orchestrator):
-    # Запрос без описания дефекта и без данных изображения возвращает FAILED
+def test_orchestrator_empty_request_returns_clarification(orchestrator):
+    # Без описания дефекта система запрашивает уточнение, а не выдумывает смету.
     req = JobRequestDTO(
         description_text="",
         files=[FileInputDTO(file_id="empty-1", file_type="image", mime_type="image/jpeg")],
     )
     res = orchestrator.process_job(req)
-    assert res.status == PipelineStatus.FAILED
+    assert res.status == PipelineStatus.NEEDS_CLARIFICATION
     assert res.total_cost is None
     assert len(res.estimate_items) == 0
+    assert res.clarification_questions[0].code == "NO_DEFECT_DETECTED"
     assert any("не обнаружено" in w.lower() for w in res.warnings)
 
 
@@ -177,4 +178,3 @@ def test_orchestrator_ocr_document_integration(orchestrator):
     assert res.estimate_items[0].rate_code == "DEMO-FACADE-CRACK-01"
     # S = 3.0 * 0.1 = 0.3 m2; 0.3 * 850.00 = 255.00 RUB
     assert res.estimate_items[0].line_total == Decimal("255.00")
-
