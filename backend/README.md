@@ -1,12 +1,14 @@
 # FixRate AI — backend
 
 FastAPI-сервер для приёма заявок на ремонт и формирования **черновика** сметы (ВОР).
-Сейчас реализованы каркас (карточка 1): сервер, health, Swagger, ошибки, логи,
-и слой БД (карточка 2): SQLAlchemy 2.0 + psycopg3, engine/session, 18 ORM-моделей по DDL.
-Бизнес-логики (заявки, фото, сметы, JWT) ещё нет — она в следующих карточках.
+Сейчас реализованы каркас (карточка 1), слой БД (карточка 2) и API заявок:
+SQLAlchemy 2.0 + psycopg3, engine/session, 18 ORM-моделей по DDL, а также
+создание, список, получение и редактирование заявок. Фото-файлы и JWT остаются
+в следующих карточках; API заявок уже возвращает сохранённые метаданные фото.
 
 Подробное описание решений: [`../docs/backend/card-1-fastapi-skeleton.md`](../docs/backend/card-1-fastapi-skeleton.md)
 и [`../docs/backend/card-2-database-models.md`](../docs/backend/card-2-database-models.md).
+Контракт и инструкция API заявок: [`../docs/backend/card-4-request-api.md`](../docs/backend/card-4-request-api.md).
 
 ## Требования
 - Python **3.12**
@@ -42,11 +44,80 @@ uvicorn app.main:app --reload
 | ReDoc | http://127.0.0.1:8000/redoc |
 | OpenAPI JSON | http://127.0.0.1:8000/openapi.json |
 
+## API заявок
+
+| Метод | Путь | Назначение |
+|---|---|---|
+| `POST` | `/api/v1/requests` | создать заявку |
+| `GET` | `/api/v1/requests` | список с `limit`, `offset`, `status`, `building_id` |
+| `GET` | `/api/v1/requests/{request_id}` | получить заявку, фото и текущие размеры |
+| `PATCH` | `/api/v1/requests/{request_id}` | изменить текстовые поля, отменить или добавить размеры |
+
+Пример создания:
+
+```powershell
+$body = @{
+  building_id = "d4000000-0000-4000-8000-000000000001"
+  title = "Трещина на фасаде у входа"
+  description = "Вертикальная трещина, длина около 3 м"
+  location_description = "подъезд 2, наружная стена"
+} | ConvertTo-Json
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/v1/requests `
+  -ContentType "application/json" -Body $body
+```
+
+В заявке можно передать уже сохранённую ссылку на фото вместо описания:
+
+```json
+{
+  "building_id": "d4000000-0000-4000-8000-000000000001",
+  "title": "Повреждение фасада",
+  "photos": [{
+    "storage_key": "requests/demo/photo-1.jpg",
+    "original_filename": "photo-1.jpg",
+    "mime_type": "image/jpeg",
+    "file_size": 123456,
+    "checksum_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }]
+}
+```
+
+Обновление размера:
+
+```powershell
+$body = @{
+  measurements = @(@{
+    parameter_code = "length_m"
+    value = 3.0
+    unit_code = "m"
+    is_approximate = $true
+  })
+} | ConvertTo-Json -Depth 5
+Invoke-RestMethod -Method Patch `
+  -Uri "http://127.0.0.1:8000/api/v1/requests/<request_id>" `
+  -ContentType "application/json" -Body $body
+```
+
 ## Проверка
 ```bash
-pytest -q          # ожидается: 24 passed, 10 skipped (без DATABASE_URL)
+pytest -q          # ожидается: 28 passed, 10 skipped (без DATABASE_URL)
 curl -i http://127.0.0.1:8000/health          # 200 + заголовок X-Request-ID
 curl -i http://127.0.0.1:8000/no-such-path    # 404 + единый JSON ошибки
+```
+
+Если в `backend/.env` уже указан `DATABASE_URL`, а PostgreSQL ещё не запущен,
+перед проверкой без БД в PowerShell очистите переменную текущего процесса:
+
+```powershell
+$env:DATABASE_URL=""
+python -m pytest -q
+```
+
+Если `8000` занят другим процессом, запускайте сервер на `8002` и открывайте
+`http://127.0.0.1:8002/docs`:
+
+```powershell
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8002 --reload
 ```
 
 Интеграционные проверки моделей против живой схемы включаются переменной
@@ -61,6 +132,13 @@ DATABASE_URL='postgresql+psycopg://fixrate:ChangeMe-local-only@localhost:5432/fi
 $env:DATABASE_URL="postgresql+psycopg://fixrate:ChangeMe-local-only@localhost:5432/fixrate"
 python -m pytest -q tests/test_models_db.py
 # с применённым DDL и DATABASE_URL полный прогон: 34 passed
+```
+
+Для Docker PostgreSQL на `5433` используйте:
+
+```powershell
+$env:DATABASE_URL="postgresql+psycopg://fixrate:ChangeMe-local-only@127.0.0.1:5433/fixrate"
+python -m pytest -q tests/test_models_db.py
 ```
 
 ## PostgreSQL (локально)

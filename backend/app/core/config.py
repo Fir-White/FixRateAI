@@ -3,8 +3,7 @@
 Все настройки берутся из переменных окружения / файла `.env` (pydantic-settings).
 Секретов в коде нет: значения по умолчанию — безопасные заглушки.
 `DATABASE_URL` используется карточкой 2 (engine/session и ORM-модели).
-Часть ключей (STORAGE_DIR, ML_BASE_URL, JWT_*) пока только зарезервирована
-под следующие карточки (3, 4, 5).
+JWT_* пока только зарезервированы под следующую карточку авторизации.
 """
 from functools import lru_cache
 
@@ -29,6 +28,7 @@ class Settings(BaseSettings):
     ml_base_url: str = ""
     jwt_secret: str = ""
     jwt_expire_minutes: int = 60
+    demo_user_email: str = "demo.operator@fixrate.local"
 
 
 @lru_cache
