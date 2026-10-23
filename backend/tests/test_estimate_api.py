@@ -48,21 +48,21 @@ def client():
 
 
 def test_run_estimate_contract(client):
-    response = client.post(f"/api/v1/requests/{REQUEST_ID}/estimate")
+    response = client.post(f"/api/v1/estimates/requests/{REQUEST_ID}")
     assert response.status_code == 201
     assert response.json()["run"]["status"] == "completed"
     assert response.json()["warnings"] == ["DEMO source"]
 
 
 def test_get_estimate_contract(client):
-    response = client.get(f"/api/v1/requests/{REQUEST_ID}/estimate")
+    response = client.get(f"/api/v1/estimates/requests/{REQUEST_ID}")
     assert response.status_code == 200
     assert response.json()["run"]["pipeline_version"] == "v2.0"
 
 
 def test_run_estimate_not_found(client):
     response = client.post(
-        "/api/v1/requests/d5000000-0000-0000-8000-000000000099/estimate"
+        "/api/v1/estimates/requests/d5000000-0000-0000-8000-000000000099"
     )
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "NOT_FOUND"

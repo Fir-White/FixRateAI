@@ -71,6 +71,12 @@ async def test_upload_and_get_survive_new_storage_instance(tmp_path: Path):
         ("defect.jpg", "image/jpeg", b"corrupted"),
         ("defect.jpg", "image/png", image_bytes()),
     ],
+    ids=[
+        "unsupported-extension",
+        "path-traversal-filename",
+        "corrupted-image",
+        "mime-extension-mismatch",
+    ],
 )
 async def test_invalid_upload_is_rejected_without_database_write(
     tmp_path: Path, filename: str, content_type: str, payload: bytes

@@ -91,7 +91,7 @@ def test_all_expected_checks_and_uniques_are_present():
     ]
 
     assert len(checks) == 64
-    assert len(uniques) == 13
+    assert len(uniques) == 14
     assert all(constraint.name for constraint in checks)
     assert all(constraint.name for constraint in uniques)
 

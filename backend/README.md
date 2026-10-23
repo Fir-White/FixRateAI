@@ -52,8 +52,8 @@ uvicorn app.main:app --reload
 | `GET` | `/api/v1/requests` | список с `limit`, `offset`, `status`, `building_id` |
 | `GET` | `/api/v1/requests/{request_id}` | получить заявку, фото и текущие размеры |
 | `PATCH` | `/api/v1/requests/{request_id}` | изменить текстовые поля, отменить или добавить размеры |
-| `POST` | `/api/v1/requests/{request_id}/estimate` | запустить MVP AI-пайплайн и сохранить черновик ВОР |
-| `GET` | `/api/v1/requests/{request_id}/estimate` | получить последнюю сохранённую версию сметы |
+| `POST` | `/api/v1/estimates/requests/{request_id}` | запустить MVP AI-пайплайн и сохранить черновик ВОР |
+| `GET` | `/api/v1/estimates/requests/{request_id}` | получить последнюю сохранённую версию сметы |
 
 Пример создания:
 
@@ -73,7 +73,7 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/v1/requests `
 ```powershell
 $requestId = "<request_id из ответа POST>"
 Invoke-RestMethod -Method Post `
-  -Uri "http://127.0.0.1:8000/api/v1/requests/$requestId/estimate"
+  -Uri "http://127.0.0.1:8000/api/v1/estimates/requests/$requestId"
 ```
 
 Ответ содержит `estimate.total_cost`, позиции ВОР, формулы, источники и
@@ -200,7 +200,7 @@ psql -X -v ON_ERROR_STOP=1 -h localhost -p 5432 -U fixrate -d fixrate -f db/003_
 
 ```powershell
 curl.exe -X POST -F "file=@C:\photos\defect.jpg" `
-  http://127.0.0.1:8000/api/v1/requests/<request_id>/photos
+  http://127.0.0.1:8000/api/v1/photos/requests/<request_id>
 curl.exe -o defect.jpg http://127.0.0.1:8000/api/v1/photos/<photo_id>
 ```
 

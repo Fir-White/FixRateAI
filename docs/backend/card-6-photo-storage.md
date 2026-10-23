@@ -6,7 +6,7 @@
 
 ## API
 
-- `POST /api/v1/requests/{request_id}/photos` — multipart-поле `file`;
+- `POST /api/v1/photos/requests/{request_id}` — multipart-поле `file`;
 - `GET /api/v1/photos/{photo_id}` — получение обработанной копии по UUID.
 
 Пример загрузки в PowerShell:
@@ -14,7 +14,7 @@
 ```powershell
 curl.exe -X POST `
   -F "file=@C:\photos\defect.jpg" `
-  http://127.0.0.1:8003/api/v1/requests/{request_id}/photos
+  http://127.0.0.1:8003/api/v1/photos/requests/{request_id}
 ```
 
 Ответ содержит `photo_id`, безопасные storage keys, исходное имя, MIME,
@@ -54,3 +54,21 @@ python -m pytest -q tests/test_photos.py
 экземпляра storage; повреждённый файл, несовпадающий MIME, недопустимое имя и
 неподдерживаемое расширение отклоняются без записи в БД. Полный интеграционный
 тест с PostgreSQL требует доступной БД и применённых миграций.
+
+Тестовые сценарии имеют короткие `ids`, поэтому бинарное содержимое JPEG
+не выводится в имени теста pytest. Локальный прогон:
+
+```powershell
+python -m pytest -q tests/test_photos.py
+```
+
+После применения миграции дополнительно проверить:
+
+- `python -m pytest -q` — весь backend-набор;
+- `tests/test_models_db.py` — соответствие ORM и PostgreSQL;
+- Swagger: загрузка фото, получение по `photo_id` и повторное получение после
+  перезапуска сервера.
+
+Обе операции находятся в одной группе `Photos` в Swagger; операции заявок и
+сметы находятся в отдельных группах `Requests` и `Estimates`. Сметы доступны
+через `POST` и `GET /api/v1/estimates/requests/{request_id}`.
