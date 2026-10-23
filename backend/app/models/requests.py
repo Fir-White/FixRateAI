@@ -120,6 +120,7 @@ class RequestPhoto(Base):
         nullable=False,
     )
     storage_key: Mapped[str] = mapped_column(Text, nullable=False)
+    processed_storage_key: Mapped[str | None] = mapped_column(Text)
     original_filename: Mapped[str] = mapped_column(Text, nullable=False)
     mime_type: Mapped[str] = mapped_column(String(100), nullable=False)
     file_size: Mapped[int] = mapped_column(BigInteger, nullable=False)

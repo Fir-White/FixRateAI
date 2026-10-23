@@ -50,7 +50,7 @@ def test_all_18_tables_registered():
 
 
 def test_total_column_count_matches_ddl():
-    assert sum(len(table.columns) for table in Base.metadata.tables.values()) == 181
+    assert sum(len(table.columns) for table in Base.metadata.tables.values()) == 182
 
 
 def test_no_float_columns():

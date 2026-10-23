@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     # PostgreSQL: используется engine/session и ORM-моделями (карточка 2).
     database_url: str = ""
     storage_dir: str = "var/storage"
+    storage_max_file_size: int = 10 * 1024 * 1024
+    storage_max_image_pixels: int = 20_000_000
     ml_base_url: str = ""
     ml_timeout_seconds: float = 30.0
     jwt_secret: str = ""
