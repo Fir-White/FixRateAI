@@ -8,8 +8,8 @@
 
 Backend использует существующий ML Service с mock CV/LLM/RAG и предоставляет:
 
-- `POST /api/v1/requests/{request_id}/estimate` — запуск сквозной обработки;
-- `GET /api/v1/requests/{request_id}/estimate` — последняя сохранённая версия;
+- `POST /api/v1/estimates/requests/{request_id}` — запуск сквозной обработки;
+- `GET /api/v1/estimates/requests/{request_id}` — последняя сохранённая версия;
 - адаптацию заявки к JSON-контракту `schema_version=1.0`;
 - сохранение `ai_runs`, `ai_results`, дефектов и производных измерений;
 - сохранение черновика в `estimates` и `estimate_items`;
@@ -128,13 +128,13 @@ mock NLP определяет `facade_crack`, расчётный движок в
 
 ### 6. Повторный запуск
 
-Повторный вызов `POST /api/v1/requests/{request_id}/estimate` создаёт новую
+Повторный вызов `POST /api/v1/estimates/requests/{request_id}` создаёт новую
 версию сметы. Предыдущая версия не перезаписывается, что позволяет сравнить
 результаты запусков и сохранить историю обработки.
 
 ### 7. Просмотр результата
 
-`GET /api/v1/requests/{request_id}/estimate` возвращает последнюю успешно
+`GET /api/v1/estimates/requests/{request_id}` возвращает последнюю успешно
 сформированную версию. Если для заявки были только уточнения или неуспешные
 запуски, endpoint корректно отвечает `404` с сообщением, что смета ещё не
 создана.
@@ -239,7 +239,7 @@ http://127.0.0.1:8003/docs
 ```
 
 Сначала создайте заявку через `POST /api/v1/requests`, затем вызовите
-`POST /api/v1/requests/{request_id}/estimate`. Результат содержит `run`,
+`POST /api/v1/estimates/requests/{request_id}`. Результат содержит `run`,
 `estimate.total_cost`, позиции, формулу и источник каждой расценки.
 
 ## Приёмочная проверка

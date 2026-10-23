@@ -91,6 +91,9 @@ class RequestRepository:
             ).all()
         )
 
+    def photo(self, photo_id: UUID) -> RequestPhoto | None:
+        return self.db.get(RequestPhoto, photo_id)
+
     def measurements(self, request_id: UUID) -> list[DefectMeasurement]:
         return list(
             self.db.scalars(

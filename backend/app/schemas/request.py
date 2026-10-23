@@ -103,6 +103,7 @@ class PhotoOut(BaseModel):
     file_size: int
     checksum_sha256: str
     storage_key: str
+    processed_storage_key: str | None = None
     uploaded_at: datetime
 
 

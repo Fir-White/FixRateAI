@@ -8,10 +8,7 @@ from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.core import User
 from app.schemas.request import RequestCreate, RequestListOut, RequestOut, RequestStatus, RequestUpdate
-from app.schemas.estimate import EstimateRunResult
-from app.adapters.ml_pipeline import MLPipelineAdapter
-from app.core.config import get_settings
-from app.services.estimate_service import EstimateService
+from app.api.v1.estimates import estimate_service
 from app.services.request_service import RequestService
 
 router = APIRouter(prefix="/requests", tags=["Requests"])
@@ -58,40 +55,3 @@ def update_request(
     requests: RequestService = Depends(service),
 ) -> RequestOut:
     return requests.update(request_id, data)
-
-
-def estimate_service(
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-) -> EstimateService:
-    settings = get_settings()
-    return EstimateService(
-        db,
-        user.user_id,
-        MLPipelineAdapter(settings.ml_base_url, settings.ml_timeout_seconds),
-    )
-
-
-@router.post(
-    "/{request_id}/estimate",
-    response_model=EstimateRunResult,
-    status_code=status.HTTP_201_CREATED,
-    summary="Запустить MVP-пайплайн и сформировать черновик сметы",
-)
-def create_estimate(
-    request_id: UUID = Path(...),
-    estimates: EstimateService = Depends(estimate_service),
-) -> EstimateRunResult:
-    return estimates.run(request_id)
-
-
-@router.get(
-    "/{request_id}/estimate",
-    response_model=EstimateRunResult,
-    summary="Получить последнюю смету заявки",
-)
-def get_estimate(
-    request_id: UUID = Path(...),
-    estimates: EstimateService = Depends(estimate_service),
-) -> EstimateRunResult:
-    return estimates.latest(request_id)

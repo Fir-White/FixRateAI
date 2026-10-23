@@ -50,7 +50,7 @@ def test_all_18_tables_registered():
 
 
 def test_total_column_count_matches_ddl():
-    assert sum(len(table.columns) for table in Base.metadata.tables.values()) == 181
+    assert sum(len(table.columns) for table in Base.metadata.tables.values()) == 182
 
 
 def test_no_float_columns():
@@ -91,7 +91,7 @@ def test_all_expected_checks_and_uniques_are_present():
     ]
 
     assert len(checks) == 64
-    assert len(uniques) == 13
+    assert len(uniques) == 14
     assert all(constraint.name for constraint in checks)
     assert all(constraint.name for constraint in uniques)
 

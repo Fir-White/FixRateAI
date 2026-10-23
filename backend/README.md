@@ -52,8 +52,8 @@ uvicorn app.main:app --reload
 | `GET` | `/api/v1/requests` | список с `limit`, `offset`, `status`, `building_id` |
 | `GET` | `/api/v1/requests/{request_id}` | получить заявку, фото и текущие размеры |
 | `PATCH` | `/api/v1/requests/{request_id}` | изменить текстовые поля, отменить или добавить размеры |
-| `POST` | `/api/v1/requests/{request_id}/estimate` | запустить MVP AI-пайплайн и сохранить черновик ВОР |
-| `GET` | `/api/v1/requests/{request_id}/estimate` | получить последнюю сохранённую версию сметы |
+| `POST` | `/api/v1/estimates/requests/{request_id}` | запустить MVP AI-пайплайн и сохранить черновик ВОР |
+| `GET` | `/api/v1/estimates/requests/{request_id}` | получить последнюю сохранённую версию сметы |
 
 Пример создания:
 
@@ -73,7 +73,7 @@ Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/api/v1/requests `
 ```powershell
 $requestId = "<request_id из ответа POST>"
 Invoke-RestMethod -Method Post `
-  -Uri "http://127.0.0.1:8000/api/v1/requests/$requestId/estimate"
+  -Uri "http://127.0.0.1:8000/api/v1/estimates/requests/$requestId"
 ```
 
 Ответ содержит `estimate.total_cost`, позиции ВОР, формулы, источники и
@@ -127,7 +127,7 @@ Invoke-RestMethod -Method Patch `
 
 ## Проверка
 ```bash
-pytest -q          # ожидается: 28 passed, 10 skipped (без DATABASE_URL)
+pytest -q          # без DATABASE_URL: unit/API-тесты проходят, DB-тесты skipped
 curl -i http://127.0.0.1:8000/health          # 200 + заголовок X-Request-ID
 curl -i http://127.0.0.1:8000/no-such-path    # 404 + единый JSON ошибки
 ```
@@ -179,6 +179,7 @@ docker compose up -d
 
 psql -X -v ON_ERROR_STOP=1 -h localhost -p 5432 -U fixrate -d fixrate -f db/001_init.sql
 psql -X -v ON_ERROR_STOP=1 -h localhost -p 5432 -U fixrate -d fixrate -f db/002_seed_demo.sql
+psql -X -v ON_ERROR_STOP=1 -h localhost -p 5432 -U fixrate -d fixrate -f db/003_photo_processed_storage.sql
 ```
 
 Подробности, проверка и smoke-тест — в [`../db/README.md`](../db/README.md). В `backend/.env` укажите `DATABASE_URL` с тем же портом. Модели и engine уже реализованы в `app/models/` и `app/db/`; они только читают/пишут существующую схему.
@@ -186,12 +187,28 @@ psql -X -v ON_ERROR_STOP=1 -h localhost -p 5432 -U fixrate -d fixrate -f db/002_
 ## ORM и сессии
 - `app/db/base.py` — `Base` для декларативных моделей.
 - `app/db/session.py` — ленивый engine, `get_db()` для FastAPI, `session_scope()` для скриптов, `check_database_connection()`.
-- `app/models/` — 18 таблиц строго по `db/001_init.sql` (колонки, PK/FK, CHECK, UNIQUE, индексы, `ON DELETE RESTRICT`).
+- `app/models/` — 18 таблиц по `db/001_init.sql` и миграции `003_photo_processed_storage.sql`.
 - `app/models/__init__.py` — импорт всех моделей; он регистрирует таблицы в `Base.metadata`.
 - `app/db/session.py` не вызывает `Base.metadata.create_all()`: схема приходит только из SQL-миграций.
 - `DATABASE_URL` обязателен только при реальном обращении к БД; импорт приложения и unit-тесты работают без него.
 - Деньги и объёмы — `Decimal`/`NUMERIC`; в моделях нет `Float`.
 - `normative_chunks.embedding` — `pgvector.Vector` без размерности. HNSW/IVFFlat появится отдельной миграцией после выбора embedding-модели.
+
+## Фотографии дефектов
+
+После применения `db/003_photo_processed_storage.sql`:
+
+```powershell
+curl.exe -X POST -F "file=@C:\photos\defect.jpg" `
+  http://127.0.0.1:8000/api/v1/photos/requests/<request_id>
+curl.exe -o defect.jpg http://127.0.0.1:8000/api/v1/photos/<photo_id>
+```
+
+`STORAGE_DIR` содержит отдельные каталоги `originals/` и `processed/`.
+Размер ограничен `STORAGE_MAX_FILE_SIZE` (10 MiB по умолчанию). API принимает
+только JPG/JPEG, PNG и WEBP, проверяет MIME, фактический формат, целостность,
+имя и лимит пикселей. Подробная приемочная инструкция — в
+[`../docs/backend/card-6-photo-storage.md`](../docs/backend/card-6-photo-storage.md).
 
 ## Слои (не смешивать в одном модуле)
 ```
