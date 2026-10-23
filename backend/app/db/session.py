@@ -16,6 +16,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import get_settings
+from app.core.errors import AppError
 
 
 @lru_cache(maxsize=1)
@@ -54,7 +55,14 @@ def get_db() -> Generator[Session, None, None]:
     Коммит/откат делает вызывающий слой (сервис/репозиторий). Зависимость
     только управляет жизненным циклом соединения.
     """
-    session = get_sessionmaker()()
+    try:
+        session = get_sessionmaker()()
+    except RuntimeError as exc:
+        raise AppError(
+            503,
+            "DB_UNAVAILABLE",
+            "База данных не настроена или временно недоступна.",
+        ) from exc
     try:
         yield session
     finally:

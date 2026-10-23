@@ -14,6 +14,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from sqlalchemy.exc import OperationalError
 
 logger = logging.getLogger("app.errors")
 
@@ -116,8 +117,22 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     )
 
 
+async def database_error_handler(request: Request, exc: OperationalError) -> JSONResponse:
+    logger.error(
+        "Ошибка подключения к базе данных: %s %s",
+        request.method,
+        request.url.path,
+        exc_info=exc,
+        extra={"request_id": _request_id(request)},
+    )
+    return error_response(
+        request, 503, "DB_UNAVAILABLE", "База данных временно недоступна."
+    )
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(AppError, app_error_handler)
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_error_handler)
+    app.add_exception_handler(OperationalError, database_error_handler)
     app.add_exception_handler(Exception, unhandled_exception_handler)

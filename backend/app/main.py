@@ -45,7 +45,7 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
 
     app.include_router(health.router)  # /health
-    app.include_router(api_v1_router)  # /api/v1/... (пока пусто)
+    app.include_router(api_v1_router)  # /api/v1/...
 
     logging.getLogger("app").info(
         "Приложение создано: env=%s version=%s", settings.app_env, settings.app_version
