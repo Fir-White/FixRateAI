@@ -84,7 +84,38 @@ flowchart TD
 
 **Текущее состояние:** MVP находится в разработке. Успешное прохождение всех тестовых сценариев и промышленная готовность системы пока не заявляются.
 
-Инструкции по локальному запуску и демонстрации будут добавлены после стабилизации интегрированной сборки.
+Инструкции по локальной проверке контрактов доступны ниже; полная интеграционная
+сборка будет расширяться по мере готовности backend и ML Service.
+
+## Контракты интеграции модулей
+
+Канонический JSON Schema-контракт для Backend, CV, NLP/OCR, RAG, валидатора и
+расчётного движка находится в [`docs/contracts/fixrate-contracts.json`](docs/contracts/fixrate-contracts.json).
+Описание границ модулей и правила версионирования — в
+[`docs/contracts/README.md`](docs/contracts/README.md), машинные примеры — в
+[`docs/contracts/examples.json`](docs/contracts/examples.json).
+
+Проверка примеров в Windows PowerShell:
+
+```powershell
+cd ml_service
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements-dev.txt
+python -m pytest -q tests/test_contract_examples.py
+python -m pytest -q
+```
+
+Проверка без установки окружения (если зависимости уже установлены):
+
+```powershell
+cd ml_service
+python -m pytest -q tests/test_contract_examples.py
+```
+
+Ожидаемый результат первой команды — `1 passed`; вторая проверяет также
+ошибочную единицу измерения и должна дать `2 passed`. Контракт не зависит от
+реальных ML-моделей и может проверяться до их подключения.
 
 ---
 

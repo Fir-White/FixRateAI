@@ -21,6 +21,7 @@ class PipelineStatus(str, Enum):
     COMPLETED = "completed"
     NEEDS_CLARIFICATION = "needs_clarification"
     NEEDS_REVIEW = "needs_review"
+    NOT_FOUND = "not_found"
     FAILED = "failed"
 
 

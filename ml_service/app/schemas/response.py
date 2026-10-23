@@ -1,6 +1,6 @@
 """Схемы выходных данных и результатов ML Service."""
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 from pydantic import BaseModel, Field
 from app.schemas.common import ExtractedField, PipelineStatus
 
@@ -42,6 +42,7 @@ class DetectedDefectDTO(BaseModel):
 
 class JobResponseDTO(BaseModel):
     """Итоговый структурированный ответ ML Service."""
+    schema_version: Literal["1.0"] = "1.0"
     job_id: str
     request_id: str
     status: PipelineStatus
