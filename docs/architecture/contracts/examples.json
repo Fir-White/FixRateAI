@@ -1,0 +1,864 @@
+{
+  "schema_version": "maintenance-0.1",
+  "notice": "Все примеры — synthetic_demo. Фотографии и model hashes являются заглушками формата. Task показан до приёмки, EngineerDecision — следующий ответ. Это не seed заказчика и не результат inference.",
+  "examples": [
+    {
+      "name": "site",
+      "contract": "Site",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "site_id": "00000000-0000-4000-8000-000000000001",
+        "name": "Демонстрационный объект",
+        "address": "Условный адрес, synthetic_demo",
+        "timezone": "Asia/Yekaterinburg"
+      }
+    },
+    {
+      "name": "equipment",
+      "contract": "Equipment",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "equipment_id": "00000000-0000-4000-8000-000000000002",
+        "site_id": "00000000-0000-4000-8000-000000000001",
+        "equipment_type_id": "00000000-0000-4000-8000-000000000003",
+        "inventory_code": "DEMO-TP-001",
+        "name": "Учебный узел очистки",
+        "commissioned_on": "2025-01-01",
+        "state": "active",
+        "revision": 1
+      }
+    },
+    {
+      "name": "operation",
+      "contract": "OperationVersion",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "operation_id": "00000000-0000-4000-8000-000000000004",
+        "operation_version_id": "00000000-0000-4000-8000-000000000005",
+        "version": 1,
+        "code": "DEMO-CLEAN-01",
+        "title": "Демонстрационная очистка внешней поверхности узла",
+        "maintenance_type": "ТО2",
+        "instructions": "Зафиксировать исходный вид, очистить доступную поверхность и сделать фото того же ракурса. Это учебная операция.",
+        "crew_size": 2,
+        "raw_norm_value": "2.000",
+        "norm_unit": "person_hour",
+        "planning_duration_minutes": 60,
+        "duration_basis": "Синтетическая норма для демонстрации, не значение F9 исходного Excel.",
+        "qualification_ids": [
+          "00000000-0000-4000-8000-000000000006"
+        ],
+        "checklist": [
+          {
+            "checklist_item_id": "00000000-0000-4000-8000-000000000007",
+            "text": "Очистить доступную внешнюю поверхность узла",
+            "answer_kind": "boolean",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "visible",
+            "photo_required": true
+          }
+        ],
+        "status": "approved",
+        "source_ref": "synthetic_demo:cleaning-v1"
+      }
+    },
+    {
+      "name": "recurrence_rule",
+      "contract": "RecurrenceRule",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "rule_version_id": "00000000-0000-4000-8000-000000000008",
+        "regulation_version_id": "00000000-0000-4000-8000-000000000009",
+        "source_text": "Демонстрация: пять явно заданных дат за год",
+        "kind": "explicit_dates",
+        "confirmed": true,
+        "interval": null,
+        "calendar_unit": null,
+        "anchor_date": null,
+        "basis": null,
+        "explicit_dates": [
+          "2026-01-01",
+          "2026-03-15",
+          "2026-06-01",
+          "2026-09-01",
+          "2026-11-01"
+        ],
+        "yearly_count": 5,
+        "runtime_interval_hours": null,
+        "allowed_lead_days": 6,
+        "source_ref": "synthetic_demo:annual-v1"
+      }
+    },
+    {
+      "name": "forecast_snapshot",
+      "contract": "ForecastSnapshot",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "snapshot_id": "00000000-0000-4000-8000-000000000010",
+        "content_sha256": "c34be649160d6a5fa5803d5c3e3516a3ff6f7487114b582a197abf9957db0f12",
+        "binding_id": "00000000-0000-4000-8000-000000000011",
+        "binding_revision": 1,
+        "site": {
+          "schema_version": "maintenance-0.1",
+          "data_origin": "synthetic_demo",
+          "site_id": "00000000-0000-4000-8000-000000000001",
+          "name": "Демонстрационный объект",
+          "address": "Условный адрес, synthetic_demo",
+          "timezone": "Asia/Yekaterinburg"
+        },
+        "equipment": {
+          "schema_version": "maintenance-0.1",
+          "data_origin": "synthetic_demo",
+          "equipment_id": "00000000-0000-4000-8000-000000000002",
+          "site_id": "00000000-0000-4000-8000-000000000001",
+          "equipment_type_id": "00000000-0000-4000-8000-000000000003",
+          "inventory_code": "DEMO-TP-001",
+          "name": "Учебный узел очистки",
+          "commissioned_on": "2025-01-01",
+          "state": "active",
+          "revision": 1
+        },
+        "operation": {
+          "schema_version": "maintenance-0.1",
+          "data_origin": "synthetic_demo",
+          "operation_id": "00000000-0000-4000-8000-000000000004",
+          "operation_version_id": "00000000-0000-4000-8000-000000000005",
+          "version": 1,
+          "code": "DEMO-CLEAN-01",
+          "title": "Демонстрационная очистка внешней поверхности узла",
+          "maintenance_type": "ТО2",
+          "instructions": "Зафиксировать исходный вид, очистить доступную поверхность и сделать фото того же ракурса. Это учебная операция.",
+          "crew_size": 2,
+          "raw_norm_value": "2.000",
+          "norm_unit": "person_hour",
+          "planning_duration_minutes": 60,
+          "duration_basis": "Синтетическая норма для демонстрации, не значение F9 исходного Excel.",
+          "qualification_ids": [
+            "00000000-0000-4000-8000-000000000006"
+          ],
+          "checklist": [
+            {
+              "checklist_item_id": "00000000-0000-4000-8000-000000000007",
+              "text": "Очистить доступную внешнюю поверхность узла",
+              "answer_kind": "boolean",
+              "unit": null,
+              "required": true,
+              "visual_verifiability": "visible",
+              "photo_required": true
+            }
+          ],
+          "status": "approved",
+          "source_ref": "synthetic_demo:cleaning-v1"
+        },
+        "rule": {
+          "schema_version": "maintenance-0.1",
+          "data_origin": "synthetic_demo",
+          "rule_version_id": "00000000-0000-4000-8000-000000000008",
+          "regulation_version_id": "00000000-0000-4000-8000-000000000009",
+          "source_text": "Демонстрация: пять явно заданных дат за год",
+          "kind": "explicit_dates",
+          "confirmed": true,
+          "interval": null,
+          "calendar_unit": null,
+          "anchor_date": null,
+          "basis": null,
+          "explicit_dates": [
+            "2026-01-01",
+            "2026-03-15",
+            "2026-06-01",
+            "2026-09-01",
+            "2026-11-01"
+          ],
+          "yearly_count": 5,
+          "runtime_interval_hours": null,
+          "allowed_lead_days": 6,
+          "source_ref": "synthetic_demo:annual-v1"
+        },
+        "as_of": "2026-10-26T12:00:00+05:00",
+        "horizon_end": "2026-11-30",
+        "earliest_date": "2026-10-26",
+        "mandatory_due_date": "2026-11-01",
+        "runtime_due_at_hours": null,
+        "accepted_events": [
+          {
+            "service_event_id": "00000000-0000-4000-8000-000000000012",
+            "performed_at": "2026-09-01T11:00:00+05:00",
+            "accepted_at": "2026-09-01T12:00:00+05:00",
+            "runtime_hours": "1000.000",
+            "observed_need_date": "2026-09-01"
+          }
+        ],
+        "runtime_reading": {
+          "reading_id": "00000000-0000-4000-8000-000000000013",
+          "measured_at": "2026-10-26T11:00:00+05:00",
+          "value_hours": "1200.500",
+          "meter_epoch": 1,
+          "verified": true
+        },
+        "feature_schema_version": "demo-features-v1"
+      }
+    },
+    {
+      "name": "algorithmic_forecast",
+      "contract": "ForecastResult",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "result_id": "00000000-0000-4000-8000-000000000021",
+        "run_id": "00000000-0000-4000-8000-000000000020",
+        "snapshot_id": "00000000-0000-4000-8000-000000000010",
+        "snapshot_sha256": "c34be649160d6a5fa5803d5c3e3516a3ff6f7487114b582a197abf9957db0f12",
+        "equipment_id": "00000000-0000-4000-8000-000000000002",
+        "binding_id": "00000000-0000-4000-8000-000000000011",
+        "as_of": "2026-10-26T12:00:00+05:00",
+        "method": "algorithmic",
+        "method_version": "calendar-v1",
+        "model_ref": null,
+        "status": "ok",
+        "recommended_date": "2026-11-01",
+        "mandatory_due_date": "2026-11-01",
+        "runtime_due_at_hours": null,
+        "overdue": false,
+        "uncertainty": {
+          "kind": "deterministic",
+          "lower_date": "2026-11-01",
+          "upper_date": "2026-11-01",
+          "calibrated": false,
+          "note": "Вычисление по заданному учебному правилу."
+        },
+        "explanation": "Ближайшая из пяти явно заданных дат.",
+        "warnings": [],
+        "error_code": null,
+        "elapsed_ms": 2
+      }
+    },
+    {
+      "name": "ai_forecast",
+      "contract": "ForecastResult",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "result_id": "00000000-0000-4000-8000-000000000022",
+        "run_id": "00000000-0000-4000-8000-000000000020",
+        "snapshot_id": "00000000-0000-4000-8000-000000000010",
+        "snapshot_sha256": "c34be649160d6a5fa5803d5c3e3516a3ff6f7487114b582a197abf9957db0f12",
+        "equipment_id": "00000000-0000-4000-8000-000000000002",
+        "binding_id": "00000000-0000-4000-8000-000000000011",
+        "as_of": "2026-10-26T12:00:00+05:00",
+        "method": "ai",
+        "method_version": "rf-days-v1",
+        "model_ref": "synthetic_demo:rf:model-sha-v1",
+        "status": "ok",
+        "recommended_date": "2026-10-29",
+        "mandatory_due_date": "2026-11-01",
+        "runtime_due_at_hours": null,
+        "overdue": false,
+        "uncertainty": {
+          "kind": "tree_dispersion",
+          "lower_date": "2026-10-28",
+          "upper_date": "2026-10-31",
+          "calibrated": false,
+          "note": "Разброс деревьев на синтетике; достоверность на заказчике не оценена."
+        },
+        "explanation": "Учебный прогноз по синтетическим признакам.",
+        "warnings": [
+          "SYNTHETIC_DATA"
+        ],
+        "error_code": null,
+        "elapsed_ms": 20
+      }
+    },
+    {
+      "name": "orchestration_decision",
+      "contract": "OrchestrationDecision",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "orchestration_id": "00000000-0000-4000-8000-000000000023",
+        "run_id": "00000000-0000-4000-8000-000000000020",
+        "snapshot_id": "00000000-0000-4000-8000-000000000010",
+        "algorithmic_result_id": "00000000-0000-4000-8000-000000000021",
+        "ai_result_id": "00000000-0000-4000-8000-000000000022",
+        "status": "selected",
+        "selected_date": "2026-10-29",
+        "policy_version": "deadline-window-v1",
+        "reasons": [
+          "AI_EARLIER_WITHIN_WINDOW",
+          "SYNTHETIC_DATA"
+        ],
+        "created_at": "2026-10-26T12:00:01+05:00"
+      }
+    },
+    {
+      "name": "algorithmic_fallback",
+      "contract": "ForecastResult",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "result_id": "00000000-0000-4000-8000-000000000026",
+        "run_id": "00000000-0000-4000-8000-000000000025",
+        "snapshot_id": "00000000-0000-4000-8000-000000000010",
+        "snapshot_sha256": "c34be649160d6a5fa5803d5c3e3516a3ff6f7487114b582a197abf9957db0f12",
+        "equipment_id": "00000000-0000-4000-8000-000000000002",
+        "binding_id": "00000000-0000-4000-8000-000000000011",
+        "as_of": "2026-10-26T12:00:00+05:00",
+        "method": "algorithmic",
+        "method_version": "calendar-v1",
+        "model_ref": null,
+        "status": "ok",
+        "recommended_date": "2026-11-01",
+        "mandatory_due_date": "2026-11-01",
+        "runtime_due_at_hours": null,
+        "overdue": false,
+        "uncertainty": {
+          "kind": "deterministic",
+          "lower_date": "2026-11-01",
+          "upper_date": "2026-11-01",
+          "calibrated": false,
+          "note": "Вычисление по заданному учебному правилу."
+        },
+        "explanation": "Ближайшая из пяти явно заданных дат.",
+        "warnings": [],
+        "error_code": null,
+        "elapsed_ms": 2
+      }
+    },
+    {
+      "name": "ai_unavailable",
+      "contract": "ForecastResult",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "result_id": "00000000-0000-4000-8000-000000000027",
+        "run_id": "00000000-0000-4000-8000-000000000025",
+        "snapshot_id": "00000000-0000-4000-8000-000000000010",
+        "snapshot_sha256": "c34be649160d6a5fa5803d5c3e3516a3ff6f7487114b582a197abf9957db0f12",
+        "equipment_id": "00000000-0000-4000-8000-000000000002",
+        "binding_id": "00000000-0000-4000-8000-000000000011",
+        "as_of": "2026-10-26T12:00:00+05:00",
+        "method": "ai",
+        "method_version": "rf-days-v1",
+        "model_ref": null,
+        "status": "unavailable",
+        "recommended_date": null,
+        "mandatory_due_date": "2026-11-01",
+        "runtime_due_at_hours": null,
+        "overdue": false,
+        "uncertainty": {
+          "kind": "unknown",
+          "lower_date": null,
+          "upper_date": null,
+          "calibrated": false,
+          "note": "Разброс деревьев на синтетике; достоверность на заказчике не оценена."
+        },
+        "explanation": "Модель не загружена; алгоритмический результат не подставлен вместо AI.",
+        "warnings": [
+          "SYNTHETIC_DATA"
+        ],
+        "error_code": "MODEL_NOT_READY",
+        "elapsed_ms": 20
+      }
+    },
+    {
+      "name": "fallback_decision",
+      "contract": "OrchestrationDecision",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "orchestration_id": "00000000-0000-4000-8000-000000000028",
+        "run_id": "00000000-0000-4000-8000-000000000025",
+        "snapshot_id": "00000000-0000-4000-8000-000000000010",
+        "algorithmic_result_id": "00000000-0000-4000-8000-000000000026",
+        "ai_result_id": "00000000-0000-4000-8000-000000000027",
+        "status": "fallback",
+        "selected_date": "2026-11-01",
+        "policy_version": "deadline-window-v1",
+        "reasons": [
+          "MODEL_NOT_READY",
+          "ALGORITHMIC_FALLBACK"
+        ],
+        "created_at": "2026-10-26T12:00:01+05:00"
+      }
+    },
+    {
+      "name": "algorithmic_for_late_ai",
+      "contract": "ForecastResult",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "result_id": "00000000-0000-4000-8000-000000000031",
+        "run_id": "00000000-0000-4000-8000-000000000030",
+        "snapshot_id": "00000000-0000-4000-8000-000000000010",
+        "snapshot_sha256": "c34be649160d6a5fa5803d5c3e3516a3ff6f7487114b582a197abf9957db0f12",
+        "equipment_id": "00000000-0000-4000-8000-000000000002",
+        "binding_id": "00000000-0000-4000-8000-000000000011",
+        "as_of": "2026-10-26T12:00:00+05:00",
+        "method": "algorithmic",
+        "method_version": "calendar-v1",
+        "model_ref": null,
+        "status": "ok",
+        "recommended_date": "2026-11-01",
+        "mandatory_due_date": "2026-11-01",
+        "runtime_due_at_hours": null,
+        "overdue": false,
+        "uncertainty": {
+          "kind": "deterministic",
+          "lower_date": "2026-11-01",
+          "upper_date": "2026-11-01",
+          "calibrated": false,
+          "note": "Вычисление по заданному учебному правилу."
+        },
+        "explanation": "Ближайшая из пяти явно заданных дат.",
+        "warnings": [],
+        "error_code": null,
+        "elapsed_ms": 2
+      }
+    },
+    {
+      "name": "ai_after_deadline",
+      "contract": "ForecastResult",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "result_id": "00000000-0000-4000-8000-000000000032",
+        "run_id": "00000000-0000-4000-8000-000000000030",
+        "snapshot_id": "00000000-0000-4000-8000-000000000010",
+        "snapshot_sha256": "c34be649160d6a5fa5803d5c3e3516a3ff6f7487114b582a197abf9957db0f12",
+        "equipment_id": "00000000-0000-4000-8000-000000000002",
+        "binding_id": "00000000-0000-4000-8000-000000000011",
+        "as_of": "2026-10-26T12:00:00+05:00",
+        "method": "ai",
+        "method_version": "rf-days-v1",
+        "model_ref": "synthetic_demo:rf:model-sha-v1",
+        "status": "ok",
+        "recommended_date": "2026-11-03",
+        "mandatory_due_date": "2026-11-01",
+        "runtime_due_at_hours": null,
+        "overdue": false,
+        "uncertainty": {
+          "kind": "tree_dispersion",
+          "lower_date": "2026-11-03",
+          "upper_date": "2026-11-03",
+          "calibrated": false,
+          "note": "Разброс деревьев на синтетике; достоверность на заказчике не оценена."
+        },
+        "explanation": "Учебный прогноз по синтетическим признакам.",
+        "warnings": [
+          "SYNTHETIC_DATA"
+        ],
+        "error_code": null,
+        "elapsed_ms": 20
+      }
+    },
+    {
+      "name": "late_ai_decision",
+      "contract": "OrchestrationDecision",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "orchestration_id": "00000000-0000-4000-8000-000000000033",
+        "run_id": "00000000-0000-4000-8000-000000000030",
+        "snapshot_id": "00000000-0000-4000-8000-000000000010",
+        "algorithmic_result_id": "00000000-0000-4000-8000-000000000031",
+        "ai_result_id": "00000000-0000-4000-8000-000000000032",
+        "status": "selected",
+        "selected_date": "2026-11-01",
+        "policy_version": "deadline-window-v1",
+        "reasons": [
+          "AI_AFTER_DEADLINE",
+          "REGULATORY_BOUND_PRESERVED"
+        ],
+        "created_at": "2026-10-26T12:00:01+05:00"
+      }
+    },
+    {
+      "name": "schedule",
+      "contract": "Schedule",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "plan_id": "00000000-0000-4000-8000-000000000040",
+        "site_id": "00000000-0000-4000-8000-000000000001",
+        "period_start": "2026-10-26",
+        "period_end": "2026-11-30",
+        "status": "approved",
+        "revision": 2,
+        "occurrences": [
+          {
+            "occurrence_id": "00000000-0000-4000-8000-000000000041",
+            "binding_id": "00000000-0000-4000-8000-000000000011",
+            "rule_version_id": "00000000-0000-4000-8000-000000000008",
+            "operation_version_id": "00000000-0000-4000-8000-000000000005",
+            "occurrence_date": "2026-11-01",
+            "earliest_date": "2026-10-26",
+            "mandatory_due_date": "2026-11-01",
+            "runtime_due_at_hours": null,
+            "status": "planned",
+            "revision": 2,
+            "task_id": "00000000-0000-4000-8000-000000000042"
+          }
+        ]
+      }
+    },
+    {
+      "name": "task",
+      "contract": "Task",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "task_id": "00000000-0000-4000-8000-000000000042",
+        "occurrence_id": "00000000-0000-4000-8000-000000000041",
+        "equipment_id": "00000000-0000-4000-8000-000000000002",
+        "operation_version_id": "00000000-0000-4000-8000-000000000005",
+        "state": "submitted",
+        "revision": 4,
+        "scheduled_start": "2026-10-29T10:00:00+05:00",
+        "scheduled_end": "2026-10-29T11:00:00+05:00",
+        "assignment_ids": [
+          "00000000-0000-4000-8000-000000000043",
+          "00000000-0000-4000-8000-000000000044"
+        ],
+        "active_execution_id": "00000000-0000-4000-8000-000000000045",
+        "deadline_breached": false
+      }
+    },
+    {
+      "name": "assignment_one",
+      "contract": "Assignment",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "assignment_id": "00000000-0000-4000-8000-000000000043",
+        "task_id": "00000000-0000-4000-8000-000000000042",
+        "executor_id": "00000000-0000-4000-8000-000000000401",
+        "start_at": "2026-10-29T10:00:00+05:00",
+        "end_at": "2026-10-29T11:00:00+05:00",
+        "qualification_ids": [
+          "00000000-0000-4000-8000-000000000006"
+        ],
+        "status": "active",
+        "assigned_by": "00000000-0000-4000-8000-000000000400"
+      }
+    },
+    {
+      "name": "assignment_two",
+      "contract": "Assignment",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "assignment_id": "00000000-0000-4000-8000-000000000044",
+        "task_id": "00000000-0000-4000-8000-000000000042",
+        "executor_id": "00000000-0000-4000-8000-000000000402",
+        "start_at": "2026-10-29T10:00:00+05:00",
+        "end_at": "2026-10-29T11:00:00+05:00",
+        "qualification_ids": [
+          "00000000-0000-4000-8000-000000000006"
+        ],
+        "status": "active",
+        "assigned_by": "00000000-0000-4000-8000-000000000400"
+      }
+    },
+    {
+      "name": "execution_report",
+      "contract": "ExecutionReport",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "execution_id": "00000000-0000-4000-8000-000000000045",
+        "task_id": "00000000-0000-4000-8000-000000000042",
+        "attempt_number": 1,
+        "state": "submitted",
+        "performed_at": "2026-10-29T11:00:00+05:00",
+        "submitted_at": "2026-10-29T11:01:00+05:00",
+        "submitted_by": "00000000-0000-4000-8000-000000000401",
+        "narrative": "Учебный отчёт: доступная поверхность очищена, фото пары одного ракурса.",
+        "answers": [
+          {
+            "checklist_item_id": "00000000-0000-4000-8000-000000000007",
+            "status": "done",
+            "value": true,
+            "unit": null,
+            "comment": "Видимое состояние зафиксировано на учебных кадрах.",
+            "completed_at": "2026-10-29T10:55:00+05:00"
+          }
+        ],
+        "photo_ids": [
+          "00000000-0000-4000-8000-000000000046",
+          "00000000-0000-4000-8000-000000000047"
+        ]
+      }
+    },
+    {
+      "name": "photo_before",
+      "contract": "PhotoReport",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "photo_id": "00000000-0000-4000-8000-000000000046",
+        "execution_id": "00000000-0000-4000-8000-000000000045",
+        "equipment_id": "00000000-0000-4000-8000-000000000002",
+        "checklist_item_id": "00000000-0000-4000-8000-000000000007",
+        "phase": "before",
+        "view_key": "front-node-1",
+        "mime_type": "image/jpeg",
+        "file_size_bytes": 120000,
+        "width": 1280,
+        "height": 720,
+        "original_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "captured_at": "2026-10-29T10:00:00+05:00",
+        "uploaded_at": "2026-10-29T10:01:00+05:00",
+        "uploaded_by": "00000000-0000-4000-8000-000000000401",
+        "content_url": "/api/v1/maintenance/photos/00000000-0000-4000-8000-000000000046/content"
+      }
+    },
+    {
+      "name": "photo_after",
+      "contract": "PhotoReport",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "photo_id": "00000000-0000-4000-8000-000000000047",
+        "execution_id": "00000000-0000-4000-8000-000000000045",
+        "equipment_id": "00000000-0000-4000-8000-000000000002",
+        "checklist_item_id": "00000000-0000-4000-8000-000000000007",
+        "phase": "after",
+        "view_key": "front-node-1",
+        "mime_type": "image/jpeg",
+        "file_size_bytes": 120000,
+        "width": 1280,
+        "height": 720,
+        "original_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "captured_at": "2026-10-29T10:56:00+05:00",
+        "uploaded_at": "2026-10-29T10:57:00+05:00",
+        "uploaded_by": "00000000-0000-4000-8000-000000000401",
+        "content_url": "/api/v1/maintenance/photos/00000000-0000-4000-8000-000000000047/content"
+      }
+    },
+    {
+      "name": "photo_review_request",
+      "contract": "PhotoReviewRequest",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "execution_id": "00000000-0000-4000-8000-000000000045",
+        "operation": {
+          "schema_version": "maintenance-0.1",
+          "data_origin": "synthetic_demo",
+          "operation_id": "00000000-0000-4000-8000-000000000004",
+          "operation_version_id": "00000000-0000-4000-8000-000000000005",
+          "version": 1,
+          "code": "DEMO-CLEAN-01",
+          "title": "Демонстрационная очистка внешней поверхности узла",
+          "maintenance_type": "ТО2",
+          "instructions": "Зафиксировать исходный вид, очистить доступную поверхность и сделать фото того же ракурса. Это учебная операция.",
+          "crew_size": 2,
+          "raw_norm_value": "2.000",
+          "norm_unit": "person_hour",
+          "planning_duration_minutes": 60,
+          "duration_basis": "Синтетическая норма для демонстрации, не значение F9 исходного Excel.",
+          "qualification_ids": [
+            "00000000-0000-4000-8000-000000000006"
+          ],
+          "checklist": [
+            {
+              "checklist_item_id": "00000000-0000-4000-8000-000000000007",
+              "text": "Очистить доступную внешнюю поверхность узла",
+              "answer_kind": "boolean",
+              "unit": null,
+              "required": true,
+              "visual_verifiability": "visible",
+              "photo_required": true
+            }
+          ],
+          "status": "approved",
+          "source_ref": "synthetic_demo:cleaning-v1"
+        },
+        "photos": [
+          {
+            "schema_version": "maintenance-0.1",
+            "data_origin": "synthetic_demo",
+            "photo_id": "00000000-0000-4000-8000-000000000046",
+            "execution_id": "00000000-0000-4000-8000-000000000045",
+            "equipment_id": "00000000-0000-4000-8000-000000000002",
+            "checklist_item_id": "00000000-0000-4000-8000-000000000007",
+            "phase": "before",
+            "view_key": "front-node-1",
+            "mime_type": "image/jpeg",
+            "file_size_bytes": 120000,
+            "width": 1280,
+            "height": 720,
+            "original_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "captured_at": "2026-10-29T10:00:00+05:00",
+            "uploaded_at": "2026-10-29T10:01:00+05:00",
+            "uploaded_by": "00000000-0000-4000-8000-000000000401",
+            "content_url": "/api/v1/maintenance/photos/00000000-0000-4000-8000-000000000046/content"
+          },
+          {
+            "schema_version": "maintenance-0.1",
+            "data_origin": "synthetic_demo",
+            "photo_id": "00000000-0000-4000-8000-000000000047",
+            "execution_id": "00000000-0000-4000-8000-000000000045",
+            "equipment_id": "00000000-0000-4000-8000-000000000002",
+            "checklist_item_id": "00000000-0000-4000-8000-000000000007",
+            "phase": "after",
+            "view_key": "front-node-1",
+            "mime_type": "image/jpeg",
+            "file_size_bytes": 120000,
+            "width": 1280,
+            "height": 720,
+            "original_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "captured_at": "2026-10-29T10:56:00+05:00",
+            "uploaded_at": "2026-10-29T10:57:00+05:00",
+            "uploaded_by": "00000000-0000-4000-8000-000000000401",
+            "content_url": "/api/v1/maintenance/photos/00000000-0000-4000-8000-000000000047/content"
+          }
+        ],
+        "report": {
+          "schema_version": "maintenance-0.1",
+          "data_origin": "synthetic_demo",
+          "execution_id": "00000000-0000-4000-8000-000000000045",
+          "task_id": "00000000-0000-4000-8000-000000000042",
+          "attempt_number": 1,
+          "state": "submitted",
+          "performed_at": "2026-10-29T11:00:00+05:00",
+          "submitted_at": "2026-10-29T11:01:00+05:00",
+          "submitted_by": "00000000-0000-4000-8000-000000000401",
+          "narrative": "Учебный отчёт: доступная поверхность очищена, фото пары одного ракурса.",
+          "answers": [
+            {
+              "checklist_item_id": "00000000-0000-4000-8000-000000000007",
+              "status": "done",
+              "value": true,
+              "unit": null,
+              "comment": "Видимое состояние зафиксировано на учебных кадрах.",
+              "completed_at": "2026-10-29T10:55:00+05:00"
+            }
+          ],
+          "photo_ids": [
+            "00000000-0000-4000-8000-000000000046",
+            "00000000-0000-4000-8000-000000000047"
+          ]
+        },
+        "prompt_set_version": "demo-clean-pairs-v1"
+      }
+    },
+    {
+      "name": "photo_review_result",
+      "contract": "PhotoReviewResult",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "ai_review_id": "00000000-0000-4000-8000-000000000048",
+        "execution_id": "00000000-0000-4000-8000-000000000045",
+        "operation_version_id": "00000000-0000-4000-8000-000000000005",
+        "status": "completed",
+        "model_ref": "synthetic_demo:clip-vit-base-patch32:revision-placeholder",
+        "prompt_set_version": "demo-clean-pairs-v1",
+        "input_photo_ids": [
+          "00000000-0000-4000-8000-000000000046",
+          "00000000-0000-4000-8000-000000000047"
+        ],
+        "item_results": [
+          {
+            "checklist_item_id": "00000000-0000-4000-8000-000000000007",
+            "verdict": "visible_change",
+            "before_photo_id": "00000000-0000-4000-8000-000000000046",
+            "after_photo_id": "00000000-0000-4000-8000-000000000047",
+            "observation": "Формат учебного заключения: оценка соответствия описанию чистой поверхности после выше. Это не доказательство качества работы.",
+            "scores": [
+              {
+                "photo_id": "00000000-0000-4000-8000-000000000046",
+                "label": "a clean equipment surface",
+                "score": 0.2
+              },
+              {
+                "photo_id": "00000000-0000-4000-8000-000000000047",
+                "label": "a clean equipment surface",
+                "score": 0.7
+              }
+            ]
+          }
+        ],
+        "limitations": [
+          "Значения и фото в JSON вымышлены и показывают формат; реальный inference здесь не выполнялся.",
+          "Разница оценок не подтверждает скрытые операции, точность приборов или безопасность."
+        ],
+        "error_code": null,
+        "elapsed_ms": 1200,
+        "created_at": "2026-10-29T11:02:00+05:00"
+      }
+    },
+    {
+      "name": "engineer_decision",
+      "contract": "EngineerDecision",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "data_origin": "synthetic_demo",
+        "decision_id": "00000000-0000-4000-8000-000000000049",
+        "execution_id": "00000000-0000-4000-8000-000000000045",
+        "engineer_id": "00000000-0000-4000-8000-000000000501",
+        "verdict": "accepted",
+        "reason": "Учебный пример решения; нормы и отчёт относятся только к synthetic_demo.",
+        "reviewed_ai_result_id": "00000000-0000-4000-8000-000000000048",
+        "additional_evidence_refs": [
+          "synthetic_demo:manual-inspection"
+        ],
+        "decided_at": "2026-10-29T11:05:00+05:00"
+      }
+    },
+    {
+      "name": "assignment_command",
+      "contract": "AssignmentCommand",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "expected_revision": 1,
+        "executor_ids": [
+          "00000000-0000-4000-8000-000000000401",
+          "00000000-0000-4000-8000-000000000402"
+        ],
+        "start_at": "2026-10-29T10:00:00+05:00",
+        "end_at": "2026-10-29T11:00:00+05:00",
+        "reason": "Учебный пример решения; нормы и отчёт относятся только к synthetic_demo."
+      }
+    },
+    {
+      "name": "review_command",
+      "contract": "ReviewCommand",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "expected_revision": 4,
+        "execution_id": "00000000-0000-4000-8000-000000000045",
+        "verdict": "accepted",
+        "reason": "Учебный пример решения; нормы и отчёт относятся только к synthetic_demo.",
+        "reviewed_ai_result_id": "00000000-0000-4000-8000-000000000048",
+        "additional_evidence_refs": [
+          "synthetic_demo:manual-inspection"
+        ]
+      }
+    },
+    {
+      "name": "error",
+      "contract": "ErrorResponse",
+      "payload": {
+        "schema_version": "maintenance-0.1",
+        "error": {
+          "code": "DEADLINE_EXCEEDED",
+          "message": "Дата задания выходит за обязательный срок обслуживания.",
+          "details": [
+            {
+              "field": "scheduled_end",
+              "issue": "must finish before local midnight after 2026-11-01"
+            }
+          ],
+          "request_id": "demo-request-1"
+        }
+      }
+    }
+  ]
+}
