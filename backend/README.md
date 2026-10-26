@@ -50,7 +50,7 @@ curl -i http://127.0.0.1:8000/no-such-path    # 404 + единый JSON ошиб
 ```
 
 Интеграционные проверки моделей против живой схемы включаются переменной
-`DATABASE_URL` (нужен применённый `db/001_init.sql`):
+`DATABASE_URL` (нужны применённые `db/001_init.sql` и `db/003_normative_source_versions.sql`):
 
 ```bash
 # Linux / macOS
@@ -65,7 +65,7 @@ python -m pytest -q tests/test_models_db.py
 
 ## PostgreSQL (локально)
 Схема приходит из `db/001_init.sql`; backend **не** создаёт таблицы через `Base.metadata.create_all()`.
-Из корня репозитория поднимите PostgreSQL и примените DDL + DEMO-данные:
+Из корня репозитория поднимите PostgreSQL и примените DDL, DEMO-данные и последовательную миграцию нормативов:
 
 ```bash
 docker compose up -d
@@ -74,6 +74,7 @@ docker compose up -d
 
 psql -X -v ON_ERROR_STOP=1 -h localhost -p 5432 -U fixrate -d fixrate -f db/001_init.sql
 psql -X -v ON_ERROR_STOP=1 -h localhost -p 5432 -U fixrate -d fixrate -f db/002_seed_demo.sql
+psql -X -v ON_ERROR_STOP=1 -h localhost -p 5432 -U fixrate -d fixrate -f db/003_normative_source_versions.sql
 ```
 
 Подробности, проверка и smoke-тест — в [`../db/README.md`](../db/README.md). В `backend/.env` укажите `DATABASE_URL` с тем же портом. Модели и engine уже реализованы в `app/models/` и `app/db/`; они только читают/пишут существующую схему.
@@ -81,12 +82,13 @@ psql -X -v ON_ERROR_STOP=1 -h localhost -p 5432 -U fixrate -d fixrate -f db/002_
 ## ORM и сессии
 - `app/db/base.py` — `Base` для декларативных моделей.
 - `app/db/session.py` — ленивый engine, `get_db()` для FastAPI, `session_scope()` для скриптов, `check_database_connection()`.
-- `app/models/` — 18 таблиц строго по `db/001_init.sql` (колонки, PK/FK, CHECK, UNIQUE, индексы, `ON DELETE RESTRICT`).
+- `app/models/` — 18 таблиц по цепочке `db/001_init.sql` + `db/003_normative_source_versions.sql` (колонки, PK/FK, CHECK, UNIQUE, индексы, `ON DELETE RESTRICT`).
 - `app/models/__init__.py` — импорт всех моделей; он регистрирует таблицы в `Base.metadata`.
 - `app/db/session.py` не вызывает `Base.metadata.create_all()`: схема приходит только из SQL-миграций.
 - `DATABASE_URL` обязателен только при реальном обращении к БД; импорт приложения и unit-тесты работают без него.
 - Деньги и объёмы — `Decimal`/`NUMERIC`; в моделях нет `Float`.
 - `normative_chunks.embedding` — `pgvector.Vector` без размерности. HNSW/IVFFlat появится отдельной миграцией после выбора embedding-модели.
+- `norm_sources.source_series_id` объединяет редакции; каталожный snapshot формирует `fixrate_rate_snapshot(rate_id)`, а БД проверяет единицу, валюту, цену и нормативный множитель принятой позиции.
 
 ## Слои (не смешивать в одном модуле)
 ```

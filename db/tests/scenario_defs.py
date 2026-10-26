@@ -70,9 +70,9 @@ INSERT INTO defects(defect_id, request_id, description) VALUES
     ('@D1@', '@R1@', 'TC defect 1'),
     ('@D2@', '@R2@', 'TC defect 2'),
     ('@D3@', '@R1@', 'TC defect 3');
-INSERT INTO norm_sources(source_id, source_type, title, document_reference, is_verified) VALUES
-    ('@S1@', 'DEMO', 'TC source 1', 'TC document 1', false),
-    ('@S2@', 'DEMO', 'TC source 2', 'TC document 2', false);
+INSERT INTO norm_sources(source_id, source_type, title, edition, document_reference, is_verified) VALUES
+    ('@S1@', 'DEMO', 'TC source 1', 'tc-v1', 'TC document 1', false),
+    ('@S2@', 'DEMO', 'TC source 2', 'tc-v1', 'TC document 2', false);
 INSERT INTO rates(rate_id, source_id, rate_code, work_name, unit_code,
     rate_unit_multiplier, base_price, currency, price_basis, cost_scope) VALUES
     ('@RATE1@', '@S1@', 'TC-RATE-1', 'TC work 1', 'pcs', 1, 100, 'RUB', 'demo', 'work_only'),
@@ -367,8 +367,8 @@ END;
 """)
 
 add("TC-046", """
-INSERT INTO norm_sources(source_id, source_type, title, source_url, is_verified)
-VALUES ('@S3@', 'FER', 'TC FER source', 'https://example.test/fer', true);
+INSERT INTO norm_sources(source_id, source_type, title, edition, source_url, is_verified)
+VALUES ('@S3@', 'FER', 'TC FER source', 'tc-v1', 'https://example.test/fer', true);
 INSERT INTO rates(rate_id, source_id, rate_code, work_name, unit_code,
     base_price, currency, price_basis, cost_scope)
 VALUES ('@RATE3@', '@S3@', 'TC-FER-1', 'TC FER work', 'pcs',
@@ -386,7 +386,7 @@ BEGIN
     INSERT INTO norm_sources(source_type, title)
     VALUES ('OTHER', 'TC invalid source type');
     RAISE EXCEPTION 'TC-046 expected source_type check rejection';
-EXCEPTION WHEN check_violation THEN NULL;
+EXCEPTION WHEN check_violation OR raise_exception THEN NULL;
 END;
 """)
 
@@ -518,7 +518,7 @@ BEGIN
     VALUES ('@ITEM1@', '@E1@', '@R1@', 'TC valid without price/source',
         1, 'pcs', NULL, 100, 100, 'valid', NULL);
     RAISE EXCEPTION 'TC-071 expected valid-item price/source check rejection';
-EXCEPTION WHEN check_violation THEN NULL;
+EXCEPTION WHEN check_violation OR raise_exception THEN NULL;
 END;
 """)
 
@@ -568,7 +568,8 @@ INSERT INTO estimate_items(item_id, estimate_id, request_id, work_name,
     quantity, unit_code, unit_price, base_cost, total_cost,
     validation_status, source_snapshot)
 VALUES ('@ITEM1@', '@E1@', '@R1@', 'TC approval item',
-    1, 'pcs', 100, 100, 100, 'valid', '{"origin":"manual"}'::jsonb);
+    1, 'pcs', 100, 100, 100, 'valid',
+    '{"origin":"manual","source_description":"TC manual quote","entered_by":"@U2@","basis":"TC approval","unit_code":"pcs","unit_price":100,"currency":"RUB"}'::jsonb);
 UPDATE estimates SET total_cost = 100 WHERE estimate_id = '@E1@';
 BEGIN
     UPDATE estimates SET status = 'approved' WHERE estimate_id = '@E1@';

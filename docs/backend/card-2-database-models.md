@@ -11,7 +11,7 @@
 | Дедлайн | 21.10.2026 (Екатеринбург) |
 | Статус | Код и проверки готовы; закрывать после самопроверки на своей машине |
 | Стек | Python 3.12 (проверено на 3.14), SQLAlchemy 2.0 sync, psycopg3, pgvector, pytest |
-| Источник схемы | `db/001_init.sql` (DDL v3.1), без `create_all()` и без Alembic |
+| Источник схемы | `db/001_init.sql` + `db/003_normative_source_versions.sql`, без `create_all()` и без Alembic |
 
 ---
 
@@ -22,7 +22,7 @@
 | Подключение PostgreSQL | Драйвер `postgresql+psycopg`, ленивый engine | `backend/app/db/session.py` |
 | Сессии для FastAPI | Зависимость `get_db()`, закрытие в `finally` | `backend/app/db/session.py` |
 | Транзакции в скриптах | `session_scope()`: commit / rollback / close | `backend/app/db/session.py` |
-| ORM-модели по DDL | 18 таблиц, 181 колонка | `backend/app/models/` |
+| ORM-модели по DDL | 18 таблиц, 188 колонок | `backend/app/models/` |
 | PK/FK/UNIQUE/CHECK/индексы | Повторяют имена и состав DDL | `backend/app/models/` |
 | Деньги и объёмы | `Decimal` + `NUMERIC`, ни одного `Float` | модели и тест `test_no_float_columns` |
 | Отсутствие своей схемы | Нет `Base.metadata.create_all()`; DDL — единственный источник | `backend/app/db/`, `backend/app/models/` |
@@ -48,9 +48,9 @@ app/models/
 
 ### 2.1. DDL — единственный источник схемы
 
-`db/001_init.sql` — нормативный снимок схемы v3.1. Backend не создаёт таблицы,
+`db/001_init.sql` — начальный снимок схемы v3.1; `db/003_normative_source_versions.sql` — последовательное расширение нормативного каталога. Backend не создаёт таблицы,
 не выполняет `Base.metadata.create_all()` и не держит собственных миграций.
-Любое изменение структуры — новая SQL-миграция архитектора БД (`003_*.sql` и далее).
+Любое следующее изменение структуры — новая SQL-миграция архитектора БД (`004_*.sql` и далее).
 
 ORM-модели нужны для типизированного доступа, запросов и сериализации, а не для
 управления схемой. Поэтому имена ограничений и индексов в моделях совпадают с DDL:
@@ -85,7 +85,7 @@ SQLAlchemy возвращает для них `Decimal`. В моделях не�
 - `estimate_items (defect_id, request_id) → defects`;
 - `request_clarifications (supersedes_clarification_id, request_id) → request_clarifications`.
 
-Это не даёт связать объект с чужим `request_id` на уровне БД. Все 32 FK имеют
+Это не даёт связать объект с чужим `request_id` на уровне БД. Все 33 FK имеют
 `ON DELETE RESTRICT`, как в DDL.
 
 ### 2.5. `metadata` и генерируемый `search_vector`
@@ -135,11 +135,11 @@ pytest -q
 Что проверяют unit-тесты:
 
 - зарегистрированы ровно 18 таблиц;
-- 181 колонка;
+- 188 колонок;
 - ни одной `Float`-колонки;
 - 14 денежных/объёмных полей имеют `Numeric(asdecimal=True)` и Python-тип `Decimal`;
-- 32 FK, все с `ON DELETE RESTRICT`;
-- 64 CHECK и 13 UNIQUE-ограничений;
+- 33 FK, все с `ON DELETE RESTRICT`;
+- 75 CHECK и 14 UNIQUE-ограничений;
 - 17 UUID-первичных ключей с `gen_random_uuid()` и ключевые server defaults;
 - `search_vector` — генерируемая колонка;
 - engine без `DATABASE_URL` падает с понятной ошибкой.
@@ -147,7 +147,7 @@ pytest -q
 ### 3.2. Интеграционная проверка против PostgreSQL
 
 Создана отдельная БД `fixrate_backend_test` на PostgreSQL 16 + pgvector 0.8.7,
-в неё применён только `db/001_init.sql` (без DEMO-сида). Затем:
+в неё применены `db/001_init.sql` и `db/003_normative_source_versions.sql` (без DEMO-сида). Затем:
 
 ```bash
 DATABASE_URL='postgresql+psycopg://fixrate:ChangeMe-local-only@localhost:5433/fixrate_backend_test' \
@@ -161,10 +161,10 @@ DATABASE_URL='postgresql+psycopg://fixrate:ChangeMe-local-only@localhost:5433/fi
 | Проверка | Результат |
 |---|---|
 | Набор таблиц | 18 из 18 |
-| Колонки, типы, nullable | 181 из 181 |
+| Колонки, типы, nullable | 188 из 188 |
 | Первичные ключи | все совпадают |
-| Внешние ключи, состав и `ON DELETE RESTRICT` | 32 из 32 |
-| UNIQUE-ограничения | 13 из 13 |
+| Внешние ключи, состав и `ON DELETE RESTRICT` | 33 из 33 |
+| UNIQUE-ограничения | 14 из 14 |
 | Индексы, включая partial и GIN | совпадают по именам и выражениям |
 | CHECK-ограничения | 64 из 64 |
 | `search_vector` | `GENERATED ALWAYS ... STORED` |
@@ -191,6 +191,7 @@ docker compose up -d
 
 psql -X -v ON_ERROR_STOP=1 -h localhost -p 5432 -U fixrate -d fixrate -f db/001_init.sql
 psql -X -v ON_ERROR_STOP=1 -h localhost -p 5432 -U fixrate -d fixrate -f db/002_seed_demo.sql
+psql -X -v ON_ERROR_STOP=1 -h localhost -p 5432 -U fixrate -d fixrate -f db/003_normative_source_versions.sql
 ```
 
 В `backend/.env`:
@@ -237,8 +238,8 @@ uvicorn app.main:app --reload
 
 > Карточка 2 (backend): PostgreSQL + SQLAlchemy 2.0 sync + psycopg3 готова.
 > - Engine/session: `backend/app/db/session.py`; `DATABASE_URL` берётся из `.env`.
-> - 18 ORM-моделей в `backend/app/models/` строго по `db/001_init.sql` (v3.1):
->   181 колонка, 32 FK с `ON DELETE RESTRICT`, 64 CHECK, 13 UNIQUE, индексы.
+> - 18 ORM-моделей в `backend/app/models/` по `db/001_init.sql` + `db/003_normative_source_versions.sql`:
+>   188 колонок, 33 FK с `ON DELETE RESTRICT`, 75 CHECK, 14 UNIQUE, индексы.
 > - `Base.metadata.create_all()` не используется; схема — только SQL-миграции.
 > - Деньги/объёмы — `Decimal`/`NUMERIC`; DEMO не считается проверенным нормативом.
 > - Unit: `pytest -q` → 24 passed, 10 skipped (без БД).

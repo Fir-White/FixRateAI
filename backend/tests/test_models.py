@@ -50,7 +50,7 @@ def test_all_18_tables_registered():
 
 
 def test_total_column_count_matches_ddl():
-    assert sum(len(table.columns) for table in Base.metadata.tables.values()) == 181
+    assert sum(len(table.columns) for table in Base.metadata.tables.values()) == 188
 
 
 def test_no_float_columns():
@@ -72,7 +72,7 @@ def test_all_foreign_keys_are_restrict():
         for table in Base.metadata.tables.values()
         for fk in table.foreign_key_constraints
     ]
-    assert len(foreign_keys) == 32
+    assert len(foreign_keys) == 33
     assert all(fk.ondelete == "RESTRICT" for fk in foreign_keys)
 
 
@@ -90,8 +90,8 @@ def test_all_expected_checks_and_uniques_are_present():
         if isinstance(constraint, UniqueConstraint)
     ]
 
-    assert len(checks) == 64
-    assert len(uniques) == 13
+    assert len(checks) == 75
+    assert len(uniques) == 14
     assert all(constraint.name for constraint in checks)
     assert all(constraint.name for constraint in uniques)
 
@@ -122,6 +122,7 @@ def test_key_server_defaults_match_ddl():
         ("users", "is_active"): "true",
         ("buildings", "additional_properties"): "'{}'::jsonb",
         ("rates", "rate_unit_multiplier"): "1",
+        ("norm_sources", "is_current"): "true",
         ("estimates", "currency"): "'RUB'",
         ("estimate_items", "coefficient"): "1",
         ("normative_chunks", "metadata"): "'{}'::jsonb",

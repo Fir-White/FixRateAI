@@ -17,7 +17,7 @@
 который одновременно ссылается на родителя (жёсткая проверка принадлежности заявке).
 У составных FK проверяется вся пара полей, поэтому составных связей меньше, чем полей.
 
-Полная схема одним холстом (все 18 таблиц со всеми атрибутами) — в [erd.svg](erd.svg).
+Схема по доменам ниже актуализирована для миграции 003. [erd.svg](erd.svg) сохраняет базовый холст v3.1 и пока не содержит новых полей нормативного каталога.
 
 ## Домен «Заявки и дефекты»
 
@@ -241,15 +241,21 @@ erDiagram
     }
     norm_sources {
         UUID source_id PK
+        UUID source_series_id UK
+        UUID supersedes_source_id FK
         VARCHAR source_type
         TEXT title
         VARCHAR edition
         VARCHAR region
+        TEXT provider_name
         DATE publication_date
         DATE effective_date
+        DATE valid_to
+        CHAR default_currency
         TEXT source_url
         TEXT document_reference
         BOOLEAN is_verified
+        BOOLEAN is_current
         TIMESTAMPTZ created_at
     }
     rates {
@@ -264,6 +270,7 @@ erDiagram
         CHAR currency
         VARCHAR price_basis
         VARCHAR cost_scope
+        DATE price_date
         BOOLEAN is_active
     }
     normative_chunks {
@@ -290,6 +297,7 @@ erDiagram
     ai_runs ||--o{ ai_results : "run_id, request_id"
     repair_requests ||--o{ defects : "request_id"
     ai_results |o--o{ defects : "source_ai_result_id, request_id"
+    norm_sources |o--o| norm_sources : "supersedes_source_id, source_series_id"
     norm_sources ||--o{ rates : "source_id"
     norm_sources ||--o{ normative_chunks : "source_id"
     rates |o--o{ normative_chunks : "rate_id, source_id"
@@ -386,7 +394,7 @@ erDiagram
 
 ## Исходные файлы
 
-- [erd.svg](erd.svg) — полная схема одним холстом 3010×1870; содержит поля v3 (`is_current`, `rate_unit_multiplier`, `cost_treatment`, `embedding_model` и др.);
-- [erd.drawio](erd.drawio) — **устаревший исходник**: не содержит ряда полей v3 и имеет одну вкладку вместо заявленных четырёх. Не редактировать по нему схему до синхронизации с `erd.svg` и `specification.md`;
+- [erd.svg](erd.svg) — **устарел после миграции 003**: не содержит серии/редакции `norm_sources` и `rates.price_date`; актуальная структура приведена в Mermaid выше и в `specification.md`;
+- [erd.drawio](erd.drawio) — **устаревший исходник**: не содержит ряда полей v3/003 и имеет одну вкладку вместо заявленных четырёх. Не редактировать по нему схему до синхронизации с DDL и `specification.md`;
 - [specification.md](specification.md) — описание сущностей, ограничений и индексов;
 - [test_scenarios.md](test_scenarios.md) — сценарии проверки модели.

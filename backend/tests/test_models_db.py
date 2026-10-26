@@ -267,6 +267,8 @@ def test_special_index_definitions_match_ddl(engine):
         "uq_defect_single_primary_photo": "WHERE is_primary",
         "uq_measure_current_per_parameter": "WHERE is_current",
         "idx_rates_work_name": "to_tsvector",
+        "idx_rates_code": "rate_code",
+        "uq_norm_sources_current_series": "WHERE is_current",
         "idx_chunks_search_vector": "gin",
     }
     with engine.connect() as connection:

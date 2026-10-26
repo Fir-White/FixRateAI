@@ -9,6 +9,7 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     Computed,
+    Date,
     DateTime,
     ForeignKey,
     ForeignKeyConstraint,
@@ -51,6 +52,19 @@ class Rate(Base):
             "cost_scope IN ('work_only','all_inclusive','resource_based')",
             name="rates_cost_scope_check",
         ),
+        CheckConstraint(
+            "rate_code IS NOT NULL AND length(btrim(rate_code)) > 0",
+            name="chk_rate_code_nonempty",
+        ),
+        CheckConstraint(
+            "length(btrim(unit_code)) > 0",
+            name="chk_rate_unit_nonempty",
+        ),
+        CheckConstraint(
+            "NOT is_active OR (base_price IS NOT NULL AND currency IS NOT NULL)",
+            name="chk_rate_active_priced",
+        ),
+        Index("idx_rates_code", "rate_code"),
         Index(
             "idx_rates_work_name",
             text("to_tsvector('russian', work_name)"),
@@ -85,6 +99,7 @@ class Rate(Base):
     currency: Mapped[str | None] = mapped_column(CHAR(3))
     price_basis: Mapped[str] = mapped_column(String(30), nullable=False)
     cost_scope: Mapped[str] = mapped_column(String(30), nullable=False)
+    price_date: Mapped[datetime.date | None] = mapped_column(Date)
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,

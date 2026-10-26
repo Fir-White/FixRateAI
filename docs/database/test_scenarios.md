@@ -7,6 +7,8 @@
 > **Осталось:** 13 сценариев `SQL+APP` и 34 сценария `APP`/`APP+INFRA` требуют backend, API, файлового хранилища или ML-пайплайна. Они по-прежнему отмечены как `НЕ ЗАПУСКАЛСЯ`.
 >
 > **Подтверждение:** [db/tests/002_scenarios_result.md](../../db/tests/002_scenarios_result.md); runner — `db/tests/run_sql_scenarios.py` (50 определений в `db/tests/scenario_defs.py`). Запуск: `FIXRATE_PG_CONTAINER=fixrate_pg_test python db/tests/run_sql_scenarios.py`.
+>
+> **Дополнительная регрессия миграции 003:** версии нормативных/коммерческих источников, нормативный множитель, канонический snapshot и неизменность исторической цены проверяются файлом [`db/tests/003_normative_versions.sql`](../../db/tests/003_normative_versions.sql); фактический протокол — [`db/tests/003_normative_versions_result.md`](../../db/tests/003_normative_versions_result.md).
 
 ## Легенда
 

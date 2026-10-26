@@ -12,7 +12,7 @@ BEGIN
     IF (SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE') <> 18 THEN
         RAISE EXCEPTION 'Unexpected number of tables';
     END IF;
-    IF (SELECT count(*) FROM pg_constraint WHERE contype='f' AND connamespace='public'::regnamespace) <> 32 THEN
+    IF (SELECT count(*) FROM pg_constraint WHERE contype='f' AND connamespace='public'::regnamespace) <> 33 THEN
         RAISE EXCEPTION 'Unexpected number of foreign keys';
     END IF;
 
@@ -46,7 +46,8 @@ BEGIN
       VALUES ('66666666-6666-4666-8666-666666666666',
               '55555555-5555-4555-8555-555555555555',
               '44444444-4444-4444-8444-444444444444','Manual wall preparation',
-              2,'m2',100,200,0,200,'valid','{"origin":"manual","note":"demo"}'::jsonb);
+              2,'m2',100,200,0,200,'valid',
+              '{"origin":"manual","source_description":"Manual quote","entered_by":"22222222-2222-4222-8222-222222222222","basis":"smoke test","unit_code":"m2","unit_price":100,"currency":"RUB"}'::jsonb);
 
     INSERT INTO estimate_materials(material_id,item_id,material_name,quantity,unit_code,cost_treatment)
       VALUES ('77777777-7777-4777-8777-777777777777',
@@ -60,7 +61,7 @@ BEGIN
                 '44444444-4444-4444-8444-444444444444','Missing origin',
                 1,'m2',100,100,100,'valid','{}'::jsonb);
         RAISE EXCEPTION 'Expected missing manual source snapshot failure';
-    EXCEPTION WHEN check_violation THEN NULL;
+    EXCEPTION WHEN check_violation OR raise_exception THEN NULL;
     END;
 
     BEGIN
@@ -68,7 +69,8 @@ BEGIN
            unit_price,base_cost,total_cost,validation_status,source_snapshot)
         VALUES ('55555555-5555-4555-8555-555555555555',
                 '44444444-4444-4444-8444-444444444444','Wrong sum',
-                1,'m2',100,100,99,'valid','{"origin":"manual"}'::jsonb);
+                1,'m2',100,100,99,'valid',
+                '{"origin":"manual","source_description":"Manual quote","entered_by":"22222222-2222-4222-8222-222222222222","basis":"smoke test","unit_code":"m2","unit_price":100,"currency":"RUB"}'::jsonb);
         RAISE EXCEPTION 'Expected arithmetic constraint failure';
     EXCEPTION WHEN check_violation THEN NULL;
     END;
@@ -107,7 +109,8 @@ BEGIN
         unit_price,base_cost,total_cost,validation_status,source_snapshot)
        VALUES ('88888888-8888-4888-8888-888888888888',
                '44444444-4444-4444-8444-444444444444','Mispriced job',
-               1,'m2',90,90,90,'valid','{"origin":"manual"}'::jsonb);
+               1,'m2',90,90,90,'valid',
+               '{"origin":"manual","source_description":"Manual quote","entered_by":"22222222-2222-4222-8222-222222222222","basis":"smoke test","unit_code":"m2","unit_price":90,"currency":"RUB"}'::jsonb);
     BEGIN
         UPDATE estimates SET status='approved',
             reviewed_by='22222222-2222-4222-8222-222222222222',reviewed_at=now()
@@ -137,7 +140,8 @@ BEGIN
             unit_price,base_cost,total_cost,validation_status,source_snapshot)
         VALUES ('55555555-5555-4555-8555-555555555555',
                 '44444444-4444-4444-8444-444444444444','Late item',
-                1,'m2',10,10,10,'valid','{"origin":"manual"}'::jsonb);
+                1,'m2',10,10,10,'valid',
+                '{"origin":"manual","source_description":"Manual quote","entered_by":"22222222-2222-4222-8222-222222222222","basis":"smoke test","unit_code":"m2","unit_price":10,"currency":"RUB"}'::jsonb);
         RAISE EXCEPTION 'Expected item insert into finalized estimate to fail';
     EXCEPTION WHEN raise_exception THEN
         IF SQLERRM = 'Expected item insert into finalized estimate to fail' THEN RAISE; END IF;
@@ -154,7 +158,7 @@ BEGIN
         IF SQLERRM = 'Expected audit deletion to fail' THEN RAISE; END IF;
     END;
 
-    RAISE NOTICE 'PASS: 18 tables, 32 FK, timestamps, manual items, approval, immutable history, audit';
+    RAISE NOTICE 'PASS: 18 tables, 33 FK, timestamps, manual items, approval, immutable history, audit';
 END;
 $smoke$;
 

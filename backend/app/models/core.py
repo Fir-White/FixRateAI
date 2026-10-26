@@ -5,10 +5,12 @@ from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import (
+    CHAR,
     Boolean,
     CheckConstraint,
     Date,
     DateTime,
+    ForeignKeyConstraint,
     Index,
     Numeric,
     SmallInteger,
@@ -141,13 +143,76 @@ class NormSource(Base):
 
     __tablename__ = "norm_sources"
     __table_args__ = (
+        UniqueConstraint(
+            "source_id",
+            "source_series_id",
+            name="uq_norm_source_series_identity",
+        ),
+        ForeignKeyConstraint(
+            ["supersedes_source_id", "source_series_id"],
+            ["norm_sources.source_id", "norm_sources.source_series_id"],
+            name="fk_norm_source_previous_same_series",
+            ondelete="RESTRICT",
+        ),
         CheckConstraint(
-            "source_type IN ('FER','TER','COMMERCIAL','DEMO')",
+            "source_type IN ('FER','FERR','TER','TERR','COMMERCIAL','DEMO')",
             name="norm_sources_source_type_check",
         ),
         CheckConstraint(
             "NOT is_verified OR source_url IS NOT NULL OR document_reference IS NOT NULL",
             name="chk_verified_has_reference",
+        ),
+        CheckConstraint(
+            "length(btrim(title)) > 0",
+            name="chk_norm_source_title_nonempty",
+        ),
+        CheckConstraint(
+            "edition IS NULL OR length(btrim(edition)) > 0",
+            name="chk_norm_source_edition_nonempty",
+        ),
+        CheckConstraint(
+            "provider_name IS NULL OR length(btrim(provider_name)) > 0",
+            name="chk_norm_source_provider_nonempty",
+        ),
+        CheckConstraint(
+            "valid_to IS NULL OR effective_date IS NULL OR valid_to >= effective_date",
+            name="chk_norm_source_valid_period",
+        ),
+        CheckConstraint(
+            "default_currency IS NULL OR default_currency ~ '^[A-Z]{3}$'",
+            name="chk_norm_source_currency",
+        ),
+        CheckConstraint(
+            "source_type <> 'DEMO' OR NOT is_verified",
+            name="chk_demo_source_unverified",
+        ),
+        CheckConstraint(
+            "NOT is_verified OR ("
+            "COALESCE(NULLIF(btrim(edition), ''), effective_date::text) IS NOT NULL "
+            "AND COALESCE(NULLIF(btrim(source_url), ''), "
+            "NULLIF(btrim(document_reference), '')) IS NOT NULL "
+            "AND (source_type IN ('FER','FERR','TER','TERR') OR ("
+            "source_type = 'COMMERCIAL' AND provider_name IS NOT NULL "
+            "AND default_currency IS NOT NULL)))",
+            name="chk_verified_source_details",
+        ),
+        Index(
+            "uq_norm_sources_current_series",
+            "source_series_id",
+            unique=True,
+            postgresql_where=text("is_current"),
+        ),
+        Index(
+            "idx_norm_sources_catalog_lookup",
+            "source_type",
+            "region",
+            "is_current",
+            text("effective_date DESC"),
+        ),
+        Index(
+            "idx_norm_sources_series_effective",
+            "source_series_id",
+            text("effective_date DESC NULLS LAST"),
         ),
     )
 
@@ -156,18 +221,34 @@ class NormSource(Base):
         primary_key=True,
         server_default=text("gen_random_uuid()"),
     )
+    source_series_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        nullable=False,
+        server_default=text("gen_random_uuid()"),
+    )
+    supersedes_source_id: Mapped[uuid.UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True)
+    )
     source_type: Mapped[str] = mapped_column(String(30), nullable=False)
     title: Mapped[str] = mapped_column(Text, nullable=False)
     edition: Mapped[str | None] = mapped_column(String(100))
     region: Mapped[str | None] = mapped_column(String(100))
+    provider_name: Mapped[str | None] = mapped_column(Text)
     publication_date: Mapped[datetime.date | None] = mapped_column(Date)
     effective_date: Mapped[datetime.date | None] = mapped_column(Date)
+    valid_to: Mapped[datetime.date | None] = mapped_column(Date)
+    default_currency: Mapped[str | None] = mapped_column(CHAR(3))
     source_url: Mapped[str | None] = mapped_column(Text)
     document_reference: Mapped[str | None] = mapped_column(Text)
     is_verified: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
         server_default=text("false"),
+    )
+    is_current: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=text("true"),
     )
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),

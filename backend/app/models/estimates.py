@@ -171,6 +171,36 @@ class EstimateItem(Base):
             "total_cost = base_cost + COALESCE(additional_materials_cost, 0)",
             name="chk_item_valid_math",
         ),
+        CheckConstraint(
+            "validation_status <> 'valid' OR ("
+            "source_snapshot IS NOT NULL "
+            "AND jsonb_typeof(source_snapshot) = 'object' "
+            "AND source_snapshot ? 'origin' "
+            "AND ((rate_id IS NOT NULL "
+            "AND COALESCE(source_snapshot ->> 'origin', '') IN ('normative','commercial','demo') "
+            "AND COALESCE(source_snapshot ->> 'rate_id', '') = rate_id::text "
+            "AND COALESCE(length(btrim(source_snapshot ->> 'source_id')), 0) > 0 "
+            "AND COALESCE(length(btrim(source_snapshot ->> 'source_series_id')), 0) > 0 "
+            "AND COALESCE(length(btrim(source_snapshot ->> 'source_type')), 0) > 0 "
+            "AND COALESCE(length(btrim(source_snapshot ->> 'source_title')), 0) > 0 "
+            "AND COALESCE(length(btrim(source_snapshot ->> 'source_version')), 0) > 0 "
+            "AND COALESCE(length(btrim(source_snapshot ->> 'rate_code')), 0) > 0 "
+            "AND COALESCE(length(btrim(source_snapshot ->> 'work_name')), 0) > 0 "
+            "AND COALESCE(length(btrim(source_snapshot ->> 'unit_code')), 0) > 0 "
+            "AND COALESCE((source_snapshot ->> 'rate_unit_multiplier')::NUMERIC, -1) > 0 "
+            "AND COALESCE((source_snapshot ->> 'base_price')::NUMERIC, -1) >= 0 "
+            "AND COALESCE(source_snapshot ->> 'currency', '') ~ '^[A-Z]{3}$' "
+            "AND COALESCE(length(btrim(source_snapshot ->> 'price_basis')), 0) > 0) "
+            "OR (rate_id IS NULL "
+            "AND COALESCE(source_snapshot ->> 'origin', '') = 'manual' "
+            "AND COALESCE(length(btrim(source_snapshot ->> 'source_description')), 0) > 0 "
+            "AND COALESCE(length(btrim(source_snapshot ->> 'entered_by')), 0) > 0 "
+            "AND COALESCE(length(btrim(source_snapshot ->> 'basis')), 0) > 0 "
+            "AND COALESCE(length(btrim(source_snapshot ->> 'unit_code')), 0) > 0 "
+            "AND COALESCE((source_snapshot ->> 'unit_price')::NUMERIC, -1) >= 0 "
+            "AND COALESCE(source_snapshot ->> 'currency', '') ~ '^[A-Z]{3}$')))",
+            name="chk_item_source_snapshot_complete",
+        ),
         Index("idx_items_estimate", "estimate_id"),
         Index("idx_items_defect", "defect_id"),
         Index("idx_items_rate", "rate_id"),
