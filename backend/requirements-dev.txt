@@ -1,4 +1,0 @@
--r requirements.txt
-# для тестов: TestClient из FastAPI/Starlette использует httpx
-pytest>=8.0,<10.0
-httpx>=0.27,<1.0
