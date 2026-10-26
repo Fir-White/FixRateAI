@@ -1,0 +1,28 @@
+# секреты и окружения
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Сгенерированный отчёт SQL-сценариев
+db/tests/scenario_results.json
+
+# локальные данные backend (фото, артефакты) — не в git
+backend/var/*
+!backend/var/.gitkeep
+
+# нормативные материалы с лицензией (ФЕР/ТЕР, прайсы) — НЕ коммитить, хранить локально
+data_private/
+
+# IDE / ОС
+.idea/
+.vscode/
+.DS_Store

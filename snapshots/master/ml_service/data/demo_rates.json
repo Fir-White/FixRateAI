@@ -1,0 +1,55 @@
+{
+  "source": {
+    "source_id": "d0000000-0000-4000-8000-000000000001",
+    "source_type": "DEMO",
+    "title": "DEMO-прайс FixRate AI (иллюстративные расценки)",
+    "edition": "2026.1",
+    "region": "Свердловская область",
+    "document_reference": "Учебный демонстрационный прайс. Не является ФЕР/ТЕР и не подлежит применению в реальных сметах.",
+    "is_verified": false
+  },
+  "rates": [
+    {
+      "rate_id": "d1000000-0000-4000-8000-000000000001",
+      "rate_code": "DEMO-FACADE-CRACK-01",
+      "work_name": "Заделка трещин фасада",
+      "description": "DEMO: очистка, расшивка и заделка трещины; состав работ условный",
+      "unit_code": "m2",
+      "rate_unit_multiplier": 1,
+      "base_price": 850.00,
+      "currency": "RUB",
+      "price_basis": "demo",
+      "cost_scope": "work_only",
+      "applicable_defects": ["facade_crack"],
+      "keywords": ["трещина", "фасад", "расшивка", "заделка", "стена", "штукатурка"]
+    },
+    {
+      "rate_id": "d1000000-0000-4000-8000-000000000002",
+      "rate_code": "DEMO-TILE-CHIP-01",
+      "work_name": "Замена повреждённой облицовочной плитки",
+      "description": "DEMO: демонтаж и укладка плитки; состав работ условный",
+      "unit_code": "m2",
+      "rate_unit_multiplier": 1,
+      "base_price": 1200.00,
+      "currency": "RUB",
+      "price_basis": "demo",
+      "cost_scope": "work_only",
+      "applicable_defects": ["tile_chip"],
+      "keywords": ["плитка", "скол", "замена", "демонтаж", "укладка", "облицовка", "керамогранит"]
+    },
+    {
+      "rate_id": "d1000000-0000-4000-8000-000000000003",
+      "rate_code": "DEMO-PARKING-LEAK-01",
+      "work_name": "Гидроизоляция парковки",
+      "description": "DEMO: подготовка основания и устройство гидроизоляции; состав работ условный",
+      "unit_code": "m2",
+      "rate_unit_multiplier": 1,
+      "base_price": 1500.00,
+      "currency": "RUB",
+      "price_basis": "demo",
+      "cost_scope": "work_only",
+      "applicable_defects": ["parking_leak"],
+      "keywords": ["протечка", "парковка", "гидроизоляция", "грунтовка", "герметизация", "пол"]
+    }
+  ]
+}

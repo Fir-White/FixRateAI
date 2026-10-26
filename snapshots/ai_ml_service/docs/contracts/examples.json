@@ -1,0 +1,75 @@
+{
+  "successful_request": {
+    "schema_version": "1.0",
+    "request_id": "req-demo-001",
+    "job_id": "job-demo-001",
+    "photos": [{"file_id": "photo-001", "mime_type": "image/jpeg"}],
+    "description": "Вертикальная трещина на фасаде у входа",
+    "object": {"building_id": "building-001", "building_type": "жилое", "wall_material": "кирпич"},
+    "measurements": [{
+      "name": "length",
+      "value": 3.5,
+      "unit": "m",
+      "provenance": {"source": "user", "source_ref": "form.length"},
+      "validation_status": "valid"
+    }]
+  },
+  "incomplete_response": {
+    "schema_version": "1.0",
+    "request_id": "req-demo-002",
+    "job_id": "job-demo-002",
+    "status": "needs_clarification",
+    "items": [],
+    "total_cost": null,
+    "currency": "RUB",
+    "clarifications": ["Укажите длину трещины в метрах."],
+    "warnings": ["Масштаб фотографии не задан; физический размер по пикселям не вычисляется."],
+    "audit_trail": ["validation: missing length"]
+  },
+  "successful_response": {
+    "schema_version": "1.0",
+    "request_id": "req-demo-001",
+    "job_id": "job-demo-001",
+    "status": "completed",
+    "items": [{
+      "item_id": "item-001",
+      "work_type": "заделка трещин фасада",
+      "quantity": 0.35,
+      "unit": "m2",
+      "rate_code": "DEMO-FACADE-CRACK-01",
+      "price": 850.0,
+      "source_id": "DEMO-2026.1",
+      "formula": "area = length_m * 0.1",
+      "validation_status": "valid",
+      "warnings": []
+    }],
+    "total_cost": 297.5,
+    "currency": "RUB",
+    "warnings": [],
+    "audit_trail": ["calc: 0.35 m2 * 850.00 RUB"]
+  },
+  "invalid_unit_error": {
+    "schema_version": "1.0",
+    "request_id": "req-demo-003",
+    "job_id": "job-demo-003",
+    "status": "failed",
+    "error": {
+      "code": "INVALID_UNIT",
+      "message": "Единица 'meters' не поддерживается.",
+      "details": ["measurements[0].unit: expected one of mm, m, m2, m3, pcs, kg"]
+    },
+    "warnings": []
+  },
+  "missing_scale_error": {
+    "schema_version": "1.0",
+    "request_id": "req-demo-004",
+    "job_id": "job-demo-004",
+    "status": "needs_clarification",
+    "error": {
+      "code": "MISSING_SCALE",
+      "message": "Для расчёта по фотографии не хватает масштаба.",
+      "details": ["Добавьте длину/ширину вручную или эталон масштаба."]
+    },
+    "warnings": []
+  }
+}

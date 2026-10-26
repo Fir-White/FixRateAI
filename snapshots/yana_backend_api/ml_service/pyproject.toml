@@ -1,0 +1,17 @@
+[project]
+name = "fixrate-ml-service"
+version = "0.1.0"
+description = "FixRate AI — ML Service for defect analysis, RAG, and deterministic cost calculation"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "FixRate AI Team" }
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["app", "."]
+testpaths = ["tests"]
+addopts = "-v --strict-markers"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
