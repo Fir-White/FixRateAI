@@ -65,6 +65,8 @@ python -B docs/database/export_erd.py
 
 Основания для сверки: [предварительная доменная модель](../architecture/data_model_draft.md), [API-контракты](../architecture/api_contracts.md), [backend DTO](../../backend/app/schemas/maintenance.py) и [REST-модели](../../backend/app/schemas/maintenance_api.py).
 
+Подробное соответствие каждого поля, варианты JOIN и конкретные пробелы рассмотрены в [DTO ↔ БД](../architecture/dto_db_mapping.md). Документ подготовлен для согласования и не фиксирует подтверждения от разработчиков.
+
 ## Следующий шаг для реализации
 
 1. Зафиксировать согласованное отображение доменных сущностей и API на физические таблицы.
