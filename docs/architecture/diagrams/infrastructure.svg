@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="850" viewBox="0 0 1200 850" role="img" aria-labelledby="title desc">
+  <title id="title">FixRate AI — целевая инфраструктура</title>
+  <desc id="desc">React SPA через nginx обращается к FastAPI. Один backend содержит доменные сервисы, алгоритмический и AI-прогнозы, оркестратор и фотоанализ. Данные хранятся в PostgreSQL, фото и модели — в локальных volumes. Это проектная схема.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M1 1 L7 4 L1 7" fill="none" stroke="#91a8c8" stroke-width="1.4"/></marker>
+    <style>
+      text { font-family: Arial, 'Segoe UI', sans-serif; }
+      .title { fill: #f1f5fb; font-size: 32px; font-weight: 700; }
+      .heading { fill: #f1f5fb; font-size: 24px; font-weight: 700; }
+      .body { fill: #b8c8dd; font-size: 20px; }
+      .label { font-size: 17px; font-weight: 700; letter-spacing: 1.4px; }
+      .wire { fill: none; stroke: #91a8c8; stroke-width: 2; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect width="1200" height="850" rx="24" fill="#0b1120"/>
+  <text x="48" y="63" class="title">Инфраструктура FixRate AI</text>
+  <rect x="880" y="32" width="272" height="40" rx="20" fill="#152d35" stroke="#275361"/>
+  <text x="1016" y="58" text-anchor="middle" fill="#86dfd1" font-family="Arial, sans-serif" font-size="17">Целевая схема · прототип</text>
+  <text x="48" y="105" class="body">Одна машина · модульный backend · постоянные хранилища</text>
+
+  <rect x="48" y="148" width="320" height="104" rx="14" fill="#131e31" stroke="#385573"/>
+  <rect x="48" y="148" width="5" height="104" rx="2" fill="#65bbff"/>
+  <text x="72" y="190" class="heading">React SPA</text>
+  <text x="72" y="224" class="body">Реестр · календарь · задания</text>
+  <path d="M372 200 H430" class="wire"/>
+  <rect x="440" y="148" width="320" height="104" rx="14" fill="#131e31" stroke="#385573"/>
+  <text x="464" y="190" class="heading">nginx</text>
+  <text x="464" y="224" class="body">Статика + прокси /api</text>
+  <path d="M764 200 H822" class="wire"/>
+  <rect x="832" y="148" width="320" height="104" rx="14" fill="#131e31" stroke="#385573"/>
+  <text x="856" y="190" class="heading">FastAPI</text>
+  <text x="856" y="224" class="body">REST · DTO · доступ по ролям</text>
+  <path d="M992 256 V282" class="wire"/>
+
+  <rect x="48" y="290" width="1104" height="322" rx="18" fill="#101c30" stroke="#385573" stroke-width="1.5"/>
+  <text x="80" y="326" fill="#7abcfb" class="label">ОДИН BACKEND</text>
+  <text x="795" y="326" fill="#b8c8dd" font-family="Arial, sans-serif" font-size="18">Python 3.12 · внутренние вызовы</text>
+  <rect x="80" y="356" width="1040" height="84" rx="12" fill="#1a2d47" stroke="#4c7199"/>
+  <text x="104" y="392" class="heading">Доменные сервисы ТО / ППР</text>
+  <text x="104" y="423" class="body">Оборудование · регламенты · планы · назначения · выполнение · приёмка</text>
+  <path d="M240 444 V482" class="wire"/>
+  <path d="M600 444 V482" class="wire"/>
+  <path d="M960 444 V482" class="wire"/>
+  <rect x="80" y="494" width="320" height="88" rx="12" fill="#182438" stroke="#4e6380"/>
+  <text x="100" y="529" class="heading">Прогнозирование</text>
+  <text x="100" y="561" class="body">Алгоритмический + AI</text>
+  <path d="M436 537 H406" class="wire"/>
+  <rect x="440" y="494" width="320" height="88" rx="12" fill="#24233b" stroke="#7466a2"/>
+  <text x="460" y="529" class="heading">Оркестратор</text>
+  <text x="460" y="561" class="body">Сравнение · сроки · причины</text>
+  <rect x="800" y="494" width="320" height="88" rx="12" fill="#142c32" stroke="#3a7a7c"/>
+  <text x="820" y="529" class="heading">Фотоанализ</text>
+  <text x="820" y="561" class="body">Рекомендация инженеру</text>
+
+  <path d="M600 612 V650 M240 650 H960" fill="none" stroke="#91a8c8" stroke-width="2"/>
+  <path d="M240 650 V690" class="wire"/>
+  <path d="M600 650 V690" class="wire"/>
+  <path d="M960 650 V690" class="wire"/>
+  <rect x="80" y="702" width="320" height="96" rx="14" fill="#13252d" stroke="#3a7077"/>
+  <text x="100" y="740" class="heading">PostgreSQL 16</text>
+  <text x="100" y="774" class="body">SQLAlchemy · данные · аудит</text>
+  <rect x="440" y="702" width="320" height="96" rx="14" fill="#13252d" stroke="#3a7077"/>
+  <text x="460" y="740" class="heading">Фотоотчёты</text>
+  <text x="460" y="774" class="body">Файлы · локальный volume</text>
+  <rect x="800" y="702" width="320" height="96" rx="14" fill="#13252d" stroke="#3a7077"/>
+  <text x="820" y="740" class="heading">Модели AI</text>
+  <text x="820" y="774" class="body">Версии · локальный volume</text>
+  <text x="600" y="831" text-anchor="middle" fill="#869ab5" font-family="Arial, sans-serif" font-size="16">Проектная архитектура · состояние реализации описано в README</text>
+</svg>
