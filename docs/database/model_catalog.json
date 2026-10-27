@@ -1,0 +1,4068 @@
+{
+  "model": "FixRate AI · ТО/ППР",
+  "version": "0.9-architecture-draft",
+  "generated": "2026-10-27",
+  "groups": {
+    "assets": [
+      "01 · Объекты и доступ",
+      "#2563eb",
+      "#eff6ff"
+    ],
+    "regulations": [
+      "02 · Регламенты и периодичность",
+      "#0891b2",
+      "#ecfeff"
+    ],
+    "scheduling": [
+      "03 · Планирование и заявки",
+      "#a855f7",
+      "#faf5ff"
+    ],
+    "execution": [
+      "04 · Исполнение и приёмка",
+      "#d97706",
+      "#fffbeb"
+    ],
+    "ai": [
+      "05 · Прогнозы и качество",
+      "#7c3aed",
+      "#f5f3ff"
+    ],
+    "audit": [
+      "06 · История",
+      "#64748b",
+      "#f1f5f9"
+    ]
+  },
+  "tables": [
+    {
+      "name": "sites",
+      "group": "assets",
+      "purpose": "Физические объекты эксплуатации, единица разграничения доступа и нормативных графиков.",
+      "fields": [
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор объекта",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Наименование объекта",
+          "default": ""
+        },
+        {
+          "name": "address",
+          "type": "TEXT",
+          "nullable": true,
+          "description": "Адрес",
+          "default": ""
+        },
+        {
+          "name": "timezone",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Часовой пояс IANA для локальных дедлайнов",
+          "default": "Asia/Yekaterinburg"
+        },
+        {
+          "name": "is_active",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "description": "Признак доступности объекта",
+          "default": "true"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Дата создания записи",
+          "default": "now()"
+        }
+      ],
+      "pk": [
+        "site_id"
+      ],
+      "unique": [],
+      "checks": [
+        "length(trim(name)) > 0",
+        "length(trim(timezone)) > 0"
+      ],
+      "indexes": [
+        "(is_active, name)"
+      ],
+      "tier": "P0"
+    },
+    {
+      "name": "users",
+      "group": "assets",
+      "purpose": "Учётные записи людей; глобальный пользователь может иметь разные роли на объектах.",
+      "fields": [
+        {
+          "name": "user_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор пользователя",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "full_name",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "ФИО/отображаемое имя",
+          "default": ""
+        },
+        {
+          "name": "email",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Адрес электронной почты",
+          "default": ""
+        },
+        {
+          "name": "password_hash",
+          "type": "TEXT",
+          "nullable": true,
+          "description": "Хеш пароля, если выбрана локальная аутентификация",
+          "default": ""
+        },
+        {
+          "name": "is_active",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "description": "Деактивация без удаления истории",
+          "default": "true"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Время регистрации",
+          "default": "now()"
+        }
+      ],
+      "pk": [
+        "user_id"
+      ],
+      "unique": [],
+      "checks": [
+        "length(trim(full_name)) > 0",
+        "position('@' in email) > 1"
+      ],
+      "indexes": [
+        "UNIQUE lower(email)"
+      ],
+      "tier": "P0"
+    },
+    {
+      "name": "site_memberships",
+      "group": "assets",
+      "purpose": "Роль и активность пользователя на конкретном объекте; основа RBAC и назначения.",
+      "fields": [
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект, к которому открыт доступ",
+          "default": ""
+        },
+        {
+          "name": "user_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Пользователь",
+          "default": ""
+        },
+        {
+          "name": "role",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "executive / chief_engineer / engineer / technician",
+          "default": ""
+        },
+        {
+          "name": "is_active",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "description": "Право действовать на объекте",
+          "default": "true"
+        },
+        {
+          "name": "joined_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Дата назначения роли",
+          "default": "now()"
+        }
+      ],
+      "pk": [
+        "site_id",
+        "user_id"
+      ],
+      "unique": [],
+      "checks": [
+        "role IN ('executive','chief_engineer','engineer','technician')"
+      ],
+      "indexes": [
+        "(user_id, is_active)"
+      ],
+      "tier": "P0"
+    },
+    {
+      "name": "engineering_systems",
+      "group": "assets",
+      "purpose": "Инженерная система объекта: теплоснабжение, ХВС, ГВС, ЖБО и т. д.",
+      "fields": [
+        {
+          "name": "system_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор системы",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Родительский объект",
+          "default": ""
+        },
+        {
+          "name": "code",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Локальный код системы",
+          "default": ""
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Название системы",
+          "default": ""
+        },
+        {
+          "name": "notes",
+          "type": "TEXT",
+          "nullable": true,
+          "description": "Описание и комментарии",
+          "default": ""
+        },
+        {
+          "name": "is_active",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "description": "Признак действующей системы",
+          "default": "true"
+        }
+      ],
+      "pk": [
+        "system_id"
+      ],
+      "unique": [
+        "(site_id,system_id)",
+        "(site_id,code)"
+      ],
+      "checks": [
+        "length(trim(name)) > 0"
+      ],
+      "indexes": [
+        "(site_id,name)"
+      ],
+      "tier": "P0"
+    },
+    {
+      "name": "equipment_types",
+      "group": "assets",
+      "purpose": "Классификатор типов оборудования и комплектующих.",
+      "fields": [
+        {
+          "name": "equipment_type_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор типа",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "code",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Код типа оборудования",
+          "default": ""
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Название типа",
+          "default": ""
+        },
+        {
+          "name": "default_attributes",
+          "type": "JSONB",
+          "nullable": false,
+          "description": "Структура типовых паспортных атрибутов",
+          "default": "{}"
+        }
+      ],
+      "pk": [
+        "equipment_type_id"
+      ],
+      "unique": [
+        "(code)"
+      ],
+      "checks": [
+        "jsonb_typeof(default_attributes) = 'object'"
+      ],
+      "indexes": [],
+      "tier": "P0"
+    },
+    {
+      "name": "equipment",
+      "group": "assets",
+      "purpose": "Узлы и конкретные единицы оборудования с паспортом и иерархией.",
+      "fields": [
+        {
+          "name": "equipment_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор оборудования",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект эксплуатации",
+          "default": ""
+        },
+        {
+          "name": "system_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Инженерная система",
+          "default": ""
+        },
+        {
+          "name": "parent_equipment_id",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Родительский комплекс, например тепловой пункт",
+          "default": ""
+        },
+        {
+          "name": "equipment_type_id",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Тип оборудования из классификатора",
+          "default": ""
+        },
+        {
+          "name": "asset_code",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Инвентарный код в пределах объекта",
+          "default": ""
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Наименование (Манометр / Теплосчётчик и т. п.)",
+          "default": ""
+        },
+        {
+          "name": "serial_number",
+          "type": "TEXT",
+          "nullable": true,
+          "description": "Заводской номер",
+          "default": ""
+        },
+        {
+          "name": "commissioned_on",
+          "type": "DATE",
+          "nullable": true,
+          "description": "Дата ввода в эксплуатацию",
+          "default": ""
+        },
+        {
+          "name": "location",
+          "type": "TEXT",
+          "nullable": true,
+          "description": "Помещение/узел",
+          "default": ""
+        },
+        {
+          "name": "properties",
+          "type": "JSONB",
+          "nullable": false,
+          "description": "Паспортные и эксплуатационные признаки",
+          "default": "{}"
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "active / under_repair / retired",
+          "default": "active"
+        }
+      ],
+      "pk": [
+        "equipment_id"
+      ],
+      "unique": [
+        "(site_id,equipment_id)",
+        "(site_id,system_id,equipment_id)",
+        "(site_id,asset_code)"
+      ],
+      "checks": [
+        "status IN ('active','under_repair','retired')",
+        "jsonb_typeof(properties) = 'object'",
+        "parent_equipment_id IS DISTINCT FROM equipment_id"
+      ],
+      "indexes": [
+        "(site_id,system_id,status)",
+        "(site_id,parent_equipment_id)"
+      ],
+      "tier": "P0"
+    },
+    {
+      "name": "skills",
+      "group": "assets",
+      "purpose": "Справочник допусков и компетенций персонала.",
+      "fields": [
+        {
+          "name": "skill_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор компетенции",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "code",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Код квалификации",
+          "default": ""
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Наименование квалификации",
+          "default": ""
+        },
+        {
+          "name": "validity_required",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "description": "Требуется ли срок действия допуска",
+          "default": "false"
+        }
+      ],
+      "pk": [
+        "skill_id"
+      ],
+      "unique": [
+        "(code)"
+      ],
+      "checks": [],
+      "indexes": [],
+      "tier": "P0"
+    },
+    {
+      "name": "user_skills",
+      "group": "assets",
+      "purpose": "Подтверждённые квалификации сотрудника для конкретного объекта.",
+      "fields": [
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект, где учитывается квалификация",
+          "default": ""
+        },
+        {
+          "name": "user_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Специалист",
+          "default": ""
+        },
+        {
+          "name": "skill_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Квалификация/допуск",
+          "default": ""
+        },
+        {
+          "name": "verified_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "description": "Дата проверки квалификации",
+          "default": ""
+        },
+        {
+          "name": "valid_until",
+          "type": "DATE",
+          "nullable": true,
+          "description": "Дата окончания действия",
+          "default": ""
+        }
+      ],
+      "pk": [
+        "site_id",
+        "user_id",
+        "skill_id"
+      ],
+      "unique": [],
+      "checks": [
+        "valid_until IS NULL OR verified_at IS NOT NULL"
+      ],
+      "indexes": [],
+      "tier": "P0"
+    },
+    {
+      "name": "availability_slots",
+      "group": "assets",
+      "purpose": "Доступность сотрудников и занятость для выбора исполнителей.",
+      "fields": [
+        {
+          "name": "availability_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор интервала",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "user_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Сотрудник",
+          "default": ""
+        },
+        {
+          "name": "starts_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Начало интервала",
+          "default": ""
+        },
+        {
+          "name": "ends_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Окончание интервала",
+          "default": ""
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "available / unavailable",
+          "default": "available"
+        },
+        {
+          "name": "reason",
+          "type": "TEXT",
+          "nullable": true,
+          "description": "Причина отсутствия",
+          "default": ""
+        }
+      ],
+      "pk": [
+        "availability_id"
+      ],
+      "unique": [],
+      "checks": [
+        "ends_at > starts_at",
+        "status IN ('available','unavailable')"
+      ],
+      "indexes": [
+        "(site_id,user_id,starts_at,ends_at)"
+      ],
+      "tier": "P1"
+    },
+    {
+      "name": "crews",
+      "group": "assets",
+      "purpose": "Именованные бригады сотрудников для выполнения многопользовательских работ.",
+      "fields": [
+        {
+          "name": "crew_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор бригады",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Название бригады",
+          "default": ""
+        },
+        {
+          "name": "is_active",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "description": "Активна ли бригада",
+          "default": "true"
+        }
+      ],
+      "pk": [
+        "crew_id"
+      ],
+      "unique": [
+        "(site_id,crew_id)",
+        "(site_id,name)"
+      ],
+      "checks": [],
+      "indexes": [],
+      "tier": "P1"
+    },
+    {
+      "name": "crew_members",
+      "group": "assets",
+      "purpose": "История состава бригады; связь сотрудника и бригады во времени.",
+      "fields": [
+        {
+          "name": "crew_member_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор участия",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "crew_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Бригада",
+          "default": ""
+        },
+        {
+          "name": "user_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Сотрудник",
+          "default": ""
+        },
+        {
+          "name": "valid_from",
+          "type": "DATE",
+          "nullable": false,
+          "description": "Дата начала участия",
+          "default": ""
+        },
+        {
+          "name": "valid_to",
+          "type": "DATE",
+          "nullable": true,
+          "description": "Дата завершения участия",
+          "default": ""
+        }
+      ],
+      "pk": [
+        "crew_member_id"
+      ],
+      "unique": [],
+      "checks": [
+        "valid_to IS NULL OR valid_to >= valid_from"
+      ],
+      "indexes": [
+        "(site_id,crew_id,valid_to)",
+        "UNIQUE (site_id,crew_id,user_id) WHERE valid_to IS NULL"
+      ],
+      "tier": "P1"
+    },
+    {
+      "name": "maintenance_types",
+      "group": "regulations",
+      "purpose": "Классы ТО: ТО1, ТО2 и расширяемые типы.",
+      "fields": [
+        {
+          "name": "maintenance_type_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор вида ТО",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "code",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Код: TO1 / TO2 / PPR и т. п.",
+          "default": ""
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Отображаемое название",
+          "default": ""
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "nullable": true,
+          "description": "Описание вида работ",
+          "default": ""
+        }
+      ],
+      "pk": [
+        "maintenance_type_id"
+      ],
+      "unique": [
+        "(code)"
+      ],
+      "checks": [],
+      "indexes": [],
+      "tier": "P0"
+    },
+    {
+      "name": "operation_templates",
+      "group": "regulations",
+      "purpose": "Шаблон строки регламента, например «1.1 Контроль параметров ...».",
+      "fields": [
+        {
+          "name": "operation_template_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор шаблона",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "system_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Инженерная система",
+          "default": ""
+        },
+        {
+          "name": "code",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Код строки заказчика 1.1–1.6",
+          "default": ""
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Название операции ТО",
+          "default": ""
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "nullable": true,
+          "description": "Технологическая инструкция",
+          "default": ""
+        },
+        {
+          "name": "maintenance_type_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Вид ТО1/ТО2",
+          "default": ""
+        },
+        {
+          "name": "is_active",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "description": "Признак доступной операции",
+          "default": "true"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Время добавления",
+          "default": "now()"
+        }
+      ],
+      "pk": [
+        "operation_template_id"
+      ],
+      "unique": [
+        "(site_id,operation_template_id)",
+        "(site_id,system_id,operation_template_id)",
+        "(site_id,system_id,code)"
+      ],
+      "checks": [
+        "length(trim(code)) > 0",
+        "length(trim(title)) > 0"
+      ],
+      "indexes": [
+        "(site_id,system_id,maintenance_type_id)"
+      ],
+      "tier": "P0"
+    },
+    {
+      "name": "regulation_documents",
+      "group": "regulations",
+      "purpose": "Реквизиты исходного документа заказчика или нормативного регламента.",
+      "fields": [
+        {
+          "name": "regulation_document_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Документ регламента",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект, которому принадлежит экземпляр",
+          "default": ""
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Название файла / регламента",
+          "default": ""
+        },
+        {
+          "name": "source_kind",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "customer / manufacturer / internal / demo",
+          "default": "customer"
+        },
+        {
+          "name": "source_uri",
+          "type": "TEXT",
+          "nullable": true,
+          "description": "Ссылка, путь или реквизиты",
+          "default": ""
+        },
+        {
+          "name": "external_reference",
+          "type": "TEXT",
+          "nullable": true,
+          "description": "Номер утверждения / шифр документа",
+          "default": ""
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Когда добавлен документ",
+          "default": "now()"
+        }
+      ],
+      "pk": [
+        "regulation_document_id"
+      ],
+      "unique": [
+        "(site_id,regulation_document_id)"
+      ],
+      "checks": [
+        "source_kind IN ('customer','manufacturer','internal','demo')"
+      ],
+      "indexes": [],
+      "tier": "P0"
+    },
+    {
+      "name": "regulation_editions",
+      "group": "regulations",
+      "purpose": "Неизменяемые редакции регламентов с периодами действия.",
+      "fields": [
+        {
+          "name": "regulation_edition_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор редакции",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "regulation_document_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Исходный документ",
+          "default": ""
+        },
+        {
+          "name": "edition_code",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Номер/дата редакции",
+          "default": ""
+        },
+        {
+          "name": "effective_from",
+          "type": "DATE",
+          "nullable": false,
+          "description": "Начало периода применимости",
+          "default": ""
+        },
+        {
+          "name": "effective_to",
+          "type": "DATE",
+          "nullable": true,
+          "description": "Конец периода применимости",
+          "default": ""
+        },
+        {
+          "name": "source_sha256",
+          "type": "CHAR(64)",
+          "nullable": true,
+          "description": "Хеш исходного файла для доказуемости",
+          "default": ""
+        },
+        {
+          "name": "is_approved",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "description": "Утверждена ли редакция",
+          "default": "false"
+        },
+        {
+          "name": "approved_by",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Кто утвердил редакцию",
+          "default": ""
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Время регистрации",
+          "default": "now()"
+        }
+      ],
+      "pk": [
+        "regulation_edition_id"
+      ],
+      "unique": [
+        "(site_id,regulation_edition_id)",
+        "(site_id,regulation_document_id,edition_code)"
+      ],
+      "checks": [
+        "effective_to IS NULL OR effective_to >= effective_from",
+        "source_sha256 IS NULL OR source_sha256 ~ '^[0-9a-f]{64}$'"
+      ],
+      "indexes": [
+        "(site_id,effective_from,effective_to)"
+      ],
+      "tier": "P0"
+    },
+    {
+      "name": "maintenance_rules",
+      "group": "regulations",
+      "purpose": "Версионированное правило: какой шаблон работ и как часто выполнять.",
+      "fields": [
+        {
+          "name": "maintenance_rule_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор версии правила",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "system_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Система для контроля принадлежности операции",
+          "default": ""
+        },
+        {
+          "name": "operation_template_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Шаблон операции",
+          "default": ""
+        },
+        {
+          "name": "regulation_edition_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Редакция источника",
+          "default": ""
+        },
+        {
+          "name": "supersedes_rule_id",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Предыдущая версия правила",
+          "default": ""
+        },
+        {
+          "name": "rule_version",
+          "type": "INTEGER",
+          "nullable": false,
+          "description": "Порядковая версия правила",
+          "default": "1"
+        },
+        {
+          "name": "period_unit",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "day / quarter / year / month",
+          "default": ""
+        },
+        {
+          "name": "period_count",
+          "type": "INTEGER",
+          "nullable": false,
+          "description": "Количество периодов на цикл",
+          "default": "1"
+        },
+        {
+          "name": "occurrences_per_period",
+          "type": "INTEGER",
+          "nullable": false,
+          "description": "Число работ за один цикл",
+          "default": "1"
+        },
+        {
+          "name": "scheduling_mode",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "fixed_interval / calendar_window / explicit_months",
+          "default": ""
+        },
+        {
+          "name": "schedule_parameters",
+          "type": "JSONB",
+          "nullable": false,
+          "description": "Якорь, месяцы, окна; схема валидируется сервисом",
+          "default": "{}"
+        },
+        {
+          "name": "required_people",
+          "type": "SMALLINT",
+          "nullable": false,
+          "description": "Количество работников (как в Excel)",
+          "default": ""
+        },
+        {
+          "name": "norm_hours",
+          "type": "NUMERIC(12,2)",
+          "nullable": false,
+          "description": "Значение графы «Нормо-часы», без домыслов об умножении",
+          "default": ""
+        },
+        {
+          "name": "norm_hours_basis",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "total_person_hours / per_person / unknown",
+          "default": "unknown"
+        },
+        {
+          "name": "active_from",
+          "type": "DATE",
+          "nullable": false,
+          "description": "Начало действия правила",
+          "default": ""
+        },
+        {
+          "name": "active_until",
+          "type": "DATE",
+          "nullable": true,
+          "description": "Окончание действия правила",
+          "default": ""
+        },
+        {
+          "name": "publication_status",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "draft / published / archived",
+          "default": "draft"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Время создания",
+          "default": "now()"
+        }
+      ],
+      "pk": [
+        "maintenance_rule_id"
+      ],
+      "unique": [
+        "(site_id,maintenance_rule_id)",
+        "(site_id,system_id,maintenance_rule_id)",
+        "(site_id,operation_template_id,rule_version)"
+      ],
+      "checks": [
+        "rule_version > 0",
+        "period_count > 0",
+        "occurrences_per_period > 0",
+        "required_people BETWEEN 1 AND 100",
+        "norm_hours >= 0",
+        "period_unit IN ('day','month','quarter','year')",
+        "scheduling_mode IN ('fixed_interval','calendar_window','explicit_months')",
+        "norm_hours_basis IN ('total_person_hours','per_person','unknown')",
+        "publication_status IN ('draft','published','archived')",
+        "active_until IS NULL OR active_until >= active_from",
+        "jsonb_typeof(schedule_parameters) = 'object'"
+      ],
+      "indexes": [
+        "(site_id,system_id,publication_status,active_from)"
+      ],
+      "tier": "P0"
+    },
+    {
+      "name": "rule_equipment",
+      "group": "regulations",
+      "purpose": "Привязка любого количества единиц оборудования к одной строке ТО.",
+      "fields": [
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "system_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Инженерная система",
+          "default": ""
+        },
+        {
+          "name": "maintenance_rule_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Версия регламентной операции",
+          "default": ""
+        },
+        {
+          "name": "equipment_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Конкретное оборудование",
+          "default": ""
+        },
+        {
+          "name": "valid_from",
+          "type": "DATE",
+          "nullable": false,
+          "description": "Дата включения оборудования в обслуживание",
+          "default": ""
+        },
+        {
+          "name": "valid_to",
+          "type": "DATE",
+          "nullable": true,
+          "description": "Дата прекращения связи",
+          "default": ""
+        }
+      ],
+      "pk": [
+        "site_id",
+        "maintenance_rule_id",
+        "equipment_id",
+        "valid_from"
+      ],
+      "unique": [],
+      "checks": [
+        "valid_to IS NULL OR valid_to >= valid_from"
+      ],
+      "indexes": [
+        "(site_id,equipment_id)",
+        "UNIQUE (site_id,maintenance_rule_id,equipment_id) WHERE valid_to IS NULL"
+      ],
+      "tier": "P0"
+    },
+    {
+      "name": "rule_required_skills",
+      "group": "regulations",
+      "purpose": "Перечень обязательных компетенций для назначения сотрудников на регламент.",
+      "fields": [
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "maintenance_rule_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Правило обслуживания",
+          "default": ""
+        },
+        {
+          "name": "skill_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Квалификация",
+          "default": ""
+        },
+        {
+          "name": "minimum_holders",
+          "type": "SMALLINT",
+          "nullable": false,
+          "description": "Минимум сотрудников с данным допуском",
+          "default": "1"
+        }
+      ],
+      "pk": [
+        "site_id",
+        "maintenance_rule_id",
+        "skill_id"
+      ],
+      "unique": [],
+      "checks": [
+        "minimum_holders > 0"
+      ],
+      "indexes": [],
+      "tier": "P1"
+    },
+    {
+      "name": "schedule_plans",
+      "group": "scheduling",
+      "purpose": "Снимок месячного графика для объекта с версионированием утверждений.",
+      "fields": [
+        {
+          "name": "schedule_plan_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор версии графика",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "period_year",
+          "type": "INTEGER",
+          "nullable": false,
+          "description": "Год графика",
+          "default": ""
+        },
+        {
+          "name": "period_month",
+          "type": "SMALLINT",
+          "nullable": false,
+          "description": "Месяц графика",
+          "default": ""
+        },
+        {
+          "name": "revision",
+          "type": "INTEGER",
+          "nullable": false,
+          "description": "Номер версии графика",
+          "default": "1"
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "draft / approved / superseded",
+          "default": "draft"
+        },
+        {
+          "name": "created_by",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Автор графика",
+          "default": ""
+        },
+        {
+          "name": "approved_by",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Утверждающий главный инженер",
+          "default": ""
+        },
+        {
+          "name": "approved_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "description": "Время утверждения",
+          "default": ""
+        },
+        {
+          "name": "source_snapshot",
+          "type": "JSONB",
+          "nullable": false,
+          "description": "Сведения о входных регламентах и допущениях",
+          "default": "{}"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Время создания",
+          "default": "now()"
+        }
+      ],
+      "pk": [
+        "schedule_plan_id"
+      ],
+      "unique": [
+        "(site_id,schedule_plan_id)",
+        "(site_id,period_year,period_month,revision)"
+      ],
+      "checks": [
+        "period_year BETWEEN 2000 AND 2200",
+        "period_month BETWEEN 1 AND 12",
+        "revision > 0",
+        "status IN ('draft','approved','superseded')",
+        "jsonb_typeof(source_snapshot) = 'object'"
+      ],
+      "indexes": [
+        "UNIQUE (site_id,period_year,period_month) WHERE status = 'approved'"
+      ],
+      "tier": "P0"
+    },
+    {
+      "name": "schedule_entries",
+      "group": "scheduling",
+      "purpose": "Одна строка календарного факта планирования, а не отдельная колонка дня месяца.",
+      "fields": [
+        {
+          "name": "schedule_entry_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Календарное назначение",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "system_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Инженерная система",
+          "default": ""
+        },
+        {
+          "name": "schedule_plan_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Версия графика",
+          "default": ""
+        },
+        {
+          "name": "maintenance_rule_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Версия регламентной операции",
+          "default": ""
+        },
+        {
+          "name": "orchestration_decision_id",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Решение, изменившее плановый слот",
+          "default": ""
+        },
+        {
+          "name": "sequence_no",
+          "type": "SMALLINT",
+          "nullable": false,
+          "description": "Номер повтора внутри даты",
+          "default": "1"
+        },
+        {
+          "name": "planned_date",
+          "type": "DATE",
+          "nullable": false,
+          "description": "Календарный день ТО; одна строка на выбранную дату",
+          "default": ""
+        },
+        {
+          "name": "planned_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "description": "Плановое время, если известно; NULL для графика только по датам",
+          "default": ""
+        },
+        {
+          "name": "regulatory_deadline_on",
+          "type": "DATE",
+          "nullable": false,
+          "description": "Календарная предельная дата в часовом поясе объекта",
+          "default": ""
+        },
+        {
+          "name": "regulatory_deadline_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Обязательный предельный момент ТО (UTC-aware)",
+          "default": ""
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "planned / cancelled / superseded",
+          "default": "planned"
+        },
+        {
+          "name": "rule_snapshot",
+          "type": "JSONB",
+          "nullable": false,
+          "description": "Условия правила на момент генерации",
+          "default": "{}"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Время создания",
+          "default": "now()"
+        }
+      ],
+      "pk": [
+        "schedule_entry_id"
+      ],
+      "unique": [
+        "(site_id,schedule_entry_id)",
+        "(site_id,system_id,schedule_entry_id)",
+        "(site_id,schedule_plan_id,maintenance_rule_id,planned_date,sequence_no)"
+      ],
+      "checks": [
+        "sequence_no > 0",
+        "planned_date <= regulatory_deadline_on",
+        "planned_at IS NULL OR planned_at <= regulatory_deadline_at",
+        "status IN ('planned','cancelled','superseded')",
+        "jsonb_typeof(rule_snapshot) = 'object'"
+      ],
+      "indexes": [
+        "(site_id,planned_date,status)",
+        "(site_id,maintenance_rule_id,planned_date)"
+      ],
+      "tier": "P0"
+    },
+    {
+      "name": "incident_reports",
+      "group": "scheduling",
+      "purpose": "Сообщения о выявленных неисправностях с текстом и ссылками на узел.",
+      "fields": [
+        {
+          "name": "incident_report_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор сообщения",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "system_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Инженерная система",
+          "default": ""
+        },
+        {
+          "name": "equipment_id",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Уточнённое оборудование",
+          "default": ""
+        },
+        {
+          "name": "reported_by",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Инициатор",
+          "default": ""
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Текст наблюдения/симптомов",
+          "default": ""
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "new / triaged / closed",
+          "default": "new"
+        },
+        {
+          "name": "ai_result_snapshot",
+          "type": "JSONB",
+          "nullable": true,
+          "description": "Предложение классификатора, если выполнялось",
+          "default": ""
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Время сообщения",
+          "default": "now()"
+        }
+      ],
+      "pk": [
+        "incident_report_id"
+      ],
+      "unique": [
+        "(site_id,incident_report_id)",
+        "(site_id,system_id,incident_report_id)"
+      ],
+      "checks": [
+        "length(trim(description)) > 0",
+        "status IN ('new','triaged','closed')"
+      ],
+      "indexes": [],
+      "tier": "P1"
+    },
+    {
+      "name": "work_orders",
+      "group": "execution",
+      "purpose": "Наряд-задание на одну регламентную или внеплановую операцию.",
+      "fields": [
+        {
+          "name": "work_order_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор задания",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "system_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Инженерная система",
+          "default": ""
+        },
+        {
+          "name": "maintenance_rule_id",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Версия правила для регламентной работы",
+          "default": ""
+        },
+        {
+          "name": "schedule_entry_id",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Плановый экземпляр ТО, если есть",
+          "default": ""
+        },
+        {
+          "name": "incident_report_id",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Исходное сообщение, если создано по неисправности",
+          "default": ""
+        },
+        {
+          "name": "origin",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "scheduled / incident / manual",
+          "default": "scheduled"
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "draft / clarification / assigned / in_progress / in_review / rework / completed / cancelled",
+          "default": "draft"
+        },
+        {
+          "name": "priority",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "normal / high / critical",
+          "default": "normal"
+        },
+        {
+          "name": "operation_snapshot",
+          "type": "JSONB",
+          "nullable": false,
+          "description": "Код, название, версия и условия операции на момент выдачи",
+          "default": "{}"
+        },
+        {
+          "name": "required_people_snapshot",
+          "type": "SMALLINT",
+          "nullable": false,
+          "description": "Численность бригады на момент выдачи",
+          "default": ""
+        },
+        {
+          "name": "norm_hours_snapshot",
+          "type": "NUMERIC(12,2)",
+          "nullable": false,
+          "description": "Нормо-часы из правила, с оговоркой basis",
+          "default": ""
+        },
+        {
+          "name": "norm_hours_basis_snapshot",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "total_person_hours / per_person / unknown",
+          "default": "unknown"
+        },
+        {
+          "name": "planned_start_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "description": "Рекомендованное начало работ",
+          "default": ""
+        },
+        {
+          "name": "regulatory_deadline_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "description": "Обязательный дедлайн; NULL для свободной заявки без регламента",
+          "default": ""
+        },
+        {
+          "name": "orchestration_decision_id",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Зафиксированное решение о сроке для наряда",
+          "default": ""
+        },
+        {
+          "name": "created_by",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Создавший пользователь, NULL для системного задания",
+          "default": ""
+        },
+        {
+          "name": "started_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "description": "Фактическое начало работ",
+          "default": ""
+        },
+        {
+          "name": "completed_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "description": "Время утверждённого завершения",
+          "default": ""
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Время создания",
+          "default": "now()"
+        }
+      ],
+      "pk": [
+        "work_order_id"
+      ],
+      "unique": [
+        "(site_id,work_order_id)",
+        "(site_id,system_id,work_order_id)",
+        "(site_id,schedule_entry_id)"
+      ],
+      "checks": [
+        "origin IN ('scheduled','incident','manual')",
+        "status IN ('draft','clarification','assigned','in_progress','in_review','rework','completed','cancelled')",
+        "priority IN ('normal','high','critical')",
+        "required_people_snapshot > 0",
+        "norm_hours_snapshot >= 0",
+        "orchestration_decision_id IS NULL OR maintenance_rule_id IS NOT NULL",
+        "norm_hours_basis_snapshot IN ('total_person_hours','per_person','unknown')",
+        "jsonb_typeof(operation_snapshot) = 'object'",
+        "(planned_start_at IS NULL OR regulatory_deadline_at IS NULL OR planned_start_at <= regulatory_deadline_at)",
+        "(origin <> 'scheduled' OR (schedule_entry_id IS NOT NULL AND maintenance_rule_id IS NOT NULL))",
+        "(origin <> 'incident' OR incident_report_id IS NOT NULL)"
+      ],
+      "indexes": [
+        "(site_id,status,regulatory_deadline_at)",
+        "(site_id,system_id,created_at)"
+      ],
+      "tier": "P0"
+    },
+    {
+      "name": "work_order_equipment",
+      "group": "execution",
+      "purpose": "Снимок множества обслуживаемых единиц по конкретному наряду.",
+      "fields": [
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "system_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Инженерная система",
+          "default": ""
+        },
+        {
+          "name": "work_order_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Задание",
+          "default": ""
+        },
+        {
+          "name": "equipment_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Единица оборудования",
+          "default": ""
+        },
+        {
+          "name": "asset_snapshot",
+          "type": "JSONB",
+          "nullable": false,
+          "description": "Паспортные признаки на момент выдачи наряда",
+          "default": "{}"
+        }
+      ],
+      "pk": [
+        "site_id",
+        "work_order_id",
+        "equipment_id"
+      ],
+      "unique": [],
+      "checks": [
+        "jsonb_typeof(asset_snapshot) = 'object'"
+      ],
+      "indexes": [],
+      "tier": "P0"
+    },
+    {
+      "name": "work_assignments",
+      "group": "execution",
+      "purpose": "Индивидуальное назначение каждого техника на работу; бригада — необязательный контекст.",
+      "fields": [
+        {
+          "name": "work_assignment_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор назначения",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "work_order_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Задание",
+          "default": ""
+        },
+        {
+          "name": "user_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Назначенный техник",
+          "default": ""
+        },
+        {
+          "name": "crew_id",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Бригада, из которой назначен участник",
+          "default": ""
+        },
+        {
+          "name": "assigned_by",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Инженер/главный инженер",
+          "default": ""
+        },
+        {
+          "name": "assigned_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Дата назначения",
+          "default": "now()"
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "assigned / declined / active / finished / cancelled",
+          "default": "assigned"
+        },
+        {
+          "name": "actual_person_hours",
+          "type": "NUMERIC(12,2)",
+          "nullable": true,
+          "description": "Фактически затраченные человеко-часы",
+          "default": ""
+        }
+      ],
+      "pk": [
+        "work_assignment_id"
+      ],
+      "unique": [
+        "(site_id,work_order_id,user_id)"
+      ],
+      "checks": [
+        "status IN ('assigned','declined','active','finished','cancelled')",
+        "actual_person_hours IS NULL OR actual_person_hours >= 0"
+      ],
+      "indexes": [
+        "(site_id,user_id,status,assigned_at)"
+      ],
+      "tier": "P0"
+    },
+    {
+      "name": "checklist_templates",
+      "group": "execution",
+      "purpose": "Версионируемый пункт обязательных действий и показаний для операции.",
+      "fields": [
+        {
+          "name": "checklist_template_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор версии пункта",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "operation_template_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Шаблон обслуживания",
+          "default": ""
+        },
+        {
+          "name": "item_code",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Локальный код пункта",
+          "default": ""
+        },
+        {
+          "name": "template_version",
+          "type": "INTEGER",
+          "nullable": false,
+          "description": "Версия пунктов при пересмотре",
+          "default": "1"
+        },
+        {
+          "name": "prompt",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Формулировка проверки",
+          "default": ""
+        },
+        {
+          "name": "input_kind",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "checkbox / number / text / photo",
+          "default": ""
+        },
+        {
+          "name": "unit_code",
+          "type": "TEXT",
+          "nullable": true,
+          "description": "Единица для числового показателя",
+          "default": ""
+        },
+        {
+          "name": "is_required",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "description": "Обязательный пункт",
+          "default": "true"
+        },
+        {
+          "name": "position",
+          "type": "SMALLINT",
+          "nullable": false,
+          "description": "Порядок показа",
+          "default": "1"
+        }
+      ],
+      "pk": [
+        "checklist_template_id"
+      ],
+      "unique": [
+        "(site_id,checklist_template_id)",
+        "(site_id,operation_template_id,item_code,template_version)"
+      ],
+      "checks": [
+        "template_version > 0",
+        "position > 0",
+        "input_kind IN ('checkbox','number','text','photo')"
+      ],
+      "indexes": [],
+      "tier": "P0"
+    },
+    {
+      "name": "work_reports",
+      "group": "execution",
+      "purpose": "Каждая попытка отправки отчёта исполнителем; предыдущие попытки не затираются.",
+      "fields": [
+        {
+          "name": "work_report_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор отчёта",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "work_order_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Задание",
+          "default": ""
+        },
+        {
+          "name": "revision_no",
+          "type": "INTEGER",
+          "nullable": false,
+          "description": "Номер повторной отправки",
+          "default": "1"
+        },
+        {
+          "name": "submitted_by",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Исполнитель",
+          "default": ""
+        },
+        {
+          "name": "comment",
+          "type": "TEXT",
+          "nullable": true,
+          "description": "Комментарии исполнителя",
+          "default": ""
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "draft / submitted / reviewed",
+          "default": "draft"
+        },
+        {
+          "name": "submitted_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "description": "Дата отправки на проверку",
+          "default": ""
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Создание отчёта",
+          "default": "now()"
+        }
+      ],
+      "pk": [
+        "work_report_id"
+      ],
+      "unique": [
+        "(site_id,work_order_id,work_report_id)",
+        "(site_id,work_order_id,revision_no)"
+      ],
+      "checks": [
+        "revision_no > 0",
+        "status IN ('draft','submitted','reviewed')"
+      ],
+      "indexes": [],
+      "tier": "P0"
+    },
+    {
+      "name": "checklist_results",
+      "group": "execution",
+      "purpose": "Снимок ответов на чек-лист для версии отчёта.",
+      "fields": [
+        {
+          "name": "checklist_result_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор ответа",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "work_order_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Задание",
+          "default": ""
+        },
+        {
+          "name": "work_report_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Редакция отчёта",
+          "default": ""
+        },
+        {
+          "name": "checklist_template_id",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Пункт шаблона, если ещё существует",
+          "default": ""
+        },
+        {
+          "name": "question_snapshot",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Формулировка пункта на момент исполнения",
+          "default": ""
+        },
+        {
+          "name": "response_value",
+          "type": "JSONB",
+          "nullable": false,
+          "description": "Булево, текст или число с типом",
+          "default": "{}"
+        },
+        {
+          "name": "recorded_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Время фиксации",
+          "default": "now()"
+        }
+      ],
+      "pk": [
+        "checklist_result_id"
+      ],
+      "unique": [
+        "(work_report_id,checklist_template_id)"
+      ],
+      "checks": [
+        "jsonb_typeof(response_value) = 'object'"
+      ],
+      "indexes": [],
+      "tier": "P0"
+    },
+    {
+      "name": "work_readings",
+      "group": "execution",
+      "purpose": "Фактические показания приборов с происхождением и единицами.",
+      "fields": [
+        {
+          "name": "work_reading_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор измерения",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "system_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Инженерная система",
+          "default": ""
+        },
+        {
+          "name": "work_order_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Задание",
+          "default": ""
+        },
+        {
+          "name": "work_report_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Отчёт",
+          "default": ""
+        },
+        {
+          "name": "equipment_id",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Манометр, счётчик и др. прибор",
+          "default": ""
+        },
+        {
+          "name": "parameter_code",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "pressure / temperature / meter_value и т. п.",
+          "default": ""
+        },
+        {
+          "name": "numeric_value",
+          "type": "NUMERIC(18,6)",
+          "nullable": false,
+          "description": "Показание прибора",
+          "default": ""
+        },
+        {
+          "name": "unit_code",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Единица: bar / celsius / m3 и т. д.",
+          "default": ""
+        },
+        {
+          "name": "measured_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Когда измерили",
+          "default": ""
+        },
+        {
+          "name": "is_estimated",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "description": "Оценочное ли значение",
+          "default": "false"
+        }
+      ],
+      "pk": [
+        "work_reading_id"
+      ],
+      "unique": [],
+      "checks": [
+        "length(trim(unit_code)) > 0"
+      ],
+      "indexes": [
+        "(site_id,equipment_id,measured_at)",
+        "(site_id,work_order_id)"
+      ],
+      "tier": "P0"
+    },
+    {
+      "name": "evidence_files",
+      "group": "execution",
+      "purpose": "Фотофайлы и другие подтверждения, привязанные к наряду и редакции отчёта.",
+      "fields": [
+        {
+          "name": "evidence_file_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор файла",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "work_order_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Задание",
+          "default": ""
+        },
+        {
+          "name": "work_report_id",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Редакция отчёта",
+          "default": ""
+        },
+        {
+          "name": "uploaded_by",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Автор загрузки",
+          "default": ""
+        },
+        {
+          "name": "stage",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "before / after / issue / other",
+          "default": ""
+        },
+        {
+          "name": "storage_key",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Путь/ключ объекта в файловом хранилище",
+          "default": ""
+        },
+        {
+          "name": "mime_type",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "MIME тип",
+          "default": ""
+        },
+        {
+          "name": "file_size",
+          "type": "BIGINT",
+          "nullable": false,
+          "description": "Размер в байтах",
+          "default": ""
+        },
+        {
+          "name": "sha256",
+          "type": "CHAR(64)",
+          "nullable": false,
+          "description": "Контрольная сумма файла",
+          "default": ""
+        },
+        {
+          "name": "captured_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "description": "Когда фото сделано",
+          "default": ""
+        },
+        {
+          "name": "uploaded_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Когда загружено",
+          "default": "now()"
+        }
+      ],
+      "pk": [
+        "evidence_file_id"
+      ],
+      "unique": [
+        "(site_id,work_order_id,evidence_file_id)",
+        "(storage_key)"
+      ],
+      "checks": [
+        "stage IN ('before','after','issue','other')",
+        "mime_type IN ('image/jpeg','image/png','image/webp','image/heic','application/pdf')",
+        "file_size > 0",
+        "sha256 ~ '^[0-9a-f]{64}$'"
+      ],
+      "indexes": [
+        "(site_id,work_order_id,stage)"
+      ],
+      "tier": "P0"
+    },
+    {
+      "name": "acceptance_reviews",
+      "group": "execution",
+      "purpose": "Неизменяемые решения инженера по отдельным редакциям отчёта.",
+      "fields": [
+        {
+          "name": "acceptance_review_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор решения",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "work_order_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Задание",
+          "default": ""
+        },
+        {
+          "name": "work_report_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Проверяемая редакция отчёта",
+          "default": ""
+        },
+        {
+          "name": "reviewer_user_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Инженер или главный инженер",
+          "default": ""
+        },
+        {
+          "name": "decision",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "accepted / rework / rejected",
+          "default": ""
+        },
+        {
+          "name": "comment",
+          "type": "TEXT",
+          "nullable": true,
+          "description": "Мотивированное решение",
+          "default": ""
+        },
+        {
+          "name": "reviewed_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Время решения",
+          "default": "now()"
+        }
+      ],
+      "pk": [
+        "acceptance_review_id"
+      ],
+      "unique": [
+        "(site_id,work_report_id)"
+      ],
+      "checks": [
+        "decision IN ('accepted','rework','rejected')"
+      ],
+      "indexes": [
+        "(site_id,work_order_id,reviewed_at)"
+      ],
+      "tier": "P0"
+    },
+    {
+      "name": "predictor_versions",
+      "group": "ai",
+      "purpose": "Реестр версий алгоритмического, ML- и визуального модуля.",
+      "fields": [
+        {
+          "name": "predictor_version_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор реализации",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "kind",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "rule / ai / vision / orchestrator",
+          "default": ""
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Наименование метода",
+          "default": ""
+        },
+        {
+          "name": "version",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Версия модели, правил или промпта",
+          "default": ""
+        },
+        {
+          "name": "artifact_ref",
+          "type": "TEXT",
+          "nullable": true,
+          "description": "Git SHA, URI модели или пакет правил",
+          "default": ""
+        },
+        {
+          "name": "config_snapshot",
+          "type": "JSONB",
+          "nullable": false,
+          "description": "Гиперпараметры, флаги, политика",
+          "default": "{}"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Регистрация версии",
+          "default": "now()"
+        }
+      ],
+      "pk": [
+        "predictor_version_id"
+      ],
+      "unique": [
+        "(kind,name,version)"
+      ],
+      "checks": [
+        "kind IN ('rule','ai','vision','orchestrator')",
+        "jsonb_typeof(config_snapshot) = 'object'"
+      ],
+      "indexes": [],
+      "tier": "P0"
+    },
+    {
+      "name": "forecast_runs",
+      "group": "ai",
+      "purpose": "Общий контракт результатов rule-based и AI-прогнозирования с фиксированным контекстом.",
+      "fields": [
+        {
+          "name": "forecast_run_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор прогноза",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "system_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Инженерная система",
+          "default": ""
+        },
+        {
+          "name": "maintenance_rule_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Правило, сроки которого оцениваются",
+          "default": ""
+        },
+        {
+          "name": "equipment_id",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Единица оборудования; NULL для уровня операции",
+          "default": ""
+        },
+        {
+          "name": "predictor_version_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Версия метода",
+          "default": ""
+        },
+        {
+          "name": "method",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "rule / ai",
+          "default": ""
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "ok / unavailable / insufficient_data / failed",
+          "default": ""
+        },
+        {
+          "name": "input_snapshot",
+          "type": "JSONB",
+          "nullable": false,
+          "description": "Фактические входные признаки, регламент и дата среза",
+          "default": "{}"
+        },
+        {
+          "name": "proposal_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "description": "Предложенный срок, если прогноз получен",
+          "default": ""
+        },
+        {
+          "name": "regulatory_deadline_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Предельный срок по нормативному правилу",
+          "default": ""
+        },
+        {
+          "name": "confidence",
+          "type": "NUMERIC(5,4)",
+          "nullable": true,
+          "description": "Оценка уверенности (если метод поддерживает)",
+          "default": ""
+        },
+        {
+          "name": "risk_score",
+          "type": "NUMERIC(5,4)",
+          "nullable": true,
+          "description": "Скоринг риска (если рассчитан)",
+          "default": ""
+        },
+        {
+          "name": "rationale",
+          "type": "TEXT",
+          "nullable": true,
+          "description": "Объяснение решения метода",
+          "default": ""
+        },
+        {
+          "name": "output_snapshot",
+          "type": "JSONB",
+          "nullable": false,
+          "description": "Расширенный машиночитаемый результат",
+          "default": "{}"
+        },
+        {
+          "name": "produced_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Время прогнозирования",
+          "default": "now()"
+        }
+      ],
+      "pk": [
+        "forecast_run_id"
+      ],
+      "unique": [
+        "(site_id,system_id,maintenance_rule_id,forecast_run_id)"
+      ],
+      "checks": [
+        "method IN ('rule','ai')",
+        "status IN ('ok','unavailable','insufficient_data','failed')",
+        "confidence IS NULL OR confidence BETWEEN 0 AND 1",
+        "risk_score IS NULL OR risk_score BETWEEN 0 AND 1",
+        "(status = 'ok' AND proposal_at IS NOT NULL) OR (status <> 'ok' AND proposal_at IS NULL)",
+        "jsonb_typeof(input_snapshot) = 'object'",
+        "jsonb_typeof(output_snapshot) = 'object'"
+      ],
+      "indexes": [
+        "(site_id,maintenance_rule_id,produced_at DESC)",
+        "(site_id,equipment_id,produced_at DESC)"
+      ],
+      "tier": "P0"
+    },
+    {
+      "name": "orchestration_decisions",
+      "group": "ai",
+      "purpose": "Агентный выбор допустимого срока после сравнения двух прогнозов и проверки регламента.",
+      "fields": [
+        {
+          "name": "orchestration_decision_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор решения",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "system_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Инженерная система",
+          "default": ""
+        },
+        {
+          "name": "maintenance_rule_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Правило ТО",
+          "default": ""
+        },
+        {
+          "name": "rule_forecast_id",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Результат алгоритмического метода",
+          "default": ""
+        },
+        {
+          "name": "ai_forecast_id",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Результат ML-метода",
+          "default": ""
+        },
+        {
+          "name": "orchestrator_version_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Версия алгоритма выбора / агента",
+          "default": ""
+        },
+        {
+          "name": "selected_method",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "rule / ai / conservative_fallback / manual_review",
+          "default": ""
+        },
+        {
+          "name": "selected_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": true,
+          "description": "Предложенный итоговый срок; NULL при ручном уточнении",
+          "default": ""
+        },
+        {
+          "name": "regulatory_deadline_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Проверяемый обязательный дедлайн",
+          "default": ""
+        },
+        {
+          "name": "requires_human_approval",
+          "type": "BOOLEAN",
+          "nullable": false,
+          "description": "Нужна ли проверка ответственного",
+          "default": "true"
+        },
+        {
+          "name": "reason",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Обоснование решения и причины отклонения иных вариантов",
+          "default": ""
+        },
+        {
+          "name": "comparison_snapshot",
+          "type": "JSONB",
+          "nullable": false,
+          "description": "Два прогноза, версии, отклонения и политика",
+          "default": "{}"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Время решения",
+          "default": "now()"
+        }
+      ],
+      "pk": [
+        "orchestration_decision_id"
+      ],
+      "unique": [
+        "(site_id,system_id,maintenance_rule_id,orchestration_decision_id)"
+      ],
+      "checks": [
+        "selected_method IN ('rule','ai','conservative_fallback','manual_review')",
+        "(selected_method = 'manual_review' AND selected_at IS NULL) OR (selected_method <> 'manual_review' AND selected_at IS NOT NULL)",
+        "selected_at IS NULL OR selected_at <= regulatory_deadline_at",
+        "jsonb_typeof(comparison_snapshot) = 'object'",
+        "length(trim(reason)) > 0"
+      ],
+      "indexes": [
+        "(site_id,maintenance_rule_id,created_at DESC)"
+      ],
+      "tier": "P0"
+    },
+    {
+      "name": "ai_quality_checks",
+      "group": "ai",
+      "purpose": "Результат анализа визуально подтверждаемых изменений; не заменяет приёмку инженером.",
+      "fields": [
+        {
+          "name": "ai_quality_check_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор проверки",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "work_order_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Задание",
+          "default": ""
+        },
+        {
+          "name": "work_report_id",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Редакция отчёта, на которой запускали модель",
+          "default": ""
+        },
+        {
+          "name": "before_file_id",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Фото до, если предоставлено",
+          "default": ""
+        },
+        {
+          "name": "after_file_id",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Фото после, если предоставлено",
+          "default": ""
+        },
+        {
+          "name": "predictor_version_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Версия vision-модели",
+          "default": ""
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "ok / inconclusive / failed",
+          "default": ""
+        },
+        {
+          "name": "visible_change",
+          "type": "TEXT",
+          "nullable": true,
+          "description": "Описание видимых изменений",
+          "default": ""
+        },
+        {
+          "name": "assessment",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "consistent / concern / inconclusive",
+          "default": ""
+        },
+        {
+          "name": "confidence",
+          "type": "NUMERIC(5,4)",
+          "nullable": true,
+          "description": "Уверенность при наличии",
+          "default": ""
+        },
+        {
+          "name": "findings",
+          "type": "JSONB",
+          "nullable": false,
+          "description": "Наблюдения, доказательства, ограничения",
+          "default": "{}"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Время анализа",
+          "default": "now()"
+        }
+      ],
+      "pk": [
+        "ai_quality_check_id"
+      ],
+      "unique": [],
+      "checks": [
+        "status IN ('ok','inconclusive','failed')",
+        "assessment IN ('consistent','concern','inconclusive')",
+        "confidence IS NULL OR confidence BETWEEN 0 AND 1",
+        "jsonb_typeof(findings) = 'object'"
+      ],
+      "indexes": [
+        "(site_id,work_order_id,created_at DESC)"
+      ],
+      "tier": "P0"
+    },
+    {
+      "name": "audit_events",
+      "group": "audit",
+      "purpose": "Append-only журнал изменений состояния, нормативов, назначений и решений.",
+      "fields": [
+        {
+          "name": "audit_event_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор события",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "site_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Объект",
+          "default": ""
+        },
+        {
+          "name": "actor_type",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "user / system / ai",
+          "default": ""
+        },
+        {
+          "name": "actor_user_id",
+          "type": "UUID",
+          "nullable": true,
+          "description": "Исполнитель-человек, если он есть",
+          "default": ""
+        },
+        {
+          "name": "entity_type",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Тип изменённого ресурса",
+          "default": ""
+        },
+        {
+          "name": "entity_id",
+          "type": "UUID",
+          "nullable": false,
+          "description": "Идентификатор ресурса",
+          "default": ""
+        },
+        {
+          "name": "action",
+          "type": "TEXT",
+          "nullable": false,
+          "description": "Тип изменения / перехода",
+          "default": ""
+        },
+        {
+          "name": "before_snapshot",
+          "type": "JSONB",
+          "nullable": true,
+          "description": "Данные до изменения с удалёнными секретами",
+          "default": ""
+        },
+        {
+          "name": "after_snapshot",
+          "type": "JSONB",
+          "nullable": true,
+          "description": "Данные после изменения с удалёнными секретами",
+          "default": ""
+        },
+        {
+          "name": "occurred_at",
+          "type": "TIMESTAMPTZ",
+          "nullable": false,
+          "description": "Дата события",
+          "default": "now()"
+        }
+      ],
+      "pk": [
+        "audit_event_id"
+      ],
+      "unique": [],
+      "checks": [
+        "actor_type IN ('user','system','ai')",
+        "(actor_type = 'user' AND actor_user_id IS NOT NULL) OR (actor_type <> 'user')"
+      ],
+      "indexes": [
+        "(site_id,entity_type,entity_id,occurred_at)",
+        "(site_id,occurred_at DESC)"
+      ],
+      "tier": "P0"
+    }
+  ],
+  "foreign_keys": [
+    {
+      "child": "site_memberships",
+      "columns": [
+        "site_id"
+      ],
+      "parent": "sites",
+      "refcols": [
+        "site_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "site_memberships",
+      "columns": [
+        "user_id"
+      ],
+      "parent": "users",
+      "refcols": [
+        "user_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "engineering_systems",
+      "columns": [
+        "site_id"
+      ],
+      "parent": "sites",
+      "refcols": [
+        "site_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "equipment",
+      "columns": [
+        "site_id",
+        "system_id"
+      ],
+      "parent": "engineering_systems",
+      "refcols": [
+        "site_id",
+        "system_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "equipment",
+      "columns": [
+        "site_id",
+        "parent_equipment_id"
+      ],
+      "parent": "equipment",
+      "refcols": [
+        "site_id",
+        "equipment_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": "Циклы и принадлежность к той же системе контролировать дополнительно."
+    },
+    {
+      "child": "equipment",
+      "columns": [
+        "equipment_type_id"
+      ],
+      "parent": "equipment_types",
+      "refcols": [
+        "equipment_type_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "user_skills",
+      "columns": [
+        "site_id",
+        "user_id"
+      ],
+      "parent": "site_memberships",
+      "refcols": [
+        "site_id",
+        "user_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "user_skills",
+      "columns": [
+        "skill_id"
+      ],
+      "parent": "skills",
+      "refcols": [
+        "skill_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "availability_slots",
+      "columns": [
+        "site_id",
+        "user_id"
+      ],
+      "parent": "site_memberships",
+      "refcols": [
+        "site_id",
+        "user_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "crews",
+      "columns": [
+        "site_id"
+      ],
+      "parent": "sites",
+      "refcols": [
+        "site_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "crew_members",
+      "columns": [
+        "site_id",
+        "crew_id"
+      ],
+      "parent": "crews",
+      "refcols": [
+        "site_id",
+        "crew_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "crew_members",
+      "columns": [
+        "site_id",
+        "user_id"
+      ],
+      "parent": "site_memberships",
+      "refcols": [
+        "site_id",
+        "user_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "operation_templates",
+      "columns": [
+        "site_id",
+        "system_id"
+      ],
+      "parent": "engineering_systems",
+      "refcols": [
+        "site_id",
+        "system_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "operation_templates",
+      "columns": [
+        "maintenance_type_id"
+      ],
+      "parent": "maintenance_types",
+      "refcols": [
+        "maintenance_type_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "regulation_documents",
+      "columns": [
+        "site_id"
+      ],
+      "parent": "sites",
+      "refcols": [
+        "site_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "regulation_editions",
+      "columns": [
+        "site_id",
+        "regulation_document_id"
+      ],
+      "parent": "regulation_documents",
+      "refcols": [
+        "site_id",
+        "regulation_document_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "regulation_editions",
+      "columns": [
+        "site_id",
+        "approved_by"
+      ],
+      "parent": "site_memberships",
+      "refcols": [
+        "site_id",
+        "user_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "maintenance_rules",
+      "columns": [
+        "site_id",
+        "system_id",
+        "operation_template_id"
+      ],
+      "parent": "operation_templates",
+      "refcols": [
+        "site_id",
+        "system_id",
+        "operation_template_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "maintenance_rules",
+      "columns": [
+        "site_id",
+        "regulation_edition_id"
+      ],
+      "parent": "regulation_editions",
+      "refcols": [
+        "site_id",
+        "regulation_edition_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "maintenance_rules",
+      "columns": [
+        "site_id",
+        "supersedes_rule_id"
+      ],
+      "parent": "maintenance_rules",
+      "refcols": [
+        "site_id",
+        "maintenance_rule_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "rule_equipment",
+      "columns": [
+        "site_id",
+        "system_id",
+        "maintenance_rule_id"
+      ],
+      "parent": "maintenance_rules",
+      "refcols": [
+        "site_id",
+        "system_id",
+        "maintenance_rule_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "rule_equipment",
+      "columns": [
+        "site_id",
+        "system_id",
+        "equipment_id"
+      ],
+      "parent": "equipment",
+      "refcols": [
+        "site_id",
+        "system_id",
+        "equipment_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "rule_required_skills",
+      "columns": [
+        "site_id",
+        "maintenance_rule_id"
+      ],
+      "parent": "maintenance_rules",
+      "refcols": [
+        "site_id",
+        "maintenance_rule_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "rule_required_skills",
+      "columns": [
+        "skill_id"
+      ],
+      "parent": "skills",
+      "refcols": [
+        "skill_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "schedule_plans",
+      "columns": [
+        "site_id"
+      ],
+      "parent": "sites",
+      "refcols": [
+        "site_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "schedule_plans",
+      "columns": [
+        "site_id",
+        "created_by"
+      ],
+      "parent": "site_memberships",
+      "refcols": [
+        "site_id",
+        "user_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "schedule_plans",
+      "columns": [
+        "site_id",
+        "approved_by"
+      ],
+      "parent": "site_memberships",
+      "refcols": [
+        "site_id",
+        "user_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "schedule_entries",
+      "columns": [
+        "site_id",
+        "schedule_plan_id"
+      ],
+      "parent": "schedule_plans",
+      "refcols": [
+        "site_id",
+        "schedule_plan_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "schedule_entries",
+      "columns": [
+        "site_id",
+        "system_id",
+        "maintenance_rule_id"
+      ],
+      "parent": "maintenance_rules",
+      "refcols": [
+        "site_id",
+        "system_id",
+        "maintenance_rule_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "schedule_entries",
+      "columns": [
+        "site_id",
+        "system_id",
+        "maintenance_rule_id",
+        "orchestration_decision_id"
+      ],
+      "parent": "orchestration_decisions",
+      "refcols": [
+        "site_id",
+        "system_id",
+        "maintenance_rule_id",
+        "orchestration_decision_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "incident_reports",
+      "columns": [
+        "site_id",
+        "system_id"
+      ],
+      "parent": "engineering_systems",
+      "refcols": [
+        "site_id",
+        "system_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "incident_reports",
+      "columns": [
+        "site_id",
+        "system_id",
+        "equipment_id"
+      ],
+      "parent": "equipment",
+      "refcols": [
+        "site_id",
+        "system_id",
+        "equipment_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "incident_reports",
+      "columns": [
+        "site_id",
+        "reported_by"
+      ],
+      "parent": "site_memberships",
+      "refcols": [
+        "site_id",
+        "user_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "work_orders",
+      "columns": [
+        "site_id",
+        "system_id"
+      ],
+      "parent": "engineering_systems",
+      "refcols": [
+        "site_id",
+        "system_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "work_orders",
+      "columns": [
+        "site_id",
+        "system_id",
+        "maintenance_rule_id"
+      ],
+      "parent": "maintenance_rules",
+      "refcols": [
+        "site_id",
+        "system_id",
+        "maintenance_rule_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "work_orders",
+      "columns": [
+        "site_id",
+        "system_id",
+        "schedule_entry_id"
+      ],
+      "parent": "schedule_entries",
+      "refcols": [
+        "site_id",
+        "system_id",
+        "schedule_entry_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "work_orders",
+      "columns": [
+        "site_id",
+        "system_id",
+        "incident_report_id"
+      ],
+      "parent": "incident_reports",
+      "refcols": [
+        "site_id",
+        "system_id",
+        "incident_report_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "work_orders",
+      "columns": [
+        "site_id",
+        "created_by"
+      ],
+      "parent": "site_memberships",
+      "refcols": [
+        "site_id",
+        "user_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "work_orders",
+      "columns": [
+        "site_id",
+        "system_id",
+        "maintenance_rule_id",
+        "orchestration_decision_id"
+      ],
+      "parent": "orchestration_decisions",
+      "refcols": [
+        "site_id",
+        "system_id",
+        "maintenance_rule_id",
+        "orchestration_decision_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "work_order_equipment",
+      "columns": [
+        "site_id",
+        "system_id",
+        "work_order_id"
+      ],
+      "parent": "work_orders",
+      "refcols": [
+        "site_id",
+        "system_id",
+        "work_order_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "work_order_equipment",
+      "columns": [
+        "site_id",
+        "system_id",
+        "equipment_id"
+      ],
+      "parent": "equipment",
+      "refcols": [
+        "site_id",
+        "system_id",
+        "equipment_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "work_assignments",
+      "columns": [
+        "site_id",
+        "work_order_id"
+      ],
+      "parent": "work_orders",
+      "refcols": [
+        "site_id",
+        "work_order_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "work_assignments",
+      "columns": [
+        "site_id",
+        "user_id"
+      ],
+      "parent": "site_memberships",
+      "refcols": [
+        "site_id",
+        "user_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "work_assignments",
+      "columns": [
+        "site_id",
+        "assigned_by"
+      ],
+      "parent": "site_memberships",
+      "refcols": [
+        "site_id",
+        "user_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "work_assignments",
+      "columns": [
+        "site_id",
+        "crew_id"
+      ],
+      "parent": "crews",
+      "refcols": [
+        "site_id",
+        "crew_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "checklist_templates",
+      "columns": [
+        "site_id",
+        "operation_template_id"
+      ],
+      "parent": "operation_templates",
+      "refcols": [
+        "site_id",
+        "operation_template_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "work_reports",
+      "columns": [
+        "site_id",
+        "work_order_id"
+      ],
+      "parent": "work_orders",
+      "refcols": [
+        "site_id",
+        "work_order_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "work_reports",
+      "columns": [
+        "site_id",
+        "submitted_by"
+      ],
+      "parent": "site_memberships",
+      "refcols": [
+        "site_id",
+        "user_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "checklist_results",
+      "columns": [
+        "site_id",
+        "work_order_id",
+        "work_report_id"
+      ],
+      "parent": "work_reports",
+      "refcols": [
+        "site_id",
+        "work_order_id",
+        "work_report_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "checklist_results",
+      "columns": [
+        "site_id",
+        "checklist_template_id"
+      ],
+      "parent": "checklist_templates",
+      "refcols": [
+        "site_id",
+        "checklist_template_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "work_readings",
+      "columns": [
+        "site_id",
+        "system_id",
+        "work_order_id"
+      ],
+      "parent": "work_orders",
+      "refcols": [
+        "site_id",
+        "system_id",
+        "work_order_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "work_readings",
+      "columns": [
+        "site_id",
+        "work_order_id",
+        "work_report_id"
+      ],
+      "parent": "work_reports",
+      "refcols": [
+        "site_id",
+        "work_order_id",
+        "work_report_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "work_readings",
+      "columns": [
+        "site_id",
+        "system_id",
+        "equipment_id"
+      ],
+      "parent": "equipment",
+      "refcols": [
+        "site_id",
+        "system_id",
+        "equipment_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "evidence_files",
+      "columns": [
+        "site_id",
+        "work_order_id"
+      ],
+      "parent": "work_orders",
+      "refcols": [
+        "site_id",
+        "work_order_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "evidence_files",
+      "columns": [
+        "site_id",
+        "work_order_id",
+        "work_report_id"
+      ],
+      "parent": "work_reports",
+      "refcols": [
+        "site_id",
+        "work_order_id",
+        "work_report_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "evidence_files",
+      "columns": [
+        "site_id",
+        "uploaded_by"
+      ],
+      "parent": "site_memberships",
+      "refcols": [
+        "site_id",
+        "user_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "acceptance_reviews",
+      "columns": [
+        "site_id",
+        "work_order_id",
+        "work_report_id"
+      ],
+      "parent": "work_reports",
+      "refcols": [
+        "site_id",
+        "work_order_id",
+        "work_report_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "acceptance_reviews",
+      "columns": [
+        "site_id",
+        "reviewer_user_id"
+      ],
+      "parent": "site_memberships",
+      "refcols": [
+        "site_id",
+        "user_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "forecast_runs",
+      "columns": [
+        "site_id",
+        "system_id",
+        "maintenance_rule_id"
+      ],
+      "parent": "maintenance_rules",
+      "refcols": [
+        "site_id",
+        "system_id",
+        "maintenance_rule_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "forecast_runs",
+      "columns": [
+        "site_id",
+        "system_id",
+        "equipment_id"
+      ],
+      "parent": "equipment",
+      "refcols": [
+        "site_id",
+        "system_id",
+        "equipment_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "forecast_runs",
+      "columns": [
+        "predictor_version_id"
+      ],
+      "parent": "predictor_versions",
+      "refcols": [
+        "predictor_version_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "orchestration_decisions",
+      "columns": [
+        "site_id",
+        "system_id",
+        "maintenance_rule_id"
+      ],
+      "parent": "maintenance_rules",
+      "refcols": [
+        "site_id",
+        "system_id",
+        "maintenance_rule_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "orchestration_decisions",
+      "columns": [
+        "site_id",
+        "system_id",
+        "maintenance_rule_id",
+        "rule_forecast_id"
+      ],
+      "parent": "forecast_runs",
+      "refcols": [
+        "site_id",
+        "system_id",
+        "maintenance_rule_id",
+        "forecast_run_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "orchestration_decisions",
+      "columns": [
+        "site_id",
+        "system_id",
+        "maintenance_rule_id",
+        "ai_forecast_id"
+      ],
+      "parent": "forecast_runs",
+      "refcols": [
+        "site_id",
+        "system_id",
+        "maintenance_rule_id",
+        "forecast_run_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "orchestration_decisions",
+      "columns": [
+        "orchestrator_version_id"
+      ],
+      "parent": "predictor_versions",
+      "refcols": [
+        "predictor_version_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "ai_quality_checks",
+      "columns": [
+        "site_id",
+        "work_order_id"
+      ],
+      "parent": "work_orders",
+      "refcols": [
+        "site_id",
+        "work_order_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "ai_quality_checks",
+      "columns": [
+        "site_id",
+        "work_order_id",
+        "work_report_id"
+      ],
+      "parent": "work_reports",
+      "refcols": [
+        "site_id",
+        "work_order_id",
+        "work_report_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "ai_quality_checks",
+      "columns": [
+        "site_id",
+        "work_order_id",
+        "before_file_id"
+      ],
+      "parent": "evidence_files",
+      "refcols": [
+        "site_id",
+        "work_order_id",
+        "evidence_file_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "ai_quality_checks",
+      "columns": [
+        "site_id",
+        "work_order_id",
+        "after_file_id"
+      ],
+      "parent": "evidence_files",
+      "refcols": [
+        "site_id",
+        "work_order_id",
+        "evidence_file_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "ai_quality_checks",
+      "columns": [
+        "predictor_version_id"
+      ],
+      "parent": "predictor_versions",
+      "refcols": [
+        "predictor_version_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "audit_events",
+      "columns": [
+        "site_id"
+      ],
+      "parent": "sites",
+      "refcols": [
+        "site_id"
+      ],
+      "nullable": false,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    },
+    {
+      "child": "audit_events",
+      "columns": [
+        "site_id",
+        "actor_user_id"
+      ],
+      "parent": "site_memberships",
+      "refcols": [
+        "site_id",
+        "user_id"
+      ],
+      "nullable": true,
+      "ondelete": "RESTRICT",
+      "notes": ""
+    }
+  ],
+  "sources": [
+    "График для ии.xlsx",
+    "scope.md",
+    "roles.md",
+    "GitVerse public master: old estimator architecture only"
+  ],
+  "status": "Architecture design, not executed DDL"
+}
