@@ -15,6 +15,7 @@
 | [Контракты](api_contracts.md) | API, внутренние вызовы, типы и ошибки |
 | [Границы прототипа](prototype_scope.md) | Сквозная демонстрация, этапы до 7 ноября, исключения |
 | [Архитектурная проверка](architecture_validation.md) | 15 обязательных сценариев и результаты проверки артефактов |
+| [FX26-BE01: реализация API](fx26-be01-implementation.md) | REST/Pydantic-модели, примеры и правила передачи |
 
 Дополнительно: [Mermaid](diagrams/system_architecture.mmd), [редактируемая draw.io](diagrams/system_architecture.drawio), [модели контрактов](contracts/maintenance_contracts.py), [JSON Schema](contracts/maintenance.schema.json), [примеры JSON](contracts/examples.json). Окончательная ER-диаграмма и SQL-миграции в этот комплект не входят.
 

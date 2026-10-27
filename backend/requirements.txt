@@ -1,0 +1,2 @@
+# Runtime
+pydantic>=2.5,<3

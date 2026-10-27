@@ -1,0 +1,79 @@
+{
+  "schema_version": "maintenance-0.1",
+  "examples": [
+    {
+      "name": "create_operation",
+      "method": "POST",
+      "path": "/api/v1/maintenance/operations",
+      "request": {
+        "source_ref": "customer:techical_service_schedule.xlsx#Лист1!B6:F6",
+        "data_origin": "customer",
+        "code": "1.1",
+        "title": "Контроль параметров показаний приборов",
+        "maintenance_type": "ТО1",
+        "instructions": "Проверить давление и температуру.",
+        "crew_size": 1,
+        "raw_norm_value": "1.000",
+        "norm_unit": "unconfirmed",
+        "planning_duration_minutes": null,
+        "duration_basis": null,
+        "qualification_ids": [],
+        "checklist": [
+          {
+            "text": "Показания давления и температуры зафиксированы",
+            "answer_kind": "boolean",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        ],
+        "status": "draft"
+      },
+      "response_status": 201
+    },
+    {
+      "name": "calendar_month",
+      "method": "GET",
+      "path": "/api/v1/maintenance/calendar?site_id=00000000-0000-0000-0000-000000000001&year=2026&month=10",
+      "response": {
+        "schema_version": "maintenance-0.1",
+        "site_id": "00000000-0000-0000-0000-000000000001",
+        "year": 2026,
+        "month": 10,
+        "timezone": "Asia/Yekaterinburg",
+        "items": [
+          {
+            "occurrence_id": "00000000-0000-0000-0000-000000000101",
+            "equipment_id": "00000000-0000-0000-0000-000000000002",
+            "operation_version_id": "00000000-0000-0000-0000-000000000011",
+            "occurrence_date": "2026-10-01",
+            "maintenance_type": "ТО1",
+            "recurrence": "1/день",
+            "crew_size": 1,
+            "raw_norm_value": "1.000",
+            "norm_unit": "unconfirmed",
+            "planning_duration_minutes": null,
+            "source_ref": "customer:techical_service_schedule.xlsx#Лист1!G6",
+            "planned_task_id": null,
+            "actual_execution_id": null,
+            "status": "draft"
+          }
+        ],
+        "total": 1
+      }
+    },
+    {
+      "name": "executions",
+      "method": "GET",
+      "path": "/api/v1/maintenance/equipment/00000000-0000-0000-0000-000000000002/executions?limit=20&offset=0",
+      "response": {
+        "schema_version": "maintenance-0.1",
+        "items": [],
+        "total": 0,
+        "limit": 20,
+        "offset": 0
+      }
+    }
+  ]
+}
