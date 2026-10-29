@@ -1,2 +1,4 @@
 # Runtime
 pydantic>=2.5,<3
+SQLAlchemy>=2.0,<3
+psycopg[binary]>=3.1,<4
