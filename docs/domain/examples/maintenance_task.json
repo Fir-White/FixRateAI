@@ -1,0 +1,11 @@
+{
+  "task_id": "task-8840",
+  "regulation_id": "reg-501",
+  "planned_date": "2026-10-28",
+  "status": "completed",
+  "is_overdue": false,
+  "assigned_employee_id": "emp-12",
+  "assigned_brigade_id": null,
+  "actual_norm_hours": 1.0,
+  "completion_timestamp": "2026-10-28T14:15:00Z"
+}
