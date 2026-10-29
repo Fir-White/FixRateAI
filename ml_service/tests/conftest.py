@@ -41,3 +41,15 @@ def canonical_example_snapshot() -> ForecastSnapshot:
         examples = json.load(f)["examples"]
     ex = next(x for x in examples if x["name"] == "forecast_snapshot")
     return ForecastSnapshot.model_validate_json(json.dumps(ex["payload"]))
+
+
+@pytest.fixture
+def canonical_photo_review_request() -> PhotoReviewRequest:
+    """Fixture loading the exact canonical photo_review_request from docs/architecture/contracts/examples.json."""
+    from ml_service.app.schemas import PhotoReviewRequest
+    examples_path = Path(__file__).resolve().parent.parent.parent / "docs" / "architecture" / "contracts" / "examples.json"
+    with open(examples_path, "r", encoding="utf-8") as f:
+        examples = json.load(f)["examples"]
+    ex = next(x for x in examples if x["name"] == "photo_review_request")
+    return PhotoReviewRequest.model_validate_json(json.dumps(ex["payload"]))
+
