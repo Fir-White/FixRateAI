@@ -33,6 +33,16 @@ def get_active_forecaster() -> RandomForestForecaster | None:
     return _FORECASTER
 
 
+def load_default_forecaster() -> RandomForestForecaster | None:
+    """Load default trained RandomForest artifact from disk into memory cache."""
+    global _FORECASTER
+    artifact_file = settings.artifacts_path / "rf_model.joblib"
+    if artifact_file.exists():
+        _FORECASTER = RandomForestForecaster.from_file(artifact_file)
+        return _FORECASTER
+    return None
+
+
 def predict_maintenance_ai(
     snapshot: ForecastSnapshot,
     forecaster: RandomForestForecaster | None = None,

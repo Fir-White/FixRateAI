@@ -111,6 +111,11 @@ class RandomForestForecaster:
             self._artifact_sha256 = hashlib.sha256(f.read()).hexdigest()
         return self
 
+    @classmethod
+    def from_file(cls, filepath: Path | str) -> "RandomForestForecaster":
+        """Instantiate and load model from file."""
+        return cls().load(filepath)
+
     @property
     def artifact_sha256(self) -> str | None:
         return self._artifact_sha256
