@@ -1,0 +1,34 @@
+{
+  "operation_template": {
+    "template_id": "op-tmpl-101",
+    "name": "Контроль параметров показаний приборов (давление, температура)",
+    "to_type": "ТО1",
+    "norm_hours": 1.0
+  },
+  "linked_equipment_instances": [
+    {
+      "regulation_id": "reg-501",
+      "equipment_item": {
+        "item_id": "eq-item-991",
+        "name": "Манометр подающей линии ТС",
+        "serial_number": "MN-2024-01"
+      }
+    },
+    {
+      "regulation_id": "reg-502",
+      "equipment_item": {
+        "item_id": "eq-item-992",
+        "name": "Манометр обратной линии ТС",
+        "serial_number": "MN-2024-02"
+      }
+    },
+    {
+      "regulation_id": "reg-503",
+      "equipment_item": {
+        "item_id": "eq-item-993",
+        "name": "Датчик температуры теплоносителя",
+        "serial_number": "DT-2024-15"
+      }
+    }
+  ]
+}

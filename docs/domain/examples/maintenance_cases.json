@@ -1,0 +1,121 @@
+{
+  "test_fixtures": [
+    {
+      "test_id": "TC-01",
+      "operation_id": "1.1",
+      "input_data": {
+        "start_date": "2026-10-01",
+        "last_maintenance_date": "2026-09-30"
+      },
+      "expected_dates": [
+        "2026-10-01",
+        "2026-10-02",
+        "2026-10-03",
+        "2026-10-04",
+        "2026-10-05",
+        "2026-10-06",
+        "2026-10-07",
+        "2026-10-08",
+        "2026-10-09",
+        "2026-10-10",
+        "2026-10-11",
+        "2026-10-12",
+        "2026-10-13",
+        "2026-10-14",
+        "2026-10-15",
+        "2026-10-16",
+        "2026-10-17",
+        "2026-10-18",
+        "2026-10-19",
+        "2026-10-20",
+        "2026-10-21",
+        "2026-10-22",
+        "2026-10-23",
+        "2026-10-24",
+        "2026-10-25",
+        "2026-10-26",
+        "2026-10-27",
+        "2026-10-28",
+        "2026-10-29",
+        "2026-10-30",
+        "2026-10-31"
+      ],
+      "expected_hours": 1.0,
+      "expected_workers": 1,
+      "is_assumption": false
+    },
+    {
+      "test_id": "TC-02",
+      "operation_id": "1.5",
+      "input_data": {
+        "planning_horizon_start": "2026-10-01",
+        "planning_horizon_end": "2026-12-31",
+        "last_maintenance_date": "2026-09-30"
+      },
+      "expected_dates": [
+        "2026-12-31"
+      ],
+      "expected_hours": 48.0,
+      "expected_workers": 1,
+      "is_assumption": true
+    },
+    {
+      "test_id": "TC-03",
+      "operation_id": "1.6",
+      "input_data": {
+        "planning_horizon_start": "2026-10-01",
+        "planning_horizon_end": "2026-12-31",
+        "last_maintenance_date": "2026-07-04"
+      },
+      "expected_dates": [
+        "2026-10-05"
+      ],
+      "expected_hours": 30.0,
+      "expected_workers": 1,
+      "is_assumption": true
+    },
+    {
+      "test_id": "TC-04",
+      "operation_id": "1.4",
+      "input_data": {
+        "commissioning_date": "2026-10-01",
+        "last_maintenance_date": null
+      },
+      "expected_dates": [
+        "2026-10-01"
+      ],
+      "expected_hours": 60.0,
+      "expected_workers": 2,
+      "is_assumption": true
+    },
+    {
+      "test_id": "TC-05",
+      "operation_id": "1.1",
+      "input_data": {
+        "activation_date": "2026-10-15"
+      },
+      "expected_dates": [
+        "2026-10-15",
+        "2026-10-16",
+        "2026-10-17",
+        "2026-10-18",
+        "2026-10-19",
+        "2026-10-20",
+        "2026-10-21",
+        "2026-10-22",
+        "2026-10-23",
+        "2026-10-24",
+        "2026-10-25",
+        "2026-10-26",
+        "2026-10-27",
+        "2026-10-28",
+        "2026-10-29",
+        "2026-10-30",
+        "2026-10-31"
+      ],
+      "expected_hours": 1.0,
+      "expected_workers": 1,
+      "is_assumption": true
+    }
+  ]
+}
