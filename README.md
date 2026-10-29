@@ -120,7 +120,7 @@ FixRate_AI/
 | ER-диаграммой | [SVG](docs/database/erd.svg) · [PNG](docs/database/erd.png) · [Редактируемая draw.io](docs/database/erd.drawio) · [72 связи](docs/database/relationships.md) |
 | Полями и ограничениями | [Спецификация БД](docs/database/specification.md) · [JSON-каталог](docs/database/model_catalog.json) |
 | Исходными требованиями | [Excel заказчика](docs/customer/techical_service_schedule.xlsx) · [Анализ графика](docs/architecture/customer_schedule_analysis.md) |
-| Объёмом демонстрации и проверками | [Границы прототипа](docs/architecture/prototype_scope.md) · [Матрица сценариев](docs/architecture/architecture_validation.md) |
+| Объёмом демонстрации и проверками | [Границы прототипа](docs/architecture/prototype_scope.md) · [Матрица сценариев](docs/architecture/architecture_validation.md) · [Роли, P0 и порядок проверок](tests/README.md) |
 
 ## Локальная проверка
 
