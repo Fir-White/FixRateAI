@@ -18,7 +18,9 @@ export type IconName =
   | "user"
   | "back"
   | "plus"
-  | "upload";
+  | "upload"
+  | "menu"
+  | "close";
 
 const PATHS: Record<IconName, ReactNode> = {
   dashboard: (
@@ -118,6 +120,16 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M12 16V4" />
       <path d="m7 9 5-5 5 5" />
       <path d="M4 16v4h16v-4" />
+    </>
+  ),
+  menu: (
+    <>
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </>
+  ),
+  close: (
+    <>
+      <path d="m6 6 12 12M18 6 6 18" />
     </>
   ),
 };

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
@@ -44,6 +44,51 @@ describe("app routes", () => {
         name: "Раздел недоступен для текущей роли",
       }),
     ).toBeInTheDocument();
+  });
+
+  it("opens mobile navigation and closes it with Escape", async () => {
+    const user = userEvent.setup();
+    renderAt("/dispatcher", "dispatcher");
+
+    await screen.findByRole("heading", { name: "Панель диспетчера" });
+    await user.click(screen.getByRole("button", { name: "Открыть меню" }));
+
+    expect(
+      screen.getByRole("dialog", { name: "Мобильная навигация" }),
+    ).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: "Мобильная навигация" }),
+      ).not.toBeInTheDocument(),
+    );
+  });
+
+  it("confirms a quality decision in an accessible modal", async () => {
+    const user = userEvent.setup();
+    renderAt(
+      "/quality/b1000000-0000-4000-8000-000000000004",
+      "engineer",
+    );
+
+    await screen.findByRole("heading", { name: "Очистка учебного узла" });
+    const accept = screen.getByRole("button", { name: "Принять работу" });
+    expect(accept).toBeDisabled();
+
+    const reason = screen.getByLabelText(/Причина решения/);
+    expect(reason).toHaveAccessibleDescription(/EngineerDecision/);
+    await user.type(reason, "Фотографии и чек-лист проверены.");
+    await user.click(accept);
+
+    expect(
+      screen.getByRole("dialog", { name: "Принять работу?" }),
+    ).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
   });
 
   it("redirects to login without a session", async () => {

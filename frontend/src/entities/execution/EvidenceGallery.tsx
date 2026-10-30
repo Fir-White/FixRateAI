@@ -18,7 +18,7 @@ export function EvidenceGallery({
 }) {
   if (!photos.length) {
     return (
-      <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+      <div className="rounded-xl border border-dashed border-line-strong p-6 text-center text-sm text-muted">
         {emptyText}
       </div>
     );
@@ -28,7 +28,7 @@ export function EvidenceGallery({
     <div className="grid gap-3 sm:grid-cols-2">
       {photos.map((photo) => (
         <Card key={photo.id} className="overflow-hidden">
-          <div className="flex h-32 items-center justify-center bg-[linear-gradient(135deg,#e2e8f0_25%,#f1f5f9_25%,#f1f5f9_50%,#e2e8f0_50%,#e2e8f0_75%,#f1f5f9_75%)] bg-[length:20px_20px] text-slate-400">
+          <div className="flex h-32 items-center justify-center photo-placeholder text-muted">
             <Icon name="camera" size={30} />
           </div>
           <div className="p-3">
@@ -40,13 +40,13 @@ export function EvidenceGallery({
                 <Badge tone="danger">Отклонено</Badge>
               ) : null}
             </div>
-            <p className="mt-2 text-sm font-semibold text-slate-900">
+            <p className="mt-2 text-sm font-semibold text-ink">
               {photo.label}
             </p>
-            <p className="mt-1 font-mono text-[11px] text-slate-500">
+            <p className="mt-1 font-mono text-[11px] text-muted">
               {photo.viewKey}
             </p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-muted">
               {formatDateTime(photo.capturedAt)}
             </p>
           </div>

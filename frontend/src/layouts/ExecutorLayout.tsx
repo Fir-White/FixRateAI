@@ -1,10 +1,20 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
-import { Icon } from "@/shared/ui/Icon";
+import { BrandLockup } from "@/shared/ui/Brand";
+import { IconButton } from "@/shared/ui/Button";
+import { Select } from "@/shared/ui/Form";
+import { Icon, type IconName } from "@/shared/ui/Icon";
 import { useSession } from "@/shared/session/SessionContext";
 import { ROLE_LABELS, homePathForRole } from "@/shared/lib/roles";
 import type { Role } from "@/shared/types/domain";
 
 const ROLES: Role[] = ["dispatcher", "engineer", "executor", "admin"];
+
+const BOTTOM_NAV: { to: string; label: string; icon: IconName; end?: boolean }[] =
+  [
+    { to: "/executor", label: "Задания", icon: "tasks", end: true },
+    { to: "/calendar", label: "Календарь", icon: "calendar" },
+    { to: "/equipment", label: "Оборудование", icon: "equipment" },
+  ];
 
 export function ExecutorLayout() {
   const { profile, logout, switchRole } = useSession();
@@ -25,86 +35,88 @@ export function ExecutorLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f3f5f2] pb-24 text-slate-900">
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-[#10231b] px-4 py-3 text-white">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
-          <Link to="/executor" className="flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/20 text-xs font-black text-emerald-300">
-              FR
-            </span>
-            <div>
-              <p className="text-sm font-black">FixRate AI</p>
-              <p className="text-[11px] text-emerald-100/60">Кабинет исполнителя</p>
-            </div>
+    <div className="app-backdrop min-h-screen pb-28 text-ink">
+      <a
+        href="#executor-content"
+        className="sr-only z-[60] rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-canvas focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+      >
+        Перейти к содержимому
+      </a>
+
+      <header className="sticky top-0 z-30 border-b border-line bg-canvas/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
+          <Link
+            to="/executor"
+            className="rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+          >
+            <BrandLockup size="sm" subtitle="Кабинет исполнителя" />
           </Link>
           <div className="flex items-center gap-2">
-            <select
+            <Select
               aria-label="Демонстрационная роль"
               value={profile.role}
               onChange={(event) => handleRoleChange(event.target.value as Role)}
-              className="h-9 rounded-lg border border-white/15 bg-white/10 px-2 text-xs font-semibold text-white"
+              className="h-9 w-auto max-w-36 text-xs"
             >
               {ROLES.map((role) => (
-                <option key={role} value={role} className="text-slate-900">
+                <option key={role} value={role}>
                   {ROLE_LABELS[role]}
                 </option>
               ))}
-            </select>
-            <button
-              type="button"
-              onClick={handleLogout}
-              title="Выйти"
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/15 text-white/80 hover:bg-white/10"
-            >
+            </Select>
+            <IconButton label="Выйти" variant="ghost" onClick={handleLogout}>
               <Icon name="logout" size={18} />
-            </button>
+            </IconButton>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 py-5 sm:py-7">
-        <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+      <main
+        id="executor-content"
+        tabIndex={-1}
+        className="mx-auto max-w-3xl px-4 py-5 sm:py-7"
+      >
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface/80 px-4 py-3">
           <div>
-            <p className="text-sm font-bold text-slate-900">{profile.name}</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-sm font-semibold text-ink">{profile.name}</p>
+            <p className="mt-0.5 text-xs text-muted">
               {profile.siteName} · {profile.timezone}
             </p>
           </div>
-          <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-bold text-violet-700">
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-line bg-white/[0.03] px-2 py-1 text-[10px] font-semibold tracking-wide text-muted uppercase">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
             synthetic_demo
           </span>
         </div>
         <Outlet />
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white px-4 py-2">
+      <nav
+        aria-label="Навигация исполнителя"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-canvas/90 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl"
+      >
         <div className="mx-auto flex max-w-3xl items-center justify-around">
-          <NavLink
-            to="/executor"
-            end
-            className={({ isActive }) =>
-              `flex flex-col items-center gap-1 rounded-xl px-6 py-2 text-xs font-semibold ${
-                isActive ? "bg-emerald-50 text-emerald-800" : "text-slate-500"
-              }`
-            }
-          >
-            <Icon name="tasks" size={20} />
-            Мои задания
-          </NavLink>
-          <Link
-            to="/calendar"
-            className="flex flex-col items-center gap-1 rounded-xl px-6 py-2 text-xs font-semibold text-slate-500"
-          >
-            <Icon name="calendar" size={20} />
-            Календарь
-          </Link>
-          <Link
-            to="/equipment"
-            className="flex flex-col items-center gap-1 rounded-xl px-6 py-2 text-xs font-semibold text-slate-500"
-          >
-            <Icon name="equipment" size={20} />
-            Оборудование
-          </Link>
+          {BOTTOM_NAV.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) =>
+                `flex min-w-24 flex-col items-center gap-1 rounded-xl px-4 py-2 text-[11px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                  isActive
+                    ? "bg-white/[0.06] text-accent"
+                    : "text-muted hover:bg-white/[0.04] hover:text-ink"
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <Icon name={item.icon} size={20} className={isActive ? "text-accent" : ""} />
+                  {item.label}
+                </>
+              )}
+            </NavLink>
+          ))}
         </div>
       </nav>
     </div>

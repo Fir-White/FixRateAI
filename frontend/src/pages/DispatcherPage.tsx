@@ -5,6 +5,7 @@ import { formatDate, formatDateTime } from "@/shared/lib/format";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { StatCard } from "@/widgets/StatCard";
 import { Card, CardHeader } from "@/shared/ui/Card";
+import { Callout } from "@/shared/ui/Callout";
 import { LoadingState, ErrorState } from "@/shared/ui/States";
 import { buttonClassName } from "@/shared/ui/Button";
 import { Icon } from "@/shared/ui/Icon";
@@ -106,14 +107,14 @@ export function DispatcherPage() {
               action={
                 <Link
                   to="/tasks"
-                  className="text-sm font-semibold text-emerald-700 hover:text-emerald-800"
+                  className="text-sm font-semibold text-accent hover:text-accent"
                 >
                   Все задания
                 </Link>
               }
             />
             {attention.length ? (
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-line">
                 {attention.map((task) => (
                   <li key={task.id} className="px-5 py-4 sm:px-6">
                     <TaskAttentionRow task={task} />
@@ -121,7 +122,7 @@ export function DispatcherPage() {
                 ))}
               </ul>
             ) : (
-              <p className="px-5 py-8 text-center text-sm text-slate-500">
+              <p className="px-5 py-8 text-center text-sm text-muted">
                 Просрочек и отчётов на проверке нет.
               </p>
             )}
@@ -133,7 +134,7 @@ export function DispatcherPage() {
               description="Срок задания — локальные сутки объекта Asia/Yekaterinburg"
             />
             {todayTasks.length ? (
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-line">
                 {todayTasks.map((task) => (
                   <li key={task.id} className="px-5 py-4 sm:px-6">
                     <TaskAttentionRow task={task} />
@@ -141,7 +142,7 @@ export function DispatcherPage() {
                 ))}
               </ul>
             ) : (
-              <p className="px-5 py-8 text-center text-sm text-slate-500">
+              <p className="px-5 py-8 text-center text-sm text-muted">
                 На выбранную дату заданий нет.
               </p>
             )}
@@ -155,40 +156,31 @@ export function DispatcherPage() {
               description="Система хранит неопределённость и не подставляет значения"
             />
             <div className="space-y-3 p-5 sm:p-6">
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                <p className="text-sm font-bold text-amber-900">
-                  ТО2: даты требуют уточнения
-                </p>
-                <p className="mt-1 text-xs leading-5 text-amber-800">
+              <Callout tone="warning" title="ТО2: даты требуют уточнения">
+                <p className="text-xs leading-5">
                   Для правила 1/квартал не подтверждены basis и anchor. Пять дат
                   годового ТО не выдумываются.
                 </p>
                 <Link
                   to="/calendar"
-                  className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-amber-900"
+                  className="mt-2 inline-flex items-center gap-1 text-xs font-semibold hover:underline"
                 >
                   Открыть календарь
                   <Icon name="chevron" size={14} />
                 </Link>
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <p className="text-sm font-bold text-slate-800">
-                  Нормо-часы не подтверждены
-                </p>
-                <p className="mt-1 text-xs leading-5 text-slate-500">
+              </Callout>
+              <Callout tone="neutral" title="Нормо-часы не подтверждены">
+                <p className="text-xs leading-5">
                   Исходная норма сохранена без округления. Планировочная
                   длительность пуста до подтверждения заказчиком.
                 </p>
-              </div>
-              <div className="rounded-xl border border-violet-200 bg-violet-50 p-4">
-                <p className="text-sm font-bold text-violet-900">
-                  Набор B: synthetic_demo
-                </p>
-                <p className="mt-1 text-xs leading-5 text-violet-700">
+              </Callout>
+              <Callout tone="violet" title="Набор B: synthetic_demo">
+                <p className="text-xs leading-5">
                   Синтетические данные не являются историей заказчика и всегда
                   маркируются в интерфейсе.
                 </p>
-              </div>
+              </Callout>
             </div>
           </Card>
 
@@ -201,28 +193,28 @@ export function DispatcherPage() {
               <div className="p-5 sm:p-6">
                 <div className="flex flex-wrap items-center gap-2">
                   <OriginBadge origin={latestRun.dataOrigin} />
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-muted">
                     as_of {formatDate(latestRun.asOf)}
                   </span>
                 </div>
-                <p className="mt-3 font-semibold text-slate-900">
+                <p className="mt-3 font-semibold text-ink">
                   {latestRun.equipmentName}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-muted">
                   {latestRun.operationTitle}
                 </p>
                 <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-xl bg-sky-50 p-3">
-                    <p className="text-xs font-semibold text-sky-700">
+                  <div className="rounded-xl bg-sky-400/10 p-3">
+                    <p className="text-xs font-semibold text-sky-200">
                       Алгоритм
                     </p>
-                    <p className="mt-1 font-bold text-slate-900">
+                    <p className="mt-1 font-semibold text-ink">
                       {formatDate(latestRun.algorithmic.recommendedDate)}
                     </p>
                   </div>
-                  <div className="rounded-xl bg-violet-50 p-3">
-                    <p className="text-xs font-semibold text-violet-700">AI</p>
-                    <p className="mt-1 font-bold text-slate-900">
+                  <div className="rounded-xl bg-violet-400/10 p-3">
+                    <p className="text-xs font-semibold text-violet-200">AI</p>
+                    <p className="mt-1 font-semibold text-ink">
                       {formatDate(latestRun.ai.recommendedDate)}
                     </p>
                   </div>
@@ -249,13 +241,13 @@ function TaskAttentionRow({ task }: { task: MaintenanceTask }) {
         <div className="flex flex-wrap items-center gap-2">
           <Link
             to={`/tasks/${task.id}`}
-            className="font-semibold text-slate-900 hover:text-emerald-700"
+            className="font-semibold text-ink hover:text-accent"
           >
             {task.title}
           </Link>
           {task.isOverdue ? <OverdueBadge /> : null}
         </div>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-muted">
           {task.code} · {task.equipmentName} · срок {formatDateTime(task.scheduledEnd)}
         </p>
       </div>

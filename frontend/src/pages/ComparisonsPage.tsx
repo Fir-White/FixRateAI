@@ -52,17 +52,17 @@ export function ComparisonsPage() {
                 : null;
 
             return (
-              <Card key={run.runId} className="p-5 transition hover:border-emerald-200 sm:p-6">
+              <Card key={run.runId} className="p-5 transition hover:border-accent/25 sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <OriginBadge origin={run.dataOrigin} />
                       <DecisionStatusBadge status={run.decision.status} />
                     </div>
-                    <h2 className="mt-3 text-base font-bold text-slate-950">
+                    <h2 className="mt-3 text-base font-semibold text-ink">
                       {run.equipmentName}
                     </h2>
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 text-sm text-muted">
                       {run.operationTitle} · as_of {formatDate(run.asOf)}
                     </p>
                   </div>
@@ -96,7 +96,7 @@ export function ComparisonsPage() {
                   />
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted">
                   <span className="font-mono">
                     snapshot {run.snapshotHash.slice(0, 12)}…
                   </span>
@@ -104,7 +104,7 @@ export function ComparisonsPage() {
                     Обязательный срок {formatDate(run.mandatoryDueDate)}
                   </span>
                   {difference !== null ? (
-                    <span className="font-semibold text-slate-700">
+                    <span className="font-semibold text-ink-soft">
                       Разница дат: {formatDays(difference)}
                     </span>
                   ) : null}
@@ -130,15 +130,15 @@ function ForecastMini({
   tone: "sky" | "violet" | "emerald";
 }) {
   const toneClasses = {
-    sky: "bg-sky-50",
-    violet: "bg-violet-50",
-    emerald: "bg-emerald-50",
+    sky: "bg-sky-400/10",
+    violet: "bg-violet-400/10",
+    emerald: "bg-accent/10",
   }[tone];
 
   return (
     <div className={`rounded-xl p-4 ${toneClasses}`}>
-      <p className="text-xs font-semibold text-slate-600">{label}</p>
-      <p className="mt-1 text-lg font-black text-slate-950">
+      <p className="text-xs font-semibold text-ink-soft">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-ink">
         {formatDate(date)}
       </p>
       <div className="mt-2">

@@ -6,6 +6,8 @@ import { PageHeader } from "@/shared/ui/PageHeader";
 import { Card, CardHeader } from "@/shared/ui/Card";
 import { ErrorState, LoadingState } from "@/shared/ui/States";
 import { buttonClassName } from "@/shared/ui/Button";
+import { Callout } from "@/shared/ui/Callout";
+import { InfoItem, InfoList } from "@/shared/ui/InfoList";
 import { Icon } from "@/shared/ui/Icon";
 import { ForecastResultCard } from "@/entities/forecast/ForecastResultCard";
 import {
@@ -44,7 +46,7 @@ export function ComparisonDetailPage() {
     <div className="space-y-6">
       <Link
         to="/comparisons"
-        className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900"
+        className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink"
       >
         <Icon name="back" size={18} />
         Сравнение прогнозов
@@ -67,7 +69,7 @@ export function ComparisonDetailPage() {
       <div className="flex flex-wrap items-center gap-2">
         <OriginBadge origin={run.dataOrigin} />
         <DecisionStatusBadge status={run.decision.status} />
-        <span className="text-xs text-slate-500">
+        <span className="text-xs text-muted">
           Политика {run.decision.policyVersion}
         </span>
       </div>
@@ -77,18 +79,21 @@ export function ComparisonDetailPage() {
           title="Входной снимок"
           description="Оба метода обязаны использовать одинаковые даты, версии и hash"
         />
-        <dl className="grid gap-x-6 gap-y-5 p-5 sm:grid-cols-2 lg:grid-cols-4 sm:p-6">
-          <Info label="as_of" value={formatDate(run.asOf)} />
-          <Info label="Горизонт" value={formatDate(run.horizonEnd)} />
-          <Info label="Ранняя граница" value={formatDate(run.earliestDate)} />
-          <Info
+        <InfoList className="grid gap-x-6 gap-y-5 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-4">
+          <InfoItem label="as_of" value={formatDate(run.asOf)} />
+          <InfoItem label="Горизонт" value={formatDate(run.horizonEnd)} />
+          <InfoItem
+            label="Ранняя граница"
+            value={formatDate(run.earliestDate)}
+          />
+          <InfoItem
             label="Обязательный срок"
             value={formatDate(run.mandatoryDueDate)}
           />
-        </dl>
-        <div className="border-t border-slate-100 px-5 py-4 sm:px-6">
-          <p className="text-xs font-semibold text-slate-500">Snapshot hash</p>
-          <p className="mt-1 font-mono text-xs break-all text-slate-700">
+        </InfoList>
+        <div className="border-t border-line px-5 py-4 sm:px-6">
+          <p className="text-xs font-semibold text-muted">Snapshot hash</p>
+          <p className="mt-1 font-mono text-xs break-all text-ink-soft">
             {run.snapshotHash}
           </p>
         </div>
@@ -108,7 +113,7 @@ export function ComparisonDetailPage() {
           <div className="p-5 sm:p-6">
             <div className="flex flex-wrap items-center gap-3">
               <DecisionStatusBadge status={run.decision.status} />
-              <p className="text-2xl font-black text-slate-950">
+              <p className="text-2xl font-semibold text-ink">
                 {formatDate(run.decision.selectedDate)}
               </p>
             </div>
@@ -116,9 +121,9 @@ export function ComparisonDetailPage() {
               {run.decision.reasons.map((reason) => (
                 <li
                   key={reason}
-                  className="flex gap-3 text-sm leading-6 text-slate-600"
+                  className="flex gap-3 text-sm leading-6 text-ink-soft"
                 >
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
                     <Icon name="check" size={13} />
                   </span>
                   {reason}
@@ -131,33 +136,22 @@ export function ComparisonDetailPage() {
         <Card>
           <CardHeader title="Разница методов" />
           <div className="p-5 sm:p-6">
-            <p className="text-3xl font-black text-slate-950">
+            <p className="text-3xl font-semibold text-ink">
               {difference === null
                 ? "Не определена"
                 : formatDays(difference)}
             </p>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
+            <p className="mt-2 text-sm leading-6 text-muted">
               Исходные даты обоих методов сохраняются. Ограничение обязательным
               сроком не переписывает AI-результат.
             </p>
-            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs leading-5 text-slate-600">
+            <Callout tone="neutral" className="mt-4 text-xs leading-5">
               Обязательный срок: {formatDate(run.mandatoryDueDate)}. Дата AI не
               может изменить нормативную границу.
-            </div>
+            </Callout>
           </div>
         </Card>
       </div>
-    </div>
-  );
-}
-
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
-        {label}
-      </dt>
-      <dd className="mt-1 text-sm font-semibold text-slate-900">{value}</dd>
     </div>
   );
 }

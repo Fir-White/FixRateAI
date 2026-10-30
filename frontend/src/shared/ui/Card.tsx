@@ -7,7 +7,7 @@ export function Card({
 }: HTMLAttributes<HTMLDivElement> & { children: ReactNode }) {
   return (
     <div
-      className={`rounded-2xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] ${className}`}
+      className={`rounded-2xl border border-line bg-surface/90 shadow-[0_18px_60px_rgba(0,0,0,0.18)] backdrop-blur-sm ${className}`}
       {...props}
     >
       {children}
@@ -35,14 +35,30 @@ export function CardHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 px-5 py-4 sm:px-6">
-      <div>
-        <h2 className="text-base font-bold text-slate-900">{title}</h2>
+    <div className="flex flex-wrap items-start justify-between gap-4 border-b border-line px-5 py-4 sm:px-6">
+      <div className="min-w-0">
+        <h2 className="text-section font-semibold text-ink">{title}</h2>
         {description ? (
-          <p className="mt-1 text-sm text-slate-500">{description}</p>
+          <p className="mt-1 text-sm leading-6 text-muted">{description}</p>
         ) : null}
       </div>
       {action}
+    </div>
+  );
+}
+
+export function CardFooter({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`border-t border-line px-5 py-4 sm:px-6 ${className}`}
+    >
+      {children}
     </div>
   );
 }

@@ -6,7 +6,9 @@ import { formatMonth } from "@/shared/lib/format";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Card } from "@/shared/ui/Card";
 import { ErrorState, LoadingState } from "@/shared/ui/States";
-import { Button } from "@/shared/ui/Button";
+import { IconButton } from "@/shared/ui/Button";
+import { Callout } from "@/shared/ui/Callout";
+import { StatCard } from "@/widgets/StatCard";
 import { Icon } from "@/shared/ui/Icon";
 import type { CalendarOccurrence } from "@/shared/types/domain";
 
@@ -71,55 +73,40 @@ export function CalendarPage() {
         description="Проекция строк PlanOccurrence по локальным суткам объекта. Просрочка — отдельный признак, а не статус вхождения."
         actions={
           <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
+            <IconButton
+              label="Предыдущий месяц"
               onClick={() => shiftMonth(-1)}
-              aria-label="Предыдущий месяц"
             >
               <Icon name="back" size={16} />
-            </Button>
-            <span className="min-w-40 text-center text-sm font-bold text-slate-900 capitalize">
+            </IconButton>
+            <span className="min-w-40 text-center text-sm font-semibold text-ink capitalize">
               {formatMonth(cursor.year, cursor.month)}
             </span>
-            <Button
-              variant="secondary"
-              size="sm"
+            <IconButton
+              label="Следующий месяц"
               onClick={() => shiftMonth(1)}
-              aria-label="Следующий месяц"
             >
               <Icon name="chevron" size={16} />
-            </Button>
+            </IconButton>
           </div>
         }
       />
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4">
-          <p className="text-xs font-semibold text-slate-500">Вхождений</p>
-          <p className="mt-1 text-2xl font-black text-slate-950">
-            {occurrencesCount}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4">
-          <p className="text-xs font-semibold text-rose-700">Просрочено</p>
-          <p className="mt-1 text-2xl font-black text-rose-800">
-            {overdueCount}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
-          <p className="text-xs font-semibold text-amber-800">ТО2 без дат</p>
-          <p className="mt-1 text-lg font-black text-amber-900">
-            Требует уточнения
-          </p>
-        </div>
+        <StatCard label="Вхождений" value={occurrencesCount} />
+        <StatCard label="Просрочено" value={overdueCount} tone="danger" />
+        <StatCard
+          label="ТО2 без дат"
+          value="Требует уточнения"
+          tone="warning"
+        />
       </div>
 
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm leading-6 text-amber-900">
-        <span className="font-bold">Набор A — данные заказчика.</span> Октябрь
-        2026 выбран для демонстрации. Для ТО2 не подтверждены basis и anchor,
-        поэтому даты квартального и годового ТО не создаются автоматически.
-      </div>
+      <Callout tone="warning" title="Набор A — данные заказчика.">
+        Октябрь 2026 выбран для демонстрации. Для ТО2 не подтверждены basis и
+        anchor, поэтому даты квартального и годового ТО не создаются
+        автоматически.
+      </Callout>
 
       {query.status === "loading" ? <LoadingState /> : null}
       {query.status === "error" ? (
@@ -128,13 +115,18 @@ export function CalendarPage() {
 
       {query.status === "success" ? (
         <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
+          <div
+            role="region"
+            aria-label="Сетка календаря"
+            tabIndex={0}
+            className="overflow-x-auto rounded-b-xl focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
+          >
             <div className="min-w-[760px]">
-              <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/70">
+              <div className="grid grid-cols-7 border-b border-line bg-white/[0.03]">
                 {WEEKDAYS.map((weekday) => (
                   <div
                     key={weekday}
-                    className="px-2 py-2 text-center text-xs font-bold tracking-wide text-slate-500 uppercase"
+                    className="px-2 py-2 text-center text-xs font-semibold tracking-wide text-muted uppercase"
                   >
                     {weekday}
                   </div>
@@ -153,22 +145,22 @@ export function CalendarPage() {
                   return (
                     <div
                       key={index}
-                      className={`min-h-28 border-r border-b border-slate-100 p-2 last:border-r-0 ${
-                        validDay ? "bg-white" : "bg-slate-50/40"
-                      } ${isToday ? "ring-2 ring-emerald-500 ring-inset" : ""}`}
+                      className={`min-h-28 border-r border-b border-line p-2 last:border-r-0 ${
+                        validDay ? "bg-surface" : "bg-white/[0.015]"
+                      } ${isToday ? "ring-2 ring-accent ring-inset" : ""}`}
                     >
                       {validDay ? (
                         <>
                           <div className="flex items-center justify-between">
                             <span
-                              className={`text-xs font-bold ${
-                                isToday ? "text-emerald-700" : "text-slate-500"
+                              className={`text-xs font-semibold ${
+                                isToday ? "text-accent" : "text-muted"
                               }`}
                             >
                               {dayNumber}
                             </span>
                             {dayItems.some((item) => item.isOverdue) ? (
-                              <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                              <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
                             ) : null}
                           </div>
                           <div className="mt-1.5 space-y-1">
@@ -179,7 +171,7 @@ export function CalendarPage() {
                               />
                             ))}
                             {dayItems.length > 2 ? (
-                              <p className="px-1 text-[10px] font-semibold text-slate-400">
+                              <p className="px-1 text-[10px] font-semibold text-muted/60">
                                 +{dayItems.length - 2}
                               </p>
                             ) : null}
@@ -192,17 +184,17 @@ export function CalendarPage() {
               </div>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-4 border-t border-slate-100 px-5 py-3 text-xs text-slate-500">
+          <div className="flex flex-wrap items-center gap-4 border-t border-line px-5 py-3 text-xs text-muted">
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="h-2 w-2 rounded-full bg-accent" />
               Выполнено
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-sky-500" />
+              <span className="h-2 w-2 rounded-full bg-sky-400" />
               Запланировано
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-rose-500" />
+              <span className="h-2 w-2 rounded-full bg-rose-400" />
               Просрочено
             </span>
           </div>
@@ -210,7 +202,7 @@ export function CalendarPage() {
       ) : null}
 
       {query.status === "success" && occurrencesCount === 0 ? (
-        <p className="text-center text-sm text-slate-500">
+        <p className="text-center text-sm text-muted">
           Для выбранного месяца вхождений нет. Это не означает, что регламент
           отменён.
         </p>
@@ -221,10 +213,10 @@ export function CalendarPage() {
 
 function OccurrenceChip({ occurrence }: { occurrence: CalendarOccurrence }) {
   const tone = occurrence.isOverdue
-    ? "border-rose-200 bg-rose-50 text-rose-800"
+    ? "border-rose-400/25 bg-rose-400/10 text-rose-200"
     : occurrence.status === "fulfilled"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-      : "border-sky-200 bg-sky-50 text-sky-800";
+      ? "border-accent/25 bg-accent/10 text-accent"
+      : "border-sky-400/25 bg-sky-400/10 text-sky-200";
 
   const content = (
     <span
@@ -236,7 +228,14 @@ function OccurrenceChip({ occurrence }: { occurrence: CalendarOccurrence }) {
   );
 
   if (occurrence.taskId) {
-    return <Link to={`/tasks/${occurrence.taskId}`}>{content}</Link>;
+    return (
+      <Link
+        to={`/tasks/${occurrence.taskId}`}
+        className="block rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        {content}
+      </Link>
+    );
   }
 
   return content;

@@ -7,30 +7,34 @@ export function StatCard({
   hint,
   tone = "default",
   icon,
+  compact = false,
 }: {
   label: string;
   value: string | number;
   hint?: string;
   tone?: "default" | "danger" | "warning" | "success";
   icon?: ReactNode;
+  compact?: boolean;
 }) {
   const toneClasses = {
-    default: "text-slate-950",
-    danger: "text-rose-700",
-    warning: "text-amber-700",
-    success: "text-emerald-700",
+    default: "text-ink",
+    danger: "text-rose-300",
+    warning: "text-amber-200",
+    success: "text-accent",
   }[tone];
 
   return (
-    <Card className="p-5">
+    <Card className={compact ? "p-4" : "p-5"}>
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-semibold text-slate-500">{label}</p>
-        {icon ? <span className="text-slate-400">{icon}</span> : null}
+        <p className="text-xs font-semibold text-muted">{label}</p>
+        {icon ? <span className="text-muted">{icon}</span> : null}
       </div>
-      <p className={`mt-3 text-3xl font-black tracking-tight ${toneClasses}`}>
+      <p
+        className={`${compact ? "mt-2 text-2xl" : "mt-3 text-3xl"} leading-none font-semibold tracking-[-0.04em] ${toneClasses}`}
+      >
         {value}
       </p>
-      {hint ? <p className="mt-2 text-xs text-slate-500">{hint}</p> : null}
+      {hint ? <p className="mt-3 text-xs leading-5 text-muted">{hint}</p> : null}
     </Card>
   );
 }

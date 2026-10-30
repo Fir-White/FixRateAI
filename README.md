@@ -31,7 +31,7 @@ FixRate AI проектируется как система управления
 | База данных | ER-диаграмма, спецификация и каталог: **35 таблиц · 310 полей · 72 FK** | Логический проект; требуется согласование с DTO |
 | Материалы заказчика | Исходный Excel и разбор неоднозначных данных | Сохранены в `docs/` |
 | API и авторизация | Описаны интерфейсы, роли, сессии и проверки доступа | Сервер, endpoints и проверки прав ещё не реализованы |
-| Frontend | Каркас React SPA: маршруты, layouts, семь рабочих разделов, mock fixtures и тесты | Каркас готов; backend API не подключён |
+| Frontend | React SPA: маршруты, единый UI-kit, адаптивный layout, mock fixtures и тесты | Каркас и тёмный UI-kit готовы; backend API не подключён |
 | AI и алгоритмы | Контракты прогнозов, оркестратора и фотоанализа | Исполняемых модулей и весов нет |
 | Развёртывание | Описана схема Docker Compose | Dockerfile, Compose, nginx-конфигурации, CI/CD и SQL-миграций нет |
 
@@ -125,7 +125,7 @@ FixRate_AI/
 
 | Нужно разобраться с… | Начать здесь |
 |---|---|
-| Экранами и маршрутами frontend | [Карта экранов](docs/ui/screen-map.md) · [Frontend README](frontend/README.md) |
+| Экранами и маршрутами frontend | [Карта экранов](docs/ui/screen-map.md) · [UI-kit](docs/ui/ui-kit.md) · [Frontend README](frontend/README.md) |
 | Архитектурой и ответственностью команды | [Оглавление архитектуры](docs/architecture/README.md) · [Команда](docs/architecture/team_responsibilities.md) |
 | Текущими backend-контрактами | [Результат FX26-BE01](docs/architecture/fx26-be01-implementation.md) · [API](docs/architecture/api_contracts.md) |
 | Данными и связями | [Документация БД и расхождения с API](docs/database/README.md) |

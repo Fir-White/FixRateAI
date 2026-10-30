@@ -6,6 +6,7 @@ import { PageHeader } from "@/shared/ui/PageHeader";
 import { Card } from "@/shared/ui/Card";
 import { EmptyState, ErrorState, LoadingState } from "@/shared/ui/States";
 import { Button, buttonClassName } from "@/shared/ui/Button";
+import { FormField, Input, Select } from "@/shared/ui/Form";
 import { Icon } from "@/shared/ui/Icon";
 import { EquipmentTable } from "@/entities/equipment/EquipmentTable";
 import type { EquipmentState } from "@/shared/types/domain";
@@ -55,33 +56,30 @@ export function EquipmentPage() {
       />
 
       <Card className="p-4 sm:p-5">
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <label className="relative flex-1">
-            <span className="sr-only">Поиск оборудования</span>
-            <Icon
-              name="search"
-              size={18}
-              className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
-            />
-            <input
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_15rem]">
+          <FormField label="Поиск" htmlFor="equipment-search">
+            <Input
+              id="equipment-search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Название, инвентарный номер, тип или расположение"
-              className="h-10 w-full rounded-xl border border-slate-300 bg-white pr-3 pl-10 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+              placeholder="Название, номер, тип или расположение"
+              leadingIcon={<Icon name="search" size={17} />}
             />
-          </label>
-          <select
-            value={stateFilter}
-            onChange={(event) =>
-              setStateFilter(event.target.value as StateFilter)
-            }
-            className="h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700"
-          >
-            <option value="all">Все состояния</option>
-            <option value="active">В эксплуатации</option>
-            <option value="out_of_service">Выведено из эксплуатации</option>
-            <option value="retired">Списано</option>
-          </select>
+          </FormField>
+          <FormField label="Состояние" htmlFor="equipment-state">
+            <Select
+              id="equipment-state"
+              value={stateFilter}
+              onChange={(event) =>
+                setStateFilter(event.target.value as StateFilter)
+              }
+            >
+              <option value="all">Все состояния</option>
+              <option value="active">В эксплуатации</option>
+              <option value="out_of_service">Выведено из эксплуатации</option>
+              <option value="retired">Списано</option>
+            </Select>
+          </FormField>
         </div>
       </Card>
 
@@ -97,11 +95,11 @@ export function EquipmentPage() {
       ) : null}
       {query.status === "success" && items.length > 0 ? (
         <Card className="overflow-hidden">
-          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3 sm:px-6">
-            <p className="text-xs font-semibold text-slate-500">
+          <div className="flex items-center justify-between border-b border-line px-5 py-3 sm:px-6">
+            <p className="text-xs font-semibold text-muted">
               Найдено: {items.length}
             </p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted/60">
               Демонстрационный объект · Asia/Yekaterinburg
             </p>
           </div>

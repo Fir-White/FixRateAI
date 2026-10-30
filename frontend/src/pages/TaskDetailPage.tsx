@@ -8,6 +8,9 @@ import { ErrorState, LoadingState } from "@/shared/ui/States";
 import { Button, buttonClassName } from "@/shared/ui/Button";
 import { Icon } from "@/shared/ui/Icon";
 import { EvidenceGallery } from "@/entities/execution/EvidenceGallery";
+import { ChecklistSummary } from "@/entities/execution/ChecklistSummary";
+import { Callout } from "@/shared/ui/Callout";
+import { InfoItem, InfoList } from "@/shared/ui/InfoList";
 import {
   EngineerDecisionBadge,
   OriginBadge,
@@ -15,7 +18,6 @@ import {
   ReviewStatusBadge,
   TaskStateBadge,
 } from "@/shared/ui/StatusBadge";
-import type { ChecklistItem } from "@/shared/types/domain";
 
 export function TaskDetailPage() {
   const { taskId = "" } = useParams();
@@ -44,7 +46,7 @@ export function TaskDetailPage() {
     <div className="space-y-6">
       <Link
         to="/tasks"
-        className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900"
+        className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink"
       >
         <Icon name="back" size={18} />
         Очередь заданий
@@ -82,35 +84,40 @@ export function TaskDetailPage() {
         <TaskStateBadge state={task.state} />
         {task.isOverdue ? <OverdueBadge /> : null}
         <OriginBadge origin={task.dataOrigin} />
-        <span className="text-xs text-slate-500">Ревизия {task.revision}</span>
+        <span className="text-xs text-muted">Ревизия {task.revision}</span>
       </div>
 
       {task.isOverdue ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm leading-6 text-rose-900">
-          <span className="font-bold">Просрочено.</span> Текущий статус
-          сохранён, но обязательный срок нарушен. Обычное закрытие требует
-          резолюции главного инженера.
-        </div>
+        <Callout tone="danger" title="Просрочено.">
+          Текущий статус сохранён, но обязательный срок нарушен. Обычное
+          закрытие требует резолюции главного инженера.
+        </Callout>
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
         <div className="space-y-6">
           <Card>
             <CardHeader title="Параметры задания" />
-            <dl className="grid gap-x-6 gap-y-5 p-5 sm:grid-cols-2 sm:p-6">
-              <Info label="Оборудование" value={task.equipmentName} />
-              <Info
+            <InfoList className="grid gap-x-6 gap-y-5 p-5 sm:grid-cols-2 sm:p-6">
+              <InfoItem label="Оборудование" value={task.equipmentName} />
+              <InfoItem
                 label="Операция"
                 value={`${task.maintenanceType} · ${task.operationCode}`}
               />
-              <Info label="Обязательный срок" value={formatDate(task.mandatoryDueDate)} />
-              <Info label="Планируемый интервал" value={`${formatDateTime(task.scheduledStart)} — ${formatDateTime(task.scheduledEnd)}`} />
-              <Info label="Размер бригады" value={`${task.crewSize} чел.`} />
-              <Info
+              <InfoItem
+                label="Обязательный срок"
+                value={formatDate(task.mandatoryDueDate)}
+              />
+              <InfoItem
+                label="Планируемый интервал"
+                value={`${formatDateTime(task.scheduledStart)} — ${formatDateTime(task.scheduledEnd)}`}
+              />
+              <InfoItem label="Размер бригады" value={`${task.crewSize} чел.`} />
+              <InfoItem
                 label="Нарушение срока"
                 value={task.deadlineBreached ? "Зафиксировано" : "Нет"}
               />
-            </dl>
+            </InfoList>
           </Card>
 
           {execution ? (
@@ -125,20 +132,18 @@ export function TaskDetailPage() {
                 action={
                   <Link
                     to={`/quality/${task.id}`}
-                    className="text-sm font-semibold text-emerald-700"
+                    className="text-sm font-semibold text-accent"
                   >
                     Фото и проверка
                   </Link>
                 }
               />
               <div className="p-5 sm:p-6">
-                <p className="text-sm leading-6 text-slate-600">
+                <p className="text-sm leading-6 text-ink-soft">
                   {execution.narrative || "Комментарий пока не заполнен."}
                 </p>
-                <div className="mt-4 space-y-2">
-                  {execution.checklist.map((item) => (
-                    <ChecklistRow key={item.id} item={item} />
-                  ))}
+                <div className="mt-4">
+                  <ChecklistSummary items={execution.checklist} />
                 </div>
                 <div className="mt-5">
                   <EvidenceGallery photos={execution.photos} />
@@ -152,20 +157,20 @@ export function TaskDetailPage() {
           <Card>
             <CardHeader title="Бригада" />
             {task.assignees.length ? (
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-line">
                 {task.assignees.map((assignee) => (
                   <li key={assignee.executorId} className="px-5 py-4 sm:px-6">
-                    <p className="font-semibold text-slate-900">
+                    <p className="font-semibold text-ink">
                       {assignee.name}
                     </p>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 text-xs text-muted">
                       {assignee.qualifications.join(" · ")}
                     </p>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="px-5 py-6 text-sm text-slate-500">
+              <p className="px-5 py-6 text-sm text-muted">
                 Исполнитель не назначен.
               </p>
             )}
@@ -176,10 +181,10 @@ export function TaskDetailPage() {
               <CardHeader title="AI-контроль" />
               <div className="p-5 sm:p-6">
                 <ReviewStatusBadge status={review.status} />
-                <p className="mt-3 text-sm leading-6 text-slate-600">
+                <p className="mt-3 text-sm leading-6 text-ink-soft">
                   Модель {review.modelRef}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-muted">
                   Prompt set {review.promptSetVersion}
                 </p>
                 <Link
@@ -197,10 +202,10 @@ export function TaskDetailPage() {
               <CardHeader title="Решение инженера" />
               <div className="p-5 sm:p-6">
                 <EngineerDecisionBadge verdict={decision.verdict} />
-                <p className="mt-3 text-sm leading-6 text-slate-600">
+                <p className="mt-3 text-sm leading-6 text-ink-soft">
                   {decision.reason}
                 </p>
-                <p className="mt-2 text-xs text-slate-500">
+                <p className="mt-2 text-xs text-muted">
                   {decision.decidedBy} · {formatDateTime(decision.decidedAt)}
                 </p>
               </div>
@@ -209,7 +214,7 @@ export function TaskDetailPage() {
 
           <Card>
             <CardHeader title="Переходы" />
-            <div className="p-5 text-xs leading-5 text-slate-500 sm:p-6">
+            <div className="p-5 text-xs leading-5 text-muted sm:p-6">
               {task.state === "draft"
                 ? "Черновик → Назначено: требуется доступная бригада и подтверждённая длительность."
                 : null}
@@ -232,50 +237,6 @@ export function TaskDetailPage() {
           </Card>
         </div>
       </div>
-    </div>
-  );
-}
-
-function ChecklistRow({ item }: { item: ChecklistItem }) {
-  return (
-    <div className="flex flex-wrap items-start justify-between gap-2 rounded-xl border border-slate-200 px-3 py-2.5">
-      <div>
-        <p className="text-sm text-slate-800">{item.text}</p>
-        <p className="mt-0.5 text-xs text-slate-400">
-          {item.required ? "Обязательный" : "Необязательный"}
-          {item.photoRequired ? " · нужен фотофиксатор" : ""}
-        </p>
-      </div>
-      <span className="text-sm font-semibold text-slate-700">
-        {formatAnswer(item)}
-      </span>
-    </div>
-  );
-}
-
-function formatAnswer(item: ChecklistItem): string {
-  if (item.answer === null || item.answer === "") {
-    return "—";
-  }
-  if (item.answer === "done") {
-    return "Выполнено";
-  }
-  if (item.answer === "not_done") {
-    return "Не выполнено";
-  }
-  if (item.answer === "not_applicable") {
-    return "Не применимо";
-  }
-  return item.unit ? `${item.answer} ${item.unit}` : item.answer;
-}
-
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
-        {label}
-      </dt>
-      <dd className="mt-1 text-sm font-semibold text-slate-900">{value}</dd>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Card } from "@/shared/ui/Card";
+import { Callout } from "@/shared/ui/Callout";
 import { EmptyState, ErrorState, LoadingState } from "@/shared/ui/States";
 import { buttonClassName } from "@/shared/ui/Button";
 import { TaskTable } from "@/entities/task/TaskTable";
@@ -66,12 +67,11 @@ export function QualityPage() {
         />
       </div>
 
-      <div className="rounded-2xl border border-violet-200 bg-violet-50 px-5 py-4 text-sm leading-6 text-violet-900">
-        <span className="font-bold">AI не принимает работу.</span> Результат
-        <span className="font-mono"> uncertain</span> или
-        <span className="font-mono"> unavailable</span> требует текстового
+      <Callout tone="violet" title="AI не принимает работу.">
+        Результат <span className="font-mono">uncertain</span> или{" "}
+        <span className="font-mono">unavailable</span> требует текстового
         основания инженера и, при необходимости, дополнительных данных.
-      </div>
+      </Callout>
 
       {query.data.length === 0 ? (
         <EmptyState
@@ -80,11 +80,11 @@ export function QualityPage() {
         />
       ) : (
         <Card className="overflow-hidden">
-          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3 sm:px-6">
-            <p className="text-xs font-semibold text-slate-500">
+          <div className="flex items-center justify-between border-b border-line px-5 py-3 sm:px-6">
+            <p className="text-xs font-semibold text-muted">
               В очереди: {query.data.length}
             </p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted/60">
               Отклонение не стирает предыдущую попытку
             </p>
           </div>

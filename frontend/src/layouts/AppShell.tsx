@@ -1,5 +1,15 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import {
+  NavLink,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+import { BrandLockup } from "@/shared/ui/Brand";
+import { Button, IconButton } from "@/shared/ui/Button";
+import { Select } from "@/shared/ui/Form";
 import { Icon, type IconName } from "@/shared/ui/Icon";
+import { useDialogFocus } from "@/shared/lib/useDialogFocus";
 import { useSession } from "@/shared/session/SessionContext";
 import { ROLE_LABELS, homePathForRole } from "@/shared/lib/roles";
 import type { Role } from "@/shared/types/domain";
@@ -39,21 +49,13 @@ const NAV_BY_ROLE: Record<Role, NavItem[]> = {
 
 const ROLES: Role[] = ["dispatcher", "engineer", "executor", "admin"];
 
-function Brand() {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 text-sm font-black text-emerald-300">
-        FR
-      </span>
-      <div>
-        <p className="text-sm font-black tracking-wide text-white">FixRate AI</p>
-        <p className="text-[11px] text-emerald-100/60">ТО / ППР</p>
-      </div>
-    </div>
-  );
-}
-
-function NavItems({ items, compact = false }: { items: NavItem[]; compact?: boolean }) {
+function NavItems({
+  items,
+  onNavigate,
+}: {
+  items: NavItem[];
+  onNavigate?: () => void;
+}) {
   return (
     <>
       {items.map((item) => (
@@ -61,20 +63,25 @@ function NavItems({ items, compact = false }: { items: NavItem[]; compact?: bool
           key={item.to}
           to={item.to}
           end={item.end}
+          onClick={onNavigate}
           className={({ isActive }) =>
-            `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
+            `flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
               isActive
-                ? compact
-                  ? "bg-emerald-50 text-emerald-800"
-                  : "bg-white/10 text-white"
-                : compact
-                  ? "text-slate-600 hover:bg-slate-100"
-                  : "text-emerald-50/65 hover:bg-white/5 hover:text-white"
+                ? "border-line-strong bg-white/[0.065] text-ink"
+                : "border-transparent text-muted hover:bg-white/[0.04] hover:text-ink"
             }`
           }
         >
-          <Icon name={item.icon} size={19} />
-          {item.label}
+          {({ isActive }) => (
+            <>
+              <Icon
+                name={item.icon}
+                size={18}
+                className={isActive ? "text-accent" : ""}
+              />
+              {item.label}
+            </>
+          )}
         </NavLink>
       ))}
     </>
@@ -84,12 +91,28 @@ function NavItems({ items, compact = false }: { items: NavItem[]; compact?: bool
 export function AppShell() {
   const { profile, logout, switchRole } = useSession();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useDialogFocus<HTMLElement>(menuOpen, () =>
+    setMenuOpen(false),
+  );
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
 
   if (!profile) {
     return null;
   }
 
   const items = NAV_BY_ROLE[profile.role];
+  const activeItem = items
+    .filter(
+      (item) =>
+        location.pathname === item.to ||
+        location.pathname.startsWith(`${item.to}/`),
+    )
+    .sort((left, right) => right.to.length - left.to.length)[0];
 
   const handleRoleChange = (role: Role) => {
     switchRole(role);
@@ -102,81 +125,166 @@ export function AppShell() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f3f5f2] text-slate-900">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 flex-col bg-[#10231b] px-4 py-5 lg:flex">
+    <div className="app-backdrop min-h-screen text-ink">
+      <a
+        href="#main-content"
+        className="sr-only z-[60] rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-canvas focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+      >
+        Перейти к содержимому
+      </a>
+
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 flex-col border-r border-line bg-canvas-soft/90 px-4 py-5 backdrop-blur-xl lg:flex">
         <div className="px-2">
-          <Brand />
+          <BrandLockup />
         </div>
-        <nav className="mt-8 flex flex-1 flex-col gap-1">
+        <nav aria-label="Основная навигация" className="mt-9 flex flex-1 flex-col gap-1">
+          <p className="mb-2 px-3 text-[10px] font-semibold tracking-[0.18em] text-muted uppercase">
+            Рабочее пространство
+          </p>
           <NavItems items={items} />
         </nav>
-        <div className="rounded-2xl bg-white/5 p-4">
-          <p className="text-xs font-semibold tracking-wide text-emerald-100/50 uppercase">
-            Объект
-          </p>
-          <p className="mt-2 text-sm font-semibold text-white">
+        <div className="rounded-xl border border-line bg-white/[0.025] p-4">
+          <div className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+            <p className="text-[10px] font-semibold tracking-[0.16em] text-muted uppercase">
+              Демо-объект
+            </p>
+          </div>
+          <p className="mt-2 text-sm font-semibold text-ink">
             {profile.siteName}
           </p>
-          <p className="mt-1 text-xs text-emerald-50/50">{profile.timezone}</p>
+          <p className="mt-1 text-xs text-muted">{profile.timezone}</p>
         </div>
       </aside>
 
-      <div className="lg:pl-72">
-        <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-[#f3f5f2]/95 backdrop-blur">
-          <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-3 lg:hidden">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#10231b] text-xs font-black text-white">
-                FR
-              </span>
-              <p className="text-sm font-black text-slate-900">FixRate AI</p>
+      {menuOpen ? (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button
+            type="button"
+            aria-label="Закрыть меню"
+            className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+            onClick={() => setMenuOpen(false)}
+          />
+          <aside
+            ref={menuRef}
+            id="mobile-navigation"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Мобильная навигация"
+            className="relative flex h-full w-[min(20rem,88vw)] flex-col border-r border-line bg-canvas-soft px-4 py-5 shadow-2xl shadow-black/60"
+          >
+            <div className="flex items-center justify-between px-2">
+              <BrandLockup />
+              <IconButton
+                label="Закрыть меню"
+                variant="ghost"
+                onClick={() => setMenuOpen(false)}
+              >
+                <Icon name="close" size={18} />
+              </IconButton>
             </div>
-
-            <div className="hidden items-center gap-2 lg:flex">
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
-                Демо-данные · synthetic_demo
-              </span>
+            <nav aria-label="Мобильная навигация" className="mt-8 flex-1 space-y-1">
+              <p className="mb-2 px-3 text-[10px] font-semibold tracking-[0.18em] text-muted uppercase">
+                Рабочее пространство
+              </p>
+              <NavItems items={items} onNavigate={() => setMenuOpen(false)} />
+            </nav>
+            <div className="space-y-3 border-t border-line pt-4">
+              <label className="block">
+                <span className="mb-1.5 block text-[10px] font-semibold tracking-[0.16em] text-muted uppercase">
+                  Роль
+                </span>
+                <Select
+                  aria-label="Демонстрационная роль"
+                  value={profile.role}
+                  onChange={(event) =>
+                    handleRoleChange(event.target.value as Role)
+                  }
+                >
+                  {ROLES.map((role) => (
+                    <option key={role} value={role}>
+                      {ROLE_LABELS[role]}
+                    </option>
+                  ))}
+                </Select>
+              </label>
+              <Button
+                variant="ghost"
+                className="w-full justify-start"
+                onClick={handleLogout}
+              >
+                <Icon name="logout" size={18} />
+                Выйти
+              </Button>
             </div>
+          </aside>
+        </div>
+      ) : null}
 
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="hidden text-right sm:block">
-                <p className="text-sm font-semibold text-slate-900">
-                  {profile.name}
+      <div className="lg:pl-72" inert={menuOpen} aria-hidden={menuOpen || undefined}>
+        <header className="sticky top-0 z-30 border-b border-line bg-canvas/80 backdrop-blur-xl">
+          <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
+            <div className="flex min-w-0 items-center gap-3">
+              <IconButton
+                label="Открыть меню"
+                variant="ghost"
+                className="lg:hidden"
+                aria-expanded={menuOpen}
+                aria-controls="mobile-navigation"
+                onClick={() => setMenuOpen(true)}
+              >
+                <Icon name="menu" size={20} />
+              </IconButton>
+              <div className="min-w-0 lg:hidden">
+                <BrandLockup size="sm" subtitle="Рабочее пространство" />
+              </div>
+              <div className="hidden min-w-0 lg:block">
+                <p className="text-[10px] font-semibold tracking-[0.16em] text-muted uppercase">
+                  Рабочее пространство
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="mt-0.5 truncate text-sm font-semibold text-ink">
+                  {activeItem?.label ?? "FixRate AI"}
+                </p>
+              </div>
+            </div>
+
+            <div className="hidden items-center gap-2 sm:gap-3 md:flex">
+              <span className="hidden items-center gap-2 rounded-lg border border-line bg-white/[0.03] px-2.5 py-1.5 text-[10px] font-semibold tracking-wide text-muted uppercase xl:inline-flex">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+                synthetic_demo
+              </span>
+              <div className="hidden text-right lg:block">
+                <p className="text-xs font-semibold text-ink">{profile.name}</p>
+                <p className="text-[10px] text-muted">
                   {ROLE_LABELS[profile.role]}
                 </p>
               </div>
-              <select
+              <Select
                 aria-label="Демонстрационная роль"
                 value={profile.role}
                 onChange={(event) =>
                   handleRoleChange(event.target.value as Role)
                 }
-                className="h-9 rounded-lg border border-slate-300 bg-white px-2 text-xs font-semibold text-slate-700"
+                className="h-9 w-auto max-w-36 text-xs md:max-w-40"
               >
                 {ROLES.map((role) => (
                   <option key={role} value={role}>
                     {ROLE_LABELS[role]}
                   </option>
                 ))}
-              </select>
-              <button
-                type="button"
-                onClick={handleLogout}
-                title="Выйти"
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
-              >
+              </Select>
+              <IconButton label="Выйти" variant="ghost" onClick={handleLogout}>
                 <Icon name="logout" size={18} />
-              </button>
+              </IconButton>
             </div>
           </div>
-
-          <nav className="flex gap-1 overflow-x-auto px-3 pb-2 lg:hidden">
-            <NavItems items={items} compact />
-          </nav>
         </header>
 
-        <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10"
+        >
           <Outlet />
         </main>
       </div>

@@ -6,6 +6,7 @@ import { formatDate, formatDateTime } from "@/shared/lib/format";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { EmptyState, ErrorState, LoadingState } from "@/shared/ui/States";
 import { buttonClassName } from "@/shared/ui/Button";
+import { StatCard } from "@/widgets/StatCard";
 import { Icon } from "@/shared/ui/Icon";
 import {
   OriginBadge,
@@ -66,9 +67,19 @@ export function ExecutorPage() {
       />
 
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        <CompactStat label="Активные" value={active.length} />
-        <CompactStat label="Просрочены" value={overdue.length} tone="danger" />
-        <CompactStat label="На проверке" value={onReview.length} tone="warning" />
+        <StatCard compact label="Активные" value={active.length} />
+        <StatCard
+          compact
+          label="Просрочены"
+          value={overdue.length}
+          tone="danger"
+        />
+        <StatCard
+          compact
+          label="На проверке"
+          value={onReview.length}
+          tone="warning"
+        />
       </div>
 
       {tasks.length === 0 ? (
@@ -87,34 +98,11 @@ export function ExecutorPage() {
   );
 }
 
-function CompactStat({
-  label,
-  value,
-  tone = "default",
-}: {
-  label: string;
-  value: number;
-  tone?: "default" | "danger" | "warning";
-}) {
-  const toneClass = {
-    default: "text-slate-950",
-    danger: "text-rose-700",
-    warning: "text-amber-700",
-  }[tone];
-
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white px-3 py-3">
-      <p className="text-[11px] font-semibold text-slate-500">{label}</p>
-      <p className={`mt-1 text-2xl font-black ${toneClass}`}>{value}</p>
-    </div>
-  );
-}
-
 function ExecutorTaskCard({ task }: { task: MaintenanceTask }) {
   return (
     <article
-      className={`rounded-2xl border bg-white p-4 shadow-sm ${
-        task.isOverdue ? "border-rose-200" : "border-slate-200"
+      className={`rounded-2xl border bg-surface p-4 ${
+        task.isOverdue ? "border-rose-400/25" : "border-line"
       }`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -126,27 +114,27 @@ function ExecutorTaskCard({ task }: { task: MaintenanceTask }) {
           </div>
           <Link
             to={`/executor/tasks/${task.id}`}
-            className="mt-3 block text-base font-bold text-slate-950 hover:text-emerald-700"
+            className="mt-3 block text-base font-semibold text-ink hover:text-accent"
           >
             {task.title}
           </Link>
-          <p className="mt-1 text-sm text-slate-500">{task.equipmentName}</p>
+          <p className="mt-1 text-sm text-muted">{task.equipmentName}</p>
         </div>
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
           <Icon name="tasks" size={20} />
         </span>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 text-xs">
+      <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-white/[0.035] p-3 text-xs">
         <div>
-          <p className="font-semibold text-slate-500">Срок</p>
-          <p className="mt-1 font-bold text-slate-900">
+          <p className="font-semibold text-muted">Срок</p>
+          <p className="mt-1 font-semibold text-ink">
             {formatDate(task.mandatoryDueDate)}
           </p>
         </div>
         <div>
-          <p className="font-semibold text-slate-500">Интервал</p>
-          <p className="mt-1 font-bold text-slate-900">
+          <p className="font-semibold text-muted">Интервал</p>
+          <p className="mt-1 font-semibold text-ink">
             {formatDateTime(task.scheduledStart)}
           </p>
         </div>
