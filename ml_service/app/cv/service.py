@@ -25,6 +25,7 @@ STANDARD_LIMITATIONS = [
     "Значения и фото показывают формат; результат зависит от освещения, фокуса и ракурса.",
     "Разница оценок нейросети не подтверждает скрытые операции, точность приборов или безопасность.",
     "Заключение AI не заменяет человеческое решение: окончательную приёмку выполняет инженер.",
+    "Совпадение view_key не подтверждает совпадение объекта или ракурса; требуется проверка человеком.",
 ]
 
 
@@ -59,7 +60,7 @@ def review_photos(
             item_photos = photos_by_item.get(item.checklist_item_id, [])
 
             # 1. Guardrail for hidden / metrological operations
-            if not VisualGuardrailPolicy.is_item_verifiable(item):
+            if request.operation.code in ("1.5", "1.6") or not VisualGuardrailPolicy.is_item_verifiable(item):
                 before_id = next((p.photo_id for p in item_photos if p.phase == "before"), None)
                 after_id = next((p.photo_id for p in item_photos if p.phase == "after"), None)
                 review = VisualGuardrailPolicy.create_not_verifiable_review(
@@ -157,6 +158,18 @@ def review_photos(
                 continue
 
             # 6. Run Zero-Shot CLIP analysis
+            if not clf.is_torch_active:
+                return PhotoReviewResult(
+                    schema_version="maintenance-0.1", data_origin=request.data_origin,
+                    ai_review_id=uuid4(), execution_id=request.execution_id,
+                    operation_version_id=request.operation.operation_version_id,
+                    status="unavailable", model_ref=None,
+                    prompt_set_version=settings.prompt_set_version,
+                    input_photo_ids=[p.photo_id for p in request.photos], item_results=[],
+                    limitations=STANDARD_LIMITATIONS, error_code="MODEL_NOT_READY",
+                    elapsed_ms=max(1, int((time.perf_counter() - start_time) * 1000)),
+                    created_at=datetime.now(timezone.utc),
+                )
             item_review = clf.evaluate_pair(
                 checklist_item_id=item.checklist_item_id,
                 before_photo_id=before_p.photo_id,
@@ -178,13 +191,13 @@ def review_photos(
 
         return PhotoReviewResult(
             schema_version="maintenance-0.1",
-            data_origin="synthetic_demo",
+            data_origin=request.data_origin,
             ai_review_id=uuid4(),
             execution_id=request.execution_id,
             operation_version_id=request.operation.operation_version_id,
             status=overall_status,
-            model_ref=f"synthetic_demo:clip-vit-base-patch32:revision-placeholder",
-            prompt_set_version=request.prompt_set_version,
+            model_ref=clf.model_ref if any(r.scores for r in item_results) else None,
+            prompt_set_version=clf.prompt_set_version,
             input_photo_ids=[p.photo_id for p in request.photos],
             item_results=item_results,
             limitations=STANDARD_LIMITATIONS,
@@ -197,7 +210,7 @@ def review_photos(
         elapsed_ms = max(1, int((time.perf_counter() - start_time) * 1000))
         return PhotoReviewResult(
             schema_version="maintenance-0.1",
-            data_origin="synthetic_demo",
+            data_origin=request.data_origin,
             ai_review_id=uuid4(),
             execution_id=request.execution_id,
             operation_version_id=request.operation.operation_version_id,

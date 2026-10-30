@@ -4,7 +4,6 @@ from __future__ import annotations
 import io
 from typing import Literal
 from uuid import UUID
-import numpy as np
 from PIL import Image
 
 from ml_service.app.core.config import settings
@@ -32,27 +31,34 @@ class CLIPZeroShotClassifier:
         self._processor = None
         self._model = None
         self._is_torch_available = False
-        self._init_backend()
+        self._initialized = False
 
     def _init_backend(self) -> None:
         """Attempt to load transformers and torch if available."""
+        self._initialized = True
         try:
             import torch
             from transformers import AutoProcessor, CLIPModel
-            self._processor = AutoProcessor.from_pretrained(self.model_name)
-            self._model = CLIPModel.from_pretrained(self.model_name)
+            self._processor = AutoProcessor.from_pretrained(self.model_name, local_files_only=True)
+            self._model = CLIPModel.from_pretrained(self.model_name, local_files_only=True)
             self._model.eval()
             self._is_torch_available = True
         except Exception:
-            # Fall back to offline deterministic evaluation if transformers/torch or weights missing
             self._is_torch_available = False
 
     @property
     def is_torch_active(self) -> bool:
+        if not self._initialized:
+            self._init_backend()
         return self._is_torch_available and self._model is not None
 
+    @property
+    def model_ref(self) -> str:
+        revision = getattr(getattr(self._model, "config", None), "_commit_hash", None)
+        return f"{self.model_name}@{revision or 'revision-unknown'}"
+
     def _infer_single_image(self, image_bytes: bytes) -> float:
-        """Infer probability of cleanliness for a single image in range [0.0, 1.0]."""
+        """Return relative prompt score, not a calibrated cleanliness probability."""
         with Image.open(io.BytesIO(image_bytes)) as pil_img:
             img = pil_img.convert("RGB")
 
@@ -71,18 +77,7 @@ class CLIPZeroShotClassifier:
                     # Index 1 corresponds to clean label
                     return float(probs[1])
             else:
-                # Deterministic visual heuristic (used for hermetic tests and offline fallback)
-                # Evaluates brightness and normalized high-frequency edge density
-                gray = img.convert("L")
-                arr = np.array(gray, dtype=np.float64)
-                mean_b = float(np.mean(arr)) / 255.0
-                grad_y = np.abs(np.diff(arr, axis=0))
-                grad_x = np.abs(np.diff(arr, axis=1))
-                edge_intensity = (float(np.mean(grad_y)) + float(np.mean(grad_x))) / 50.0
-
-                # Cleaner surfaces typically show higher reflective brightness and cleaner uniform contrast
-                score = 0.5 * mean_b + 0.5 * min(1.0, edge_intensity)
-                return float(np.clip(score, 0.05, 0.95))
+                raise RuntimeError("CLIP model unavailable")
 
     def evaluate_pair(
         self,
@@ -99,15 +94,18 @@ class CLIPZeroShotClassifier:
         delta = p_after - p_before
 
         if delta >= self.delta_threshold:
-            verdict: Literal["visible_change", "no_visible_change"] = "visible_change"
+            verdict: Literal["visible_change", "no_visible_change", "uncertain"] = "visible_change"
             observation = (
                 f"Формат учебного заключения: оценка соответствия описанию чистой поверхности "
                 f"после выше (дельта +{delta:.2f} >= {self.delta_threshold:.2f}). Это не доказательство качества работы."
             )
+        elif delta <= -self.delta_threshold:
+            verdict = "uncertain"
+            observation = "Сходство с описанием чистой поверхности уменьшилось; требуется ручной осмотр."
         else:
             verdict = "no_visible_change"
             observation = (
-                f"Статистически значимых видимых изменений поверхности не зафиксировано "
+                f"Рост сходства с описанием чистой поверхности не достиг порога "
                 f"(дельта {delta:.2f} < {self.delta_threshold:.2f})."
             )
 

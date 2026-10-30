@@ -139,16 +139,38 @@ def test_review_photos_successful_flow(canonical_photo_review_request: PhotoRevi
         canonical_photo_review_request.photos[1].photo_id: clean_bytes,
     }
 
-    result = review_photos(canonical_photo_review_request, photo_loader=lambda pid: storage[pid])
+    class FakeClassifier:
+        is_torch_active = True
+        model_name = "test:fake-classifier"
+        prompt_set_version = "test-v1"
+
+        def evaluate_pair(self, **kwargs):
+            from ml_service.app.schemas import ItemPhotoReview
+            return ItemPhotoReview(checklist_item_id=kwargs["checklist_item_id"], verdict="visible_change",
+                                   before_photo_id=kwargs["before_photo_id"], after_photo_id=kwargs["after_photo_id"],
+                                   observation="Тестовый ответ", scores=[])
+
+    result = review_photos(canonical_photo_review_request, photo_loader=lambda pid: storage[pid], classifier=FakeClassifier())
 
     assert result.status == "completed"
-    assert result.model_ref is not None
+    assert result.model_ref is None  # no model scores in fake response
     assert result.error_code is None
     assert len(result.item_results) == 1
     assert result.item_results[0].verdict in ("visible_change", "no_visible_change")
-    assert len(result.item_results[0].scores) == 2
+    assert result.item_results[0].scores == []
     assert len(result.limitations) >= 1
     assert result.elapsed_ms >= 0
+
+
+def test_missing_clip_is_unavailable(canonical_photo_review_request):
+    class MissingClassifier:
+        is_torch_active = False
+    photos = canonical_photo_review_request.photos
+    storage = {photos[0].photo_id: make_test_jpeg("dirty"), photos[1].photo_id: make_test_jpeg("clean_serviced")}
+    result = review_photos(canonical_photo_review_request, lambda pid: storage[pid], classifier=MissingClassifier())
+    assert result.status == "unavailable"
+    assert result.error_code == "MODEL_NOT_READY"
+    assert result.model_ref is None
 
 
 def test_review_photos_blurry_yields_uncertain(canonical_photo_review_request: PhotoReviewRequest):

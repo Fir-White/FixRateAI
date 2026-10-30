@@ -1,0 +1,19 @@
+{
+  "label": "DEMO: вымышленные данные, не история реального оборудования",
+  "insufficient_request": {
+    "data_origin": "synthetic_demo", "equipment_id": "DEMO-001", "as_of": "2026-10-30T12:00:00Z"
+  },
+  "condition_request": {
+    "data_origin": "synthetic_demo", "equipment_id": "DEMO-001", "as_of": "2026-10-30T12:00:00Z",
+    "maintenance_history": [{"observed_at": "2026-09-01T12:00:00Z", "description": "DEMO: очистка", "severity": "unknown"}],
+    "remarks": [{"observed_at": "2026-10-29T12:00:00Z", "description": "DEMO: течь", "severity": "warning"}],
+    "runtime_hours": 1250,
+    "measurements": [{"observed_at": "2026-10-29T12:00:00Z", "name": "pressure", "value": 2.1, "unit": "bar"}]
+  },
+  "condition_response": {
+    "status": "unavailable", "suggested_date": null, "risk_level": "medium",
+    "rationale": "Приоритет отражает только явно указанную критичность замечаний; обученного прогноза срока нет.",
+    "data_quality": {"sufficient": true, "available": ["maintenance_history", "remarks", "runtime_hours", "measurements"], "missing": [], "limitations": ["Полнота полей не подтверждает качество, свежесть или пригодность данных для обучения."]},
+    "model_version": null, "uncertainty": "Вероятность и точность не оценены.", "error": "MODEL_NOT_READY"
+  }
+}

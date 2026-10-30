@@ -75,9 +75,9 @@ def predict_maintenance_ai(
     # 1. Customer data without model / history -> unavailable
     if snapshot.data_origin == "customer" or active_model is None or not active_model.is_fitted:
         elapsed_ms = max(1, int((time.perf_counter() - start_time) * 1000))
-        error_code = "INSUFFICIENT_HISTORY" if snapshot.data_origin == "customer" else "MODEL_NOT_READY"
+        error_code = ("INSUFFICIENT_HISTORY" if not snapshot.accepted_events else "MODEL_NOT_READY") if snapshot.data_origin == "customer" else "MODEL_NOT_READY"
         explanation = (
-            "История оборудования заказчика отсутствует; алгоритмический срок не подменяется AI."
+            "Пригодная модель для данных заказчика не подтверждена; алгоритмический срок не подменяется AI."
             if snapshot.data_origin == "customer"
             else "Модель не загружена; алгоритмический результат не подставлен вместо AI."
         )
