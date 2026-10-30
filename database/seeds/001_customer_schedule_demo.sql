@@ -7,10 +7,12 @@ INSERT INTO sites(site_id,name,address) VALUES
  (md5('fixrate-demo-site')::uuid,'DEMO — тепловой пункт','DEMO: вымышленный объект') ON CONFLICT DO NOTHING;
 INSERT INTO users(user_id,full_name,email) VALUES
  (md5('fixrate-demo-user-1')::uuid,'DEMO Исполнитель 1','fixrate-demo-1@example.test'),
- (md5('fixrate-demo-user-2')::uuid,'DEMO Исполнитель 2','fixrate-demo-2@example.test') ON CONFLICT DO NOTHING;
+ (md5('fixrate-demo-user-2')::uuid,'DEMO Исполнитель 2','fixrate-demo-2@example.test'),
+ (md5('fixrate-demo-engineer')::uuid,'DEMO Инженер','fixrate-demo-engineer@example.test') ON CONFLICT DO NOTHING;
 INSERT INTO site_memberships(site_id,user_id,role) VALUES
  (md5('fixrate-demo-site')::uuid,md5('fixrate-demo-user-1')::uuid,'technician'),
- (md5('fixrate-demo-site')::uuid,md5('fixrate-demo-user-2')::uuid,'technician') ON CONFLICT DO NOTHING;
+ (md5('fixrate-demo-site')::uuid,md5('fixrate-demo-user-2')::uuid,'technician'),
+ (md5('fixrate-demo-site')::uuid,md5('fixrate-demo-engineer')::uuid,'engineer') ON CONFLICT DO NOTHING;
 INSERT INTO engineering_systems(system_id,site_id,code,name,notes) VALUES
  (md5('fixrate-demo-system')::uuid,md5('fixrate-demo-site')::uuid,'DEMO-HEAT','Система теплоснабжения','DEMO объект; название раздела из B4 книги') ON CONFLICT DO NOTHING;
 INSERT INTO equipment_types(equipment_type_id,code,name,default_attributes) VALUES
@@ -58,7 +60,14 @@ INSERT INTO work_order_equipment(site_id,system_id,work_order_id,equipment_id,as
 INSERT INTO work_assignments(work_assignment_id,site_id,work_order_id,user_id,assigned_by,assigned_at,status) VALUES
  (md5('fixrate-demo-assignment')::uuid,md5('fixrate-demo-site')::uuid,md5('fixrate-demo-work')::uuid,md5('fixrate-demo-user-1')::uuid,md5('fixrate-demo-user-1')::uuid,'2026-09-30 08:00+05','finished') ON CONFLICT DO NOTHING;
 INSERT INTO work_reports(work_report_id,site_id,work_order_id,submitted_by,comment,status,submitted_at) VALUES
- (md5('fixrate-demo-report')::uuid,md5('fixrate-demo-site')::uuid,md5('fixrate-demo-work')::uuid,md5('fixrate-demo-user-1')::uuid,'DEMO: вымышленный отчёт и замечание: требуется повторная проверка манометра.','submitted','2026-09-30 10:00+05') ON CONFLICT DO NOTHING;
+ (md5('fixrate-demo-report')::uuid,md5('fixrate-demo-site')::uuid,md5('fixrate-demo-work')::uuid,md5('fixrate-demo-user-1')::uuid,'DEMO: вымышленный отчёт и замечание: требуется повторная проверка манометра.','reviewed','2026-09-30 10:00+05') ON CONFLICT DO NOTHING;
+-- Upgrade the exact original seed report on databases seeded before this change.
+UPDATE work_reports SET status='reviewed'
+WHERE work_report_id=md5('fixrate-demo-report')::uuid AND site_id=md5('fixrate-demo-site')::uuid
+ AND work_order_id=md5('fixrate-demo-work')::uuid AND status='submitted'
+ AND comment='DEMO: вымышленный отчёт и замечание: требуется повторная проверка манометра.';
+INSERT INTO acceptance_reviews(acceptance_review_id,site_id,work_order_id,work_report_id,reviewer_user_id,decision,comment,reviewed_at) VALUES
+ (md5('fixrate-demo-review')::uuid,md5('fixrate-demo-site')::uuid,md5('fixrate-demo-work')::uuid,md5('fixrate-demo-report')::uuid,md5('fixrate-demo-engineer')::uuid,'accepted','DEMO: вымышленная приёмка инженером.','2026-09-30 10:00+05') ON CONFLICT DO NOTHING;
 INSERT INTO work_readings(work_reading_id,site_id,system_id,work_order_id,work_report_id,equipment_id,parameter_code,numeric_value,unit_code,measured_at,is_estimated) VALUES
  (md5('fixrate-demo-reading')::uuid,md5('fixrate-demo-site')::uuid,md5('fixrate-demo-system')::uuid,md5('fixrate-demo-work')::uuid,md5('fixrate-demo-report')::uuid,md5('fixrate-demo-equipment-1')::uuid,'DEMO-pressure',2.4,'bar','2026-09-30 09:30+05',true) ON CONFLICT DO NOTHING;
 INSERT INTO incident_reports(incident_report_id,site_id,system_id,equipment_id,reported_by,description,created_at) VALUES

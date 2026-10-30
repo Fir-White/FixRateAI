@@ -10,6 +10,8 @@ SELECT (SELECT count(*) FROM sites WHERE site_id=md5('fixrate-demo-site')::uuid)
  (SELECT count(*) FROM rule_equipment WHERE site_id=md5('fixrate-demo-site')::uuid) bindings,
  (SELECT count(*) FROM work_orders WHERE site_id=md5('fixrate-demo-site')::uuid) orders,
  (SELECT count(*) FROM work_reports WHERE site_id=md5('fixrate-demo-site')::uuid) reports,
+ (SELECT count(*) FROM acceptance_reviews WHERE site_id=md5('fixrate-demo-site')::uuid) reviews,
+ (SELECT count(*) FROM site_memberships WHERE site_id=md5('fixrate-demo-site')::uuid) memberships,
  (SELECT count(*) FROM work_readings WHERE site_id=md5('fixrate-demo-site')::uuid) readings,
  (SELECT count(*) FROM evidence_files WHERE site_id=md5('fixrate-demo-site')::uuid) photos,
  (SELECT count(*) FROM incident_reports WHERE site_id=md5('fixrate-demo-site')::uuid) incidents,
@@ -25,6 +27,8 @@ BEGIN
   c.bindings <> (SELECT count(*) FROM rule_equipment WHERE site_id=md5('fixrate-demo-site')::uuid) OR
   c.orders <> (SELECT count(*) FROM work_orders WHERE site_id=md5('fixrate-demo-site')::uuid) OR
   c.reports <> (SELECT count(*) FROM work_reports WHERE site_id=md5('fixrate-demo-site')::uuid) OR
+  c.reviews <> (SELECT count(*) FROM acceptance_reviews WHERE site_id=md5('fixrate-demo-site')::uuid) OR
+  c.memberships <> (SELECT count(*) FROM site_memberships WHERE site_id=md5('fixrate-demo-site')::uuid) OR
   c.readings <> (SELECT count(*) FROM work_readings WHERE site_id=md5('fixrate-demo-site')::uuid) OR
   c.photos <> (SELECT count(*) FROM evidence_files WHERE site_id=md5('fixrate-demo-site')::uuid) OR
   c.incidents <> (SELECT count(*) FROM incident_reports WHERE site_id=md5('fixrate-demo-site')::uuid) OR
@@ -51,6 +55,13 @@ BEGIN
  IF (SELECT count(*) FROM maintenance_rules WHERE site_id=md5('fixrate-demo-site')::uuid) <> 6 OR
     (SELECT count(*) FROM equipment WHERE site_id=md5('fixrate-demo-site')::uuid AND properties->>'data_origin'='synthetic_demo') <> 2 OR
     NOT EXISTS (SELECT 1 FROM work_orders WHERE work_order_id=md5('fixrate-demo-work')::uuid AND operation_snapshot->>'data_origin'='synthetic_demo') OR
+    NOT EXISTS (SELECT 1 FROM work_orders w JOIN work_reports r USING(site_id,work_order_id)
+      JOIN acceptance_reviews a USING(site_id,work_order_id,work_report_id)
+      JOIN site_memberships m ON m.site_id=a.site_id AND m.user_id=a.reviewer_user_id
+      JOIN users u ON u.user_id=m.user_id
+      WHERE w.work_order_id=md5('fixrate-demo-work')::uuid AND w.status='completed'
+       AND r.status='reviewed' AND a.decision='accepted' AND a.comment LIKE 'DEMO:%'
+       AND m.role='engineer' AND u.full_name LIKE 'DEMO %') OR
     NOT EXISTS (SELECT 1 FROM work_readings WHERE work_reading_id=md5('fixrate-demo-reading')::uuid AND is_estimated) OR
     NOT EXISTS (SELECT 1 FROM evidence_files WHERE evidence_file_id=md5('fixrate-demo-photo')::uuid) THEN
   RAISE EXCEPTION 'missing or unmarked demo data';
