@@ -2,6 +2,7 @@ import json
 from decimal import Decimal
 from pathlib import Path
 from uuid import UUID
+from datetime import date
 
 import pytest
 from pydantic import ValidationError
@@ -50,7 +51,7 @@ def test_confirmed_annual_rule_requires_matching_number_of_dates() -> None:
         "source_text": "5/год",
         "kind": "explicit_dates",
         "confirmed": True,
-        "explicit_dates": ["2026-01-01"],
+        "explicit_dates": [date(2026, 1, 1)],
         "yearly_count": 5,
         "allowed_lead_days": 0,
     }
