@@ -22,10 +22,12 @@ class CLIPZeroShotClassifier:
     def __init__(
         self,
         model_name: str = settings.clip_model_name,
+        revision: str = settings.clip_revision,
         delta_threshold: float = settings.clip_delta_threshold,
         prompt_set_version: str = settings.prompt_set_version,
     ):
         self.model_name = model_name
+        self.revision = revision
         self.delta_threshold = delta_threshold
         self.prompt_set_version = prompt_set_version
         self._processor = None
@@ -39,8 +41,8 @@ class CLIPZeroShotClassifier:
         try:
             import torch
             from transformers import AutoProcessor, CLIPModel
-            self._processor = AutoProcessor.from_pretrained(self.model_name, local_files_only=True)
-            self._model = CLIPModel.from_pretrained(self.model_name, local_files_only=True)
+            self._processor = AutoProcessor.from_pretrained(self.model_name, revision=self.revision, local_files_only=True)
+            self._model = CLIPModel.from_pretrained(self.model_name, revision=self.revision, local_files_only=True)
             self._model.eval()
             self._is_torch_available = True
         except Exception:
@@ -55,7 +57,7 @@ class CLIPZeroShotClassifier:
     @property
     def model_ref(self) -> str:
         revision = getattr(getattr(self._model, "config", None), "_commit_hash", None)
-        return f"{self.model_name}@{revision or 'revision-unknown'}"
+        return f"{self.model_name}@{revision or self.revision}"
 
     def _infer_single_image(self, image_bytes: bytes) -> float:
         """Return relative prompt score, not a calibrated cleanliness probability."""

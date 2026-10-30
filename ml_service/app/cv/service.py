@@ -34,6 +34,7 @@ def review_photos(
     photo_loader: Callable[[UUID], bytes],
     quality_guard: ImageQualityGuard | None = None,
     classifier: CLIPZeroShotClassifier | None = None,
+    comparability_confirmed: Callable[[PhotoReport, PhotoReport], bool] | None = None,
 ) -> PhotoReviewResult:
     """Analyze execution photo reports against operation checklist and return structured PhotoReviewResult.
 
@@ -177,6 +178,17 @@ def review_photos(
                 before_bytes=b_bytes,
                 after_bytes=a_bytes,
             )
+            item_review = ItemPhotoReview.model_validate(item_review)
+            if (item_review.checklist_item_id != item.checklist_item_id
+                    or item_review.before_photo_id != before_p.photo_id
+                    or item_review.after_photo_id != after_p.photo_id
+                    or any(score.photo_id not in (before_p.photo_id, after_p.photo_id) for score in item_review.scores)):
+                raise ValueError("classifier response does not match requested photo pair")
+            if comparability_confirmed is None or not comparability_confirmed(before_p, after_p):
+                item_review = item_review.model_copy(update={
+                    "verdict": "uncertain",
+                    "observation": "Сопоставимость объекта и ракурса не подтверждена человеком; " + item_review.observation,
+                })
             item_results.append(item_review)
 
         # Determine overall review status
