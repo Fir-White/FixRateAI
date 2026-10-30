@@ -1,0 +1,204 @@
+import { Link, useParams } from "react-router-dom";
+import { maintenanceApi } from "@/shared/api/maintenance";
+import { useApiQuery } from "@/shared/lib/useApiQuery";
+import { formatDate, formatDateTime } from "@/shared/lib/format";
+import { PageHeader } from "@/shared/ui/PageHeader";
+import { Card, CardHeader } from "@/shared/ui/Card";
+import { ErrorState, LoadingState } from "@/shared/ui/States";
+import { buttonClassName } from "@/shared/ui/Button";
+import { Icon } from "@/shared/ui/Icon";
+import {
+  EquipmentStateBadge,
+  OriginBadge,
+} from "@/shared/ui/StatusBadge";
+
+export function EquipmentDetailPage() {
+  const { equipmentId = "" } = useParams();
+  const query = useApiQuery(
+    () => maintenanceApi.getEquipment(equipmentId),
+    [equipmentId],
+  );
+
+  if (query.status === "loading") {
+    return <LoadingState label="Загрузка карточки оборудования" />;
+  }
+
+  if (query.status === "error") {
+    return (
+      <ErrorState
+        description={query.error}
+        action={
+          <Link to="/equipment" className={buttonClassName("secondary")}>
+            Вернуться в реестр
+          </Link>
+        }
+      />
+    );
+  }
+
+  const { equipment, history } = query.data;
+
+  return (
+    <div className="space-y-6">
+      <Link
+        to="/equipment"
+        className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900"
+      >
+        <Icon name="back" size={18} />
+        Реестр оборудования
+      </Link>
+
+      <PageHeader
+        eyebrow={equipment.inventoryCode}
+        title={equipment.name}
+        description={`${equipment.equipmentType} · ${equipment.location}`}
+        actions={
+          <>
+            <Link
+              to="/comparisons"
+              className={buttonClassName("secondary")}
+            >
+              Сравнить прогнозы
+            </Link>
+            <Link to="/tasks" className={buttonClassName("primary")}>
+              Задания оборудования
+            </Link>
+          </>
+        }
+      />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <EquipmentStateBadge state={equipment.state} />
+        <OriginBadge origin={equipment.dataOrigin} />
+        <span className="text-xs text-slate-500">
+          Ревизия {equipment.revision} · {equipment.siteName}
+        </span>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+        <div className="space-y-6">
+          <Card>
+            <CardHeader title="Паспорт оборудования" />
+            <dl className="grid gap-x-6 gap-y-5 p-5 sm:grid-cols-2 sm:p-6">
+              <Info label="Тип" value={equipment.equipmentType} />
+              <Info label="Инвентарный номер" value={equipment.inventoryCode} mono />
+              <Info label="Расположение" value={equipment.location} />
+              <Info
+                label="Ввод в эксплуатацию"
+                value={formatDate(equipment.commissionedOn)}
+              />
+              <Info
+                label="Последнее принятое ТО"
+                value={formatDateTime(equipment.lastServiceAt)}
+              />
+              <Info
+                label="Следующий срок"
+                value={formatDate(equipment.nextDueDate)}
+              />
+            </dl>
+          </Card>
+
+          <Card>
+            <CardHeader
+              title="Принятая история"
+              description="Только принятые инженером события. Отклонённые попытки остаются в истории задания."
+            />
+            {history.length ? (
+              <ol className="divide-y divide-slate-100">
+                {history.map((event) => (
+                  <li key={event.id} className="flex gap-4 px-5 py-4 sm:px-6">
+                    <span className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+                      <Icon name="check" size={16} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-slate-900">
+                        {event.operation}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {event.taskCode} · выполнил {event.engineer} ·{" "}
+                        {formatDateTime(event.performedAt)}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        Принято {formatDateTime(event.acceptedAt)}
+                        {event.runtimeHours
+                          ? ` · наработка ${event.runtimeHours} ч`
+                          : ""}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="px-5 py-8 text-center text-sm text-slate-500">
+                Принятых событий обслуживания ещё нет.
+              </p>
+            )}
+          </Card>
+        </div>
+
+        <div className="space-y-6">
+          <Card>
+            <CardHeader title="Действующий регламент" />
+            <div className="p-5 sm:p-6">
+              <p className="text-xs font-semibold text-slate-500">
+                Текущая операция
+              </p>
+              <p className="mt-1 text-sm font-bold text-slate-900">
+                {equipment.activeOperation ?? "Не назначена"}
+              </p>
+              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-5 text-amber-900">
+                Нормы и периодичность ТО2 требуют подтверждения заказчика.
+                Система не подставляет недостающие даты.
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <CardHeader title="Связи" />
+            <div className="space-y-2 p-5 sm:p-6">
+              <Link
+                to="/comparisons"
+                className="flex items-center justify-between rounded-xl border border-slate-200 p-3 text-sm font-semibold text-slate-700 hover:border-emerald-300 hover:bg-emerald-50/50"
+              >
+                Прогнозы оборудования
+                <Icon name="chevron" size={16} />
+              </Link>
+              <Link
+                to="/tasks"
+                className="flex items-center justify-between rounded-xl border border-slate-200 p-3 text-sm font-semibold text-slate-700 hover:border-emerald-300 hover:bg-emerald-50/50"
+              >
+                Задания и назначения
+                <Icon name="chevron" size={16} />
+              </Link>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Info({
+  label,
+  value,
+  mono = false,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div>
+      <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+        {label}
+      </dt>
+      <dd
+        className={`mt-1 text-sm font-semibold text-slate-900 ${
+          mono ? "font-mono" : ""
+        }`}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}

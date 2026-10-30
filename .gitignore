@@ -26,3 +26,8 @@ dist/
 *.egg-info/
 .vscode/
 !.vscode/extensions.json
+
+# Frontend
+node_modules/
+coverage/
+*.tsbuildinfo
