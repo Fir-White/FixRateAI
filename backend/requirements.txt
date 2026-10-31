@@ -1,2 +1,19 @@
-# Runtime
+# Runtime (core)
 pydantic>=2.5,<3
+pydantic-settings>=2.0,<3
+fastapi>=0.115.0,<1
+uvicorn[standard]>=0.32.0,<1
+sqlalchemy>=2.0,<3
+psycopg[binary]>=3.1,<4
+python-multipart>=0.0.12
+
+# Security (recommended for production)
+# Install these for better security:
+passlib[bcrypt]>=1.7,<2
+python-jose[cryptography]>=3.3,<4
+
+# Testing
+pytest>=8.0,<9
+pytest-asyncio>=0.24,<1
+httpx>=0.27,<1
+testcontainers[postgres]>=4.0,<5

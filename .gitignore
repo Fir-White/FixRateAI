@@ -26,3 +26,5 @@ dist/
 *.egg-info/
 .vscode/
 !.vscode/extensions.json
+
+.opencode/

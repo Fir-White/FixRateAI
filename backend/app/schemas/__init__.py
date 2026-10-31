@@ -1,47 +1,31 @@
-"""Pydantic contracts exposed by the maintenance API."""
-
-from .maintenance import (
-    Assignment,
-    ExecutionReport,
-    OperationVersion,
-    RecurrenceRule,
-    Schedule,
-    Task,
-)
-from .maintenance_api import (
-    CalendarQuery,
-    CalendarResponse,
+"""API schemas for request/response validation."""
+from app.schemas.common import ErrorCode, ErrorResponse
+from app.schemas.equipment import (
     EquipmentCreate,
-    EquipmentOperationBindingCreate,
-    EquipmentOperationBindingResponse,
+    EquipmentListResponse,
     EquipmentResponse,
-    ExecutionListResponse,
-    OperationCreate,
-    OperationResponse,
-    RecurrenceRuleCreate,
-    RecurrenceRuleResponse,
-    RegulationCreate,
-    RegulationResponse,
+    EquipmentUpdate,
+)
+from app.schemas.users import (
+    ApiRole,
+    LoginRequest,
+    ROLE_PERMISSIONS,
+    SessionResponse,
+    UserResponse,
+    UserRole,
 )
 
 __all__ = [
-    "Assignment",
-    "CalendarQuery",
-    "CalendarResponse",
+    "ApiRole",
+    "ErrorCode",
     "EquipmentCreate",
-    "EquipmentOperationBindingCreate",
-    "EquipmentOperationBindingResponse",
+    "EquipmentListResponse",
     "EquipmentResponse",
-    "ExecutionListResponse",
-    "ExecutionReport",
-    "OperationCreate",
-    "OperationResponse",
-    "OperationVersion",
-    "RecurrenceRule",
-    "RecurrenceRuleCreate",
-    "RecurrenceRuleResponse",
-    "RegulationCreate",
-    "RegulationResponse",
-    "Schedule",
-    "Task",
+    "EquipmentUpdate",
+    "ErrorResponse",
+    "LoginRequest",
+    "ROLE_PERMISSIONS",
+    "SessionResponse",
+    "UserResponse",
+    "UserRole",
 ]
