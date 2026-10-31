@@ -235,6 +235,9 @@ def test_execution_photo_rework_acceptance_preserves_attempts(runtime):
             response = engineer.post(PREFIX+f"/tasks/{TASK}/photo-review", json={"expected_revision": bundle["task"]["revision"]})
             assert response.status_code == 200, response.text
             assert response.json()["status"] in ("uncertain", "unavailable")
+            if os.environ.get("FIXRATE_REQUIRE_CLIP") == "1":
+                assert response.json()["status"] == "uncertain"
+                assert response.json()["modelRef"].startswith("openai/clip-vit-base-patch32@")
             assert executor.get(PREFIX+f"/ui/tasks/{TASK}").json()["task"]["state"] == "submitted"
         review = {"expected_revision": bundle["task"]["revision"], "execution_id": bundle["execution"]["id"],
                   "verdict": "rejected" if attempt == 1 else "accepted", "reason": "Verified by engineer"}
