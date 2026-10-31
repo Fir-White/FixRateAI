@@ -1,0 +1,10 @@
+{
+  "status": "Пройдено",
+  "command": "HF_HOME=.venv/cv-cache FIXRATE_REQUIRE_CLIP=1 .venv/cv/Scripts/python.exe scripts/verify.py --browser --output docs/verification/2026-10-31-cv",
+  "model_ref": "openai/clip-vit-base-patch32@3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268",
+  "artifact_sha256": "a63082132ba4f97a80bea76823f544493bffa8082296d62d71581a4feff1576f",
+  "artifact_size_bytes": 605247071,
+  "fixture": "controlled NumPy/Pillow images from real HTTP report workflow",
+  "assertion": "actual modelRef required, unavailable cannot pass; no fake classifier injected",
+  "quality_claim": "No customer accuracy evaluation"
+}

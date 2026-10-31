@@ -1,0 +1,20 @@
+
+Fetching 8 files:   0%|          | 0/8 [00:00<?, ?it/s]
+Fetching 8 files:  12%|#2        | 1/8 [00:02<00:14,  2.03s/it]
+Fetching 8 files:  38%|###7      | 3/8 [00:02<00:03,  1.39it/s]
+Fetching 8 files:  62%|######2   | 5/8 [00:02<00:01,  1.98it/s]
+Fetching 8 files:  88%|########7 | 7/8 [00:02<00:00,  2.62it/s]
+Fetching 8 files:  88%|########7 | 7/8 [00:20<00:02,  2.86s/it]Error while downloading from https://huggingface.co/openai/clip-vit-base-patch32/resolve/3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268/pytorch_model.bin: HTTPSConnectionPool(host='us.aws.cdn.hf.co', port=443): Read timed out.
+Trying to resume download...
+Error while downloading from https://huggingface.co/openai/clip-vit-base-patch32/resolve/3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268/pytorch_model.bin: HTTPSConnectionPool(host='us.aws.cdn.hf.co', port=443): Read timed out.
+Trying to resume download...
+'(ReadTimeoutError("HTTPSConnectionPool(host='us.aws.cdn.hf.co', port=443): Read timed out. (read timeout=10)"), '(Request ID: 71ab7da9-2114-48f1-b87d-215dc5b02184)')' thrown while requesting GET https://huggingface.co/openai/clip-vit-base-patch32/resolve/3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268/pytorch_model.bin
+Retrying in 1s [Retry 1/5].
+
+Fetching 8 files: 100%|##########| 8/8 [03:54<00:00, 29.36s/it]
+Fetching 8 files: 100%|##########| 8/8 [03:54<00:00, 29.36s/it]
+The cache for model files in Transformers v4.22.0 has been updated. Migrating your old cache. This is a one-time only operation. You can interrupt this and resume the migration later on by calling `transformers.utils.move_cache()`.
+
+0it [00:00, ?it/s]
+0it [00:00, ?it/s]
+{"status": "ready", "model_ref": "openai/clip-vit-base-patch32@3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268", "note": "Readiness only; real HTTP inference is checked with FIXRATE_REQUIRE_CLIP=1 scripts/verify.py"}

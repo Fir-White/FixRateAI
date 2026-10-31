@@ -1,0 +1,1040 @@
+[
+  {
+    "branch": "kran_dev",
+    "source_sha": "c31570eaf970d6c6d3398995b58cf7173e89d183",
+    "comparison_base": "43d90608cbabf290668de2ef4d4608bc0ae6e7f0",
+    "files": [
+      {
+        "source_path": "backend/README.md",
+        "dev_path": "backend/README.md",
+        "source_blob": "9664a094a60b8b80222bd2c1388767b343f7d602",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/__init__.py",
+        "dev_path": "backend/app/db/__init__.py",
+        "source_blob": "679761c4e1f76ebf64fefd8934d18e8c1fd1cb64",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/dto.py",
+        "dev_path": "backend/app/db/dto.py",
+        "source_blob": "626ee20a765d642cf2a7905d5710dcf1ec3cc64f",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/models.py",
+        "dev_path": "backend/app/db/models.py",
+        "source_blob": "333d19e47d5916b9284529b7d1af5b4dbc19ab74",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/repository.py",
+        "dev_path": "backend/app/db/repository.py",
+        "source_blob": "bb4cb50225c3ad17264eb78a1b07b8d81068ab6d",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/service.py",
+        "dev_path": "backend/app/db/service.py",
+        "source_blob": "2028d00303e8908297dd0e484fb4347aad595ce4",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/session.py",
+        "dev_path": "backend/app/db/session.py",
+        "source_blob": "52e24c617b46845581a24c7be40f2931e3f43a6f",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/requirements.txt",
+        "dev_path": "backend/requirements.txt",
+        "source_blob": "7f8b7ab88b19f9628a95e0ceae00379d453d37f6",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_dto_mapping.py",
+        "dev_path": "backend/tests/test_dto_mapping.py",
+        "source_blob": "d95fb2046a8fb2755e53d54f16e5e0b78a66ca56",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_mapping_configuration.py",
+        "dev_path": "backend/tests/test_mapping_configuration.py",
+        "source_blob": "49454f3f38c1a1de83fb58c150bd5ffd0f75f3ef",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_persistence.py",
+        "dev_path": "backend/tests/test_persistence.py",
+        "source_blob": "8becf36980dd3d70cc82db9e271d2ecf486cf18e",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_transactions.py",
+        "dev_path": "backend/tests/test_transactions.py",
+        "source_blob": "6587b4e250f9fb4a383c9af29f57592f5fdde2ff",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/README.md",
+        "dev_path": "database/README.md",
+        "source_blob": "ddffde157c28c0bb36b3fdd44e74719e56dcceea",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/demo/README.md",
+        "dev_path": "database/demo/README.md",
+        "source_blob": "5f7ed02d026bf527b9b3a3173badd58b0a2216de",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/demo/demo-photo.png",
+        "dev_path": "database/demo/demo-photo.png",
+        "source_blob": "194767d5ecfe3394fb6ad743b9271d695bbfd1e3",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/migrations/004_tl03_safe_constraints.sql",
+        "dev_path": "database/migrations/004_tl03_safe_constraints.sql",
+        "source_blob": "023c8b52de811641a3c196011bcb94bdfd2c3a75",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/seeds/001_customer_schedule_demo.sql",
+        "dev_path": "database/seeds/001_customer_schedule_demo.sql",
+        "source_blob": "6648516c7099f2e652a87ac3ba1549c2f4077b0d",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/tests/003_history.sql",
+        "dev_path": "database/tests/003_history.sql",
+        "source_blob": "4470d24f594d18674f89269181d827c6623b15aa",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/tests/004_tl03_constraints.sql",
+        "dev_path": "database/tests/004_tl03_constraints.sql",
+        "source_blob": "939dee3da91a024e02f6067020ce49112be3e6b9",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/tests/005_demo_seed.sql",
+        "dev_path": "database/tests/005_demo_seed.sql",
+        "source_blob": "d56b53a6878de53828a2a65c4b36adcc9cc4ab33",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/architecture/dto_db_mapping.md",
+        "dev_path": "docs/architecture/dto_db_mapping.md",
+        "source_blob": "cdb6e98ee4c10e64c98b289b3c441cfe5c793425",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/database/README.md",
+        "dev_path": "docs/database/README.md",
+        "source_blob": "5bad7c9662541f27ea4f71ac0a73d2f7e5f31d8c",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/database/orm_ddl_validation.md",
+        "dev_path": "docs/database/orm_ddl_validation.md",
+        "source_blob": "83ba19fb3b5067ec37e6552109c11136afaa4e87",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/database/specification.md",
+        "dev_path": "docs/database/specification.md",
+        "source_blob": "83545a0810ba67b07ea3d73f66df6171fe9f0229",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/database/tl03_target.md",
+        "dev_path": "docs/database/tl03_target.md",
+        "source_blob": "8649f5cba07f99fe57ad6e8acb46ac5679b09b50",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "new_file",
+        "dev_path": null,
+        "source_blob": "2e65efe2a145dda7ee51d1741299f848e5bf752e",
+        "disposition": "excluded_nonfunctional_placeholder"
+      }
+    ]
+  },
+  {
+    "branch": "new_backend",
+    "source_sha": "16b79affc155d75b76f585dcdfa4e5acc1781cfb",
+    "comparison_base": "bb300ec542ddfb538890eaa517368099fa4ee180",
+    "files": [
+      {
+        "source_path": "backend/app/security/__init__.py",
+        "dev_path": "backend/app/security/__init__.py",
+        "source_blob": "e6d8f36e677be008e94fb47e75f70b195e6e2065",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/security/authorization.py",
+        "dev_path": "backend/app/security/authorization.py",
+        "source_blob": "37fc3488859c0c168dd44775d6d1a8f9cda284d7",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/pytest.ini",
+        "dev_path": "backend/pytest.ini",
+        "source_blob": "03f586d41650da9718d8c6bdc6ada4a068cb96a8",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_authorization.py",
+        "dev_path": "backend/tests/test_authorization.py",
+        "source_blob": "c97e2ac9ebd9164e4bf22257a32b42fa3b1ac5bb",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_maintenance_api.py",
+        "dev_path": "backend/tests/test_maintenance_api.py",
+        "source_blob": "0a03af3263294caad2991ccfc2409e02ee62ec0a",
+        "disposition": "equivalent_base_test_retained"
+      }
+    ]
+  },
+  {
+    "branch": "front/mvidy",
+    "source_sha": "226f3266a29cd43121ddca2c707cdcf5d71d375c",
+    "comparison_base": "d94f528df8c0e0f69c344ebd8c79a99bfbe5c1f2",
+    "files": [
+      {
+        "source_path": ".gitignore",
+        "dev_path": ".gitignore",
+        "source_blob": "95f5c8abe93de1131e4a2c88ba57c8427e776a57",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "README.md",
+        "dev_path": "README.md",
+        "source_blob": "5c26be035e2d3effc68540292d252be8a1d8ef28",
+        "disposition": "content_reconciled_into_final_README_and_system_docs"
+      },
+      {
+        "source_path": "docs/ui/screen-map.md",
+        "dev_path": "docs/ui/screen-map.md",
+        "source_blob": "0421397bc53fc9829cc8c5e7ea945fd6d931c4cb",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/ui/ui-kit.md",
+        "dev_path": "docs/ui/ui-kit.md",
+        "source_blob": "78ed448f46213e127541ae38029fe8f7eb7e81d5",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/README.md",
+        "dev_path": "frontend/README.md",
+        "source_blob": "122bc4d5ea52994af661e905ce0e928e8aeb7ef7",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/index.html",
+        "dev_path": "frontend/index.html",
+        "source_blob": "20db9ab612a1a4959e87bd4b5b7a42467e784c93",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/package-lock.json",
+        "dev_path": "frontend/package-lock.json",
+        "source_blob": "d445184e2cc13c30737749a2df5c37341761dd94",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/package.json",
+        "dev_path": "frontend/package.json",
+        "source_blob": "2730c4989fc81cec0ab63a091ac141a6d4d17c4b",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/app/App.tsx",
+        "dev_path": "frontend/src/app/App.tsx",
+        "source_blob": "cfd3f501dfa3c14140c5816212fe11126d144086",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/app/guards.tsx",
+        "dev_path": "frontend/src/app/guards.tsx",
+        "source_blob": "5dda02b40ad40ee3f96c2b4ae85809d13ee45d6f",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/app/router.test.tsx",
+        "dev_path": "frontend/src/app/router.test.tsx",
+        "source_blob": "b0bdc83cf61d76e8e45827038531dc40cdf0660f",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/app/router.tsx",
+        "dev_path": "frontend/src/app/router.tsx",
+        "source_blob": "0d587016ebf43dd2c9b664b5ff606a701e5012d8",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/entities/equipment/EquipmentTable.tsx",
+        "dev_path": "frontend/src/entities/equipment/EquipmentTable.tsx",
+        "source_blob": "d592816816bd9bf7140b3d35cb814a4f68c81b15",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/entities/execution/ChecklistSummary.tsx",
+        "dev_path": "frontend/src/entities/execution/ChecklistSummary.tsx",
+        "source_blob": "ecedf7288f8db11c43c3c99c736de3576138e89d",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/entities/execution/EvidenceGallery.tsx",
+        "dev_path": "frontend/src/entities/execution/EvidenceGallery.tsx",
+        "source_blob": "b26a8bac78d6f3d0ddf904eb9c9439c014fd85c3",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/entities/forecast/ForecastResultCard.tsx",
+        "dev_path": "frontend/src/entities/forecast/ForecastResultCard.tsx",
+        "source_blob": "028eb83cf011aee528e757b9501594c4b5657e64",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/entities/task/TaskTable.tsx",
+        "dev_path": "frontend/src/entities/task/TaskTable.tsx",
+        "source_blob": "8c88e03c89d523aa7e55a450cd093c42969cfa96",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/index.css",
+        "dev_path": "frontend/src/index.css",
+        "source_blob": "dcdb7774bc23d771ba068d4e21235d45dc08e511",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/layouts/AppShell.tsx",
+        "dev_path": "frontend/src/layouts/AppShell.tsx",
+        "source_blob": "0b5b9ee9b90f7540cc6546d735d27c0f27d4c387",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/layouts/ExecutorLayout.tsx",
+        "dev_path": "frontend/src/layouts/ExecutorLayout.tsx",
+        "source_blob": "f4a52d1f2aa9f2d4981adf4c4a475d3e3da93339",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/main.tsx",
+        "dev_path": "frontend/src/main.tsx",
+        "source_blob": "2c61a6dd081d5b17d5804155b22fd4d522e35ffb",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/AccessDeniedPage.tsx",
+        "dev_path": "frontend/src/pages/AccessDeniedPage.tsx",
+        "source_blob": "4fe16cc0beb59d9e2f25d2f96e3ec5ff602de780",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/CalendarPage.tsx",
+        "dev_path": "frontend/src/pages/CalendarPage.tsx",
+        "source_blob": "8e589915a562203099e3baf24ca61c7b882625c2",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/ComparisonDetailPage.tsx",
+        "dev_path": "frontend/src/pages/ComparisonDetailPage.tsx",
+        "source_blob": "4ebec2bd591587070bd20a38f79bda56fd11e8f2",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/ComparisonsPage.tsx",
+        "dev_path": "frontend/src/pages/ComparisonsPage.tsx",
+        "source_blob": "21cf4f4bab5cac4a8540e8a378f8fa557a86382f",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/DispatcherPage.tsx",
+        "dev_path": "frontend/src/pages/DispatcherPage.tsx",
+        "source_blob": "6f9d7b058d24f45aeeb61478a832cc4ada6c3059",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/EquipmentDetailPage.tsx",
+        "dev_path": "frontend/src/pages/EquipmentDetailPage.tsx",
+        "source_blob": "f3f8f1f4562978a79b252e09f7df9690e5e3e894",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/EquipmentPage.tsx",
+        "dev_path": "frontend/src/pages/EquipmentPage.tsx",
+        "source_blob": "9153711a1642389924eb0a5bbf4a2b5581598742",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/ExecutorPage.tsx",
+        "dev_path": "frontend/src/pages/ExecutorPage.tsx",
+        "source_blob": "a19bb3fc5ae0059896927eba4ea39ab90e5925d2",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/ExecutorTaskPage.tsx",
+        "dev_path": "frontend/src/pages/ExecutorTaskPage.tsx",
+        "source_blob": "f79cb15ff8b2aed269ad8729c2be9e5329f340c0",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/HomeRedirect.tsx",
+        "dev_path": "frontend/src/pages/HomeRedirect.tsx",
+        "source_blob": "54abfd2bd538aeb72a9315c34765c4be1c52e403",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/LoginPage.tsx",
+        "dev_path": "frontend/src/pages/LoginPage.tsx",
+        "source_blob": "d7ec7395d28957f0740526e8c4020757651c56b1",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/NotFoundPage.tsx",
+        "dev_path": "frontend/src/pages/NotFoundPage.tsx",
+        "source_blob": "ff12b33ba385f3b453de5c4b59842bd60c4ac156",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/QualityPage.tsx",
+        "dev_path": "frontend/src/pages/QualityPage.tsx",
+        "source_blob": "6c189f9630fe87555e9a7593a9cf417a06389945",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/QualityTaskPage.tsx",
+        "dev_path": "frontend/src/pages/QualityTaskPage.tsx",
+        "source_blob": "e8ee972a695b6ecd62a0eeca33273e35b8a794d8",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/TaskDetailPage.tsx",
+        "dev_path": "frontend/src/pages/TaskDetailPage.tsx",
+        "source_blob": "20d7f2a3bb1d83d0cb08f1242434972798ba83ae",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/TasksPage.tsx",
+        "dev_path": "frontend/src/pages/TasksPage.tsx",
+        "source_blob": "c0a5d57d621f13fdb93adca2154208a085eca97e",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/api/maintenance.ts",
+        "dev_path": "frontend/src/shared/api/maintenance.ts",
+        "source_blob": "052f277f04c9c700f226c694c7aad239068760dc",
+        "disposition": "split_production_transport_and_maintenance.demo.ts"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/format.ts",
+        "dev_path": "frontend/src/shared/lib/format.ts",
+        "source_blob": "745527eed29bb68d1df14463a8a7bc71f6993b1f",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/roles.ts",
+        "dev_path": "frontend/src/shared/lib/roles.ts",
+        "source_blob": "baa8c886ff5f17f6d621bdb89bc62ab731cb4f50",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/useApiQuery.ts",
+        "dev_path": "frontend/src/shared/lib/useApiQuery.ts",
+        "source_blob": "3b978bd0ea236cd658083e9a65a988e035d12bd5",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/useDialogFocus.ts",
+        "dev_path": "frontend/src/shared/lib/useDialogFocus.ts",
+        "source_blob": "5e17868faa35eca2ed5316b203181d4d6d206ea2",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/mocks/data.ts",
+        "dev_path": "frontend/src/shared/mocks/data.ts",
+        "source_blob": "fff46b3fa8791fb475c09c2721c537fb47e899b8",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/session/SessionContext.tsx",
+        "dev_path": "frontend/src/shared/session/SessionContext.tsx",
+        "source_blob": "007eccf3bd4f9a91d1d8af4e4df93cb25973e8f7",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/types/domain.ts",
+        "dev_path": "frontend/src/shared/types/domain.ts",
+        "source_blob": "ac9976f6f1c93169d8e390466423fc060a5f5543",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Badge.tsx",
+        "dev_path": "frontend/src/shared/ui/Badge.tsx",
+        "source_blob": "1032c3d99f54e6e50931e3daa9c22da66cfa3278",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Brand.tsx",
+        "dev_path": "frontend/src/shared/ui/Brand.tsx",
+        "source_blob": "1c379b8f49fd2ab75f169ad75d757d834df0f443",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Button.tsx",
+        "dev_path": "frontend/src/shared/ui/Button.tsx",
+        "source_blob": "0c9a76a78f1a83e4f926e62484b281f17775d23a",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Callout.tsx",
+        "dev_path": "frontend/src/shared/ui/Callout.tsx",
+        "source_blob": "d5f24c76dbf9ef84c932dbf95ecf88cb32400b0c",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Card.tsx",
+        "dev_path": "frontend/src/shared/ui/Card.tsx",
+        "source_blob": "6e4e40302871a6da671e5bb04e0c41001ac4a891",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/FilterChip.tsx",
+        "dev_path": "frontend/src/shared/ui/FilterChip.tsx",
+        "source_blob": "ea761319ca726603a329bbaf0b737f2c11c2c930",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Form.tsx",
+        "dev_path": "frontend/src/shared/ui/Form.tsx",
+        "source_blob": "ceb26018ed5755b5d509ffa0e793396029b69352",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Icon.tsx",
+        "dev_path": "frontend/src/shared/ui/Icon.tsx",
+        "source_blob": "7eb2dd99b6161dfb935feb5da854d2fbebd5d0df",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/InfoList.tsx",
+        "dev_path": "frontend/src/shared/ui/InfoList.tsx",
+        "source_blob": "d8671b63082899a5a1daef009521543177ae301a",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Modal.test.tsx",
+        "dev_path": "frontend/src/shared/ui/Modal.test.tsx",
+        "source_blob": "5fff1fb2352518e369488d3aeb13079374165358",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Modal.tsx",
+        "dev_path": "frontend/src/shared/ui/Modal.tsx",
+        "source_blob": "742ab443e36317fc7691c38855eb5318cf62d087",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/PageHeader.tsx",
+        "dev_path": "frontend/src/shared/ui/PageHeader.tsx",
+        "source_blob": "bb4e86ce416cb662c7224dfb7628aa0284d3db02",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/States.tsx",
+        "dev_path": "frontend/src/shared/ui/States.tsx",
+        "source_blob": "5196ce7eddaa12b6b00206b8f4356b544437961b",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/StatusBadge.tsx",
+        "dev_path": "frontend/src/shared/ui/StatusBadge.tsx",
+        "source_blob": "e282390aae0f45610c0b854ac92cf7656a42545e",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Table.tsx",
+        "dev_path": "frontend/src/shared/ui/Table.tsx",
+        "source_blob": "27073ddf96ff42bb1c311437148e5defd3682762",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/test/setup.ts",
+        "dev_path": "frontend/src/test/setup.ts",
+        "source_blob": "27627da04938032bcde97ab5b16d99ee7201f4d6",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/widgets/StatCard.tsx",
+        "dev_path": "frontend/src/widgets/StatCard.tsx",
+        "source_blob": "023a23d95e071da70092d2c33c285e28328ec63e",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/tsconfig.app.json",
+        "dev_path": "frontend/tsconfig.app.json",
+        "source_blob": "83e83219ff883de62ff2456e5792173b43ae80ea",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/tsconfig.json",
+        "dev_path": "frontend/tsconfig.json",
+        "source_blob": "1ffef600d959ec9e396d5a260bd3f5b927b2cef8",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/tsconfig.node.json",
+        "dev_path": "frontend/tsconfig.node.json",
+        "source_blob": "81ca97b3acd7d0eec8e9c3ea399e893078456c73",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/vite.config.ts",
+        "dev_path": "frontend/vite.config.ts",
+        "source_blob": "d6c346e27b17a5ba80b673f73157b860f78c0e8a",
+        "disposition": "retained_or_adapted"
+      }
+    ]
+  },
+  {
+    "branch": "feat/ml-forecasting-photo-review",
+    "source_sha": "2b8488f71ec295c94cb4874cbe9f8b324c3b0e41",
+    "comparison_base": "d94f528df8c0e0f69c344ebd8c79a99bfbe5c1f2",
+    "files": [
+      {
+        "source_path": "docs/ml/clip_default_experiment.json",
+        "dev_path": "docs/ml/clip_default_experiment.json",
+        "source_blob": "a8716e888bca664e15f0e0c5790d58956409163e",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/ml/clip_experiment.json",
+        "dev_path": "docs/ml/clip_experiment.json",
+        "source_blob": "e00e17edfe0a8b541b9beee38a114ddddf941b80",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/ml/clip_service_experiment.json",
+        "dev_path": "docs/ml/clip_service_experiment.json",
+        "source_blob": "3037cbbf310b4ce427489d79b85392e112a5beae",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/ml/data_contract.md",
+        "dev_path": "docs/ml/data_contract.md",
+        "source_blob": "2604063693e231f55c63d80ae1b435e9724c5acb",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/ml/forecast_examples.json",
+        "dev_path": "docs/ml/forecast_examples.json",
+        "source_blob": "79d48df36aef8b4f8396a8ba9c62daf0e450c5e5",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/ml/inspection_capabilities.md",
+        "dev_path": "docs/ml/inspection_capabilities.md",
+        "source_blob": "3c4700f2cc852b25e113f3a30215eb7ce9d7c657",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/ml/integration_validation.md",
+        "dev_path": "docs/ml/integration_validation.md",
+        "source_blob": "c4638861eded5f50198cfeef1c95cd2be58c4385",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/ml/mr_draft.md",
+        "dev_path": "docs/ml/mr_draft.md",
+        "source_blob": "83f65b64b4d04f9c1e2d83f6dbeb727538141cbe",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/ARCHITECTURE.md",
+        "dev_path": "ml_service/ARCHITECTURE.md",
+        "source_blob": "0ee92ffd6935ba557203dbf712da779f24aa7cfe",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/DECISIONS.md",
+        "dev_path": "ml_service/DECISIONS.md",
+        "source_blob": "69f76bd76f54f71e6e208b1c0dedecebb0fc274b",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/PROGRESS.md",
+        "dev_path": "ml_service/PROGRESS.md",
+        "source_blob": "5c033651c2e84eaa433fed3684562b827e4afd00",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/app/core/config.py",
+        "dev_path": "ml_service/app/core/config.py",
+        "source_blob": "0f929a92163c1315158a3723964499a747509f78",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/app/cv/api.py",
+        "dev_path": "ml_service/app/cv/api.py",
+        "source_blob": "0ea6272c824aa90fa5b02e04307873190d2ad754",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/app/cv/classifier.py",
+        "dev_path": "ml_service/app/cv/classifier.py",
+        "source_blob": "b1f11232f57ab7be917a2690fe8140de9582b3f4",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/app/cv/service.py",
+        "dev_path": "ml_service/app/cv/service.py",
+        "source_blob": "33c2a105c542b5a43f17891045204b992788bf92",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/app/forecast/api.py",
+        "dev_path": "ml_service/app/forecast/api.py",
+        "source_blob": "f8f319b90122f7cfe3f22445ec4b786fd64ae2df",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/app/forecast/backend_adapter.py",
+        "dev_path": "ml_service/app/forecast/backend_adapter.py",
+        "source_blob": "3e92ca6237a40381acf826664115fd585fb608da",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/app/forecast/client.py",
+        "dev_path": "ml_service/app/forecast/client.py",
+        "source_blob": "de2c18a1a57eaf494c5ad81f90d9ef7bcb492e1e",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/app/forecast/condition.py",
+        "dev_path": "ml_service/app/forecast/condition.py",
+        "source_blob": "bc75b4289e0e73e8bea32de24c8876d5d17953f0",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/inspect_pairs.py",
+        "dev_path": "ml_service/inspect_pairs.py",
+        "source_blob": "803c9243a30721558927464691b3e3b59dcbca76",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/requirements-cv.txt",
+        "dev_path": "ml_service/requirements-cv.txt",
+        "source_blob": "ddc2cd4e00045c19d9e76da7c122386762a83f31",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/requirements.txt",
+        "dev_path": "ml_service/requirements.txt",
+        "source_blob": "5f1c436a5a7a469099232ebafb745e236c414694",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/tests/test_backend_adapter.py",
+        "dev_path": "ml_service/tests/test_backend_adapter.py",
+        "source_blob": "f29ffa7211c528922fb1a44599869a0b5aaed69d",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/tests/test_condition_contract.py",
+        "dev_path": "ml_service/tests/test_condition_contract.py",
+        "source_blob": "350fe75477c7e6536bafd02fd42a7d2e74d2109e",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/tests/test_cv.py",
+        "dev_path": "ml_service/tests/test_cv.py",
+        "source_blob": "e75e5d12693421b0f28386044ba849c1d655c9c4",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/tests/test_forecast.py",
+        "dev_path": "ml_service/tests/test_forecast.py",
+        "source_blob": "04c9a388e4a553e4405eef5e81516909440f0dd4",
+        "disposition": "retained_or_adapted"
+      }
+    ]
+  },
+  {
+    "branch": "qa/roles-contracts",
+    "source_sha": "00b0dcafb55ccf30514e0dca413897ae01f61f37",
+    "comparison_base": "bb300ec542ddfb538890eaa517368099fa4ee180",
+    "files": [
+      {
+        "source_path": "backend/app/security/__init__.py",
+        "dev_path": "backend/app/security/__init__.py",
+        "source_blob": "e6d8f36e677be008e94fb47e75f70b195e6e2065",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/security/authorization.py",
+        "dev_path": "backend/app/security/authorization.py",
+        "source_blob": "37fc3488859c0c168dd44775d6d1a8f9cda284d7",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/pytest.ini",
+        "dev_path": "backend/pytest.ini",
+        "source_blob": "03f586d41650da9718d8c6bdc6ada4a068cb96a8",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/ROLES_CONTRACTS_PROTOCOL.md",
+        "dev_path": "backend/tests/ROLES_CONTRACTS_PROTOCOL.md",
+        "source_blob": "4cff3cd1ddbb65e721e383fde3d1330248cb7bef",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_authorization.py",
+        "dev_path": "backend/tests/test_authorization.py",
+        "source_blob": "c97e2ac9ebd9164e4bf22257a32b42fa3b1ac5bb",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_maintenance_api.py",
+        "dev_path": "backend/tests/test_maintenance_api.py",
+        "source_blob": "0a03af3263294caad2991ccfc2409e02ee62ec0a",
+        "disposition": "equivalent_base_test_retained"
+      },
+      {
+        "source_path": "backend/tests/test_roles_contracts.py",
+        "dev_path": "backend/tests/test_roles_contracts.py",
+        "source_blob": "a239e867769a0383f0262de87870469769d26ee8",
+        "disposition": "retained_or_adapted"
+      }
+    ]
+  },
+  {
+    "branch": "docs/tests-p0",
+    "source_sha": "f3730e86e5794d45c5fb154b194ce75a9ff9c522",
+    "comparison_base": "43d90608cbabf290668de2ef4d4608bc0ae6e7f0",
+    "files": [
+      {
+        "source_path": "README.md",
+        "dev_path": "README.md",
+        "source_blob": "d4f8d55065606c6cbb81c33a1d5cdb62798c6e1c",
+        "disposition": "content_reconciled_into_final_README_and_system_docs"
+      },
+      {
+        "source_path": "backend/README.md",
+        "dev_path": "backend/README.md",
+        "source_blob": "9664a094a60b8b80222bd2c1388767b343f7d602",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/__init__.py",
+        "dev_path": "backend/app/db/__init__.py",
+        "source_blob": "679761c4e1f76ebf64fefd8934d18e8c1fd1cb64",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/dto.py",
+        "dev_path": "backend/app/db/dto.py",
+        "source_blob": "626ee20a765d642cf2a7905d5710dcf1ec3cc64f",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/models.py",
+        "dev_path": "backend/app/db/models.py",
+        "source_blob": "333d19e47d5916b9284529b7d1af5b4dbc19ab74",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/repository.py",
+        "dev_path": "backend/app/db/repository.py",
+        "source_blob": "bb4cb50225c3ad17264eb78a1b07b8d81068ab6d",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/service.py",
+        "dev_path": "backend/app/db/service.py",
+        "source_blob": "2028d00303e8908297dd0e484fb4347aad595ce4",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/session.py",
+        "dev_path": "backend/app/db/session.py",
+        "source_blob": "52e24c617b46845581a24c7be40f2931e3f43a6f",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/security/__init__.py",
+        "dev_path": "backend/app/security/__init__.py",
+        "source_blob": "e6d8f36e677be008e94fb47e75f70b195e6e2065",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/security/authorization.py",
+        "dev_path": "backend/app/security/authorization.py",
+        "source_blob": "37fc3488859c0c168dd44775d6d1a8f9cda284d7",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/pytest.ini",
+        "dev_path": "backend/pytest.ini",
+        "source_blob": "03f586d41650da9718d8c6bdc6ada4a068cb96a8",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/requirements.txt",
+        "dev_path": "backend/requirements.txt",
+        "source_blob": "7f8b7ab88b19f9628a95e0ceae00379d453d37f6",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/ROLES_CONTRACTS_PROTOCOL.md",
+        "dev_path": "backend/tests/ROLES_CONTRACTS_PROTOCOL.md",
+        "source_blob": "bfec5cbdb6cf8d23ce18bdcea5f1cdeb2b6fd47b",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_authorization.py",
+        "dev_path": "backend/tests/test_authorization.py",
+        "source_blob": "c97e2ac9ebd9164e4bf22257a32b42fa3b1ac5bb",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_dto_mapping.py",
+        "dev_path": "backend/tests/test_dto_mapping.py",
+        "source_blob": "d95fb2046a8fb2755e53d54f16e5e0b78a66ca56",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_maintenance_api.py",
+        "dev_path": "backend/tests/test_maintenance_api.py",
+        "source_blob": "601e64fe4c60d6b4d4187d341b3b32e8e8973e48",
+        "disposition": "equivalent_base_test_retained"
+      },
+      {
+        "source_path": "backend/tests/test_mapping_configuration.py",
+        "dev_path": "backend/tests/test_mapping_configuration.py",
+        "source_blob": "49454f3f38c1a1de83fb58c150bd5ffd0f75f3ef",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_persistence.py",
+        "dev_path": "backend/tests/test_persistence.py",
+        "source_blob": "8becf36980dd3d70cc82db9e271d2ecf486cf18e",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_roles_contracts.py",
+        "dev_path": "backend/tests/test_roles_contracts.py",
+        "source_blob": "a239e867769a0383f0262de87870469769d26ee8",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_transactions.py",
+        "dev_path": "backend/tests/test_transactions.py",
+        "source_blob": "6587b4e250f9fb4a383c9af29f57592f5fdde2ff",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/README.md",
+        "dev_path": "database/README.md",
+        "source_blob": "ddffde157c28c0bb36b3fdd44e74719e56dcceea",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/migrations/004_tl03_safe_constraints.sql",
+        "dev_path": "database/migrations/004_tl03_safe_constraints.sql",
+        "source_blob": "023c8b52de811641a3c196011bcb94bdfd2c3a75",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/tests/003_history.sql",
+        "dev_path": "database/tests/003_history.sql",
+        "source_blob": "4470d24f594d18674f89269181d827c6623b15aa",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/tests/004_tl03_constraints.sql",
+        "dev_path": "database/tests/004_tl03_constraints.sql",
+        "source_blob": "939dee3da91a024e02f6067020ce49112be3e6b9",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "db/tests/README.md",
+        "dev_path": "database/qa/README.md",
+        "source_blob": "d51601cae0de64e10e1c80ddef6009217f582e03",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "db/tests/run_2026-10-30.log",
+        "dev_path": "database/qa/run_2026-10-30.log",
+        "source_blob": "edf600db424e06a16374293bb7499ee30b1612c3",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "db/tests/run_schema_test.ps1",
+        "dev_path": "database/qa/run_schema_test.ps1",
+        "source_blob": "e7d0abe2a4300244701d5b3e611b5e77cf22f01c",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "db/tests/test_maintenance_schema.sql",
+        "dev_path": "database/qa/test_maintenance_schema.sql",
+        "source_blob": "198e602e6d56bec9871e29d9d88192e5f594b9ba",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/architecture/dto_db_mapping.md",
+        "dev_path": "docs/architecture/dto_db_mapping.md",
+        "source_blob": "cdb6e98ee4c10e64c98b289b3c441cfe5c793425",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/database/README.md",
+        "dev_path": "docs/database/README.md",
+        "source_blob": "5bad7c9662541f27ea4f71ac0a73d2f7e5f31d8c",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/database/orm_ddl_validation.md",
+        "dev_path": "docs/database/orm_ddl_validation.md",
+        "source_blob": "83ba19fb3b5067ec37e6552109c11136afaa4e87",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/database/specification.md",
+        "dev_path": "docs/database/specification.md",
+        "source_blob": "83545a0810ba67b07ea3d73f66df6171fe9f0229",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/database/tl03_target.md",
+        "dev_path": "docs/database/tl03_target.md",
+        "source_blob": "8649f5cba07f99fe57ad6e8acb46ac5679b09b50",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "new_file",
+        "dev_path": null,
+        "source_blob": "2e65efe2a145dda7ee51d1741299f848e5bf752e",
+        "disposition": "excluded_nonfunctional_placeholder"
+      },
+      {
+        "source_path": "tests/README.md",
+        "dev_path": "tests/README.md",
+        "source_blob": "e0626f4ac56e23e7adc2d33d56b65c69daef3172",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "tests/p0_scenarios.md",
+        "dev_path": "tests/p0_scenarios.md",
+        "source_blob": "30065381bddc2ae03288d4e99fdfbe1b25a2d2b2",
+        "disposition": "retained_or_adapted"
+      }
+    ]
+  }
+]

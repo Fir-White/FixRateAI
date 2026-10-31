@@ -5,50 +5,75 @@
     {
       "branch": "main",
       "sha": "d94f528df8c0e0f69c344ebd8c79a99bfbe5c1f2",
-      "status": "pending",
-      "document": "docs/branches/main.md"
+      "status": "integrated",
+      "document": "docs/branches/main.md",
+      "not_included": [],
+      "fully_accounted_source_sha": "d94f528df8c0e0f69c344ebd8c79a99bfbe5c1f2"
     },
     {
       "branch": "kran_dev",
       "sha": "c31570eaf970d6c6d3398995b58cf7173e89d183",
-      "status": "pending",
-      "document": "docs/branches/kran_dev.md"
+      "status": "integrated",
+      "document": "docs/branches/kran_dev.md",
+      "not_included": [
+        "Nonfunctional new_file placeholder (a)"
+      ],
+      "fully_accounted_source_sha": "c31570eaf970d6c6d3398995b58cf7173e89d183"
     },
     {
       "branch": "new_backend",
       "sha": "16b79affc155d75b76f585dcdfa4e5acc1781cfb",
-      "status": "pending",
-      "document": "docs/branches/new_backend.md"
+      "status": "integrated",
+      "document": "docs/branches/new_backend.md",
+      "not_included": [],
+      "fully_accounted_source_sha": "16b79affc155d75b76f585dcdfa4e5acc1781cfb"
     },
     {
       "branch": "front/mvidy",
       "sha": "226f3266a29cd43121ddca2c707cdcf5d71d375c",
-      "status": "pending",
-      "document": "docs/branches/front--mvidy.md"
+      "status": "integrated",
+      "document": "docs/branches/front--mvidy.md",
+      "not_included": [],
+      "fully_accounted_source_sha": "226f3266a29cd43121ddca2c707cdcf5d71d375c"
     },
     {
       "branch": "feat/ml-forecasting-photo-review",
       "sha": "2b8488f71ec295c94cb4874cbe9f8b324c3b0e41",
-      "status": "pending",
-      "document": "docs/branches/feat--ml-forecasting-photo-review.md"
+      "status": "integrated",
+      "document": "docs/branches/feat--ml-forecasting-photo-review.md",
+      "not_included": [],
+      "fully_accounted_source_sha": "2b8488f71ec295c94cb4874cbe9f8b324c3b0e41",
+      "validation_limits": [
+        "Customer-trained model absent: explicit unavailable is verified",
+        "Real CLIP inference verified on controlled HTTP test images; customer-photo accuracy not evaluated"
+      ]
     },
     {
       "branch": "qa/roles-contracts",
       "sha": "00b0dcafb55ccf30514e0dca413897ae01f61f37",
-      "status": "pending",
-      "document": "docs/branches/qa--roles-contracts.md"
+      "status": "integrated",
+      "document": "docs/branches/qa--roles-contracts.md",
+      "not_included": [],
+      "fully_accounted_source_sha": "00b0dcafb55ccf30514e0dca413897ae01f61f37"
     },
     {
       "branch": "docs/tests-p0",
       "sha": "f3730e86e5794d45c5fb154b194ce75a9ff9c522",
-      "status": "pending",
-      "document": "docs/branches/docs--tests-p0.md"
+      "status": "integrated",
+      "document": "docs/branches/docs--tests-p0.md",
+      "not_included": [
+        "Nonfunctional new_file placeholder (a)"
+      ],
+      "fully_accounted_source_sha": "f3730e86e5794d45c5fb154b194ce75a9ff9c522"
     },
     {
       "branch": "archive/legacy-ai-estimator",
       "sha": "c530bb869896160c231db2ce516c62cffbe329ae",
-      "status": "excluded",
-      "document": "docs/branches/archive--legacy-ai-estimator.md"
+      "status": "excluded_by_request",
+      "document": "docs/branches/archive--legacy-ai-estimator.md",
+      "not_included": [
+        "All unique legacy estimator changes"
+      ]
     }
   ]
 }
