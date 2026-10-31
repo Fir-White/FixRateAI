@@ -1,8 +1,8 @@
 # Runs the schema contract test against a throwaway PostgreSQL cluster.
 #
 # Usage:
-#   powershell -ExecutionPolicy Bypass -File db/tests/run_schema_test.ps1
-#   powershell -ExecutionPolicy Bypass -File db/tests/run_schema_test.ps1 -PgBin 'C:\Program Files\PostgreSQL\18\bin'
+#   powershell -ExecutionPolicy Bypass -File database/qa/run_schema_test.ps1
+#   powershell -ExecutionPolicy Bypass -File database/qa/run_schema_test.ps1 -PgBin 'C:\Program Files\PostgreSQL\18\bin'
 #
 # The script never touches the project database: it initializes a temporary
 # cluster under $env:TEMP, applies database/migrations/001..004, runs the SQL
@@ -31,7 +31,7 @@ $tests = @(
     'database/tests/002_planning.sql',
     'database/tests/003_history.sql',
     'database/tests/004_tl03_constraints.sql',
-    'db/tests/test_maintenance_schema.sql'
+    'database/qa/test_maintenance_schema.sql'
 )
 
 $env:PGCONNECT_TIMEOUT = '10'
@@ -51,7 +51,7 @@ function Invoke-SqlFile([string]$relativePath) {
 }
 
 try {
-    if (Test-Path $dataDir) { Remove-Item -Recurse -Force $dataDir }
+    if (Test-Path -LiteralPath $dataDir) { throw 'Temporary cluster path already exists; refusing to overwrite' }
     & (Join-Path $PgBin 'initdb.exe') -D $dataDir -U postgres -A trust `
         --encoding=UTF8 --locale=C 2>&1 | Out-Null
     if ($LASTEXITCODE -ne 0) { throw 'initdb failed' }
@@ -82,7 +82,7 @@ try {
         "# Server: PostgreSQL ($((& (Join-Path $PgBin 'psql.exe') -X -h 127.0.0.1 -p $Port -U postgres -d postgres -w -tAc 'select version()'))), isolated cluster",
         "# Database: $Database",
         '# Migrations: database/migrations/001..004',
-        '# Tests: database/tests/001..004, db/tests/test_maintenance_schema.sql',
+        '# Tests: database/tests/001..004, database/qa/test_maintenance_schema.sql',
         ''
     ) | Out-File -FilePath $LogPath -Encoding utf8
 
@@ -110,8 +110,14 @@ finally {
         if (-not $server.HasExited) { $server.Kill() }
     }
     Start-Sleep -Milliseconds 500
-    Remove-Item -Recurse -Force $dataDir -ErrorAction SilentlyContinue
-    Remove-Item -Force $serverOut, $serverErr -ErrorAction SilentlyContinue
+    $checkedDataDir = [IO.Path]::GetFullPath($dataDir)
+    $expectedTempRoot = [IO.Path]::GetFullPath((Join-Path $env:TEMP 'opencode')) + [IO.Path]::DirectorySeparatorChar
+    if (-not $checkedDataDir.StartsWith($expectedTempRoot, [StringComparison]::OrdinalIgnoreCase) -or
+        [IO.Path]::GetFileName($checkedDataDir) -ne "pgfixrate_schema_$PID") {
+        throw 'Refusing cleanup outside the exact temporary cluster directory'
+    }
+    Remove-Item -LiteralPath $checkedDataDir -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $serverOut, $serverErr -Force -ErrorAction SilentlyContinue
 }
 
 if ($fail) { exit 1 } else { exit 0 }

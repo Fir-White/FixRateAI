@@ -1,19 +1,7 @@
-# Backend: слой хранения
+# Backend в dev
 
-Установите зависимости из `requirements.txt`. SQLAlchemy подключается к PostgreSQL через `DATABASE_URL` с драйвером `postgresql+psycopg`. Перед использованием примените [миграции 001–004](../database/README.md). При запуске приложения вызовите `map_schema(engine)` из `app.db.models`; подключение и отражение схемы требуют доступной БД. Для FastAPI dependency из `session_dependency(factory)` открывает и закрывает сессию; сервис выполняет команду в `service_transaction(session)` до ответа, что фиксирует изменения или откатывает исключение. Если предыдущая dependency уже вызвала SQL, сервис завершает всю автоматически открытую транзакцию, включая её предыдущие изменения; поэтому dependency авторизации должна только читать данные. Явно начатую внешнюю транзакцию сервис не перехватывает. Для самостоятельных операций вне FastAPI доступен `transaction(factory)`. Репозиторий commit не вызывает.
+FastAPI + SQLAlchemy reflection + PostgreSQL. Canonical DTO: `app/schemas/maintenance.py`; runtime HTTP: `app/main.py`; SQL/SPA/ML adapters: `app/integration`.
 
-```sh
-cd backend
-python -m pytest -q
-```
+Установка, миграции новой/существующей базы, запуск, таблица API и роли: [SYSTEM_OVERVIEW](../docs/SYSTEM_OVERVIEW.md). Проверки: из корня `.venv/Scripts/python.exe scripts/verify.py --browser`.
 
-Для интеграционных тестов задайте `TEST_DATABASE_URL` на отдельную **пустую одноразовую** PostgreSQL-базу с именем, начинающимся на `fixrate_test_`. Тесты применяют к ней миграции и оставляют схему; без этой переменной PostgreSQL-тесты пропускаются. Не указывайте рабочую базу. Оставшиеся ограничения и неполное соответствие DTO описаны в [аудите ORM](../docs/database/orm_ddl_validation.md).
-
-В PowerShell после создания отдельной пустой тестовой БД задайте переменную окружения с её URL, не записывая реквизиты в репозиторий, и выполните:
-
-```powershell
-cd backend
-python -m pytest -q tests/test_persistence.py
-```
-
-`TEST_DATABASE_URL` должен иметь формат `postgresql+psycopg://.../fixrate_test_<имя>`. Тест жизненного цикла FastAPI дополнительно требует доступных пакетов `fastapi` и `httpx`; SQLite в нём проверяет только транзакции, не схему PostgreSQL.
+Исходный repository/service из kran_dev сохранён. ORM не создаёт схему через `create_all`; примените SQL 001–005 до запуска. Канонические DTO описывают также будущие сервисы; фактические endpoints определяет OpenAPI приложения, а не только схемы.

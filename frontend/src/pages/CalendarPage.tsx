@@ -1,3 +1,5 @@
+import { DEMO_MODE } from "@/shared/api/request";
+import { useSession } from "@/shared/session/SessionContext";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
@@ -20,7 +22,9 @@ interface MonthCursor {
 }
 
 export function CalendarPage() {
-  const [cursor, setCursor] = useState<MonthCursor>({ year: 2026, month: 10 });
+  const { profile } = useSession();
+  const today = new Intl.DateTimeFormat("en-CA", {timeZone: profile?.timezone ?? "Asia/Yekaterinburg", year: "numeric", month: "2-digit", day: "2-digit"}).format(new Date());
+  const [cursor, setCursor] = useState<MonthCursor>(() => DEMO_MODE ? {year: 2026, month: 10} : {year: Number(today.slice(0,4)), month: Number(today.slice(5,7))});
   const query = useApiQuery(
     () => maintenanceApi.listCalendar(cursor.year, cursor.month),
     [cursor.year, cursor.month],
@@ -103,7 +107,7 @@ export function CalendarPage() {
       </div>
 
       <Callout tone="warning" title="Набор A — данные заказчика.">
-        Октябрь 2026 выбран для демонстрации. Для ТО2 не подтверждены basis и
+        Календарь показывает сохранённые вхождения. Для неподтверждённых правил не определены basis и
         anchor, поэтому даты квартального и годового ТО не создаются
         автоматически.
       </Callout>
@@ -140,7 +144,7 @@ export function CalendarPage() {
                     ? `${cursor.year}-${String(cursor.month).padStart(2, "0")}-${String(dayNumber).padStart(2, "0")}`
                     : "";
                   const dayItems = validDay ? (grouped.get(dateKey) ?? []) : [];
-                  const isToday = dateKey === "2026-10-30";
+                  const isToday = dateKey === (DEMO_MODE ? "2026-10-30" : today);
 
                   return (
                     <div

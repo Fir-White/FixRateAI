@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { DEMO_MODE } from "@/shared/api/request";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useSession } from "@/shared/session/SessionContext";
 import {
@@ -19,12 +21,37 @@ const ROLE_ICONS = {
 } as const;
 
 export function LoginPage() {
-  const { profile, login } = useSession();
+  const { profile, login, signIn, loading } = useSession();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [siteId, setSiteId] = useState("");
+  const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
   const navigate = useNavigate();
 
   if (profile) {
     return <Navigate to={homePathForRole(profile.role)} replace />;
   }
+
+  if (loading) return <p role="status">Загрузка сессии…</p>;
+  if (!DEMO_MODE) return (
+    <main className="app-backdrop grid min-h-screen place-items-center p-6">
+      <form className="w-full max-w-md space-y-4 rounded-2xl border border-line bg-surface p-8" onSubmit={async event => {
+        event.preventDefault(); setPending(true); setError("");
+        try { const user = await signIn(email, password, siteId); navigate(homePathForRole(user.role), {replace: true}); }
+        catch (failure) { setError(failure instanceof Error ? failure.message : "Ошибка входа"); }
+        finally { setPending(false); }
+      }}>
+        <BrandLockup size="lg" subtitle="Планирование ТО и ППР" />
+        <h1 className="text-2xl">Вход в FixRate AI</h1>
+        <label className="block">Email<input className="mt-1 block w-full rounded border border-line bg-surface-raised p-2" type="email" required autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} /></label>
+        <label className="block">Пароль<input className="mt-1 block w-full rounded border border-line bg-surface-raised p-2" type="password" required autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} /></label>
+        <label className="block">ID объекта (если доступно несколько)<input className="mt-1 block w-full rounded border border-line bg-surface-raised p-2" value={siteId} onChange={e => setSiteId(e.target.value)} /></label>
+        {error && <p role="alert" className="text-rose-300">{error}</p>}
+        <button className="rounded bg-accent px-4 py-2 text-slate-950" disabled={pending}>{pending ? "Вход…" : "Войти"}</button>
+      </form>
+    </main>
+  );
 
   const handleLogin = (role: Role) => {
     login(role);

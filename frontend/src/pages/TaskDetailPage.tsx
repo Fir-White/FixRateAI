@@ -1,4 +1,7 @@
-import { Link, useParams } from "react-router-dom";
+import { useState } from "react";
+import { useSession } from "@/shared/session/SessionContext";
+import { DEMO_MODE } from "@/shared/api/request";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
 import { formatDate, formatDateTime } from "@/shared/lib/format";
@@ -21,6 +24,10 @@ import {
 
 export function TaskDetailPage() {
   const { taskId = "" } = useParams();
+  const navigate = useNavigate();
+  const { profile } = useSession();
+  const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState(false);
   const query = useApiQuery(() => maintenanceApi.getTask(taskId), [taskId]);
 
   if (query.status === "loading") {
@@ -58,6 +65,12 @@ export function TaskDetailPage() {
         description={task.summary}
         actions={
           <>
+            {!DEMO_MODE && (profile?.role === "dispatcher" || profile?.role === "engineer") && <Button variant="secondary" disabled={busy} onClick={async () => {
+              setBusy(true); setNotice("");
+              try { const result = await maintenanceApi.forecast(task.id, task.revision); navigate(`/comparisons/${result.run.runId}`); }
+              catch (error) { setNotice(error instanceof Error ? error.message : "Ошибка прогноза"); }
+              finally { setBusy(false); }
+            }}>Сравнить прогнозы</Button>}
             {task.state === "submitted" ? (
               <Link
                 to={`/quality/${task.id}`}
@@ -80,6 +93,7 @@ export function TaskDetailPage() {
         }
       />
 
+      {notice && <div role="alert"><Callout tone="danger">{notice}</Callout></div>}
       <div className="flex flex-wrap items-center gap-2">
         <TaskStateBadge state={task.state} />
         {task.isOverdue ? <OverdueBadge /> : null}

@@ -1,3 +1,4 @@
+import { DEMO_MODE } from "@/shared/api/request";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { BrandLockup } from "@/shared/ui/Brand";
 import { IconButton } from "@/shared/ui/Button";
@@ -53,6 +54,7 @@ export function ExecutorLayout() {
           </Link>
           <div className="flex items-center gap-2">
             <Select
+              disabled={!DEMO_MODE}
               aria-label="Демонстрационная роль"
               value={profile.role}
               onChange={(event) => handleRoleChange(event.target.value as Role)}
@@ -85,7 +87,7 @@ export function ExecutorLayout() {
           </div>
           <span className="inline-flex items-center gap-1.5 rounded-md border border-line bg-white/[0.03] px-2 py-1 text-[10px] font-semibold tracking-wide text-muted uppercase">
             <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-            synthetic_demo
+            {DEMO_MODE ? "synthetic_demo" : "API подключён"}
           </span>
         </div>
         <Outlet />

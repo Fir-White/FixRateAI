@@ -5,8 +5,10 @@ import { AccessDeniedPage } from "@/pages/AccessDeniedPage";
 import type { Role } from "@/shared/types/domain";
 
 export function RequireSession() {
-  const { profile } = useSession();
+  const { profile, loading } = useSession();
   const location = useLocation();
+
+  if (loading) return <p role="status">Загрузка сессии…</p>;
 
   if (!profile) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
@@ -22,7 +24,9 @@ export function RequireRole({
   roles: Role[];
   children: ReactNode;
 }) {
-  const { profile } = useSession();
+  const { profile, loading } = useSession();
+
+  if (loading) return <p role="status">Загрузка сессии…</p>;
 
   if (!profile) {
     return <Navigate to="/login" replace />;

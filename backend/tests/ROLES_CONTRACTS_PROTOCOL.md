@@ -1,3 +1,5 @@
+> Протокол исходного среза QA. В dev добавлены реальные HTTP/DB тесты test_runtime_integration.py; текущие результаты и границы — [отчёт](../../docs/DEV_INTEGRATION_REPORT.md). Проектная таблица ROUTES также содержит ещё не реализованные сервисы.
+
 # Протокол прогона: контракты ролей, маршрутов и авторизации
 
 Дата: **30.10.2026**. База: `origin/new_backend` @ `16b79af` (FX26-BE01 + reusable role authorization helpers). Зависимости: **QA01, BE01**.

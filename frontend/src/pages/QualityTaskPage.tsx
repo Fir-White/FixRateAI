@@ -1,3 +1,4 @@
+import { DEMO_MODE } from "@/shared/api/request";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
@@ -25,6 +26,9 @@ import {
 
 export function QualityTaskPage() {
   const { taskId = "" } = useParams();
+  const [refresh, setRefresh] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
   const [reason, setReason] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingDecision, setPendingDecision] = useState<
@@ -32,7 +36,7 @@ export function QualityTaskPage() {
   >(null);
   const query = useApiQuery(
     () => maintenanceApi.getQualityBundle(taskId),
-    [taskId],
+    [taskId, refresh],
   );
 
   if (query.status === "loading") {
@@ -54,13 +58,14 @@ export function QualityTaskPage() {
 
   const { task, execution, review, decision } = query.data;
 
-  const handleDecision = (verdict: "accepted" | "rejected") => {
-    setNotice(
-      verdict === "accepted"
-        ? "Маршрут готов: приёмка будет отправлять POST /tasks/{id}/review с verdict=accepted. Сервер обязан проверить запрет собственной приёмки."
-        : "Маршрут готов: отклонение будет отправлять POST /tasks/{id}/review с verdict=rejected и обязательной причиной.",
-    );
+  const handleDecision = async (verdict: "accepted" | "rejected") => {
     setPendingDecision(null);
+    if (DEMO_MODE) { setNotice("Деморежим: запрос не отправлен."); return; }
+    if (!execution) return;
+    setBusy(true); setNotice(null);
+    try { await maintenanceApi.review(task.id, task.revision, execution.id, verdict, reason); setRefresh(n => n+1); }
+    catch (error) { setNotice(error instanceof Error ? error.message : "Ошибка API"); }
+    finally { setBusy(false); }
   };
 
   return (
@@ -93,6 +98,15 @@ export function QualityTaskPage() {
         </span>
       </div>
 
+      {!DEMO_MODE && task.state === "submitted" && <div className="space-y-3 rounded-xl border border-line p-4">
+        <label className="block text-sm"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /> Подтверждаю, что фото показывают тот же объект и сопоставимый ракурс</label>
+        <Button variant="secondary" disabled={busy} onClick={async () => {
+          setBusy(true); setNotice(null);
+          try { await maintenanceApi.photoReview(task.id, task.revision, confirmed); setRefresh(n => n+1); }
+          catch (error) { setNotice(error instanceof Error ? error.message : "Ошибка анализа"); }
+          finally { setBusy(false); }
+        }}>Анализировать фото</Button>
+      </div>}
       <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
         <div className="space-y-6">
           <Card>
@@ -148,7 +162,7 @@ export function QualityTaskPage() {
                       Модель
                     </p>
                     <p className="mt-1 font-mono text-xs break-all text-ink-soft">
-                      {review.modelRef}
+                      {review.modelRef ?? "Модель не использовалась"}
                     </p>
                     <p className="mt-2 text-xs text-muted">
                       Prompt set {review.promptSetVersion} ·{" "}
@@ -190,7 +204,7 @@ export function QualityTaskPage() {
               ) : (
                 <EmptyState
                   title="AI-заключение не создано"
-                  description="Запрос к POST /executions/{id}/ai-review выполняется только для замороженной submitted-попытки."
+                  description="Фотоанализ доступен для текущей отправленной попытки. Решение о приёмке принимает инженер."
                 />
               )}
             </div>
@@ -240,7 +254,7 @@ export function QualityTaskPage() {
 
               <div className="mt-4 grid gap-2">
                 <Button
-                  disabled={!reason.trim()}
+                  disabled={!reason.trim() || busy || task.state !== "submitted"}
                   onClick={() => setPendingDecision("accepted")}
                 >
                   <Icon name="check" size={18} />
@@ -248,7 +262,7 @@ export function QualityTaskPage() {
                 </Button>
                 <Button
                   variant="danger"
-                  disabled={!reason.trim()}
+                  disabled={!reason.trim() || busy || task.state !== "submitted"}
                   onClick={() => setPendingDecision("rejected")}
                 >
                   <Icon name="alert" size={18} />
@@ -274,9 +288,7 @@ export function QualityTaskPage() {
           ) : null}
 
           <Callout tone="neutral" className="text-xs leading-5">
-            Принятие, запись EngineerDecision, создание ServiceEvent и аудит
-            должны выполняться в одной транзакции на backend. Скрытие кнопки не
-            заменяет проверку прав.
+            Приёмка, сохранение решения и аудит выполняются в одной транзакции. Принятая попытка появляется в истории оборудования.
           </Callout>
         </div>
       </div>
@@ -289,7 +301,7 @@ export function QualityTaskPage() {
         }
         description={
           pendingDecision === "rejected"
-            ? "Отклонение создаст новую попытку и сохранит текущую в истории."
+            ? "Отклонение сохранит текущую попытку в истории. Исполнитель начнёт новую попытку отдельно."
             : "Принятие закроет задание и добавит событие в историю оборудования."
         }
         tone={pendingDecision === "rejected" ? "danger" : "default"}

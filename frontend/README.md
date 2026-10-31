@@ -1,76 +1,18 @@
-# FixRate AI frontend
+# Frontend в dev
 
-Каркас SPA для планирования и контроля технического обслуживания.
+React/TypeScript/Vite/Tailwind SPA из front/mvidy. Сохранены дизайн-система, экранные компоненты, маршруты и исходные UI тесты.
 
-## Стек
+Обычная сборка обращается к настоящему same-origin `/api`: серверные сессии, чтение БД, выполнение/фото/сдача/приёмка и ML. Полный запуск — [SYSTEM_OVERVIEW](../docs/SYSTEM_OVERVIEW.md).
 
-- React 19 + TypeScript
-- Vite 6
-- Tailwind CSS 4
-- React Router 7
-- Vitest + React Testing Library
-
-## Запуск
-
-```bash
-npm install
+```powershell
+npm ci
 npm run dev
-```
-
-Приложение откроется на `http://localhost:5173`. Запросы `/api` проксируются на `http://localhost:8000`.
-
-Проверки:
-
-```bash
-npm run typecheck
 npm run build
 npm test
 ```
 
-## Маршруты
+Dev сервер: 5173, API proxy: 8000. Для одной собранной системы выполните build и запускайте backend из корня: он раздаёт SPA вместе с API. Статика монтируется при startup; после первой сборки перезапустите backend.
 
-Полная карта и границы страниц: [docs/ui/screen-map.md](../docs/ui/screen-map.md).
+`VITE_DEMO_MODE=true` создаёт явно обозначенный fixture-only режим с выбором роли; мутации в нём не являются настоящей работой приложения. По умолчанию флаг false. Vitest проверяет исходные экраны на fixtures и production HTTP transport отдельно; Playwright проверяет настоящий backend/БД из `scripts/verify.py --browser`.
 
-Единая палитра, типографика и инструкция по компонентам: [docs/ui/ui-kit.md](../docs/ui/ui-kit.md).
-
-- `/login` — выбор демонстрационной роли
-- `/dispatcher` — панель диспетчера
-- `/equipment`, `/equipment/:equipmentId` — реестр и карточка
-- `/calendar` — календарь ТО
-- `/tasks`, `/tasks/:taskId` — очередь и карточка задания
-- `/comparisons`, `/comparisons/:runId` — прогнозы
-- `/executor`, `/executor/tasks/:taskId` — кабинет исполнителя
-- `/quality`, `/quality/:taskId` — контроль качества
-
-## Данные
-
-Пока backend не реализует HTTP-слой, `src/shared/api/maintenance.ts` использует fixtures из `src/shared/mocks/data.ts`. Все синтетические данные помечены `synthetic_demo`.
-
-Демонстрационная роль хранится в `localStorage` и управляет только навигацией. Серверная авторизация, RBAC, site scope, CSRF и запрет собственной приёмки должны проверяться backend.
-
-## UI-kit
-
-Интерфейс использует тёмную палитру FixRate AI: `canvas`, `surface`, `line`, `ink`, `muted` и `accent` из `src/index.css`. Готовые компоненты находятся в `src/shared/ui`:
-
-- `Button`, `IconButton`, `FilterChip`
-- `FormField`, `Input`, `Select`, `Textarea`, `Checkbox`
-- `Card`, `PageHeader`, `Table`, `InfoList`, `Callout`
-- `Badge`, статусные бейджи, `LoadingState`, `EmptyState`, `ErrorState`
-- `Modal` с focus trap и закрытием по `Escape`
-- `BrandMark`, `BrandLockup`
-
-Правило: страницы не задают собственные hex-цвета, размеры кнопок и стили полей. Примеры и чек-лист нового экрана — в [UI-kit](../docs/ui/ui-kit.md).
-
-## Структура
-
-```text
-src/
-├── app/          router, guards, providers
-├── layouts/      AppShell, ExecutorLayout
-├── pages/        страницы маршрутов
-├── entities/     таблицы и карточки домена
-├── widgets/      составные блоки
-└── shared/       API, типы, mocks, session, UI
-```
-
-Зависимости направлены сверху вниз: `pages` → `widgets`/`entities` → `shared`.
+[Карта экранов](../docs/ui/screen-map.md), [UI kit](../docs/ui/ui-kit.md), [карта переноса](../docs/branches/front--mvidy.md). Скрытие кнопки не заменяет серверный контроль доступа. Disabled кнопки редакторов/назначений отмечают ещё не реализованные сервисы.

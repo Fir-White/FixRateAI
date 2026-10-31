@@ -503,19 +503,19 @@ BEGIN
     BEGIN
         DELETE FROM forecast_runs WHERE forecast_run_id = fr_rule;
         RAISE EXCEPTION 'forecast referenced by a decision was deleted';
-    EXCEPTION WHEN restrict_violation THEN NULL;
+    EXCEPTION WHEN foreign_key_violation THEN NULL;
     END;
 
     BEGIN
         DELETE FROM work_orders WHERE work_order_id = wo;
         RAISE EXCEPTION 'work order with report was deleted';
-    EXCEPTION WHEN restrict_violation THEN NULL;
+    EXCEPTION WHEN foreign_key_violation THEN NULL;
     END;
 
     BEGIN
         DELETE FROM maintenance_rules WHERE maintenance_rule_id = r1;
         RAISE EXCEPTION 'rule with schedule history was deleted';
-    EXCEPTION WHEN restrict_violation THEN NULL;
+    EXCEPTION WHEN foreign_key_violation THEN NULL;
     END;
 
     -- Final invariants: no fixture was lost or duplicated by the negative runs.

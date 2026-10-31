@@ -47,6 +47,8 @@ def predict_maintenance_ai(
     snapshot: ForecastSnapshot,
     forecaster: RandomForestForecaster | None = None,
     model_ref: str | None = None,
+    *,
+    use_active_model: bool = True,
 ) -> ForecastResult:
     """Pure Python inference function predicting next maintenance date from a ForecastSnapshot.
 
@@ -56,7 +58,7 @@ def predict_maintenance_ai(
     - If synthetic_demo and model fitted: returns status='ok' with tree_dispersion uncertainty.
     """
     start_time = time.perf_counter()
-    active_model = forecaster or _FORECASTER
+    active_model = forecaster if forecaster is not None else (_FORECASTER if use_active_model else None)
     effective_model_ref = model_ref or (
         f"{settings.rf_model_ref_prefix}:{active_model.artifact_sha256[:16]}"
         if (active_model and active_model.artifact_sha256)

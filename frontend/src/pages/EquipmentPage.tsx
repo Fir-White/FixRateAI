@@ -100,7 +100,7 @@ export function EquipmentPage() {
               Найдено: {items.length}
             </p>
             <p className="text-xs text-muted/60">
-              Демонстрационный объект · Asia/Yekaterinburg
+              Данные текущего объекта
             </p>
           </div>
           <EquipmentTable items={items} />

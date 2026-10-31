@@ -15,12 +15,14 @@ export default defineConfig({
     proxy: {
       "/api": {
         target: "http://localhost:8000",
-        changeOrigin: true,
+        changeOrigin: false,
       },
     },
   },
   test: {
+    include: ["src/**/*.{test,spec}.{ts,tsx}"],
     environment: "jsdom",
+    env: { VITE_DEMO_MODE: "true" },
     setupFiles: "./src/test/setup.ts",
     css: true,
   },

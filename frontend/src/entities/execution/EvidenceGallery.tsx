@@ -7,6 +7,8 @@ import { Icon } from "@/shared/ui/Icon";
 const PHASE_LABELS = {
   before: "До",
   after: "После",
+  issue: "Замечание",
+  other: "Приложение",
 } as const;
 
 export function EvidenceGallery({
@@ -29,7 +31,7 @@ export function EvidenceGallery({
       {photos.map((photo) => (
         <Card key={photo.id} className="overflow-hidden">
           <div className="flex h-32 items-center justify-center photo-placeholder text-muted">
-            <Icon name="camera" size={30} />
+            {photo.url ? <a href={photo.url} target="_blank" rel="noreferrer"><img src={photo.url} alt={photo.label} className="h-32 w-full object-contain" /></a> : <Icon name="camera" size={30} />}
           </div>
           <div className="p-3">
             <div className="flex flex-wrap items-center gap-2">

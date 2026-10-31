@@ -145,8 +145,9 @@ export function OverdueBadge() {
 export function OriginBadge({
   origin,
 }: {
-  origin: "customer" | "synthetic_demo";
+  origin: "customer" | "synthetic_demo" | null;
 }) {
+  if (!origin) return <Badge tone="neutral">Источник не указан</Badge>;
   return origin === "customer" ? (
     <Badge tone="info">Данные заказчика</Badge>
   ) : (

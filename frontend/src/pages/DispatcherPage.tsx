@@ -1,3 +1,4 @@
+import { useSession } from "@/shared/session/SessionContext";
 import { Link } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
@@ -17,6 +18,8 @@ import {
 import type { MaintenanceTask } from "@/shared/types/domain";
 
 export function DispatcherPage() {
+  const { profile } = useSession();
+  const today = new Intl.DateTimeFormat("en-CA", {timeZone: profile?.timezone ?? "Asia/Yekaterinburg", year: "numeric", month: "2-digit", day: "2-digit"}).format(new Date());
   const query = useApiQuery(
     () =>
       Promise.all([
@@ -44,7 +47,7 @@ export function DispatcherPage() {
   const onReview = tasks.filter((task) => task.state === "submitted");
   const inProgress = tasks.filter((task) => task.state === "in_progress");
   const todayTasks = tasks.filter(
-    (task) => task.mandatoryDueDate === "2026-10-30" && task.state !== "accepted",
+    (task) => task.mandatoryDueDate === today && task.state !== "accepted",
   );
   const latestRun = comparisons[0];
   const attention = [...overdue, ...onReview];

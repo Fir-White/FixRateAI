@@ -1,3 +1,4 @@
+import { DEMO_MODE } from "@/shared/api/request";
 import { useEffect, useState } from "react";
 import {
   NavLink,
@@ -147,7 +148,7 @@ export function AppShell() {
           <div className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-accent" />
             <p className="text-[10px] font-semibold tracking-[0.16em] text-muted uppercase">
-              Демо-объект
+              Объект
             </p>
           </div>
           <p className="mt-2 text-sm font-semibold text-ink">
@@ -195,6 +196,7 @@ export function AppShell() {
                   Роль
                 </span>
                 <Select
+                    disabled={!DEMO_MODE}
                   aria-label="Демонстрационная роль"
                   value={profile.role}
                   onChange={(event) =>
@@ -251,7 +253,7 @@ export function AppShell() {
             <div className="hidden items-center gap-2 sm:gap-3 md:flex">
               <span className="hidden items-center gap-2 rounded-lg border border-line bg-white/[0.03] px-2.5 py-1.5 text-[10px] font-semibold tracking-wide text-muted uppercase xl:inline-flex">
                 <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-                synthetic_demo
+                {DEMO_MODE ? "synthetic_demo" : "API подключён"}
               </span>
               <div className="hidden text-right lg:block">
                 <p className="text-xs font-semibold text-ink">{profile.name}</p>
@@ -260,6 +262,7 @@ export function AppShell() {
                 </p>
               </div>
               <Select
+                    disabled={!DEMO_MODE}
                 aria-label="Демонстрационная роль"
                 value={profile.role}
                 onChange={(event) =>

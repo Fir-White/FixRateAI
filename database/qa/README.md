@@ -1,3 +1,5 @@
+> Этот QA проверяет исходную схему 001–004. Лог run_2026-10-30.log — исторический результат источника. Полный dev стенд с 005, HTTP и браузером: [scripts/verify.py](../../scripts/verify.py).
+
 # Проверка развёртывания схемы ТО
 
 Каталог содержит контрактный тест развёртывания ER-модели ТО (миграции
@@ -14,7 +16,7 @@
 ## Запуск
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File db/tests/run_schema_test.ps1
+powershell -ExecutionPolicy Bypass -File database/qa/run_schema_test.ps1
 ```
 
 Параметры: `-PgBin` (каталог `bin` PostgreSQL), `-Port`, `-Database`, `-LogPath`.

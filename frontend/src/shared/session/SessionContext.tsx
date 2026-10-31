@@ -1,11 +1,14 @@
 import {
   createContext,
+  useEffect,
   useContext,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
 import type { Role, SessionProfile } from "@/shared/types/domain";
+
+import { request, DEMO_MODE } from "@/shared/api/request";
 
 const STORAGE_KEY = "fixrate.demo.role";
 
@@ -49,6 +52,8 @@ interface SessionContextValue {
   login: (role: Role) => void;
   logout: () => void;
   switchRole: (role: Role) => void;
+  loading: boolean;
+  signIn: (email: string, password: string, siteId?: string) => Promise<SessionProfile>;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -71,30 +76,41 @@ function readStoredRole(): Role | null {
 }
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [role, setRole] = useState<Role | null>(readStoredRole);
-
+  const [role, setRole] = useState<Role | null>(() => DEMO_MODE ? readStoredRole() : null);
+  const [profile, setProfile] = useState<SessionProfile | null>(null);
+  const [loading, setLoading] = useState(!DEMO_MODE);
+  useEffect(() => {
+    if (DEMO_MODE) return;
+    let active = true;
+    request<{profile: SessionProfile}>("/api/v1/auth/session")
+      .then(result => { if (active) setProfile(result.profile); })
+      .catch(() => { if (active) setProfile(null); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
   const value = useMemo<SessionContextValue>(() => {
     const login = (nextRole: Role) => {
+      if (!DEMO_MODE) return;
       window.localStorage.setItem(STORAGE_KEY, nextRole);
       setRole(nextRole);
     };
-
     const logout = () => {
-      window.localStorage.removeItem(STORAGE_KEY);
-      setRole(null);
+      if (DEMO_MODE) { window.localStorage.removeItem(STORAGE_KEY); setRole(null); }
+      else { void request("/api/v1/auth/logout", {method: "POST"}).then(() => setProfile(null)); }
     };
-
     return {
-      profile: role ? DEMO_PROFILES[role] : null,
-      login,
-      logout,
-      switchRole: login,
+      profile: DEMO_MODE ? (role ? DEMO_PROFILES[role] : null) : profile,
+      loading, login, logout, switchRole: login,
+      signIn: async (email, password, siteId) => {
+        const result = await request<{profile: SessionProfile}>("/api/v1/auth/login", {
+          method: "POST", body: JSON.stringify({email, password, ...(siteId ? {site_id: siteId} : {})}),
+        });
+        setProfile(result.profile);
+        return result.profile;
+      },
     };
-  }, [role]);
-
-  return (
-    <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
-  );
+  }, [role, profile, loading]);
+  return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 
 export function useSession(): SessionContextValue {

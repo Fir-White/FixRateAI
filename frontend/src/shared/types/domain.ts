@@ -1,6 +1,6 @@
 export type Role = "admin" | "dispatcher" | "engineer" | "executor";
 
-export type DataOrigin = "customer" | "synthetic_demo";
+export type DataOrigin = "customer" | "synthetic_demo" | null;
 
 export interface SessionProfile {
   userId: string;
@@ -32,7 +32,7 @@ export interface Equipment {
 
 export interface ServiceHistoryItem {
   id: string;
-  equipmentId: string;
+  equipmentId: string | null;
   performedAt: string;
   acceptedAt: string;
   operation: string;
@@ -62,16 +62,16 @@ export interface MaintenanceTask {
   id: string;
   code: string;
   title: string;
-  equipmentId: string;
+  equipmentId: string | null;
   equipmentName: string;
   operationCode: string;
-  maintenanceType: MaintenanceType;
+  maintenanceType: MaintenanceType | null;
   state: TaskState;
   isOverdue: boolean;
   deadlineBreached: boolean;
-  mandatoryDueDate: string;
-  scheduledStart: string;
-  scheduledEnd: string;
+  mandatoryDueDate: string | null;
+  scheduledStart: string | null;
+  scheduledEnd: string | null;
   crewSize: number;
   assignees: Assignee[];
   activeExecutionId: string | null;
@@ -83,11 +83,11 @@ export interface MaintenanceTask {
 export interface CalendarOccurrence {
   id: string;
   occurrenceDate: string;
-  equipmentId: string;
+  equipmentId: string | null;
   equipmentName: string;
   operationCode: string;
   operationTitle: string;
-  maintenanceType: MaintenanceType;
+  maintenanceType: MaintenanceType | null;
   status: "draft" | "planned" | "fulfilled" | "cancelled";
   isOverdue: boolean;
   requiresInput: boolean;
@@ -111,10 +111,11 @@ export interface ChecklistItem {
 
 export interface EvidencePhoto {
   id: string;
-  phase: "before" | "after";
+  phase: "before" | "after" | "issue" | "other";
+  url?: string;
   viewKey: string;
   label: string;
-  capturedAt: string;
+  capturedAt: string | null;
   uploadedAt: string;
   checklistItemId: string;
   status: "uploaded" | "processing" | "rejected";
@@ -166,7 +167,7 @@ export interface ComparisonRun {
   horizonEnd: string;
   earliestDate: string | null;
   mandatoryDueDate: string | null;
-  equipmentId: string;
+  equipmentId: string | null;
   equipmentName: string;
   operationTitle: string;
   dataOrigin: DataOrigin;
@@ -200,7 +201,7 @@ export interface PhotoReview {
   id: string;
   executionId: string;
   status: PhotoReviewStatus;
-  modelRef: string;
+  modelRef: string | null;
   promptSetVersion: string;
   createdAt: string;
   items: PhotoReviewItem[];
