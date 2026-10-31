@@ -13,6 +13,7 @@ import { Callout } from "@/shared/ui/Callout";
 import { StatCard } from "@/widgets/StatCard";
 import { Icon } from "@/shared/ui/Icon";
 import type { CalendarOccurrence } from "@/shared/types/domain";
+import { taskPathForRole } from "@/shared/lib/roles";
 
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
@@ -216,6 +217,8 @@ export function CalendarPage() {
 }
 
 function OccurrenceChip({ occurrence }: { occurrence: CalendarOccurrence }) {
+  const { profile } = useSession();
+  const taskPath = occurrence.taskId ? taskPathForRole(profile?.role, occurrence.taskId) : null;
   const tone = occurrence.isOverdue
     ? "border-rose-400/25 bg-rose-400/10 text-rose-200"
     : occurrence.status === "fulfilled"
@@ -231,10 +234,10 @@ function OccurrenceChip({ occurrence }: { occurrence: CalendarOccurrence }) {
     </span>
   );
 
-  if (occurrence.taskId) {
+  if (taskPath) {
     return (
       <Link
-        to={`/tasks/${occurrence.taskId}`}
+        to={taskPath}
         className="block rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
         {content}

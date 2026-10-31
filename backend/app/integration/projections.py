@@ -56,7 +56,8 @@ class Views:
         typ = self.session.get(self.models["equipment_types"], item.equipment_type_id) if item.equipment_type_id else None
         bindings = self.rows("rule_equipment", equipment_id=item.equipment_id)
         entries = [e for e in self.rows("schedule_entries") if any(b.binding_id == e.binding_id for b in bindings)
-                   and e.status == "planned"]
+                   and e.status == "planned" and not any(o.status in ("completed", "cancelled")
+                       for o in self.rows("work_orders", schedule_entry_id=e.schedule_entry_id))]
         history = self.history(item.equipment_id)
         return dict(id=str(item.equipment_id), siteId=str(item.site_id), siteName=site.name,
                     equipmentType=typ.name if typ else "Не указан", inventoryCode=item.asset_code,
@@ -158,7 +159,24 @@ class Views:
                 reason=decision.comment or "", decidedAt=iso(decision.reviewed_at), decidedBy=reviewer.full_name)
         checks = self.rows("ai_quality_checks", work_report_id=report.work_report_id) if report else []
         review = max(checks, key=lambda c: c.created_at).findings.get("ui") if checks else None
-        return dict(task=task, execution=self.report_view(report) if report else None, review=review, decision=decision_view)
+        actions = []
+        role = self.principal.role
+        if role in ("dispatcher", "engineer"):
+            actions.append("forecast")
+        if role == "executor":
+            # bundle is only called after task() has checked the active assignment.
+            if order.status in ("assigned", "rework") and order.operation_snapshot.get("checklist"):
+                actions.append("start")
+            if (order.status == "in_progress" and report and report.status == "draft"
+                    and report.submitted_by == self.principal.user_id):
+                actions.extend(("edit_report", "upload_photo", "submit"))
+        if role == "engineer" and order.status == "in_review" and report and report.status == "submitted":
+            actions.append("photo_review")
+            if report.submitted_by != self.principal.user_id and not any(
+                    a.user_id == self.principal.user_id for a in self.rows("work_assignments", work_order_id=order.work_order_id)):
+                actions.append("review")
+        return dict(task=task, execution=self.report_view(report) if report else None, review=review,
+                    decision=decision_view, allowedActions=actions)
 
     def calendar(self, year, month):
         today = datetime.now(ZoneInfo(self.principal.timezone)).date()
@@ -182,11 +200,12 @@ class Views:
                 typ = self.session.get(self.models["maintenance_types"], rule.operation.maintenance_type_id)
                 kind = typ.name if typ.name in ("ТО1", "ТО2") else None
             done = bool(orders and orders[0].status == "completed")
+            cancelled = entry.status != "planned" or bool(orders and orders[0].status == "cancelled")
             items.append(dict(id=str(entry.schedule_entry_id), occurrenceDate=iso(entry.planned_date),
                 equipmentId=str(eq.equipment_id) if eq else None, equipmentName=eq.name if eq else "Не указано",
                 operationCode=rule.operation.code, operationTitle=rule.operation.title, maintenanceType=kind,
-                status="fulfilled" if done else "cancelled" if entry.status != "planned" else "planned",
-                isOverdue=entry.regulatory_deadline_on < today and not done and entry.status == "planned",
+                status="fulfilled" if done else "cancelled" if cancelled else "planned",
+                isOverdue=entry.regulatory_deadline_on < today and not done and not cancelled,
                 requiresInput=rule.publication_status != "published" or not binding,
                 taskId=str(orders[0].work_order_id) if orders else None))
         return items

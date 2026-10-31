@@ -1,5 +1,24 @@
 import type { Role } from "@/shared/types/domain";
 
+export const SECTION_ROLES: Record<string, Role[]> = {
+  dispatcher: ["admin", "dispatcher"],
+  equipment: ["admin", "dispatcher", "engineer", "executor"],
+  calendar: ["dispatcher", "engineer", "executor"],
+  tasks: ["dispatcher", "engineer"],
+  comparisons: ["dispatcher", "engineer"],
+  quality: ["engineer"],
+  executor: ["executor"],
+};
+
+export function canOpenSection(role: Role | undefined, section: string): boolean {
+  return !!role && !!SECTION_ROLES[section]?.includes(role);
+}
+
+export function taskPathForRole(role: Role | undefined, taskId: string): string | null {
+  if (role === "executor") return `/executor/tasks/${taskId}`;
+  return canOpenSection(role, "tasks") ? `/tasks/${taskId}` : null;
+}
+
 export const ROLE_LABELS: Record<Role, string> = {
   admin: "Администратор",
   dispatcher: "Диспетчер",

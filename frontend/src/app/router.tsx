@@ -17,6 +17,7 @@ import { ExecutorTaskPage } from "@/pages/ExecutorTaskPage";
 import { QualityPage } from "@/pages/QualityPage";
 import { QualityTaskPage } from "@/pages/QualityTaskPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
+import { SECTION_ROLES } from "@/shared/lib/roles";
 
 export function AppRouter() {
   return (
@@ -30,7 +31,7 @@ export function AppRouter() {
           <Route
             path="/dispatcher"
             element={
-              <RequireRole roles={["admin", "dispatcher"]}>
+              <RequireRole roles={SECTION_ROLES.dispatcher}>
                 <DispatcherPage />
               </RequireRole>
             }
@@ -40,7 +41,7 @@ export function AppRouter() {
           <Route
             path="/calendar"
             element={
-              <RequireRole roles={["dispatcher", "engineer", "executor"]}>
+              <RequireRole roles={SECTION_ROLES.calendar}>
                 <CalendarPage />
               </RequireRole>
             }
@@ -48,7 +49,7 @@ export function AppRouter() {
           <Route
             path="/tasks"
             element={
-              <RequireRole roles={["dispatcher", "engineer"]}>
+              <RequireRole roles={SECTION_ROLES.tasks}>
                 <TasksPage />
               </RequireRole>
             }
@@ -56,7 +57,7 @@ export function AppRouter() {
           <Route
             path="/tasks/:taskId"
             element={
-              <RequireRole roles={["dispatcher", "engineer"]}>
+              <RequireRole roles={SECTION_ROLES.tasks}>
                 <TaskDetailPage />
               </RequireRole>
             }
@@ -64,7 +65,7 @@ export function AppRouter() {
           <Route
             path="/comparisons"
             element={
-              <RequireRole roles={["dispatcher", "engineer"]}>
+              <RequireRole roles={SECTION_ROLES.comparisons}>
                 <ComparisonsPage />
               </RequireRole>
             }
@@ -72,7 +73,7 @@ export function AppRouter() {
           <Route
             path="/comparisons/:runId"
             element={
-              <RequireRole roles={["dispatcher", "engineer"]}>
+              <RequireRole roles={SECTION_ROLES.comparisons}>
                 <ComparisonDetailPage />
               </RequireRole>
             }
@@ -80,7 +81,7 @@ export function AppRouter() {
           <Route
             path="/quality"
             element={
-              <RequireRole roles={["engineer"]}>
+              <RequireRole roles={SECTION_ROLES.quality}>
                 <QualityPage />
               </RequireRole>
             }
@@ -88,7 +89,7 @@ export function AppRouter() {
           <Route
             path="/quality/:taskId"
             element={
-              <RequireRole roles={["engineer"]}>
+              <RequireRole roles={SECTION_ROLES.quality}>
                 <QualityTaskPage />
               </RequireRole>
             }
@@ -98,7 +99,7 @@ export function AppRouter() {
         <Route
           path="/executor"
           element={
-            <RequireRole roles={["executor"]}>
+            <RequireRole roles={SECTION_ROLES.executor}>
               <ExecutorLayout />
             </RequireRole>
           }

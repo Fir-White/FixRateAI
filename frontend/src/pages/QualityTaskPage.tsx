@@ -1,5 +1,5 @@
 import { DEMO_MODE } from "@/shared/api/request";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
@@ -38,6 +38,16 @@ export function QualityTaskPage() {
     () => maintenanceApi.getQualityBundle(taskId),
     [taskId, refresh],
   );
+  const executionId = query.data?.execution?.id;
+  const decisionContext = useRef("");
+  useEffect(() => {
+    if (!executionId || decisionContext.current === `${taskId}:${executionId}`) return;
+    decisionContext.current = `${taskId}:${executionId}`;
+    setConfirmed(false);
+    setReason("");
+    setPendingDecision(null);
+    setNotice(null);
+  }, [taskId, executionId]);
 
   if (query.status === "loading") {
     return <LoadingState label="Загрузка отчёта на приёмку" />;
@@ -57,6 +67,8 @@ export function QualityTaskPage() {
   }
 
   const { task, execution, review, decision } = query.data;
+  const canReview = DEMO_MODE ? task.state === "submitted" : !!query.data.allowedActions?.includes("review");
+  const canAnalyze = !DEMO_MODE && !!query.data.allowedActions?.includes("photo_review");
 
   const handleDecision = async (verdict: "accepted" | "rejected") => {
     setPendingDecision(null);
@@ -98,7 +110,7 @@ export function QualityTaskPage() {
         </span>
       </div>
 
-      {!DEMO_MODE && task.state === "submitted" && <div className="space-y-3 rounded-xl border border-line p-4">
+      {canAnalyze && <div className="space-y-3 rounded-xl border border-line p-4">
         <label className="block text-sm"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /> Подтверждаю, что фото показывают тот же объект и сопоставимый ракурс</label>
         <Button variant="secondary" disabled={busy} onClick={async () => {
           setBusy(true); setNotice(null);
@@ -254,7 +266,7 @@ export function QualityTaskPage() {
 
               <div className="mt-4 grid gap-2">
                 <Button
-                  disabled={!reason.trim() || busy || task.state !== "submitted"}
+                  disabled={!reason.trim() || busy || !canReview}
                   onClick={() => setPendingDecision("accepted")}
                 >
                   <Icon name="check" size={18} />
@@ -262,13 +274,14 @@ export function QualityTaskPage() {
                 </Button>
                 <Button
                   variant="danger"
-                  disabled={!reason.trim() || busy || task.state !== "submitted"}
+                  disabled={!reason.trim() || busy || !canReview}
                   onClick={() => setPendingDecision("rejected")}
                 >
                   <Icon name="alert" size={18} />
                   Вернуть на доработку
                 </Button>
               </div>
+              {!DEMO_MODE && task.state === "submitted" && !canReview && <Callout tone="warning" className="mt-3 text-xs">Собственную работу должен проверить другой инженер.</Callout>}
             </div>
           </Card>
 

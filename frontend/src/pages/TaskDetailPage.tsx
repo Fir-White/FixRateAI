@@ -4,6 +4,7 @@ import { DEMO_MODE } from "@/shared/api/request";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
+import { canOpenSection } from "@/shared/lib/roles";
 import { formatDate, formatDateTime } from "@/shared/lib/format";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Card, CardHeader } from "@/shared/ui/Card";
@@ -48,6 +49,7 @@ export function TaskDetailPage() {
   }
 
   const { task, execution, review, decision } = query.data;
+  const canOpenQuality = canOpenSection(profile?.role, "quality");
 
   return (
     <div className="space-y-6">
@@ -65,13 +67,13 @@ export function TaskDetailPage() {
         description={task.summary}
         actions={
           <>
-            {!DEMO_MODE && (profile?.role === "dispatcher" || profile?.role === "engineer") && <Button variant="secondary" disabled={busy} onClick={async () => {
+            {!DEMO_MODE && query.data.allowedActions?.includes("forecast") && <Button variant="secondary" disabled={busy} onClick={async () => {
               setBusy(true); setNotice("");
               try { const result = await maintenanceApi.forecast(task.id, task.revision); navigate(`/comparisons/${result.run.runId}`); }
               catch (error) { setNotice(error instanceof Error ? error.message : "Ошибка прогноза"); }
               finally { setBusy(false); }
             }}>Сравнить прогнозы</Button>}
-            {task.state === "submitted" ? (
+            {task.state === "submitted" && canOpenQuality ? (
               <Link
                 to={`/quality/${task.id}`}
                 className={buttonClassName("primary")}
@@ -79,8 +81,8 @@ export function TaskDetailPage() {
                 Перейти к приёмке
               </Link>
             ) : null}
-            {task.state === "draft" ? (
-              <Button disabled title="Назначение станет доступно после подключения API">
+            {task.state === "draft" && profile?.role === "dispatcher" ? (
+              <Button disabled title="Сервис назначения бригады пока не реализован">
                 Назначить бригаду
               </Button>
             ) : null}
@@ -103,8 +105,8 @@ export function TaskDetailPage() {
 
       {task.isOverdue ? (
         <Callout tone="danger" title="Просрочено.">
-          Текущий статус сохранён, но обязательный срок нарушен. Обычное
-          закрытие требует резолюции главного инженера.
+          Обязательный срок прошёл. Задание сохраняет текущий статус;
+          работа требует внимания диспетчера и инженера.
         </Callout>
       ) : null}
 
@@ -144,12 +146,12 @@ export function TaskDetailPage() {
                     : "Черновик отчёта исполнителя"
                 }
                 action={
-                  <Link
+                  canOpenQuality ? <Link
                     to={`/quality/${task.id}`}
                     className="text-sm font-semibold text-accent"
                   >
                     Фото и проверка
-                  </Link>
+                  </Link> : null
                 }
               />
               <div className="p-5 sm:p-6">
@@ -201,12 +203,12 @@ export function TaskDetailPage() {
                 <p className="mt-1 text-xs text-muted">
                   Prompt set {review.promptSetVersion}
                 </p>
-                <Link
+                {canOpenQuality && <Link
                   to={`/quality/${task.id}`}
                   className={buttonClassName("secondary", "sm", "mt-4 w-full")}
                 >
                   Открыть заключение
-                </Link>
+                </Link>}
               </div>
             </Card>
           ) : null}

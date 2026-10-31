@@ -16,6 +16,7 @@ import {
   TaskStateBadge,
 } from "@/shared/ui/StatusBadge";
 import type { MaintenanceTask } from "@/shared/types/domain";
+import { canOpenSection, taskPathForRole } from "@/shared/lib/roles";
 
 export function DispatcherPage() {
   const { profile } = useSession();
@@ -50,7 +51,10 @@ export function DispatcherPage() {
     (task) => task.mandatoryDueDate === today && task.state !== "accepted",
   );
   const latestRun = comparisons[0];
-  const attention = [...overdue, ...onReview];
+  const attention = tasks.filter(task => overdue.includes(task) || onReview.includes(task));
+  const canOpenTasks = canOpenSection(profile?.role, "tasks");
+  const canOpenCalendar = canOpenSection(profile?.role, "calendar");
+  const canOpenComparisons = canOpenSection(profile?.role, "comparisons");
 
   return (
     <div className="space-y-6">
@@ -60,12 +64,12 @@ export function DispatcherPage() {
         description="Просрочки, нераспределённые работы и задания, ожидающие решения. Обзор не заменяет рабочие разделы."
         actions={
           <>
-            <Link to="/tasks" className={buttonClassName("primary")}>
+            {canOpenTasks && <Link to="/tasks" className={buttonClassName("primary")}>
               Очередь заданий
-            </Link>
-            <Link to="/calendar" className={buttonClassName("secondary")}>
+            </Link>}
+            {canOpenCalendar && <Link to="/calendar" className={buttonClassName("secondary")}>
               Календарь ТО
-            </Link>
+            </Link>}
           </>
         }
       />
@@ -108,12 +112,12 @@ export function DispatcherPage() {
               title="Требуют внимания"
               description="Просроченные задания и отчёты на проверке"
               action={
-                <Link
+                canOpenTasks ? <Link
                   to="/tasks"
                   className="text-sm font-semibold text-accent hover:text-accent"
                 >
                   Все задания
-                </Link>
+                </Link> : null
               }
             />
             {attention.length ? (
@@ -133,8 +137,8 @@ export function DispatcherPage() {
 
           <Card>
             <CardHeader
-              title="Задания на 30 октября"
-              description="Срок задания — локальные сутки объекта Asia/Yekaterinburg"
+              title={`Задания на ${formatDate(today)}`}
+              description={`Срок задания — локальные сутки объекта ${profile?.timezone}`}
             />
             {todayTasks.length ? (
               <ul className="divide-y divide-line">
@@ -164,13 +168,13 @@ export function DispatcherPage() {
                   Для правила 1/квартал не подтверждены basis и anchor. Пять дат
                   годового ТО не выдумываются.
                 </p>
-                <Link
+                {canOpenCalendar && <Link
                   to="/calendar"
                   className="mt-2 inline-flex items-center gap-1 text-xs font-semibold hover:underline"
                 >
                   Открыть календарь
                   <Icon name="chevron" size={14} />
-                </Link>
+                </Link>}
               </Callout>
               <Callout tone="neutral" title="Нормо-часы не подтверждены">
                 <p className="text-xs leading-5">
@@ -222,12 +226,12 @@ export function DispatcherPage() {
                     </p>
                   </div>
                 </div>
-                <Link
+                {canOpenComparisons && <Link
                   to={`/comparisons/${latestRun.runId}`}
                   className={buttonClassName("secondary", "sm", "mt-4 w-full")}
                 >
                   Открыть решение
-                </Link>
+                </Link>}
               </div>
             </Card>
           ) : null}
@@ -238,16 +242,18 @@ export function DispatcherPage() {
 }
 
 function TaskAttentionRow({ task }: { task: MaintenanceTask }) {
+  const { profile } = useSession();
+  const path = taskPathForRole(profile?.role, task.id);
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <Link
-            to={`/tasks/${task.id}`}
+          {path ? <Link
+            to={path}
             className="font-semibold text-ink hover:text-accent"
           >
             {task.title}
-          </Link>
+          </Link> : <span className="font-semibold text-ink">{task.title}</span>}
           {task.isOverdue ? <OverdueBadge /> : null}
         </div>
         <p className="mt-1 text-xs text-muted">

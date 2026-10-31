@@ -50,7 +50,7 @@ const DEMO_PROFILES: Record<Role, SessionProfile> = {
 interface SessionContextValue {
   profile: SessionProfile | null;
   login: (role: Role) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   switchRole: (role: Role) => void;
   loading: boolean;
   signIn: (email: string, password: string, siteId?: string) => Promise<SessionProfile>;
@@ -94,9 +94,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       window.localStorage.setItem(STORAGE_KEY, nextRole);
       setRole(nextRole);
     };
-    const logout = () => {
+    const logout = async () => {
       if (DEMO_MODE) { window.localStorage.removeItem(STORAGE_KEY); setRole(null); }
-      else { void request("/api/v1/auth/logout", {method: "POST"}).then(() => setProfile(null)); }
+      else { await request("/api/v1/auth/logout", {method: "POST"}); setProfile(null); }
     };
     return {
       profile: DEMO_MODE ? (role ? DEMO_PROFILES[role] : null) : profile,

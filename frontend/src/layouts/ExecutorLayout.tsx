@@ -1,4 +1,5 @@
 import { DEMO_MODE } from "@/shared/api/request";
+import { useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { BrandLockup } from "@/shared/ui/Brand";
 import { IconButton } from "@/shared/ui/Button";
@@ -20,6 +21,7 @@ const BOTTOM_NAV: { to: string; label: string; icon: IconName; end?: boolean }[]
 export function ExecutorLayout() {
   const { profile, logout, switchRole } = useSession();
   const navigate = useNavigate();
+  const [logoutError, setLogoutError] = useState("");
 
   if (!profile) {
     return null;
@@ -30,13 +32,15 @@ export function ExecutorLayout() {
     navigate(homePathForRole(role));
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
+  const handleLogout = async () => {
+    setLogoutError("");
+    try { await logout(); navigate("/login"); }
+    catch (error) { setLogoutError(error instanceof Error ? error.message : "Не удалось выйти"); }
   };
 
   return (
     <div className="app-backdrop min-h-screen pb-28 text-ink">
+      {logoutError && <p role="alert" className="rounded-xl bg-surface p-4 text-rose-200">{logoutError}</p>}
       <a
         href="#executor-content"
         className="sr-only z-[60] rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-canvas focus:not-sr-only focus:fixed focus:top-3 focus:left-3"

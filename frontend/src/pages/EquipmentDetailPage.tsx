@@ -9,12 +9,17 @@ import { buttonClassName } from "@/shared/ui/Button";
 import { Callout } from "@/shared/ui/Callout";
 import { InfoItem, InfoList } from "@/shared/ui/InfoList";
 import { Icon } from "@/shared/ui/Icon";
+import { useSession } from "@/shared/session/SessionContext";
+import { canOpenSection } from "@/shared/lib/roles";
 import {
   EquipmentStateBadge,
   OriginBadge,
 } from "@/shared/ui/StatusBadge";
 
 export function EquipmentDetailPage() {
+  const { profile } = useSession();
+  const canCompare = canOpenSection(profile?.role, "comparisons");
+  const tasksPath = profile?.role === "executor" ? "/executor" : canOpenSection(profile?.role, "tasks") ? "/tasks" : null;
   const { equipmentId = "" } = useParams();
   const query = useApiQuery(
     () => maintenanceApi.getEquipment(equipmentId),
@@ -56,15 +61,15 @@ export function EquipmentDetailPage() {
         description={`${equipment.equipmentType} · ${equipment.location}`}
         actions={
           <>
-            <Link
+            {canCompare && <Link
               to="/comparisons"
               className={buttonClassName("secondary")}
             >
               Сравнить прогнозы
-            </Link>
-            <Link to="/tasks" className={buttonClassName("primary")}>
-              Задания оборудования
-            </Link>
+            </Link>}
+            {tasksPath && <Link to={tasksPath} className={buttonClassName("primary")}>
+              {profile?.role === "executor" ? "Мои задания" : "Очередь заданий"}
+            </Link>}
           </>
         }
       />
@@ -121,7 +126,7 @@ export function EquipmentDetailPage() {
                         {event.operation}
                       </p>
                       <p className="mt-1 text-xs text-muted">
-                        {event.taskCode} · выполнил {event.engineer} ·{" "}
+                        {event.taskCode} · проверил {event.engineer} ·{" "}
                         {formatDateTime(event.performedAt)}
                       </p>
                       <p className="mt-1 text-xs text-muted/60">
@@ -162,20 +167,21 @@ export function EquipmentDetailPage() {
           <Card>
             <CardHeader title="Связи" />
             <div className="space-y-2 p-5 sm:p-6">
-              <Link
+              {canCompare && <Link
                 to="/comparisons"
                 className="flex items-center justify-between rounded-xl border border-line p-3 text-sm font-semibold text-ink-soft hover:border-accent/40 hover:bg-accent/[0.07]"
               >
                 Прогнозы оборудования
                 <Icon name="chevron" size={16} />
-              </Link>
-              <Link
-                to="/tasks"
+              </Link>}
+              {tasksPath && <Link
+                to={tasksPath}
                 className="flex items-center justify-between rounded-xl border border-line p-3 text-sm font-semibold text-ink-soft hover:border-accent/40 hover:bg-accent/[0.07]"
               >
-                Задания и назначения
+                {profile?.role === "executor" ? "Мои задания" : "Задания и назначения"}
                 <Icon name="chevron" size={16} />
-              </Link>
+              </Link>}
+              {!canCompare && !tasksPath && <p className="text-sm text-muted">Рабочие разделы доступны по роли диспетчера, инженера или исполнителя.</p>}
             </div>
           </Card>
         </div>

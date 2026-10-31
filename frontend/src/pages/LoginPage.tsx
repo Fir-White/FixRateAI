@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DEMO_MODE } from "@/shared/api/request";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useSession } from "@/shared/session/SessionContext";
 import {
   ROLE_DESCRIPTIONS,
@@ -28,9 +28,12 @@ export function LoginPage() {
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from;
+  const destination = (role: Role) => typeof from === "string" && from.startsWith("/") && !from.startsWith("//") && from.split(/[?#]/)[0] !== "/login" ? from : homePathForRole(role);
 
   if (profile) {
-    return <Navigate to={homePathForRole(profile.role)} replace />;
+    return <Navigate to={destination(profile.role)} replace />;
   }
 
   if (loading) return <p role="status">Загрузка сессии…</p>;
@@ -38,7 +41,7 @@ export function LoginPage() {
     <main className="app-backdrop grid min-h-screen place-items-center p-6">
       <form className="w-full max-w-md space-y-4 rounded-2xl border border-line bg-surface p-8" onSubmit={async event => {
         event.preventDefault(); setPending(true); setError("");
-        try { const user = await signIn(email, password, siteId); navigate(homePathForRole(user.role), {replace: true}); }
+        try { const user = await signIn(email, password, siteId); navigate(destination(user.role), {replace: true}); }
         catch (failure) { setError(failure instanceof Error ? failure.message : "Ошибка входа"); }
         finally { setPending(false); }
       }}>
@@ -55,7 +58,7 @@ export function LoginPage() {
 
   const handleLogin = (role: Role) => {
     login(role);
-    navigate(homePathForRole(role), { replace: true });
+    navigate(destination(role), { replace: true });
   };
 
   return (

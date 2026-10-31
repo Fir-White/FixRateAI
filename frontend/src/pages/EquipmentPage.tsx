@@ -10,10 +10,13 @@ import { FormField, Input, Select } from "@/shared/ui/Form";
 import { Icon } from "@/shared/ui/Icon";
 import { EquipmentTable } from "@/entities/equipment/EquipmentTable";
 import type { EquipmentState } from "@/shared/types/domain";
+import { useSession } from "@/shared/session/SessionContext";
+import { canOpenSection } from "@/shared/lib/roles";
 
 type StateFilter = "all" | EquipmentState;
 
 export function EquipmentPage() {
+  const { profile } = useSession();
   const query = useApiQuery(() => maintenanceApi.listEquipment(), []);
   const [search, setSearch] = useState("");
   const [stateFilter, setStateFilter] = useState<StateFilter>("all");
@@ -44,13 +47,13 @@ export function EquipmentPage() {
         description="Единицы оборудования в пределах доступного объекта. Инвентарный номер уникален внутри Site."
         actions={
           <>
-            <Button variant="secondary" disabled title="API создания ещё не подключён">
+            {(profile?.role === "admin" || profile?.role === "dispatcher") && <Button variant="secondary" disabled title="Сервис создания оборудования пока не реализован">
               <Icon name="plus" size={18} />
               Добавить
-            </Button>
-            <Link to="/calendar" className={buttonClassName("primary")}>
+            </Button>}
+            {canOpenSection(profile?.role, "calendar") && <Link to="/calendar" className={buttonClassName("primary")}>
               Календарь ТО
-            </Link>
+            </Link>}
           </>
         }
       />

@@ -9,6 +9,8 @@ import { buttonClassName } from "@/shared/ui/Button";
 import { FilterChip } from "@/shared/ui/FilterChip";
 import { TaskTable } from "@/entities/task/TaskTable";
 import type { MaintenanceTask, TaskState } from "@/shared/types/domain";
+import { useSession } from "@/shared/session/SessionContext";
+import { canOpenSection } from "@/shared/lib/roles";
 
 type TaskFilter = "all" | "attention" | TaskState;
 
@@ -34,6 +36,7 @@ function matchesFilter(task: MaintenanceTask, filter: TaskFilter): boolean {
 }
 
 export function TasksPage() {
+  const { profile } = useSession();
   const query = useApiQuery(() => maintenanceApi.listTasks(), []);
   const [filter, setFilter] = useState<TaskFilter>("all");
 
@@ -55,9 +58,9 @@ export function TasksPage() {
             <Link to="/calendar" className={buttonClassName("secondary")}>
               Календарь
             </Link>
-            <Link to="/quality" className={buttonClassName("primary")}>
+            {canOpenSection(profile?.role, "quality") && <Link to="/quality" className={buttonClassName("primary")}>
               На приёмку
-            </Link>
+            </Link>}
           </>
         }
       />

@@ -43,6 +43,8 @@ npm --prefix frontend run build
 
 Команда создаёт **собственный временный кластер PostgreSQL**, прогоняет исходные SQL/ORM/QA/ML тесты, миграции новой и заполненной базы, HTTP-процесс, сборку и UI-тесты, затем запускает реальную SPA в Chrome. Рабочий `DATABASE_URL` не используется. Подробности, включая путь к PostgreSQL и запуск без Chrome: [SYSTEM_OVERVIEW](docs/SYSTEM_OVERVIEW.md#проверки).
 
+Матрица доступа, переходы заданий, результаты проверки и ещё не реализованные действия: [ROLE_WORKFLOW_AUDIT](docs/ROLE_WORKFLOW_AUDIT.md).
+
 ## Сохранённые предметные материалы
 
 - [Архитектура и контракты maintenance-0.1](docs/architecture/README.md), [домен и сценарии](docs/domain/README.md), [матрица P0](tests/p0_scenarios.md).

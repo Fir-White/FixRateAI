@@ -94,6 +94,7 @@ export function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
   const menuRef = useDialogFocus<HTMLElement>(menuOpen, () =>
     setMenuOpen(false),
   );
@@ -120,13 +121,15 @@ export function AppShell() {
     navigate(homePathForRole(role));
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
+  const handleLogout = async () => {
+    setLogoutError("");
+    try { await logout(); navigate("/login"); }
+    catch (error) { setLogoutError(error instanceof Error ? error.message : "Не удалось выйти"); }
   };
 
   return (
     <div className="app-backdrop min-h-screen text-ink">
+      {logoutError && <p role="alert" className="fixed top-2 left-1/2 z-[70] rounded-xl bg-surface p-4 text-rose-200">{logoutError}</p>}
       <a
         href="#main-content"
         className="sr-only z-[60] rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-canvas focus:not-sr-only focus:fixed focus:top-3 focus:left-3"

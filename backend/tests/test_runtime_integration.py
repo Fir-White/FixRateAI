@@ -79,6 +79,9 @@ def test_real_http_role_matrix(runtime, role, equipment_code, quality_code):
         assert client.get(PREFIX + "/ui/equipment").status_code == equipment_code
         assert client.get(PREFIX + "/ui/quality").status_code == quality_code
         assert client.get(PREFIX + "/ui/tasks").status_code == 200
+        assert client.get(PREFIX + f"/ui/tasks/{TASK}").status_code == 200
+        assert client.get(PREFIX + "/ui/calendar?year=2026&month=10").status_code == (403 if role == "admin" else 200)
+        assert client.get(PREFIX + "/ui/comparisons").status_code == (403 if role == "executor" else 200)
         if role != "executor":
             assert client.post(PREFIX + f"/tasks/{TASK}/start", json={"expected_revision": 1}).status_code == 403
         if role != "engineer":
@@ -192,11 +195,13 @@ def test_execution_photo_rework_acceptance_preserves_attempts(runtime):
     engine, app = runtime
     executor, engineer = login(app, "executor"), login(app, "engineer")
     task = executor.get(PREFIX+f"/ui/tasks/{TASK}").json()["task"]
+    assert executor.get(PREFIX+f"/ui/tasks/{TASK}").json()["allowedActions"] == ["start"]
     assert executor.post(PREFIX+f"/tasks/{TASK}/start", json={"expected_revision": task["revision"]},
                          headers={"X-CSRF-Token": "invalid"}).status_code == 403
     response = executor.post(PREFIX+f"/tasks/{TASK}/start", json={"expected_revision": task["revision"]})
     assert response.status_code == 200, response.text
     bundle = response.json()
+    assert set(bundle["allowedActions"]) == {"edit_report", "upload_photo", "submit"}
     first_report = bundle["execution"]["id"]
     assert executor.post(PREFIX+f"/tasks/{TASK}/start", json={"expected_revision": task["revision"]}).status_code == 409
     photo_ids = []
@@ -245,6 +250,7 @@ def test_execution_photo_rework_acceptance_preserves_attempts(runtime):
         with engine.begin() as conn:
             conn.execute(text("UPDATE site_memberships SET role='engineer' WHERE user_id=:id"), {"id": demo_id("user-1")})
         try:
+            assert "review" not in executor.get(PREFIX+f"/ui/tasks/{TASK}").json()["allowedActions"]
             assert executor.post(PREFIX+f"/tasks/{TASK}/review", json=review).status_code == 403
         finally:
             with engine.begin() as conn:
@@ -254,11 +260,15 @@ def test_execution_photo_rework_acceptance_preserves_attempts(runtime):
         bundle = response.json()
         if attempt == 1:
             assert bundle["task"]["state"] == "rework_required"
+            assert "review" not in bundle["allowedActions"]
+            assert executor.get(PREFIX+f"/ui/tasks/{TASK}").json()["allowedActions"] == ["start"]
             response = executor.post(PREFIX+f"/tasks/{TASK}/start", json={"expected_revision": bundle["task"]["revision"]})
             assert response.status_code == 200, response.text
             bundle = response.json()
             assert bundle["execution"]["id"] != first_report
     assert bundle["task"]["state"] == "accepted"
+    assert bundle["allowedActions"] == ["forecast"]
+    assert executor.get(PREFIX+f"/ui/tasks/{TASK}").json()["allowedActions"] == []
     assert engineer.post(PREFIX+f"/tasks/{TASK}/review", json=review).status_code == 409
     assert all(executor.get(PREFIX+f"/photos/{identity}").status_code == 200 for identity in photo_ids)
     with engine.connect() as conn:
@@ -268,5 +278,95 @@ def test_execution_photo_rework_acceptance_preserves_attempts(runtime):
         assert conn.scalar(text("SELECT count(*) FROM audit_events WHERE entity_id=:id AND actor_type='user'"), {"id": UUID(TASK)}) >= 10
     history = engineer.get(PREFIX+f"/ui/equipment/{demo_id('equipment-2')}").json()["history"]
     assert len(history) == 1
+    assert engineer.get(PREFIX+f"/ui/equipment/{demo_id('equipment-2')}").json()["equipment"]["nextDueDate"] is None
     executor.close()
     engineer.close()
+
+
+def isolated_order(engine, state, *, report_author=None):
+    """Independent workflow fixture; never alters the shared end-to-end task."""
+    order, report = uuid4(), uuid4()
+    with engine.begin() as conn:
+        snapshot = conn.scalar(text("SELECT operation_snapshot FROM work_orders WHERE work_order_id=:id"), {"id": UUID(TASK)})
+        conn.execute(text("""INSERT INTO work_orders(work_order_id,site_id,system_id,origin,status,
+            required_people_snapshot,norm_hours_snapshot,operation_snapshot)
+            VALUES (:id,:site,:system,'manual',:state,1,1,CAST(:snapshot AS jsonb))"""),
+            dict(id=order, site=demo_id("site"), system=demo_id("system"), state=state, snapshot=json.dumps(snapshot)))
+        conn.execute(text("""INSERT INTO work_order_equipment(site_id,system_id,work_order_id,equipment_id)
+            VALUES (:site,:system,:task,:equipment)"""), dict(site=demo_id("site"), system=demo_id("system"), task=order, equipment=demo_id("equipment-2")))
+        conn.execute(text("""INSERT INTO work_assignments(site_id,work_order_id,user_id,assigned_by)
+            VALUES (:site,:task,:user,:dispatcher)"""), dict(site=demo_id("site"), task=order, user=demo_id("user-1"), dispatcher=demo_id("dispatcher")))
+        if state in ("in_progress", "in_review", "rework", "completed"):
+            conn.execute(text("""INSERT INTO work_reports(work_report_id,site_id,work_order_id,submitted_by,status,
+                checklist_snapshot,submitted_at) VALUES (:id,:site,:task,:author,:status,CAST(:checklist AS jsonb),
+                CASE WHEN :status='draft' THEN NULL ELSE now() END)"""), dict(id=report, site=demo_id("site"), task=order,
+                    author=report_author or demo_id("user-1"), status="draft" if state == "in_progress" else "submitted" if state == "in_review" else "reviewed",
+                    checklist=json.dumps(snapshot["checklist"])))
+    return order, report
+
+
+@pytest.mark.parametrize("state", ["draft", "clarification", "assigned", "in_progress", "in_review", "rework", "completed", "cancelled"])
+def test_invalid_transitions_leave_state_revision_and_audit_unchanged(runtime, state):
+    engine, app = runtime
+    order, report = isolated_order(engine, state)
+    endpoint = PREFIX + f"/tasks/{order}"
+    with closing(login(app, "executor")) as executor, closing(login(app, "engineer")) as engineer:
+        replies = []
+        if state not in ("assigned", "rework"):
+            replies.append(executor.post(endpoint+"/start", json={"expected_revision": 1}))
+        if state != "in_progress":
+            replies.append(executor.put(endpoint+"/report", json={"expected_revision": 1, "narrative": "Forbidden edit", "answers": {}}))
+            replies.append(executor.post(endpoint+"/submit", json={"expected_revision": 1}))
+            replies.append(executor.post(endpoint+"/photos", data={"expected_revision": 1,
+                "checklist_item_id": str(demo_id("runtime-checklist")), "phase": "before", "view_key": "front"},
+                files={"file": ("photo.png", image_bytes(87), "image/png")}))
+        if state != "in_review":
+            replies.append(engineer.post(endpoint+"/review", json={"expected_revision": 1, "execution_id": str(report), "verdict": "accepted", "reason": "Invalid transition"}))
+            replies.append(engineer.post(endpoint+"/photo-review", json={"expected_revision": 1}))
+        assert replies and all(r.status_code == 409 for r in replies), [(r.status_code, r.text) for r in replies]
+    with engine.connect() as conn:
+        assert conn.execute(text("SELECT status,revision FROM work_orders WHERE work_order_id=:id"), {"id": order}).one() == (state, 1)
+        assert conn.scalar(text("SELECT count(*) FROM audit_events WHERE entity_id=:id"), {"id": order}) == 0
+
+
+@pytest.mark.parametrize("role", ["admin", "dispatcher", "engineer", "executor"])
+def test_every_workflow_mutation_enforces_role_before_state(runtime, role):
+    _, app = runtime
+    with closing(login(app, role)) as client:
+        commands = [
+            ("start", {"executor"}, {"expected_revision": 1}),
+            ("submit", {"executor"}, {"expected_revision": 1}),
+            ("review", {"engineer"}, {"expected_revision": 1, "execution_id": str(uuid4()), "verdict": "accepted", "reason": "Role test"}),
+            ("photo-review", {"engineer"}, {"expected_revision": 1}),
+            ("forecast", {"dispatcher", "engineer"}, {"expected_revision": 1}),
+        ]
+        for action, allowed, payload in commands:
+            if role not in allowed:
+                assert client.post(PREFIX+f"/tasks/{TASK}/{action}", json=payload).status_code == 403
+        if role != "executor":
+            assert client.put(PREFIX+f"/tasks/{TASK}/report", json={"expected_revision": 1, "narrative": "", "answers": {}}).status_code == 403
+            assert client.post(PREFIX+f"/tasks/{TASK}/photos", data={"expected_revision": 1,
+                "checklist_item_id": str(demo_id("runtime-checklist")), "phase": "before", "view_key": "front"},
+                files={"file": ("photo.png", image_bytes(88), "image/png")}).status_code == 403
+
+
+def test_other_crew_member_is_read_only_and_revoked_assignment_hides_task(runtime):
+    engine, app = runtime
+    other = uuid4()
+    with engine.begin() as conn:
+        conn.execute(text("INSERT INTO users(user_id,full_name,email) VALUES (:id,'Other executor',:email)"), {"id": other, "email": f"{other}@example.test"})
+        conn.execute(text("INSERT INTO site_memberships(site_id,user_id,role) VALUES (:site,:id,'executor')"), {"site": demo_id("site"), "id": other})
+    order, _ = isolated_order(engine, "in_progress", report_author=other)
+    with engine.begin() as conn:
+        conn.execute(text("""INSERT INTO work_assignments(site_id,work_order_id,user_id,assigned_by)
+            VALUES (:site,:task,:user,:dispatcher)"""), dict(site=demo_id("site"), task=order, user=other, dispatcher=demo_id("dispatcher")))
+    with closing(login(app, "executor")) as client:
+        endpoint = PREFIX+f"/tasks/{order}"
+        assert client.get(PREFIX+f"/ui/tasks/{order}").json()["allowedActions"] == []
+        assert client.put(endpoint+"/report", json={"expected_revision": 1, "narrative": "", "answers": {}}).status_code == 409
+        assert client.post(endpoint+"/submit", json={"expected_revision": 1}).status_code == 409
+        with engine.begin() as conn:
+            conn.execute(text("UPDATE work_assignments SET status='cancelled' WHERE work_order_id=:task AND user_id=:user"), {"task": order, "user": demo_id("user-1")})
+        assert client.get(PREFIX+f"/ui/tasks/{order}").status_code == 404
+        assert str(order) not in [t["id"] for t in client.get(PREFIX+"/ui/tasks").json()]
+        assert client.post(endpoint+"/start", json={"expected_revision": 1}).status_code == 404
