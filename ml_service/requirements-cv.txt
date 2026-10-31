@@ -1,0 +1,3 @@
+# Install after requirements.txt. CPU inference; download the pinned model separately.
+torch==2.5.1
+transformers==4.46.3

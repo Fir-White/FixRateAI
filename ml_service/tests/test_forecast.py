@@ -122,7 +122,7 @@ def test_predict_maintenance_ai_unavailable_for_customer_origin(synthetic_snapsh
 
     assert result.status == "unavailable"
     assert result.recommended_date is None
-    assert result.error_code == "INSUFFICIENT_HISTORY"
+    assert result.error_code == "MODEL_NOT_READY"
     assert "CUSTOMER_UNCONFIRMED" in result.warnings
 
 

@@ -22,6 +22,7 @@ class MLConfig(BaseModel):
 
     # CV / CLIP settings
     clip_model_name: str = "openai/clip-vit-base-patch32"
+    clip_revision: str = "3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268"
     clip_fallback_model_name: str = "openai/clip-vit-base-patch16"
     prompt_set_version: str = "demo-clean-pairs-v1"
     image_max_bytes: int = 10_485_760

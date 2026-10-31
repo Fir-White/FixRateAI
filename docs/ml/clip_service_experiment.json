@@ -1,0 +1,92 @@
+{
+  "note": "DEMO request metadata; user-provided photo bytes; comparability manually assessed; not an acceptance decision.",
+  "model": "openai/clip-vit-base-patch32@3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268",
+  "results": [
+    {
+      "case": "case_01",
+      "status": "uncertain",
+      "model_ref": "openai/clip-vit-base-patch32@3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268",
+      "error_code": null,
+      "items": [
+        {
+          "checklist_item_id": "00000000-0000-4000-8000-000000000007",
+          "verdict": "uncertain",
+          "before_photo_id": "00000000-0000-4000-8000-000000000046",
+          "after_photo_id": "00000000-0000-4000-8000-000000000047",
+          "observation": "Сопоставимость объекта и ракурса не подтверждена человеком; Формат учебного заключения: оценка соответствия описанию чистой поверхности после выше (дельта +0.27 >= 0.25). Это не доказательство качества работы.",
+          "scores": [
+            {
+              "photo_id": "00000000-0000-4000-8000-000000000046",
+              "label": "a clean equipment surface",
+              "score": 0.3864
+            },
+            {
+              "photo_id": "00000000-0000-4000-8000-000000000047",
+              "label": "a clean equipment surface",
+              "score": 0.6579
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case": "case_02",
+      "status": "uncertain",
+      "model_ref": "openai/clip-vit-base-patch32@3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268",
+      "error_code": null,
+      "items": [
+        {
+          "checklist_item_id": "00000000-0000-4000-8000-000000000007",
+          "verdict": "uncertain",
+          "before_photo_id": "00000000-0000-4000-8000-000000000046",
+          "after_photo_id": "00000000-0000-4000-8000-000000000047",
+          "observation": "Сопоставимость объекта и ракурса не подтверждена человеком; Рост сходства с описанием чистой поверхности не достиг порога (дельта 0.02 < 0.25).",
+          "scores": [
+            {
+              "photo_id": "00000000-0000-4000-8000-000000000046",
+              "label": "a clean equipment surface",
+              "score": 0.75
+            },
+            {
+              "photo_id": "00000000-0000-4000-8000-000000000047",
+              "label": "a clean equipment surface",
+              "score": 0.7698
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case": "case_03",
+      "status": "not_verifiable",
+      "model_ref": null,
+      "error_code": null,
+      "items": [
+        {
+          "checklist_item_id": "00000000-0000-4000-8000-000000000007",
+          "verdict": "not_verifiable",
+          "before_photo_id": "00000000-0000-4000-8000-000000000046",
+          "after_photo_id": "00000000-0000-4000-8000-000000000047",
+          "observation": "Операция скрытого характера или метрологический контроль: факт выполнения подтверждается приборным журналом/показаниями, а не фотофиксацией.",
+          "scores": []
+        }
+      ]
+    },
+    {
+      "case": "case_04",
+      "status": "uncertain",
+      "model_ref": null,
+      "error_code": null,
+      "items": [
+        {
+          "checklist_item_id": "00000000-0000-4000-8000-000000000007",
+          "verdict": "uncertain",
+          "before_photo_id": "00000000-0000-4000-8000-000000000046",
+          "after_photo_id": "00000000-0000-4000-8000-000000000047",
+          "observation": "Брак фото 'ДО': Изображение смазано (резкость 76.6 < 100.0)",
+          "scores": []
+        }
+      ]
+    }
+  ]
+}

@@ -139,16 +139,92 @@ def test_review_photos_successful_flow(canonical_photo_review_request: PhotoRevi
         canonical_photo_review_request.photos[1].photo_id: clean_bytes,
     }
 
-    result = review_photos(canonical_photo_review_request, photo_loader=lambda pid: storage[pid])
+    class FakeClassifier:
+        is_torch_active = True
+        model_name = "test:fake-classifier"
+        prompt_set_version = "test-v1"
+
+        def evaluate_pair(self, **kwargs):
+            from ml_service.app.schemas import ItemPhotoReview
+            return ItemPhotoReview(checklist_item_id=kwargs["checklist_item_id"], verdict="visible_change",
+                                   before_photo_id=kwargs["before_photo_id"], after_photo_id=kwargs["after_photo_id"],
+                                   observation="Тестовый ответ", scores=[])
+
+    result = review_photos(canonical_photo_review_request, photo_loader=lambda pid: storage[pid], classifier=FakeClassifier(), comparability_confirmed=lambda before, after: True)
 
     assert result.status == "completed"
-    assert result.model_ref is not None
+    assert result.model_ref is None  # no model scores in fake response
     assert result.error_code is None
     assert len(result.item_results) == 1
     assert result.item_results[0].verdict in ("visible_change", "no_visible_change")
-    assert len(result.item_results[0].scores) == 2
+    assert result.item_results[0].scores == []
     assert len(result.limitations) >= 1
     assert result.elapsed_ms >= 0
+
+
+def test_same_view_key_alone_does_not_prove_comparability(canonical_photo_review_request):
+    from ml_service.app.schemas import ItemPhotoReview
+    class Classifier:
+        is_torch_active = True
+        prompt_set_version = "test-v1"
+        def evaluate_pair(self, **kw):
+            return ItemPhotoReview(checklist_item_id=kw["checklist_item_id"], verdict="visible_change",
+                before_photo_id=kw["before_photo_id"], after_photo_id=kw["after_photo_id"],
+                observation="test", scores=[])
+    photos = canonical_photo_review_request.photos
+    data = {photos[0].photo_id: make_test_jpeg("dirty"), photos[1].photo_id: make_test_jpeg("clean_serviced")}
+    result = review_photos(canonical_photo_review_request, lambda pid: data[pid], classifier=Classifier())
+    assert result.status == "uncertain" and result.item_results[0].verdict == "uncertain"
+
+
+def test_missing_clip_is_unavailable(canonical_photo_review_request):
+    class MissingClassifier:
+        is_torch_active = False
+    photos = canonical_photo_review_request.photos
+    storage = {photos[0].photo_id: make_test_jpeg("dirty"), photos[1].photo_id: make_test_jpeg("clean_serviced")}
+    result = review_photos(canonical_photo_review_request, lambda pid: storage[pid], classifier=MissingClassifier())
+    assert result.status == "unavailable"
+    assert result.error_code == "MODEL_NOT_READY"
+    assert result.model_ref is None
+
+
+def test_real_classifier_with_missing_weights_is_unavailable(canonical_photo_review_request):
+    photos = canonical_photo_review_request.photos
+    data = {photos[0].photo_id: make_test_jpeg("dirty"), photos[1].photo_id: make_test_jpeg("clean_serviced")}
+    classifier = CLIPZeroShotClassifier(model_name="missing-local-model-for-test", revision="missing")
+    result = review_photos(canonical_photo_review_request, lambda pid: data[pid], classifier=classifier)
+    assert result.status == "unavailable" and result.error_code == "MODEL_NOT_READY"
+    assert result.model_ref is None
+
+
+def test_mismatched_view_is_uncertain_at_service_boundary(canonical_photo_review_request):
+    req = canonical_photo_review_request
+    photos = [req.photos[0], req.photos[1].model_copy(update={"view_key": "other-angle"})]
+    req = req.model_copy(update={"photos": photos})
+    data = {photos[0].photo_id: make_test_jpeg("dirty"), photos[1].photo_id: make_test_jpeg("clean_serviced")}
+    result = review_photos(req, lambda pid: data[pid])
+    assert result.status == "uncertain" and result.item_results[0].verdict == "uncertain"
+
+
+def test_invalid_model_response_returns_failed(canonical_photo_review_request):
+    class InvalidClassifier:
+        is_torch_active = True
+        def evaluate_pair(self, **kwargs):
+            return {"verdict": "not-a-valid-verdict"}
+    photos = canonical_photo_review_request.photos
+    data = {photos[0].photo_id: make_test_jpeg("dirty"), photos[1].photo_id: make_test_jpeg("clean_serviced")}
+    result = review_photos(canonical_photo_review_request, lambda pid: data[pid], classifier=InvalidClassifier())
+    assert result.status == "failed" and result.error_code == "PHOTO_REVIEW_FAILED"
+
+
+def test_review_adapter_timeout_and_invalid_json(canonical_photo_review_request):
+    import time
+    from ml_service.app.cv.api import invoke_review
+    def slow(*args):
+        time.sleep(0.05)
+    req = canonical_photo_review_request
+    assert invoke_review(req, lambda _: b"", provider=slow, timeout_seconds=0.001).error_code == "TIMEOUT"
+    assert invoke_review(req, lambda _: b"", provider=lambda *args: "{broken").error_code == "INVALID_RESPONSE"
 
 
 def test_review_photos_blurry_yields_uncertain(canonical_photo_review_request: PhotoReviewRequest):
