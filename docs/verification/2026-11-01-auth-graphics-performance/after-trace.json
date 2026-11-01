@@ -1,0 +1,704 @@
+{
+  "label": "after",
+  "generatedAtUtc": "2026-11-01T14:48:11.894Z",
+  "baseUrl": "http://127.0.0.1:5174",
+  "browser": "156.0.8078.79",
+  "headless": true,
+  "platform": "win32",
+  "platformRelease": "10.0.28000",
+  "cpuModel": "AMD Ryzen 5 7535HS with Radeon Graphics        ",
+  "hostCpuCount": 12,
+  "totalMemoryBytes": 16450310144,
+  "categories": "devtools.timeline,disabled-by-default-devtools.timeline,cc,blink",
+  "durationMs": 8000,
+  "environment": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+    "hardwareConcurrency": 12,
+    "deviceMemoryGiB": 16,
+    "devicePixelRatio": 1,
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "scene": {
+      "width": 980,
+      "height": 900
+    }
+  },
+  "eventDurationNote": "Trace X event durations are inclusive and may overlap; totals across event names/threads are not additive.",
+  "results": [
+    {
+      "state": "active",
+      "elapsedMs": 8003.8526999999995,
+      "cpuThrottlingRate": 4,
+      "cdpDelta": {
+        "TaskDuration": 5.817318,
+        "ScriptDuration": 1.6100999999999999,
+        "LayoutDuration": 0.17188,
+        "RecalcStyleDuration": 0.40769,
+        "LayoutCount": 384,
+        "RecalcStyleCount": 384,
+        "JSHeapUsedSize": 89104,
+        "JSHeapTotalSize": 524288
+      },
+      "trace": {
+        "traceEventCount": 309977,
+        "completeEventCount": 190217,
+        "selected": {
+          "Paint": {
+            "count": 480,
+            "totalMs": 95.91800000000015,
+            "p95Ms": 0.394,
+            "maxMs": 0.597
+          },
+          "RasterTask": {
+            "count": 960,
+            "totalMs": 25.817999999999923,
+            "p95Ms": 0.055,
+            "maxMs": 0.24
+          },
+          "FireAnimationFrame": {
+            "count": 1152,
+            "totalMs": 1147.942999999998,
+            "p95Ms": 1.654,
+            "maxMs": 2.687
+          },
+          "Layout": {
+            "count": 240,
+            "totalMs": 82.50800000000007,
+            "p95Ms": 0.443,
+            "maxMs": 0.819
+          },
+          "UpdateLayoutTree": {
+            "count": 240,
+            "totalMs": 194.309,
+            "p95Ms": 1.216,
+            "maxMs": 2.143
+          },
+          "FunctionCall": {
+            "count": 1152,
+            "totalMs": 1005.4370000000006,
+            "p95Ms": 1.604,
+            "maxMs": 2.476
+          },
+          "PrePaint": {
+            "count": 1152,
+            "totalMs": 300.72399999999965,
+            "p95Ms": 0.401,
+            "maxMs": 0.689
+          },
+          "Layerize": {
+            "count": 1152,
+            "totalMs": 56.18900000000014,
+            "p95Ms": 0.209,
+            "maxMs": 0.588
+          },
+          "CompositeLayers": {
+            "count": 0,
+            "totalMs": 0,
+            "p95Ms": null,
+            "maxMs": null
+          },
+          "DrawFrame": {
+            "count": 0,
+            "totalMs": 0,
+            "p95Ms": null,
+            "maxMs": null
+          },
+          "BeginMainThreadFrame": {
+            "count": 0,
+            "totalMs": 0,
+            "p95Ms": null,
+            "maxMs": null
+          },
+          "EventDispatch": {
+            "count": 0,
+            "totalMs": 0,
+            "p95Ms": null,
+            "maxMs": null
+          },
+          "RunTask": {
+            "count": 34890,
+            "totalMs": 14971.44499999996,
+            "p95Ms": 2.699,
+            "maxMs": 10.748
+          },
+          "MinorGC": {
+            "count": 8,
+            "totalMs": 6.666,
+            "p95Ms": 0.99,
+            "maxMs": 1.203
+          },
+          "MajorGC": {
+            "count": 0,
+            "totalMs": 0,
+            "p95Ms": null,
+            "maxMs": null
+          }
+        },
+        "top": [
+          {
+            "thread": "GpuVSyncThread",
+            "name": "RunTask",
+            "count": 1150,
+            "totalMs": 7992.258000000014,
+            "p95Ms": 6.995,
+            "maxMs": 7.266
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "RunTask",
+            "count": 6954,
+            "totalMs": 3424.6560000000036,
+            "p95Ms": 2.742,
+            "maxMs": 7.572
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "ProxyMain::BeginMainFrame",
+            "count": 1152,
+            "totalMs": 3130.6760000000017,
+            "p95Ms": 5.063,
+            "maxMs": 7.373
+          },
+          {
+            "thread": "CrGpuMain",
+            "name": "RunTask",
+            "count": 5028,
+            "totalMs": 2591.828000000001,
+            "p95Ms": 1.551,
+            "maxMs": 10.748
+          },
+          {
+            "thread": "CrGpuMain",
+            "name": "GPUTask",
+            "count": 1554,
+            "totalMs": 1666.0289999999995,
+            "p95Ms": 5.493,
+            "maxMs": 10.735
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "WebFrameWidgetImpl::BeginMainFrame",
+            "count": 1152,
+            "totalMs": 1341.9659999999992,
+            "p95Ms": 1.839,
+            "maxMs": 2.877
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "Blink.Animate.UpdateTime",
+            "count": 1152,
+            "totalMs": 1304.705,
+            "p95Ms": 1.827,
+            "maxMs": 2.708
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "PageAnimator::serviceScriptedAnimations",
+            "count": 1152,
+            "totalMs": 1274.8800000000012,
+            "p95Ms": 1.822,
+            "maxMs": 2.704
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "FrameRequestCallbackCollection::ExecuteFrameCallbacks",
+            "count": 1152,
+            "totalMs": 1162.3310000000004,
+            "p95Ms": 1.663,
+            "maxMs": 2.689
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "FireAnimationFrame",
+            "count": 1152,
+            "totalMs": 1147.942999999998,
+            "p95Ms": 1.654,
+            "maxMs": 2.687
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "AsyncTask Run",
+            "count": 1152,
+            "totalMs": 1118.902,
+            "p95Ms": 1.645,
+            "maxMs": 2.683
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "WebFrameWidgetImpl::UpdateLifecycle",
+            "count": 1152,
+            "totalMs": 1059.3870000000004,
+            "p95Ms": 2.618,
+            "maxMs": 4.674
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "FunctionCall",
+            "count": 1152,
+            "totalMs": 1005.4370000000006,
+            "p95Ms": 1.604,
+            "maxMs": 2.476
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "Commit",
+            "count": 1152,
+            "totalMs": 640.6660000000005,
+            "p95Ms": 0.814,
+            "maxMs": 1.431
+          },
+          {
+            "thread": "Compositor",
+            "name": "RunTask",
+            "count": 13868,
+            "totalMs": 533.0479999999993,
+            "p95Ms": 0.216,
+            "maxMs": 0.414
+          },
+          {
+            "thread": "VizCompositorThread",
+            "name": "RunTask",
+            "count": 5776,
+            "totalMs": 382.88600000000014,
+            "p95Ms": 0.241,
+            "maxMs": 0.65
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "LocalFrameView::RunStyleAndLayoutLifecyclePhases",
+            "count": 1152,
+            "totalMs": 359.1439999999999,
+            "p95Ms": 1.415,
+            "maxMs": 3.091
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "LayerTreeHost::DoUpdateLayers",
+            "count": 1152,
+            "totalMs": 329.4200000000002,
+            "p95Ms": 0.416,
+            "maxMs": 1.021
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "LocalFrameView::UpdateStyleAndLayout",
+            "count": 1152,
+            "totalMs": 325.41199999999986,
+            "p95Ms": 1.41,
+            "maxMs": 3.083
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "PrePaint",
+            "count": 1152,
+            "totalMs": 300.72399999999965,
+            "p95Ms": 0.401,
+            "maxMs": 0.689
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "LocalFrameView::RunPaintLifecyclePhase",
+            "count": 1152,
+            "totalMs": 260.3829999999999,
+            "p95Ms": 0.793,
+            "maxMs": 1.028
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "LocalFrameView::RunPrePaintLifecyclePhase",
+            "count": 1152,
+            "totalMs": 248.13799999999975,
+            "p95Ms": 0.383,
+            "maxMs": 0.676
+          },
+          {
+            "thread": "Compositor",
+            "name": "ProxyImpl::ScheduledActionDraw",
+            "count": 1152,
+            "totalMs": 239.08599999999964,
+            "p95Ms": 0.309,
+            "maxMs": 0.402
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "Blink.PrePaint.UpdateTime",
+            "count": 1152,
+            "totalMs": 237.77799999999996,
+            "p95Ms": 0.377,
+            "maxMs": 0.673
+          },
+          {
+            "thread": "Compositor",
+            "name": "MainFrame.Draw",
+            "count": 1152,
+            "totalMs": 235.9339999999996,
+            "p95Ms": 0.307,
+            "maxMs": 0.399
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "Blink.Style.UpdateTime",
+            "count": 240,
+            "totalMs": 198.45200000000006,
+            "p95Ms": 1.223,
+            "maxMs": 2.148
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "UpdateLayoutTree",
+            "count": 240,
+            "totalMs": 194.309,
+            "p95Ms": 1.216,
+            "maxMs": 2.143
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "Document::updateStyle",
+            "count": 240,
+            "totalMs": 181.32900000000004,
+            "p95Ms": 1.05,
+            "maxMs": 2.126
+          },
+          {
+            "thread": "Compositor",
+            "name": "ProxyImpl::ReadyToCommit",
+            "count": 1152,
+            "totalMs": 178.27000000000078,
+            "p95Ms": 0.236,
+            "maxMs": 0.402
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "Document::recalcStyle",
+            "count": 240,
+            "totalMs": 169.69500000000002,
+            "p95Ms": 1.028,
+            "maxMs": 1.945
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "Blink.Paint.UpdateTime",
+            "count": 1152,
+            "totalMs": 153.8190000000001,
+            "p95Ms": 0.425,
+            "maxMs": 0.8
+          },
+          {
+            "thread": "Compositor",
+            "name": "LayerTreeHostImpl::CommitComplete",
+            "count": 1152,
+            "totalMs": 114.02700000000004,
+            "p95Ms": 0.157,
+            "maxMs": 0.262
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "LocalFrameView::ScheduleAnimation",
+            "count": 2304,
+            "totalMs": 103.22300000000021,
+            "p95Ms": 0.179,
+            "maxMs": 0.406
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "Paint",
+            "count": 480,
+            "totalMs": 95.91800000000015,
+            "p95Ms": 0.394,
+            "maxMs": 0.597
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "Blink.Layout.UpdateTime",
+            "count": 240,
+            "totalMs": 95.15100000000005,
+            "p95Ms": 0.59,
+            "maxMs": 1.006
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "LocalFrameView::layout",
+            "count": 240,
+            "totalMs": 84.90300000000009,
+            "p95Ms": 0.564,
+            "maxMs": 0.823
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "Layout",
+            "count": 240,
+            "totalMs": 82.50800000000007,
+            "p95Ms": 0.443,
+            "maxMs": 0.819
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "LocalFrameView::performLayout",
+            "count": 240,
+            "totalMs": 74.24200000000008,
+            "p95Ms": 0.412,
+            "maxMs": 0.623
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "LocalFrameView::pushPaintArtifactToCompositor",
+            "count": 1152,
+            "totalMs": 73.11200000000008,
+            "p95Ms": 0.216,
+            "maxMs": 0.594
+          },
+          {
+            "thread": "Compositor",
+            "name": "auto cc::LayerTreeHostImpl::PrepareTiles()::(lambda)::operator()()::(lambda)::operator()(uint32_t) const",
+            "count": 1152,
+            "totalMs": 70.7079999999998,
+            "p95Ms": 0.112,
+            "maxMs": 0.184
+          }
+        ],
+        "threads": {
+          "0:0": "swapper",
+          "31920:21468": "CrBrowserMain",
+          "32512:3832": "Compositor",
+          "32512:15740": "CrRendererMain",
+          "32512:29064": "PerfettoTrace",
+          "31920:20904": "PerfettoTrace",
+          "31016:6256": "PerfettoTrace",
+          "31016:3140": "CrGpuMain",
+          "31016:24884": "VizCompositorThread",
+          "31920:19408": "DevToolsPipeHandlerWriteThread",
+          "31016:15728": "GpuVSyncThread",
+          "32512:15264": "Chrome_ChildIOThread",
+          "32512:24164": "ThreadPoolForegroundWorker",
+          "31920:29652": "Chrome_IOThread",
+          "32512:31712": "ThreadPoolForegroundWorker",
+          "32512:7056": "ThreadPoolForegroundWorker",
+          "31920:8484": "ThreadPoolServiceThread",
+          "31016:31272": "Chrome_ChildIOThread",
+          "32512:11392": "ThreadPoolServiceThread"
+        }
+      }
+    },
+    {
+      "state": "paused",
+      "elapsedMs": 8010.248099999997,
+      "cpuThrottlingRate": 4,
+      "cdpDelta": {
+        "TaskDuration": 0.0038789999999995217,
+        "ScriptDuration": 0,
+        "LayoutDuration": 0,
+        "RecalcStyleDuration": 0,
+        "LayoutCount": 0,
+        "RecalcStyleCount": 0,
+        "JSHeapUsedSize": 0,
+        "JSHeapTotalSize": 0
+      },
+      "trace": {
+        "traceEventCount": 473,
+        "completeEventCount": 448,
+        "selected": {
+          "Paint": {
+            "count": 0,
+            "totalMs": 0,
+            "p95Ms": null,
+            "maxMs": null
+          },
+          "RasterTask": {
+            "count": 0,
+            "totalMs": 0,
+            "p95Ms": null,
+            "maxMs": null
+          },
+          "FireAnimationFrame": {
+            "count": 0,
+            "totalMs": 0,
+            "p95Ms": null,
+            "maxMs": null
+          },
+          "Layout": {
+            "count": 0,
+            "totalMs": 0,
+            "p95Ms": null,
+            "maxMs": null
+          },
+          "UpdateLayoutTree": {
+            "count": 0,
+            "totalMs": 0,
+            "p95Ms": null,
+            "maxMs": null
+          },
+          "FunctionCall": {
+            "count": 0,
+            "totalMs": 0,
+            "p95Ms": null,
+            "maxMs": null
+          },
+          "PrePaint": {
+            "count": 0,
+            "totalMs": 0,
+            "p95Ms": null,
+            "maxMs": null
+          },
+          "Layerize": {
+            "count": 0,
+            "totalMs": 0,
+            "p95Ms": null,
+            "maxMs": null
+          },
+          "CompositeLayers": {
+            "count": 0,
+            "totalMs": 0,
+            "p95Ms": null,
+            "maxMs": null
+          },
+          "DrawFrame": {
+            "count": 0,
+            "totalMs": 0,
+            "p95Ms": null,
+            "maxMs": null
+          },
+          "BeginMainThreadFrame": {
+            "count": 0,
+            "totalMs": 0,
+            "p95Ms": null,
+            "maxMs": null
+          },
+          "EventDispatch": {
+            "count": 0,
+            "totalMs": 0,
+            "p95Ms": null,
+            "maxMs": null
+          },
+          "RunTask": {
+            "count": 443,
+            "totalMs": 22.284999999999993,
+            "p95Ms": 0.135,
+            "maxMs": 2.028
+          },
+          "MinorGC": {
+            "count": 0,
+            "totalMs": 0,
+            "p95Ms": null,
+            "maxMs": null
+          },
+          "MajorGC": {
+            "count": 0,
+            "totalMs": 0,
+            "p95Ms": null,
+            "maxMs": null
+          }
+        },
+        "top": [
+          {
+            "thread": "CrBrowserMain",
+            "name": "RunTask",
+            "count": 227,
+            "totalMs": 10.582999999999998,
+            "p95Ms": 0.134,
+            "maxMs": 1.747
+          },
+          {
+            "thread": "CrGpuMain",
+            "name": "RunTask",
+            "count": 15,
+            "totalMs": 3.319,
+            "p95Ms": 0.368,
+            "maxMs": 2.028
+          },
+          {
+            "thread": "PerfettoTrace",
+            "name": "RunTask",
+            "count": 124,
+            "totalMs": 3.153,
+            "p95Ms": 0.063,
+            "maxMs": 0.144
+          },
+          {
+            "thread": "CrRendererMain",
+            "name": "RunTask",
+            "count": 6,
+            "totalMs": 2.8209999999999997,
+            "p95Ms": 0.418,
+            "maxMs": 1.861
+          },
+          {
+            "thread": "ThreadPoolServiceThread",
+            "name": "RunTask",
+            "count": 31,
+            "totalMs": 1.273,
+            "p95Ms": 0.12,
+            "maxMs": 0.155
+          },
+          {
+            "thread": "CrGpuMain",
+            "name": "GPUTask",
+            "count": 5,
+            "totalMs": 0.48800000000000004,
+            "p95Ms": 0.07,
+            "maxMs": 0.339
+          },
+          {
+            "thread": "MemoryInfra",
+            "name": "RunTask",
+            "count": 14,
+            "totalMs": 0.406,
+            "p95Ms": 0.05,
+            "maxMs": 0.158
+          },
+          {
+            "thread": "Chrome_IOThread",
+            "name": "RunTask",
+            "count": 17,
+            "totalMs": 0.389,
+            "p95Ms": 0.038,
+            "maxMs": 0.124
+          },
+          {
+            "thread": "Compositor",
+            "name": "RunTask",
+            "count": 2,
+            "totalMs": 0.178,
+            "p95Ms": 0.024,
+            "maxMs": 0.154
+          },
+          {
+            "thread": "Chrome_ChildIOThread",
+            "name": "RunTask",
+            "count": 5,
+            "totalMs": 0.112,
+            "p95Ms": 0.028,
+            "maxMs": 0.032
+          },
+          {
+            "thread": "DevToolsPipeHandlerWriteThread",
+            "name": "RunTask",
+            "count": 2,
+            "totalMs": 0.051000000000000004,
+            "p95Ms": 0.024,
+            "maxMs": 0.027
+          }
+        ],
+        "threads": {
+          "0:0": "swapper",
+          "32512:29064": "PerfettoTrace",
+          "32512:15740": "CrRendererMain",
+          "31016:6256": "PerfettoTrace",
+          "31920:20904": "PerfettoTrace",
+          "31920:21468": "CrBrowserMain",
+          "31920:19408": "DevToolsPipeHandlerWriteThread",
+          "31016:3140": "CrGpuMain",
+          "31920:8484": "ThreadPoolServiceThread",
+          "31920:29652": "Chrome_IOThread",
+          "32512:15264": "Chrome_ChildIOThread",
+          "31016:31272": "Chrome_ChildIOThread",
+          "31920:22800": "MemoryInfra",
+          "32512:3832": "Compositor",
+          "32512:11392": "ThreadPoolServiceThread"
+        }
+      }
+    }
+  ],
+  "errors": []
+}

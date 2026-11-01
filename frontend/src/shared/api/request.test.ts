@@ -22,6 +22,14 @@ describe("production HTTP transport", () => {
     const {request} = await import("./request");
     await expect(request("/api/change")).rejects.toThrow("REVISION_CONFLICT");
   });
+  it("retains HTTP metadata and validation details without changing the public error message", async () => {
+    const details=[{field:"body.email",issue:"Value error"}];
+    vi.stubGlobal("fetch",vi.fn().mockResolvedValue(new Response(JSON.stringify({detail:"Проверьте заполнение полей формы",error:{code:"VALIDATION_ERROR",details}}),{status:422})));
+    const {request,ApiError}=await import("./request");
+    const failure=await request("/api/change").catch(error=>error);
+    expect(failure).toBeInstanceOf(ApiError);
+    expect(failure).toMatchObject({status:422,message:"Проверьте заполнение полей формы",code:"VALIDATION_ERROR",details});
+  });
   it("reads tasks from API when demo is disabled", async () => {
     vi.stubEnv("VITE_DEMO_MODE", "false");
     const fetcher = vi.fn().mockResolvedValue(new Response("[]", {status: 200}));

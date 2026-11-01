@@ -1,0 +1,105 @@
+{
+  "method": "Independent Chrome screenshots with controlled requestAnimationFrame at 60Hz, identical viewport, DPR1 and phases; png SHA256, SVG path and logo DOM metadata compared.",
+  "status": "PASS",
+  "scenes": [
+    {
+      "width": 1440,
+      "height": 900,
+      "seconds": 0,
+      "file": "1440x900-0s.png",
+      "beforeSha256": "73e08a7e0b6763bd1faa5571325880e5fb7f9532f3f5239351b1cb37ea53f9ee",
+      "afterSha256": "73e08a7e0b6763bd1faa5571325880e5fb7f9532f3f5239351b1cb37ea53f9ee",
+      "identicalPng": true,
+      "pathsIdentical": true,
+      "logosIdentical": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "seconds": 6,
+      "file": "1440x900-6s.png",
+      "beforeSha256": "a05f9b582b82f9cd44efe6eb5542dfa111d7ac6742cb434754c96afa65e0c6e8",
+      "afterSha256": "a05f9b582b82f9cd44efe6eb5542dfa111d7ac6742cb434754c96afa65e0c6e8",
+      "identicalPng": true,
+      "pathsIdentical": true,
+      "logosIdentical": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "seconds": 15,
+      "file": "1440x900-15s.png",
+      "beforeSha256": "e8f217412b27fd648b3801df4801625a573dd5bda6ffa2aec9f4c112b47aee40",
+      "afterSha256": "e8f217412b27fd648b3801df4801625a573dd5bda6ffa2aec9f4c112b47aee40",
+      "identicalPng": true,
+      "pathsIdentical": true,
+      "logosIdentical": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "seconds": 31,
+      "file": "1440x900-31s.png",
+      "beforeSha256": "12d12da39ed8b43c3de8cb6442d2cb2979c42d6395c399956ac7e139331098f8",
+      "afterSha256": "12d12da39ed8b43c3de8cb6442d2cb2979c42d6395c399956ac7e139331098f8",
+      "identicalPng": true,
+      "pathsIdentical": true,
+      "logosIdentical": true
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "seconds": 0,
+      "file": "1920x1080-0s.png",
+      "beforeSha256": "a8c5db9fd7414e3be125a6e58c0e6cbffee890a34f7cc36921705a7a02ec85a3",
+      "afterSha256": "a8c5db9fd7414e3be125a6e58c0e6cbffee890a34f7cc36921705a7a02ec85a3",
+      "identicalPng": true,
+      "pathsIdentical": true,
+      "logosIdentical": true
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "seconds": 15,
+      "file": "1920x1080-15s.png",
+      "beforeSha256": "554654334d0d58123f348961f39fc0081f3988540c5137debc41b63fc0070001",
+      "afterSha256": "554654334d0d58123f348961f39fc0081f3988540c5137debc41b63fc0070001",
+      "identicalPng": true,
+      "pathsIdentical": true,
+      "logosIdentical": true
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "seconds": 0,
+      "file": "1366x768-0s.png",
+      "beforeSha256": "977b12633753f8f7df089273195ea54f97a6ba78d976ab383266b94b2dde637c",
+      "afterSha256": "977b12633753f8f7df089273195ea54f97a6ba78d976ab383266b94b2dde637c",
+      "identicalPng": true,
+      "pathsIdentical": true,
+      "logosIdentical": true
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "seconds": 15,
+      "file": "1366x768-15s.png",
+      "beforeSha256": "ce25426b3f15644e535be97b8cdfd730cb8cd6229db94b3a8a4e742c6e614b42",
+      "afterSha256": "ce25426b3f15644e535be97b8cdfd730cb8cd6229db94b3a8a4e742c6e614b42",
+      "identicalPng": true,
+      "pathsIdentical": true,
+      "logosIdentical": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "seconds": 0,
+      "file": "390x844-0s.png",
+      "beforeSha256": "164410d5b7878c4b4dd62f0c5a051dd7f6226ef3cea72d7552742a3eade0d171",
+      "afterSha256": "164410d5b7878c4b4dd62f0c5a051dd7f6226ef3cea72d7552742a3eade0d171",
+      "identicalPng": true,
+      "pathsIdentical": true,
+      "logosIdentical": true
+    }
+  ]
+}

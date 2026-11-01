@@ -1,0 +1,8 @@
+{
+  "date_local": "2026-11-01",
+  "method": "Check local Markdown link destinations and Unicode heading slugs, skipping fenced headings; generated dated run reports included.",
+  "documents": 21,
+  "local_links": 189,
+  "heading_anchors": 24,
+  "errors": []
+}

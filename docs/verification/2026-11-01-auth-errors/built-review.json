@@ -1,0 +1,55 @@
+{
+  "timestamp": "2026-11-01T16:00:40.402Z",
+  "base": "http://127.0.0.1:8000",
+  "scope": "Compiled frontend and structured error smoke, API intercepted with fixtures; no backend/DB/ML exercised.",
+  "checks": [
+    {
+      "name": "/login 1366x768 built empty validation and actual error.details body.email",
+      "nativeInvalidEvents": 0,
+      "requestCount": 1
+    },
+    {
+      "name": "/register 1366x768 built empty validation and actual error.details body.email",
+      "nativeInvalidEvents": 0,
+      "requestCount": 1
+    },
+    {
+      "name": "/login 390x844 built empty validation and actual error.details body.email",
+      "nativeInvalidEvents": 0,
+      "requestCount": 1
+    },
+    {
+      "name": "/register 390x844 built empty validation and actual error.details body.email",
+      "nativeInvalidEvents": 0,
+      "requestCount": 1
+    },
+    {
+      "name": "non JSON 400 response uses readable generic fallback"
+    },
+    {
+      "name": "unknown server validation fields retain readable fallback instead of disappearing",
+      "messages": [
+        "Не удалось проверить данные. Проверьте заполнение формы и повторите попытку."
+      ]
+    },
+    {
+      "name": "structured site_id field reveals UUID fallback and focuses actual input"
+    }
+  ],
+  "errors": [],
+  "servedHtmlSha256": "5f1761d8ac16af62785ebefb1f3e6069c95ebdbe5cd8d042c5b1ea1de964ae9d",
+  "distHtmlSha256": "5f1761d8ac16af62785ebefb1f3e6069c95ebdbe5cd8d042c5b1ea1de964ae9d",
+  "scripts": [
+    "/assets/index-BObovEQh.js"
+  ],
+  "browser": "156.0.8078.79",
+  "passed": true,
+  "visual_inspection": {
+    "approved": true,
+    "images": [
+      "built-register-empty-390x844.png",
+      "built-login-empty-1366x768.png"
+    ],
+    "findings": "Russian inline errors remain below fields; final screenshots allow220ms for existing border-color transitions to settle. Rose invalid borders and turquoise keyboard focus outline are readable, with no horizontal overflow. Compiled mobile and desktop appearance approved."
+  }
+}

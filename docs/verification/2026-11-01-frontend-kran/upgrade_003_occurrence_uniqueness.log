@@ -1,0 +1,5 @@
+Attempt 1
+BEGIN
+DO
+CREATE INDEX
+COMMIT

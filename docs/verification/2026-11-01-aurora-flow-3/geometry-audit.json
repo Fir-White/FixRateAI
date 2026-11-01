@@ -1,0 +1,140 @@
+{
+  "generatedAtUtc": "2026-11-01T14:15:26.270Z",
+  "source": "frontend/src/features/auth/ribbonGeometry.ts",
+  "sourceSha256": "814cf9a96c543d9cf62c7a1eaa9b9e56b2013e494facb91141b1cd40304d3aca",
+  "method": "Independent numeric audit of production geometry, source evaluated in memory with extra read-only MOTION export. No browser performance measurement.",
+  "seconds": 180,
+  "hz": 120,
+  "pointsPerCubic": 33,
+  "cssScalingAssumption": "SceneMapping scale=.9 for980x900 and .768 for906x768/604x768. At1920x1080 scale=1460/1200, so multiply world values by1.2167.",
+  "results": [
+    {
+      "index": 0,
+      "maxCentrelineDisplacementWorld": 27.576322735184377,
+      "maxCentrelineDisplacementCssAt900High": 24.81869046166594,
+      "maxCentrelineDisplacementCssAt768High": 21.1786158606216,
+      "maxCentrelineSpeedWorldPerSecond": 15.616132641441546,
+      "maxCentrelineAccelerationWorldPerSecondSquared": 25.396672803998715,
+      "maxCentrelineStepAt30HzWorld": 0.520412898841912,
+      "maxControlStepAt30HzWorld": 0.9076650815441406,
+      "maxControlShiftWorld": 31.986721139164906,
+      "controlLimitWorld": 32,
+      "minCubicXControlGapWorld": 36.00752698760493,
+      "anchorErrorWorld": 0,
+      "c1ErrorWorld": 0,
+      "targetDiversity": [
+        {
+          "seed": 9628,
+          "interval": 5.801172129695232,
+          "quadrants": 4,
+          "minRadius": 0.4177326359181507,
+          "maxRadius": 0.990674111288422,
+          "allAdjacentTargetsDifferent": true
+        },
+        {
+          "seed": 17547,
+          "interval": 6.128476482859024,
+          "quadrants": 4,
+          "minRadius": 0.3381048877451904,
+          "maxRadius": 0.9339553089284363,
+          "allAdjacentTargetsDifferent": true
+        },
+        {
+          "seed": 25466,
+          "interval": 6.358954754930275,
+          "quadrants": 4,
+          "minRadius": 0.42705511339218105,
+          "maxRadius": 0.9828091353879032,
+          "allAdjacentTargetsDifferent": true
+        },
+        {
+          "seed": 33385,
+          "interval": 6.356707029159252,
+          "quadrants": 4,
+          "minRadius": 0.303402544551803,
+          "maxRadius": 0.9995759175228214,
+          "allAdjacentTargetsDifferent": true
+        }
+      ],
+      "boundaryCount": 148,
+      "maxBoundaryVelocityMismatchAt1msWorldPerSecond": 0.02607530308141943,
+      "maxBoundaryAccelerationMismatchAt1msWorldPerSecondSquared": 0.13883178381794847,
+      "centreline8SecondIncrementQuadrants": 4,
+      "centreline8SecondIncrementDepthRangeWorld": [
+        1.8874134452453708,
+        18.099525901905366
+      ],
+      "checks": {
+        "controlsWithinCaps": true,
+        "anchoredEndpoints": true,
+        "c1JoinExact": true,
+        "monotonicXNoLoops": true,
+        "targetsVaryDirectionAndDepth": true
+      }
+    },
+    {
+      "index": 1,
+      "maxCentrelineDisplacementWorld": 20.762860667053133,
+      "maxCentrelineDisplacementCssAt900High": 18.68657460034782,
+      "maxCentrelineDisplacementCssAt768High": 15.945876992296807,
+      "maxCentrelineSpeedWorldPerSecond": 16.58104106118701,
+      "maxCentrelineAccelerationWorldPerSecondSquared": 57.19468077350484,
+      "maxCentrelineStepAt30HzWorld": 0.5524220592432497,
+      "maxControlStepAt30HzWorld": 0.9466472600525622,
+      "maxControlShiftWorld": 23.998543308507234,
+      "controlLimitWorld": 24,
+      "minCubicXControlGapWorld": 54.81944947492593,
+      "anchorErrorWorld": 0,
+      "c1ErrorWorld": 0,
+      "targetDiversity": [
+        {
+          "seed": 11337,
+          "interval": 7.162123936237051,
+          "quadrants": 4,
+          "minRadius": 0.41787895759538,
+          "maxRadius": 0.9785730970446525,
+          "allAdjacentTargetsDifferent": true
+        },
+        {
+          "seed": 19256,
+          "interval": 6.410229460399312,
+          "quadrants": 4,
+          "minRadius": 0.32616395010137966,
+          "maxRadius": 0.9961939239555724,
+          "allAdjacentTargetsDifferent": true
+        },
+        {
+          "seed": 27175,
+          "interval": 7.089134975972658,
+          "quadrants": 4,
+          "minRadius": 0.2948277599486715,
+          "maxRadius": 0.9985089369951822,
+          "allAdjacentTargetsDifferent": true
+        },
+        {
+          "seed": 35094,
+          "interval": 7.138454299875749,
+          "quadrants": 4,
+          "minRadius": 0.32328871862707886,
+          "maxRadius": 0.9478493783858639,
+          "allAdjacentTargetsDifferent": true
+        }
+      ],
+      "boundaryCount": 127,
+      "maxBoundaryVelocityMismatchAt1msWorldPerSecond": 0.032974314554411924,
+      "maxBoundaryAccelerationMismatchAt1msWorldPerSecondSquared": 0.3550049956902704,
+      "centreline8SecondIncrementQuadrants": 4,
+      "centreline8SecondIncrementDepthRangeWorld": [
+        1.86679072297674,
+        18.32621964678148
+      ],
+      "checks": {
+        "controlsWithinCaps": true,
+        "anchoredEndpoints": true,
+        "c1JoinExact": true,
+        "monotonicXNoLoops": true,
+        "targetsVaryDirectionAndDepth": true
+      }
+    }
+  ]
+}

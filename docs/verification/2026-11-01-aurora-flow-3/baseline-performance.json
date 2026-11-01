@@ -1,0 +1,130 @@
+{
+  "label": "baseline",
+  "date": "2026-11-01T14:03:36.038Z",
+  "browser": "156.0.8078.79",
+  "headless": true,
+  "url": "http://127.0.0.1:5174/login",
+  "results": [
+    {
+      "width": 1440,
+      "height": 900,
+      "cpuThrottle": 1,
+      "wallSeconds": 30.001550700000003,
+      "callbacks": {
+        "count": 4317,
+        "mean": 0.19650220063609714,
+        "p50": 0.20000000298023224,
+        "p95": 0.3999999910593033,
+        "p99": 0.5,
+        "max": 1.800000011920929,
+        "over25ms": 0,
+        "over50ms": 0
+      },
+      "frames": {
+        "count": 4317,
+        "mean": 6.956428075052062,
+        "p50": 7,
+        "p95": 7.100000000000364,
+        "p99": 7.200000000000728,
+        "max": 14,
+        "over25ms": 0,
+        "over50ms": 0
+      },
+      "motion": "running",
+      "cdpDelta": {
+        "TaskDuration": 2.940938,
+        "ScriptDuration": 0.9828730000000001,
+        "LayoutDuration": 0.101633,
+        "RecalcStyleDuration": 0.175058,
+        "LayoutCount": 720,
+        "RecalcStyleCount": 720
+      },
+      "pathChanged": [
+        true,
+        true,
+        false
+      ]
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "cpuThrottle": 1,
+      "wallSeconds": 12.012434400000005,
+      "callbacks": {
+        "count": 1728,
+        "mean": 0.17737268515931512,
+        "p50": 0.20000000298023224,
+        "p95": 0.30000001192092896,
+        "p99": 0.4000000059604645,
+        "max": 0.5999999940395355,
+        "over25ms": 0,
+        "over50ms": 0
+      },
+      "frames": {
+        "count": 1728,
+        "mean": 6.954803240740741,
+        "p50": 7,
+        "p95": 7.100000000005821,
+        "p99": 7.200000000004366,
+        "max": 7.30000000000291,
+        "over25ms": 0,
+        "over50ms": 0
+      },
+      "motion": "running",
+      "cdpDelta": {
+        "TaskDuration": 0.9756279999999995,
+        "ScriptDuration": 0.34092900000000004,
+        "LayoutDuration": 0.031717999999999996,
+        "RecalcStyleDuration": 0.06050900000000001,
+        "LayoutCount": 288,
+        "RecalcStyleCount": 288
+      },
+      "pathChanged": [
+        true,
+        true,
+        false
+      ]
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "cpuThrottle": 4,
+      "wallSeconds": 12.015745299999995,
+      "callbacks": {
+        "count": 1730,
+        "mean": 0.7132947976534078,
+        "p50": 0.6000000089406967,
+        "p95": 1.2000000029802322,
+        "p99": 1.5,
+        "max": 3.2999999970197678,
+        "over25ms": 0,
+        "over50ms": 0
+      },
+      "frames": {
+        "count": 1730,
+        "mean": 6.958728323699421,
+        "p50": 7,
+        "p95": 7.099999999998545,
+        "p99": 7.200000000004366,
+        "max": 13.80000000000291,
+        "over25ms": 0,
+        "over50ms": 0
+      },
+      "motion": "running",
+      "cdpDelta": {
+        "TaskDuration": 3.808797000000001,
+        "ScriptDuration": 1.404448,
+        "LayoutDuration": 0.111989,
+        "RecalcStyleDuration": 0.22660399999999997,
+        "LayoutCount": 289,
+        "RecalcStyleCount": 289
+      },
+      "pathChanged": [
+        true,
+        true,
+        false
+      ]
+    }
+  ],
+  "errors": []
+}

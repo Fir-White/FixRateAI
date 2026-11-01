@@ -26,10 +26,11 @@ test("web registration → role → shift/qualification/crew → equipment/servi
   await createCode.click();
   const code=(await page.locator("code").innerText()).trim();
   await logout();
-  await page.getByRole("link",{name:"Регистрация сотрудника",exact:true}).click();
+  await page.getByRole("link",{name:"Регистрация",exact:true}).click();
   await page.getByLabel("Имя и фамилия",{exact:true}).fill(workerName);
   await page.getByLabel("Email",{exact:true}).fill(workerEmail);
   await page.getByLabel("Пароль",{exact:true}).fill(password);
+  await page.getByLabel("Подтвердите пароль",{exact:true}).fill(password);
   await page.getByLabel("Код компании",{exact:true}).fill(code);
   await page.getByRole("button",{name:"Зарегистрироваться",exact:true}).click();
   await expect(page.getByText(/Учётная запись создана/)).toBeVisible();

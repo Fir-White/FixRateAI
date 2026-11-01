@@ -1,0 +1,10 @@
+{
+  "generatedAtUtc": "2026-11-01T14:15:26.899Z",
+  "sourceSha256": "814cf9a96c543d9cf62c7a1eaa9b9e56b2013e494facb91141b1cd40304d3aca",
+  "speedMultiplier": 1.3,
+  "samplesPerRibbon": 2000,
+  "secondsCovered": 1425.287,
+  "method": "Compare current source against identical source with FLOW_SPEED=1 evaluated only in memory; acceleratedFrame(t) vs priorFrame(1.3t).",
+  "maxTrajectoryErrorWorld": 4.661160346586257e-12,
+  "exactWithinFloatingPoint": true
+}

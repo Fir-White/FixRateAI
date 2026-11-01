@@ -1,0 +1,50 @@
+{
+  "label": "stress-repeat",
+  "date": "2026-11-01T14:20:02.897Z",
+  "browser": "156.0.8078.79",
+  "headless": true,
+  "url": "http://127.0.0.1:5174/login",
+  "results": [
+    {
+      "width": 1440,
+      "height": 900,
+      "cpuThrottle": 4,
+      "wallSeconds": 30.014177299999997,
+      "callbacks": {
+        "count": 4309,
+        "mean": 0.9686470178052538,
+        "p50": 0.8999999910593033,
+        "p95": 1.7999999970197678,
+        "p99": 2.3999999910593033,
+        "max": 18.200000002980232,
+        "over25ms": 0,
+        "over50ms": 0
+      },
+      "frames": {
+        "count": 4309,
+        "mean": 6.993501972615398,
+        "p50": 7,
+        "p95": 7.100000000000364,
+        "p99": 7.200000000000728,
+        "max": 69.59999999999991,
+        "over25ms": 2,
+        "over50ms": 1
+      },
+      "motion": "running",
+      "cdpDelta": {
+        "TaskDuration": 13.655888,
+        "ScriptDuration": 4.829738,
+        "LayoutDuration": 0.42805699999999997,
+        "RecalcStyleDuration": 1.0915460000000001,
+        "LayoutCount": 903,
+        "RecalcStyleCount": 903
+      },
+      "pathChanged": [
+        true,
+        true,
+        false
+      ]
+    }
+  ],
+  "errors": []
+}

@@ -1,0 +1,9 @@
+Attempt 1
+BEGIN
+== 1. schema: tables, columns, keys ==
+DO
+== 2. fixtures: full history chain ==
+DO
+== 3. rollback fixtures ==
+ROLLBACK
+ALL SCHEMA CHECKS PASSED

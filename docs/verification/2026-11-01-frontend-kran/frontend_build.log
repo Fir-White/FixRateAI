@@ -1,0 +1,16 @@
+Attempt 1
+
+> fixrate-ai-frontend@0.1.0 build
+> tsc -b && vite build
+
+vite v6.4.5 building for production...
+transforming...
+✓ 107 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                              0.63 kB │ gzip:   0.41 kB
+dist/assets/fixrate-wordmark-DacTNmDU.svg    4.75 kB │ gzip:   2.06 kB
+dist/assets/fixrate-mark-D4hyE6tx.svg        5.64 kB │ gzip:   2.41 kB
+dist/assets/index-BNxxTimq.css              53.43 kB │ gzip:  10.84 kB
+dist/assets/index-DF02TNQh.js              454.48 kB │ gzip: 129.55 kB
+✓ built in 3.96s

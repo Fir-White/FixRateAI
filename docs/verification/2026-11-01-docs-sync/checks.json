@@ -1,0 +1,46 @@
+{
+  "timestamp": "2026-11-01T15:38:14.008917+00:00",
+  "scope": "Documentation consolidation only; no application test suite rerun.",
+  "branch": "feature/frontend-kran",
+  "head": "29484582c649ecd94771204466be39fc14b13f16",
+  "documentation_source_commit": "7d0f625002e04fe54be1365bcf4142eb005dad2c",
+  "source_update": "git fetch origin dev; no pull/merge, commit, reset, rebase or branch switch",
+  "markdown_files_checked": 25,
+  "local_links_checked": 260,
+  "local_anchor_links_checked": 27,
+  "source_paths_imported": 60,
+  "obsolete_paths_removed": 37,
+  "adapted_paths": [
+    "AGENTS.md",
+    "docs/ARCHITECTURE.md",
+    "docs/INDEX.md",
+    "docs/PLAN.md",
+    "docs/service/verification.md",
+    "docs/service/web.md"
+  ],
+  "non_document_files_hash_verified": 274,
+  "documentation_support_changes_matching_dev": [
+    ".gitignore"
+  ],
+  "changed_non_document_files": [],
+  "architecture_validator": {
+    "command": ".venv/Scripts/python.exe -X utf8 -B docs/architecture/validate_artifacts.py",
+    "exit_code": 0,
+    "stdout": "OK: 27 JSON examples; 3 comparison sets; 10 negative checks; schema matches; 244 local links; 18 diagram edges; S01..S15 present.\nThis validates design artifacts only; application/API/DB/ML integration was not run.\n",
+    "stderr": ""
+  },
+  "git_diff_check": {
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "warning: in the working copy of 'docs/BRANCH_FILE_MAP.json', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'docs/BRANCH_SOURCES.json', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'docs/architecture/validate_artifacts.py', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'docs/decisions/2026-10-26--ml-integration.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'docs/decisions/2026-10-26--random-forest.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'docs/decisions/2026-10-27--data-provenance.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'docs/decisions/2026-10-27--photo-review.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'docs/decisions/2026-10-28--hidden-operations.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'docs/decisions/ADR-TEMPLATE.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'docs/decisions/INDEX.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'docs/service/INDEX.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'docs/service/ml.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'docs/service/runtime.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'frontend/src/features/auth/AuroraScene.tsx', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'frontend/src/features/auth/ribbonGeometry.test.ts', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'frontend/src/features/auth/ribbonGeometry.ts', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'frontend/src/features/auth/useAuroraMotion.test.tsx', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'frontend/src/features/auth/useAuroraMotion.ts', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'frontend/src/pages/LoginPage.css', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'frontend/src/pages/RegistrationPage.tsx', LF will be replaced by CRLF the next time Git touches it\n"
+  },
+  "historical_evidence": [
+    "docs/REVIEWED_FILES.txt",
+    "docs/verification/2026-11-01-frontend-kran",
+    "docs/verification/2026-11-01-aurora-flow-3",
+    "docs/verification/2026-11-01-auth-graphics-performance"
+  ],
+  "limitations": "Historical dev verification and frontend measurements were preserved; runtime/backend/DB/ML, build, unit and browser tests were not rerun for this documentation-only task.",
+  "errors": [],
+  "passed": true
+}

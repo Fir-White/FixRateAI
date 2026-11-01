@@ -9,18 +9,19 @@ backend/app/main.py                 HTTP и раздача SPA
 backend/app/manage.py               миграции, аккаунты, явный seed
 backend/app/db/                     исходный ORM/repository/service
 backend/app/integration/            согласование SQL, SPA и ML
-backend/app/schemas/                канонические maintenance-0.1 DTO
+backend/app/schemas/                maintenance-0.1, runtime management и исходные API DTO
 backend/app/security/               исходные RBAC helpers и новые сессии
-ml_service/app/                     единственный ML/CV runtime
+ml_service/app/                     ML/CV библиотека внутри backend
 ml_service/var/artifacts/            исходный RF и его manifest
 frontend/src/shared/api/            production fetch и отдельный demo transport
 database/migrations/                одна упорядоченная SQL-цепочка
 database/seeds/                     исходные демонстрационные данные
 database/qa/                        SQL QA из прежнего db/tests
-docs/verification/                 единая методика, P0 и датированные проверки
-tests/README.md                    короткая ссылка на методику
+docs/verification/                 машинные протоколы прежних запусков
+docs/service/verification.md        единственная методика, сценарии и доказательства
 scripts/verify.py                   автономный временный тестовый стенд
-docs/service/integration.md        единая карта источников и порядок переноса
+docs/BRANCH_SOURCES.json            зафиксированные версии исходных веток
+docs/BRANCH_FILE_MAP.json           происхождение и адаптация исходных путей
 var/                               локальные фото/логи, игнорируется Git
 ```
 
@@ -124,7 +125,7 @@ npm --prefix frontend test
 npm --prefix frontend audit --audit-level=moderate
 ```
 
-Обычный pytest без тестовых URL пропускает PostgreSQL/HTTP проверки: такой запуск не равен полному прогону. Vitest использует demo fixtures для проверки всех исходных маршрутов/доступности; production transport отдельно проверяется браузерным E2E. Фактические итоги, команды, ограничения и исправленные ошибки — в [Датированные проверки интеграции](../verification/integration.md).
+Обычный pytest без тестовых URL пропускает PostgreSQL/HTTP проверки: такой запуск не равен полному прогону. Vitest использует demo fixtures для проверки всех исходных маршрутов/доступности; production transport отдельно проверяется браузерным E2E. Фактические итоги, команды и ограничения — в [проверках](verification.md).
 
 ## Диагностика и ограничения
 
@@ -145,6 +146,8 @@ npm --prefix frontend audit --audit-level=moderate
 
 Готовых конфигураций Docker Compose, nginx и CI для всего приложения в текущем дереве нет. Проектный ориентир 4 CPU / 8 ГБ RAM не является измеренным ресурсным бюджетом. GPU не обязателен архитектурно. Перед внешней эксплуатацией нужны замеры на целевом стенде, резервирование БД/фото/моделей и проверка восстановления, мониторинг, ограничения запросов и политика регистрации. Миграции применяются отдельно; `create_all()` не используется.
 
+Для будущего развёртывания сохранена последовательность: готовность PostgreSQL → отдельное применение миграций с остановкой при ошибке → запуск backend → проверка `/api/health` → SPA/proxy с корректным Host/origin. БД, фото и модели требуют постоянного хранения и совместимого восстановления. Сейчас health проверяет `SELECT 1`, а не качество или готовность AI; Compose volumes/healthchecks остаются проектом, не существующей конфигурацией. Прогрев CLIP при startup не реализован, см. [ML/CV](ml.md).
+
 ## Связи
 
-[Данные и миграции](data.md) · [методика тестов](../verification/testing.md) · [протоколы прошлых запусков](../verification/INDEX.md).
+[Данные и миграции](database.md) · [проверки и протоколы](verification.md) · [разработка и обновление источников](development.md).
