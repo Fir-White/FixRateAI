@@ -6,7 +6,7 @@
       "branch": "main",
       "sha": "d94f528df8c0e0f69c344ebd8c79a99bfbe5c1f2",
       "status": "integrated",
-      "document": "docs/branches/main.md",
+      "document": "docs/service/integration.md",
       "not_included": [],
       "fully_accounted_source_sha": "d94f528df8c0e0f69c344ebd8c79a99bfbe5c1f2"
     },
@@ -14,7 +14,7 @@
       "branch": "kran_dev",
       "sha": "c31570eaf970d6c6d3398995b58cf7173e89d183",
       "status": "integrated",
-      "document": "docs/branches/kran_dev.md",
+      "document": "docs/service/integration.md",
       "not_included": [
         "Nonfunctional new_file placeholder (a)"
       ],
@@ -24,7 +24,7 @@
       "branch": "new_backend",
       "sha": "c559d27046d5028f83ed4f67dda4e8418618303d",
       "status": "integrated",
-      "document": "docs/branches/new_backend.md",
+      "document": "docs/service/integration.md",
       "not_included": [
         "Duplicate async runtime/create_all and conflicting 004_sessions: existing SQL chain and opaque sessions retained",
         "UUID-as-session-cookie and unscoped role mutations: replaced by shared authenticated site-scoped implementation",
@@ -37,7 +37,7 @@
       "branch": "front/mvidy",
       "sha": "226f3266a29cd43121ddca2c707cdcf5d71d375c",
       "status": "integrated",
-      "document": "docs/branches/front--mvidy.md",
+      "document": "docs/service/integration.md",
       "not_included": [],
       "fully_accounted_source_sha": "226f3266a29cd43121ddca2c707cdcf5d71d375c"
     },
@@ -45,7 +45,7 @@
       "branch": "feat/ml-forecasting-photo-review",
       "sha": "2b8488f71ec295c94cb4874cbe9f8b324c3b0e41",
       "status": "integrated",
-      "document": "docs/branches/feat--ml-forecasting-photo-review.md",
+      "document": "docs/service/integration.md",
       "not_included": [],
       "fully_accounted_source_sha": "2b8488f71ec295c94cb4874cbe9f8b324c3b0e41",
       "validation_limits": [
@@ -57,7 +57,7 @@
       "branch": "qa/roles-contracts",
       "sha": "00b0dcafb55ccf30514e0dca413897ae01f61f37",
       "status": "integrated",
-      "document": "docs/branches/qa--roles-contracts.md",
+      "document": "docs/service/integration.md",
       "not_included": [],
       "fully_accounted_source_sha": "00b0dcafb55ccf30514e0dca413897ae01f61f37"
     },
@@ -65,7 +65,7 @@
       "branch": "docs/tests-p0",
       "sha": "f3730e86e5794d45c5fb154b194ce75a9ff9c522",
       "status": "integrated",
-      "document": "docs/branches/docs--tests-p0.md",
+      "document": "docs/service/integration.md",
       "not_included": [
         "Nonfunctional new_file placeholder (a)"
       ],

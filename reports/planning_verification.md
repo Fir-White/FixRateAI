@@ -9,7 +9,7 @@
 Реализованы независимые ALG02/RF-прогнозы на одном снимке, оркестратор с явными
 причинами выбора/fallback, транзакционная генерация без дублей и веб-сценарий
 с отдельным подтверждением бригады через BE05. Правила и API описаны в
-[orchestration_rules.md](../docs/algorithms/orchestration_rules.md).
+[orchestration_rules.md](../docs/service/orchestration.md).
 
 ## Рабочий локальный стенд
 

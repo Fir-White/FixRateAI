@@ -1,22 +1,3 @@
-> В dev runtime требует также миграцию 005. Рекомендуемый воспроизводимый запуск — `app.manage migrate`; свежая/существующая база и все команды описаны в [SYSTEM_OVERVIEW](../docs/SYSTEM_OVERVIEW.md). Ниже сохранены низкоуровневые проверки исходной цепочки 001–004.
+# PostgreSQL
 
-# PostgreSQL: миграция TL02
-
-Для новой пустой базы PostgreSQL 16+ выполните в корне репозитория:
-
-```sh
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/001_tl02.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/002_planning_contract.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/003_occurrence_uniqueness.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/004_tl03_safe_constraints.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/tests/001_integrity.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/tests/002_planning.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/tests/003_history.sql
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/tests/004_tl03_constraints.sql
-```
-
-Каждая миграция выполняется один раз в транзакции; повторное применение к той же базе не поддерживается. Тесты откатывают свои данные. Миграции не переносят данные из другой базы: для этого нужен отдельный согласованный план. Исходная ER-модель `docs/database/model_catalog.json` имеет статус архитектурного проекта, а `docs/architecture/dto_db_mapping.md` описывает открытые расхождения с контрактами. [Проект TL03](../docs/database/tl03_target.md) описывает изменения `004`, проверку существующих данных и несогласованные решения. FK в `004` имеет статус `NOT VALID`: старые данные нужно отдельно проверить и ограничение валидировать. Миграции не реализуют API или планировщик.
-
-Периодичность хранится как единица, число единиц и количество выполнений за период. Для `5/год` и `1/квар` даты не выводятся автоматически: календарные окна и фактические назначения задаются отдельно. Норма 60 сохраняется как исходное число с `norm_hours_basis=unknown`. История представлена версиями правил и планов, ссылками на предыдущую версию, снимками и журналом audit_events; изменения операций, правил, привязок и планов автоматически записываются в audit_events от имени system; идентификацию пользователя должен обеспечить backend. Неизменяемость опубликованных версий не обеспечивается. Уникальность назначения учитывает привязку к оборудованию и номер последовательности: разные sequence_no допускают несколько заданий в день. Месяц даты назначения и период действия привязки не проверяются ограничениями БД.
-
-Проверено на PostgreSQL 18.6 в однопользовательском режиме; для PostgreSQL 16 проверка ещё не выполнена. Фиктивные даты в тесте используются только для проверки ограничений и не являются датами из Excel. Стабильный binding_id, revision и исходная норма с точностью до трёх знаков добавлены для контрактов. Остальные расхождения, перечисленные в dto_db_mapping.md, остаются открытыми; полного round-trip DTO через БД и планировщик пока нет.
+[Текущая модель и миграции](../docs/service/data.md) · [подробный справочник](../docs/database/INDEX.md) · [применение и проверки](../docs/service/runtime.md) · [demo](demo/README.md) · [SQL QA](qa/README.md).

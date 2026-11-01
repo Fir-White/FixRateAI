@@ -1,22 +1,5 @@
-# Предметная модель ТО/ППР
+# Примеры предметной области
 
-Документы описывают текущую `dev`: оборудование, настраиваемое обслуживание,
-календарные обязательства, сотрудники, смены, бригады и подтверждаемые назначения.
-Реализация и интерфейс используют одни правила календаря.
+[Источник и требования](../service/domain.md) · [календарные эталоны](../service/calendar.md) · [словарь](../service/data.md).
 
-- [Словарь данных](data_dictionary.md): сущности, статусы, единицы и границы доступа.
-- [Исходные операции](pilot_regulations.md): шесть строк Excel и их настройки.
-- [Проверяемые календарные сценарии](expected_schedule.md) и
-  [входы/ожидания JSON](examples/maintenance_cases.json).
-- [Пользовательские процессы](user_flows.md).
-- [Календарь](../algorithms/scheduling_rules.md),
-  [подбор](../algorithms/assignment_rules.md),
-  [сохранение назначения](../algorithms/assignment_persistence.md),
-  [оркестрация](../algorithms/orchestration_rules.md).
-
-`examples/maintenance_operations.json` сохраняет исходные значения Excel; это
-вход импорта, а не REST-запрос. Остальные примеры используют канонические DTO
-`maintenance-0.1`. Настройка в вебе использует `ServiceConfiguration` и общий
-`CalendarPattern`; backend собирает из них канонический снимок для расчёта.
-Внутренние настройки задаёт пользователь системы, внешнее согласование для сохранения не требуется.
-Происхождение `customer`/`synthetic_demo` сохраняется отдельно от факта настройки.
+[maintenance_cases.json](examples/maintenance_cases.json) и [operation_to_equipment_links.json](examples/operation_to_equipment_links.json) используются тестами; копии fixtures не создаются.
