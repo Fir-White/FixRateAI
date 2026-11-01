@@ -35,8 +35,8 @@ def synthetic_snapshot() -> ForecastSnapshot:
 
 @pytest.fixture
 def canonical_example_snapshot() -> ForecastSnapshot:
-    """Fixture loading the exact canonical forecast_snapshot from docs/architecture/contracts/examples.json."""
-    examples_path = Path(__file__).resolve().parent.parent.parent / "docs" / "architecture" / "contracts" / "examples.json"
+    """Fixture loading the exact canonical forecast_snapshot from contracts/examples/maintenance.json."""
+    examples_path = Path(__file__).resolve().parents[2] / "contracts/examples/maintenance.json"
     with open(examples_path, "r", encoding="utf-8") as f:
         examples = json.load(f)["examples"]
     ex = next(x for x in examples if x["name"] == "forecast_snapshot")
@@ -45,9 +45,9 @@ def canonical_example_snapshot() -> ForecastSnapshot:
 
 @pytest.fixture
 def canonical_photo_review_request() -> PhotoReviewRequest:
-    """Fixture loading the exact canonical photo_review_request from docs/architecture/contracts/examples.json."""
+    """Fixture loading the exact canonical photo_review_request from contracts/examples/maintenance.json."""
     from ml_service.app.schemas import PhotoReviewRequest
-    examples_path = Path(__file__).resolve().parent.parent.parent / "docs" / "architecture" / "contracts" / "examples.json"
+    examples_path = Path(__file__).resolve().parents[2] / "contracts/examples/maintenance.json"
     with open(examples_path, "r", encoding="utf-8") as f:
         examples = json.load(f)["examples"]
     ex = next(x for x in examples if x["name"] == "photo_review_request")

@@ -14,10 +14,11 @@ from app.schemas.maintenance import ForecastSnapshot, Uncertainty
 from app.scheduling.schemas import SchedulingBinding
 from app.orchestrator.forecast import compare_forecasts, forecast_result
 from ml_service.app.forecast.synthetic import compute_snapshot_hash
+from scripts.verification_paths import prepare_run
 
 
 def inputs(origin="synthetic_demo"):
-    example=deepcopy(json.loads((ROOT/'docs/algorithms/examples.json').read_text(encoding='utf-8'))['request'])
+    example=deepcopy(json.loads((ROOT/'tests/fixtures/scheduling/examples.json').read_text(encoding='utf-8'))['request'])
     row=example['bindings'][0]
     for name in ('binding','equipment','operation','rule'): row[name]['data_origin']=origin
     row['rule'].update(calendar_unit='month',interval=1,anchor_date='2026-11-10',allowed_lead_days=9,source_text='DEMO: ежемесячно от 10 ноября')
@@ -111,7 +112,10 @@ def write_reports(output):
 if __name__=='__main__':
     import argparse
     parser=argparse.ArgumentParser()
-    parser.add_argument('--output',type=Path,default=ROOT/'reports')
+    parser.add_argument('--output',type=Path,help='New reports directory; defaults to reports/verification/<run-id>')
     args=parser.parse_args()
-    result=write_reports(args.output)
-    print(f'{len(result)} orchestration scenarios passed; reports: {args.output}')
+    output,logs=prepare_run(args.output,prefix='orchestration')
+    result=write_reports(output)
+    message=f'{len(result)} orchestration scenarios passed; reports: {output}'
+    (logs/'orchestration.log').write_text(message+'\n',encoding='utf-8')
+    print(message)

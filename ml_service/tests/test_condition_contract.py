@@ -39,5 +39,5 @@ def test_timeout_is_reported():
 
 
 def test_documented_demo_example():
-    examples = json.loads((Path(__file__).resolve().parents[2] / "docs/ml/forecast_examples.json").read_text(encoding="utf-8"))
+    examples = json.loads((Path(__file__).resolve().parents[2] / "contracts/examples/condition_forecast.json").read_text(encoding="utf-8"))
     assert invoke(json.dumps(examples["condition_request"])).model_dump(mode="json") == examples["condition_response"]

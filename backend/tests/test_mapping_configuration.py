@@ -8,7 +8,7 @@ from app.db import models
 
 
 def test_all_mappers_configure_without_database(monkeypatch):
-    catalog = json.loads((Path(__file__).resolve().parents[2] / "docs/database/model_catalog.json").read_text(encoding="utf-8"))
+    catalog = json.loads((Path(__file__).resolve().parents[2] / "database/schema/model_catalog.json").read_text(encoding="utf-8"))
 
     def fake_reflect(metadata, bind, only):
         from sqlalchemy import Table

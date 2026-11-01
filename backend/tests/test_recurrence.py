@@ -68,7 +68,7 @@ def test_ambiguous_or_contradictory_patterns_are_rejected(change):
 def test_pattern_flows_through_real_calendar_contract_and_alg02():
     from pathlib import Path
     from app.scheduling import CalendarGenerationRequest,generate_month
-    payload=json.loads(Path('docs/algorithms/examples.json').read_text(encoding='utf-8'))['request']
+    payload=json.loads((Path(__file__).resolve().parents[2] / 'tests/fixtures/scheduling/examples.json').read_text(encoding='utf-8'))['request']
     rule=payload['bindings'][0]['rule']
     rule.update(kind='calendar_pattern',interval=None,calendar_unit=None,anchor_date=None,basis=None,
         pattern=dict(frequency='week',anchor_date='2026-10-01',weekdays=[1,3],week_parity='even'))

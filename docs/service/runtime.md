@@ -4,28 +4,7 @@
 
 ## Код и пространства имён
 
-```text
-backend/app/main.py                 HTTP и раздача SPA
-backend/app/manage.py               миграции, аккаунты, явный seed
-backend/app/db/                     исходный ORM/repository/service
-backend/app/integration/            согласование SQL, SPA и ML
-backend/app/schemas/                maintenance-0.1, runtime management и исходные API DTO
-backend/app/security/               исходные RBAC helpers и новые сессии
-ml_service/app/                     ML/CV библиотека внутри backend
-ml_service/var/artifacts/            исходный RF и его manifest
-frontend/src/shared/api/            production fetch и отдельный demo transport
-database/migrations/                одна упорядоченная SQL-цепочка
-database/seeds/                     исходные демонстрационные данные
-database/qa/                        SQL QA из прежнего db/tests
-docs/verification/                 машинные протоколы прежних запусков
-docs/service/verification.md        единственная методика, сценарии и доказательства
-scripts/verify.py                   автономный временный тестовый стенд
-docs/BRANCH_SOURCES.json            зафиксированные версии исходных веток
-docs/BRANCH_FILE_MAP.json           происхождение и адаптация исходных путей
-var/                               локальные фото/логи, игнорируется Git
-```
-
-Backend импортируется как `app`, ML исключительно как `ml_service.app`. Добавлен `ml_service/__init__.py` и pytest `--import-mode=importlib`: иначе ML test package мог заслонять `app` backend. В runtime используется тот же класс канонического DTO; JSON/provider границы ML сохранены.
+Расположение исходников, конфигов, данных и результатов определено в [единой карте репозитория](development.md#структура-репозитория). Backend импортируется как `app`, ML исключительно как `ml_service.app`; pytest использует `--import-mode=importlib`. Runtime и проверщик используют один канонический DTO из backend, документной Python-копии нет.
 
 ## Установка и запуск
 
@@ -36,7 +15,7 @@ PowerShell, из корня проекта:
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.lock.txt
-Copy-Item .env.example .env
+Copy-Item config/.env.example .env
 # Отредактируйте DATABASE_URL: новая проектная PostgreSQL, не рабочая БД с чужими данными.
 $env:PYTHONPATH = "backend;."
 .\.venv\Scripts\python.exe -m app.manage migrate
@@ -97,7 +76,7 @@ py -3.12 -m venv .venv\cv
 $env:HF_HOME = Join-Path (Resolve-Path .venv).Path 'cv-cache'
 .\.venv\cv\Scripts\python.exe scripts/prepare_clip.py --download
 $env:FIXRATE_REQUIRE_CLIP = '1'
-.\.venv\cv\Scripts\python.exe scripts/verify.py --browser --output var/verification-cv
+.\.venv\cv\Scripts\python.exe scripts/verify.py --browser
 ```
 
 `prepare_clip.py` скачивает только заданный revision публичной модели, без токена аккаунта, и проверяет локальную загрузку. `FIXRATE_REQUIRE_CLIP=1` добавляет к HTTP сценарию обязательную проверку использованного model_ref; такой прогон не проходит за счёт unavailable или тестового классификатора. Без сети повторный запуск использует подготовленный cache.
@@ -110,7 +89,9 @@ $env:FIXRATE_REQUIRE_CLIP = '1'
 .\.venv\Scripts\python.exe scripts/verify.py --browser --pg-bin "C:\Program Files\PostgreSQL\16\bin"
 ```
 
-`--browser` требует установленный Chrome. Без этого флага выполняются все остальные проверки. Логи сохраняются в `var/verification/`; аргумент `--output` меняет каталог. Runner не использует рабочий `DATABASE_URL`: создаёт новый кластер в TEMP, слушающий loopback на свободном порту, отдельные БД для ORM, runtime, upgrade и браузера; останавливает свои процессы и удаляет только проверенный собственный временный каталог.
+`--browser` требует установленный Chrome. Без этого флага выполняются все остальные проверки. Каждый запуск создаёт новые `reports/verification/<run-id>` и `logs/verification/<run-id>`; команда печатает оба пути. Playwright artifacts сохраняются в подкаталоге отчёта `playwright`; конфигурация frontend остаётся на месте. `--output reports/verification/<новое-имя>` задаёт каталог отчёта; внутри репозитория выход разрешён только в reports. Повтор с каталогом, уже содержащим результаты, отклоняется, чтобы не перезаписать доказательства. Для внешнего CI-каталога results.json сохраняет разрешимые ссылки на логи.
+
+Runner не использует рабочий `DATABASE_URL`: создаёт новый кластер в TEMP, слушающий loopback на свободном порту, отдельные БД для ORM, runtime, upgrade и браузера; останавливает свои процессы и удаляет только проверенный собственный временный каталог.
 
 Проверяются 001–004 и все SQL assertion исходников, повторный исходный seed, upgrade заполненной 004 до 008 с сохранением истории работ/назначений, повтор мигратора, новая 001–008, повтор runtime seed, все Python тесты с настоящей БД, 12 исполняемых сценариев оркестрации, архитектурный валидатор, compileall, TypeScript/Vite, UI тесты и npm audit. Browser E2E использует собранную SPA и настоящий uvicorn: календарь → два прогноза → создание задания → подтверждение бригады → reload; также сохранены проверки четырёх ролей, фотоотчёта, доработки, приёмки и RF.
 
@@ -118,7 +99,7 @@ $env:FIXRATE_REQUIRE_CLIP = '1'
 
 ```powershell
 .\.venv\Scripts\python.exe -B -m pytest -q
-.\.venv\Scripts\python.exe -B docs/architecture/validate_artifacts.py
+.\.venv\Scripts\python.exe -B scripts/validate_artifacts.py
 npm --prefix frontend run typecheck
 npm --prefix frontend run build
 npm --prefix frontend test

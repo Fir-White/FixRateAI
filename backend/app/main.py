@@ -410,7 +410,7 @@ def create_app(engine=None):
     def photo_path(photo):
         # Source demo photo is read-only and served only through the same access check.
         if photo.storage_key == "database/demo/demo-photo.png":
-            return ROOT / photo.storage_key
+            return ROOT / "data/demo/demo-photo.png"
         path = (storage / photo.storage_key).resolve()
         if not path.is_relative_to(storage):
             raise HTTPException(404, "Файл не найден")

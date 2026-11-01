@@ -15,7 +15,7 @@ from app.schemas.maintenance_api import (
 )
 
 
-EXAMPLES = Path(__file__).parents[1] / "examples" / "maintenance_api_examples.json"
+EXAMPLES = Path(__file__).resolve().parents[2] / "contracts/examples/maintenance_api.json"
 
 
 def load_examples() -> dict:

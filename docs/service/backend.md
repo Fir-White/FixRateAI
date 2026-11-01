@@ -2,11 +2,9 @@
 
 Назначение: граница HTTP и проверка доступа. Код: [FastAPI](../../backend/app/main.py), [DTO](../../backend/app/schemas/maintenance.py), [авторизация](../../backend/app/security). Актуальная спецификация маршрутов доступна в `/docs` и `/openapi.json` запущенного backend.
 
-Строгие REST-модели: [maintenance_api.py](../../backend/app/schemas/maintenance_api.py), [исходные примеры](../../backend/examples/maintenance_api_examples.json). Они описывают также целевые структуры, не все из которых имеют отдельный HTTP endpoint. Фактически доступные маршруты определяет OpenAPI. Неизвестные поля отклоняются, идентификаторы генерирует сервер; исходная норма не преобразуется в минуты без подтверждённого основания.
+Строгие REST-модели: [maintenance_api.py](../../backend/app/schemas/maintenance_api.py), [исходные примеры](../../contracts/examples/maintenance_api.json). Они описывают также целевые структуры, не все из которых имеют отдельный HTTP endpoint. Фактически доступные маршруты определяет OpenAPI. Неизвестные поля отклоняются, идентификаторы генерирует сервер; исходная норма не преобразуется в минуты без подтверждённого основания.
 
-Канонические DTO: [maintenance.py](../../backend/app/schemas/maintenance.py),
-их документальная копия [maintenance_contracts.py](../architecture/contracts/maintenance_contracts.py)
-и [JSON Schema](../architecture/contracts/maintenance.schema.json). Все три обновляются совместно.
+Канонические DTO определены только в [maintenance.py](../../backend/app/schemas/maintenance.py). [JSON Schema](../../contracts/maintenance.schema.json) экспортируется из этих же классов, [примеры](../../contracts/examples/maintenance.json) проверяются ими. Документная Python-копия удалена; изменения моделей, экспорта и потребителей проверяются совместно.
 `maintenance-0.1` — единый развиваемый контракт текущей dev; новые календарные
 варианты добавлены вместе со всеми потребителями. Прежние сохранённые снимки
 сохраняют исходные поля и хеши. Версия вычисления теперь `calendar-rules-v2`.

@@ -9,12 +9,12 @@ import pytest
 from app.scheduling import CalendarGenerationRequest,generate_month
 
 ROOT=Path(__file__).resolve().parents[2]
-CASES=json.loads((ROOT/'docs/domain/examples/maintenance_cases.json').read_text(encoding='utf-8'))['test_fixtures']
+CASES=json.loads((ROOT/'tests/fixtures/domain/maintenance_cases.json').read_text(encoding='utf-8'))['test_fixtures']
 
 
 @pytest.mark.parametrize('case',CASES,ids=lambda row:row['test_id'])
 def test_analyst_calendar_fixture(case):
-    request=deepcopy(json.loads((ROOT/'docs/algorithms/examples.json').read_text(encoding='utf-8'))['request'])
+    request=deepcopy(json.loads((ROOT/'tests/fixtures/scheduling/examples.json').read_text(encoding='utf-8'))['request'])
     values=case['input_data']
     request['query'].update(year=values['year'],month=values['month'])
     request['as_of']=f"{values['year']}-{values['month']:02d}-01T00:00:00+05:00"
@@ -33,8 +33,8 @@ def test_domain_json_examples_share_the_canonical_contracts():
     from app.schemas.maintenance import OperationVersion,RecurrenceRule,Task,Equipment
     from app.schemas.maintenance_api import EquipmentOperationBindingResponse
     for name,model in [('operation_template',OperationVersion),('regulation',RecurrenceRule),('maintenance_task',Task)]:
-        model.model_validate_json((ROOT/f'docs/domain/examples/{name}.json').read_text(encoding='utf-8'))
-    relation=json.loads((ROOT/'docs/domain/examples/operation_to_equipment_links.json').read_text(encoding='utf-8'))
+        model.model_validate_json((ROOT/f'tests/fixtures/domain/{name}.json').read_text(encoding='utf-8'))
+    relation=json.loads((ROOT/'tests/fixtures/domain/operation_to_equipment_links.json').read_text(encoding='utf-8'))
     operation=OperationVersion.model_validate_json(json.dumps(relation['operation']))
     rule=RecurrenceRule.model_validate_json(json.dumps(relation['rule']))
     equipment={row['equipment_id']:Equipment.model_validate_json(json.dumps(row)) for row in relation['equipment']}

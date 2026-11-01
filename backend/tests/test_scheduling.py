@@ -13,7 +13,7 @@ from app.schemas.maintenance import PlanOccurrence, RecurrenceRule
 from app.schemas.maintenance_api import CalendarResponse
 from app.scheduling import CalendarGenerationRequest, CalendarGenerationResult, generate_month
 
-EXAMPLES = Path(__file__).resolve().parents[2] / "docs/algorithms/examples.json"
+EXAMPLES = Path(__file__).resolve().parents[2] / "tests/fixtures/scheduling/examples.json"
 
 
 def payload(year=2026, month=10, **rule_changes):

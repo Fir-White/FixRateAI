@@ -38,6 +38,25 @@ coverage/
 /frontend/test-results/
 /frontend/playwright-report/
 
+# New verification runs are local; only selected historical evidence is versioned.
+/logs/**
+!/logs/verification/
+!/logs/verification/archive/
+!/logs/verification/archive/**
+!/logs/sql/
+!/logs/sql/archive/
+!/logs/sql/archive/**
+/reports/**
+!/reports/audits/
+!/reports/audits/REVIEWED_FILES.txt
+!/reports/verification/
+!/reports/verification/archive/
+!/reports/verification/archive/**
+!/reports/ml/
+!/reports/ml/archive/
+!/reports/ml/archive/**
+/config/local/
+
 # Local AI tooling and isolated worktrees
 /.opencode/
 /.codex/

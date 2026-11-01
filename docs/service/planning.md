@@ -49,14 +49,14 @@ yearly_count сначала строит упорядоченное множес
 
 ### Проверки
 
-`test_recurrence.py`, `test_scheduling.py`, `test_domain_scenarios.py`, `test_runtime_integration.py`, `test_management.py`; браузерный `frontend/e2e/settings.spec.ts`. Покрыты месяцы 28–31 день, високосный год, короткий месяц, ISO53/1, кварталы против month/3, годовое число с фильтрами, исключения, принятая история, ревизии и отсутствие автоматических назначений. Эталонные предметные входы: [maintenance_cases.json](../domain/examples/maintenance_cases.json).
+`test_recurrence.py`, `test_scheduling.py`, `test_domain_scenarios.py`, `test_runtime_integration.py`, `test_management.py`; браузерный `frontend/e2e/settings.spec.ts`. Покрыты месяцы 28–31 день, високосный год, короткий месяц, ISO53/1, кварталы против month/3, годовое число с фильтрами, исключения, принятая история, ревизии и отсутствие автоматических назначений. Эталонные предметные входы: [maintenance_cases.json](../../tests/fixtures/domain/maintenance_cases.json).
 
 ### Эталонные календарные сценарии
 
 Нормативная реализация: `calendar-rules-v2`, общий `CalendarPattern` в
 `backend/app/schemas/maintenance.py`, расчёт в `backend/app/scheduling/recurrence.py`.
 Один механизм используется для обслуживания и регулярных смен.
-Входы и ожидания: [maintenance_cases.json](../domain/examples/maintenance_cases.json).
+Входы и ожидания: [maintenance_cases.json](../../tests/fixtures/domain/maintenance_cases.json).
 Они исполняются `backend/tests/test_domain_scenarios.py`.
 
 | Сценарий | Настройка | Проверяемое ожидание |
@@ -488,7 +488,7 @@ BE05 повторно проверяет доступность и допуск�
 
 ### Эталоны и доказательства
 
-`scripts/verify_orchestration.py --output var/verification/orchestration` выполняет 12 синтетических сценариев и создаёт временные Markdown/JSON в указанном ignored-каталоге. Сохранённые эталоны и выводы объединены в [проверках](verification.md). Даты совпадают/AI раньше/AI позже, отсутствие данных,
+`scripts/verify_orchestration.py` выполняет 12 синтетических сценариев и создаёт временные Markdown/JSON в новом ignored-каталоге reports/verification/<run-id>. Сохранённые эталоны и выводы объединены в [проверках](verification.md). Даты совпадают/AI раньше/AI позже, отсутствие данных,
 ошибка JSON/провайдера/снимка, таймаут и неподтверждённый ранний риск проверяются явно.
 Частота несогласия относится только к сопоставимым предложениям в специально подобранном
 наборе, не является оценкой точности на заказчике. Старые допущения 90/73 дня не используются.

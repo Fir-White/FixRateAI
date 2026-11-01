@@ -3,7 +3,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 
 ML_SERVICE_DIR = Path(__file__).resolve().parent.parent.parent
-ARTIFACTS_DIR = ML_SERVICE_DIR / "var" / "artifacts"
+ARTIFACTS_DIR = ML_SERVICE_DIR.parent / "data" / "models"
 
 
 class MLConfig(BaseModel):
