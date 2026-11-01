@@ -2,6 +2,7 @@
 from copy import deepcopy
 from datetime import date, datetime
 import json
+import logging
 from pathlib import Path
 import sys
 import time
@@ -115,7 +116,9 @@ if __name__=='__main__':
     parser.add_argument('--output',type=Path,help='New reports directory; defaults to reports/verification/<run-id>')
     args=parser.parse_args()
     output,logs=prepare_run(args.output,prefix='orchestration')
+    logging.basicConfig(filename=logs/'orchestration.log',encoding='utf-8',level=logging.INFO,
+                        format='%(levelname)s %(name)s %(message)s',force=True)
     result=write_reports(output)
     message=f'{len(result)} orchestration scenarios passed; reports: {output}'
-    (logs/'orchestration.log').write_text(message+'\n',encoding='utf-8')
+    logging.info(message)
     print(message)

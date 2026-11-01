@@ -1918,3 +1918,36 @@ BRANCH REFS BEFORE NORMALIZATION COMMITS
 refs/heads/dev 7d0f625002e04fe54be1365bcf4142eb005dad2c
 refs/heads/feature/frontend-kran 29484582c649ecd94771204466be39fc14b13f16
 refs/heads/main d94f528df8c0e0f69c344ebd8c79a99bfbe5c1f2
+
+LOCAL RUNTIME JOURNAL/REPORT RELOCATION
+var/local-demo/api.flexible.stderr.log	logs/runtime/archive/local-demo/api.flexible.stderr.log	62f654b91273a5bdc6ba17c1993611452db8b877936e024f80dc5167d21b3797
+var/local-demo/api.flexible.stdout.log	logs/runtime/archive/local-demo/api.flexible.stdout.log	5694f3624aceb18c12b14dc625dd163ccaa240ecf77e4e9debfc9fb18e52656a
+var/local-demo/api.start.stderr.log	logs/runtime/archive/local-demo/api.start.stderr.log	fe2af3e75eb23f03e99e3fe2c012a302eb18c65739e346788f9419827fcedc55
+var/local-demo/api.start.stdout.log	logs/runtime/archive/local-demo/api.start.stdout.log	de2e08c0b70d52194e48691679311d5eef887d4220a0b5bf248f1e623e8f34f8
+var/local-demo/api.stderr.log	logs/runtime/archive/local-demo/api.stderr.log	70869f1caea1e78b440a34718bbcb9f2f32cdb4c36f48011a8361eebe60d2696
+var/local-demo/api.stdout.log	logs/runtime/archive/local-demo/api.stdout.log	db1cdcaf456b5eba02844375aeffdd58af052946be69a0aae0e590568238bf53
+var/local-demo/initdb.log	logs/runtime/archive/local-demo/initdb.log	8659f5a515c3f31df28244ada778d8601420ee4000cd04e69244b3b987b27177
+var/local-demo/postgres.stderr.log	logs/runtime/archive/local-demo/postgres.stderr.log	849cbbfadd6647da57e288f09e948a19e77ebd09c0f5b12318c88d5f31dd0de5
+var/local-demo/postgres.stdout.log	logs/runtime/archive/local-demo/postgres.stdout.log	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+var/local-demo/browser-smoke.png	reports/deployments/local-history/local-demo/browser-smoke.png	ab3c9a1e478376dc1d247bb18e7ca7e0f5f8612180f881616e7441160da4867d
+var/local-demo/be05-deployment-path.txt	reports/audits/local-history/local-demo/be05-deployment-path.txt	eb53ab7e45c836d76d98e9c340204b165c0aeb130d64cbac23740e1f4dee8e4f
+var/local-demo/flexible-deployment-path.txt	reports/audits/local-history/local-demo/flexible-deployment-path.txt	3ba1cbbacd9e47cce3bef8f1190a5456ff079981d7305eae16d5388097e0f0b9
+var/local-demo/planning-deployment-path.txt	reports/audits/local-history/local-demo/planning-deployment-path.txt	d2dfd4ad59a503463c8ed3659ad961fb2910f4e7694b2576daca0285981d0ea5
+Locked journal exceptions (active PostgreSQL streams, kept without stopping server): var/local-demo/postgres.start.stderr.log, var/local-demo/postgres.start.stdout.log
+
+NORMALIZATION VERIFICATION RECEIPT
+Source baseline 7d0f625; structural commit 3a39742.
+Full run verify-20261101-190732-fc615504: 24/24; Python 427 (423 original + 4 output tests), UI 102, browser 16 (5 mock login + 11 real runtime), orchestration 12, audit 0.
+Targeted final-output run verify-20261101-191520-cc2a3dc4: 24/24; Python 4, UI 102, browser 16, audit 0; Playwright artifacts under report/playwright.
+Standalone SQL runner passed from external cwd on PostgreSQL 16; relocated exporter reproduced exact SVG bytes; standalone orchestration CLI orchestration-20261101-195640-712797c3 passed 12 cases and persisted four expected rejection diagnostics in logs.
+All original applied SQL/seed, canonical DTO, binary assets and fixtures preserved; only two SQL-test include paths changed.
+All 41 working tables unchanged; PostgreSQL start time unchanged. HTTP health/OpenAPI and read-only legacy demo-photo route passed. Actual RF loaded and manifest SHA verified in the CV profile; real CLIP not rerun.
+API live on 127.0.0.1:8000 in a managed terminal session, PID recorded in var/local-demo/api.pid; all non-PG verification workers finished.
+No pending temporary copies; exceptions: protected component config/test locations, private runtime state/HF cache, two locked PostgreSQL log streams.
+Pinned CLIP readiness passed from external cwd with the existing HF_HOME and CV interpreter, without downloads: openai/clip-vit-base-patch32@3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268. No inference or retraining performed.
+
+FINAL COMPLETION AUDIT
+20 maintained documents reachable; 200 local links/anchors valid; S01-S15 and P0-01-P0-23 complete.
+No logs/code/data in docs, no log files in reports, no obsolete var/verification* or frontend/test-results output directories.
+All baseline resources accounted for; no old copies; all non-dev branch refs unchanged.
+Final working HTTP health/SPA JS bundle and all 41 read-only table hashes/PostgreSQL identity rechecked successfully.
