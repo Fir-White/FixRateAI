@@ -20,6 +20,47 @@ class Value(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
 
+class CalendarPattern(Value):
+    """Shared local-date recurrence for equipment maintenance and employee shifts."""
+    frequency: Literal["day", "week", "month", "quarter", "year", "yearly_count", "dates"]
+    anchor_date: date
+    interval: Annotated[int, Field(ge=1, le=10000)] = 1
+    weekdays: list[Annotated[int, Field(ge=1, le=7)]] = Field(default_factory=list)
+    week_parity: Literal["any", "even", "odd"] = "any"
+    month_days: list[Annotated[int, Field(ge=-1, le=31)]] = Field(default_factory=list)
+    months: list[Annotated[int, Field(ge=1, le=12)]] = Field(default_factory=list)
+    period_edge: Literal["start", "end"] = "end"
+    short_month: Literal["last_day", "skip"] = "last_day"
+    count_per_year: Annotated[int, Field(ge=1, le=366)] | None = None
+    dates: list[date] = Field(default_factory=list)
+    excluded_dates: list[date] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def coherent_pattern(self):
+        for key in ("weekdays", "month_days", "months", "dates", "excluded_dates"):
+            values = getattr(self, key)
+            if len(values) != len(set(values)):
+                raise ValueError(f"duplicate {key}")
+        if any(day in (0, -0) for day in self.month_days):
+            raise ValueError("month day must be 1..31 or -1 for the last day")
+        if self.frequency == "yearly_count":
+            if self.count_per_year is None:
+                raise ValueError("annual count is required")
+        elif self.count_per_year is not None:
+            raise ValueError("count_per_year requires yearly_count")
+        if self.frequency == "dates" and not self.dates:
+            raise ValueError("explicit calendar needs dates")
+        if self.frequency=='dates' and (self.interval!=1 or self.weekdays or self.week_parity!='any'):
+            raise ValueError('explicit dates cannot have interval or week filters')
+        if self.frequency != "dates" and self.dates:
+            raise ValueError("dates require dates frequency")
+        if self.frequency in ("day", "week", "dates") and (self.months or self.month_days):
+            raise ValueError("month selectors require month, quarter or year frequency")
+        if self.frequency not in ("year","yearly_count") and self.months:
+            raise ValueError("months selector requires annual frequency")
+        return self
+
+
 class Versioned(Value):
     schema_version: Literal["maintenance-0.1"]
 
@@ -88,7 +129,7 @@ class RecurrenceRule(Contract):
     rule_version_id: UUID
     regulation_version_id: UUID
     source_text: Text
-    kind: Literal["calendar_interval", "explicit_dates", "runtime"]
+    kind: Literal["calendar_interval", "explicit_dates", "runtime", "calendar_pattern"]
     confirmed: bool
     interval: PositiveInt | None
     calendar_unit: Literal["day", "month"] | None
@@ -99,6 +140,7 @@ class RecurrenceRule(Contract):
     runtime_interval_hours: Hours | None
     allowed_lead_days: NonNegativeInt
     source_ref: Text
+    pattern: CalendarPattern | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
     def confirmed_rule_is_explicit(self):
@@ -108,6 +150,14 @@ class RecurrenceRule(Contract):
             raise ValueError("explicit dates must be sorted")
         if not self.confirmed:
             return self
+        if self.kind == "calendar_pattern":
+            if self.pattern is None:
+                raise ValueError("calendar pattern needs pattern settings")
+            if self.explicit_dates or any(x is not None for x in (self.interval, self.calendar_unit, self.anchor_date, self.basis, self.yearly_count, self.runtime_interval_hours)):
+                raise ValueError("incompatible pattern rule fields")
+            return self
+        if self.pattern is not None:
+            raise ValueError("pattern settings require calendar_pattern kind")
         if self.kind == "calendar_interval":
             if None in (self.interval, self.calendar_unit, self.anchor_date, self.basis):
                 raise ValueError("calendar rule needs interval/unit/anchor/basis")
@@ -477,6 +527,7 @@ class ErrorInfo(Value):
 
 class ErrorResponse(Versioned):
     error: ErrorInfo
+    detail: Text | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 # Канонические имена $defs. Для обоих методов используется один ForecastResult.

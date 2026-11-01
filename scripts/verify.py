@@ -33,6 +33,7 @@ def main():
     parser.add_argument("--pg-bin", type=Path, default=Path("C:/Program Files/PostgreSQL/16/bin") if os.name == "nt" else Path("/usr/lib/postgresql/16/bin"))
     parser.add_argument("--output", type=Path, default=ROOT / "var/verification")
     parser.add_argument("--browser", action="store_true", help="Also run built-SPA browser tests")
+    parser.add_argument('--pytest-target',nargs='+',help='Run selected pytest paths while developing; omit for the full release check')
     args = parser.parse_args()
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -53,15 +54,25 @@ def main():
     def exe(name):
         return str(args.pg_bin / (name + (".exe" if os.name == "nt" else "")))
 
-    def run(name, command, *, cwd=ROOT, variables=None):
+    def run(name, command, *, cwd=ROOT, variables=None, network_retries=0):
         print(name, flush=True)
         start = time.monotonic()
         with (output / f"{name}.log").open("w", encoding="utf-8") as log:
-            done = subprocess.run(command, cwd=cwd, env=variables or env, stdout=log, stderr=subprocess.STDOUT,
-                                  encoding="utf-8", **hidden)
+            for attempt in range(network_retries+1):
+                marker=f'Attempt {attempt+1}\n'
+                log.write(marker);log.flush()
+                done = subprocess.run(command, cwd=cwd, env=variables or env, stdout=log, stderr=subprocess.STDOUT,
+                                      encoding="utf-8", **hidden)
+                log.flush()
+                diagnostic=(output/f'{name}.log').read_text(encoding='utf-8').rsplit(marker,1)[-1]
+                transient=any(value in diagnostic for value in ('audit endpoint returned an error','ECONNRESET','ENOTFOUND','ETIMEDOUT','before secure TLS connection'))
+                if not done.returncode or not transient or attempt==network_retries:
+                    break
+                log.write(f'\nRetrying registry request after a network failure, attempt {attempt+2}\n');log.flush()
+                time.sleep(1)
         results.append(dict(check=name, command=subprocess.list2cmdline([str(x) for x in command]),
                             status="Пройдено" if done.returncode == 0 else "Ошибка", exit_code=done.returncode,
-                            seconds=round(time.monotonic()-start, 2), log=f"{name}.log"))
+                            seconds=round(time.monotonic()-start, 2), log=f"{name}.log",attempts=attempt+1))
         if done.returncode:
             print((output / f"{name}.log").read_text(encoding="utf-8")[-15000:])
             raise RuntimeError(f"{name} failed")
@@ -122,7 +133,7 @@ def main():
             assignments_after = raw.execute("SELECT md5(string_agg((to_jsonb(a)-'start_at'-'end_at'-'qualification_snapshot'-'reason'-'released_at')::text,',' ORDER BY work_assignment_id)) FROM work_assignments a").fetchone()[0]
             assert assignments_before == assignments_after, "Upgrade changed existing assignments"
         engine.dispose()
-        results.append(dict(check="upgrade_004_to_007_and_idempotence", command="app.manage.migrate(adopt_existing=True); migrate(); compare persisted history", status="Пройдено"))
+        results.append(dict(check="upgrade_004_to_008_and_idempotence", command="app.manage.migrate(adopt_existing=True); migrate(); compare persisted history", status="Пройдено"))
         # Independent fresh installation, then seed twice without resetting history or passwords.
         engine = make_engine(runtime_url)
         migrate(engine)
@@ -130,10 +141,10 @@ def main():
         seed_demo(engine, password)
         seed_demo(engine, password)
         engine.dispose()
-        results.append(dict(check="fresh_001_to_007_and_seed_rerun", command="app.manage.migrate(); seed_demo(); seed_demo()", status="Пройдено"))
+        results.append(dict(check="fresh_001_to_008_and_seed_rerun", command="app.manage.migrate(); seed_demo(); seed_demo()", status="Пройдено"))
         test_env = dict(env, TEST_DATABASE_URL=orm_url, INTEGRATION_DATABASE_URL=runtime_url, FIXRATE_TEST_PASSWORD=password,
                         PHOTO_STORAGE_ROOT=str(scratch / "photos"))
-        run("pytest", [sys.executable, "-B", "-m", "pytest", "-q"], variables=test_env)
+        run("pytest", [sys.executable, "-B", "-m", "pytest", "-q",*(args.pytest_target or [])], variables=test_env)
         run("architecture", [sys.executable, "-B", "docs/architecture/validate_artifacts.py"])
         run("orchestration_scenarios", [sys.executable, "-B", "scripts/verify_orchestration.py", "--output", str(output / "orchestration")])
         run("compileall", [sys.executable, "-m", "compileall", "-q", "backend/app", "ml_service"])
@@ -141,7 +152,6 @@ def main():
         npm = shutil.which("npm.cmd" if os.name == "nt" else "npm")
         run("frontend_build", [npm, "run", "build"], cwd=ROOT / "frontend")
         run("frontend_tests", [npm, "test"], cwd=ROOT / "frontend")
-        run("frontend_audit", [npm, "audit", "--audit-level=moderate"], cwd=ROOT / "frontend")
         if args.browser:
             browser_url = create_db("fixrate_test_browser")
             engine = make_engine(browser_url)
@@ -167,6 +177,8 @@ def main():
             run("browser_e2e", [npm, "run", "test:e2e"], cwd=ROOT / "frontend", variables=dict(env,
                 FIXRATE_BASE_URL=f"http://127.0.0.1:{api_port}", FIXRATE_TEST_PASSWORD=password,
                 FIXRATE_E2E_OUTPUT=str(output)))
+        audit_env=dict(env,NODE_OPTIONS=(env.get('NODE_OPTIONS','')+' --dns-result-order=ipv4first').strip())
+        run("frontend_audit", [npm, "audit", "--audit-level=moderate", "--fetch-retries=1", "--fetch-timeout=20000"], cwd=ROOT / "frontend",variables=audit_env,network_retries=2)
     except Exception as exc:
         if not results or results[-1].get("status") != "Ошибка":
             results.append(dict(check="verification_runner", status="Ошибка", error=str(exc)))

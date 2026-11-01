@@ -11,6 +11,7 @@ const allowed: Record<string, string[]> = {
   dispatcher: ["admin", "dispatcher"], equipment: roles,
   calendar: ["dispatcher", "engineer", "executor"], tasks: ["dispatcher", "engineer"],
   comparisons: ["dispatcher", "engineer"], quality: ["engineer"], executor: ["executor"],
+  settings: ["admin","dispatcher","engineer"], "my-shifts": ["executor"],
 };
 
 for (const role of roles) {
@@ -28,7 +29,7 @@ for (const role of roles) {
     await expect(page).toHaveURL(new URL(destination, process.env.FIXRATE_BASE_URL!).href);
     const routes = ["/dispatcher", "/equipment", `/equipment/${demoId("equipment-2")}`, "/calendar", "/tasks",
       `/tasks/${demoId("runtime-order")}`, "/comparisons", "/quality", `/quality/${demoId("runtime-order")}`,
-      "/executor", `/executor/tasks/${demoId("runtime-order")}`];
+      "/executor", `/executor/tasks/${demoId("runtime-order")}`,"/settings/equipment","/settings/workforce","/my-shifts"];
     for (const route of routes) {
       await page.goto(route);
       const permitted = allowed[route.split("/")[1]].includes(role);

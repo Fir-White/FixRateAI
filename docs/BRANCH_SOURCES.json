@@ -1,6 +1,6 @@
 {
   "base": "d94f528df8c0e0f69c344ebd8c79a99bfbe5c1f2",
-  "captured_at": "2026-10-31",
+  "captured_at": "2026-11-01",
   "sources": [
     {
       "branch": "main",
@@ -22,11 +22,16 @@
     },
     {
       "branch": "new_backend",
-      "sha": "16b79affc155d75b76f585dcdfa4e5acc1781cfb",
+      "sha": "c559d27046d5028f83ed4f67dda4e8418618303d",
       "status": "integrated",
       "document": "docs/branches/new_backend.md",
-      "not_included": [],
-      "fully_accounted_source_sha": "16b79affc155d75b76f585dcdfa4e5acc1781cfb"
+      "not_included": [
+        "Duplicate async runtime/create_all and conflicting 004_sessions: existing SQL chain and opaque sessions retained",
+        "UUID-as-session-cookie and unscoped role mutations: replaced by shared authenticated site-scoped implementation",
+        "Source scenario_results is historical evidence; current tests executed independently"
+      ],
+      "fully_accounted_source_sha": "c559d27046d5028f83ed4f67dda4e8418618303d",
+      "previous_accounted_sha": "16b79affc155d75b76f585dcdfa4e5acc1781cfb"
     },
     {
       "branch": "front/mvidy",

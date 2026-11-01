@@ -8,29 +8,61 @@ from pydantic import ValidationError
 from app.scheduling import CalendarGenerationRequest, generate_month
 
 
+def configured_pattern(rule):
+    """Translate stored period units consistently; quarter always means a calendar quarter."""
+    parameters=rule.schedule_parameters
+    if parameters.get('calendar_pattern') is not None:
+        return parameters['calendar_pattern']
+    anchor=parameters.get('anchor_date') or rule.active_from.isoformat()
+    if rule.period_unit=='quarter' and rule.occurrences_per_period==1:
+        return dict(frequency='quarter',anchor_date=anchor,interval=rule.period_count,
+            period_edge=parameters.get('period_edge','end'))
+    if rule.period_unit=='year' and not parameters.get('explicit_dates'):
+        return dict(frequency='yearly_count',anchor_date=f'{rule.active_from.year}-01-01',
+            interval=rule.period_count,count_per_year=rule.occurrences_per_period)
+    if rule.period_unit in ('day','month') and rule.occurrences_per_period==1 and parameters.get('anchor_date') and parameters.get('basis') in ('fixed_calendar','after_accepted_completion'):
+        return dict(frequency=rule.period_unit,anchor_date=anchor,interval=rule.period_count)
+    return None
+
+
 def _json_value(value):
     return value.isoformat() if isinstance(value, (date, datetime)) else str(value)
+
+
+def checklist_for_rule(v,operation_id,parameters):
+    checks={}
+    for check in v.rows('checklist_templates',operation_template_id=operation_id):
+        if parameters.get('checklist_ids') is not None and str(check.checklist_template_id) not in parameters['checklist_ids']:
+            continue
+        prior=checks.get(check.item_code)
+        if prior is None or check.template_version>prior.template_version:
+            checks[check.item_code]=check
+    return sorted(checks.values(),key=lambda c:(c.position,c.item_code))
 
 
 def _binding_payload(v, binding, rule, equipment, site):
     op, edition = rule.operation, rule.edition
     parameters = rule.schedule_parameters
     origin = rule.data_origin
-    checks = {}
-    for check in v.rows("checklist_templates", operation_template_id=op.operation_template_id):
-        prior = checks.get(check.item_code)
-        if prior is None or check.template_version > prior.template_version:
-            checks[check.item_code] = check
+    checks=checklist_for_rule(v,op.operation_template_id,parameters)
     if not checks:
         return None, "CHECKLIST_MISSING", "У операции не задан чек-лист. Завершите описание регламента."
-    if any(check.input_kind not in ("checkbox", "number", "text") for check in checks.values()):
+    if any(check.input_kind not in ("checkbox", "number", "text") for check in checks):
         return None, "CHECKLIST_TYPE_UNSUPPORTED", "Тип пункта чек-листа требует согласования с контрактом операции."
     if not equipment.equipment_type_id:
         return None, "EQUIPMENT_TYPE_MISSING", "Для оборудования не задан тип."
     if equipment.properties.get("data_origin") != origin:
         return None, "DATA_ORIGIN_MISMATCH", "Происхождение оборудования и регламента различается. Проверьте привязку."
 
-    if rule.period_unit == "year" and rule.period_count == 1:
+    pattern=configured_pattern(rule)
+    if pattern is not None and parameters.get('calendar_basis',parameters.get('basis'))=='after_accepted_completion':
+        recurrence=dict(kind='calendar_interval',interval=pattern['interval']*(12 if pattern['frequency']=='year' else 1),
+            calendar_unit='day' if pattern['frequency']=='day' else 'month',anchor_date=pattern['anchor_date'],
+            basis='after_accepted_completion',explicit_dates=[],yearly_count=None)
+    elif pattern is not None:
+        recurrence = dict(kind="calendar_pattern", interval=None, calendar_unit=None, anchor_date=None,
+                          basis=None, explicit_dates=[], yearly_count=None, pattern=pattern)
+    elif rule.period_unit == "year" and rule.period_count == 1:
         recurrence = dict(kind="explicit_dates", interval=None, calendar_unit=None, anchor_date=None,
                           basis=None, explicit_dates=parameters.get("explicit_dates", []),
                           yearly_count=rule.occurrences_per_period)
@@ -58,6 +90,7 @@ def _binding_payload(v, binding, rule, equipment, site):
                 history.append(dict(service_event_id=review.acceptance_review_id, performed_at=order.completed_at,
                                     accepted_at=review.reviewed_at, runtime_hours=None, observed_need_date=None))
     typ = v.one("maintenance_types", maintenance_type_id=op.maintenance_type_id)
+    metadata = parameters.get("operation_metadata", {})
     norm_unit = parameters.get("norm_unit", {"total_person_hours": "person_hour"}.get(rule.norm_hours_basis, "unconfirmed"))
     payload = dict(
         binding=dict(schema_version="maintenance-0.1", data_origin=origin, source_ref=rule.source_ref,
@@ -70,16 +103,17 @@ def _binding_payload(v, binding, rule, equipment, site):
             name=equipment.name, commissioned_on=equipment.commissioned_on,
             state={"under_repair": "out_of_service"}.get(equipment.status, equipment.status), revision=equipment.revision),
         operation=dict(schema_version="maintenance-0.1", data_origin=origin, operation_id=op.operation_template_id,
-            operation_version_id=rule.maintenance_rule_id, version=rule.rule_version, code=op.code,
-            title=op.title, maintenance_type=typ.name, instructions=op.description or op.title,
+            operation_version_id=rule.maintenance_rule_id, version=rule.rule_version, code=metadata.get("code",op.code),
+            title=metadata.get("title",op.title), maintenance_type=typ.name, instructions=metadata.get("instructions",op.description or op.title),
             crew_size=rule.required_people, raw_norm_value=rule.norm_hours, norm_unit=norm_unit,
             planning_duration_minutes=parameters.get("planning_duration_minutes"), duration_basis=parameters.get("duration_basis"),
             qualification_ids=sorted([row.skill_id for row in v.rows("rule_required_skills", maintenance_rule_id=rule.maintenance_rule_id)], key=lambda value:value.int),
             checklist=[dict(checklist_item_id=check.checklist_template_id, text=check.prompt,
                 answer_kind={"checkbox": "boolean", "number": "number", "text": "text"}[check.input_kind],
                 unit=check.unit_code, required=check.is_required,
-                visual_verifiability="not_verifiable", photo_required=False)
-                for check in sorted(checks.values(), key=lambda c: (c.position, c.item_code))],
+                visual_verifiability=parameters.get('checklist_metadata',{}).get(str(check.checklist_template_id),{}).get('visual_verifiability','not_verifiable'),
+                photo_required=parameters.get('checklist_metadata',{}).get(str(check.checklist_template_id),{}).get('photo_required',False))
+                for check in checks],
             status="approved", source_ref=rule.source_ref),
         rule=dict(schema_version="maintenance-0.1", data_origin=origin, rule_version_id=rule.maintenance_rule_id,
             regulation_version_id=edition.regulation_edition_id, source_text=rule.source_text,
@@ -99,8 +133,9 @@ def preview_calendar(v, year, month, *, as_of=None):
     for binding in sorted(v.rows("rule_equipment"), key=lambda b: b.binding_id.int):
         rule, equipment = binding.rule, binding.equipment
         op = rule.operation
+        metadata=rule.schedule_parameters.get('operation_metadata',{})
         diagnostic = dict(bindingId=str(binding.binding_id), equipmentName=equipment.name,
-            operationCode=op.code, operationTitle=op.title, dataOrigin=rule.data_origin,
+            operationCode=metadata.get('code',op.code), operationTitle=metadata.get('title',op.title), dataOrigin=rule.data_origin,
             status="needs_input", code=None, explanation="", warnings=[], isAssumption=rule.data_origin == "synthetic_demo",
             occurrencesCount=0, totalPersonHours=None, totalPlanningPersonMinutes=None, nextDueDate=None)
         diagnostics.append(diagnostic)
@@ -138,8 +173,8 @@ def preview_calendar(v, year, month, *, as_of=None):
         for calendar_item, detail in zip(result.calendar.items, generated.occurrences, strict=True):
             occurrence = detail.occurrence
             items.append(dict(id=str(calendar_item.occurrence_id), bindingId=str(binding.binding_id), occurrenceDate=calendar_item.occurrence_date.isoformat(),
-                equipmentId=str(equipment.equipment_id), equipmentName=equipment.name, operationCode=op.code,
-                operationTitle=op.title, maintenanceType=calendar_item.maintenance_type, status="draft",
+                equipmentId=str(equipment.equipment_id), equipmentName=equipment.name, operationCode=metadata.get('code',op.code),
+                operationTitle=metadata.get('title',op.title), maintenanceType=calendar_item.maintenance_type, status="draft",
                 isOverdue=False, requiresInput=False, taskId=None,
                 explanation=detail.explanation, earliestDate=occurrence.earliest_date.isoformat(),
                 mandatoryDueDate=occurrence.mandatory_due_date.isoformat(), deadlinePassed=detail.deadline_passed,

@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 
 from app.schemas.maintenance import ForecastResult, Uncertainty
 from app.scheduling import CalendarGenerationRequest, generate_month
+from app.scheduling.generator import METHOD_VERSION
 from .decision import decide
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ def forecast_result(snapshot, run_id, method, *, status, day=None, error=None, e
         result_id=uuid4(), run_id=run_id, snapshot_id=snapshot.snapshot_id,
         snapshot_sha256=snapshot.content_sha256, equipment_id=snapshot.equipment.equipment_id,
         binding_id=snapshot.binding_id, as_of=snapshot.as_of, method=method,
-        method_version="calendar-rules-v1" if method == "algorithmic" else "bounded-ai-v1", model_ref=model_ref,
+        method_version=METHOD_VERSION if method == "algorithmic" else "bounded-ai-v1", model_ref=model_ref,
         status=status, recommended_date=day, mandatory_due_date=snapshot.mandatory_due_date,
         runtime_due_at_hours=snapshot.runtime_due_at_hours,
         overdue=bool(snapshot.mandatory_due_date and snapshot.mandatory_due_date < today),

@@ -8,6 +8,8 @@ export const SECTION_ROLES: Record<string, Role[]> = {
   comparisons: ["dispatcher", "engineer"],
   quality: ["engineer"],
   executor: ["executor"],
+  service_settings: ["admin", "dispatcher", "engineer"],
+  workforce_settings: ["admin", "dispatcher", "engineer"],
 };
 
 export function canOpenSection(role: Role | undefined, section: string): boolean {

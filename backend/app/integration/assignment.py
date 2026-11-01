@@ -150,6 +150,7 @@ def assignment_context(v, order):
 
 
 def _workers(v, order, start, end, now, worker_ids=None):
+    from app.scheduling.shifts import expand_shift, employment_availability
     tz = ZoneInfo(v.one("sites", site_id=order.site_id).timezone)
     day_start = datetime.combine(start.astimezone(tz).date(), time.min, tz)
     day_end = datetime.combine(end.astimezone(tz).date() + timedelta(days=1), time.min, tz)
@@ -164,7 +165,13 @@ def _workers(v, order, start, end, now, worker_ids=None):
             active=user.is_active, membership_active=member.is_active, can_execute=True,
             booking_data_complete=True, workload_data_complete=True, qualifications=[],
             availability=[dict(start_at=slot.starts_at, end_at=slot.ends_at, status=slot.status)
-                          for slot in v.rows("availability_slots", user_id=user.user_id)], bookings=[])
+                          for slot in v.rows("availability_slots", user_id=user.user_id) if getattr(slot,'is_active',True)], bookings=[])
+        if "employee_shift_rules" in v.models.classes:
+            for shift in v.rows("employee_shift_rules", user_id=user.user_id):
+                intervals, _ = expand_shift(shift, day_start.date(), day_end.date(), str(tz))
+                worker["availability"].extend(intervals)
+        worker["availability"] = employment_availability(worker["availability"],
+            getattr(member,"employed_from",None),getattr(member,"employed_until",None),str(tz))
         for record in v.rows("user_skills", user_id=user.user_id):
             skill = v.one("skills", skill_id=record.skill_id)
             worker["qualifications"].append(dict(skill_id=skill.skill_id, verified_at=record.verified_at,
@@ -210,9 +217,10 @@ def _workers(v, order, start, end, now, worker_ids=None):
     return result
 
 
-def assignment_preview(v, order, start_local, end_local, crew_id=None):
+def assignment_preview(v, order, start_local, end_local, crew_id=None, executor_ids=None, individual_only=False):
     context = _job(v, order)
     base = dict(context=context, status="needs_input", code=context["code"], explanation=context["explanation"],
+                recommendationMode='manual' if executor_ids is not None else 'automatic',
                 selectedWorkers=[], workers=[], crews=[], startAt=None, endAt=None, crewId=None,
                 crewName=None, planningPersonMinutes=None, command=None)
     if context["status"] != "ready":
@@ -228,6 +236,9 @@ def assignment_preview(v, order, start_local, end_local, crew_id=None):
                  for member in v.rows("crew_members", crew_id=crew.crew_id)]) for crew in v.rows("crews")]
     if crew_id is not None and not any(crew["crew_id"] == crew_id for crew in crews):
         raise HTTPException(404, "Бригада не найдена")
+    if individual_only:
+        if crew_id is not None: raise HTTPException(422,'Выберите бригаду либо индивидуальных работников')
+        crews=[]
     now = datetime.now(timezone.utc)
     payload = dict(schema_version="maintenance-0.1", data_origin=context["dataOrigin"],
         task_id=order.work_order_id, site_id=order.site_id, expected_revision=order.revision,
@@ -235,7 +246,12 @@ def assignment_preview(v, order, start_local, end_local, crew_id=None):
         earliest_at=context["earliestAt"], deadline_at=context["deadlineAt"],
         duration_minutes=context["durationMinutes"], duration_basis=context["durationBasis"],
         crew_size=context["crewSize"], qualification_ids=context["qualificationIds"],
-        workers=_workers(v, order, start, end, now), crews=crews, crew_id=crew_id)
+        workers=_workers(v, order, start, end, now), crews=crews, crew_id=crew_id,requested_worker_ids=executor_ids)
+    if executor_ids is not None:
+        if len(executor_ids) != context['crewSize'] or len(set(executor_ids)) != len(executor_ids):
+            raise HTTPException(422, 'Выберите полный состав без повторов по требуемой численности')
+        if not set(executor_ids) <= {worker['worker_id'] for worker in payload['workers']}:
+            raise HTTPException(404, 'Работник не найден среди исполнителей объекта')
     try:
         result = select_crew(AssignmentRequest.model_validate_json(json.dumps(payload, default=_json_value)))
     except ValidationError:
@@ -254,4 +270,6 @@ def assignment_preview(v, order, start_local, end_local, crew_id=None):
             earliestStart=worker.earliest_start.isoformat() if worker.earliest_start else None) for worker in result.workers],
         crews=[dict(id=str(crew.crew_id), name=crew.name, available=crew.available, explanation=crew.explanation) for crew in result.crews])
     base["selectedWorkers"] = [worker for worker in base["workers"] if worker["status"] == "selected"]
+    base["workers"].sort(key=lambda worker:(0 if worker['status']=='selected' else 1 if worker['status']=='available' else 2,
+        worker['earliestStart'] or '9999',worker['loadMinutes'] if worker['loadMinutes'] is not None else float('inf'),worker['executorId']))
     return base

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DEMO_MODE } from "@/shared/api/request";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useSession } from "@/shared/session/SessionContext";
 import {
   ROLE_DESCRIPTIONS,
@@ -52,6 +52,7 @@ export function LoginPage() {
         <label className="block">ID объекта (если доступно несколько)<input className="mt-1 block w-full rounded border border-line bg-surface-raised p-2" value={siteId} onChange={e => setSiteId(e.target.value)} /></label>
         {error && <p role="alert" className="text-rose-300">{error}</p>}
         <button className="rounded bg-accent px-4 py-2 text-slate-950" disabled={pending}>{pending ? "Вход…" : "Войти"}</button>
+        <Link to="/register" className="block text-sm text-accent underline">Регистрация сотрудника</Link>
       </form>
     </main>
   );

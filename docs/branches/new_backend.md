@@ -1,39 +1,15 @@
-# new_backend
+# new_backend: адаптация c559d27
 
-## Назначение и версия
+Учтён исходный commit `c559d27046d5028f83ed4f67dda4e8418618303d` от 31.10.2026, Implement users, roles, and equipment API. Сравнение с ранее перенесённым `16b79affc155d75b76f585dcdfa4e5acc1781cfb`; исходная ветка не изменена.
 
-Reusable RBAC helpers; настоящего HTTP backend в tip нет.
+| Возможность источника | Текущее место dev | Решение |
+|---|---|---|
+| Equipment CRUD, pagination, optional type/date, properties, soft retirement | integration/management.py; schemas/management.py | Адаптировано к существующим SQL таблицам, site scope, CSRF, revision и защите активных работ |
+| Users, roles, me, assignment of role | management API + security/sessions.py | Профиль и роли реализованы, admin выдаёт членство только своего объекта, регистрация создаёт ожидающую заявку |
+| Auth, session routers | app/main.py; security/sessions.py | Сохранена общая opaque session с CSRF. Cookie с UUID пользователя из источника не переносится как механизм доступа |
+| Async engine/models, create_all, source 004_sessions | database/migrations 001–008, reflected models | Дублирующая схема/номер миграции не копируются; рабочие факты добавлены 008 без изменения применённых SQL |
+| Security helper и прежние тесты | backend/app/security; tests | Сохранены; добавлены реальные PostgreSQL/HTTP и browser проверки |
 
-Зафиксированный SHA: `16b79affc155d75b76f585dcdfa4e5acc1781cfb`. Статус: `integrated`. Исходная ветка не изменялась. Зависимости по компонентам описаны в [SYSTEM_OVERVIEW](../SYSTEM_OVERVIEW.md); tests требуют test-only БД, SQL/ORM — миграции, SPA — runtime API, ML — canonical DTO и подходящий artifact.
+Это перенос поведения и совместимых контрактов, не Git merge и не обещание идентичности файлов. Source users list/me с 501 заменены действующими реализациями; небезопасные/незавершённые пути не подключены вторым приложением. Все 42 изменённых пути учтены в BRANCH_FILE_MAP.json с назначением. После следующих fetch сравнивать только diff от c559d27046d5028f83ed4f67dda4e8418618303d; не копировать источник поверх текущего runtime.
 
-## Уже выполнено в dev
-
-Authorization helper, exports и 7 тестов перенесены. Helper используется FastAPI. Эквивалентный основной тест DTO сохранён из main.
-
-| Исходный путь или интерфейс | Расположение или интерфейс в dev | Что изменено и почему | Что учитывать при следующих обновлениях |
-|---|---|---|---|
-| backend/app/security/authorization.py; __init__.py | Те же пути | Поведение сохранено | Роль берётся из серверного principal |
-| backend/pytest.ini | Тот же путь + root pytest.ini | Корень в PYTHONPATH и importlib | Проверять общий backend+ML suite |
-| backend/tests/test_authorization.py | Тот же путь | Все проверки сохранены | Менять совместно с helper |
-| Отсутствующий HTTP/session runtime | backend/app/main.py; security/sessions.py | Реализован адаптер dev | Новые routers включать в одно приложение |
-
-Полная машинная карта изменённых путей: [BRANCH_FILE_MAP](../BRANCH_FILE_MAP.json). В строках frontend сокращённые пути относятся к frontend/src. Если путь сохранён, дополнительных переименований для него не требуется.
-
-## Проверки и известные несовместимости
-
-7 helper tests, 85 role contracts и реальные HTTP role/CSRF/scope проверки.
-
-Фактические текущие итоги находятся в [DEV_INTEGRATION_REPORT](../DEV_INTEGRATION_REPORT.md). Проектные DTO не означают наличие всех HTTP endpoints. Общие ограничения: неподтверждённые customer даты, отсутствие customer-trained модели и оценки точности AI/CV на фотографиях заказчика. Код не исключался из-за сложности интеграции; внешняя готовность и перенос кода учитываются отдельно.
-
-## Рекомендации для исходной ветки
-
-Diff после 16b79af сверять с нынешним runtime. Дополнительных переименований исходных модулей не требуется.
-
-Это рекомендации, **не выполненные изменения источника**. Переименования и adapters выполнены только в dev. Не заменяйте исходную ветку всей dev. Там, где таблица сохраняет путь, дополнительное переименование не требуется.
-
-## Конкретный следующий перенос
-
-1. Возьмите `16b79affc155d75b76f585dcdfa4e5acc1781cfb` из [реестра](../BRANCH_SOURCES.json), получите новый SHA после fetch.
-2. Сравните только `git diff OLD_SHA NEW_SHA`, сопоставьте hunks по таблице. Не применяйте отставание источника от main как удаление компонентов.
-3. Адаптируйте интерфейсы, выполните перечисленные проверки, обновите карту/реестр/отчёт и создайте обычный commit только в dev.
-4. При частичном переносе перечислите pending_paths и сохраните последнюю полностью учтённую версию. Полный процесс — [BRANCH_INTEGRATION_GUIDE](../BRANCH_INTEGRATION_GUIDE.md).
+[Проверки](../../reports/flexible_planning_verification.md), [процесс](../WORKFORCE_PLANNING.md), [правила переноса](../BRANCH_INTEGRATION_GUIDE.md).

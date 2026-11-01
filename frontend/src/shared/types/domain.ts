@@ -127,6 +127,7 @@ export interface WorkerSelection {
 }
 
 export interface CrewSelection {
+  recommendationMode?: "automatic" | "manual";
   context: AssignmentContext;
   status: "ok" | "needs_input" | "unavailable" | "manual_review";
   code: string | null;

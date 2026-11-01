@@ -8,7 +8,7 @@
     "status": "selected",
     "selected": "2026-11-10",
     "reason": "RULE_EARLIER_OR_EQUAL: регламентный срок не позже предложения AI.",
-    "milliseconds": 2.62
+    "milliseconds": 2.11
   },
   {
     "case": "demo_ai_earlier",
@@ -19,7 +19,7 @@
     "status": "selected",
     "selected": "2026-11-05",
     "reason": "DEMO_EARLY_DATE: более ранняя дата разрешена только в синтетическом сценарии; точность на заказчике не установлена.",
-    "milliseconds": 1.77
+    "milliseconds": 2.03
   },
   {
     "case": "ai_after_deadline",
@@ -30,7 +30,7 @@
     "status": "fallback",
     "selected": "2026-11-10",
     "reason": "AI_AFTER_DEADLINE: предложение AI позже обязательного срока; используем регламент.",
-    "milliseconds": 1.45
+    "milliseconds": 1.69
   },
   {
     "case": "ai_before_window",
@@ -41,7 +41,7 @@
     "status": "fallback",
     "selected": "2026-11-10",
     "reason": "AI_BEFORE_WINDOW: предложение AI вне допустимого окна; используем регламент.",
-    "milliseconds": 1.77
+    "milliseconds": 1.4
   },
   {
     "case": "model_missing",
@@ -52,7 +52,7 @@
     "status": "fallback",
     "selected": "2026-11-10",
     "reason": "AI_UNAVAILABLE: MODEL_NOT_READY; используем подтверждённый регламент.",
-    "milliseconds": 1.61
+    "milliseconds": 1.36
   },
   {
     "case": "invalid_json",
@@ -63,7 +63,7 @@
     "status": "fallback",
     "selected": "2026-11-10",
     "reason": "AI_UNAVAILABLE: INVALID_AI_JSON; используем подтверждённый регламент.",
-    "milliseconds": 2.38
+    "milliseconds": 1.42
   },
   {
     "case": "provider_exception",
@@ -74,7 +74,7 @@
     "status": "fallback",
     "selected": "2026-11-10",
     "reason": "AI_UNAVAILABLE: PROVIDER_ERROR; используем подтверждённый регламент.",
-    "milliseconds": 2.31
+    "milliseconds": 1.55
   },
   {
     "case": "foreign_snapshot",
@@ -85,7 +85,7 @@
     "status": "fallback",
     "selected": "2026-11-10",
     "reason": "AI_UNAVAILABLE: AI_SNAPSHOT_MISMATCH; используем подтверждённый регламент.",
-    "milliseconds": 2.47
+    "milliseconds": 1.7
   },
   {
     "case": "timeout",
@@ -96,7 +96,7 @@
     "status": "fallback",
     "selected": "2026-11-10",
     "reason": "AI_UNAVAILABLE: TIMEOUT; используем подтверждённый регламент.",
-    "milliseconds": 14.58
+    "milliseconds": 26.23
   },
   {
     "case": "customer_no_early_evidence",

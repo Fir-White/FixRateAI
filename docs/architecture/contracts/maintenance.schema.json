@@ -186,6 +186,128 @@
       "title": "AssignmentCommand",
       "type": "object"
     },
+    "CalendarPattern": {
+      "additionalProperties": false,
+      "description": "Shared local-date recurrence for equipment maintenance and employee shifts.",
+      "properties": {
+        "frequency": {
+          "enum": [
+            "day",
+            "week",
+            "month",
+            "quarter",
+            "year",
+            "yearly_count",
+            "dates"
+          ],
+          "title": "Frequency",
+          "type": "string"
+        },
+        "anchor_date": {
+          "format": "date",
+          "title": "Anchor Date",
+          "type": "string"
+        },
+        "interval": {
+          "default": 1,
+          "maximum": 10000,
+          "minimum": 1,
+          "title": "Interval",
+          "type": "integer"
+        },
+        "weekdays": {
+          "items": {
+            "maximum": 7,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "title": "Weekdays",
+          "type": "array"
+        },
+        "week_parity": {
+          "default": "any",
+          "enum": [
+            "any",
+            "even",
+            "odd"
+          ],
+          "title": "Week Parity",
+          "type": "string"
+        },
+        "month_days": {
+          "items": {
+            "maximum": 31,
+            "minimum": -1,
+            "type": "integer"
+          },
+          "title": "Month Days",
+          "type": "array"
+        },
+        "months": {
+          "items": {
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "title": "Months",
+          "type": "array"
+        },
+        "period_edge": {
+          "default": "end",
+          "enum": [
+            "start",
+            "end"
+          ],
+          "title": "Period Edge",
+          "type": "string"
+        },
+        "short_month": {
+          "default": "last_day",
+          "enum": [
+            "last_day",
+            "skip"
+          ],
+          "title": "Short Month",
+          "type": "string"
+        },
+        "count_per_year": {
+          "anyOf": [
+            {
+              "maximum": 366,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Count Per Year"
+        },
+        "dates": {
+          "items": {
+            "format": "date",
+            "type": "string"
+          },
+          "title": "Dates",
+          "type": "array"
+        },
+        "excluded_dates": {
+          "items": {
+            "format": "date",
+            "type": "string"
+          },
+          "title": "Excluded Dates",
+          "type": "array"
+        }
+      },
+      "required": [
+        "frequency",
+        "anchor_date"
+      ],
+      "title": "CalendarPattern",
+      "type": "object"
+    },
     "ChecklistAnswer": {
       "additionalProperties": false,
       "properties": {
@@ -566,6 +688,19 @@
         },
         "error": {
           "$ref": "#/$defs/ErrorInfo"
+        },
+        "detail": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
         }
       },
       "required": [
@@ -1823,7 +1958,8 @@
           "enum": [
             "calendar_interval",
             "explicit_dates",
-            "runtime"
+            "runtime",
+            "calendar_pattern"
           ],
           "title": "Kind",
           "type": "string"
@@ -1930,6 +2066,17 @@
           "minLength": 1,
           "title": "Source Ref",
           "type": "string"
+        },
+        "pattern": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CalendarPattern"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [

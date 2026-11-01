@@ -57,6 +57,8 @@ def _lock_context(v, order, worker_ids, crew_id):
             raise HTTPException(404, "Бригада не найдена")
         _lock(v, "crew_members", read=True, crew_id=crew_id)
     _lock(v, "availability_slots", read=True, user_id=worker_ids)
+    if "employee_shift_rules" in v.models.classes:
+        _lock(v, "employee_shift_rules", read=True, user_id=worker_ids)
     records = _lock(v, "user_skills", read=True, user_id=worker_ids)
     if records:
         _lock(v, "skills", read=True, skill_id={record.skill_id for record in records})
@@ -68,6 +70,37 @@ def _assignment_json(row, order):
         start_at=row.start_at, end_at=row.end_at, qualification_ids=[fact["skill_id"] for fact in row.qualification_snapshot],
         status="active", assigned_by=row.assigned_by)
     return json.loads(Assignment.model_validate_json(json.dumps(payload, default=_json_value)).model_dump_json())
+
+
+def cancel_task(v,task_id,revision,reason):
+    if v.principal.role!='dispatcher':
+        raise HTTPException(403,'Отмена задания доступна диспетчеру')
+    with service_transaction(v.session):
+        order=v.task(task_id,lock=True)
+        if order.revision!=revision:
+            raise HTTPException(409,'REVISION_CONFLICT: обновите задание')
+        if order.status not in ('draft','clarification','assigned') or v.rows('work_reports',work_order_id=task_id):
+            raise HTTPException(409,'Можно отменить только задание, выполнение которого не началось')
+        assigned=_lock(v,'work_assignments',work_order_id=task_id)
+        active=[row for row in assigned if row.status not in ('cancelled','declined')]
+        lock_workers(v,{row.user_id for row in active},actor=True)
+        actor=v.one('users',user_id=v.principal.user_id)
+        member=v.one('site_memberships',user_id=v.principal.user_id)
+        if not actor.is_active or not member.is_active or member.role!='dispatcher':
+            raise HTTPException(403,'Права диспетчера изменились')
+        previous=dict(status=order.status,revision=order.revision)
+        now=datetime.now(timezone.utc)
+        for row in active:
+            row.status='cancelled';row.released_at=now
+        order.status='cancelled';order.revision+=1
+        if order.schedule_entry_id:
+            entry=_lock(v,'schedule_entries',schedule_entry_id=order.schedule_entry_id)[0]
+            entry.status='cancelled';entry.revision+=1
+        v.session.flush()
+        v.repo.add('audit_events',site_id=order.site_id,actor_type='user',actor_user_id=v.principal.user_id,
+            entity_type='work_orders',entity_id=task_id,action='cancel',before_snapshot=previous,
+            after_snapshot=dict(status=order.status,revision=order.revision,reason=reason,released_assignment_ids=[str(a.work_assignment_id) for a in active]))
+        return v.bundle(order)
 
 
 def save_assignment(v, task_id, command, crew_id=None):

@@ -5,7 +5,8 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
 import { canOpenSection } from "@/shared/lib/roles";
-import { formatDate, formatDateTime } from "@/shared/lib/format";
+import { formatDate } from "@/shared/lib/format";
+import { useSiteDateTime } from "@/shared/lib/useSiteDateTime";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Card, CardHeader } from "@/shared/ui/Card";
 import { ErrorState, LoadingState } from "@/shared/ui/States";
@@ -25,6 +26,7 @@ import {
 } from "@/shared/ui/StatusBadge";
 
 export function TaskDetailPage() {
+  const formatDateTime=useSiteDateTime();
   const { taskId = "" } = useParams();
   const navigate = useNavigate();
   const { profile } = useSession();
@@ -33,6 +35,8 @@ export function TaskDetailPage() {
   const [showCrewSelection, setShowCrewSelection] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
   const [assignedTaskId, setAssignedTaskId] = useState<string | null>(null);
+  const [showCancellation,setShowCancellation]=useState(false);
+  const [cancelReason,setCancelReason]=useState("");
   const query = useApiQuery(() => maintenanceApi.getTask(taskId), [taskId, refreshToken]);
 
   if (query.status === "loading") {
@@ -86,10 +90,11 @@ export function TaskDetailPage() {
               </Link>
             ) : null}
             {(task.state === "draft" || task.state === "assigned") && profile?.role === "dispatcher" ? (
-              <Button disabled={DEMO_MODE} title={DEMO_MODE ? "Нужно подключение к серверу" : undefined} onClick={() => setShowCrewSelection(true)}>
+              <Button disabled={DEMO_MODE||busy} title={DEMO_MODE ? "Нужно подключение к серверу" : undefined} onClick={() => setShowCrewSelection(true)}>
                 Подобрать бригаду
               </Button>
             ) : null}
+            {!DEMO_MODE&&query.data.allowedActions?.includes('cancel')&&<Button variant="ghost" disabled={busy} onClick={()=>setShowCancellation(value=>!value)}>Отменить задание</Button>}
             {task.state === "in_progress" ? (
               <Button variant="secondary" disabled>
                 Работа выполняется
@@ -100,6 +105,9 @@ export function TaskDetailPage() {
       />
 
       {notice && <div role="alert"><Callout tone="danger">{notice}</Callout></div>}
+      {showCancellation&&query.data.allowedActions?.includes('cancel')&&<Card className="space-y-3 p-5"><h2 className="font-semibold">Отмена задания до начала выполнения</h2><p className="text-sm text-muted">Назначения освободятся. Задание и история сохранятся.</p><label className="block text-sm">Причина отмены<textarea aria-label="Причина отмены" disabled={busy} className="mt-1 w-full rounded-lg border border-line bg-canvas p-3" value={cancelReason} onChange={e=>setCancelReason(e.target.value)}/></label><Button variant="secondary" disabled={busy||!cancelReason.trim()} onClick={async()=>{
+        setBusy(true);setNotice("");try{await maintenanceApi.cancel(task.id,task.revision,cancelReason.trim());setShowCancellation(false);setShowCrewSelection(false);setRefreshToken(value=>value+1);}catch(failure){setNotice(failure instanceof Error?failure.message:"Отмена не выполнена");setRefreshToken(value=>value+1);}finally{setBusy(false);}
+      }}>Подтвердить отмену задания</Button></Card>}
       {assignedTaskId === task.id && <Callout tone="success" title="Бригада назначена">Состав и время сохранены.</Callout>}
       {showCrewSelection && profile?.role === "dispatcher" && !DEMO_MODE &&
         (task.state === "draft" || task.state === "assigned") &&

@@ -85,9 +85,15 @@ class AssignmentRequest(Contract):
     workers: list[Worker]
     crews: list[Crew] = Field(default_factory=list)
     crew_id: UUID | None = None
+    requested_worker_ids: list[UUID] | None = None
 
     @model_validator(mode="after")
     def consistent_request(self):
+        if self.requested_worker_ids is not None:
+            if len(self.requested_worker_ids)!=self.crew_size or len(set(self.requested_worker_ids))!=self.crew_size:
+                raise ValueError("requested workers must be a complete distinct team")
+            if not set(self.requested_worker_ids).issubset({w.worker_id for w in self.workers}):
+                raise ValueError("requested worker is outside the site")
         try:
             ZoneInfo(self.timezone)
         except (ZoneInfoNotFoundError, ValueError) as exc:

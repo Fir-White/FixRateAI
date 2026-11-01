@@ -3,7 +3,8 @@ import { Link, useParams } from "react-router-dom";
 import { maintenanceApi, type TaskBundle } from "@/shared/api/maintenance";
 import { DEMO_MODE } from "@/shared/api/request";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
-import { formatDate, formatDateTime } from "@/shared/lib/format";
+import { formatDate } from "@/shared/lib/format";
+import { useSiteDateTime } from "@/shared/lib/useSiteDateTime";
 import { Button, buttonClassName } from "@/shared/ui/Button";
 import { Callout } from "@/shared/ui/Callout";
 import { ErrorState, LoadingState } from "@/shared/ui/States";
@@ -23,6 +24,7 @@ export function ExecutorTaskPage() {
 }
 
 function ExecutionEditor({bundle, reload}: {bundle: TaskBundle; reload: () => void}) {
+  const formatDateTime=useSiteDateTime();
   const {task, execution, decision} = bundle;
   const editable = !DEMO_MODE && !!bundle.allowedActions?.includes("edit_report");
   const canStart = DEMO_MODE ? task.state === "assigned" || task.state === "rework_required" : !!bundle.allowedActions?.includes("start");

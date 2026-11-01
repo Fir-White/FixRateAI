@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import type { MaintenanceTask } from "@/shared/types/domain";
-import { formatDateTime } from "@/shared/lib/format";
+import { useSiteDateTime } from "@/shared/lib/useSiteDateTime";
 import {
   OriginBadge,
   OverdueBadge,
@@ -16,6 +16,7 @@ export function TaskTable({
   items: MaintenanceTask[];
   detailBasePath?: string;
 }) {
+  const formatDateTime=useSiteDateTime();
   return (
     <Table label="Очередь заданий" minWidth={860}>
       <thead>

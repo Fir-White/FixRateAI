@@ -47,7 +47,7 @@ export interface TaskBundle {
   execution: ExecutionReport | null;
   review: PhotoReview | null;
   decision: EngineerDecision | null;
-  allowedActions?: ("start" | "edit_report" | "upload_photo" | "submit" | "forecast" | "photo_review" | "review")[];
+  allowedActions?: ("start" | "edit_report" | "upload_photo" | "submit" | "forecast" | "photo_review" | "review" | "cancel")[];
 }
 
 export interface ComparisonBundle {

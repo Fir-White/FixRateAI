@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
-import { formatDate, formatDateTime } from "@/shared/lib/format";
+import { formatDate } from "@/shared/lib/format";
+import { useSiteDateTime } from "@/shared/lib/useSiteDateTime";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Card, CardHeader } from "@/shared/ui/Card";
 import { EmptyState, ErrorState, LoadingState } from "@/shared/ui/States";
@@ -25,6 +26,7 @@ import {
 } from "@/shared/ui/StatusBadge";
 
 export function QualityTaskPage() {
+  const formatDateTime=useSiteDateTime();
   const { taskId = "" } = useParams();
   const [refresh, setRefresh] = useState(0);
   const [busy, setBusy] = useState(false);

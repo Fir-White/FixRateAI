@@ -36,6 +36,20 @@ beforeEach(() => {
 function mount() { return render(<CrewSelectionPanel taskId="task" onClose={vi.fn()} />); }
 
 describe("crew selection", () => {
+  it("requires validation after a dispatcher changes the proposed workers",async()=>{
+    const user=userEvent.setup();mount();
+    await user.click(await screen.findByRole('button',{name:'Найти бригаду'}));
+    const checkbox=await screen.findByRole('checkbox',{name:'Выбрать: Анна'});
+    await user.click(checkbox);
+    expect(screen.getByRole('button',{name:'Подтвердить назначение'})).toBeDisabled();
+    expect(screen.getByRole('button',{name:'Проверить выбранный состав'})).toBeDisabled();
+    await user.click(checkbox);
+    expect(screen.getByRole('button',{name:'Подтвердить назначение'})).toBeDisabled();
+    await user.click(screen.getByRole('button',{name:'Проверить выбранный состав'}));
+    await waitFor(()=>expect(screen.getByRole('button',{name:'Подтвердить назначение'})).toBeEnabled());
+    expect(mocks.preview).toHaveBeenLastCalledWith('task',3,'2026-11-01T09:00','2026-11-01T17:00',null,['worker-1','worker-0'],false);
+    expect(mocks.assign).not.toHaveBeenCalled();
+  });
   it("uses server conditions, shows the complete team, daily load and exclusion reasons", async () => {
     const user = userEvent.setup();
     mount();

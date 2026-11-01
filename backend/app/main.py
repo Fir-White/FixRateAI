@@ -7,6 +7,7 @@ import hashlib
 import io
 import logging
 import os
+import re
 from pathlib import Path
 import secrets
 from typing import Literal
@@ -15,6 +16,8 @@ from uuid import UUID, uuid4
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from PIL import Image
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 from sqlalchemy import select, text
@@ -26,7 +29,8 @@ from app.integration.projections import Views
 from app.integration.calendar import preview_calendar
 from app.integration.assignment import assignment_context, assignment_preview
 from app.integration.assignments import save_assignment, lock_workers
-from app.schemas.maintenance import AssignmentCommand
+from app.schemas.maintenance import AssignmentCommand, ErrorResponse
+from app.schemas.management import CancelTask
 from app.security.authorization import AuthorizationError, require_any_role
 from app.security.sessions import COOKIE, Principal, SQL_ROLES, authenticate, create_session, digest, verify_password
 
@@ -57,6 +61,8 @@ class AssignmentPreview(Revision):
     start_local: datetime
     end_local: datetime
     crew_id: UUID | None = None
+    executor_ids: list[UUID] | None = Field(default=None,min_length=1,max_length=100)
+    individual_only: bool = False
 
 
 class GenerateCalendar(Command):
@@ -103,8 +109,8 @@ def create_app(engine=None):
         try:
             app.state.models = map_schema(app.state.engine)
             with app.state.engine.connect() as conn:
-                if not conn.scalar(text("SELECT to_regclass('public.planning_runs')")):
-                    raise RuntimeError("Apply migrations through 007 before starting the API")
+                if not conn.scalar(text("SELECT to_regclass('public.employee_shift_rules')")):
+                    raise RuntimeError("Apply migrations through 008 before starting the API")
             app.state.factory = make_session_factory(app.state.engine)
             app.state.forecaster = None
             try:
@@ -129,6 +135,30 @@ def create_app(engine=None):
 
     app = FastAPI(title="FixRate AI", version="dev-0.1", lifespan=lifespan)
 
+    @app.middleware('http')
+    async def request_identity(request,call_next):
+        request.state.request_id=str(uuid4())
+        response=await call_next(request)
+        response.headers['X-Request-ID']=request.state.request_id
+        return response
+
+    def error_response(request,status,message,code=None,details=None,headers=None):
+        default={401:'UNAUTHENTICATED',403:'ACCESS_DENIED',404:'NOT_FOUND',405:'METHOD_NOT_ALLOWED',409:'CONFLICT',422:'VALIDATION_ERROR',503:'DATABASE_UNAVAILABLE'}
+        match=re.match(r'^([A-Z][A-Z0-9_]+)(?::|$)',message)
+        body=ErrorResponse(schema_version='maintenance-0.1',detail=message,error=dict(
+            code=code or (match.group(1) if match else default.get(status,'REQUEST_FAILED')),message=message,
+            details=details or [],request_id=getattr(request.state,'request_id',str(uuid4()))))
+        return JSONResponse(status_code=status,content=body.model_dump(mode='json'),headers=headers)
+
+    @app.exception_handler(StarletteHTTPException)
+    async def http_error(request,exc):
+        return error_response(request,exc.status_code,str(exc.detail),headers=exc.headers)
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_error(request,exc):
+        return error_response(request,422,'Проверьте заполнение полей формы',details=[dict(
+            field='.'.join(map(str,error['loc'])) or 'request',issue=error['msg']) for error in exc.errors()])
+
     def db(request: Request):
         with request.app.state.factory() as session:
             try:
@@ -152,12 +182,12 @@ def create_app(engine=None):
 
     @app.exception_handler(IntegrityError)
     async def integrity_error(request, exc):
-        return JSONResponse(status_code=409, content={"detail": "Конфликт с сохранёнными данными"})
+        return error_response(request,409,'Конфликт с сохранёнными данными')
 
     @app.exception_handler(SQLAlchemyError)
     async def database_error(request, exc):
         logger.error("Database operation failed: %s", type(exc).__name__)
-        return JSONResponse(status_code=503, content={"detail": "База данных недоступна"})
+        return error_response(request,503,'База данных недоступна')
 
     @app.get("/api/health")
     def health(session=Depends(db)):
@@ -260,7 +290,7 @@ def create_app(engine=None):
         order = v.task(task_id)
         check_revision(order, command.expected_revision)
         response.headers["Cache-Control"] = "private, no-store"
-        return assignment_preview(v, order, command.start_local, command.end_local, command.crew_id)
+        return assignment_preview(v, order, command.start_local, command.end_local, command.crew_id,command.executor_ids,command.individual_only)
 
     @app.post(prefix + "/tasks/{task_id}/assign")
     def assign_crew(task_id: UUID, command: AssignCrew, response: Response, v=Depends(views)):
@@ -268,6 +298,11 @@ def create_app(engine=None):
         response.headers["Cache-Control"] = "private, no-store"
         canonical = AssignmentCommand.model_validate_json(command.model_dump_json(exclude={"crew_id"}))
         return save_assignment(v, task_id, canonical, command.crew_id)
+
+    @app.post(prefix + "/tasks/{task_id}/cancel")
+    def task_cancel(task_id:UUID,command:CancelTask,v=Depends(views)):
+        from app.integration.assignments import cancel_task
+        return cancel_task(v,task_id,command.expected_revision,command.reason)
 
     @app.get(prefix + "/ui/calendar/preview")
     def calendar_preview(year: int, month: int, response: Response, v=Depends(views)):
@@ -485,6 +520,8 @@ def create_app(engine=None):
         v.session.commit()
         return result
 
+    from app.integration.management import register_routes
+    register_routes(app,views,db)
     from app.integration.ml import register_ml_routes
     register_ml_routes(app, views, photo_path, require_role, check_revision)
 

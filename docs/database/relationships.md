@@ -1,3 +1,5 @@
+> Базовая модель SQL 001–004. Текущие дополнения 005–008, рабочие статусы и поля описаны в [DTO/SQL mapping](../architecture/dto_db_mapping.md) и [процессе настройки](../WORKFORCE_PLANNING.md); ER-изображение показывает базовые 35 таблиц.
+
 # FixRate AI — связи ER-модели ТО/ППР
 
 **Документ:** `docs/database/relationships.md`  

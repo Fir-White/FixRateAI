@@ -1,5 +1,5 @@
 import type { EvidencePhoto } from "@/shared/types/domain";
-import { formatDateTime } from "@/shared/lib/format";
+import { useSiteDateTime } from "@/shared/lib/useSiteDateTime";
 import { Badge } from "@/shared/ui/Badge";
 import { Card } from "@/shared/ui/Card";
 import { Icon } from "@/shared/ui/Icon";
@@ -18,6 +18,7 @@ export function EvidenceGallery({
   photos: EvidencePhoto[];
   emptyText?: string;
 }) {
+  const formatDateTime=useSiteDateTime();
   if (!photos.length) {
     return (
       <div className="rounded-xl border border-dashed border-line-strong p-6 text-center text-sm text-muted">

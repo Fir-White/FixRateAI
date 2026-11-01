@@ -39,12 +39,13 @@ export const maintenanceApi = {
   generateTasks: (year: number, month: number, previewToken: string, key: string) => request<PlanningRun>(`${base}/calendar/generate`, {
     method: "POST", body: JSON.stringify({year, month, preview_token: previewToken, idempotency_key: key})}),
   assignmentContext: (taskId: string) => request<AssignmentContext>(`${ui}/tasks/${id(taskId)}/assignment-context`),
-  previewAssignment: (taskId: string, revision: number, startLocal: string, endLocal: string, crewId: string | null) =>
+  previewAssignment: (taskId: string, revision: number, startLocal: string, endLocal: string, crewId: string | null, executorIds?: string[], individualOnly=false) =>
     request<CrewSelection>(`${base}/tasks/${id(taskId)}/assignment-preview`, {method: "POST",
-      body: JSON.stringify({expected_revision: revision, start_local: startLocal, end_local: endLocal, crew_id: crewId})}),
+      body: JSON.stringify({expected_revision: revision, start_local: startLocal, end_local: endLocal, crew_id: crewId,executor_ids:executorIds,individual_only:individualOnly})}),
   assignCrew: (taskId: string, command: CrewAssignmentCommand, crewId: string | null) =>
     request<TaskBundle>(`${base}/tasks/${id(taskId)}/assign`, {method: "POST", body: JSON.stringify({...command, crew_id: crewId})}),
   start: (taskId: string, revision: number) => request<TaskBundle>(`${base}/tasks/${id(taskId)}/start`, {method: "POST", body: JSON.stringify({expected_revision: revision})}),
+  cancel: (taskId:string,revision:number,reason:string) => request<TaskBundle>(`${base}/tasks/${id(taskId)}/cancel`,{method:"POST",body:JSON.stringify({expected_revision:revision,reason})}),
   saveReport: (taskId: string, revision: number, narrative: string, answers: Record<string, string | null>) => request<TaskBundle>(`${base}/tasks/${id(taskId)}/report`, {method: "PUT", body: JSON.stringify({expected_revision: revision, narrative, answers})}),
   submit: (taskId: string, revision: number) => request<TaskBundle>(`${base}/tasks/${id(taskId)}/submit`, {method: "POST", body: JSON.stringify({expected_revision: revision})}),
   review: (taskId: string, revision: number, executionId: string, verdict: "accepted" | "rejected", reason: string) => request<TaskBundle>(`${base}/tasks/${id(taskId)}/review`, {method: "POST", body: JSON.stringify({expected_revision: revision, execution_id: executionId, verdict, reason})}),

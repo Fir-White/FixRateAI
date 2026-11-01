@@ -16,6 +16,7 @@ const BOTTOM_NAV: { to: string; label: string; icon: IconName; end?: boolean }[]
     { to: "/executor", label: "Задания", icon: "tasks", end: true },
     { to: "/calendar", label: "Календарь", icon: "calendar" },
     { to: "/equipment", label: "Оборудование", icon: "equipment" },
+    { to: "/my-shifts", label: "Мои смены", icon: "calendar" },
   ];
 
 export function ExecutorLayout() {

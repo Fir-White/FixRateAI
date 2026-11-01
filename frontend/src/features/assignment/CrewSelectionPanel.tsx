@@ -40,6 +40,8 @@ function Picker({context, saving, setSaving, onAssigned, onSaveError, onSearch}:
   const [error, setError] = useState("");
   const [result, setResult] = useState<CrewSelection | null>(null);
   const [saved, setSaved] = useState(false);
+  const [picked,setPicked] = useState<string[]>([]);
+  const [changed,setChanged] = useState(false);
   const saveLock = useRef(false);
   const requestId = useRef(0);
   useEffect(() => () => { requestId.current += 1; }, []);
@@ -58,8 +60,10 @@ function Picker({context, saving, setSaving, onAssigned, onSaveError, onSearch}:
         const current = ++requestId.current;
         setBusy(true); setError(""); setResult(null); onSearch();
         try {
-          const selection = await maintenanceApi.previewAssignment(context.taskId, context.expectedRevision, start, end, crew || null);
-          if (requestId.current === current) setResult(selection);
+          const selection = crew==='@individual'
+            ? await maintenanceApi.previewAssignment(context.taskId,context.expectedRevision,start,end,null,undefined,true)
+            : await maintenanceApi.previewAssignment(context.taskId, context.expectedRevision, start, end, crew || null);
+          if (requestId.current === current) {setResult(selection);setPicked(selection.selectedWorkers.map(w=>w.executorId));setChanged(false);}
         } catch (failure) {
           if (requestId.current === current) setError(failure instanceof Error ? failure.message : "Подбор недоступен");
         } finally { if (requestId.current === current) setBusy(false); }
@@ -82,6 +86,7 @@ function Picker({context, saving, setSaving, onAssigned, onSaveError, onSearch}:
           <select aria-label="Состав" disabled={saving} value={crew} onChange={event => {invalidate(); setCrew(event.target.value);}}
             className="w-full rounded-lg border border-line bg-canvas p-3 text-ink">
             <option value="">Автоматический подбор работников</option>
+            <option value="@individual">Работники без постоянной бригады</option>
             {context.crewChoices.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
         </label>
@@ -100,7 +105,15 @@ function Picker({context, saving, setSaving, onAssigned, onSaveError, onSearch}:
           <ul className="list-inside list-disc">{result.selectedWorkers.map(worker => <li key={worker.executorId}>{worker.name}</li>)}</ul>
         </div>}
       </Callout>
-      {result.status === "ok" && result.command && <Button disabled={saving || busy} onClick={async () => {
+      {changed&&<Callout tone="warning">Состав изменён. Проверьте общий интервал выбранных работников перед подтверждением.</Callout>}
+      {!!result.workers.length&&<div className="flex flex-wrap items-center gap-3"><p className="text-sm">Выбрано {picked.length} из {context.crewSize} необходимых работников</p><Button variant="secondary" disabled={saving||busy||picked.length!==context.crewSize} onClick={async()=>{
+        const current=++requestId.current;setBusy(true);setError("");
+        try{const value=await maintenanceApi.previewAssignment(context.taskId,context.expectedRevision,start,end,crew==='@individual'?null:crew||null,picked,crew==='@individual');
+          if(requestId.current===current){setResult(value);setChanged(false);}}
+        catch(failure){if(requestId.current===current)setError(failure instanceof Error?failure.message:"Проверка состава недоступна");}
+        finally{if(requestId.current===current)setBusy(false);}
+      }}>Проверить выбранный состав</Button></div>}
+      {result.status === "ok" && result.command && <Button disabled={saving || busy || changed} onClick={async () => {
         if (saveLock.current || !result.command) return;
         saveLock.current = true;
         const current = ++requestId.current;
@@ -117,9 +130,12 @@ function Picker({context, saving, setSaving, onAssigned, onSaveError, onSearch}:
       }}>{saving ? "Сохранение…" : "Подтвердить назначение"}</Button>}
       <Card className="overflow-hidden"><CardHeader title="Проверка кандидатов" />
         <div className="overflow-x-auto"><table className="w-full text-left text-sm">
-          <thead className="text-muted"><tr><th className="p-4">Работник</th><th className="p-4">Результат</th><th className="p-4">Загрузка за день</th><th className="p-4">Причина</th></tr></thead>
+          <thead className="text-muted"><tr><th className="p-4">Выбор</th><th className="p-4">Работник</th><th className="p-4">Результат</th><th className="p-4">Загрузка за день</th><th className="p-4">Причина</th></tr></thead>
           <tbody>{result.workers.map(worker => <tr key={worker.executorId} className="border-t border-line align-top">
-            <td className="p-4">{worker.name}</td><td className="p-4">{{selected: "Выбран", available: "Доступен", excluded: "Не подходит"}[worker.status]}</td>
+            <td className="p-4"><input type="checkbox" aria-label={`Выбрать: ${worker.name}`} disabled={saving||busy||worker.status==="excluded"} checked={picked.includes(worker.executorId)} onChange={event=>{
+              requestId.current+=1;setChanged(true);setError("");setPicked(event.target.checked?[...picked,worker.executorId]:picked.filter(id=>id!==worker.executorId));
+            }}/></td>
+            <td className="p-4">{worker.name}</td><td className="p-4">{{selected: result.recommendationMode==="manual" ? "Выбран" : "Приоритетный", available: "Доступен", excluded: "Не подходит"}[worker.status]}</td>
             <td className="p-4">{worker.loadMinutes === null ? "Не определена" : `${worker.loadMinutes} мин.`}</td><td className="min-w-60 p-4">{worker.explanation}</td>
           </tr>)}</tbody>
         </table></div>

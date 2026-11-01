@@ -5,7 +5,7 @@ import { useApiQuery } from "@/shared/lib/useApiQuery";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Card } from "@/shared/ui/Card";
 import { EmptyState, ErrorState, LoadingState } from "@/shared/ui/States";
-import { Button, buttonClassName } from "@/shared/ui/Button";
+import { buttonClassName } from "@/shared/ui/Button";
 import { FormField, Input, Select } from "@/shared/ui/Form";
 import { Icon } from "@/shared/ui/Icon";
 import { EquipmentTable } from "@/entities/equipment/EquipmentTable";
@@ -47,10 +47,10 @@ export function EquipmentPage() {
         description="Единицы оборудования в пределах доступного объекта. Инвентарный номер уникален внутри Site."
         actions={
           <>
-            {(profile?.role === "admin" || profile?.role === "dispatcher") && <Button variant="secondary" disabled title="Сервис создания оборудования пока не реализован">
+            {(profile?.role === "admin" || profile?.role === "dispatcher") && <Link className={buttonClassName("secondary")} to="/settings/equipment">
               <Icon name="plus" size={18} />
               Добавить
-            </Button>}
+            </Link>}
             {canOpenSection(profile?.role, "calendar") && <Link to="/calendar" className={buttonClassName("primary")}>
               Календарь ТО
             </Link>}

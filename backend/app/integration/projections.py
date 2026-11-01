@@ -89,7 +89,7 @@ class Views:
                 user = self.session.get(self.models["users"], review.reviewer_user_id)
                 result.append(dict(id=str(review.acceptance_review_id), equipmentId=str(equipment_id),
                     performedAt=iso(order.completed_at), acceptedAt=iso(review.reviewed_at),
-                    operation=rule.operation.title if rule else order.operation_snapshot.get("title", "Работа"),
+                    operation=order.operation_snapshot.get('title') or (rule.operation.title if rule else 'Работа'),
                     engineer=user.full_name, taskCode=str(order.work_order_id)[:8], runtimeHours=None))
         return sorted(result, key=lambda x: x["acceptedAt"], reverse=True)
 
@@ -169,6 +169,8 @@ class Views:
         role = self.principal.role
         if role in ("dispatcher", "engineer"):
             actions.append("forecast")
+        if role=='dispatcher' and order.status in ('draft','clarification','assigned') and not reports:
+            actions.append('cancel')
         if role == "executor":
             # bundle is only called after task() has checked the active assignment.
             if order.status in ("assigned", "rework") and order.operation_snapshot.get("checklist"):
@@ -199,6 +201,7 @@ class Views:
                 except HTTPException:
                     continue
             rule = entry.rule
+            operation_snapshot = entry.rule_snapshot.get('operation', {})
             binding = entry.binding
             eq = binding.equipment if binding else None
             kind = None
@@ -209,7 +212,8 @@ class Views:
             cancelled = entry.status != "planned" or bool(orders and orders[0].status == "cancelled")
             items.append(dict(id=str(entry.schedule_entry_id), occurrenceDate=iso(entry.planned_date),
                 equipmentId=str(eq.equipment_id) if eq else None, equipmentName=eq.name if eq else "Не указано",
-                operationCode=rule.operation.code, operationTitle=rule.operation.title, maintenanceType=kind,
+                operationCode=operation_snapshot.get('code') or rule.operation.code,
+                operationTitle=operation_snapshot.get('title') or rule.operation.title, maintenanceType=kind,
                 status="fulfilled" if done else "cancelled" if cancelled else "planned",
                 isOverdue=entry.regulatory_deadline_on < today and not done and not cancelled,
                 requiresInput=rule.publication_status != "published" or not binding,

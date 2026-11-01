@@ -26,6 +26,8 @@ const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   admin: [
     { to: "/dispatcher", label: "Панель диспетчера", icon: "dashboard" },
     { to: "/equipment", label: "Оборудование", icon: "equipment" },
+    { to: "/settings/equipment", label: "Настройка обслуживания", icon: "calendar" },
+    { to: "/settings/workforce", label: "Сотрудники и смены", icon: "executor" },
   ],
   dispatcher: [
     { to: "/dispatcher", label: "Панель диспетчера", icon: "dashboard" },
@@ -33,6 +35,8 @@ const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { to: "/equipment", label: "Оборудование", icon: "equipment" },
     { to: "/tasks", label: "Задания", icon: "tasks" },
     { to: "/comparisons", label: "Прогнозы", icon: "forecast" },
+    { to: "/settings/equipment", label: "Настройка обслуживания", icon: "calendar" },
+    { to: "/settings/workforce", label: "Сотрудники и смены", icon: "executor" },
   ],
   engineer: [
     { to: "/quality", label: "Контроль качества", icon: "quality" },
@@ -40,11 +44,14 @@ const NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { to: "/equipment", label: "Оборудование", icon: "equipment" },
     { to: "/tasks", label: "Задания", icon: "tasks" },
     { to: "/comparisons", label: "Прогнозы", icon: "forecast" },
+    { to: "/settings/equipment", label: "Настройка обслуживания", icon: "calendar" },
+    { to: "/settings/workforce", label: "Сотрудники и смены", icon: "executor" },
   ],
   executor: [
     { to: "/executor", label: "Мои задания", icon: "executor", end: true },
     { to: "/calendar", label: "Календарь ТО", icon: "calendar" },
     { to: "/equipment", label: "Оборудование", icon: "equipment" },
+    { to: "/my-shifts", label: "Мои смены", icon: "calendar" },
   ],
 };
 

@@ -2,7 +2,8 @@ import { useSession } from "@/shared/session/SessionContext";
 import { Link } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
-import { formatDate, formatDateTime } from "@/shared/lib/format";
+import { formatDate } from "@/shared/lib/format";
+import { useSiteDateTime } from "@/shared/lib/useSiteDateTime";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { StatCard } from "@/widgets/StatCard";
 import { Card, CardHeader } from "@/shared/ui/Card";
@@ -242,6 +243,7 @@ export function DispatcherPage() {
 }
 
 function TaskAttentionRow({ task }: { task: MaintenanceTask }) {
+  const formatDateTime=useSiteDateTime();
   const { profile } = useSession();
   const path = taskPathForRole(profile?.role, task.id);
   return (

@@ -11,14 +11,6 @@ const SHORT_DATE_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
   timeZone: "UTC",
 });
 
-const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
-  day: "2-digit",
-  month: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "Asia/Yekaterinburg",
-});
-
 const MONTH_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
   month: "long",
   year: "numeric",
@@ -36,6 +28,11 @@ export function formatDate(value: string | null): string {
   return DATE_FORMATTER.format(asDate(value));
 }
 
+export function todayAt(timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {timeZone, year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
+  return ["year","month","day"].map(key=>parts.find(part=>part.type===key)!.value).join("-");
+}
+
 export function formatShortDate(value: string | null): string {
   if (!value) {
     return "—";
@@ -43,11 +40,11 @@ export function formatShortDate(value: string | null): string {
   return SHORT_DATE_FORMATTER.format(asDate(value));
 }
 
-export function formatDateTime(value: string | null): string {
+export function formatDateTime(value: string | null, timeZone = "UTC"): string {
   if (!value) {
     return "—";
   }
-  return DATE_TIME_FORMATTER.format(new Date(value));
+  return new Intl.DateTimeFormat("ru-RU",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",timeZone}).format(new Date(value));
 }
 
 export function formatMonth(year: number, month: number): string {

@@ -13,8 +13,9 @@ from .schemas import (
     BindingGenerationResult, CalendarGenerationRequest, CalendarGenerationResult,
     GeneratedOccurrence, SchedulingBinding,
 )
+from .recurrence import occurrence_dates, pattern_description
 
-METHOD_VERSION = "calendar-rules-v1"
+METHOD_VERSION = "calendar-rules-v2"
 # Stable occurrence identity: binding + rule version + local due date, independent of query order.
 OCCURRENCE_NAMESPACE = UUID("e12253b2-143e-5a55-a4c4-875fdb3a7a3f")
 
@@ -111,7 +112,13 @@ def _generate_binding(item: SchedulingBinding, start: date, end: date,
         return result("needs_input", "RUNTIME_DATE_UNAVAILABLE", "Наработка задаёт порог в часах; текущий контракт не задаёт режим для расчёта календарной даты.")
 
     status, code = "ok", None
-    if rule.kind == "explicit_dates":
+    if rule.kind == "calendar_pattern":
+        try:
+            dates = occurrence_dates(rule.pattern, active_start, active_end)
+        except ValueError as exc:
+            return result('needs_input','CALENDAR_PATTERN_UNSATISFIABLE',str(exc))
+        explanation = pattern_description(rule.pattern)
+    elif rule.kind == "explicit_dates":
         year_dates = [d for d in rule.explicit_dates if d.year == start.year]
         if not year_dates:
             return result("needs_input", "YEAR_DATES_MISSING", "Для выбранного года не заданы утверждённые даты.")

@@ -11,6 +11,7 @@ const access: Record<string, Role[]> = {
   dispatcher: ["admin", "dispatcher"], equipment: roles,
   calendar: ["dispatcher", "engineer", "executor"], tasks: ["dispatcher", "engineer"],
   comparisons: ["dispatcher", "engineer"], quality: ["engineer"], executor: ["executor"],
+  settings: ["admin","dispatcher","engineer"], "my-shifts": ["executor"],
 };
 const routes = [
   ["/dispatcher", "Панель диспетчера"],

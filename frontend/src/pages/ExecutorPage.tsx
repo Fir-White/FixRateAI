@@ -2,7 +2,8 @@ import { Link } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
 import { useSession } from "@/shared/session/SessionContext";
-import { formatDate, formatDateTime } from "@/shared/lib/format";
+import { formatDate } from "@/shared/lib/format";
+import { useSiteDateTime } from "@/shared/lib/useSiteDateTime";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { EmptyState, ErrorState, LoadingState } from "@/shared/ui/States";
 import { buttonClassName } from "@/shared/ui/Button";
@@ -99,6 +100,7 @@ export function ExecutorPage() {
 }
 
 function ExecutorTaskCard({ task }: { task: MaintenanceTask }) {
+  const formatDateTime=useSiteDateTime();
   return (
     <article
       className={`rounded-2xl border bg-surface p-4 ${

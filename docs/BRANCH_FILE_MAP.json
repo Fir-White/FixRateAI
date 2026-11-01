@@ -164,9 +164,263 @@
   },
   {
     "branch": "new_backend",
-    "source_sha": "16b79affc155d75b76f585dcdfa4e5acc1781cfb",
-    "comparison_base": "bb300ec542ddfb538890eaa517368099fa4ee180",
+    "source_sha": "c559d27046d5028f83ed4f67dda4e8418618303d",
+    "comparison_base": "16b79affc155d75b76f585dcdfa4e5acc1781cfb",
     "files": [
+      {
+        "source_path": ".gitignore",
+        "dev_path": ".gitignore",
+        "source_blob": "a5b19ade08704e1e8693b9bb04ac65a48611f702",
+        "disposition": "equivalent_private_environment_exclusions_retained"
+      },
+      {
+        "source_path": "backend/DEVELOPMENT.md",
+        "dev_path": "docs/branches/new_backend.md",
+        "source_blob": "dec3868f9cdb24896e557725e7c354e20678a77a",
+        "disposition": "documentation_reconciled_with_current_runtime"
+      },
+      {
+        "source_path": "backend/FX26-BE02-IMPLEMENTATION.md",
+        "dev_path": "docs/branches/new_backend.md",
+        "source_blob": "eae9d92e66d22e00b004ae7d7154bc59bc6e60dd",
+        "disposition": "documentation_reconciled_with_current_runtime"
+      },
+      {
+        "source_path": "backend/README.md",
+        "dev_path": "docs/branches/new_backend.md",
+        "source_blob": "4500a3c017f64769c082ab36f445d948bcfcff01",
+        "disposition": "documentation_reconciled_with_current_runtime"
+      },
+      {
+        "source_path": "backend/app/__init__.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "aafdea82062f56edd325456a472089302a3307ea",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/api/__init__.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "48f7373ee6233452cc303dc7355dbfaf3e116560",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/api/v1/__init__.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "d7509d621bff740fa4d7d28ff9eba5a2071fc5c1",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/api/v1/auth.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "3c7d4f026b6aa093032a3cd8a694468ea6e1744c",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/api/v1/equipment.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "e6b15d2b170d00db2662e9a842d1a11aceb54750",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/api/v1/users.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "ce6795b3e7510878b6bac1815551650e912b23dd",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/core/__init__.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "8be575e2b0cfeb8e436af6e9adee995b32a6266c",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/core/config.py",
+        "dev_path": ".env.example",
+        "source_blob": "d1c0717d3f7abeef7c05f7bf754e26e3083942c5",
+        "disposition": "single_existing_configuration_retained"
+      },
+      {
+        "source_path": "backend/app/core/database.py",
+        "dev_path": "backend/app/db/models.py",
+        "source_blob": "cc90cdfbd205f6a1df5aed7d29288a3ba3e65637",
+        "disposition": "adapted_to_reflected_shared_schema_and_migration_008"
+      },
+      {
+        "source_path": "backend/app/core/security.py",
+        "dev_path": "backend/app/security/sessions.py",
+        "source_blob": "49f129eb88f0f2ae1cf09116b31e38c87812b302",
+        "disposition": "adapted_to_opaque_sessions_password_hashing_csrf_no_uuid_cookie"
+      },
+      {
+        "source_path": "backend/app/main.py",
+        "dev_path": "backend/app/main.py",
+        "source_blob": "29422870114607cddc645e7f5feab2c10ec73825",
+        "disposition": "routes_registered_in_single_existing_application"
+      },
+      {
+        "source_path": "backend/app/models/__init__.py",
+        "dev_path": "backend/app/db/models.py",
+        "source_blob": "667b0303f0ddfcc90b3b1141eaced15da66a7521",
+        "disposition": "adapted_to_reflected_shared_schema_and_migration_008"
+      },
+      {
+        "source_path": "backend/app/models/base.py",
+        "dev_path": "backend/app/db/models.py",
+        "source_blob": "757111641d8f1ded0c39fc6e4a624a9068a14f75",
+        "disposition": "adapted_to_reflected_shared_schema_and_migration_008"
+      },
+      {
+        "source_path": "backend/app/models/equipment.py",
+        "dev_path": "backend/app/db/models.py",
+        "source_blob": "e615b3ee890303f9aadc03f8cdd3212e6abc5483",
+        "disposition": "adapted_to_reflected_shared_schema_and_migration_008"
+      },
+      {
+        "source_path": "backend/app/models/session.py",
+        "dev_path": "backend/app/db/models.py",
+        "source_blob": "174a157094ef7aac163838eb28ad4c253bd920cc",
+        "disposition": "adapted_to_reflected_shared_schema_and_migration_008"
+      },
+      {
+        "source_path": "backend/app/models/users.py",
+        "dev_path": "backend/app/db/models.py",
+        "source_blob": "03c7e54fe2f8b9e8c8a62530da8d096f6c492538",
+        "disposition": "adapted_to_reflected_shared_schema_and_migration_008"
+      },
+      {
+        "source_path": "backend/app/repositories/__init__.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "dff42ea01572474b5abbfc48583b140c9629a033",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/repositories/equipment_repository.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "4288755aa8a6b462a91b2469a03f964bc144269e",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/repositories/session_repository.py",
+        "dev_path": "backend/app/security/sessions.py",
+        "source_blob": "2caa27ae32690ee72c334eaa29678441327961f8",
+        "disposition": "adapted_to_opaque_sessions_password_hashing_csrf_no_uuid_cookie"
+      },
+      {
+        "source_path": "backend/app/repositories/user_repository.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "aea581a0332e5cbfa521f816415fe6b862ae7fcc",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/schemas/__init__.py",
+        "dev_path": "backend/app/schemas/management.py",
+        "source_blob": "2dc097cf9ee70fa07ea02fa66d1b306518366ea9",
+        "disposition": "adapted_strict_site_scoped_revision_commands"
+      },
+      {
+        "source_path": "backend/app/schemas/common.py",
+        "dev_path": "backend/app/schemas/management.py",
+        "source_blob": "507609dd0a796cc76147faedd770344f904ac04d",
+        "disposition": "adapted_strict_site_scoped_revision_commands"
+      },
+      {
+        "source_path": "backend/app/schemas/equipment.py",
+        "dev_path": "backend/app/schemas/management.py",
+        "source_blob": "179614a74cc77db3c3a4c690cc61f14f9b60de7d",
+        "disposition": "adapted_strict_site_scoped_revision_commands"
+      },
+      {
+        "source_path": "backend/app/schemas/users.py",
+        "dev_path": "backend/app/schemas/management.py",
+        "source_blob": "aeacfec00e81cb4e3288aa3f764c6bf62f8234cb",
+        "disposition": "adapted_strict_site_scoped_revision_commands"
+      },
+      {
+        "source_path": "backend/app/services/__init__.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "d2ae020d3719d63ede421a7b0dc5098161079219",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/services/auth_service.py",
+        "dev_path": "backend/app/security/sessions.py",
+        "source_blob": "0d407959be9c392d8e3799842ca02eb8ef83ccfc",
+        "disposition": "adapted_to_opaque_sessions_password_hashing_csrf_no_uuid_cookie"
+      },
+      {
+        "source_path": "backend/app/services/equipment_service.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "4bac066be6e43785861263eb5d37e3c78a1261bf",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/services/rbac_service.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "5d894320bf2b1eef3d9843f7df54fa122895d8fe",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/docs/dto_db_alignment.md",
+        "dev_path": "docs/branches/new_backend.md",
+        "source_blob": "74f9601a3cfae017ef0001c87b9cb0baaefbf7a5",
+        "disposition": "documentation_reconciled_with_current_runtime"
+      },
+      {
+        "source_path": "backend/pyproject.toml",
+        "dev_path": "requirements.lock.txt",
+        "source_blob": "1f352c96319c266c5ce7a8e61be0542c23cc860c",
+        "disposition": "shared_locked_dependencies_retained_no_parallel_async_stack"
+      },
+      {
+        "source_path": "backend/requirements.txt",
+        "dev_path": "requirements.lock.txt",
+        "source_blob": "4bc22ccb607c93eb7d71f288402f757d9ad90d1e",
+        "disposition": "shared_locked_dependencies_retained_no_parallel_async_stack"
+      },
+      {
+        "source_path": "backend/scripts/init_db.py",
+        "dev_path": "backend/app/manage.py",
+        "source_blob": "5bf38b8bb09c1898354e6195e3d999c88a787e9c",
+        "disposition": "create_all_excluded_single_sql_migrator_retained"
+      },
+      {
+        "source_path": "backend/tests/conftest.py",
+        "dev_path": "backend/tests/test_management.py",
+        "source_blob": "8618c3ab8f8d8c12e27e0517297ca2cd8a231375",
+        "disposition": "adapted_real_database_http_coverage_with_test_runtime_integration"
+      },
+      {
+        "source_path": "backend/tests/test_auth.py",
+        "dev_path": "backend/tests/test_management.py",
+        "source_blob": "7d75083eab6d5b9669c657797776824a00443e9e",
+        "disposition": "adapted_real_database_http_coverage_with_test_runtime_integration"
+      },
+      {
+        "source_path": "backend/tests/test_equipment_api.py",
+        "dev_path": "backend/tests/test_management.py",
+        "source_blob": "fa71a4fc3801c4ccc802e97de729d1629694f08c",
+        "disposition": "adapted_real_database_http_coverage_with_test_runtime_integration"
+      },
+      {
+        "source_path": "backend/tests/test_rbac.py",
+        "dev_path": "backend/tests/test_management.py",
+        "source_blob": "9499f542f5e05dfdb4dae7f4611e17e80705968e",
+        "disposition": "adapted_real_database_http_coverage_with_test_runtime_integration"
+      },
+      {
+        "source_path": "database/migrations/004_sessions.sql",
+        "dev_path": "database/migrations/005_runtime_integration.sql",
+        "source_blob": "06a370c51b065eb5cf38f4e9a1899fdd9f56f53c",
+        "disposition": "duplicate_session_schema_excluded_existing_opaque_session_retained"
+      },
+      {
+        "source_path": "db/tests/scenario_results.json",
+        "dev_path": "reports/flexible_planning_verification.md",
+        "source_blob": "c86516d4a68b6ad277124dcaa8b7120b4dbf28e0",
+        "disposition": "source_record_not_used_as_proof_real_tests_rerun"
+      }
+    ],
+    "previous_accounted_files": [
       {
         "source_path": "backend/app/security/__init__.py",
         "dev_path": "backend/app/security/__init__.py",

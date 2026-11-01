@@ -1,3 +1,5 @@
+> Исторический протокол предыдущей сборки. Текущая проверка расширенного планирования: [flexible_planning_verification](../reports/flexible_planning_verification.md).
+
 # Отчёт интеграции dev
 
 Дата: 31 октября 2026 года. Репозиторий: `https://gitverse.ru/firewhite/FixRate_AI.git`.

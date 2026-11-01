@@ -17,12 +17,17 @@ import { ExecutorTaskPage } from "@/pages/ExecutorTaskPage";
 import { QualityPage } from "@/pages/QualityPage";
 import { QualityTaskPage } from "@/pages/QualityTaskPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
+import { ServiceSettingsPage } from "@/pages/ServiceSettingsPage";
+import { WorkforceSettingsPage } from "@/pages/WorkforceSettingsPage";
+import { RegistrationPage } from "@/pages/RegistrationPage";
+import { PersonalShiftsPage } from "@/pages/PersonalShiftsPage";
 import { SECTION_ROLES } from "@/shared/lib/roles";
 
 export function AppRouter() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegistrationPage />} />
 
       <Route element={<RequireSession />}>
         <Route path="/" element={<HomeRedirect />} />
@@ -38,6 +43,9 @@ export function AppRouter() {
           />
           <Route path="/equipment" element={<EquipmentPage />} />
           <Route path="/equipment/:equipmentId" element={<EquipmentDetailPage />} />
+          <Route path="/settings/equipment" element={<RequireRole roles={SECTION_ROLES.service_settings}><ServiceSettingsPage /></RequireRole>} />
+          <Route path="/settings/workforce" element={<RequireRole roles={SECTION_ROLES.workforce_settings}><WorkforceSettingsPage /></RequireRole>} />
+          <Route path="/my-shifts" element={<RequireRole roles={SECTION_ROLES.executor}><PersonalShiftsPage /></RequireRole>} />
           <Route
             path="/calendar"
             element={

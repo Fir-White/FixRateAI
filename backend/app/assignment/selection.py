@@ -159,6 +159,8 @@ def select_crew(request: AssignmentRequest) -> AssignmentSelection:
         failures[worker.worker_id] = list(dict.fromkeys(reasons))
 
     def best(pool):
+        if request.requested_worker_ids is not None:
+            pool={worker_id:intervals for worker_id,intervals in pool.items() if worker_id in request.requested_worker_ids}
         starts = sorted({_ceil_minute(a) for intervals in pool.values() for a, _ in intervals})
         for begin in starts:
             finish_at = begin + duration
@@ -202,7 +204,7 @@ def select_crew(request: AssignmentRequest) -> AssignmentSelection:
         selected = worker.worker_id in chosen_ids
         decisions.append(WorkerDecision(worker_id=worker.worker_id, name=worker.name,
             status="selected" if selected else "excluded" if reasons else "available", reasons=reasons,
-            explanation="Выбран полный состав по времени, дневной загрузке и стабильному порядку ID." if selected
+            explanation=("Выбран диспетчером; доступность и допуски проверены." if request.requested_worker_ids is not None else "Выбран полный состав по времени, дневной загрузке и стабильному порядку ID.") if selected
                 else " ".join(REASONS[reason] for reason in reasons) if reasons
                 else "Есть допустимое время; другой состав выбран по времени, нагрузке и порядку ID.",
             load_minutes=None if not worker.workload_data_complete or not worker.booking_data_complete else _load(worker, load_day, tz, request.task_id),
@@ -210,7 +212,8 @@ def select_crew(request: AssignmentRequest) -> AssignmentSelection:
     if chosen is None:
         return finish("unavailable", "INSUFFICIENT_CAPACITY", "Полная бригада на общем допустимом интервале не найдена. Частичный состав не предлагается.")
     begin, finish_at, selected, crew_id = chosen
-    reason = "Самый ранний общий интервал; среди доступных — минимальная дневная загрузка, затем ID."
+    reason = ("Состав выбран диспетчером; найден общий допустимый интервал, проверены доступность, допуски и загрузка."
+              if request.requested_worker_ids is not None else "Самый ранний общий интервал; среди доступных — минимальная дневная загрузка, затем ID.")
     command = AssignmentCommand(schema_version=request.schema_version, expected_revision=request.expected_revision,
         executor_ids=selected, start_at=begin.astimezone(tz), end_at=finish_at.astimezone(tz), reason=reason)
     return finish("ok", None, reason, command, crew_id)

@@ -26,4 +26,6 @@ ALG04–ALG08: `app/orchestrator` и `app/integration/planning.py` — неза�
 
 Установка, миграции новой/существующей базы, запуск, таблица API и роли: [SYSTEM_OVERVIEW](../docs/SYSTEM_OVERVIEW.md). Проверки: из корня `.venv/Scripts/python.exe scripts/verify.py --browser`.
 
-Исходный repository/service из kran_dev сохранён. ORM не создаёт схему через `create_all`; примените SQL 001–007 до запуска. Канонические DTO описывают также будущие сервисы; фактические endpoints определяет OpenAPI приложения, а не только схемы.
+Исходный repository/service из kran_dev сохранён. ORM не создаёт схему через `create_all`; примените SQL 001–008 до запуска. Канонические DTO описывают также будущие сервисы; фактические endpoints определяет OpenAPI приложения, а не только схемы.
+
+`integration/management.py`: CRUD оборудования, версии обслуживания, регистрация/роль, смены, допуски, исключения, бригады; одна SQL-цепочка и общий auth. [Рабочий процесс](../docs/WORKFORCE_PLANNING.md).

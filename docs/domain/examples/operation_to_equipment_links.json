@@ -1,34 +1,88 @@
 {
-  "operation_template": {
-    "template_id": "op-tmpl-101",
-    "name": "Контроль параметров показаний приборов (давление, температура)",
-    "to_type": "ТО1",
-    "norm_hours": 1.0
+  "operation": {
+    "schema_version": "maintenance-0.1",
+    "data_origin": "synthetic_demo",
+    "operation_id": "00000000-0000-4000-8000-000000000004",
+    "operation_version_id": "00000000-0000-4000-8000-000000000005",
+    "version": 1,
+    "code": "DEMO-CLEAN-01",
+    "title": "Демонстрационная очистка внешней поверхности узла",
+    "maintenance_type": "ТО2",
+    "instructions": "Зафиксировать исходный вид, очистить доступную поверхность и сделать фото того же ракурса. Это учебная операция.",
+    "crew_size": 2,
+    "raw_norm_value": "2.000",
+    "norm_unit": "person_hour",
+    "planning_duration_minutes": 60,
+    "duration_basis": "Синтетическая норма для демонстрации, не значение F9 исходного Excel.",
+    "qualification_ids": [
+      "00000000-0000-4000-8000-000000000006"
+    ],
+    "checklist": [
+      {
+        "checklist_item_id": "00000000-0000-4000-8000-000000000007",
+        "text": "Очистить доступную внешнюю поверхность узла",
+        "answer_kind": "boolean",
+        "unit": null,
+        "required": true,
+        "visual_verifiability": "visible",
+        "photo_required": true
+      }
+    ],
+    "status": "approved",
+    "source_ref": "synthetic_demo:cleaning-v1"
   },
-  "linked_equipment_instances": [
+  "rule": {
+    "schema_version": "maintenance-0.1",
+    "data_origin": "synthetic_demo",
+    "rule_version_id": "00000000-0000-4000-8000-000000000008",
+    "regulation_version_id": "00000000-0000-4000-8000-000000000009",
+    "source_text": "Демонстрация: пять явно заданных дат за год",
+    "kind": "explicit_dates",
+    "confirmed": true,
+    "interval": null,
+    "calendar_unit": null,
+    "anchor_date": null,
+    "basis": null,
+    "explicit_dates": [
+      "2026-01-01",
+      "2026-03-15",
+      "2026-06-01",
+      "2026-09-01",
+      "2026-11-01"
+    ],
+    "yearly_count": 5,
+    "runtime_interval_hours": null,
+    "allowed_lead_days": 6,
+    "source_ref": "synthetic_demo:annual-v1"
+  },
+  "equipment": [
     {
-      "regulation_id": "reg-501",
-      "equipment_item": {
-        "item_id": "eq-item-991",
-        "name": "Манометр подающей линии ТС",
-        "serial_number": "MN-2024-01"
-      }
-    },
+      "schema_version": "maintenance-0.1",
+      "data_origin": "synthetic_demo",
+      "equipment_id": "00000000-0000-4000-8000-000000000002",
+      "site_id": "00000000-0000-4000-8000-000000000001",
+      "equipment_type_id": "00000000-0000-4000-8000-000000000003",
+      "inventory_code": "DEMO-TP-001",
+      "name": "Учебный узел очистки",
+      "commissioned_on": "2025-01-01",
+      "state": "active",
+      "revision": 1
+    }
+  ],
+  "bindings": [
     {
-      "regulation_id": "reg-502",
-      "equipment_item": {
-        "item_id": "eq-item-992",
-        "name": "Манометр обратной линии ТС",
-        "serial_number": "MN-2024-02"
-      }
-    },
-    {
-      "regulation_id": "reg-503",
-      "equipment_item": {
-        "item_id": "eq-item-993",
-        "name": "Датчик температуры теплоносителя",
-        "serial_number": "DT-2024-15"
-      }
+      "schema_version": "maintenance-0.1",
+      "data_origin": "synthetic_demo",
+      "source_ref": "domain:shared-operation-example",
+      "binding_id": "00000000-0000-4000-8000-000000000011",
+      "revision": 1,
+      "equipment_id": "00000000-0000-4000-8000-000000000002",
+      "operation_version_id": "00000000-0000-4000-8000-000000000005",
+      "rule_version_id": "00000000-0000-4000-8000-000000000008",
+      "regulation_version_id": "00000000-0000-4000-8000-000000000009",
+      "effective_from": "2025-01-01",
+      "effective_to": null,
+      "baseline_runtime_hours": null
     }
   ]
 }

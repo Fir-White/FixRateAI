@@ -93,9 +93,6 @@ def generate_tasks(v, year, month, key, token, forecaster):
         old = _stored(v, key, request_hash)
         if old:
             return old
-        _lock_sources(v)
-        if source_token(v, year, month, datetime.now(timezone.utc)) != token:
-            raise HTTPException(409, "STALE_PREVIEW: исходные данные изменились во время расчёта")
         # Recheck actor membership after calculation and any lock wait.
         users, members, sites = v.models["users"], v.models["site_memberships"], v.models["sites"]
         actor = v.session.scalar(select(users).where(users.user_id == v.principal.user_id).with_for_update(read=True).execution_options(populate_existing=True))
@@ -103,6 +100,9 @@ def generate_tasks(v, year, month, key, token, forecaster):
         active_site = v.session.scalar(select(sites).where(sites.site_id == site.site_id).with_for_update(read=True).execution_options(populate_existing=True))
         if not actor or not actor.is_active or not member or not member.is_active or member.role != "dispatcher" or not active_site or not active_site.is_active:
             raise HTTPException(403, "Доступ диспетчера отозван")
+        _lock_sources(v)
+        if source_token(v, year, month, datetime.now(timezone.utc)) != token:
+            raise HTTPException(409, "STALE_PREVIEW: исходные данные изменились во время расчёта")
         run_id, plan, results = uuid4(), None, []
         for row, binding_id, item, snapshot, values in prepared:
             algorithmic, ai, decision = values

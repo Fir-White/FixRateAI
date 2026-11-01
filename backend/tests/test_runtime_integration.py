@@ -7,6 +7,7 @@ import json
 import os
 from contextlib import closing
 from calendar import monthrange
+from datetime import date
 from uuid import UUID, uuid4
 
 import numpy as np
@@ -154,11 +155,13 @@ def test_calendar_preview_maps_quarter_and_explicit_year_rules(confirmed_preview
         else:
             conn.execute(text("UPDATE maintenance_rules SET period_unit='quarter' WHERE maintenance_rule_id=:id"), {"id": demo_id("runtime-rule")})
     with closing(login(app, "dispatcher")) as client:
-        reply = client.get(PREFIX+f"/ui/calendar/preview?year={start.year}&month={start.month}")
+        month=((start.month-1)//3+1)*3 if period_unit=='quarter' else start.month
+        expected=date(start.year,month,monthrange(start.year,month)[1]) if period_unit=='quarter' else start
+        reply = client.get(PREFIX+f"/ui/calendar/preview?year={start.year}&month={month}")
         assert reply.status_code == 200, reply.text
         rows = [item for item in reply.json()["items"] if item["operationCode"] == "DEMO-1.4"]
         assert len(rows) == 1
-        assert rows[0]["occurrenceDate"] == start.isoformat()
+        assert rows[0]["occurrenceDate"] == expected.isoformat()
 
 
 def test_sessions_authentication_and_revocation(runtime):
@@ -454,6 +457,7 @@ def test_every_workflow_mutation_enforces_role_before_state(runtime, role):
             ("review", {"engineer"}, {"expected_revision": 1, "execution_id": str(uuid4()), "verdict": "accepted", "reason": "Role test"}),
             ("photo-review", {"engineer"}, {"expected_revision": 1}),
             ("forecast", {"dispatcher", "engineer"}, {"expected_revision": 1}),
+            ("cancel", {"dispatcher"}, {"expected_revision": 1,"reason":"Role test"}),
         ]
         for action, allowed, payload in commands:
             if role not in allowed:
