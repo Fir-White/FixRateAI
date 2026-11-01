@@ -175,19 +175,19 @@
       },
       {
         "source_path": "backend/DEVELOPMENT.md",
-        "dev_path": "docs/service/runtime.md",
+        "dev_path": "docs/service/development.md",
         "source_blob": "dec3868f9cdb24896e557725e7c354e20678a77a",
         "disposition": "documentation_reconciled_with_current_runtime"
       },
       {
         "source_path": "backend/FX26-BE02-IMPLEMENTATION.md",
-        "dev_path": "docs/service/runtime.md",
+        "dev_path": "docs/service/development.md",
         "source_blob": "eae9d92e66d22e00b004ae7d7154bc59bc6e60dd",
         "disposition": "documentation_reconciled_with_current_runtime"
       },
       {
         "source_path": "backend/README.md",
-        "dev_path": "docs/service/runtime.md",
+        "dev_path": "docs/service/development.md",
         "source_blob": "4500a3c017f64769c082ab36f445d948bcfcff01",
         "disposition": "documentation_reconciled_with_current_runtime"
       },
@@ -361,7 +361,7 @@
       },
       {
         "source_path": "backend/docs/dto_db_alignment.md",
-        "dev_path": "docs/service/runtime.md",
+        "dev_path": "docs/service/development.md",
         "source_blob": "74f9601a3cfae017ef0001c87b9cb0baaefbf7a5",
         "disposition": "documentation_reconciled_with_current_runtime"
       },
@@ -905,7 +905,7 @@
       },
       {
         "source_path": "docs/ml/mr_draft.md",
-        "dev_path": "docs/service/runtime.md",
+        "dev_path": "docs/service/development.md",
         "source_blob": "83f65b64b4d04f9c1e2d83f6dbeb727538141cbe",
         "disposition": "retained_or_adapted"
       },

@@ -8,10 +8,10 @@
 оркестратор, настройки, PostgreSQL/миграции/seed/QA, веб/transport/экраны/UI, ML/RF/CV,
 тесты, fixtures, требования, ADR, машинные результаты и диаграммы.
 Метод указан по фактическому способу просмотра: AST-разбор теста не назван чтением каждой строки.
-MD исходной модели: 310 полей/72 FK остаются в model_catalog.json; все 264 уникальных описания полей
+MD исходной модели: 310 полей/72 FK остаются в model_catalog.json; все 261 уникальное описание поля
 прежней спецификации сопоставлены с каталогом. Нормативные требования и границы реализации
 перенесены в архитектуру/сервис; read-only SQL-примеры сохранены в database.md.
-19 канонических MD заменяют 50 прежних; 35 прежних путей удаляются, 15 используются новой структурой.
+Первый перенос (6eb86bd): 19 канонических MD заменили 50 прежних; 35 прежних путей удаляются, 15 используются новой структурой.
 Source SHA/blob/source_path в BRANCH_*.json сохраняются; меняются только текущие MD destinations.
 Legacy-приложение не включалось в продуктовую архитектуру и не изменялось.
 Исключение в исходном коде: только три одобренных пути чтения в docs/architecture/validate_artifacts.py.
@@ -464,3 +464,94 @@ tests/README.md	docs/service/verification.md	ab0b5440c06c3d4615b4c13e11e5473a1a1
 315 не-MD blob идентичны исходному Git-срезу; исключения: 3 пути validator + 39 MD destinations в двух BRANCH JSON.
 Полный свежий прогон: 24/24, Python 423, UI 91, browser 11, orchestration 12; npm audit 0.
 Логи: var/verification/docs-unified-20261101/results.json. Рабочая БД и legacy не изменялись.
+
+ПОВТОРНАЯ СВЕРКА — 01.11.2026
+Исходные Markdown: c23ceeb — 68, 720a8dd — 50; объединение путей — 95.
+Ранее 50-путевая матрица не учитывала полностью материал до первой консолидации.
+Восстановлены: ответственность 7 участников и передача контрактов; все P0-01…P0-23 с текущими границами;
+allowedActions, формат answers, отсутствие доказанной хронологии/ограничения фактического старта, точные флаги просрочки;
+сохранённые RF-метрики/семантика late ratio, CLI обучения, ленивый CLIP/отсутствие warmup, привязки BE02–BE05.
+Разработка/интеграция теперь в одном docs/service/development.md; блок удалён из runtime.md.
+Убраны повторные описания ошибок HTTP, физической модели, исходной нормы Excel и старые самоссылки.
+Проверка данных: в ОБОИХ исходных срезах все 310 полей совпадают с model_catalog по таблице, имени, типу, nullable, default и description;
+261 уникальное описание (прежнее число 264 исправлено), 35 таблиц и 72 FK сохранены.
+Текущая структура: 20 MD; исторические результаты 24/24 в verification сохранены как предыдущий запуск, не новый прогон.
+Не восстанавливались как действующие: старые API-нет/IN PROGRESS/PLANNED-статусы и дедлайны,
+условный Docker/warmup/ресурсный бюджет, старые имена признаков, clamp-политика AI и утверждение статистической значимости CLIP.
+FX26-ML01…ML08: вход/target; RF; JSON/client; выбор CV; фото-сервис; интеграция; качество; стабилизация.
+Их старые сроки/статусы из PROGRESS не определяют текущий YouGile; функциональные границы и незакрытые требования отражены в ML/PLAN/P0.
+Источник c23ceeb:docs/architecture/repository_audit.md описывал другой архивный сметный проект; он не стал архитектурой ТО.
+
+ДОПОЛНИТЕЛЬНАЯ МАТРИЦА: путь c23ceeb | актуальный раздел | SHA256 исходного Git-содержимого
+README.md	docs/INDEX.md	2ae08e77fa9eba8c60a59aceabce4e903bbe018813e2bc85ab204d4748d03ce7
+backend/README.md	docs/service/backend.md	a3233fdcc6065431b691669165cd5a5959e8e568549aa5c51c62fda8037353b3
+backend/tests/ROLES_CONTRACTS_PROTOCOL.md	docs/service/verification.md	03b9e24c0ab84dfb6873851838e05c0bc2ec6566e8a43e8c44b0c1a5e8e58c30
+database/README.md	docs/service/database.md	f98b2c1f67ec302b9d5e305a8f837da7c151c3b87a493b2efce6095a60152595
+database/demo/README.md	docs/service/database.md	51e9517c29252ac15074c22ba736a059159d9fef657387f4e79aa5343f7c9b50
+database/qa/README.md	docs/service/verification.md	724dd70d971dc2cc7112915a1d545b4feeb741355ad4be5ff306acf3cdf7f6e1
+docs/BRANCH_INTEGRATION_GUIDE.md	docs/service/development.md	133f2b3b5eee86c47671b1791a8ea1ae4e47d880b217723aeed303f65aa04716
+docs/DEV_INTEGRATION_REPORT.md	docs/service/development.md;docs/service/verification.md	b6326fed1a811175102c6de3e92bd7ba923c5c54bb16a416387527943c9a6993
+docs/INTEGRATION_COMPONENT_MAP.md	docs/service/development.md	9e8ac4e174fef6342072fddf2ea0566be0a241a1a5dd0f6a83ba1598f5188333
+docs/ROLE_WORKFLOW_AUDIT.md	docs/service/backend.md;docs/service/web.md	60b4b6ee2543a63aec19766750031117dd382c13232d091f36d348b3619cd0da
+docs/SYSTEM_OVERVIEW.md	docs/ARCHITECTURE.md;docs/service/INDEX.md	811ebdc992fd9d8f28b59a48b1a904d1411a93a579ffeac45baf5093f80b7bd1
+docs/WORKFORCE_PLANNING.md	docs/service/web.md	060827a95d156df3ad69b32d8c47ca9523164b0caee923500fbb0185470a7cc9
+docs/YOUGILE_TASK_CORRECTIONS.md	docs/PLAN.md	06eeeea7ad151778764942d7b26bea143d7342285620a699a28a3a70baeeefd7
+docs/algorithms/assignment_persistence.md	docs/service/planning.md	1458f734e4714b9a663227c92deaa6ec4067b279075d0335072e75c3cf90cfdd
+docs/algorithms/assignment_rules.md	docs/service/planning.md	3a1816fa43dc2a192fc0a5fd320e536d0c2016715dd96c715dff690ca5ef1319
+docs/algorithms/orchestration_rules.md	docs/service/planning.md	a8dfaf2967cdbb57cdb7155ba1d9d6d972bc566329d8fc7eb1284fd0baced22d
+docs/algorithms/scheduling_rules.md	docs/service/planning.md	13cbe836d79491b98bcf7654bdeb0658a20e5fa503b0271c8dd6eaf347a8451f
+docs/architecture/README.md	docs/INDEX.md	b020287f80564fd71a2ac767a0947b2d271bd44e4ef50c104b6ea2faf6d3b782
+docs/architecture/api_contracts.md	docs/service/backend.md	e596d400d8de52909c92539767530ee98b4391a8ae88a1af7b84876c9e7ef75d
+docs/architecture/architecture_validation.md	docs/service/verification.md	b12b36b8a1f693e9e1661063c2014178ad503d101312fd3c04f4c6a100a66fc8
+docs/architecture/customer_schedule_analysis.md	docs/ARCHITECTURE.md	e759570d87cfc52be31dfdcde0670596adacbb0c0581b51a033bc264637a4469
+docs/architecture/data_model_draft.md	docs/service/database.md	7a6f20e33750bfcc012f72cdbd40fd14cd822850990511f5423bce1abd2edf28
+docs/architecture/dto_db_mapping.md	docs/service/database.md	a12ba451c83689b9a7386aaa7739d8851dffcc57a05816320834af245aadc5d5
+docs/architecture/fx26-be01-implementation.md	docs/service/backend.md	69e97b9180ef8ecbb2ab34c205bd51a9c3fc70a7ba3834b83eaa67b6c1aa4977
+docs/architecture/prototype_scope.md	docs/ARCHITECTURE.md;docs/PLAN.md	481a94500ece6b14838916e9c6af6697e3fc69bacc7f1d792784aad1896fd9f3
+docs/architecture/repository_audit.md	AGENTS.md;docs/service/development.md	6735c79d4611199a56904d0d4f38c61d79c062608abda3a7aa7c7f40d3ce8c8b
+docs/architecture/system_architecture.md	docs/ARCHITECTURE.md;docs/service/planning.md	656e96d6ff2b33570eafb7dd8e380734698548339898401831b3913fa5c6a977
+docs/architecture/team_responsibilities.md	docs/service/development.md	078176ee729a456ba120ba12d52358a12e1ce3f9fe7174315aaede6b67c53cef
+docs/architecture/tech_stack.md	docs/service/runtime.md	01fcc2ed3132ddab5128d18c28186551c98d550ee2bc7b080435d35dddeb138a
+docs/branches/README.md	docs/service/development.md	f72a184ff9f43a77f4069c930089cb5fb0c6cbf74e08a970f9a55f173940718b
+docs/branches/archive--legacy-ai-estimator.md	AGENTS.md	ba9bdae7de9f049cc9723e007980367bc1dc827bed2283c3a9e53a3887d68206
+docs/branches/docs--tests-p0.md	docs/service/development.md	df9971dc6fa5c6eceb26630bd5b8ce049eb6b0e3472c67d9d488df2c8313a56c
+docs/branches/feat--ml-forecasting-photo-review.md	docs/service/development.md	0024da8ae3023ef081093434661dc3a3b8452e31ac755aee70eeede7de9d8fbb
+docs/branches/front--mvidy.md	docs/service/development.md	80b2c5362ffb47fec80a8ebf70b685d526cbcda94d56df959381228d34c72a1d
+docs/branches/kran_dev.md	docs/service/development.md	2e0ceb9432fd5704d146af6568b6078a1d00b9d6f4c1e9f39b75b185b0769bed
+docs/branches/main.md	docs/service/development.md	ce66a54fb0b2e5e6ac8d2f0bb7e8015807b329d5485c6ca47cc0a9d87a724440
+docs/branches/new_backend.md	docs/service/development.md	6142b20315e1862d9c30c6f185e58ef9d42329e585c9f413783ca16dbdd153c2
+docs/branches/qa--roles-contracts.md	docs/service/development.md	3274aa45bd7f110bb04953f821c2a7de703359624391646cb9c1cffb338468f0
+docs/database/README.md	docs/service/database.md	cdf041db7eacdfec2b6f7d489f3246359fbd1e0c0240ec6e8c00daecc7745501
+docs/database/orm_ddl_validation.md	docs/service/database.md	5a6b44eb7c6242b0d6512202771a0faa5aebad48dd9e756033ad7d954c4f420b
+docs/database/relationships.md	docs/service/database.md	80099e337a63f362667ba43e208c23f70ee1c1c0c3283888b667008119763ace
+docs/database/specification.md	docs/service/database.md	4e4668c57c618e3e0cf93bbed373d6943ba0493f2e74293e69ee48b78e5eda44
+docs/database/tl03_target.md	docs/service/database.md	a026840152d0e99abff8b98a844c1a1cd6574af9c0bfdb205ed1dde5022c8a75
+docs/domain/README.md	docs/ARCHITECTURE.md	5dcdfcfcfe47eb084efc554d61429dd0713652bbd755fcd322c0861fdf698914
+docs/domain/data_dictionary.md	docs/service/database.md	a1e114bb75d2194b1901ff87c46b8d1d577933c289c1c931d7d31fee38432a5d
+docs/domain/expected_schedule.md	docs/service/planning.md	39d310a2c7481e9be3500fdca996cbed3327c2167d4308308331049aba247ae1
+docs/domain/pilot_regulations.md	docs/ARCHITECTURE.md;docs/service/planning.md	3bb79e73580276f5f51159f9fb8af0780c688e92e74af5e47794010c9c35ff7b
+docs/domain/user_flows.md	docs/service/web.md	37d22bcd25ca93919390a2b310f9b88a110e6e1d35c25cd3ef9471dd1cb83838
+docs/ml/data_contract.md	docs/service/ml.md	c7915d81cbf2b514f5e0827ec58f24f8b574700a7fd3607138497c2b6ac80190
+docs/ml/inspection_capabilities.md	docs/service/ml.md	128a84a7e24ceba210b186ba01d1c5d08d773244886a0e14d0a55c225d34372c
+docs/ml/integration_validation.md	docs/service/verification.md	06a58dc28c496d3bd981c34318703ab183dcc0b8cd9e3fb3d73be01dbe1de45a
+docs/ml/mr_draft.md	docs/service/development.md	64573d18804b3aaf3ae23bf3cb9df075bbc1987abc157f1618222bcad493a367
+docs/ui/screen-map.md	docs/service/web.md	7f6229740da225dc1f83a2c2dd4c90d7885cfca0fbbb874b52cf2170b0edb311
+docs/ui/ui-kit.md	docs/service/web.md	c7cf72d0e89f1768cf0840c82820a994ea6b3ca30b157aebd5429b54a3fb0234
+docs/verification/2026-10-31-cv/README.md	docs/service/verification.md	fdccf0bd229d0a2c68203c5321af3b93259c73cd7323f039b787dcc20d3c05fe
+docs/verification/2026-10-31/README.md	docs/service/verification.md	9433f8839b3bc9f59d1181a35f12c5bd4a11b3bfddb3bf94619705eaf1787bf7
+frontend/README.md	docs/service/web.md	120f31a36d61dbb6bc5103f263449fcc2883856ea616aaef45953c327095595f
+ml_service/AGENTS.md	docs/service/ml.md;docs/service/development.md	ba209d468e59f8ef4b3a347194367450328b466bf6b70224382f5e621da6014a
+ml_service/ARCHITECTURE.md	docs/service/ml.md	f7ebbfc2d75b7a78c40211cd8489a7714e4821b4efcc881c29b3eccbc3e26545
+ml_service/DECISIONS.md	docs/decisions/INDEX.md	3af5771ebb300e2a1ac6bb29479385a751275f01ed1f78d71138379e60ad9850
+ml_service/PROGRESS.md	docs/service/ml.md;docs/PLAN.md	011bcc0434ad8f13988749def244c106d02cfbc5e5a31a45175a821cc322e3fa
+ml_service/SKILLS.md	docs/service/ml.md	e83ccb1743a1825ba6f0b7c7ba6ffd1655f4a681e799b3c8cd36a2fc34a09928
+reports/flexible_planning_verification.md	docs/service/verification.md	0efd67a3d0ffe63d1a3e1c84ce9611b73b0247a4ad620bb38e0b547cc914199b
+reports/orchestration_resilience.md	docs/service/verification.md	9064a03a38884ed0d62187dd6eb929691ed516379bf0c5146660891484f46dcc
+reports/planning_verification.md	docs/service/verification.md	9c6a8047b3cde7957b15a797084a11531d4993318da1789b946025acd67499ef
+reports/prediction_comparison.md	docs/service/verification.md	5c8fab8671fb263ea1baca221ae6b314a0a934e075860a850a1277d4462dd1fb
+tests/README.md	docs/service/verification.md	8e45059d544cc103468ebccd693693f7eb4ad90849471aa6e987d3717d6aca5c
+tests/p0_scenarios.md	docs/service/verification.md	d38674557cdf9b824c29cb56b9cf291145d1f41a72ffffaba70e89a35f4f6835
+
+Итог повторной проверки: 20 канонических MD; все 316 защищённых не-MD blob без изменений относительно 6eb86bd.
+В двух существующих BRANCH JSON изменены только 12 ссылки runtime.md → development.md; source SHA/blob/source_path неизменны.
+Общее повторяющееся пояснение пяти ADR перенесено в docs/decisions/INDEX.md; в записях остались ссылки.
