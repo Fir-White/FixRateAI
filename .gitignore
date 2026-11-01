@@ -37,3 +37,9 @@ coverage/
 /test-results/
 /frontend/test-results/
 /frontend/playwright-report/
+
+# Local AI tooling and isolated worktrees
+/.opencode/
+/.codex/
+/.agents/
+/.worktrees/

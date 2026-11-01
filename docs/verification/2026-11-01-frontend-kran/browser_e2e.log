@@ -1,0 +1,28 @@
+Attempt 1
+
+> fixrate-ai-frontend@0.1.0 test:e2e
+> playwright test
+
+
+Running 16 tests using 1 worker
+
+(node:25308) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 e2e\assignment.spec.ts:10:1 › dispatcher selects a complete crew from real availability and load without saving an assignment (4.4s)
+  ok  2 e2e\assignment.spec.ts:67:1 › dispatcher confirms a proposal and sees persisted crew and interval after reload (2.4s)
+  ok  3 e2e\calendar.spec.ts:4:1 › calendar preview reads persisted rules, explains missing inputs and switches months (2.4s)
+  ok  4 e2e\login.spec.ts:25:1 › responsive login composition and original logo (5.3s)
+  ok  5 e2e\login.spec.ts:57:1 › independent light motion, static logo, pause continuity, reduced motion and touch fallback (9.0s)
+  ok  6 e2e\login.spec.ts:126:1 › ribbons retain separate static geometry; particles exclude the fully opaque protected brand (4.1s)
+  ok  7 e2e\login.spec.ts:169:1 › retains object selection when the server requires a site ID (919ms)
+  ok  8 e2e\login.spec.ts:187:1 › keyboard access, errors, pending state, password visibility and login return route (1.5s)
+  ok  9 e2e\maintenance.spec.ts:16:1 › real SPA → API → PostgreSQL → photos → ML guardrails → engineer acceptance (7.2s)
+  ok 10 e2e\planning.spec.ts:9:1 › calendar → two forecasts → single task → confirmed crew → persisted reload (3.1s)
+  ok 11 e2e\roles.spec.ts:18:3 › real admin session: screens, navigation and logout (4.0s)
+  ok 12 e2e\roles.spec.ts:18:3 › real dispatcher session: screens, navigation and logout (4.4s)
+  ok 13 e2e\roles.spec.ts:18:3 › real engineer session: screens, navigation and logout (4.2s)
+  ok 14 e2e\roles.spec.ts:18:3 › real executor session: screens, navigation and logout (3.8s)
+  ok 15 e2e\settings.spec.ts:3:1 › web registration → role → shift/qualification/crew → equipment/service → confirmed work (12.4s)
+  ok 16 e2e\settings.spec.ts:109:1 › shared web calendar previews ISO week 53, real quarters and constrained annual counts without writing work (3.1s)
+
+  16 passed (1.3m)

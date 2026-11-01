@@ -1290,5 +1290,156 @@
         "disposition": "retained_or_adapted"
       }
     ]
+  },
+  {
+    "branch": "feature/frontend-kran",
+    "source_sha": "29484582c649ecd94771204466be39fc14b13f16",
+    "comparison_base": "720a8dd9c3d4e4e8051485e8f438a8b40c3cb631",
+    "frontend_change_base": "306f7fa98f2e33fa16b8e76fa0af1b520d3bb7d0",
+    "files": [
+      {
+        "source_path": ".gitignore",
+        "dev_path": ".gitignore",
+        "source_blob": "87b83ef89193fcc52b0fcae72c74c5b430d42d7d",
+        "source_change": "M",
+        "disposition": "adapted_local_tooling_rules",
+        "reason": "Four local-tool directories ignored; AGENTS.md and documentation ignore rules excluded."
+      },
+      {
+        "source_path": "AGENTS.md",
+        "dev_path": "AGENTS.md",
+        "source_blob": null,
+        "source_change": "D",
+        "disposition": "retained_dev_instructions",
+        "reason": "Source deletion excluded; tracked canonical project instructions remain in dev."
+      },
+      {
+        "source_path": "docs/database/orm_ddl_validation.md",
+        "dev_path": "docs/service/database.md",
+        "source_blob": "83ba19fb3b5067ec37e6552109c11136afaa4e87",
+        "source_change": "A",
+        "disposition": "already_accounted_canonical_documentation",
+        "reason": "Inherited kran_dev document; existing unified documentation retained instead of restoring old Markdown."
+      },
+      {
+        "source_path": "docs/database/tl03_target.md",
+        "dev_path": "docs/service/database.md",
+        "source_blob": "8649f5cba07f99fe57ad6e8acb46ac5679b09b50",
+        "source_change": "A",
+        "disposition": "already_accounted_canonical_documentation",
+        "reason": "Inherited kran_dev document; existing unified documentation retained instead of restoring old Markdown."
+      },
+      {
+        "source_path": "frontend/e2e/login.spec.ts",
+        "dev_path": "frontend/e2e/login.spec.ts",
+        "source_blob": "6c17ed94a8481c0e48c7c6baaebdeb5232e8b6df",
+        "source_change": "A",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "frontend/e2e/roles.spec.ts",
+        "dev_path": "frontend/e2e/roles.spec.ts",
+        "source_blob": "0e412391ceae1fc493b61a9270172da9a18136a7",
+        "source_change": "M",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "frontend/src/assets/fixrate-mark.svg",
+        "dev_path": "frontend/src/assets/fixrate-mark.svg",
+        "source_blob": "2b3a6dcff5bbd29deef3397c9bcc3d47fc790cd5",
+        "source_change": "A",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "frontend/src/assets/fixrate-wordmark.svg",
+        "dev_path": "frontend/src/assets/fixrate-wordmark.svg",
+        "source_blob": "2b97e881bfa50f22ce0ac200cb305bb36837ff30",
+        "source_change": "A",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuroraScene.tsx",
+        "dev_path": "frontend/src/features/auth/AuroraScene.tsx",
+        "source_blob": "96a335fc6edb232d29f0907c706bb255b27da91e",
+        "source_change": "A",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "frontend/src/features/auth/ribbonGeometry.test.ts",
+        "dev_path": "frontend/src/features/auth/ribbonGeometry.test.ts",
+        "source_blob": "939b36d977cd830dba8e2cfffe35d53a35d6e13e",
+        "source_change": "A",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "frontend/src/features/auth/ribbonGeometry.ts",
+        "dev_path": "frontend/src/features/auth/ribbonGeometry.ts",
+        "source_blob": "476ff964f18d01a5245d75a28ef73692142351c3",
+        "source_change": "A",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useAuroraMotion.test.tsx",
+        "dev_path": "frontend/src/features/auth/useAuroraMotion.test.tsx",
+        "source_blob": "3856be681d32d72a518f7bd5731e1e02ca40e70b",
+        "source_change": "A",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useAuroraMotion.ts",
+        "dev_path": "frontend/src/features/auth/useAuroraMotion.ts",
+        "source_blob": "4f61755ff3d4d97905e1e6091dc13f854ef7c4ac",
+        "source_change": "A",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "frontend/src/pages/LoginPage.css",
+        "dev_path": "frontend/src/pages/LoginPage.css",
+        "source_blob": "93f9ad8747b486bf5ecb5b89ffa8161d82a3a0c8",
+        "source_change": "A",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "frontend/src/pages/LoginPage.test.tsx",
+        "dev_path": "frontend/src/pages/LoginPage.test.tsx",
+        "source_blob": "c9c2d7e5d7159aa79a947bb9d270dcca7ee1373b",
+        "source_change": "A",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "frontend/src/pages/LoginPage.tsx",
+        "dev_path": "frontend/src/pages/LoginPage.tsx",
+        "source_blob": "e60ecf4fa6b94352d47c176715e11b147536ccad",
+        "source_change": "M",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "images/image.png",
+        "dev_path": "images/image.png",
+        "source_blob": "b52f1b82f6608ecf4c3a01d0fa664b70354dd115",
+        "source_change": "A",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "images/login-aurora-flow-2026-11-01.png",
+        "dev_path": "images/login-aurora-flow-2026-11-01.png",
+        "source_blob": "00dec6484bc5601130c54293db44f17bb0a0580a",
+        "source_change": "A",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "new_file",
+        "dev_path": null,
+        "source_blob": "2e65efe2a145dda7ee51d1741299f848e5bf752e",
+        "source_change": "A",
+        "disposition": "excluded_nonfunctional_placeholder"
+      }
+    ],
+    "dev_adaptations": [
+      {
+        "dev_path": "frontend/e2e/settings.spec.ts",
+        "reason": "Use the visible registration link name from the imported LoginPage."
+      }
+    ]
   }
 ]

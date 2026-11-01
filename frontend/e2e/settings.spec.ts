@@ -26,7 +26,7 @@ test("web registration → role → shift/qualification/crew → equipment/servi
   await createCode.click();
   const code=(await page.locator("code").innerText()).trim();
   await logout();
-  await page.getByRole("link",{name:"Регистрация сотрудника",exact:true}).click();
+  await page.getByRole("link",{name:"Регистрация",exact:true}).click();
   await page.getByLabel("Имя и фамилия",{exact:true}).fill(workerName);
   await page.getByLabel("Email",{exact:true}).fill(workerEmail);
   await page.getByLabel("Пароль",{exact:true}).fill(password);

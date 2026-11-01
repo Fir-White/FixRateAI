@@ -1,0 +1,3 @@
+Attempt 1
+OK: 27 JSON examples; 3 comparison sets; 10 negative checks; schema matches; 171 local links; 18 diagram edges; S01..S15 present.
+This validates design artifacts only; application/API/DB/ML integration was not run.

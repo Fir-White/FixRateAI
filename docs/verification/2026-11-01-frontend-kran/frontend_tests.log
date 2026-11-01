@@ -1,0 +1,14 @@
+Attempt 1
+
+> fixrate-ai-frontend@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.12 D:/Project/FixRateAI/frontend
+
+
+ Test Files  12 passed (12)
+      Tests  102 passed (102)
+   Start at  18:06:06
+   Duration  18.02s (transform 5.08s, setup 15.00s, import 9.83s, tests 26.20s, environment 38.30s)
+

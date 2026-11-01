@@ -72,6 +72,42 @@
       "fully_accounted_source_sha": "f3730e86e5794d45c5fb154b194ce75a9ff9c522"
     },
     {
+      "branch": "feature/frontend-kran",
+      "sha": "29484582c649ecd94771204466be39fc14b13f16",
+      "reviewed_sha": "29484582c649ecd94771204466be39fc14b13f16",
+      "status": "integrated",
+      "document": "docs/service/development.md",
+      "comparison_base": "720a8dd9c3d4e4e8051485e8f438a8b40c3cb631",
+      "frontend_change_base": "306f7fa98f2e33fa16b8e76fa0af1b520d3bb7d0",
+      "inherited_accounted_sources": [
+        {
+          "branch": "kran_dev",
+          "sha": "c31570eaf970d6c6d3398995b58cf7173e89d183"
+        },
+        {
+          "branch": "dev",
+          "sha": "720a8dd9c3d4e4e8051485e8f438a8b40c3cb631"
+        }
+      ],
+      "not_included": [
+        "Source deletion and ignore rule for AGENTS.md: current tracked dev instructions retained",
+        "Ignore rules for docs/ui/design-brief.md and docs/ui/login-refinement-plan.md: canonical documentation remains visible",
+        "Historical docs/database/orm_ddl_validation.md and tl03_target.md: already accounted kran_dev material kept in canonical service documents",
+        "Nonfunctional new_file placeholder (a)"
+      ],
+      "adaptations": [
+        "frontend/e2e/settings.spec.ts: registration link locator updated to the new visible label; source frontend implementation preserved"
+      ],
+      "pending_paths": [],
+      "verification": "docs/verification/2026-11-01-frontend-kran/results.json",
+      "validation_limits": [
+        "New login E2E use mocked API; real sessions/RBAC and application workflows are checked by existing browser scenarios",
+        "No new customer ML accuracy or real CLIP inference claim; separate model profile not repeated",
+        "Behavior and artifacts accounted without merging source Git history or restoring obsolete documentation"
+      ],
+      "fully_accounted_source_sha": "29484582c649ecd94771204466be39fc14b13f16"
+    },
+    {
       "branch": "archive/legacy-ai-estimator",
       "sha": "c530bb869896160c231db2ce516c62cffbe329ae",
       "status": "excluded_by_request",
