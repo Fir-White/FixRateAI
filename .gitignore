@@ -1,62 +1,68 @@
-# Python
+# Python and local environments
 __pycache__/
 *.py[cod]
-*.pyo
 .Python
 .venv/
 venv/
 env/
 ENV/
 
-# Test and type-check caches
+# Tests, caches and build output
 .pytest_cache/
 .mypy_cache/
 .pyright/
+.ruff_cache/
+.cache/
+.vite/
 .coverage
+.coverage.*
 htmlcov/
-
-# Local environment and secrets
-.env
-.env.*
-!.env.example
-
-# Build and editor output
+coverage/
 build/
 dist/
 *.egg-info/
-.vscode/
-!.vscode/extensions.json
-
-# Frontend
-node_modules/
-coverage/
 *.tsbuildinfo
+node_modules/
+test-results/
+playwright-report/
 
-# Local runtime files and verification output
+# Local settings and secrets
+.env
+.env.*
+*.env
+*.env.*
+!/.env.example
+
+# Runtime data, logs and generated reports
 /var/
-/test-results/
-/frontend/test-results/
-/frontend/playwright-report/
-
-# New verification runs are local; only selected historical evidence is versioned.
-/logs/**
-!/logs/verification/
-!/logs/verification/archive/
-!/logs/verification/archive/**
-!/logs/sql/
-!/logs/sql/archive/
-!/logs/sql/archive/**
+/logs/
+*.log
+*.log.*
+*.pid
+*.dump
+*.backup
+*.sql.gz
 /reports/**
-!/reports/audits/
-!/reports/audits/REVIEWED_FILES.txt
-!/reports/verification/
-!/reports/verification/archive/
-!/reports/verification/archive/**
 !/reports/ml/
 !/reports/ml/archive/
-!/reports/ml/archive/**
+!/reports/ml/archive/clip_experiment.json
+!/reports/ml/archive/clip_default_experiment.json
+!/reports/ml/archive/clip_service_experiment.json
 
-# Local AI tooling and isolated worktrees
+# Editor and OS files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.bak
+*.tmp
+*.swp
+*.swo
+*~
+
+# Local tooling and worktrees
 /.opencode/
 /.codex/
 /.agents/

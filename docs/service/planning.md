@@ -98,7 +98,6 @@ yearly_count сначала строит упорядоченное множес
 Основание: [архитектура, «Назначение исполнителей»](../ARCHITECTURE.md),
 канонические DTO `maintenance-0.1` в `backend/app/schemas/maintenance.py` и
 существующие таблицы работников, допусков, доступности и назначений.
-Архив и legacy относятся к другому продукту и в реализации не используются.
 
 ### Что получает алгоритм
 
@@ -233,7 +232,7 @@ assignment-preview дополнительно принимает executor_ids (�
 ### Сохранение BE05
 
 Реализация: `backend/app/integration/assignments.py`. Требуется миграция
-`006_crew_assignment.sql` поверх 001–005. Legacy и архив другого проекта не используются.
+`006_crew_assignment.sql` поверх 001–005.
 Предварительный подбор описан в [правилах ALG03](#правила-отбора).
 
 ### HTTP-контракт
@@ -375,7 +374,7 @@ POST tasks/{id}/cancel доступен диспетчеру для draft/clarif
 
 Версии: `calendar-rules-v2`, `maintenance-orchestrator-v1`, 01.11.2026.
 Модули: `backend/app/orchestrator/`, `backend/app/integration/forecasting.py`,
-`planning.py`. Legacy другого продукта не используется.
+`planning.py`.
 
 ### Независимые прогнозы и решение
 

@@ -222,9 +222,9 @@ $env:PYTHONPATH = "backend;."
 
 Полная новая установка содержит 41 таблицу с учётом сессий и реестра миграций. ORM отражает 35 базовых и четыре доступных расширения (`planning_runs`, смены, код, заявки); сессии и реестр обслуживаются явным SQL.
 
-## Поля, ключи и ER без второго справочника
+## Поля, ключи и ER
 
-[Машинный каталог](../../database/schema/model_catalog.json) сохраняет все 310 полей базовой модели с типами, nullable/default, описаниями, PK/UNIQUE/CHECK/индексами и 72 FK. Все уникальные описания полей прежней Markdown-спецификации присутствуют в этом каталоге. Для точной схемы текущей версии читать [миграции 001–008](../../database/migrations): каталог и [ER draw.io](../assets/database/erd.drawio)/[SVG](../assets/database/erd.svg) описывают базовую версию 0.9 и не переэкспортировались как актуальная схема 008. [Экспорт SVG](../../scripts/export_erd.py) работает с исходным draw.io.
+[Машинный каталог](../../database/schema/model_catalog.json) сохраняет все 310 полей базовой модели с типами, nullable/default, описаниями, PK/UNIQUE/CHECK/индексами и 72 FK. Для точной схемы текущей версии читать [миграции 001–008](../../database/migrations): каталог и [ER draw.io](../assets/database/erd.drawio)/[SVG](../assets/database/erd.svg) описывают базовую версию 0.9 и не переэкспортировались как актуальная схема 008. [Экспорт SVG](../../scripts/export_erd.py) работает с исходным draw.io.
 
 Основные цепочки: Site → EngineeringSystem → Equipment; OperationTemplate → MaintenanceRule → RuleEquipment; SchedulePlan → ScheduleEntry → WorkOrder; WorkAssignment → WorkReport → ChecklistResult/EvidenceFile → AcceptanceReview. ForecastRun хранит каждый из двух методов, OrchestrationDecision ссылается на оба. AIQualityCheck относится к конкретной попытке отчёта; решение инженера хранится отдельно.
 

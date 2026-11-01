@@ -1225,9 +1225,9 @@
       },
       {
         "source_path": "db/tests/run_2026-10-30.log",
-        "dev_path": "logs/sql/archive/run_2026-10-30.log",
+        "dev_path": "docs/service/verification.md",
         "source_blob": "edf600db424e06a16374293bb7499ee30b1612c3",
-        "disposition": "retained_or_adapted"
+        "disposition": "sql_qa_result_summarized"
       },
       {
         "source_path": "db/tests/run_schema_test.ps1",

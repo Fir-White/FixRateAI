@@ -1,6 +1,0 @@
-Attempt 1
-forecast_provider_rejected run=6201c734-53c3-419d-b936-0d284744408b snapshot=e02eab0b-cde6-49fc-b925-5950c41c72b9 code=INVALID_AI_JSON
-forecast_provider_rejected run=6cb10380-f996-45ed-8a31-2c9e0006b127 snapshot=dfba250f-ba5a-4302-936b-a3a18c21971b code=PROVIDER_ERROR
-forecast_provider_rejected run=d6495f6c-2320-41f4-9547-dd4ab2abcda6 snapshot=9873f932-8466-4c05-84fc-ca28f7eeda6b code=AI_SNAPSHOT_MISMATCH
-forecast_provider_rejected run=78d22605-094e-42dd-87c7-eddb0397d07e snapshot=037f6991-557d-4792-8c92-79af6c6e8271 code=TIMEOUT
-12 orchestration scenarios passed; reports: D:\Project\FixRateAI\var\verification\frontend-kran-integrated-20261101\orchestration
