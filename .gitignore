@@ -55,7 +55,6 @@ coverage/
 !/reports/ml/
 !/reports/ml/archive/
 !/reports/ml/archive/**
-/config/local/
 
 # Local AI tooling and isolated worktrees
 /.opencode/

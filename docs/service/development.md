@@ -10,7 +10,8 @@
 backend/                    backend и его компонентные тесты
 frontend/                   SPA, её конфиги, UI unit и browser E2E
 ml_service/                 ML/CV и его компонентные тесты
-config/.env.example         общий шаблон; настоящий .env остаётся локальным в корне
+.env.example                шаблон; настоящий .env остаётся локальным в корне
+requirements.txt            единственный список Python-зависимостей backend/ML/CV/тестов
 contracts/                  экспорт JSON Schema и примеры DTO/API
 database/migrations/        неизменяемая применённая SQL-цепочка
 database/seeds/             исходный явный seed SQL
@@ -32,9 +33,9 @@ var/                        локальная БД, env/PID, фото и privat
 
 SQL migrations/seed, Excel, модель и изображения сохраняют исходное содержимое. BRANCH-реестры меняют только текущие destinations; source SHA/blob/source_path сохраняются. [TXT охвата и точная карта переносов](../../reports/audits/REVIEWED_FILES.txt) — снимок проверки, не отдельное описание архитектуры.
 
-Компонентные тесты и конфиги остаются рядом со своим компонентом: `backend/tests`, `ml_service/tests`, `frontend/src`, `frontend/e2e`. Общие входы хранятся в `tests/fixtures`, SQL-проверки — в `tests/sql`. Настройки frontend, package/lock-файлы, pytest и реальные env-файлы не перемещаются. В MLConfig изменён только путь артефактов; самостоятельная система конфигурации не добавлялась.
+Компонентные тесты и конфиги остаются рядом со своим компонентом: `backend/tests`, `ml_service/tests`, `frontend/src`, `frontend/e2e`. Общие входы хранятся в `tests/fixtures`, SQL-проверки — в `tests/sql`. Настройки frontend, package.json/package-lock.json, pytest и реальные env-файлы остаются на своих местах. Python-зависимости всех компонентов и тестов поддерживаются только в корневом requirements.txt; прежние шесть вспомогательных manifests удалены. Папка config удалена: общий шаблон .env.example возвращён в корень, откуда копируется в .env. В MLConfig изменён только путь артефактов; самостоятельная система конфигурации не добавлялась.
 
-Рабочий кластер `var/local-demo/postgres`, локальные env/секреты/PID и `PHOTO_STORAGE_ROOT` остаются на месте. СУБД управляет внутренними файлами кластера; нормализация не останавливает и не переносит PostgreSQL. Исторические deployment dumps находятся в `var/backups`, локальные материалы deployment/review — в соответствующих `reports/*/local-history`. HF cache остаётся внешним/локальным ресурсом окружения. Два открытых потока `var/local-demo/postgres.start.stdout.log` и `postgres.start.stderr.log` удерживаются работающей СУБД; Windows отказала в их перемещении. Они сохраняются до штатного обслуживания PostgreSQL. Остальные закрытые журналы runtime перенесены в logs/runtime/archive; новая API-сессия пишет в logs/runtime/live-api-normalized.
+Изменяемое состояние var сохраняет своё рабочее расположение. [Состав var, назначение файлов и исключения для открытых журналов PostgreSQL](runtime.md#что-хранится-в-var) описаны в runtime; HF cache остаётся локальным ресурсом окружения.
 
 Добавляя файл, выбирайте существующую категорию. Пример DTO относится к contracts, тестовый вход — к fixtures, результат измерения — к reports, журнал — к logs. Python-скрипт не размещается в docs; диаграмма с её редактируемым исходником и экспортом допустима в docs/assets. Повторные README, копии контрактов и пустые каталоги не создаются.
 

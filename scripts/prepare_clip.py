@@ -1,6 +1,6 @@
 """Explicitly prepare pinned CLIP weights; API requests themselves stay offline.
 
-Run only in an environment with ml_service/requirements-cv.txt installed.
+Run in an environment installed from the root requirements.txt.
 """
 from __future__ import annotations
 

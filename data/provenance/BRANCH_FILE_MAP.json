@@ -48,7 +48,7 @@
       },
       {
         "source_path": "backend/requirements.txt",
-        "dev_path": "backend/requirements.txt",
+        "dev_path": "requirements.txt",
         "source_blob": "7f8b7ab88b19f9628a95e0ceae00379d453d37f6",
         "disposition": "retained_or_adapted"
       },
@@ -235,7 +235,7 @@
       },
       {
         "source_path": "backend/app/core/config.py",
-        "dev_path": "config/.env.example",
+        "dev_path": ".env.example",
         "source_blob": "d1c0717d3f7abeef7c05f7bf754e26e3083942c5",
         "disposition": "single_existing_configuration_retained"
       },
@@ -367,13 +367,13 @@
       },
       {
         "source_path": "backend/pyproject.toml",
-        "dev_path": "requirements.lock.txt",
+        "dev_path": "requirements.txt",
         "source_blob": "1f352c96319c266c5ce7a8e61be0542c23cc860c",
         "disposition": "shared_locked_dependencies_retained_no_parallel_async_stack"
       },
       {
         "source_path": "backend/requirements.txt",
-        "dev_path": "requirements.lock.txt",
+        "dev_path": "requirements.txt",
         "source_blob": "4bc22ccb607c93eb7d71f288402f757d9ad90d1e",
         "disposition": "shared_locked_dependencies_retained_no_parallel_async_stack"
       },
@@ -983,13 +983,13 @@
       },
       {
         "source_path": "ml_service/requirements-cv.txt",
-        "dev_path": "ml_service/requirements-cv.txt",
+        "dev_path": "requirements.txt",
         "source_blob": "ddc2cd4e00045c19d9e76da7c122386762a83f31",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "ml_service/requirements.txt",
-        "dev_path": "ml_service/requirements.txt",
+        "dev_path": "requirements.txt",
         "source_blob": "5f1c436a5a7a469099232ebafb745e236c414694",
         "disposition": "retained_or_adapted"
       },
@@ -1141,7 +1141,7 @@
       },
       {
         "source_path": "backend/requirements.txt",
-        "dev_path": "backend/requirements.txt",
+        "dev_path": "requirements.txt",
         "source_blob": "7f8b7ab88b19f9628a95e0ceae00379d453d37f6",
         "disposition": "retained_or_adapted"
       },

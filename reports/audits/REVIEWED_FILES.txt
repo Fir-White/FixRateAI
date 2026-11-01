@@ -1951,3 +1951,19 @@ FINAL COMPLETION AUDIT
 No logs/code/data in docs, no log files in reports, no obsolete var/verification* or frontend/test-results output directories.
 All baseline resources accounted for; no old copies; all non-dev branch refs unchanged.
 Final working HTTP health/SPA JS bundle and all 41 read-only table hashes/PostgreSQL identity rechecked successfully.
+
+UNIFIED SETUP — 01.11.2026
+config/.env.example → .env.example (identical bytes); empty config removed.
+Seven Python manifests consolidated into requirements.txt; all 41 former base pins are identical within the 59-package full profile. No dependency versions changed.
+Old manifest | replacement | original SHA256
+requirements.txt	requirements.txt	3294bd385946dc61b747147de08486177b94ab78eb9db596b55b3588a3c0152c
+requirements-dev.txt	requirements.txt	bb4c2097052abd88c54391d42d44339317696257ff1a965f74c95436b6a0ac4d
+requirements.lock.txt	requirements.txt	017285415c39adf1e77c4fdab719ebe8668fc50fa518b81e3f7fac3022730312
+backend/requirements.txt	requirements.txt	c079b122dbee4a0368dee4d6d42a3b62e106d804a7551105e09a612a88744e34
+ml_service/requirements.txt	requirements.txt	8126f707f7da48ba04d4ada35503040de2a4e63b6f941fab567c5e48d5b8b0ef
+ml_service/requirements-cv.txt	requirements.txt	badf454007da55ad604eb81fe4541795e263bd361a21268ec369f51f2c7cc023
+ml_service/requirements-cv.lock.txt	requirements.txt	23d040d15aab6b7378d6b47788c2c89cc77d5f2f6e984fbef6726ad0498e5efb
+Current provenance destinations updated: 6 manifests plus 1 env template; source identities preserved.
+Unified requirements validated in the existing full CV environment: all 59 pinned packages match installed metadata, all active dependencies are listed; pip --dry-run --no-index and pip check passed. Logs: logs/setup/unified-requirements-20261101-210639. No dependency installation/upgrades performed.
+Full unified-profile verification verify-20261101-210950-4e59fd40: 24/24, Python 427, UI 102, browser 16, orchestration 12, audit 0. FIXRATE_REQUIRE_CLIP=1 with existing HF_HOME; real CLIP required by the HTTP check. No package updates or working database changes. Current startup/dependency/test/var documentation updated.
+Final layout audit: no empty authored directories; config absent; one requirements.txt. All 20 maintained documents reachable, 206 local links/anchors valid; repository links depend only on tracked files; S01-S15 and P0-01-P0-23 unique. Current report/backup/branch-map destinations and Playwright output description corrected, historical commands preserved. Canonical artifact validator passed (27 examples, 3 comparison sets, 10 negative cases, 18 diagram edges). Legacy, application behavior, SQL and component configs unchanged.
