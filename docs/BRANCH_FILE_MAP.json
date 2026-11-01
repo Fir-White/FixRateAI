@@ -6,7 +6,7 @@
     "files": [
       {
         "source_path": "backend/README.md",
-        "dev_path": "backend/README.md",
+        "dev_path": "docs/service/backend.md",
         "source_blob": "9664a094a60b8b80222bd2c1388767b343f7d602",
         "disposition": "retained_or_adapted"
       },
@@ -78,13 +78,13 @@
       },
       {
         "source_path": "database/README.md",
-        "dev_path": "database/README.md",
+        "dev_path": "docs/service/database.md",
         "source_blob": "ddffde157c28c0bb36b3fdd44e74719e56dcceea",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "database/demo/README.md",
-        "dev_path": "database/demo/README.md",
+        "dev_path": "docs/service/database.md",
         "source_blob": "5f7ed02d026bf527b9b3a3173badd58b0a2216de",
         "disposition": "retained_or_adapted"
       },
@@ -126,31 +126,31 @@
       },
       {
         "source_path": "docs/architecture/dto_db_mapping.md",
-        "dev_path": "docs/service/data.md",
+        "dev_path": "docs/service/database.md",
         "source_blob": "cdb6e98ee4c10e64c98b289b3c441cfe5c793425",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "docs/database/README.md",
-        "dev_path": "docs/database/INDEX.md",
+        "dev_path": "docs/service/database.md",
         "source_blob": "5bad7c9662541f27ea4f71ac0a73d2f7e5f31d8c",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "docs/database/orm_ddl_validation.md",
-        "dev_path": "docs/verification/integration.md",
+        "dev_path": "docs/service/verification.md",
         "source_blob": "83ba19fb3b5067ec37e6552109c11136afaa4e87",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "docs/database/specification.md",
-        "dev_path": "docs/database/specification.md",
+        "dev_path": "docs/service/database.md",
         "source_blob": "83545a0810ba67b07ea3d73f66df6171fe9f0229",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "docs/database/tl03_target.md",
-        "dev_path": "docs/service/data.md",
+        "dev_path": "docs/service/database.md",
         "source_blob": "8649f5cba07f99fe57ad6e8acb46ac5679b09b50",
         "disposition": "retained_or_adapted"
       },
@@ -175,19 +175,19 @@
       },
       {
         "source_path": "backend/DEVELOPMENT.md",
-        "dev_path": "docs/service/integration.md",
+        "dev_path": "docs/service/runtime.md",
         "source_blob": "dec3868f9cdb24896e557725e7c354e20678a77a",
         "disposition": "documentation_reconciled_with_current_runtime"
       },
       {
         "source_path": "backend/FX26-BE02-IMPLEMENTATION.md",
-        "dev_path": "docs/service/integration.md",
+        "dev_path": "docs/service/runtime.md",
         "source_blob": "eae9d92e66d22e00b004ae7d7154bc59bc6e60dd",
         "disposition": "documentation_reconciled_with_current_runtime"
       },
       {
         "source_path": "backend/README.md",
-        "dev_path": "docs/service/integration.md",
+        "dev_path": "docs/service/runtime.md",
         "source_blob": "4500a3c017f64769c082ab36f445d948bcfcff01",
         "disposition": "documentation_reconciled_with_current_runtime"
       },
@@ -361,7 +361,7 @@
       },
       {
         "source_path": "backend/docs/dto_db_alignment.md",
-        "dev_path": "docs/service/integration.md",
+        "dev_path": "docs/service/runtime.md",
         "source_blob": "74f9601a3cfae017ef0001c87b9cb0baaefbf7a5",
         "disposition": "documentation_reconciled_with_current_runtime"
       },
@@ -415,7 +415,7 @@
       },
       {
         "source_path": "db/tests/scenario_results.json",
-        "dev_path": "reports/flexible_planning_verification.md",
+        "dev_path": "docs/service/verification.md",
         "source_blob": "c86516d4a68b6ad277124dcaa8b7120b4dbf28e0",
         "disposition": "source_record_not_used_as_proof_real_tests_rerun"
       }
@@ -466,7 +466,7 @@
       },
       {
         "source_path": "README.md",
-        "dev_path": "README.md",
+        "dev_path": "docs/INDEX.md",
         "source_blob": "5c26be035e2d3effc68540292d252be8a1d8ef28",
         "disposition": "content_reconciled_into_final_README_and_system_docs"
       },
@@ -478,13 +478,13 @@
       },
       {
         "source_path": "docs/ui/ui-kit.md",
-        "dev_path": "docs/ui/ui-kit.md",
+        "dev_path": "docs/service/web.md",
         "source_blob": "78ed448f46213e127541ae38029fe8f7eb7e81d5",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "frontend/README.md",
-        "dev_path": "frontend/README.md",
+        "dev_path": "docs/service/web.md",
         "source_blob": "122bc4d5ea52994af661e905ce0e928e8aeb7ef7",
         "disposition": "retained_or_adapted"
       },
@@ -899,13 +899,13 @@
       },
       {
         "source_path": "docs/ml/integration_validation.md",
-        "dev_path": "docs/verification/integration.md",
+        "dev_path": "docs/service/verification.md",
         "source_blob": "c4638861eded5f50198cfeef1c95cd2be58c4385",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "docs/ml/mr_draft.md",
-        "dev_path": "docs/service/integration.md",
+        "dev_path": "docs/service/runtime.md",
         "source_blob": "83f65b64b4d04f9c1e2d83f6dbeb727538141cbe",
         "disposition": "retained_or_adapted"
       },
@@ -1044,7 +1044,7 @@
       },
       {
         "source_path": "backend/tests/ROLES_CONTRACTS_PROTOCOL.md",
-        "dev_path": "docs/verification/testing.md",
+        "dev_path": "docs/service/verification.md",
         "source_blob": "4cff3cd1ddbb65e721e383fde3d1330248cb7bef",
         "disposition": "retained_or_adapted"
       },
@@ -1075,13 +1075,13 @@
     "files": [
       {
         "source_path": "README.md",
-        "dev_path": "README.md",
+        "dev_path": "docs/INDEX.md",
         "source_blob": "d4f8d55065606c6cbb81c33a1d5cdb62798c6e1c",
         "disposition": "content_reconciled_into_final_README_and_system_docs"
       },
       {
         "source_path": "backend/README.md",
-        "dev_path": "backend/README.md",
+        "dev_path": "docs/service/backend.md",
         "source_blob": "9664a094a60b8b80222bd2c1388767b343f7d602",
         "disposition": "retained_or_adapted"
       },
@@ -1147,7 +1147,7 @@
       },
       {
         "source_path": "backend/tests/ROLES_CONTRACTS_PROTOCOL.md",
-        "dev_path": "docs/verification/testing.md",
+        "dev_path": "docs/service/verification.md",
         "source_blob": "bfec5cbdb6cf8d23ce18bdcea5f1cdeb2b6fd47b",
         "disposition": "retained_or_adapted"
       },
@@ -1195,7 +1195,7 @@
       },
       {
         "source_path": "database/README.md",
-        "dev_path": "database/README.md",
+        "dev_path": "docs/service/database.md",
         "source_blob": "ddffde157c28c0bb36b3fdd44e74719e56dcceea",
         "disposition": "retained_or_adapted"
       },
@@ -1219,7 +1219,7 @@
       },
       {
         "source_path": "db/tests/README.md",
-        "dev_path": "database/qa/README.md",
+        "dev_path": "docs/service/verification.md",
         "source_blob": "d51601cae0de64e10e1c80ddef6009217f582e03",
         "disposition": "retained_or_adapted"
       },
@@ -1243,31 +1243,31 @@
       },
       {
         "source_path": "docs/architecture/dto_db_mapping.md",
-        "dev_path": "docs/service/data.md",
+        "dev_path": "docs/service/database.md",
         "source_blob": "cdb6e98ee4c10e64c98b289b3c441cfe5c793425",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "docs/database/README.md",
-        "dev_path": "docs/database/INDEX.md",
+        "dev_path": "docs/service/database.md",
         "source_blob": "5bad7c9662541f27ea4f71ac0a73d2f7e5f31d8c",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "docs/database/orm_ddl_validation.md",
-        "dev_path": "docs/verification/integration.md",
+        "dev_path": "docs/service/verification.md",
         "source_blob": "83ba19fb3b5067ec37e6552109c11136afaa4e87",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "docs/database/specification.md",
-        "dev_path": "docs/database/specification.md",
+        "dev_path": "docs/service/database.md",
         "source_blob": "83545a0810ba67b07ea3d73f66df6171fe9f0229",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "docs/database/tl03_target.md",
-        "dev_path": "docs/service/data.md",
+        "dev_path": "docs/service/database.md",
         "source_blob": "8649f5cba07f99fe57ad6e8acb46ac5679b09b50",
         "disposition": "retained_or_adapted"
       },
@@ -1279,13 +1279,13 @@
       },
       {
         "source_path": "tests/README.md",
-        "dev_path": "docs/verification/testing.md",
+        "dev_path": "docs/service/verification.md",
         "source_blob": "e0626f4ac56e23e7adc2d33d56b65c69daef3172",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "tests/p0_scenarios.md",
-        "dev_path": "docs/verification/testing.md",
+        "dev_path": "docs/service/verification.md",
         "source_blob": "30065381bddc2ae03288d4e99fdfbe1b25a2d2b2",
         "disposition": "retained_or_adapted"
       }

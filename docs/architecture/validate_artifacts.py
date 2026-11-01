@@ -164,7 +164,7 @@ def negative_checks(parsed, examples):
 
 def check_documents():
     count = 0
-    for path in ROOT.rglob("*.md"):
+    for path in ROOT.parent.rglob("*.md"):
         content = path.read_text(encoding="utf-8")
         require("\ufffd" not in content, f"encoding replacement character: {path}")
         for target in re.findall(r"\[[^\]]+\]\(([^)]+)\)", content):
@@ -174,7 +174,7 @@ def check_documents():
             require((path.parent / target).exists(), f"broken link: {path.name} -> {target}")
             count += 1
     mermaid = (ROOT / "diagrams/system_architecture.mmd").read_text(encoding="utf-8").strip()
-    embedded = re.search(r"```mermaid\n(.*?)\n```", (ROOT/"system_architecture.md").read_text(encoding="utf-8"), re.S).group(1).strip()
+    embedded = re.search(r"```mermaid\n(.*?)\n```", (ROOT.parent/"ARCHITECTURE.md").read_text(encoding="utf-8"), re.S).group(1).strip()
     require(embedded == mermaid, "embedded/source Mermaid differ")
     drawing = ET.parse(ROOT / "diagrams/system_architecture.drawio")
     cells = drawing.findall(".//mxCell")
@@ -189,7 +189,7 @@ def check_documents():
         if m:
             mermaid_edges.add(m.groups())
     require(edges == mermaid_edges, "draw.io/Mermaid edges differ")
-    validation = (ROOT / "architecture_validation.md").read_text(encoding="utf-8")
+    validation = (ROOT.parent / "service/verification.md").read_text(encoding="utf-8")
     scenario_ids = re.findall(r"^\| (S\d{2}) \|", validation, re.M)
     require(scenario_ids == [f"S{i:02}" for i in range(1, 16)], "scenario matrix must contain S01..S15 exactly once")
     return count, len(edges)
