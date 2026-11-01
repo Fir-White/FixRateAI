@@ -96,6 +96,113 @@ export interface CalendarOccurrence {
 
 export type AnswerKind = "boolean" | "number" | "text";
 
+export interface AssignmentContext {
+  taskId: string;
+  expectedRevision: number;
+  timezone: string;
+  status: "ready" | "needs_input";
+  code: string | null;
+  explanation: string;
+  crewSize: number;
+  durationMinutes: number | null;
+  durationBasis: string | null;
+  rawNormValue: string | null;
+  earliestAt: string | null;
+  deadlineAt: string | null;
+  defaultStartLocal?: string;
+  defaultEndLocal?: string;
+  requiredQualifications: string[];
+  dataOrigin: DataOrigin;
+  crewChoices: {id: string; name: string}[];
+}
+
+export interface WorkerSelection {
+  executorId: string;
+  name: string;
+  status: "selected" | "available" | "excluded";
+  reasons: string[];
+  explanation: string;
+  loadMinutes: number | null;
+  earliestStart: string | null;
+}
+
+export interface CrewSelection {
+  context: AssignmentContext;
+  status: "ok" | "needs_input" | "unavailable" | "manual_review";
+  code: string | null;
+  explanation: string;
+  startAt: string | null;
+  endAt: string | null;
+  crewId: string | null;
+  crewName: string | null;
+  planningPersonMinutes: number | null;
+  selectedWorkers: WorkerSelection[];
+  workers: WorkerSelection[];
+  crews: {id: string; name: string; available: boolean; explanation: string}[];
+  command: CrewAssignmentCommand | null;
+}
+
+export interface CrewAssignmentCommand {
+  schema_version: "maintenance-0.1";
+  expected_revision: number;
+  executor_ids: string[];
+  start_at: string;
+  end_at: string;
+  reason: string;
+}
+
+export interface CalendarPreviewOccurrence extends CalendarOccurrence {
+  bindingId?: string;
+  explanation: string;
+  earliestDate: string;
+  mandatoryDueDate: string;
+  deadlinePassed: boolean;
+  crewSize: number;
+  rawNormValue: string | null;
+  normUnit: "unconfirmed" | "person_hour" | "elapsed_hour";
+  planningDurationMinutes: number | null;
+  requiredPersonHours: string | null;
+  dataOrigin: DataOrigin;
+  isAssumption: boolean;
+}
+
+export interface CalendarBindingDiagnostic {
+  bindingId: string;
+  equipmentName: string;
+  operationCode: string;
+  operationTitle: string;
+  dataOrigin: DataOrigin;
+  status: "ok" | "needs_input" | "manual_review" | "skipped";
+  code: string | null;
+  explanation: string;
+  warnings: string[];
+  isAssumption: boolean;
+  occurrencesCount: number;
+  totalPersonHours: string | null;
+  totalPlanningPersonMinutes: number | null;
+  nextDueDate: string | null;
+}
+
+export interface CalendarPreview {
+  generationToken?: string;
+  year: number;
+  month: number;
+  timezone: string;
+  calculatedAt: string;
+  items: CalendarPreviewOccurrence[];
+  diagnostics: CalendarBindingDiagnostic[];
+}
+
+export interface PlanningRun {
+  runId: string; year: number; month: number; timezone: string; calculatedAt: string;
+  replayed: boolean; createdCount: number; existingCount: number;
+  items: {occurrenceId: string; taskId: string; equipmentName: string; operationTitle: string;
+    created: boolean; state: string; plannedDate: string; mandatoryDueDate: string;
+    comparison: ComparisonRun | null; assignment: CrewSelection | null}[];
+  warnings: {occurrenceId: string; code: string; explanation: string; comparisonRunId?: string}[];
+  diagnostics: CalendarBindingDiagnostic[];
+}
+
 export type VisualVerifiability = "visible" | "partial" | "not_verifiable";
 
 export interface ChecklistItem {

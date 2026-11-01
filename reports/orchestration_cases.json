@@ -1,0 +1,134 @@
+[
+  {
+    "case": "same_date",
+    "algorithmic": "2026-11-10",
+    "ai": "2026-11-10",
+    "ai_status": "ok",
+    "error": null,
+    "status": "selected",
+    "selected": "2026-11-10",
+    "reason": "RULE_EARLIER_OR_EQUAL: регламентный срок не позже предложения AI.",
+    "milliseconds": 2.62
+  },
+  {
+    "case": "demo_ai_earlier",
+    "algorithmic": "2026-11-10",
+    "ai": "2026-11-05",
+    "ai_status": "ok",
+    "error": null,
+    "status": "selected",
+    "selected": "2026-11-05",
+    "reason": "DEMO_EARLY_DATE: более ранняя дата разрешена только в синтетическом сценарии; точность на заказчике не установлена.",
+    "milliseconds": 1.77
+  },
+  {
+    "case": "ai_after_deadline",
+    "algorithmic": "2026-11-10",
+    "ai": "2026-11-12",
+    "ai_status": "ok",
+    "error": null,
+    "status": "fallback",
+    "selected": "2026-11-10",
+    "reason": "AI_AFTER_DEADLINE: предложение AI позже обязательного срока; используем регламент.",
+    "milliseconds": 1.45
+  },
+  {
+    "case": "ai_before_window",
+    "algorithmic": "2026-11-10",
+    "ai": "2026-10-30",
+    "ai_status": "ok",
+    "error": null,
+    "status": "fallback",
+    "selected": "2026-11-10",
+    "reason": "AI_BEFORE_WINDOW: предложение AI вне допустимого окна; используем регламент.",
+    "milliseconds": 1.77
+  },
+  {
+    "case": "model_missing",
+    "algorithmic": "2026-11-10",
+    "ai": null,
+    "ai_status": "unavailable",
+    "error": "MODEL_NOT_READY",
+    "status": "fallback",
+    "selected": "2026-11-10",
+    "reason": "AI_UNAVAILABLE: MODEL_NOT_READY; используем подтверждённый регламент.",
+    "milliseconds": 1.61
+  },
+  {
+    "case": "invalid_json",
+    "algorithmic": "2026-11-10",
+    "ai": null,
+    "ai_status": "failed",
+    "error": "INVALID_AI_JSON",
+    "status": "fallback",
+    "selected": "2026-11-10",
+    "reason": "AI_UNAVAILABLE: INVALID_AI_JSON; используем подтверждённый регламент.",
+    "milliseconds": 2.38
+  },
+  {
+    "case": "provider_exception",
+    "algorithmic": "2026-11-10",
+    "ai": null,
+    "ai_status": "failed",
+    "error": "PROVIDER_ERROR",
+    "status": "fallback",
+    "selected": "2026-11-10",
+    "reason": "AI_UNAVAILABLE: PROVIDER_ERROR; используем подтверждённый регламент.",
+    "milliseconds": 2.31
+  },
+  {
+    "case": "foreign_snapshot",
+    "algorithmic": "2026-11-10",
+    "ai": null,
+    "ai_status": "failed",
+    "error": "AI_SNAPSHOT_MISMATCH",
+    "status": "fallback",
+    "selected": "2026-11-10",
+    "reason": "AI_UNAVAILABLE: AI_SNAPSHOT_MISMATCH; используем подтверждённый регламент.",
+    "milliseconds": 2.47
+  },
+  {
+    "case": "timeout",
+    "algorithmic": "2026-11-10",
+    "ai": null,
+    "ai_status": "unavailable",
+    "error": "TIMEOUT",
+    "status": "fallback",
+    "selected": "2026-11-10",
+    "reason": "AI_UNAVAILABLE: TIMEOUT; используем подтверждённый регламент.",
+    "milliseconds": 14.58
+  },
+  {
+    "case": "customer_no_early_evidence",
+    "algorithmic": "2026-11-10",
+    "ai": "2026-11-05",
+    "ai_status": "ok",
+    "error": null,
+    "status": "fallback",
+    "selected": "2026-11-10",
+    "reason": "AI_EARLY_UNSUPPORTED: для раннего обслуживания нет подтверждённой оценки риска; используем регламент.",
+    "milliseconds": 0
+  },
+  {
+    "case": "missing_rule",
+    "algorithmic": null,
+    "ai": "2026-11-10",
+    "ai_status": "ok",
+    "error": null,
+    "status": "needs_input",
+    "selected": null,
+    "reason": "RULE_INPUT_REQUIRED: нет подтверждённого алгоритмического срока.",
+    "milliseconds": 0
+  },
+  {
+    "case": "overdue",
+    "algorithmic": "2026-11-10",
+    "ai": "2026-11-10",
+    "ai_status": "ok",
+    "error": null,
+    "status": "manual_review",
+    "selected": null,
+    "reason": "DEADLINE_EXCEEDED: срок прошёл; автоматический перенос запрещён.",
+    "milliseconds": 0
+  }
+]

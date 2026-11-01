@@ -111,15 +111,18 @@ def main():
         with engine.connect() as conn:
             raw = conn.connection.driver_connection
             before = raw.execute("SELECT md5(string_agg(to_jsonb(w)::text,',' ORDER BY work_order_id)) FROM work_orders w").fetchone()[0]
+            assignments_before = raw.execute("SELECT md5(string_agg(to_jsonb(a)::text,',' ORDER BY work_assignment_id)) FROM work_assignments a").fetchone()[0]
         migrate(engine, adopt_existing=True)
         migrate(engine)
         with engine.connect() as conn:
-            # Added revision is the only intended work-order shape change.
+            # New nullable columns must not rewrite existing work history.
             raw = conn.connection.driver_connection
-            after = raw.execute("SELECT md5(string_agg((to_jsonb(w)-'revision')::text,',' ORDER BY work_order_id)) FROM work_orders w").fetchone()[0]
+            after = raw.execute("SELECT md5(string_agg((to_jsonb(w)-'revision'-'planned_end_at')::text,',' ORDER BY work_order_id)) FROM work_orders w").fetchone()[0]
             assert before == after, "Upgrade changed existing work history"
+            assignments_after = raw.execute("SELECT md5(string_agg((to_jsonb(a)-'start_at'-'end_at'-'qualification_snapshot'-'reason'-'released_at')::text,',' ORDER BY work_assignment_id)) FROM work_assignments a").fetchone()[0]
+            assert assignments_before == assignments_after, "Upgrade changed existing assignments"
         engine.dispose()
-        results.append(dict(check="upgrade_004_to_005_and_idempotence", command="app.manage.migrate(adopt_existing=True); migrate(); compare persisted history", status="Пройдено"))
+        results.append(dict(check="upgrade_004_to_007_and_idempotence", command="app.manage.migrate(adopt_existing=True); migrate(); compare persisted history", status="Пройдено"))
         # Independent fresh installation, then seed twice without resetting history or passwords.
         engine = make_engine(runtime_url)
         migrate(engine)
@@ -127,11 +130,12 @@ def main():
         seed_demo(engine, password)
         seed_demo(engine, password)
         engine.dispose()
-        results.append(dict(check="fresh_001_to_005_and_seed_rerun", command="app.manage.migrate(); seed_demo(); seed_demo()", status="Пройдено"))
+        results.append(dict(check="fresh_001_to_007_and_seed_rerun", command="app.manage.migrate(); seed_demo(); seed_demo()", status="Пройдено"))
         test_env = dict(env, TEST_DATABASE_URL=orm_url, INTEGRATION_DATABASE_URL=runtime_url, FIXRATE_TEST_PASSWORD=password,
                         PHOTO_STORAGE_ROOT=str(scratch / "photos"))
         run("pytest", [sys.executable, "-B", "-m", "pytest", "-q"], variables=test_env)
         run("architecture", [sys.executable, "-B", "docs/architecture/validate_artifacts.py"])
+        run("orchestration_scenarios", [sys.executable, "-B", "scripts/verify_orchestration.py", "--output", str(output / "orchestration")])
         run("compileall", [sys.executable, "-m", "compileall", "-q", "backend/app", "ml_service"])
         run("pip_check", [sys.executable, "-m", "pip", "check"])
         npm = shutil.which("npm.cmd" if os.name == "nt" else "npm")

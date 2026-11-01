@@ -6,6 +6,7 @@ import io
 import json
 import os
 from contextlib import closing
+from calendar import monthrange
 from uuid import UUID, uuid4
 
 import numpy as np
@@ -21,6 +22,7 @@ from app.main import create_app
 
 PREFIX = "/api/v1/maintenance"
 TASK = str(demo_id("runtime-order"))
+ASSIGNMENT_TASK = str(demo_id("assignment-order"))
 
 
 @pytest.fixture(scope="module")
@@ -47,6 +49,116 @@ def login(app, role):
     client.headers["X-CSRF-Token"] = result.json()["csrfToken"]
     assert result.json()["profile"]["role"] == role
     return client
+
+
+@pytest.fixture
+def confirmed_preview_rule(runtime):
+    engine, app = runtime
+    with engine.connect() as conn:
+        original = conn.execute(text("SELECT publication_status,schedule_parameters,period_unit,period_count,occurrences_per_period,scheduling_mode FROM maintenance_rules WHERE maintenance_rule_id=:id"),
+                                {"id": demo_id("runtime-rule")}).mappings().one()
+        approved = conn.execute(text("SELECT is_approved FROM regulation_editions WHERE regulation_edition_id=:id"),
+                                {"id": demo_id("edition")}).scalar_one()
+        start = conn.execute(text("SELECT valid_from FROM rule_equipment WHERE binding_id=:id"),
+                             {"id": demo_id("runtime-binding")}).scalar_one()
+    parameters = dict(original["schedule_parameters"], anchor_date=start.isoformat(), basis="fixed_calendar",
+                      norm_unit="person_hour", planning_duration_minutes=60, duration_basis="synthetic_demo:test-duration")
+    with engine.begin() as conn:
+        conn.execute(text("UPDATE maintenance_rules SET publication_status='published',schedule_parameters=CAST(:params AS jsonb) WHERE maintenance_rule_id=:id"),
+                     {"id": demo_id("runtime-rule"), "params": json.dumps(parameters)})
+        conn.execute(text("UPDATE regulation_editions SET is_approved=true WHERE regulation_edition_id=:id"), {"id": demo_id("edition")})
+    try:
+        yield engine, app, start
+    finally:
+        with engine.begin() as conn:
+            conn.execute(text("UPDATE maintenance_rules SET publication_status=:status,schedule_parameters=CAST(:params AS jsonb),period_unit=:unit,period_count=:period,occurrences_per_period=:count,scheduling_mode=:mode WHERE maintenance_rule_id=:id"),
+                         {"id": demo_id("runtime-rule"), "status": original["publication_status"], "params": json.dumps(original["schedule_parameters"]),
+                          "unit": original["period_unit"], "period": original["period_count"], "count": original["occurrences_per_period"], "mode": original["scheduling_mode"]})
+            conn.execute(text("UPDATE regulation_editions SET is_approved=:approved WHERE regulation_edition_id=:id"),
+                         {"id": demo_id("edition"), "approved": approved})
+
+
+@pytest.mark.parametrize("role,expected", [("admin", 403), ("executor", 403), ("dispatcher", 200), ("engineer", 200)])
+def test_calendar_preview_role_matrix(runtime, role, expected):
+    _, app = runtime
+    with closing(login(app, role)) as client:
+        reply = client.get(PREFIX+"/ui/calendar/preview?year=2026&month=10")
+        assert reply.status_code == expected
+
+
+def test_calendar_preview_does_not_publish_unconfirmed_customer_rules(runtime):
+    _, app = runtime
+    assert TestClient(app).get(PREFIX+"/ui/calendar/preview?year=2026&month=10").status_code == 401
+    with closing(login(app, "dispatcher")) as client:
+        reply = client.get(PREFIX+"/ui/calendar/preview?year=2026&month=10")
+        assert reply.status_code == 200, reply.text
+        assert reply.headers["cache-control"] == "private, no-store"
+        preview = reply.json()
+        assert all(item["dataOrigin"] == "synthetic_demo" for item in preview["items"])
+        assert preview["diagnostics"]
+        assert all(item["status"] in ("needs_input", "skipped") for item in preview["diagnostics"] if item["dataOrigin"] == "customer")
+        assert any(item["code"] == "RULE_UNCONFIRMED" for item in preview["diagnostics"])
+        assert client.get(PREFIX+"/ui/calendar/preview?year=2101&month=1").status_code == 422
+        assert client.get(PREFIX+"/ui/calendar/preview?year=2026&month=13").status_code == 422
+
+
+def test_calendar_preview_generates_from_postgresql_without_writing_plans(confirmed_preview_rule):
+    engine, app, start = confirmed_preview_rule
+    tables = ("work_orders", "schedule_entries", "schedule_plans", "work_assignments", "audit_events")
+    def counts():
+        with engine.connect() as conn:
+            return [conn.execute(text(f"SELECT count(*) FROM {table}")).scalar_one() for table in tables]
+    before = counts()
+    with closing(login(app, "dispatcher")) as client:
+        endpoint = PREFIX+f"/ui/calendar/preview?year={start.year}&month={start.month}"
+        reply = client.get(endpoint)
+        assert reply.status_code == 200, reply.text
+        preview = reply.json()
+        rows = [item for item in preview["items"] if item["operationCode"] == "DEMO-1.4"]
+        expected_count = monthrange(start.year, start.month)[1] - start.day + 1
+        assert len(rows) == expected_count
+        assert rows[0]["occurrenceDate"] == start.isoformat()
+        assert all(item["status"] == "draft" and item["taskId"] is None and not item["isOverdue"] for item in rows)
+        assert all(item["dataOrigin"] == "synthetic_demo" and item["isAssumption"] for item in rows)
+        assert all(item["crewSize"] == 1 and item["requiredPersonHours"] == "1.000" for item in rows)
+        diagnostic = next(item for item in preview["diagnostics"] if item["bindingId"] == str(demo_id("runtime-binding")))
+        assert diagnostic["status"] == "ok"
+        assert diagnostic["totalPersonHours"] == f"{expected_count}.000"
+        assert diagnostic["totalPlanningPersonMinutes"] == expected_count * 60
+        repeated = client.get(endpoint).json()
+        assert [item["id"] for item in repeated["items"]] == [item["id"] for item in preview["items"]]
+    assert counts() == before
+
+
+def test_calendar_preview_reports_malformed_persisted_parameters(confirmed_preview_rule):
+    engine, app, start = confirmed_preview_rule
+    with engine.begin() as conn:
+        conn.execute(text("UPDATE maintenance_rules SET schedule_parameters=schedule_parameters || '{\"basis\":\"invalid\"}' WHERE maintenance_rule_id=:id"),
+                     {"id": demo_id("runtime-rule")})
+    with closing(login(app, "engineer")) as client:
+        reply = client.get(PREFIX+f"/ui/calendar/preview?year={start.year}&month={start.month}")
+        assert reply.status_code == 200
+        diagnostic = next(item for item in reply.json()["diagnostics"] if item["bindingId"] == str(demo_id("runtime-binding")))
+        assert diagnostic["code"] == "INVALID_PERSISTED_INPUT"
+        assert diagnostic["status"] == "needs_input"
+
+
+@pytest.mark.parametrize("period_unit", ["quarter", "year"])
+def test_calendar_preview_maps_quarter_and_explicit_year_rules(confirmed_preview_rule, period_unit):
+    engine, app, start = confirmed_preview_rule
+    with engine.begin() as conn:
+        if period_unit == "year":
+            annual_dates = sorted([start.isoformat()] + [f"{start.year}-{month:02d}-01" for month in range(1, 13) if month != start.month][:4])
+            conn.execute(text("UPDATE maintenance_rules SET period_unit='year',occurrences_per_period=5,scheduling_mode='explicit_months',schedule_parameters=schedule_parameters || CAST(:extra AS jsonb) WHERE maintenance_rule_id=:id"),
+                         {"id": demo_id("runtime-rule"), "extra": json.dumps({"explicit_dates": annual_dates})})
+        else:
+            conn.execute(text("UPDATE maintenance_rules SET period_unit='quarter' WHERE maintenance_rule_id=:id"), {"id": demo_id("runtime-rule")})
+    with closing(login(app, "dispatcher")) as client:
+        reply = client.get(PREFIX+f"/ui/calendar/preview?year={start.year}&month={start.month}")
+        assert reply.status_code == 200, reply.text
+        rows = [item for item in reply.json()["items"] if item["operationCode"] == "DEMO-1.4"]
+        assert len(rows) == 1
+        assert rows[0]["occurrenceDate"] == start.isoformat()
 
 
 def test_sessions_authentication_and_revocation(runtime):
@@ -138,6 +250,8 @@ def test_customer_forecast_returns_real_unavailable_and_calendar_fallback(runtim
     # Explicit test fixtures change the domain flags only inside the disposable DB.
     with engine.begin() as conn:
         prior = conn.execute(text("SELECT operation_snapshot FROM work_orders WHERE work_order_id=:id"), {"id": UUID(TASK)}).scalar_one()
+        equipment_prior = conn.execute(text("SELECT properties FROM equipment WHERE equipment_id=:id"), {"id": demo_id("equipment-2")}).scalar_one()
+        conn.execute(text("UPDATE equipment SET properties=jsonb_set(properties,'{data_origin}','\"customer\"') WHERE equipment_id=:id"), {"id": demo_id("equipment-2")})
         conn.execute(text("UPDATE work_orders SET operation_snapshot=jsonb_set(operation_snapshot,'{data_origin}','\"customer\"') WHERE work_order_id=:id"), {"id": UUID(TASK)})
         conn.execute(text("UPDATE maintenance_rules SET publication_status='published',data_origin='customer',schedule_parameters=schedule_parameters || '{\"basis\":\"fixed_calendar\"}' WHERE maintenance_rule_id=:id"), {"id": demo_id("runtime-rule")})
         conn.execute(text("UPDATE regulation_editions SET is_approved=true WHERE regulation_edition_id=:id"), {"id": demo_id("edition")})
@@ -159,6 +273,7 @@ def test_customer_forecast_returns_real_unavailable_and_calendar_fallback(runtim
             conn.execute(text("UPDATE work_orders SET operation_snapshot=CAST(:snapshot AS jsonb) WHERE work_order_id=:id"), {"id": UUID(TASK), "snapshot": json.dumps(prior)})
             conn.execute(text("UPDATE maintenance_rules SET publication_status='draft',data_origin='synthetic_demo' WHERE maintenance_rule_id=:id"), {"id": demo_id("runtime-rule")})
             conn.execute(text("UPDATE regulation_editions SET is_approved=false WHERE regulation_edition_id=:id"), {"id": demo_id("edition")})
+            conn.execute(text("UPDATE equipment SET properties=CAST(:properties AS jsonb) WHERE equipment_id=:id"), {"id": demo_id("equipment-2"), "properties": json.dumps(equipment_prior)})
 
 
 def test_forecast_http_uses_identical_persisted_snapshot_and_honest_status(runtime):
@@ -370,3 +485,198 @@ def test_other_crew_member_is_read_only_and_revoked_assignment_hides_task(runtim
         assert client.get(PREFIX+f"/ui/tasks/{order}").status_code == 404
         assert str(order) not in [t["id"] for t in client.get(PREFIX+"/ui/tasks").json()]
         assert client.post(endpoint+"/start", json={"expected_revision": 1}).status_code == 404
+
+
+def assignment_search(client, **overrides):
+    context = client.get(PREFIX+f"/ui/tasks/{ASSIGNMENT_TASK}/assignment-context").json()
+    assert context["status"] == "ready", context
+    body = dict(expected_revision=context["expectedRevision"], start_local=context["defaultStartLocal"],
+                end_local=context["defaultEndLocal"], crew_id=None)
+    body.update(overrides)
+    return context, body
+
+
+@pytest.mark.parametrize("role,expected", [("admin", 403), ("executor", 403), ("engineer", 403), ("dispatcher", 200)])
+def test_assignment_preview_role_matrix(runtime, role, expected):
+    _, app = runtime
+    with closing(login(app, role)) as client:
+        assert client.get(PREFIX+f"/ui/tasks/{ASSIGNMENT_TASK}/assignment-context").status_code == expected
+        reply = client.post(PREFIX+f"/tasks/{ASSIGNMENT_TASK}/assignment-preview", json={
+            "expected_revision": 1, "start_local": "2030-01-01T09:00", "end_local": "2030-01-01T17:00"})
+        assert reply.status_code == expected
+
+
+def test_assignment_preview_real_complete_crew_load_and_no_persistence(runtime):
+    from app.schemas.maintenance import AssignmentCommand
+    engine, app = runtime
+    tables = ("work_orders", "schedule_entries", "schedule_plans", "work_assignments", "audit_events")
+    def counts():
+        with engine.connect() as conn:
+            return [conn.execute(text(f"SELECT count(*) FROM {table}")).scalar_one() for table in tables]
+    with closing(login(app, "dispatcher")) as client:
+        before = counts()
+        context, body = assignment_search(client)
+        assert context["crewSize"] == 2 and context["durationMinutes"] == 60
+        assert context["requiredQualifications"] == ["DEMO: допуск к учебному узлу"]
+        endpoint = PREFIX+f"/tasks/{ASSIGNMENT_TASK}/assignment-preview"
+        reply = client.post(endpoint, json=body)
+        assert reply.status_code == 200, reply.text
+        assert reply.headers["cache-control"] == "private, no-store"
+        result = reply.json()
+        assert result["status"] == "ok" and result["planningPersonMinutes"] == 120
+        assert result["crewId"] == str(demo_id("assignment-crew"))
+        assert {w["executorId"] for w in result["selectedWorkers"]} == {str(demo_id(f"assignment-worker-{i}")) for i in (1, 2)}
+        assert all(w["loadMinutes"] == 0 for w in result["selectedWorkers"])
+        busy = next(w for w in result["workers"] if w["executorId"] == str(demo_id("assignment-worker-3")))
+        assert busy["loadMinutes"] == 60 and busy["status"] == "available"
+        command = AssignmentCommand.model_validate_json(json.dumps(result["command"]))
+        assert command.start_at.hour == 9 and command.end_at.hour == 10
+        assert set(command.executor_ids) == {demo_id(f"assignment-worker-{i}") for i in (1, 2)}
+        assert client.post(endpoint, json=body).json() == result
+        body["crew_id"] = str(demo_id("assignment-crew"))
+        assert client.post(endpoint, json=body).json()["status"] == "ok"
+        assert counts() == before
+        with engine.connect() as conn:
+            assert conn.execute(text("SELECT status,revision FROM work_orders WHERE work_order_id=:id"), {"id": ASSIGNMENT_TASK}).one() == ("draft", 1)
+
+
+def test_assignment_preview_auth_csrf_revision_and_site_scope(runtime):
+    _, app = runtime
+    endpoint = PREFIX+f"/tasks/{ASSIGNMENT_TASK}/assignment-preview"
+    with closing(TestClient(app)) as anonymous:
+        assert anonymous.get(PREFIX+f"/ui/tasks/{ASSIGNMENT_TASK}/assignment-context").status_code == 401
+        assert anonymous.post(endpoint, json={"expected_revision": 1, "start_local": "2030-01-01T09:00", "end_local": "2030-01-01T17:00"}).status_code == 401
+    with closing(login(app, "dispatcher")) as client:
+        _, body = assignment_search(client)
+        assert client.post(endpoint, json=body, headers={"X-CSRF-Token": "bad"}).status_code == 403
+        assert client.post(endpoint, json={**body, "expected_revision": 999}).status_code == 409
+        assert client.post(endpoint, json={**body, "crew_id": str(uuid4())}).status_code == 404
+        assert client.post(endpoint, json={**body, "site_id": str(uuid4())}).status_code == 422
+        assert client.get(PREFIX+f"/ui/tasks/{uuid4()}/assignment-context").status_code == 404
+        assert client.post(PREFIX+f"/tasks/{uuid4()}/assignment-preview", json=body).status_code == 404
+
+
+@pytest.mark.parametrize("change", ["reversed", "too_long", "offset"])
+def test_assignment_preview_validates_local_window(runtime, change):
+    from datetime import datetime, timedelta
+    _, app = runtime
+    with closing(login(app, "dispatcher")) as client:
+        _, body = assignment_search(client)
+        if change == "reversed":
+            body["end_local"] = body["start_local"]
+        elif change == "too_long":
+            body["end_local"] = (datetime.fromisoformat(body["start_local"]) + timedelta(days=33)).isoformat()
+        else:
+            body["start_local"] += "+05:00"
+        reply = client.post(PREFIX+f"/tasks/{ASSIGNMENT_TASK}/assignment-preview", json=body)
+        assert reply.status_code == 422, reply.text
+
+
+@pytest.mark.parametrize("table,column,value,reason", [
+    ("users", "is_active", False, "INACTIVE_USER"),
+    ("site_memberships", "is_active", False, "SITE_ACCESS_MISSING"),
+    ("user_skills", "verified_at", None, "QUALIFICATION_UNVERIFIED"),
+    ("user_skills", "valid_until", "2000-01-01", "QUALIFICATION_OUTSIDE_WINDOW"),
+    ("availability_slots", "status", "unavailable", "NO_AVAILABILITY"),
+])
+def test_assignment_preview_rechecks_persisted_candidate_facts(runtime, table, column, value, reason):
+    engine, app = runtime
+    user = demo_id("assignment-worker-2")
+    with engine.begin() as conn:
+        original = conn.execute(text(f"SELECT {column} FROM {table} WHERE user_id=:user"), {"user": user}).scalar_one()
+        conn.execute(text(f"UPDATE {table} SET {column}=:value WHERE user_id=:user"), {"user": user, "value": value})
+    try:
+        with closing(login(app, "dispatcher")) as client:
+            _, body = assignment_search(client, crew_id=str(demo_id("assignment-crew")))
+            reply = client.post(PREFIX+f"/tasks/{ASSIGNMENT_TASK}/assignment-preview", json=body)
+            assert reply.status_code == 200, reply.text
+            result = reply.json()
+            assert result["status"] == "unavailable" and result["selectedWorkers"] == [] and result["command"] is None
+            excluded = next(w for w in result["workers"] if w["executorId"] == str(user))
+            assert reason in excluded["reasons"]
+    finally:
+        with engine.begin() as conn:
+            conn.execute(text(f"UPDATE {table} SET {column}=:value WHERE user_id=:user"), {"user": user, "value": original})
+
+
+@pytest.mark.parametrize("finished,reason", [(False, "BOOKING_UNCONFIRMED"), (True, "WORKLOAD_UNCONFIRMED")])
+def test_assignment_preview_unknown_booking_is_not_free_time(runtime, finished, reason):
+    engine, app = runtime
+    with engine.begin() as conn:
+        original = conn.execute(text("SELECT operation_snapshot FROM work_orders WHERE work_order_id=:id"), {"id": demo_id("assignment-busy-order")}).scalar_one()
+        conn.execute(text("UPDATE work_orders SET operation_snapshot=operation_snapshot - 'planning_duration_minutes' WHERE work_order_id=:id"), {"id": demo_id("assignment-busy-order")})
+        original_status = conn.execute(text("SELECT status FROM work_assignments WHERE work_assignment_id=:id"), {"id": demo_id("assignment-busy-worker")}).scalar_one()
+        if finished:
+            conn.execute(text("UPDATE work_assignments SET status='finished' WHERE work_assignment_id=:id"), {"id": demo_id("assignment-busy-worker")})
+    try:
+        with closing(login(app, "dispatcher")) as client:
+            _, body = assignment_search(client)
+            result = client.post(PREFIX+f"/tasks/{ASSIGNMENT_TASK}/assignment-preview", json=body).json()
+            assert result["status"] == "ok"
+            worker = next(w for w in result["workers"] if w["executorId"] == str(demo_id("assignment-worker-3")))
+            assert worker["status"] == "excluded" and reason in worker["reasons"]
+            assert worker["loadMinutes"] is None
+    finally:
+        with engine.begin() as conn:
+            conn.execute(text("UPDATE work_orders SET operation_snapshot=CAST(:snapshot AS jsonb) WHERE work_order_id=:id"), {"id": demo_id("assignment-busy-order"), "snapshot": json.dumps(original)})
+            conn.execute(text("UPDATE work_assignments SET status=:status WHERE work_assignment_id=:id"), {"id": demo_id("assignment-busy-worker"), "status": original_status})
+
+
+@pytest.mark.parametrize("clock,expected_status", [("10:00", "available"), ("11:00", "excluded")])
+def test_assignment_preview_in_progress_uses_actual_start_and_does_not_guess_finish(runtime, monkeypatch, clock, expected_status):
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    import app.integration.assignment as adapter
+    engine, app = runtime
+    busy = demo_id("assignment-busy-order")
+    with engine.begin() as conn:
+        original = conn.execute(text("SELECT status,planned_start_at,started_at FROM work_orders WHERE work_order_id=:id"), {"id": busy}).mappings().one()
+        day = original["planned_start_at"].astimezone(ZoneInfo("Asia/Yekaterinburg")).date().isoformat()
+        conn.execute(text("UPDATE work_orders SET status='in_progress',started_at=:start WHERE work_order_id=:id"),
+                     {"id": busy, "start": datetime.fromisoformat(f"{day}T09:30:00+05:00")})
+    instant = datetime.fromisoformat(f"{day}T{clock}:00+05:00")
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return instant.astimezone(tz)
+    monkeypatch.setattr(adapter, "datetime", Clock)
+    try:
+        with closing(login(app, "dispatcher")) as client:
+            _, body = assignment_search(client)
+            reply = client.post(PREFIX+f"/tasks/{ASSIGNMENT_TASK}/assignment-preview", json=body)
+            assert reply.status_code == 200, reply.text
+            result = reply.json()
+            assert result["status"] == "ok"
+            candidate = next(w for w in result["workers"] if w["executorId"] == str(demo_id("assignment-worker-3")))
+            assert candidate["status"] == expected_status
+            if expected_status == "available":
+                assert datetime.fromisoformat(candidate["earliestStart"]).strftime("%H:%M") == "10:30"
+                assert candidate["loadMinutes"] == 60
+            else:
+                assert "BOOKING_UNCONFIRMED" in candidate["reasons"] and candidate["loadMinutes"] is None
+    finally:
+        with engine.begin() as conn:
+            conn.execute(text("UPDATE work_orders SET status=:status,started_at=:start WHERE work_order_id=:id"),
+                         {"id": busy, "status": original["status"], "start": original["started_at"]})
+
+
+@pytest.mark.parametrize("patch,code", [
+    ({"planning_duration_minutes": None}, "DURATION_UNCONFIRMED"),
+    ({"qualification_ids": [str(UUID(int=999999))]}, "QUALIFICATION_SNAPSHOT_CONFLICT"),
+    ({"data_origin": "customer"}, "DATA_ORIGIN_MISMATCH"),
+])
+def test_assignment_preview_never_invents_missing_task_facts(runtime, patch, code):
+    engine, app = runtime
+    with engine.begin() as conn:
+        original = conn.execute(text("SELECT operation_snapshot FROM work_orders WHERE work_order_id=:id"), {"id": ASSIGNMENT_TASK}).scalar_one()
+        conn.execute(text("UPDATE work_orders SET operation_snapshot=operation_snapshot || CAST(:patch AS jsonb) WHERE work_order_id=:id"), {"id": ASSIGNMENT_TASK, "patch": json.dumps(patch)})
+    try:
+        with closing(login(app, "dispatcher")) as client:
+            context = client.get(PREFIX+f"/ui/tasks/{ASSIGNMENT_TASK}/assignment-context").json()
+            assert context["status"] == "needs_input" and context["code"] == code
+            reply = client.post(PREFIX+f"/tasks/{ASSIGNMENT_TASK}/assignment-preview", json={
+                "expected_revision": 1, "start_local": "2030-01-01T09:00", "end_local": "2030-01-01T17:00"})
+            assert reply.status_code == 200 and reply.json()["command"] is None
+    finally:
+        with engine.begin() as conn:
+            conn.execute(text("UPDATE work_orders SET operation_snapshot=CAST(:snapshot AS jsonb) WHERE work_order_id=:id"), {"id": ASSIGNMENT_TASK, "snapshot": json.dumps(original)})

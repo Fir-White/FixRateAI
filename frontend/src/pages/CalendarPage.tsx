@@ -4,16 +4,17 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
-import { formatMonth } from "@/shared/lib/format";
+import { formatDate, formatMonth } from "@/shared/lib/format";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Card } from "@/shared/ui/Card";
 import { ErrorState, LoadingState } from "@/shared/ui/States";
-import { IconButton } from "@/shared/ui/Button";
+import { Button, IconButton } from "@/shared/ui/Button";
 import { Callout } from "@/shared/ui/Callout";
 import { StatCard } from "@/widgets/StatCard";
 import { Icon } from "@/shared/ui/Icon";
-import type { CalendarOccurrence } from "@/shared/types/domain";
+import type { CalendarOccurrence, CalendarPreview, CalendarPreviewOccurrence } from "@/shared/types/domain";
 import { taskPathForRole } from "@/shared/lib/roles";
+import { PlanningRunPanel } from "@/features/planning/PlanningRunPanel";
 
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
@@ -26,23 +27,34 @@ export function CalendarPage() {
   const { profile } = useSession();
   const today = new Intl.DateTimeFormat("en-CA", {timeZone: profile?.timezone ?? "Asia/Yekaterinburg", year: "numeric", month: "2-digit", day: "2-digit"}).format(new Date());
   const [cursor, setCursor] = useState<MonthCursor>(() => DEMO_MODE ? {year: 2026, month: 10} : {year: Number(today.slice(0,4)), month: Number(today.slice(5,7))});
+  const [mode, setMode] = useState<"saved" | "preview">("saved");
+  const [calculation, setCalculation] = useState(0);
+  const mayPreview = profile?.role === "dispatcher" || profile?.role === "engineer";
   const query = useApiQuery(
-    () => maintenanceApi.listCalendar(cursor.year, cursor.month),
-    [cursor.year, cursor.month],
+    async () => {
+      const preview = mode === "preview" ? await maintenanceApi.previewCalendar(cursor.year, cursor.month) : null;
+      return {year: cursor.year, month: cursor.month, mode, preview,
+        items: preview?.items ?? await maintenanceApi.listCalendar(cursor.year, cursor.month)};
+    },
+    [cursor.year, cursor.month, mode, calculation],
   );
+  // Never display a previous month's response under the new month heading.
+  const data = query.status === "success" && query.data.year === cursor.year &&
+    query.data.month === cursor.month && query.data.mode === mode ? query.data : null;
+  const pending = query.status === "loading" || (query.status === "success" && !data);
 
   const grouped = useMemo(() => {
     const map = new Map<string, CalendarOccurrence[]>();
-    if (query.status !== "success") {
+    if (!data) {
       return map;
     }
-    query.data.forEach((occurrence) => {
+    data.items.forEach((occurrence) => {
       const bucket = map.get(occurrence.occurrenceDate) ?? [];
       bucket.push(occurrence);
       map.set(occurrence.occurrenceDate, bucket);
     });
     return map;
-  }, [query.data, query.status]);
+  }, [data]);
 
   const shiftMonth = (delta: number) => {
     setCursor((current) => {
@@ -64,22 +76,25 @@ export function CalendarPage() {
   ).getUTCDay();
   const leadingCells = (firstWeekday + 6) % 7;
   const totalCells = Math.ceil((leadingCells + daysInMonth) / 7) * 7;
-  const occurrencesCount = query.status === "success" ? query.data.length : 0;
-  const overdueCount =
-    query.status === "success"
-      ? query.data.filter((item) => item.isOverdue).length
-      : 0;
+  const occurrencesCount = data?.items.length ?? 0;
+  const overdueCount = data?.preview
+    ? data.preview.items.filter(item => item.deadlinePassed).length
+    : data?.items.filter(item => item.isOverdue).length ?? 0;
+  const needsInputCount = data?.preview
+    ? data.preview.diagnostics.filter(item => item.status === "needs_input" || item.status === "manual_review").length
+    : data?.items.filter(item => item.requiresInput).length ?? 0;
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Планирование"
         title="Календарь технического обслуживания"
-        description="Проекция строк PlanOccurrence по локальным суткам объекта. Просрочка — отдельный признак, а не статус вхождения."
+        description="Работы по оборудованию и регламентам в часовом поясе объекта. Откройте сохранённый график или рассчитайте предварительные даты."
         actions={
           <div className="flex items-center gap-2">
             <IconButton
               label="Предыдущий месяц"
+              disabled={cursor.year === 2000 && cursor.month === 1}
               onClick={() => shiftMonth(-1)}
             >
               <Icon name="back" size={16} />
@@ -89,6 +104,7 @@ export function CalendarPage() {
             </span>
             <IconButton
               label="Следующий месяц"
+              disabled={cursor.year >= (mode === "preview" ? 2100 : 2200) && cursor.month === 12}
               onClick={() => shiftMonth(1)}
             >
               <Icon name="chevron" size={16} />
@@ -97,28 +113,43 @@ export function CalendarPage() {
         }
       />
 
+      <div className="flex flex-wrap items-center gap-3">
+        {mayPreview && <Button disabled={pending || DEMO_MODE || cursor.year > 2100}
+          title={DEMO_MODE ? "Для расчёта нужно подключение к серверу" : undefined}
+          onClick={() => { setMode("preview"); setCalculation(value => value + 1); }}>
+          {mode === "preview" ? "Пересчитать график" : "Рассчитать график"}
+        </Button>}
+        {mode === "preview" && <Button variant="secondary" onClick={() => setMode("saved")}>
+          Сохранённый график
+        </Button>}
+        <span className="text-sm text-muted">{mode === "preview" ? "Предварительный расчёт" : "Сохранённый график"}</span>
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard label="Вхождений" value={occurrencesCount} />
-        <StatCard label="Просрочено" value={overdueCount} tone="danger" />
+        <StatCard label={mode === "preview" ? "Дат в прошлом" : "Просрочено"} value={overdueCount} tone="danger" />
         <StatCard
-          label="ТО2 без дат"
-          value="Требует уточнения"
+          label={mode === "preview" ? "Привязок требуют внимания" : "Вхождений требуют уточнения"}
+          value={needsInputCount}
           tone="warning"
         />
       </div>
 
-      <Callout tone="warning" title="Набор A — данные заказчика.">
-        Календарь показывает сохранённые вхождения. Для неподтверждённых правил не определены basis и
-        anchor, поэтому даты квартального и годового ТО не создаются
-        автоматически.
+      <Callout tone="warning" title={mode === "preview" ? "Предварительный расчёт" : "Сохранённые данные"}>
+        {mode === "preview"
+          ? "Даты рассчитаны по текущим регламентам. Расчёт не сохраняет план и не назначает работников. Дата в прошлом сама по себе не доказывает, что работа не выполнена."
+          : "Показаны сохранённые работы. Предварительный расчёт доступен диспетчеру и инженеру; неподтверждённые правила требуют уточнения."}
       </Callout>
 
-      {query.status === "loading" ? <LoadingState /> : null}
+      {pending ? <LoadingState label={mode === "preview" ? "Расчёт графика" : "Загрузка календаря"} /> : null}
       {query.status === "error" ? (
         <ErrorState description={query.error} />
       ) : null}
+      {data?.preview && profile?.role === "dispatcher" && !DEMO_MODE && <PlanningRunPanel
+        key={`${cursor.year}:${cursor.month}:${data.preview.generationToken}:${calculation}`} preview={data.preview}
+        onRecalculate={() => setCalculation(value => value+1)} />}
 
-      {query.status === "success" ? (
+      {data ? (
         <Card className="overflow-hidden">
           <div
             role="region"
@@ -176,9 +207,10 @@ export function CalendarPage() {
                               />
                             ))}
                             {dayItems.length > 2 ? (
-                              <p className="px-1 text-[10px] font-semibold text-muted/60">
-                                +{dayItems.length - 2}
-                              </p>
+                              <details className="text-[10px] text-muted">
+                                <summary className="cursor-pointer px-1 py-1">Ещё {dayItems.length - 2}</summary>
+                                <div className="space-y-1">{dayItems.slice(2).map(item => <OccurrenceChip key={item.id} occurrence={item} />)}</div>
+                              </details>
                             ) : null}
                           </div>
                         </>
@@ -190,26 +222,27 @@ export function CalendarPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-4 border-t border-line px-5 py-3 text-xs text-muted">
-            <span className="inline-flex items-center gap-1.5">
+            {mode === "saved" && <span className="inline-flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-accent" />
               Выполнено
-            </span>
+            </span>}
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-sky-400" />
-              Запланировано
+              {mode === "preview" ? "Черновик" : "Запланировано"}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-rose-400" />
-              Просрочено
+              <span className={`h-2 w-2 rounded-full ${mode === "preview" ? "bg-amber-400" : "bg-rose-400"}`} />
+              {mode === "preview" ? "Дата в прошлом — требуется проверка" : "Просрочено"}
             </span>
           </div>
         </Card>
       ) : null}
 
-      {query.status === "success" && occurrencesCount === 0 ? (
+      {data?.preview && <PreviewDiagnostics preview={data.preview} />}
+
+      {data && occurrencesCount === 0 ? (
         <p className="text-center text-sm text-muted">
-          Для выбранного месяца вхождений нет. Это не означает, что регламент
-          отменён.
+          {mode === "preview" ? "Для выбранного месяца даты не рассчитаны. Причины указаны по каждой привязке оборудования." : "Для выбранного месяца вхождений нет. Это не означает, что регламент отменён."}
         </p>
       ) : null}
     </div>
@@ -219,6 +252,21 @@ export function CalendarPage() {
 function OccurrenceChip({ occurrence }: { occurrence: CalendarOccurrence }) {
   const { profile } = useSession();
   const taskPath = occurrence.taskId ? taskPathForRole(profile?.role, occurrence.taskId) : null;
+  if ("explanation" in occurrence) {
+    const preview = occurrence as CalendarPreviewOccurrence;
+    return <details className={`rounded-md border px-1.5 py-1 text-[10px] ${preview.deadlinePassed ? "border-amber-400/30 bg-amber-400/10" : "border-sky-400/25 bg-sky-400/10"}`}>
+      <summary className="cursor-pointer font-semibold">{preview.operationCode} {preview.operationTitle}</summary>
+      <div className="mt-2 space-y-1 text-ink-soft">
+        <p>{preview.equipmentName}</p>
+        <p>Бригада: {preview.crewSize} чел.</p>
+        <p>Допустимое окно: {formatDate(preview.earliestDate)} — {formatDate(preview.mandatoryDueDate)}</p>
+        <p>Норма: {preview.rawNormValue ?? "не задана"} · {preview.normUnit === "person_hour" ? "человеко-часы" : preview.normUnit === "elapsed_hour" ? "часы работы бригады" : "единица требует уточнения"}</p>
+        <p>Длительность: {preview.planningDurationMinutes === null ? "требует уточнения" : `${preview.planningDurationMinutes} мин.`}</p>
+        {preview.isAssumption && <p className="text-amber-200">Демонстрационные данные / допущение</p>}
+        <p>{preview.explanation}</p>
+      </div>
+    </details>;
+  }
   const tone = occurrence.isOverdue
     ? "border-rose-400/25 bg-rose-400/10 text-rose-200"
     : occurrence.status === "fulfilled"
@@ -246,4 +294,33 @@ function OccurrenceChip({ occurrence }: { occurrence: CalendarOccurrence }) {
   }
 
   return content;
+}
+
+function PreviewDiagnostics({preview}: {preview: CalendarPreview}) {
+  const labels = {ok: "Рассчитано", needs_input: "Нужны данные", manual_review: "Ручная проверка", skipped: "Не действует"};
+  return <Card className="overflow-hidden">
+    <div className="border-b border-line p-5">
+      <h2 className="font-semibold text-ink">Результат по оборудованию и операциям</h2>
+      <p className="mt-1 text-sm text-muted">{preview.timezone} · Для каждой привязки показаны даты, нагрузка или причина отсутствия расчёта.</p>
+    </div>
+    {preview.diagnostics.length === 0 ? <p className="p-5 text-sm text-muted">Нет привязанных операций для расчёта.</p> : <div className="overflow-x-auto">
+      <table className="w-full text-left text-sm">
+        <thead className="bg-white/[0.03] text-muted"><tr>
+          <th className="p-4">Оборудование / операция</th><th className="p-4">Результат</th>
+          <th className="p-4">Нагрузка за месяц</th><th className="p-4">Пояснение</th>
+        </tr></thead>
+        <tbody>{preview.diagnostics.map(item => <tr key={item.bindingId} className="border-t border-line align-top">
+          <td className="p-4"><p>{item.equipmentName}</p><p>{item.operationCode} {item.operationTitle}</p>
+            <p className="mt-1 text-xs text-muted">{item.isAssumption ? "DEMO / допущение" : "Данные заказчика"}</p></td>
+          <td className="p-4"><p>{labels[item.status]}</p><p className="text-xs text-muted">Дат: {item.occurrencesCount}</p></td>
+          <td className="p-4"><p>{item.totalPersonHours === null ? "Человеко-часы требуют уточнения" : `${item.totalPersonHours} чел.-ч`}</p>
+            <p className="text-xs text-muted">{item.totalPlanningPersonMinutes === null ? "Длительность требует уточнения" : `${item.totalPlanningPersonMinutes} чел.-мин.`}</p></td>
+          <td className="min-w-64 p-4"><p>{item.explanation}</p>
+            {item.warnings.includes("EQUIPMENT_OUT_OF_SERVICE") && <p className="mt-1 text-amber-200">Оборудование недоступно для работы; возможность исполнения нужно проверить отдельно.</p>}
+            {item.warnings.includes("HISTORY_AFTER_CUTOFF_IGNORED") && <p className="mt-1 text-xs text-muted">Более поздние приёмки не использованы в расчёте.</p>}
+            {item.nextDueDate && <p className="mt-1 text-xs">Следующий обязательный срок: {formatDate(item.nextDueDate)}</p>}</td>
+        </tr>)}</tbody>
+      </table>
+    </div>}
+  </Card>;
 }

@@ -105,6 +105,7 @@ class Views:
         return rule, title, code, kind
 
     def task_view(self, order):
+        tz = ZoneInfo(self.principal.timezone)
         rule, title, code, kind = self.operation(order)
         links = self.rows("work_order_equipment", work_order_id=order.work_order_id)
         eq = self.one("equipment", equipment_id=links[0].equipment_id) if links else None
@@ -119,14 +120,19 @@ class Views:
             assignees.append(dict(executorId=str(a.user_id), name=user.full_name, qualifications=qualifications))
         reports = sorted(self.rows("work_reports", work_order_id=order.work_order_id), key=lambda r: r.revision_no)
         deadline = order.regulatory_deadline_at
+        # A calendar deadline_at is the exclusive end of the due day, often
+        # midnight on the following date. Display the persisted normative day.
+        entry = self.one("schedule_entries", schedule_entry_id=order.schedule_entry_id) if order.schedule_entry_id else None
+        due_date = entry.regulatory_deadline_on if entry else deadline.astimezone(tz).date() if deadline else None
         now = datetime.now(timezone.utc)
         overdue = bool(deadline and deadline < now and order.status not in ("completed", "cancelled"))
         return dict(id=str(order.work_order_id), code=str(order.work_order_id)[:8], title=title,
             equipmentId=str(eq.equipment_id) if eq else None, equipmentName=eq.name if eq else "Не указано",
             operationCode=code, maintenanceType=kind, state=TASK_STATES.get(order.status, order.status),
             isOverdue=overdue, deadlineBreached=bool(deadline and order.completed_at and order.completed_at > deadline),
-            mandatoryDueDate=iso(deadline.astimezone(ZoneInfo(self.principal.timezone)).date()) if deadline else None,
-            scheduledStart=iso(order.planned_start_at), scheduledEnd=None,
+            mandatoryDueDate=iso(due_date),
+            scheduledStart=iso(order.planned_start_at.astimezone(tz)) if order.planned_start_at else None,
+            scheduledEnd=iso(order.planned_end_at.astimezone(tz)) if order.planned_end_at else None,
             crewSize=order.required_people_snapshot, assignees=assignees,
             activeExecutionId=str(reports[-1].work_report_id) if reports else None,
             revision=order.revision, dataOrigin=order.operation_snapshot.get("data_origin") or (rule.data_origin if rule else None),

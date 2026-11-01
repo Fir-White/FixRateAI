@@ -1,5 +1,5 @@
 import type { EquipmentBundle, TaskBundle, ComparisonBundle } from "./maintenance.demo";
-import type { Equipment, MaintenanceTask, CalendarOccurrence, ComparisonRun, PhotoReview } from "@/shared/types/domain";
+import type { Equipment, MaintenanceTask, CalendarOccurrence, CalendarPreview, ComparisonRun, PhotoReview, AssignmentContext, CrewSelection, CrewAssignmentCommand, PlanningRun } from "@/shared/types/domain";
 import { request, DEMO_MODE } from "./request";
 export type { EquipmentBundle, TaskBundle, ComparisonBundle } from "./maintenance.demo";
 
@@ -35,6 +35,15 @@ const demo = DEMO_MODE ? {
 } : null;
 export const maintenanceApi = {
   ...(demo ?? live),
+  previewCalendar: (year: number, month: number) => request<CalendarPreview>(`${ui}/calendar/preview?year=${year}&month=${month}`),
+  generateTasks: (year: number, month: number, previewToken: string, key: string) => request<PlanningRun>(`${base}/calendar/generate`, {
+    method: "POST", body: JSON.stringify({year, month, preview_token: previewToken, idempotency_key: key})}),
+  assignmentContext: (taskId: string) => request<AssignmentContext>(`${ui}/tasks/${id(taskId)}/assignment-context`),
+  previewAssignment: (taskId: string, revision: number, startLocal: string, endLocal: string, crewId: string | null) =>
+    request<CrewSelection>(`${base}/tasks/${id(taskId)}/assignment-preview`, {method: "POST",
+      body: JSON.stringify({expected_revision: revision, start_local: startLocal, end_local: endLocal, crew_id: crewId})}),
+  assignCrew: (taskId: string, command: CrewAssignmentCommand, crewId: string | null) =>
+    request<TaskBundle>(`${base}/tasks/${id(taskId)}/assign`, {method: "POST", body: JSON.stringify({...command, crew_id: crewId})}),
   start: (taskId: string, revision: number) => request<TaskBundle>(`${base}/tasks/${id(taskId)}/start`, {method: "POST", body: JSON.stringify({expected_revision: revision})}),
   saveReport: (taskId: string, revision: number, narrative: string, answers: Record<string, string | null>) => request<TaskBundle>(`${base}/tasks/${id(taskId)}/report`, {method: "PUT", body: JSON.stringify({expected_revision: revision, narrative, answers})}),
   submit: (taskId: string, revision: number) => request<TaskBundle>(`${base}/tasks/${id(taskId)}/submit`, {method: "POST", body: JSON.stringify({expected_revision: revision})}),

@@ -91,7 +91,7 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
   await engineer.getByRole("button", {name: "Сравнить прогнозы", exact: true}).click();
   await expect(engineer).toHaveURL(/\/comparisons\//);
   await expect(engineer.getByText("rf-days-v1", {exact: true})).toBeVisible();
-  await expect(engineer.getByText("UNCONFIRMED_RULE", {exact: false}).first()).toBeVisible();
+  await expect(engineer.getByText("RULE_INPUT_REQUIRED", {exact: false}).first()).toBeVisible();
   if (process.env.FIXRATE_E2E_OUTPUT) await engineer.screenshot({path: path.join(process.env.FIXRATE_E2E_OUTPUT, "comparison.png"), fullPage: true});
   expect(errors).toEqual([]);
   await executorContext.close();

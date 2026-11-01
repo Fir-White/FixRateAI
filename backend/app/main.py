@@ -16,13 +16,17 @@ from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Respon
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.db.models import map_schema
 from app.db.session import make_engine, make_session_factory
 from app.integration.projections import Views
+from app.integration.calendar import preview_calendar
+from app.integration.assignment import assignment_context, assignment_preview
+from app.integration.assignments import save_assignment, lock_workers
+from app.schemas.maintenance import AssignmentCommand
 from app.security.authorization import AuthorizationError, require_any_role
 from app.security.sessions import COOKIE, Principal, SQL_ROLES, authenticate, create_session, digest, verify_password
 
@@ -47,6 +51,28 @@ class Revision(Command):
 class ReportEdit(Revision):
     narrative: str = Field(max_length=10000)
     answers: dict[UUID, str | None]
+
+
+class AssignmentPreview(Revision):
+    start_local: datetime
+    end_local: datetime
+    crew_id: UUID | None = None
+
+
+class GenerateCalendar(Command):
+    year: int = Field(ge=2000, le=2100)
+    month: int = Field(ge=1, le=12)
+    idempotency_key: UUID
+    preview_token: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class AssignCrew(Revision):
+    schema_version: Literal["maintenance-0.1"] = "maintenance-0.1"
+    executor_ids: list[UUID] = Field(min_length=1, max_length=1000)
+    start_at: AwareDatetime
+    end_at: AwareDatetime
+    reason: str = Field(min_length=1, max_length=10000)
+    crew_id: UUID | None = None
 
 
 class Review(Revision):
@@ -77,8 +103,8 @@ def create_app(engine=None):
         try:
             app.state.models = map_schema(app.state.engine)
             with app.state.engine.connect() as conn:
-                if not conn.scalar(text("SELECT to_regclass('public.fixrate_sessions')")):
-                    raise RuntimeError("Apply migrations through 005 before starting the API")
+                if not conn.scalar(text("SELECT to_regclass('public.planning_runs')")):
+                    raise RuntimeError("Apply migrations through 007 before starting the API")
             app.state.factory = make_session_factory(app.state.engine)
             app.state.forecaster = None
             try:
@@ -222,6 +248,42 @@ def create_app(engine=None):
             raise HTTPException(422, "Некорректный месяц")
         return v.calendar(year, month)
 
+    @app.get(prefix + "/ui/tasks/{task_id}/assignment-context")
+    def crew_context(task_id: UUID, response: Response, v=Depends(views)):
+        require_role(v.principal, "dispatcher")
+        response.headers["Cache-Control"] = "private, no-store"
+        return assignment_context(v, v.task(task_id))
+
+    @app.post(prefix + "/tasks/{task_id}/assignment-preview")
+    def crew_preview(task_id: UUID, command: AssignmentPreview, response: Response, v=Depends(views)):
+        require_role(v.principal, "dispatcher")
+        order = v.task(task_id)
+        check_revision(order, command.expected_revision)
+        response.headers["Cache-Control"] = "private, no-store"
+        return assignment_preview(v, order, command.start_local, command.end_local, command.crew_id)
+
+    @app.post(prefix + "/tasks/{task_id}/assign")
+    def assign_crew(task_id: UUID, command: AssignCrew, response: Response, v=Depends(views)):
+        require_role(v.principal, "dispatcher")
+        response.headers["Cache-Control"] = "private, no-store"
+        canonical = AssignmentCommand.model_validate_json(command.model_dump_json(exclude={"crew_id"}))
+        return save_assignment(v, task_id, canonical, command.crew_id)
+
+    @app.get(prefix + "/ui/calendar/preview")
+    def calendar_preview(year: int, month: int, response: Response, v=Depends(views)):
+        require_role(v.principal, "dispatcher", "engineer")
+        if not 2000 <= year <= 2100 or not 1 <= month <= 12:
+            raise HTTPException(422, "Расчёт поддерживает месяцы с 2000 по 2100 год")
+        response.headers["Cache-Control"] = "private, no-store"
+        return preview_calendar(v, year, month)
+
+    @app.post(prefix + "/calendar/generate")
+    def calendar_generate(command: GenerateCalendar, response: Response, v=Depends(views)):
+        from app.integration.planning import generate_tasks
+        require_role(v.principal, "dispatcher")
+        response.headers["Cache-Control"] = "private, no-store"
+        return generate_tasks(v, command.year, command.month, command.idempotency_key, command.preview_token, app.state.forecaster)
+
     @app.get(prefix + "/ui/comparisons")
     def comparisons(v=Depends(views)):
         require_role(v.principal, "admin", "dispatcher", "engineer")
@@ -247,6 +309,8 @@ def create_app(engine=None):
         check_revision(order, payload.expected_revision)
         if order.status not in ("assigned", "rework"):
             raise HTTPException(409, "Начать можно назначенное задание или новую попытку после доработки")
+        lock_workers(v, {a.user_id for a in v.rows("work_assignments", work_order_id=task_id)
+                         if a.status not in ("cancelled", "declined")})
         # Snapshot must be defined by the operation, never generated from UI assumptions.
         checklist = order.operation_snapshot.get("checklist")
         if not checklist:

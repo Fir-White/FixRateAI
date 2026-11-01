@@ -15,6 +15,7 @@ import { EvidenceGallery } from "@/entities/execution/EvidenceGallery";
 import { ChecklistSummary } from "@/entities/execution/ChecklistSummary";
 import { Callout } from "@/shared/ui/Callout";
 import { InfoItem, InfoList } from "@/shared/ui/InfoList";
+import { CrewSelectionPanel } from "@/features/assignment/CrewSelectionPanel";
 import {
   EngineerDecisionBadge,
   OriginBadge,
@@ -29,7 +30,10 @@ export function TaskDetailPage() {
   const { profile } = useSession();
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
-  const query = useApiQuery(() => maintenanceApi.getTask(taskId), [taskId]);
+  const [showCrewSelection, setShowCrewSelection] = useState(false);
+  const [refreshToken, setRefreshToken] = useState(0);
+  const [assignedTaskId, setAssignedTaskId] = useState<string | null>(null);
+  const query = useApiQuery(() => maintenanceApi.getTask(taskId), [taskId, refreshToken]);
 
   if (query.status === "loading") {
     return <LoadingState label="Загрузка задания" />;
@@ -81,9 +85,9 @@ export function TaskDetailPage() {
                 Перейти к приёмке
               </Link>
             ) : null}
-            {task.state === "draft" && profile?.role === "dispatcher" ? (
-              <Button disabled title="Сервис назначения бригады пока не реализован">
-                Назначить бригаду
+            {(task.state === "draft" || task.state === "assigned") && profile?.role === "dispatcher" ? (
+              <Button disabled={DEMO_MODE} title={DEMO_MODE ? "Нужно подключение к серверу" : undefined} onClick={() => setShowCrewSelection(true)}>
+                Подобрать бригаду
               </Button>
             ) : null}
             {task.state === "in_progress" ? (
@@ -96,6 +100,12 @@ export function TaskDetailPage() {
       />
 
       {notice && <div role="alert"><Callout tone="danger">{notice}</Callout></div>}
+      {assignedTaskId === task.id && <Callout tone="success" title="Бригада назначена">Состав и время сохранены.</Callout>}
+      {showCrewSelection && profile?.role === "dispatcher" && !DEMO_MODE &&
+        (task.state === "draft" || task.state === "assigned") &&
+        <CrewSelectionPanel key={task.id} taskId={task.id} onClose={() => setShowCrewSelection(false)} onAssigned={() => {
+          setShowCrewSelection(false); setAssignedTaskId(task.id); setNotice(""); setRefreshToken(value => value + 1);
+        }} onInvalidated={message => {setNotice(message); setRefreshToken(value => value + 1);}} />}
       <div className="flex flex-wrap items-center gap-2">
         <TaskStateBadge state={task.state} />
         {task.isOverdue ? <OverdueBadge /> : null}
