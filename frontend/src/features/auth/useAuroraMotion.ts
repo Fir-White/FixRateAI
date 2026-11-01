@@ -1,12 +1,14 @@
 import { useEffect, type RefObject } from "react";
+import { FLOW_HEIGHT, FLOW_WIDTH, ribbonPath } from "./ribbonGeometry";
 
-const MOTION_PROPERTIES = ["--aurora-x", "--aurora-y", "--aurora-drift-x", "--aurora-drift-y", "--aurora-breath", "--aurora-presence"];
+const MOTION_PROPERTIES = ["--aurora-x", "--aurora-y", "--aurora-breath", "--aurora-presence"];
 
-/** One clock drives only composited transforms/opacity; React never renders per frame. */
+/** One clock deforms three shared SVG paths, without React renders or frame-time layout reads. */
 export function useAuroraMotion(sceneRef: RefObject<HTMLDivElement | null>) {
   useEffect(() => {
     const scene = sceneRef.current;
     if (!scene || typeof window.matchMedia !== "function") return;
+    const paths = [...scene.querySelectorAll<SVGPathElement>("[data-aurora-ribbon]")];
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     const mouse = window.matchMedia("(hover: hover) and (pointer: fine)");
@@ -32,9 +34,11 @@ export function useAuroraMotion(sceneRef: RefObject<HTMLDivElement | null>) {
       const x = (event.clientX - bounds.left) / bounds.width;
       const y = (event.clientY - bounds.top) / bounds.height;
       if (x < 0 || x > 1 || y < 0 || y > 1) { clearPointer(); return; }
+      // Map through the SVG's xMidYMid slice, including its cropped margins.
+      const scale = Math.max(bounds.width / FLOW_WIDTH, bounds.height / FLOW_HEIGHT);
       pointerInside = true;
-      pointerX = x * 2 - 1;
-      pointerY = y * 2 - 1;
+      pointerX = (event.clientX - bounds.left - bounds.width / 2) / scale / (FLOW_WIDTH / 2);
+      pointerY = (event.clientY - bounds.top - bounds.height / 2) / scale / (FLOW_HEIGHT / 2);
       lastPointerTime = performance.now();
     };
     const leave = (event: PointerEvent) => { if (!event.relatedTarget) clearPointer(); };
@@ -50,13 +54,13 @@ export function useAuroraMotion(sceneRef: RefObject<HTMLDivElement | null>) {
       const attention = pointerInside ? Math.exp(-Math.max(0, time - lastPointerTime - 1100) / 3400) : 0;
       currentX += (pointerX * attention - currentX) * smoothing;
       currentY += (pointerY * attention - currentY) * smoothing;
-      const proximity = Math.max(0, 1 - Math.hypot(pointerX, pointerY) * 0.65);
-      presence += (attention * proximity - presence) * (1 - Math.exp(-2.8 * delta));
+      presence += (attention - presence) * (1 - Math.exp(-2.8 * delta));
+
+      const pointer = { x: (currentX + 1) * FLOW_WIDTH / 2, y: (currentY + 1) * FLOW_HEIGHT / 2, strength: presence };
+      paths.forEach((path, index) => path.setAttribute("d", ribbonPath(index, elapsed, pointer)));
 
       scene.style.setProperty("--aurora-x", currentX.toFixed(4));
       scene.style.setProperty("--aurora-y", currentY.toFixed(4));
-      scene.style.setProperty("--aurora-drift-x", `${(Math.sin(elapsed * 0.17) * 18).toFixed(2)}px`);
-      scene.style.setProperty("--aurora-drift-y", `${(Math.sin(elapsed * 0.13) * 12).toFixed(2)}px`);
       scene.style.setProperty("--aurora-breath", (0.5 + Math.sin(elapsed * 0.24) * 0.5).toFixed(4));
       scene.style.setProperty("--aurora-presence", presence.toFixed(4));
       frame = requestAnimationFrame(animate);
@@ -71,6 +75,7 @@ export function useAuroraMotion(sceneRef: RefObject<HTMLDivElement | null>) {
         previousTime = null;
         clearPointer();
         currentX = currentY = presence = 0;
+        paths.forEach((path, index) => path.setAttribute("d", ribbonPath(index, 0)));
         for (const property of MOTION_PROPERTIES) scene.style.removeProperty(property);
       }
     };

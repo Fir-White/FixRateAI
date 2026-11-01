@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { Profiler, StrictMode } from "react";
 import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuroraScene } from "./AuroraScene";
@@ -44,8 +44,8 @@ function moveMouse() {
 }
 
 describe("aurora motion lifecycle", () => {
-  it("has the same pointer response after one second at 60 and 144 Hz without measuring layout per frame", () => {
-    const positions = [60, 144].map(fps => {
+  it("has the same pointer response after one second at 60, 120 and 144 Hz without measuring layout per frame", () => {
+    const positions = [60, 120, 144].map(fps => {
       const view = render(<AuroraScene />);
       const scene = view.container.firstElementChild as HTMLElement;
       const reads = vi.mocked(HTMLElement.prototype.getBoundingClientRect).mock.calls.length;
@@ -60,11 +60,11 @@ describe("aurora motion lifecycle", () => {
       expect(callbacks.size).toBe(0);
       return position;
     });
-    expect(positions[0]).toBeGreaterThan(0.45);
-    expect(Math.abs(positions[0] - positions[1])).toBeLessThan(0.0002);
+    expect(positions[0]).toBeGreaterThan(0.4);
+    positions.slice(1).forEach(position => expect(Math.abs(positions[0] - position)).toBeLessThan(0.0002));
   });
 
-  it("runs no animation for reduced motion, touch devices or a hidden mobile scene", () => {
+  it("runs no animation for reduced motion, touch devices or the mobile fallback", () => {
     reduced.set(true);
     const view = render(<AuroraScene />);
     moveMouse();
@@ -82,6 +82,26 @@ describe("aurora motion lifecycle", () => {
     reduced.set(true);
     expect(callbacks.size).toBe(0);
     expect(view.container.firstElementChild?.getAttribute("style")).toBe("");
+  });
+
+  it("deforms all three shared curves while idle without rendering React or duplicating glow geometry", () => {
+    const renders = vi.fn();
+    const view = render(<Profiler id="flow" onRender={renders}><AuroraScene /></Profiler>);
+    const paths = [...view.container.querySelectorAll("[data-aurora-ribbon]")];
+    expect(paths).toHaveLength(3);
+    const initial = paths.map(path => path.getAttribute("d"));
+    const renderCount = renders.mock.calls.length;
+    for (let index = 0; index < 60; index++) tick(index * 1000 / 60);
+    paths.forEach((path, index) => expect(path.getAttribute("d")).not.toBe(initial[index]));
+    expect(renders.mock.calls.length).toBe(renderCount);
+    paths.forEach(path => expect(view.container.querySelectorAll(`use[href="#${path.id}"]`)).toHaveLength(3));
+    window.dispatchEvent(new Event("blur"));
+    const beforeLeave = paths.map(path => path.getAttribute("d"));
+    for (let index = 60; index < 120; index++) tick(index * 1000 / 60);
+    paths.forEach((path, index) => expect(path.getAttribute("d")).not.toBe(beforeLeave[index]));
+    reduced.set(true);
+    paths.forEach((path, index) => expect(path.getAttribute("d")).toBe(initial[index]));
+    expect(callbacks.size).toBe(0);
   });
 
   it("pauses a hidden tab and resumes with a single clock", () => {

@@ -37,3 +37,11 @@ coverage/
 /test-results/
 /frontend/test-results/
 /frontend/playwright-report/
+
+# Local AI tooling and design working notes
+/AGENTS.md
+/.opencode/
+/.codex/
+/.agents/
+/.worktrees/
+/docs/ui/design-brief.md

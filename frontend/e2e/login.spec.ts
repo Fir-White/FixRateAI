@@ -24,7 +24,11 @@ test("responsive login composition and original logo", async ({ page }, testInfo
       const box = (await logo.boundingBox())!;
       expect(Math.abs(box.width - box.height)).toBeLessThan(1);
       expect(box.width).toBeLessThanOrEqual(380);
-    } else await expect(page.locator(".auth-aurora")).toBeHidden();
+    } else {
+      await expect(page.locator(".auth-aurora__brand")).toBeHidden();
+      await expect(page.locator(".auth-ribbons")).toBeVisible();
+    }
+    await expect(page.locator("[data-aurora-ribbon]")).toHaveCount(3);
     await page.screenshot({ path: testInfo.outputPath(`aurora-${width}x${height}.png`), fullPage: true });
   }
 });
@@ -53,7 +57,8 @@ test("smooth scene motion, reduced motion and touch fallback", async ({ page, br
   const touchPage = await touch.newPage();
   await touchPage.goto(`${process.env.FIXRATE_BASE_URL}/login`);
   await expect(touchPage.getByRole("heading", { name: "С возвращением" })).toBeVisible();
-  await expect(touchPage.locator(".auth-aurora")).toBeHidden();
+  await expect(touchPage.locator(".auth-aurora__brand")).toBeHidden();
+  await expect(touchPage.locator(".auth-ribbons")).toBeVisible();
   expect(await touchPage.locator(".auth-aurora").getAttribute("style")).toBeNull();
   // A shorter viewport models the space left by an on-screen keyboard.
   await touchPage.setViewportSize({ width: 390, height: 460 });
@@ -61,6 +66,22 @@ test("smooth scene motion, reduced motion and touch fallback", async ({ page, br
   await touchPage.getByRole("button", { name: "Войти", exact: true }).scrollIntoViewIfNeeded();
   await expect(touchPage.getByRole("button", { name: "Войти", exact: true })).toBeInViewport();
   await touch.close();
+});
+
+test("ribbons continuously change geometry while idle and keep a visible static reduced-motion fallback", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const paths = page.locator("[data-aurora-ribbon]");
+  const initial = await paths.evaluateAll(elements => elements.map(element => element.getAttribute("d")));
+  await page.screenshot({ path: testInfo.outputPath("flow-idle-start.png") });
+  await expect.poll(async () => (await paths.evaluateAll(elements => elements.map(element => element.getAttribute("d")))).every((path, index) => path !== initial[index])).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("flow-idle-moving.png") });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect.poll(() => page.locator(".auth-aurora").getAttribute("style")).toBe("");
+  const still = await paths.evaluateAll(elements => elements.map(element => element.getAttribute("d")));
+  expect(still.every(path => path && path.includes(" C ") && path.includes(" S "))).toBe(true);
+  await expect(page.locator(".auth-ribbons")).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("flow-reduced-motion.png") });
+  expect(await paths.evaluateAll(elements => elements.map(element => element.getAttribute("d")))).toEqual(still);
 });
 
 test("retains object selection when the server requires a site ID", async ({ page }) => {
