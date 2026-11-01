@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-11-01T17:08:02.676Z",
+  "base": "http://127.0.0.1:5174",
+  "target": "submit",
+  "touch": false,
+  "errors": [],
+  "nativeDisabled": {
+    "property": true,
+    "selector": true
+  },
+  "afterResponse": {
+    "phase": "idle",
+    "animations": [],
+    "feedbackHeight": 38.09375,
+    "alertText": "Неверный email или пароль"
+  },
+  "requestCount": 1,
+  "passwordPreserved": true,
+  "passed": true
+}

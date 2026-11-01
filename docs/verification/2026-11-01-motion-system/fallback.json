@@ -1,0 +1,31 @@
+{
+  "timestamp": "2026-11-01T17:26:24.065Z",
+  "base": "http://127.0.0.1:8000",
+  "method": "Element.prototype.animate set to undefined before module load; native CSS animations retained.",
+  "checks": [
+    {
+      "url": "http://127.0.0.1:8000/register",
+      "phase": "idle",
+      "inert": false,
+      "hidden": null,
+      "opacity": "1",
+      "transform": "none",
+      "forms": 1,
+      "focused": "register-title",
+      "animateType": "undefined"
+    },
+    {
+      "url": "http://127.0.0.1:8000/login",
+      "phase": "idle",
+      "inert": false,
+      "hidden": null,
+      "opacity": "1",
+      "transform": "none",
+      "forms": 1,
+      "focused": "login-title",
+      "animateType": "undefined"
+    }
+  ],
+  "errors": [],
+  "passed": true
+}

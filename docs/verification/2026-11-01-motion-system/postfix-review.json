@@ -1,0 +1,49 @@
+{
+  "timestamp": "2026-11-01T17:08:10.474Z",
+  "base": "http://127.0.0.1:5174",
+  "environment": "Chrome headless with emulated viewport/touch and mocked API. No physical keyboard/Safari/Firefox or backend/DB/ML integration.",
+  "checks": [
+    {
+      "name": "rapid Back Forward cancels safely and preserves uncommitted input",
+      "sampleCount": 64,
+      "maxActiveForms": 1,
+      "maxLogoDelta": 0,
+      "nonStaticTransforms": [],
+      "inputPreserved": true
+    },
+    {
+      "name": "reduced motion enabled during exit leaves target usable",
+      "phase": "idle",
+      "systemReduced": true
+    },
+    {
+      "name": "async global error arriving during held link press cannot move click target",
+      "before": {
+        "x": 250.96875,
+        "y": 634.078125,
+        "width": 76.046875,
+        "height": 17
+      },
+      "held": {
+        "x": 250.96875,
+        "y": 634.078125,
+        "width": 76.046875,
+        "height": 17
+      },
+      "requestCount": 1
+    }
+  ],
+  "errors": [],
+  "console": {
+    "expectedNetwork": [
+      {
+        "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "url": "http://127.0.0.1:5174/api/v1/auth/login"
+      }
+    ],
+    "unexpected": [],
+    "pageErrors": []
+  },
+  "browser": "156.0.8078.79",
+  "passed": true
+}

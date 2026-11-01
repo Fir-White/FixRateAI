@@ -1,0 +1,230 @@
+{
+  "timestamp": "2026-11-01T17:49:48.714Z",
+  "passed": true,
+  "method": {
+    "classic": "Chrome156 headless with ignoreDefaultArgs:[--hide-scrollbars] and OverlayScrollbar/OverlayScrollbars/FluentOverlayScrollbar disabled. Verified actual positive innerWidth-clientWidth on overflowing pages, not inferred from flags.",
+    "before": "Candidate CSS had already landed before launch; explicit browser-only html.style.scrollbarGutter=auto honestly recreates the previous rule. No old source checkout or fabricated pre-change run.",
+    "overflowProbe": "Temporary2000px spacer appended to document.body outside the app root, then removed; this changes only viewport scrollbar presence. All coordinate snapshots normalize scrollY0 with reduced-motion.",
+    "geometry": "Compare actual html.getBoundingClientRect width, body width, divider coordinate, scene rectangle and each distinct logo instance. Root clientWidth is a viewport-special getter and legitimately changes when the bar disappears, even while layout geometry remains fixed.",
+    "mobile": "Separate Chrome launch removes hide-scrollbars but does NOT disable overlay features; mobile/touch emulation320x568 and390x844 actually yields0px scrollbar width. Not represented as physical mobile hardware."
+  },
+  "evidence": {
+    "capability": "capability.json",
+    "before": "baseline.json",
+    "dev": "browser-review.json",
+    "compiled": "built-browser-review.json"
+  },
+  "before": {
+    "appClassicScrollbarPx": 10,
+    "rootWidth": [
+      1440,
+      1430
+    ],
+    "sceneWidth": [
+      980,
+      970
+    ],
+    "largeLogoX": [
+      775,
+      770
+    ]
+  },
+  "after": {
+    "devGroups": 7,
+    "compiledGroups": 4,
+    "desktop": [
+      {
+        "name": "classic desktop 1920x1080",
+        "actualScrollbarPx": 10,
+        "rootWidth": 1910,
+        "rootWidthsAcrossStates": [
+          1910,
+          1910,
+          1910,
+          1910,
+          1910,
+          1910
+        ],
+        "largeLogoXAcrossStates": [
+          1010,
+          1010,
+          1010,
+          1010,
+          1010,
+          1010
+        ],
+        "backgroundWheelLockedInModal": true,
+        "verticalWheelRestoredAfterClose": true,
+        "focusRestored": true
+      },
+      {
+        "name": "classic desktop 1440x900",
+        "actualScrollbarPx": 10,
+        "rootWidth": 1430,
+        "rootWidthsAcrossStates": [
+          1430,
+          1430,
+          1430,
+          1430,
+          1430,
+          1430
+        ],
+        "largeLogoXAcrossStates": [
+          770,
+          770,
+          770,
+          770,
+          770,
+          770
+        ],
+        "backgroundWheelLockedInModal": true,
+        "verticalWheelRestoredAfterClose": true,
+        "focusRestored": true
+      },
+      {
+        "name": "classic desktop 1366x768",
+        "actualScrollbarPx": 10,
+        "rootWidth": 1356,
+        "rootWidthsAcrossStates": [
+          1356,
+          1356,
+          1356,
+          1356,
+          1356,
+          1356
+        ],
+        "largeLogoXAcrossStates": [
+          738.5,
+          738.5,
+          738.5,
+          738.5,
+          738.5,
+          738.5
+        ],
+        "backgroundWheelLockedInModal": true,
+        "verticalWheelRestoredAfterClose": true,
+        "focusRestored": true
+      },
+      {
+        "name": "classic desktop 1024x768",
+        "actualScrollbarPx": 10,
+        "rootWidth": 1014,
+        "rootWidthsAcrossStates": [
+          1014,
+          1014,
+          1014,
+          1014,
+          1014,
+          1014
+        ],
+        "largeLogoXAcrossStates": [
+          587,
+          587,
+          587,
+          587,
+          587,
+          587
+        ],
+        "backgroundWheelLockedInModal": true,
+        "verticalWheelRestoredAfterClose": true,
+        "focusRestored": true
+      }
+    ],
+    "mobile": [
+      {
+        "name": "overlay mobile emulation 320x568",
+        "states": [
+          {
+            "route": "/login",
+            "clientWidth": 320,
+            "scrollWidth": 320,
+            "actualScrollbarPx": 0,
+            "noHorizontalOverflow": true
+          },
+          {
+            "route": "/register",
+            "clientWidth": 320,
+            "scrollWidth": 320,
+            "actualScrollbarPx": 0,
+            "noHorizontalOverflow": true
+          }
+        ]
+      },
+      {
+        "name": "overlay mobile emulation 390x844",
+        "states": [
+          {
+            "route": "/login",
+            "clientWidth": 390,
+            "scrollWidth": 390,
+            "actualScrollbarPx": 0,
+            "noHorizontalOverflow": true
+          },
+          {
+            "route": "/register",
+            "clientWidth": 390,
+            "scrollWidth": 390,
+            "actualScrollbarPx": 0,
+            "noHorizontalOverflow": true
+          }
+        ]
+      }
+    ],
+    "appScope": "Authenticated empty-equipment fixture retained main/header/root geometry when overflow was forced."
+  },
+  "compiled": {
+    "base": "http://127.0.0.1:8000",
+    "assets": [
+      "/assets/index-BcanzGh2.js",
+      "/assets/index-KHAEcBec.css"
+    ],
+    "servedHtmlSha256": "503e548eb4441669d94c318d5ba52e7651ebc39bb37c0f41d0615dffd0d0850b",
+    "matchesWorkingTreeDist": true
+  },
+  "protectedGraphicsUnchanged": true,
+  "protectedGraphics": {
+    "frontend/src/assets/fixrate-mark.svg": {
+      "before": "132317b649825f13294f8a73b6b29eb32deedf49f812c4d7fb89482f92a1120a",
+      "after": "132317b649825f13294f8a73b6b29eb32deedf49f812c4d7fb89482f92a1120a"
+    },
+    "frontend/src/assets/fixrate-wordmark.svg": {
+      "before": "e0249313ba19a0b6cfd0beeac2a2dd0f2ea3413a4cdbb73021efab8bf9f2d84d",
+      "after": "e0249313ba19a0b6cfd0beeac2a2dd0f2ea3413a4cdbb73021efab8bf9f2d84d"
+    },
+    "frontend/src/features/auth/AuroraScene.tsx": {
+      "before": "97d404b7141650d23f9c08674d3d8dbea30ada9904b37d607a8f6489c0d0676e",
+      "after": "97d404b7141650d23f9c08674d3d8dbea30ada9904b37d607a8f6489c0d0676e"
+    },
+    "frontend/src/features/auth/ribbonGeometry.ts": {
+      "before": "7dae4ec56734a1d0ab9f75e353fc305420b8a58ae1e128bab6ad23c7e1a5ae09",
+      "after": "7dae4ec56734a1d0ab9f75e353fc305420b8a58ae1e128bab6ad23c7e1a5ae09"
+    },
+    "frontend/src/features/auth/canvasRenderer.ts": {
+      "before": "db422a85168638adb50fa2c480fcac60bb9136f3b0cb473e92dc11a9b257f420",
+      "after": "db422a85168638adb50fa2c480fcac60bb9136f3b0cb473e92dc11a9b257f420"
+    },
+    "frontend/src/features/auth/useAuroraMotion.ts": {
+      "before": "bbad276d5f45b79ee6495c6cd5c96d29d785cf1d7170b994c49a646bec0b514f",
+      "after": "bbad276d5f45b79ee6495c6cd5c96d29d785cf1d7170b994c49a646bec0b514f"
+    }
+  },
+  "reportedSourceChecks": {
+    "author": "Sole React Engineer",
+    "typecheck": "PASS",
+    "unit": {
+      "passed": 179,
+      "files": 15
+    },
+    "e2e": {
+      "passed": 10
+    },
+    "build": "PASS",
+    "diffCheck": "PASS"
+  },
+  "scope": "One root CSS scrollbar-gutter rule; no app source changes by Visual QA. API requests intercepted with fixtures; backend/DB/ML not exercised.",
+  "limitations": [
+    "Only installed Chrome was exercised; no physical phone or other rendering engine was tested.",
+    "Classic scrollbar thickness depends on the browser/OS/theme. This app uses scrollbar-width:thin and measured10px, while the bare capability page measured15px.",
+    "No fallback or JavaScript scroll compensation is included for engines without scrollbar-gutter support."
+  ]
+}

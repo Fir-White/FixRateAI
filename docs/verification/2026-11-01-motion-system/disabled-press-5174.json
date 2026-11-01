@@ -1,0 +1,43 @@
+{
+  "timestamp": "2026-11-01T17:00:45.723Z",
+  "base": "http://127.0.0.1:5174",
+  "requestCount": 1,
+  "beforeKeyboard": {
+    "phase": "idle",
+    "animations": [
+      {
+        "id": "motion-feedback-layout",
+        "state": "paused",
+        "time": 0,
+        "duration": 160,
+        "target": "form-feedback"
+      }
+    ],
+    "alert": {
+      "x": 52,
+      "y": 543.078125,
+      "width": 355,
+      "height": 22.09375,
+      "top": 543.078125,
+      "right": 407,
+      "bottom": 565.171875,
+      "left": 52
+    },
+    "html": "<div class=\"form-feedback\"><p id=\"login-error\" role=\"alert\" class=\"auth-error\">Неверный email или пароль</p></div>"
+  },
+  "afterKeyboard": {
+    "phase": "idle",
+    "animations": [],
+    "alert": {
+      "x": 52,
+      "y": 524.03125,
+      "width": 355,
+      "height": 22.09375,
+      "top": 524.03125,
+      "right": 407,
+      "bottom": 546.125,
+      "left": 52
+    },
+    "html": "<div class=\"form-feedback\"><p id=\"login-error\" role=\"alert\" class=\"auth-error\">Неверный email или пароль</p></div>"
+  }
+}

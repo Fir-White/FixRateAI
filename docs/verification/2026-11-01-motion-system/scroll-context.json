@@ -1,0 +1,105 @@
+{
+  "timestamp": "2026-11-01T17:24:44.903Z",
+  "base": "http://127.0.0.1:8000",
+  "viewport": {
+    "width": 320,
+    "height": 568
+  },
+  "before": {
+    "url": "http://127.0.0.1:8000/login",
+    "scrollY": 132,
+    "documentHeight": 700,
+    "heading": {
+      "x": 24,
+      "y": -24,
+      "width": 272,
+      "height": 33.59375,
+      "top": -24,
+      "right": 296,
+      "bottom": 9.59375,
+      "left": 24
+    },
+    "focused": ""
+  },
+  "registration": {
+    "url": "http://127.0.0.1:8000/register",
+    "scrollY": 0,
+    "documentHeight": 961,
+    "heading": {
+      "x": 24,
+      "y": 96,
+      "width": 272,
+      "height": 33.59375,
+      "top": 96,
+      "right": 296,
+      "bottom": 129.59375,
+      "left": 24
+    },
+    "focused": "register-title"
+  },
+  "reverseBefore": {
+    "url": "http://127.0.0.1:8000/register",
+    "scrollY": 393,
+    "documentHeight": 961,
+    "heading": {
+      "x": 24,
+      "y": -297,
+      "width": 272,
+      "height": 33.59375,
+      "top": -297,
+      "right": 296,
+      "bottom": -263.40625,
+      "left": 24
+    },
+    "focused": "register-title"
+  },
+  "login": {
+    "url": "http://127.0.0.1:8000/login",
+    "scrollY": 0,
+    "documentHeight": 700,
+    "heading": {
+      "x": 24,
+      "y": 108,
+      "width": 272,
+      "height": 33.59375,
+      "top": 108,
+      "right": 296,
+      "bottom": 141.59375,
+      "left": 24
+    },
+    "focused": "login-title"
+  },
+  "back": {
+    "url": "http://127.0.0.1:8000/register",
+    "scrollY": 72,
+    "documentHeight": 961,
+    "heading": {
+      "x": 24,
+      "y": 24,
+      "width": 272,
+      "height": 33.59375,
+      "top": 24,
+      "right": 296,
+      "bottom": 57.59375,
+      "left": 24
+    },
+    "focused": "register-title"
+  },
+  "forward": {
+    "url": "http://127.0.0.1:8000/login",
+    "scrollY": 0,
+    "documentHeight": 700,
+    "heading": {
+      "x": 24,
+      "y": 108,
+      "width": 272,
+      "height": 33.59375,
+      "top": 108,
+      "right": 296,
+      "bottom": 141.59375,
+      "left": 24
+    },
+    "focused": "login-title"
+  },
+  "headingFullyVisible": true
+}

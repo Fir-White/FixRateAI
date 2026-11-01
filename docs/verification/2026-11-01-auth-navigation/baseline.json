@@ -1,0 +1,231 @@
+{
+  "timestamp": "2026-11-01T16:14:54.363Z",
+  "base": "http://127.0.0.1:5174",
+  "method": "Native coordinate mouse down/up at original navigation-link center, without locator.click retries",
+  "results": [
+    {
+      "width": 1366,
+      "height": 768,
+      "route": "/login",
+      "field": "#login-password",
+      "link": "Регистрация",
+      "before": {
+        "x": 250.96875,
+        "y": 570.078125,
+        "width": 76.046875,
+        "height": 17
+      },
+      "point": {
+        "x": 288.9921875,
+        "y": 578.578125
+      },
+      "afterDown": {
+        "x": 250.96875,
+        "y": 583.171875,
+        "width": 76.046875,
+        "height": 17
+      },
+      "finalURL": "http://127.0.0.1:5174/login",
+      "passed": false,
+      "alerts": [
+        "Введите пароль"
+      ]
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "route": "/login",
+      "field": "#login-email",
+      "link": "Регистрация",
+      "before": {
+        "x": 250.96875,
+        "y": 570.078125,
+        "width": 76.046875,
+        "height": 17
+      },
+      "point": {
+        "x": 288.9921875,
+        "y": 578.578125
+      },
+      "afterDown": {
+        "x": 250.96875,
+        "y": 583.171875,
+        "width": 76.046875,
+        "height": 17
+      },
+      "finalURL": "http://127.0.0.1:5174/login",
+      "passed": false,
+      "alerts": [
+        "Введите email"
+      ]
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "route": "/register",
+      "field": "#register-name",
+      "link": "Перейти ко входу",
+      "before": {
+        "x": 232.015625,
+        "y": 721.234375,
+        "width": 109.328125,
+        "height": 17
+      },
+      "point": {
+        "x": 286.6796875,
+        "y": 729.734375
+      },
+      "afterDown": {
+        "x": 232.015625,
+        "y": 747.421875,
+        "width": 109.328125,
+        "height": 17
+      },
+      "finalURL": "http://127.0.0.1:5174/register",
+      "passed": false,
+      "alerts": [
+        "Введите имя и фамилию"
+      ]
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "route": "/register",
+      "field": "#register-password-confirmation",
+      "link": "Перейти ко входу",
+      "before": {
+        "x": 232.015625,
+        "y": 721.234375,
+        "width": 109.328125,
+        "height": 17
+      },
+      "point": {
+        "x": 286.6796875,
+        "y": 729.734375
+      },
+      "afterDown": {
+        "x": 232.015625,
+        "y": 747.421875,
+        "width": 109.328125,
+        "height": 17
+      },
+      "finalURL": "http://127.0.0.1:5174/register",
+      "passed": false,
+      "alerts": [
+        "Повторите пароль"
+      ]
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "/login",
+      "field": "#login-password",
+      "link": "Регистрация",
+      "before": {
+        "x": 216.46875,
+        "y": 582.578125,
+        "width": 76.046875,
+        "height": 44
+      },
+      "point": {
+        "x": 254.4921875,
+        "y": 604.578125
+      },
+      "afterDown": {
+        "x": 216.46875,
+        "y": 595.671875,
+        "width": 76.046875,
+        "height": 44
+      },
+      "finalURL": "http://127.0.0.1:5174/register",
+      "passed": true,
+      "alerts": []
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "/login",
+      "field": "#login-email",
+      "link": "Регистрация",
+      "before": {
+        "x": 216.46875,
+        "y": 582.578125,
+        "width": 76.046875,
+        "height": 44
+      },
+      "point": {
+        "x": 254.4921875,
+        "y": 604.578125
+      },
+      "afterDown": {
+        "x": 216.46875,
+        "y": 595.671875,
+        "width": 76.046875,
+        "height": 44
+      },
+      "finalURL": "http://127.0.0.1:5174/register",
+      "passed": true,
+      "alerts": []
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "/register",
+      "field": "#register-name",
+      "link": "Перейти ко входу",
+      "before": {
+        "x": 197.515625,
+        "y": 798.234375,
+        "width": 109.328125,
+        "height": 44
+      },
+      "point": {
+        "x": 252.1796875,
+        "y": 820.234375
+      },
+      "afterDown": {
+        "x": 197.515625,
+        "y": 824.421875,
+        "width": 109.328125,
+        "height": 44
+      },
+      "finalURL": "http://127.0.0.1:5174/register",
+      "passed": false,
+      "alerts": [
+        "Введите имя и фамилию"
+      ]
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "route": "/register",
+      "field": "#register-password-confirmation",
+      "link": "Перейти ко входу",
+      "before": {
+        "x": 197.515625,
+        "y": 798.234375,
+        "width": 109.328125,
+        "height": 44
+      },
+      "point": {
+        "x": 252.1796875,
+        "y": 820.234375
+      },
+      "afterDown": {
+        "x": 197.515625,
+        "y": 824.421875,
+        "width": 109.328125,
+        "height": 44
+      },
+      "finalURL": "http://127.0.0.1:5174/register",
+      "passed": false,
+      "alerts": [
+        "Повторите пароль"
+      ]
+    }
+  ],
+  "sourceHead": "c745953",
+  "failedCases": 6,
+  "totalCases": 8,
+  "interpretation": "Blur added inline errors during native mouse-down, shifting the link13.09px on login or26.19px on registration before mouse-up. No locator.click retargeting was used."
+}

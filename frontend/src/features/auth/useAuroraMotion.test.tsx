@@ -40,6 +40,7 @@ it("renders lights at30Hz and particles at60Hz with one clock and no frame-time 
   expect(view.container.querySelectorAll("[data-aurora-ribbon]")).toHaveLength(3);
   expect(view.container.querySelectorAll("svg use")).toHaveLength(8);
   expect(view.container.querySelector("svg mask, .auth-particle, .auth-orb")).toBeNull();
+  expect(view.container.querySelector("img, .auth-aurora__brand, .auth-aurora__logo, .auth-aurora__scrim, .auth-aurora__vignette")).toBeNull();
   expect(screen.queryByRole("button")).toBeNull();
 });
 it.each([60,90,120,240])("maintains the requested cadence at a %i Hz display", refreshRate => {

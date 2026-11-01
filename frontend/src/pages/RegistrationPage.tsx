@@ -6,6 +6,7 @@ import { Button } from "@/shared/ui/Button";
 import { AuthPasswordInput } from "@/features/auth/AuthPasswordInput";
 import { describeAuthFailure, focusAuthError, type AuthErrors } from "@/features/auth/authValidation";
 import { useAuthValidation } from "@/features/auth/useAuthValidation";
+import { AuthFormError } from "@/features/auth/AuthFormError";
 
 export function RegistrationPage() {
   const [name, setName] = useState("");
@@ -29,7 +30,7 @@ export function RegistrationPage() {
   return (
     <>
       <header className="auth-heading">
-        <h1 id="register-title">Регистрация</h1>
+        <h1 id="register-title" tabIndex={-1}>Регистрация</h1>
         <p>После регистрации администратор выдаст вам роль и доступ к объекту</p>
       </header>
 
@@ -58,21 +59,21 @@ export function RegistrationPage() {
         }}>
           <fieldset disabled={busy}>
             <FormField label="Имя и фамилия" htmlFor="register-name" className="auth-field" error={validation.errors.full_name}>
-              <Input id="register-name" name="full_name" className="auth-input" required autoComplete="name" placeholder="Как к вам обращаться" value={name} onBlur={() => validation.blur("full_name")} onChange={e => { setName(e.target.value); validation.change("full_name"); setError(""); }} />
+              <Input id="register-name" name="full_name" className="auth-input" data-validation={validation.state("full_name")} required autoComplete="name" placeholder="Как к вам обращаться" value={name} onBlur={event => validation.blur("full_name", event)} onChange={e => { setName(e.target.value); validation.change("full_name"); setError(""); }} />
             </FormField>
             <FormField label="Email" htmlFor="register-email" className="auth-field" error={validation.errors.email}>
-              <Input id="register-email" name="email" className="auth-input" type="email" required autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder="name@company.ru" value={email} onBlur={() => validation.blur("email")} onChange={e => { setEmail(e.target.value); validation.change("email"); setError(""); }} />
+              <Input id="register-email" name="email" className="auth-input" data-validation={validation.state("email")} type="email" required autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder="name@company.ru" value={email} onBlur={event => validation.blur("email", event)} onChange={e => { setEmail(e.target.value); validation.change("email"); setError(""); }} />
             </FormField>
             <FormField label="Пароль" htmlFor="register-password" className="auth-field" hint="От 12 символов" error={validation.errors.password}>
-              <AuthPasswordInput id="register-password" name="password" className="auth-input" required minLength={12} maxLength={128} autoComplete="new-password" placeholder="Придумайте пароль" value={password} onBlur={() => validation.blur("password")} onChange={e => { setPassword(e.target.value); validation.change("password"); setError(""); }} />
+              <AuthPasswordInput id="register-password" name="password" className="auth-input" data-validation={validation.state("password")} required minLength={12} maxLength={128} autoComplete="new-password" placeholder="Придумайте пароль" value={password} onBlur={event => validation.blur("password", event)} onChange={e => { setPassword(e.target.value); validation.change("password"); setError(""); }} />
             </FormField>
             <FormField label="Подтвердите пароль" htmlFor="register-password-confirmation" className="auth-field" error={validation.errors.password_confirmation}>
-              <AuthPasswordInput id="register-password-confirmation" name="password_confirmation" className="auth-input" visibilityLabel="подтверждение пароля" required maxLength={128} autoComplete="new-password" placeholder="Повторите пароль" value={confirmation} onBlur={() => validation.blur("password_confirmation")} onChange={e => { setConfirmation(e.target.value); validation.change("password_confirmation"); setError(""); }} />
+              <AuthPasswordInput id="register-password-confirmation" name="password_confirmation" className="auth-input" data-validation={validation.state("password_confirmation")} visibilityLabel="подтверждение пароля" required maxLength={128} autoComplete="new-password" placeholder="Повторите пароль" value={confirmation} onBlur={event => validation.blur("password_confirmation", event)} onChange={e => { setConfirmation(e.target.value); validation.change("password_confirmation"); setError(""); }} />
             </FormField>
             <FormField label="Код компании" htmlFor="register-code" className="auth-field" hint="Код компании выдаёт администратор" error={validation.errors.company_code}>
-              <Input id="register-code" name="company_code" className="auth-input" required minLength={16} autoComplete="off" placeholder="Введите код компании" value={code} onBlur={() => validation.blur("company_code")} onChange={e => { setCode(e.target.value); validation.change("company_code"); setError(""); }} />
+              <Input id="register-code" name="company_code" className="auth-input" data-validation={validation.state("company_code")} required minLength={16} autoComplete="off" placeholder="Введите код компании" value={code} onBlur={event => validation.blur("company_code", event)} onChange={e => { setCode(e.target.value); validation.change("company_code"); setError(""); }} />
             </FormField>
-            {error && <p id="register-error" role="alert" className="auth-error">{error}</p>}
+            <AuthFormError id="register-error" message={error} />
             <Button className="auth-submit" type="submit" disabled={busy}>{busy ? "Регистрация…" : "Зарегистрироваться"}</Button>
           </fieldset>
         </form>

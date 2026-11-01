@@ -1,9 +1,10 @@
 import { DEMO_MODE } from "@/shared/api/request";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   NavLink,
   Outlet,
   useLocation,
+  useNavigationType,
   useNavigate,
 } from "react-router-dom";
 import { BrandLockup } from "@/shared/ui/Brand";
@@ -14,6 +15,8 @@ import { useDialogFocus } from "@/shared/lib/useDialogFocus";
 import { useSession } from "@/shared/session/SessionContext";
 import { ROLE_LABELS, homePathForRole } from "@/shared/lib/roles";
 import type { Role } from "@/shared/types/domain";
+import { usePageEntry } from "@/shared/motion/usePageEntry";
+import { isAuthEntryNavigation } from "@/shared/motion/authEntry";
 
 interface NavItem {
   to: string;
@@ -100,6 +103,9 @@ export function AppShell() {
   const { profile, logout, switchRole } = useSession();
   const navigate = useNavigate();
   const location = useLocation();
+  const navigationType = useNavigationType();
+  const contentRef = useRef<HTMLElement>(null);
+  usePageEntry(contentRef, location.key, isAuthEntryNavigation(location.state, navigationType));
   const [menuOpen, setMenuOpen] = useState(false);
   const [logoutError, setLogoutError] = useState("");
   const menuRef = useDialogFocus<HTMLElement>(menuOpen, () =>
@@ -294,6 +300,7 @@ export function AppShell() {
         </header>
 
         <main
+          ref={contentRef}
           id="main-content"
           tabIndex={-1}
           className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10"

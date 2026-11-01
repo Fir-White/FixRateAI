@@ -1,4 +1,5 @@
 import { cloneElement, isValidElement, useId } from "react";
+import { useFeedbackMotion } from "@/shared/motion/useFeedbackMotion";
 import type {
   ComponentPropsWithoutRef,
   InputHTMLAttributes,
@@ -9,7 +10,7 @@ import type {
 } from "react";
 
 const CONTROL_CLASSES =
-  "w-full rounded-xl border border-line-strong bg-white/[0.035] text-sm text-ink placeholder:text-muted/60 transition-colors hover:border-muted/50 focus:border-accent focus:ring-2 focus:ring-accent/15 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50";
+  "motion-input w-full rounded-xl border border-line-strong bg-white/[0.035] text-sm text-ink placeholder:text-muted/60 transition-colors hover:border-muted/50 focus:border-accent focus:ring-2 focus:ring-accent/15 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50";
 
 export function FormField({
   label,
@@ -31,6 +32,7 @@ export function FormField({
   const generatedId = useId();
   const descriptionId = `${htmlFor ?? generatedId}-description`;
   const describedBy = error || hint ? descriptionId : undefined;
+  const feedback = useFeedbackMotion(error || hint);
   const control = isValidElement(children)
     ? cloneElement(children as ReactElement<Record<string, unknown>>, {
         "aria-describedby": describedBy,
@@ -52,6 +54,7 @@ export function FormField({
         ) : null}
       </label>
       {control}
+      <div ref={feedback} className="form-feedback">
       {error ? (
         <p
           id={descriptionId}
@@ -68,6 +71,7 @@ export function FormField({
           {hint}
         </p>
       ) : null}
+      </div>
     </div>
   );
 }

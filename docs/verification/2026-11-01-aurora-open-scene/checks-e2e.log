@@ -1,0 +1,26 @@
+> fixrate-ai-frontend@0.1.0 test:e2e
+> playwright test e2e/login.spec.ts
+
+
+Running 10 tests using 1 worker
+
+npm.cmd : (node:23676) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+At line:3 char:1
++ npm.cmd run test:e2e -- e2e/login.spec.ts 2>&1 | Tee-Object -FilePath ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ((node:23676) Wa... env being set.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok  1 e2e\login.spec.ts:25:1 › responsive open light scene and original small auth brand (5.6s)
+  ok  2 e2e\login.spec.ts:44:1 › independent curves, tiny particles, pause, reduced motion and static small brand (7.0s)
+  ok  3 e2e\login.spec.ts:80:1 › retains object selection when the server requires a site ID (2.8s)
+  ok  4 e2e\login.spec.ts:111:1 › keyboard access, errors, pending state, password visibility and login return route (3.2s)
+  ok  5 e2e\login.spec.ts:171:1 › auth links activate on the first physical click or touch while an empty field loses focus (5.9s)
+  ok  6 e2e\login.spec.ts:207:3 › a second physical press on disabled pending submit cannot hide a server error (1.5s)
+  ok  7 e2e\login.spec.ts:207:3 › a second physical press on disabled pending password visibility cannot hide a server error (1.2s)
+  ok  8 e2e\login.spec.ts:240:1 › scrolled phone auth navigation places the focused new heading in view, including Back and Forward (2.1s)
+  ok  9 e2e\login.spec.ts:269:1 › confirmed phone login from a scrolled form reveals and focuses its safe app destination (1.2s)
+  ok 10 e2e\login.spec.ts:292:1 › classic root scrollbar preserves auth geometry across overflow, errors and modal scroll locking (3.4s)
+
+  10 passed (37.5s)

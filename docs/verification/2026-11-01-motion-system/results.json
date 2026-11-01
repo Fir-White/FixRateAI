@@ -1,0 +1,276 @@
+{
+  "timestamp": "2026-11-01T17:33:34.890Z",
+  "passed": true,
+  "environment": {
+    "browser": "156.0.8078.79",
+    "node": "v24.21.0",
+    "platform": "win32",
+    "desktop": [
+      1440,
+      900
+    ],
+    "compactDesktop": [
+      [
+        1366,
+        768
+      ],
+      [
+        1024,
+        768
+      ]
+    ],
+    "phones": [
+      [
+        320,
+        568
+      ],
+      [
+        375,
+        812
+      ],
+      [
+        390,
+        844
+      ],
+      [
+        430,
+        932
+      ]
+    ],
+    "api": "All browser API requests intercepted with fixtures; backend/DB/ML integration was not run."
+  },
+  "verificationLedger": [
+    {
+      "artifact": "early-review-before.json",
+      "role": "Preserved early diagnostic. Two genuine inert-heading focus failures; one distinct-logo probe collision was a QA error, not software motion."
+    },
+    {
+      "artifact": "browser-review-before-probe-corrections.json",
+      "executed": 23,
+      "successful": 21,
+      "qaExpectationMismatches": 2,
+      "role": "Raw broad run:21 successful scenarios,2 incorrect QA assertions. These were not silently relabeled as a passing full rerun."
+    },
+    {
+      "artifact": "focused-review.json",
+      "executed": 8,
+      "successful": 8,
+      "role": "Rerun only2 corrected probes,4 mobile scenarios for clean settled screenshots, and2 compact desktop logo-anchor additions."
+    },
+    {
+      "artifact": "browser-review.json",
+      "uniqueSuccessfulScenarios": 25,
+      "role": "Derived25-scenario evidence index across the two runs above, not a new fullmatrix execution."
+    },
+    {
+      "artifact": "disabled-press-5174.json",
+      "role": "Genuine later regression: a second press on a disabled loading button froze the future error at height0 until keyboard interaction."
+    },
+    {
+      "artifact": "postfix-review.json",
+      "executed": 3,
+      "successful": 3,
+      "role": "After disabled-gesture correction, reran affected async-feedback, rapid navigation and reduced-motion cases only."
+    },
+    {
+      "artifact": "disabled-regression-5174-submit-mouse.json",
+      "passed": true,
+      "role": "Native disabled own-button or inherited-fieldset control; error must finish without any keyboard event, one request only."
+    },
+    {
+      "artifact": "disabled-regression-5174-eye-touch.json",
+      "passed": true,
+      "role": "Native disabled own-button or inherited-fieldset control; error must finish without any keyboard event, one request only."
+    },
+    {
+      "artifact": "disabled-regression-8000-eye-touch.json",
+      "passed": true,
+      "role": "Native disabled own-button or inherited-fieldset control; error must finish without any keyboard event, one request only."
+    },
+    {
+      "artifact": "scroll-context-before.json",
+      "role": "Genuine short-screen issue: focused auth heading remained above viewport after scrolled SPA navigation."
+    },
+    {
+      "artifact": "scroll-context.json",
+      "passed": true,
+      "role": "Final compiled320x568 push/reverse/back/forward: heading fully visible and focused."
+    },
+    {
+      "artifact": "success-scroll-before.json",
+      "role": "Genuine short-screen confirmed-entry issue: app heading was partly offscreen."
+    },
+    {
+      "artifact": "success-scroll.json",
+      "passed": true,
+      "role": "Final compiled confirmed entry resets only this auth transition, preserves exact query/hash and focuses main."
+    },
+    {
+      "artifact": "marker-pop-8000.json",
+      "passed": true,
+      "role": "Final compiled app POP/reload retain marker without triggering auth-entry scrollTo or main-focus; native positions reported without a global restoration guarantee."
+    },
+    {
+      "artifact": "built-review-before-disabled-fix.json",
+      "role": "Preserved compiled failure that exposed the disabled-control regression; not counted as final passing."
+    },
+    {
+      "artifact": "built-review.json",
+      "executed": 4,
+      "successful": 4,
+      "role": "Final compiled desktop/mobile shared routes, loading/failure/retry with safe entry and trailing slash, reduced motion."
+    },
+    {
+      "artifact": "fallback.json",
+      "successful": 2,
+      "role": "Final compiled Element.animate unavailable: one usable form, visible target, heading focus, no stuck inert/opacity."
+    }
+  ],
+  "fixedSoftwareFindings": [
+    "New heading initially focused while its ancestor remained inert; commit ordering corrected and live160ms entry verified.",
+    "Disabled own-button and inherited-fieldset gestures could leave feedback animation paused; disabled gesture eligibility/release corrected.",
+    "Scrolled short auth pages could focus an offscreen new heading; auth-only PUSH reset and conditional POP correction added.",
+    "Confirmed scrolled auth entry could leave app heading offscreen; one frontend navigation marker scopes scroll/focus to the successful PUSH/REPLACE only.",
+    "Existing compact registration padding moved top brand12px across auth routes; common panel padding now anchors both logos without changing SVG geometry."
+  ],
+  "qaProbeCorrections": [
+    "Small top mark and large scene mark share the same SVG URL; motion sampling now keys distinct DOM instances.",
+    "App entry is a WAAPI animation on main, not an obsolete .motion-app-entry CSS class.",
+    "HTML email sanitization removes trailing spaces; Space preservation correctly tested in password input."
+  ],
+  "sourceChecksReportedByReactEngineer": {
+    "typecheck": "PASS",
+    "unit": {
+      "passed": 179,
+      "files": 15
+    },
+    "e2e": {
+      "passed": 9
+    },
+    "build": "PASS",
+    "gitDiffCheck": "PASS",
+    "note": "These source checks were run by the sole React Engineer; this Visual QA independently ran the browser evidence above."
+  },
+  "protectedFilesUnchanged": true,
+  "protectedFiles": {
+    "frontend/src/assets/fixrate-mark.svg": {
+      "before": "132317b649825f13294f8a73b6b29eb32deedf49f812c4d7fb89482f92a1120a",
+      "after": "132317b649825f13294f8a73b6b29eb32deedf49f812c4d7fb89482f92a1120a"
+    },
+    "frontend/src/assets/fixrate-wordmark.svg": {
+      "before": "e0249313ba19a0b6cfd0beeac2a2dd0f2ea3413a4cdbb73021efab8bf9f2d84d",
+      "after": "e0249313ba19a0b6cfd0beeac2a2dd0f2ea3413a4cdbb73021efab8bf9f2d84d"
+    },
+    "frontend/src/features/auth/AuroraScene.tsx": {
+      "before": "97d404b7141650d23f9c08674d3d8dbea30ada9904b37d607a8f6489c0d0676e",
+      "after": "97d404b7141650d23f9c08674d3d8dbea30ada9904b37d607a8f6489c0d0676e"
+    },
+    "frontend/src/features/auth/ribbonGeometry.ts": {
+      "before": "7dae4ec56734a1d0ab9f75e353fc305420b8a58ae1e128bab6ad23c7e1a5ae09",
+      "after": "7dae4ec56734a1d0ab9f75e353fc305420b8a58ae1e128bab6ad23c7e1a5ae09"
+    },
+    "frontend/src/features/auth/canvasRenderer.ts": {
+      "before": "db422a85168638adb50fa2c480fcac60bb9136f3b0cb473e92dc11a9b257f420",
+      "after": "db422a85168638adb50fa2c480fcac60bb9136f3b0cb473e92dc11a9b257f420"
+    },
+    "frontend/src/features/auth/useAuroraMotion.ts": {
+      "before": "bbad276d5f45b79ee6495c6cd5c96d29d785cf1d7170b994c49a646bec0b514f",
+      "after": "bbad276d5f45b79ee6495c6cd5c96d29d785cf1d7170b994c49a646bec0b514f"
+    }
+  },
+  "finalMotionSourceSha256": {
+    "frontend/src/shared/motion/animate.ts": "a7df1378daf5b0e45325b8ee1213fe94fd52313ed975f0999b84808fe63cc58f",
+    "frontend/src/shared/motion/authEntry.ts": "7d960225c16eed8bc1880a35889c60c1953e432f1759a16237762df2de072874",
+    "frontend/src/shared/motion/feedbackMotion.ts": "ac066ba44e2aa2de9891808481cb50b3f166a0d77611fe863a104e9ac17d2b7a",
+    "frontend/src/shared/motion/motion.css": "0ba721ffff20a0a71e868069bac7dd68044fed53083bcdde861ebf3d8711402a",
+    "frontend/src/shared/motion/useFeedbackMotion.ts": "0acee6ad311863a5c7012f7b455d98ff0384b99cd878ba41d6c5ac90e4c2fd9f",
+    "frontend/src/shared/motion/usePageEntry.ts": "42c86475302003abd16ad87859e03b2acf7a164576c28ae612de2821b707c6e7",
+    "frontend/src/features/auth/useAuthTransition.ts": "446fe3bd01c11999552047da84a4deec63227baae66dc840efcf6597898a9967",
+    "frontend/src/features/auth/useInitialReveal.ts": "2b6b8a18a3e8d17c887ef77e6361acd359a6f8639a44bff4597aad5bf5657e79",
+    "frontend/src/features/auth/useAuthValidation.ts": "c9c47383ebbe896dfb56df55ace4cf77b5811dbc1722b97d81cfe368deb08bf0",
+    "frontend/src/features/auth/AuthMotionContext.ts": "48eaec5015b119aa806485000d209e3cc5d577adbc1156b191f49796d34fceb6",
+    "frontend/src/pages/AuthLayout.tsx": "bf98a319d23fe5630047fd25f7235db4703d9f431721cda502902c933bd701b3",
+    "frontend/src/pages/LoginPage.tsx": "91a37bdcfbae595d537c9149ed1ecad3411ddff290b0326a7c8c42df25dc9a51",
+    "frontend/src/pages/RegistrationPage.tsx": "7b047b8df03e15f4947a699395da056ec383c62ebb9dcd58a45ff0c1a44ec88f",
+    "frontend/src/pages/LoginPage.css": "b0ef937a7cdc277de5605de1c024b0e807414361f59b77a2ad10be51502b3b62",
+    "frontend/src/layouts/AppShell.tsx": "f915db1ba0c47458ae7786b27abe84040d816d1a400b375ab82bfe938c7f0080",
+    "frontend/src/layouts/ExecutorLayout.tsx": "2f953541d3524a03ff2c14fd392b3b919b3c96ad4bb2403ef2a9aa58c6ebb75f",
+    "frontend/src/shared/ui/Form.tsx": "c94eb2a6370cf8549943b5b686e7e643ff983e84dd110efba6f4e797dfd68e88",
+    "frontend/src/shared/ui/Button.tsx": "dfd6a7033d57635d107fde38b9d04f3fd4831bc8df7c57ed44b813b4f3feb39e"
+  },
+  "compiled": {
+    "base": "http://127.0.0.1:8000",
+    "assets": [
+      "/assets/index-stKD45x-.js",
+      "/assets/index-DdFTHZjK.css"
+    ],
+    "htmlSha256": "75964b79369cd2535446c030c59a2bfbcfc449e9ff5ec363d410baab8bec8ec5",
+    "matchesWorkingTreeDist": true
+  },
+  "performance": {
+    "baseline": "baseline.json",
+    "intermediate": "performance-intermediate.json",
+    "afterDisabledFix": "performance.json",
+    "sampleTimingNote": "Latest10s sample was taken after disabled-gesture correction and before the final event-only scroll/focus refinements; those do not run on the sampled idle auth path. The six renderer/SVG files remain identical in the final source.",
+    "before": {
+      "taskSeconds": 0.635542,
+      "scriptSeconds": 0.165285,
+      "rafP95Ms": 15.700000000000728,
+      "rafCallbacks": 745,
+      "rafIntervalsOver25ms": 0
+    },
+    "after": {
+      "taskSeconds": 0.470595,
+      "scriptSeconds": 0.127752,
+      "rafP95Ms": 8.100000000000364,
+      "rafCallbacks": 1306,
+      "rafIntervalsOver25ms": 0
+    },
+    "conclusion": "No steady-state regression observed in these single local headless samples. Callback cadence varied substantially; do not attribute lower durations to Motion System, claim a percentage improvement or infer actual display FPS."
+  },
+  "video": {
+    "artifact": "auth-transitions.webm",
+    "protocol": "video.json",
+    "decodeCheck": "video-review.json",
+    "captureWindowMs": 5371,
+    "capturedPageFrames": 54,
+    "bytes": 671775,
+    "decodedViewport": {
+      "width": 1440,
+      "height": 900,
+      "duration": "unspecified",
+      "readyState": 4
+    },
+    "role": "Short sampled visual walkthrough only; not a performance or display-frame-rate measurement."
+  },
+  "console": {
+    "unexpectedJavaScriptErrors": 0,
+    "unexpectedConsoleErrors": 0,
+    "expectedNetworkErrors": "Deliberate mocked401 login failures produce expected browser network lines; these are preserved separately in the per-run reports."
+  },
+  "passwordEvidence": {
+    "preservationReportedAsBooleans": true,
+    "typedPasswordInJsonArtifacts": []
+  },
+  "visualReview": {
+    "approved": true,
+    "representativeImages": [
+      "initial-reveal-1440x900.png",
+      "login-settled-1440x900.png",
+      "register-settled-1440x900.png",
+      "login-390x844.png",
+      "register-390x844.png",
+      "authorized-entry-1440x900.png",
+      "scroll-context-register-320x568.png",
+      "success-scroll-320x568.png"
+    ],
+    "videoRepresentativeFramesDecodedAndInspected": true
+  },
+  "limitations": [
+    "Firefox was not found in the checked installation, command, registry or Playwright cache paths; no browser downloads were attempted.",
+    "Mobile viewports/touch and short-height behavior were emulated in Chrome; physical phones, their virtual keyboards and Safari were not tested.",
+    "Screen-reader semantics, focus, inert and live errors were inspected; a physical screen reader was not exercised.",
+    "Native app reload returned scroll0 in this environment, while no Motion System scroll/focus call ran; this task does not implement global browser scroll restoration.",
+    "Headless rAF cadence and sampled video do not measure physically displayed frame rate or total GPU/system load."
+  ]
+}

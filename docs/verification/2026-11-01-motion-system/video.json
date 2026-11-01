@@ -1,0 +1,44 @@
+{
+  "timestamp": "2026-11-01T17:31:34.451Z",
+  "base": "http://127.0.0.1:8000",
+  "method": "CDP JPEG page frames, sampled up to15Hz, drawn into separate viewer canvas and encoded with native Chrome MediaRecorder VP9. Visual artifact only, recorded separately from all performance samples.",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "actions": [
+    {
+      "name": "initial auth reveal",
+      "elapsedMs": 2
+    },
+    {
+      "name": "login to registration",
+      "elapsedMs": 1070
+    },
+    {
+      "name": "registration to login",
+      "elapsedMs": 2377
+    },
+    {
+      "name": "pending request",
+      "elapsedMs": 3330
+    },
+    {
+      "name": "confirmed successful response",
+      "elapsedMs": 3936
+    },
+    {
+      "name": "authorized app settled with empty valid fixtures",
+      "elapsedMs": 5060
+    }
+  ],
+  "frames": 54,
+  "errors": [],
+  "finalCompositorFrameFlushed": true,
+  "durationMs": 5371,
+  "file": "auth-transitions.webm",
+  "bytes": 671775,
+  "loginRequests": 1,
+  "fixtureContent": "Empty task/comparison datasets and a confirmed dispatcher profile; no actual backend data or credentials.",
+  "passed": true
+}

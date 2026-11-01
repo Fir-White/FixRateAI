@@ -1,0 +1,641 @@
+{
+  "timestamp": "2026-11-01T18:03:06.402Z",
+  "base": "http://127.0.0.1:5174",
+  "scope": "Open scene DOM/visual review with mocked API. Static screenshots use reduced-motion for matched geometry; live motion is verified separately.",
+  "checks": [
+    {
+      "name": "/login 1440x900",
+      "innerWidth": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1430,
+      "rootWidth": 1430,
+      "scene": {
+        "x": 460,
+        "y": 0,
+        "width": 970,
+        "height": 900
+      },
+      "sceneChildren": [
+        "svg",
+        "CANVAS"
+      ],
+      "sceneImages": 0,
+      "removedNodes": 0,
+      "divDescendants": 0,
+      "pseudo": [
+        {
+          "pseudo": "::before",
+          "content": "none",
+          "background": "none"
+        },
+        {
+          "pseudo": "::after",
+          "content": "none",
+          "background": "none"
+        }
+      ],
+      "topImages": [
+        {
+          "src": "/src/assets/fixrate-mark.svg",
+          "transform": "none",
+          "x": 52,
+          "y": 46,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "src": "/src/assets/fixrate-wordmark.svg",
+          "transform": "none",
+          "x": 108,
+          "y": 55.875,
+          "width": 157,
+          "height": 24.25
+        }
+      ],
+      "paths": 3,
+      "uses": 8,
+      "canvases": 1,
+      "inputs": [
+        {
+          "id": "login-email",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "14px"
+        },
+        {
+          "id": "login-password",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "14px"
+        }
+      ],
+      "motion": "paused"
+    },
+    {
+      "name": "/register 1440x900",
+      "innerWidth": 1440,
+      "clientWidth": 1440,
+      "scrollWidth": 1430,
+      "rootWidth": 1430,
+      "scene": {
+        "x": 460,
+        "y": 0,
+        "width": 970,
+        "height": 900
+      },
+      "sceneChildren": [
+        "svg",
+        "CANVAS"
+      ],
+      "sceneImages": 0,
+      "removedNodes": 0,
+      "divDescendants": 0,
+      "pseudo": [
+        {
+          "pseudo": "::before",
+          "content": "none",
+          "background": "none"
+        },
+        {
+          "pseudo": "::after",
+          "content": "none",
+          "background": "none"
+        }
+      ],
+      "topImages": [
+        {
+          "src": "/src/assets/fixrate-mark.svg",
+          "transform": "none",
+          "x": 52,
+          "y": 46,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "src": "/src/assets/fixrate-wordmark.svg",
+          "transform": "none",
+          "x": 108,
+          "y": 55.875,
+          "width": 157,
+          "height": 24.25
+        }
+      ],
+      "paths": 3,
+      "uses": 8,
+      "canvases": 1,
+      "inputs": [
+        {
+          "id": "register-name",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "14px"
+        },
+        {
+          "id": "register-email",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "14px"
+        },
+        {
+          "id": "register-password",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "14px"
+        },
+        {
+          "id": "register-password-confirmation",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "14px"
+        },
+        {
+          "id": "register-code",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "14px"
+        }
+      ],
+      "motion": "paused"
+    },
+    {
+      "name": "/login 1366x768",
+      "innerWidth": 1366,
+      "clientWidth": 1366,
+      "scrollWidth": 1356,
+      "rootWidth": 1356,
+      "scene": {
+        "x": 460,
+        "y": 0,
+        "width": 896,
+        "height": 768
+      },
+      "sceneChildren": [
+        "svg",
+        "CANVAS"
+      ],
+      "sceneImages": 0,
+      "removedNodes": 0,
+      "divDescendants": 0,
+      "pseudo": [
+        {
+          "pseudo": "::before",
+          "content": "none",
+          "background": "none"
+        },
+        {
+          "pseudo": "::after",
+          "content": "none",
+          "background": "none"
+        }
+      ],
+      "topImages": [
+        {
+          "src": "/src/assets/fixrate-mark.svg",
+          "transform": "none",
+          "x": 52,
+          "y": 32,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "src": "/src/assets/fixrate-wordmark.svg",
+          "transform": "none",
+          "x": 108,
+          "y": 41.875,
+          "width": 157,
+          "height": 24.25
+        }
+      ],
+      "paths": 3,
+      "uses": 8,
+      "canvases": 1,
+      "inputs": [
+        {
+          "id": "login-email",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "14px"
+        },
+        {
+          "id": "login-password",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "14px"
+        }
+      ],
+      "motion": "paused"
+    },
+    {
+      "name": "/register 1366x768",
+      "innerWidth": 1366,
+      "clientWidth": 1366,
+      "scrollWidth": 1356,
+      "rootWidth": 1356,
+      "scene": {
+        "x": 460,
+        "y": 0,
+        "width": 896,
+        "height": 768
+      },
+      "sceneChildren": [
+        "svg",
+        "CANVAS"
+      ],
+      "sceneImages": 0,
+      "removedNodes": 0,
+      "divDescendants": 0,
+      "pseudo": [
+        {
+          "pseudo": "::before",
+          "content": "none",
+          "background": "none"
+        },
+        {
+          "pseudo": "::after",
+          "content": "none",
+          "background": "none"
+        }
+      ],
+      "topImages": [
+        {
+          "src": "/src/assets/fixrate-mark.svg",
+          "transform": "none",
+          "x": 52,
+          "y": 32,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "src": "/src/assets/fixrate-wordmark.svg",
+          "transform": "none",
+          "x": 108,
+          "y": 41.875,
+          "width": 157,
+          "height": 24.25
+        }
+      ],
+      "paths": 3,
+      "uses": 8,
+      "canvases": 1,
+      "inputs": [
+        {
+          "id": "register-name",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "14px"
+        },
+        {
+          "id": "register-email",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "14px"
+        },
+        {
+          "id": "register-password",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "14px"
+        },
+        {
+          "id": "register-password-confirmation",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "14px"
+        },
+        {
+          "id": "register-code",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "14px"
+        }
+      ],
+      "motion": "paused"
+    },
+    {
+      "name": "/login 390x844",
+      "innerWidth": 390,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "rootWidth": 390,
+      "scene": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844
+      },
+      "sceneChildren": [
+        "svg",
+        "CANVAS"
+      ],
+      "sceneImages": 0,
+      "removedNodes": 0,
+      "divDescendants": 0,
+      "pseudo": [
+        {
+          "pseudo": "::before",
+          "content": "none",
+          "background": "none"
+        },
+        {
+          "pseudo": "::after",
+          "content": "none",
+          "background": "none"
+        }
+      ],
+      "topImages": [
+        {
+          "src": "/src/assets/fixrate-mark.svg",
+          "transform": "none",
+          "x": 24,
+          "y": 28,
+          "width": 40,
+          "height": 40
+        },
+        {
+          "src": "/src/assets/fixrate-wordmark.svg",
+          "transform": "none",
+          "x": 76,
+          "y": 36.796875,
+          "width": 145,
+          "height": 22.390625
+        }
+      ],
+      "paths": 3,
+      "uses": 8,
+      "canvases": 1,
+      "inputs": [
+        {
+          "id": "login-email",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "16px"
+        },
+        {
+          "id": "login-password",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "16px"
+        }
+      ],
+      "motion": "paused"
+    },
+    {
+      "name": "/register 390x844",
+      "innerWidth": 390,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "rootWidth": 390,
+      "scene": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844
+      },
+      "sceneChildren": [
+        "svg",
+        "CANVAS"
+      ],
+      "sceneImages": 0,
+      "removedNodes": 0,
+      "divDescendants": 0,
+      "pseudo": [
+        {
+          "pseudo": "::before",
+          "content": "none",
+          "background": "none"
+        },
+        {
+          "pseudo": "::after",
+          "content": "none",
+          "background": "none"
+        }
+      ],
+      "topImages": [
+        {
+          "src": "/src/assets/fixrate-mark.svg",
+          "transform": "none",
+          "x": 24,
+          "y": 28,
+          "width": 40,
+          "height": 40
+        },
+        {
+          "src": "/src/assets/fixrate-wordmark.svg",
+          "transform": "none",
+          "x": 76,
+          "y": 36.796875,
+          "width": 145,
+          "height": 22.390625
+        }
+      ],
+      "paths": 3,
+      "uses": 8,
+      "canvases": 1,
+      "inputs": [
+        {
+          "id": "register-name",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "16px"
+        },
+        {
+          "id": "register-email",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "16px"
+        },
+        {
+          "id": "register-password",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "16px"
+        },
+        {
+          "id": "register-password-confirmation",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "16px"
+        },
+        {
+          "id": "register-code",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "16px"
+        }
+      ],
+      "motion": "paused"
+    },
+    {
+      "name": "/login 320x568",
+      "innerWidth": 320,
+      "clientWidth": 320,
+      "scrollWidth": 320,
+      "rootWidth": 320,
+      "scene": {
+        "x": 0,
+        "y": 0,
+        "width": 320,
+        "height": 700
+      },
+      "sceneChildren": [
+        "svg",
+        "CANVAS"
+      ],
+      "sceneImages": 0,
+      "removedNodes": 0,
+      "divDescendants": 0,
+      "pseudo": [
+        {
+          "pseudo": "::before",
+          "content": "none",
+          "background": "none"
+        },
+        {
+          "pseudo": "::after",
+          "content": "none",
+          "background": "none"
+        }
+      ],
+      "topImages": [
+        {
+          "src": "/src/assets/fixrate-mark.svg",
+          "transform": "none",
+          "x": 24,
+          "y": 28,
+          "width": 40,
+          "height": 40
+        },
+        {
+          "src": "/src/assets/fixrate-wordmark.svg",
+          "transform": "none",
+          "x": 76,
+          "y": 36.796875,
+          "width": 145,
+          "height": 22.390625
+        }
+      ],
+      "paths": 3,
+      "uses": 8,
+      "canvases": 1,
+      "inputs": [
+        {
+          "id": "login-email",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "16px"
+        },
+        {
+          "id": "login-password",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "16px"
+        }
+      ],
+      "motion": "paused"
+    },
+    {
+      "name": "/register 320x568",
+      "innerWidth": 320,
+      "clientWidth": 320,
+      "scrollWidth": 320,
+      "rootWidth": 320,
+      "scene": {
+        "x": 0,
+        "y": 0,
+        "width": 320,
+        "height": 700
+      },
+      "sceneChildren": [
+        "svg",
+        "CANVAS"
+      ],
+      "sceneImages": 0,
+      "removedNodes": 0,
+      "divDescendants": 0,
+      "pseudo": [
+        {
+          "pseudo": "::before",
+          "content": "none",
+          "background": "none"
+        },
+        {
+          "pseudo": "::after",
+          "content": "none",
+          "background": "none"
+        }
+      ],
+      "topImages": [
+        {
+          "src": "/src/assets/fixrate-mark.svg",
+          "transform": "none",
+          "x": 24,
+          "y": 28,
+          "width": 40,
+          "height": 40
+        },
+        {
+          "src": "/src/assets/fixrate-wordmark.svg",
+          "transform": "none",
+          "x": 76,
+          "y": 36.796875,
+          "width": 145,
+          "height": 22.390625
+        }
+      ],
+      "paths": 3,
+      "uses": 8,
+      "canvases": 1,
+      "inputs": [
+        {
+          "id": "register-name",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "16px"
+        },
+        {
+          "id": "register-email",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "16px"
+        },
+        {
+          "id": "register-password",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "16px"
+        },
+        {
+          "id": "register-password-confirmation",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "16px"
+        },
+        {
+          "id": "register-code",
+          "background": "rgb(11, 23, 29)",
+          "opacity": "1",
+          "font": "16px"
+        }
+      ],
+      "motion": "paused"
+    },
+    {
+      "name": "independent moving paths static ambient sameScene native oneclick pausedphase topbrand mouse and reduced-motion",
+      "passed": true
+    },
+    {
+      "name": "classic gutter remains stable after scene removal",
+      "actualScrollbarWidth": 10,
+      "rootWidth": 1430,
+      "scene": {
+        "x": 460,
+        "y": 0,
+        "width": 970,
+        "height": 900
+      }
+    }
+  ],
+  "errors": [],
+  "browser": "156.0.8078.79",
+  "passed": true
+}

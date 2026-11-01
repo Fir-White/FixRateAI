@@ -42,14 +42,18 @@ it('disables the form during the request and preserves entered data when registr
   expect(screen.getByLabelText('Подтвердите пароль')).toBeDisabled();
   expect(screen.getByRole('button',{name:'Показать пароль'})).toBeDisabled();
   expect(screen.getByRole('button',{name:'Показать подтверждение пароля'})).toBeDisabled();
+  expect(screen.getByLabelText('Код компании')).toHaveAttribute('data-validation','valid');
   expect(register).toHaveBeenCalledWith({full_name:'Тестовый сотрудник',email:'staff@example.test',password:'Fixture-password-1234',company_code:'0123456789abcdef'});
   rejectRequest(new Error('Недействительный код компании'));
   expect(await screen.findByRole('alert')).toHaveTextContent('Недействительный код компании');
+  expect(screen.getByLabelText('Код компании')).toHaveAttribute('data-validation','invalid');
   await waitFor(()=>expect(screen.getByLabelText('Имя и фамилия')).toBeEnabled());
   expect(screen.getByLabelText('Код компании')).toHaveValue('0123456789abcdef');
   expect(screen.getByLabelText('Пароль')).toHaveValue('Fixture-password-1234');
   expect(screen.getByLabelText('Подтвердите пароль')).toHaveValue('Fixture-password-1234');
   expect(screen.getByRole('form',{name:'Регистрация сотрудника'})).toHaveAttribute('aria-busy','false');
+  fireEvent.change(screen.getByLabelText('Код компании'),{target:{value:'0123456789abcdef2'}});
+  expect(screen.getByLabelText('Код компании')).toHaveAttribute('data-validation','valid');
 });
 
 it('blocks mismatched passwords, focuses an accessible error and recovers when the original password is corrected',async()=>{
@@ -66,10 +70,12 @@ it('blocks mismatched passwords, focuses an accessible error and recovers when t
   expect(screen.getByRole('alert')).toHaveTextContent('Пароли не совпадают');
   expect(confirmation).toHaveFocus();
   expect(confirmation).toHaveAttribute('aria-invalid','true');
+  expect(confirmation).toHaveAttribute('data-validation','invalid');
   expect(confirmation).toHaveAccessibleDescription('Пароли не совпадают');
   await user.type(screen.getByLabelText('Пароль'),'5');
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   expect(confirmation).not.toHaveAttribute('aria-invalid');
+  expect(confirmation).toHaveAttribute('data-validation','valid');
   await user.click(screen.getByRole('button',{name:'Зарегистрироваться'}));
   expect(await screen.findByRole('status')).toHaveTextContent('Заявка ожидает выдачи роли');
   expect(register).toHaveBeenCalledOnce();

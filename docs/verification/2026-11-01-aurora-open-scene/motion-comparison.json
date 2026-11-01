@@ -1,0 +1,156 @@
+{
+  "timestamp": "2026-11-01T18:10:37.514Z",
+  "method": "Deterministic0..60s geometry samples every0.25s. Visible world crop assumes the matched1440x900 scene970x900 (.9CSSpx/world). RMS thresholds are explicit diagnostic heuristics, not a claim that every point has nonzero speed at natural turning points. Axis derivative is minimized analytically within each sampled cubic; time continuum is reviewed separately.",
+  "before": {
+    "geometrySourceSha256": "7dae4ec56734a1d0ab9f75e353fc305420b8a58ae1e128bab6ad23c7e1a5ae09",
+    "controlLimits": [
+      32,
+      24,
+      0
+    ],
+    "endpointMaxDriftWorld": 0,
+    "C1MaxErrorWorld": 1.1368683772161603e-13,
+    "minAnalyticProjectedDerivativeDiv3": 159.3611582083585,
+    "sampledCurvesMonotoneWithoutLoops": true,
+    "sampledMinCenterlineSeparationWorld": 70.04390753032648,
+    "sampledBrightCoresSeparated": true,
+    "maxControlExcursionWorld": [
+      31.986702301799284,
+      23.98798678572583
+    ],
+    "maxVisibleCenterlineExcursionWorld": [
+      26.29532985068582,
+      19.051992958716237
+    ],
+    "rollingDisplacement": [
+      {
+        "spanSeconds": 1,
+        "nearStillThresholdRmsCssPx": 0.5,
+        "waves": [
+          {
+            "index": 0,
+            "minRmsCss": 0.19370199057422596,
+            "p5RmsCss": 0.4365111308304896,
+            "medianRmsCss": 1.7712345853572815,
+            "maxRmsCss": 8.804597085891896,
+            "longestLowWindowSpanSeconds": 3.75,
+            "lowWindowCount": 15
+          },
+          {
+            "index": 1,
+            "minRmsCss": 0.21219002617116356,
+            "p5RmsCss": 0.4006870596229732,
+            "medianRmsCss": 2.1046255063623245,
+            "maxRmsCss": 7.670349053510806,
+            "longestLowWindowSpanSeconds": 3,
+            "lowWindowCount": 19
+          }
+        ],
+        "bothLowWindowCount": 2,
+        "longestBothLowSpanSeconds": 1.25
+      },
+      {
+        "spanSeconds": 2,
+        "nearStillThresholdRmsCssPx": 1,
+        "waves": [
+          {
+            "index": 0,
+            "minRmsCss": 0.4136459444008083,
+            "p5RmsCss": 0.915184796695016,
+            "medianRmsCss": 3.5684523407528395,
+            "maxRmsCss": 14.617242064528028,
+            "longestLowWindowSpanSeconds": 4.75,
+            "lowWindowCount": 14
+          },
+          {
+            "index": 1,
+            "minRmsCss": 0.47308336835211406,
+            "p5RmsCss": 0.8181788450796874,
+            "medianRmsCss": 3.9573421493203207,
+            "maxRmsCss": 13.184755519347668,
+            "longestLowWindowSpanSeconds": 3.75,
+            "lowWindowCount": 17
+          }
+        ],
+        "bothLowWindowCount": 2,
+        "longestBothLowSpanSeconds": 2.25
+      }
+    ]
+  },
+  "after": {
+    "geometrySourceSha256": "cdec7a89226956366b7c55e268f616754c7de82acdaf60df386b3a35bab3495d",
+    "controlLimits": [
+      48,
+      36,
+      0
+    ],
+    "endpointMaxDriftWorld": 0,
+    "C1MaxErrorWorld": 1.1368683772161603e-13,
+    "minAnalyticProjectedDerivativeDiv3": 153.69822444931097,
+    "sampledCurvesMonotoneWithoutLoops": true,
+    "sampledMinCenterlineSeparationWorld": 59.46748506082034,
+    "sampledBrightCoresSeparated": true,
+    "maxControlExcursionWorld": [
+      47.99479570942034,
+      35.99870492816642
+    ],
+    "maxVisibleCenterlineExcursionWorld": [
+      40.17101286265305,
+      24.185541934975376
+    ],
+    "rollingDisplacement": [
+      {
+        "spanSeconds": 1,
+        "nearStillThresholdRmsCssPx": 0.5,
+        "waves": [
+          {
+            "index": 0,
+            "minRmsCss": 0.734165628514111,
+            "p5RmsCss": 0.971980243059534,
+            "medianRmsCss": 2.3973724883738723,
+            "maxRmsCss": 10.280155996875516,
+            "longestLowWindowSpanSeconds": 0,
+            "lowWindowCount": 0
+          },
+          {
+            "index": 1,
+            "minRmsCss": 0.6235763930920231,
+            "p5RmsCss": 0.7111802286115302,
+            "medianRmsCss": 1.212188816930336,
+            "maxRmsCss": 7.660014799160525,
+            "longestLowWindowSpanSeconds": 0,
+            "lowWindowCount": 0
+          }
+        ],
+        "bothLowWindowCount": 0,
+        "longestBothLowSpanSeconds": 0
+      },
+      {
+        "spanSeconds": 2,
+        "nearStillThresholdRmsCssPx": 1,
+        "waves": [
+          {
+            "index": 0,
+            "minRmsCss": 1.4669042316281404,
+            "p5RmsCss": 1.9966310451434799,
+            "medianRmsCss": 4.770914392525708,
+            "maxRmsCss": 18.135138823213612,
+            "longestLowWindowSpanSeconds": 0,
+            "lowWindowCount": 0
+          },
+          {
+            "index": 1,
+            "minRmsCss": 1.2449463902216882,
+            "p5RmsCss": 1.4230035137622634,
+            "medianRmsCss": 2.3867776361907644,
+            "maxRmsCss": 11.473210600341776,
+            "longestLowWindowSpanSeconds": 0,
+            "lowWindowCount": 0
+          }
+        ],
+        "bothLowWindowCount": 0,
+        "longestBothLowSpanSeconds": 0
+      }
+    ]
+  }
+}

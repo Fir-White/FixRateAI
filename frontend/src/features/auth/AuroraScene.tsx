@@ -1,7 +1,6 @@
 import { useId, useRef } from "react";
 import { useAuroraMotion } from "./useAuroraMotion";
 import { FLOW_HEIGHT, FLOW_WIDTH, ribbonFrame, ribbonPath } from "./ribbonGeometry";
-import logoMark from "@/assets/fixrate-mark.svg";
 
 const RIBBONS = [0, 1, 2];
 const LAYERS = [
@@ -52,13 +51,6 @@ export function AuroraScene({ animationEnabled = true, onReducedMotionChange }: 
         ))}
       </svg>
       <canvas className="auth-particles-canvas" data-aurora-particles="" />
-      <div className="auth-aurora__scrim" />
-      <div className="auth-aurora__brand">
-        <div className="auth-aurora__logo">
-          <img src={logoMark} alt="" width="360" height="360" draggable={false} />
-        </div>
-      </div>
-      <div className="auth-aurora__vignette" />
     </div>
   );
 }

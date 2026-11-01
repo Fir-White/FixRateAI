@@ -3,7 +3,7 @@ export type Cubic = readonly [Point, Point, Point, Point];
 export type WaveFrame = { index: number; cubics: readonly Cubic[] };
 export const FLOW_WIDTH = 1200;
 export const FLOW_HEIGHT = 1000;
-export const CONTROL_DISPLACEMENT_LIMITS = [32, 24, 0] as const;
+export const CONTROL_DISPLACEMENT_LIMITS = [48, 36, 0] as const;
 const SOURCES = [
   [[-180, 1140], [90, 1030], [480, 760], [590, 470], [870, -20], [910, -260]],
   [[220, 1260], [360, 960], [710, 720], [1000, 625], [1380, 500], [1500, 320]],
@@ -36,36 +36,36 @@ function noiseTarget(seed: number, target: number): Point {
   return [Math.cos(angle) * radius, Math.sin(angle) * radius];
 }
 
-// Each point stays between the same two deterministic targets for several
-// seconds. Cache those targets, not the interpolated frame, so arbitrary time
-// jumps and independently seeded ribbons retain exactly the same trajectory.
+// Cache the four neighboring controls, not interpolated frames. Reverse time
+// jumps and eviction therefore produce the same deterministic trajectory.
 const TARGET_CACHE_LIMIT = 64;
-const targetCache = new Map<number, { target: number; from: Point; to: Point }>();
-function targetPair(seed: number, target: number) {
+const targetCache = new Map<number, { target: number; points: readonly Point[] }>();
+function targetControls(seed: number, target: number) {
   const previous = targetCache.get(seed);
   if (previous?.target === target) return previous;
-  const pair = {
+  const controls = {
     target,
-    from: previous?.target === target - 1 ? previous.to : noiseTarget(seed, target),
-    to: noiseTarget(seed, target + 1),
+    points: previous?.target === target - 1
+      ? [previous.points[1], previous.points[2], previous.points[3], noiseTarget(seed, target + 2)]
+      : [-1, 0, 1, 2].map(offset => noiseTarget(seed, target + offset)),
   };
   if (!previous && targetCache.size >= TARGET_CACHE_LIMIT) {
     const oldest = targetCache.keys().next().value;
     if (oldest !== undefined) targetCache.delete(oldest);
   }
-  targetCache.set(seed, pair);
-  return pair;
+  targetCache.set(seed, controls);
+  return controls;
 }
 
-/** Seeded two-dimensional value noise. Every target has its own direction and
- * distance; quintic interpolation keeps velocity and acceleration continuous
- * across target boundaries without wrapping a repeating animation timeline.
+/** Seeded uniform cubic B-spline flow. Neighboring intervals share position,
+ * velocity and acceleration, without forcing velocity to zero at every knot.
+ * Nonnegative weights preserve the bounded control hull; no repeating clock.
  */
 export function flowNoise(seed: number, seconds: number, interval: number): Point {
-  const time = seconds / interval, target = Math.floor(time), fraction = time - target;
-  const blend = fraction ** 3 * (fraction * (fraction * 6 - 15) + 10);
-  const { from, to } = targetPair(seed, target);
-  return [from[0] + (to[0] - from[0]) * blend, from[1] + (to[1] - from[1]) * blend];
+  const time = seconds / interval, target = Math.floor(time), t = time - target, q = 1 - t;
+  const weights = [q ** 3 / 6, (3 * t ** 3 - 6 * t ** 2 + 4) / 6, (-3 * t ** 3 + 3 * t ** 2 + 3 * t + 1) / 6, t ** 3 / 6];
+  const { points } = targetControls(seed, target);
+  return [0, 1].map(axis => weights.reduce((sum, weight, i) => sum + points[i][axis] * weight, 0)) as unknown as Point;
 }
 
 // Accelerate the entire existing trajectory equally, including its slow drift.
@@ -88,15 +88,22 @@ function displacement(index: number, seconds: number, point: number): Point {
   const motion = MOTION[index][point];
   const main = flowNoise(motion.seed, seconds + motion.offset, motion.interval);
   const slow = flowNoise(motion.slowSeed, seconds + motion.slowOffset, motion.slowInterval);
-  const value = (axis: number) => .82 * (main[axis] - motion.start[axis]) + .18 * (slow[axis] - motion.slowStart[axis]);
-  return [value(0) * 45 * motion.envelope, value(1) * 40 * motion.envelope];
+  // A quiet quadrature channel keeps the central join flowing while neighboring
+  // seeded controls and slow drift prevent a repeated whole-ribbon trajectory.
+  const carrier = point === 3 ? .5 : 0;
+  const initialAngle = motion.offset + point * .8;
+  const angle = initialAngle + seconds / (motion.interval * 4.2) * Math.PI * 2;
+  const value = (axis: number) => (.82 - carrier) * (main[axis] - motion.start[axis]) + .18 * (slow[axis] - motion.slowStart[axis])
+    + carrier * (Math.sin(angle + axis * Math.PI / 2) - Math.sin(initialAngle + axis * Math.PI / 2));
+  return [value(0) * 120 * motion.envelope, value(1) * 100 * motion.envelope];
 }
 
 /** Original composition at t=0. Each wave retains its own phases and C1 join.
  * A smooth p=8 norm includes the reflected S handle: every actual cubic control
- * stays within32/24 world px (about25/19 CSS px at1366x768). Convexity and the
- * certified baseline distance>70 imply centerline separation>14px for ALL times,
- * above the bright-core halfwidth sum12.5. No time wrapping or frame randomness.
+ * stays within48/36 world px. A Bernstein/Hölder interval certificate uses the
+ * GLOBAL p8 control budget to prove centerline separation>15px for ALL times,
+ * above the bright-core halfwidth sum12.5, and positive x-control gaps. The
+ * reflected S handle must remain in this shared budget. No frame randomness.
  * The third curve is static diffuse ambient light, without a recognizable core.
  */
 export function ribbonFrame(index: number, seconds: number): WaveFrame {

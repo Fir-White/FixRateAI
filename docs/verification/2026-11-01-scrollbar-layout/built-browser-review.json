@@ -1,0 +1,971 @@
+{
+  "timestamp": "2026-11-01T17:46:55.705Z",
+  "base": "http://127.0.0.1:8000",
+  "browserMode": "Classic desktop: remove Playwright hide-scrollbars and disable overlay features; mobile: remove hide-scrollbars but leave overlay features enabled and use mobile device emulation.",
+  "checks": [
+    {
+      "name": "classic desktop 1440x900",
+      "login": {
+        "innerWidth": 1440,
+        "clientWidth": 1440,
+        "scrollWidth": 1430,
+        "scrollbarWidth": 0,
+        "scrollHeight": 900,
+        "clientHeight": 900,
+        "rootWidth": 1430,
+        "bodyWidth": 1430,
+        "gutter": "stable",
+        "bodyOverflow": "visible",
+        "divider": 460,
+        "scene": {
+          "x": 460,
+          "y": 0,
+          "width": 970,
+          "height": 900,
+          "right": 1430,
+          "bottom": 900
+        },
+        "logos": [
+          {
+            "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+            "x": 52,
+            "y": 46,
+            "width": 44,
+            "height": 44,
+            "right": 96,
+            "bottom": 90
+          },
+          {
+            "src": "/assets/fixrate-wordmark-DacTNmDU.svg",
+            "x": 108,
+            "y": 55.875,
+            "width": 157,
+            "height": 24.25,
+            "right": 265,
+            "bottom": 80.125
+          },
+          {
+            "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+            "x": 770,
+            "y": 267,
+            "width": 350,
+            "height": 350,
+            "right": 1120,
+            "bottom": 617
+          }
+        ],
+        "appMain": null,
+        "appHeader": null,
+        "scrollY": 0
+      },
+      "forced": {
+        "innerWidth": 1440,
+        "clientWidth": 1430,
+        "scrollWidth": 1430,
+        "scrollbarWidth": 10,
+        "scrollHeight": 2900,
+        "clientHeight": 900,
+        "rootWidth": 1430,
+        "bodyWidth": 1430,
+        "gutter": "stable",
+        "bodyOverflow": "visible",
+        "divider": 460,
+        "scene": {
+          "x": 460,
+          "y": 0,
+          "width": 970,
+          "height": 900,
+          "right": 1430,
+          "bottom": 900
+        },
+        "logos": [
+          {
+            "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+            "x": 52,
+            "y": 46,
+            "width": 44,
+            "height": 44,
+            "right": 96,
+            "bottom": 90
+          },
+          {
+            "src": "/assets/fixrate-wordmark-DacTNmDU.svg",
+            "x": 108,
+            "y": 55.875,
+            "width": 157,
+            "height": 24.25,
+            "right": 265,
+            "bottom": 80.125
+          },
+          {
+            "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+            "x": 770,
+            "y": 267,
+            "width": 350,
+            "height": 350,
+            "right": 1120,
+            "bottom": 617
+          }
+        ],
+        "appMain": null,
+        "appHeader": null,
+        "scrollY": 0
+      },
+      "restored": {
+        "innerWidth": 1440,
+        "clientWidth": 1440,
+        "scrollWidth": 1430,
+        "scrollbarWidth": 0,
+        "scrollHeight": 900,
+        "clientHeight": 900,
+        "rootWidth": 1430,
+        "bodyWidth": 1430,
+        "gutter": "stable",
+        "bodyOverflow": "visible",
+        "divider": 460,
+        "scene": {
+          "x": 460,
+          "y": 0,
+          "width": 970,
+          "height": 900,
+          "right": 1430,
+          "bottom": 900
+        },
+        "logos": [
+          {
+            "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+            "x": 52,
+            "y": 46,
+            "width": 44,
+            "height": 44,
+            "right": 96,
+            "bottom": 90
+          },
+          {
+            "src": "/assets/fixrate-wordmark-DacTNmDU.svg",
+            "x": 108,
+            "y": 55.875,
+            "width": 157,
+            "height": 24.25,
+            "right": 265,
+            "bottom": 80.125
+          },
+          {
+            "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+            "x": 770,
+            "y": 267,
+            "width": 350,
+            "height": 350,
+            "right": 1120,
+            "bottom": 617
+          }
+        ],
+        "appMain": null,
+        "appHeader": null,
+        "scrollY": 0
+      },
+      "registration": {
+        "innerWidth": 1440,
+        "clientWidth": 1430,
+        "scrollWidth": 1430,
+        "scrollbarWidth": 10,
+        "scrollHeight": 950,
+        "clientHeight": 900,
+        "rootWidth": 1430,
+        "bodyWidth": 1430,
+        "gutter": "stable",
+        "bodyOverflow": "visible",
+        "divider": 460,
+        "scene": {
+          "x": 460,
+          "y": 0,
+          "width": 970,
+          "height": 900,
+          "right": 1430,
+          "bottom": 900
+        },
+        "logos": [
+          {
+            "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+            "x": 52,
+            "y": 46,
+            "width": 44,
+            "height": 44,
+            "right": 96,
+            "bottom": 90
+          },
+          {
+            "src": "/assets/fixrate-wordmark-DacTNmDU.svg",
+            "x": 108,
+            "y": 55.875,
+            "width": 157,
+            "height": 24.25,
+            "right": 265,
+            "bottom": 80.125
+          },
+          {
+            "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+            "x": 770,
+            "y": 267,
+            "width": 350,
+            "height": 350,
+            "right": 1120,
+            "bottom": 617
+          }
+        ],
+        "appMain": null,
+        "appHeader": null,
+        "scrollY": 0
+      },
+      "errors": {
+        "innerWidth": 1440,
+        "clientWidth": 1430,
+        "scrollWidth": 1430,
+        "scrollbarWidth": 10,
+        "scrollHeight": 1029,
+        "clientHeight": 900,
+        "rootWidth": 1430,
+        "bodyWidth": 1430,
+        "gutter": "stable",
+        "bodyOverflow": "visible",
+        "divider": 460,
+        "scene": {
+          "x": 460,
+          "y": 0,
+          "width": 970,
+          "height": 900,
+          "right": 1430,
+          "bottom": 900
+        },
+        "logos": [
+          {
+            "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+            "x": 52,
+            "y": 46,
+            "width": 44,
+            "height": 44,
+            "right": 96,
+            "bottom": 90
+          },
+          {
+            "src": "/assets/fixrate-wordmark-DacTNmDU.svg",
+            "x": 108,
+            "y": 55.875,
+            "width": 157,
+            "height": 24.25,
+            "right": 265,
+            "bottom": 80.125
+          },
+          {
+            "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+            "x": 770,
+            "y": 267,
+            "width": 350,
+            "height": 350,
+            "right": 1120,
+            "bottom": 617
+          }
+        ],
+        "appMain": null,
+        "appHeader": null,
+        "scrollY": 0
+      },
+      "beforeModal": {
+        "innerWidth": 1440,
+        "clientWidth": 1430,
+        "scrollWidth": 1430,
+        "scrollbarWidth": 10,
+        "scrollHeight": 2900,
+        "clientHeight": 900,
+        "rootWidth": 1430,
+        "bodyWidth": 1430,
+        "gutter": "stable",
+        "bodyOverflow": "visible",
+        "divider": 460,
+        "scene": {
+          "x": 460,
+          "y": 0,
+          "width": 970,
+          "height": 900,
+          "right": 1430,
+          "bottom": 900
+        },
+        "logos": [
+          {
+            "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+            "x": 52,
+            "y": 46,
+            "width": 44,
+            "height": 44,
+            "right": 96,
+            "bottom": 90
+          },
+          {
+            "src": "/assets/fixrate-wordmark-DacTNmDU.svg",
+            "x": 108,
+            "y": 55.875,
+            "width": 157,
+            "height": 24.25,
+            "right": 265,
+            "bottom": 80.125
+          },
+          {
+            "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+            "x": 770,
+            "y": 267,
+            "width": 350,
+            "height": 350,
+            "right": 1120,
+            "bottom": 617
+          }
+        ],
+        "appMain": null,
+        "appHeader": null,
+        "scrollY": 0
+      },
+      "modal": {
+        "innerWidth": 1440,
+        "clientWidth": 1440,
+        "scrollWidth": 1430,
+        "scrollbarWidth": 0,
+        "scrollHeight": 2900,
+        "clientHeight": 900,
+        "rootWidth": 1430,
+        "bodyWidth": 1430,
+        "gutter": "stable",
+        "bodyOverflow": "hidden",
+        "divider": 460,
+        "scene": {
+          "x": 460,
+          "y": 0,
+          "width": 970,
+          "height": 900,
+          "right": 1430,
+          "bottom": 900
+        },
+        "logos": [
+          {
+            "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+            "x": 52,
+            "y": 46,
+            "width": 44,
+            "height": 44,
+            "right": 96,
+            "bottom": 90
+          },
+          {
+            "src": "/assets/fixrate-wordmark-DacTNmDU.svg",
+            "x": 108,
+            "y": 55.875,
+            "width": 157,
+            "height": 24.25,
+            "right": 265,
+            "bottom": 80.125
+          },
+          {
+            "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+            "x": 770,
+            "y": 267,
+            "width": 350,
+            "height": 350,
+            "right": 1120,
+            "bottom": 617
+          }
+        ],
+        "appMain": null,
+        "appHeader": null,
+        "scrollY": 0
+      },
+      "closed": {
+        "innerWidth": 1440,
+        "clientWidth": 1430,
+        "scrollWidth": 1430,
+        "scrollbarWidth": 10,
+        "scrollHeight": 2900,
+        "clientHeight": 900,
+        "rootWidth": 1430,
+        "bodyWidth": 1430,
+        "gutter": "stable",
+        "bodyOverflow": "visible",
+        "divider": 460,
+        "scene": {
+          "x": 460,
+          "y": 0,
+          "width": 970,
+          "height": 900,
+          "right": 1430,
+          "bottom": 900
+        },
+        "logos": [
+          {
+            "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+            "x": 52,
+            "y": 46,
+            "width": 44,
+            "height": 44,
+            "right": 96,
+            "bottom": 90
+          },
+          {
+            "src": "/assets/fixrate-wordmark-DacTNmDU.svg",
+            "x": 108,
+            "y": 55.875,
+            "width": 157,
+            "height": 24.25,
+            "right": 265,
+            "bottom": 80.125
+          },
+          {
+            "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+            "x": 770,
+            "y": 267,
+            "width": 350,
+            "height": 350,
+            "right": 1120,
+            "bottom": 617
+          }
+        ],
+        "appMain": null,
+        "appHeader": null,
+        "scrollY": 0
+      },
+      "scrollRestored": true,
+      "focusRestored": true
+    },
+    {
+      "name": "global app equipment fixture retains main/header geometry",
+      "appShort": {
+        "innerWidth": 1440,
+        "clientWidth": 1440,
+        "scrollWidth": 1430,
+        "scrollbarWidth": 0,
+        "scrollHeight": 900,
+        "clientHeight": 900,
+        "rootWidth": 1430,
+        "bodyWidth": 1430,
+        "gutter": "stable",
+        "bodyOverflow": "visible",
+        "divider": null,
+        "scene": null,
+        "logos": [],
+        "appMain": {
+          "x": 288,
+          "y": 69,
+          "width": 1142,
+          "height": 528.46875,
+          "right": 1430,
+          "bottom": 597.46875
+        },
+        "appHeader": {
+          "x": 288,
+          "y": 0,
+          "width": 1142,
+          "height": 69,
+          "right": 1430,
+          "bottom": 69
+        },
+        "scrollY": 0
+      },
+      "appTall": {
+        "innerWidth": 1440,
+        "clientWidth": 1430,
+        "scrollWidth": 1430,
+        "scrollbarWidth": 10,
+        "scrollHeight": 2900,
+        "clientHeight": 900,
+        "rootWidth": 1430,
+        "bodyWidth": 1430,
+        "gutter": "stable",
+        "bodyOverflow": "visible",
+        "divider": null,
+        "scene": null,
+        "logos": [],
+        "appMain": {
+          "x": 288,
+          "y": 69,
+          "width": 1142,
+          "height": 528.46875,
+          "right": 1430,
+          "bottom": 597.46875
+        },
+        "appHeader": {
+          "x": 288,
+          "y": 0,
+          "width": 1142,
+          "height": 69,
+          "right": 1430,
+          "bottom": 69
+        },
+        "scrollY": 0
+      }
+    },
+    {
+      "name": "overlay mobile emulation 320x568",
+      "hideScrollbarsArgRemoved": true,
+      "overlayDisableFlags": false,
+      "states": [
+        {
+          "route": "/login",
+          "normal": {
+            "innerWidth": 320,
+            "clientWidth": 320,
+            "scrollWidth": 320,
+            "scrollbarWidth": 0,
+            "scrollHeight": 700,
+            "clientHeight": 568,
+            "rootWidth": 320,
+            "bodyWidth": 320,
+            "gutter": "stable",
+            "bodyOverflow": "visible",
+            "divider": 320,
+            "scene": {
+              "x": 0,
+              "y": 0,
+              "width": 320,
+              "height": 700,
+              "right": 320,
+              "bottom": 700
+            },
+            "logos": [
+              {
+                "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+                "x": 24,
+                "y": 28,
+                "width": 40,
+                "height": 40,
+                "right": 64,
+                "bottom": 68
+              },
+              {
+                "src": "/assets/fixrate-wordmark-DacTNmDU.svg",
+                "x": 76,
+                "y": 36.796875,
+                "width": 145,
+                "height": 22.390625,
+                "right": 221,
+                "bottom": 59.1875
+              },
+              {
+                "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "right": 0,
+                "bottom": 0
+              }
+            ],
+            "appMain": null,
+            "appHeader": null,
+            "scrollY": 0
+          },
+          "tall": {
+            "innerWidth": 320,
+            "clientWidth": 320,
+            "scrollWidth": 320,
+            "scrollbarWidth": 0,
+            "scrollHeight": 2670,
+            "clientHeight": 568,
+            "rootWidth": 320,
+            "bodyWidth": 320,
+            "gutter": "stable",
+            "bodyOverflow": "visible",
+            "divider": 320,
+            "scene": {
+              "x": 0,
+              "y": 0,
+              "width": 320,
+              "height": 700,
+              "right": 320,
+              "bottom": 700
+            },
+            "logos": [
+              {
+                "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+                "x": 24,
+                "y": 28,
+                "width": 40,
+                "height": 40,
+                "right": 64,
+                "bottom": 68
+              },
+              {
+                "src": "/assets/fixrate-wordmark-DacTNmDU.svg",
+                "x": 76,
+                "y": 36.796875,
+                "width": 145,
+                "height": 22.390625,
+                "right": 221,
+                "bottom": 59.1875
+              },
+              {
+                "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "right": 0,
+                "bottom": 0
+              }
+            ],
+            "appMain": null,
+            "appHeader": null,
+            "scrollY": 0
+          }
+        },
+        {
+          "route": "/register",
+          "normal": {
+            "innerWidth": 320,
+            "clientWidth": 320,
+            "scrollWidth": 320,
+            "scrollbarWidth": 0,
+            "scrollHeight": 961,
+            "clientHeight": 568,
+            "rootWidth": 320,
+            "bodyWidth": 320,
+            "gutter": "stable",
+            "bodyOverflow": "visible",
+            "divider": 320,
+            "scene": {
+              "x": 0,
+              "y": 0,
+              "width": 320,
+              "height": 700,
+              "right": 320,
+              "bottom": 700
+            },
+            "logos": [
+              {
+                "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+                "x": 24,
+                "y": 28,
+                "width": 40,
+                "height": 40,
+                "right": 64,
+                "bottom": 68
+              },
+              {
+                "src": "/assets/fixrate-wordmark-DacTNmDU.svg",
+                "x": 76,
+                "y": 36.796875,
+                "width": 145,
+                "height": 22.390625,
+                "right": 221,
+                "bottom": 59.1875
+              },
+              {
+                "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "right": 0,
+                "bottom": 0
+              }
+            ],
+            "appMain": null,
+            "appHeader": null,
+            "scrollY": 0
+          },
+          "tall": {
+            "innerWidth": 320,
+            "clientWidth": 320,
+            "scrollWidth": 320,
+            "scrollbarWidth": 0,
+            "scrollHeight": 2961,
+            "clientHeight": 568,
+            "rootWidth": 320,
+            "bodyWidth": 320,
+            "gutter": "stable",
+            "bodyOverflow": "visible",
+            "divider": 320,
+            "scene": {
+              "x": 0,
+              "y": 0,
+              "width": 320,
+              "height": 700,
+              "right": 320,
+              "bottom": 700
+            },
+            "logos": [
+              {
+                "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+                "x": 24,
+                "y": 28,
+                "width": 40,
+                "height": 40,
+                "right": 64,
+                "bottom": 68
+              },
+              {
+                "src": "/assets/fixrate-wordmark-DacTNmDU.svg",
+                "x": 76,
+                "y": 36.796875,
+                "width": 145,
+                "height": 22.390625,
+                "right": 221,
+                "bottom": 59.1875
+              },
+              {
+                "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "right": 0,
+                "bottom": 0
+              }
+            ],
+            "appMain": null,
+            "appHeader": null,
+            "scrollY": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "overlay mobile emulation 390x844",
+      "hideScrollbarsArgRemoved": true,
+      "overlayDisableFlags": false,
+      "states": [
+        {
+          "route": "/login",
+          "normal": {
+            "innerWidth": 390,
+            "clientWidth": 390,
+            "scrollWidth": 390,
+            "scrollbarWidth": 0,
+            "scrollHeight": 844,
+            "clientHeight": 844,
+            "rootWidth": 390,
+            "bodyWidth": 390,
+            "gutter": "stable",
+            "bodyOverflow": "visible",
+            "divider": 390,
+            "scene": {
+              "x": 0,
+              "y": 0,
+              "width": 390,
+              "height": 844,
+              "right": 390,
+              "bottom": 844
+            },
+            "logos": [
+              {
+                "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+                "x": 24,
+                "y": 28,
+                "width": 40,
+                "height": 40,
+                "right": 64,
+                "bottom": 68
+              },
+              {
+                "src": "/assets/fixrate-wordmark-DacTNmDU.svg",
+                "x": 76,
+                "y": 36.796875,
+                "width": 145,
+                "height": 22.390625,
+                "right": 221,
+                "bottom": 59.1875
+              },
+              {
+                "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "right": 0,
+                "bottom": 0
+              }
+            ],
+            "appMain": null,
+            "appHeader": null,
+            "scrollY": 0
+          },
+          "tall": {
+            "innerWidth": 390,
+            "clientWidth": 390,
+            "scrollWidth": 390,
+            "scrollbarWidth": 0,
+            "scrollHeight": 2844,
+            "clientHeight": 844,
+            "rootWidth": 390,
+            "bodyWidth": 390,
+            "gutter": "stable",
+            "bodyOverflow": "visible",
+            "divider": 390,
+            "scene": {
+              "x": 0,
+              "y": 0,
+              "width": 390,
+              "height": 844,
+              "right": 390,
+              "bottom": 844
+            },
+            "logos": [
+              {
+                "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+                "x": 24,
+                "y": 28,
+                "width": 40,
+                "height": 40,
+                "right": 64,
+                "bottom": 68
+              },
+              {
+                "src": "/assets/fixrate-wordmark-DacTNmDU.svg",
+                "x": 76,
+                "y": 36.796875,
+                "width": 145,
+                "height": 22.390625,
+                "right": 221,
+                "bottom": 59.1875
+              },
+              {
+                "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "right": 0,
+                "bottom": 0
+              }
+            ],
+            "appMain": null,
+            "appHeader": null,
+            "scrollY": 0
+          }
+        },
+        {
+          "route": "/register",
+          "normal": {
+            "innerWidth": 390,
+            "clientWidth": 390,
+            "scrollWidth": 390,
+            "scrollbarWidth": 0,
+            "scrollHeight": 961,
+            "clientHeight": 844,
+            "rootWidth": 390,
+            "bodyWidth": 390,
+            "gutter": "stable",
+            "bodyOverflow": "visible",
+            "divider": 390,
+            "scene": {
+              "x": 0,
+              "y": 0,
+              "width": 390,
+              "height": 844,
+              "right": 390,
+              "bottom": 844
+            },
+            "logos": [
+              {
+                "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+                "x": 24,
+                "y": 28,
+                "width": 40,
+                "height": 40,
+                "right": 64,
+                "bottom": 68
+              },
+              {
+                "src": "/assets/fixrate-wordmark-DacTNmDU.svg",
+                "x": 76,
+                "y": 36.796875,
+                "width": 145,
+                "height": 22.390625,
+                "right": 221,
+                "bottom": 59.1875
+              },
+              {
+                "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "right": 0,
+                "bottom": 0
+              }
+            ],
+            "appMain": null,
+            "appHeader": null,
+            "scrollY": 0
+          },
+          "tall": {
+            "innerWidth": 390,
+            "clientWidth": 390,
+            "scrollWidth": 390,
+            "scrollbarWidth": 0,
+            "scrollHeight": 2961,
+            "clientHeight": 844,
+            "rootWidth": 390,
+            "bodyWidth": 390,
+            "gutter": "stable",
+            "bodyOverflow": "visible",
+            "divider": 390,
+            "scene": {
+              "x": 0,
+              "y": 0,
+              "width": 390,
+              "height": 844,
+              "right": 390,
+              "bottom": 844
+            },
+            "logos": [
+              {
+                "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+                "x": 24,
+                "y": 28,
+                "width": 40,
+                "height": 40,
+                "right": 64,
+                "bottom": 68
+              },
+              {
+                "src": "/assets/fixrate-wordmark-DacTNmDU.svg",
+                "x": 76,
+                "y": 36.796875,
+                "width": 145,
+                "height": 22.390625,
+                "right": 221,
+                "bottom": 59.1875
+              },
+              {
+                "src": "/assets/fixrate-mark-D4hyE6tx.svg",
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "right": 0,
+                "bottom": 0
+              }
+            ],
+            "appMain": null,
+            "appHeader": null,
+            "scrollY": 0
+          }
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "limitations": "Emulated Chrome desktop/touch; physical phone and unsupported scrollbar-gutter engines not tested.",
+  "browser": "156.0.8078.79",
+  "servedHtmlSha256": "503e548eb4441669d94c318d5ba52e7651ebc39bb37c0f41d0615dffd0d0850b",
+  "distHtmlSha256": "503e548eb4441669d94c318d5ba52e7651ebc39bb37c0f41d0615dffd0d0850b",
+  "assets": [
+    "/assets/index-BcanzGh2.js",
+    "/assets/index-KHAEcBec.css"
+  ],
+  "passed": true,
+  "visualReview": {
+    "approved": true,
+    "images": [
+      "built-stable-login-1440x900.png",
+      "built-mobile-register-320x568.png"
+    ],
+    "findings": "Desktop composition, divider, original logos and scene remain aligned with reserved gutter; modal remains centered and keyboard focus returns to Help. Emulated320px mobile form remains readable, scrollable and free of horizontal overflow."
+  }
+}

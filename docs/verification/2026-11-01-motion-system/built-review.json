@@ -1,0 +1,38 @@
+{
+  "timestamp": "2026-11-01T17:26:01.732Z",
+  "base": "http://127.0.0.1:8000",
+  "scope": "Compiled frontend smoke with API fixtures; no backend/DB/ML calls or physical phone tests.",
+  "checks": [
+    {
+      "name": "compiled shared transitions 1366",
+      "sampleCount": 92,
+      "maxActiveForms": 1,
+      "maxLogoDelta": 0,
+      "nonStaticTransforms": []
+    },
+    {
+      "name": "compiled shared transitions 390",
+      "sampleCount": 67,
+      "maxActiveForms": 1,
+      "maxLogoDelta": 0,
+      "nonStaticTransforms": []
+    },
+    {
+      "name": "compiled trailing slash pending failure retry and safe authorized entry",
+      "loginRequestCount": 2,
+      "passwordPreserved": true,
+      "expectedNetworkConsole": 1
+    },
+    {
+      "name": "compiled reduced motion navigation and visible target"
+    }
+  ],
+  "errors": [],
+  "servedHtmlSha256": "75964b79369cd2535446c030c59a2bfbcfc449e9ff5ec363d410baab8bec8ec5",
+  "distHtmlSha256": "75964b79369cd2535446c030c59a2bfbcfc449e9ff5ec363d410baab8bec8ec5",
+  "assets": [
+    "/assets/index-stKD45x-.js",
+    "/assets/index-DdFTHZjK.css"
+  ],
+  "passed": true
+}

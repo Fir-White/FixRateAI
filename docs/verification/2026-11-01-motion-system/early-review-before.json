@@ -1,0 +1,39 @@
+{
+  "timestamp": "2026-11-01T16:46:11.029Z",
+  "base": "http://127.0.0.1:5174",
+  "checks": [
+    {
+      "name": "native navigation during existing feedback growth",
+      "box": {
+        "x": 250.96875,
+        "y": 636.71875,
+        "width": 76.046875,
+        "height": 17
+      },
+      "point": {
+        "x": 288.9921875,
+        "y": 645.21875
+      }
+    },
+    {
+      "name": "late login response cannot steal registration navigation",
+      "requests": 1
+    }
+  ],
+  "errors": [
+    {
+      "name": "immediate intro typing and static logos",
+      "error": "Error: expect(received).toBeLessThan(expected)\n\nExpected: < 0.1\nReceived:   723\n    at captureRawStack (D:\\FixRate AI\\FixRate_AI\\.worktrees\\kran_dev\\frontend\\node_modules\\playwright-core\\lib\\coreBundle.js:9282:17)\n    at callMatcherAsStep (D:\\FixRate AI\\FixRate_AI\\.worktrees\\kran_dev\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:13316:57)\n    at Object.toBeLessThan (D:\\FixRate AI\\FixRate_AI\\.worktrees\\kran_dev\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:13308:23)\n    at D:\\FixRate AI\\FixRate_AI\\.worktrees\\kran_dev\\var\\motion-system-qa\\early.cjs:4:741\n    at async test (D:\\FixRate AI\\FixRate_AI\\.worktrees\\kran_dev\\var\\motion-system-qa\\early.cjs:3:84)\n    at async D:\\FixRate AI\\FixRate_AI\\.worktrees\\kran_dev\\var\\motion-system-qa\\early.cjs:4:1"
+    },
+    {
+      "name": "rapid back forward cancellation",
+      "error": "Error: expect(locator).toBeFocused() failed\n\nLocator:  locator('#register-title')\nExpected: focused\nReceived: inactive\nTimeout:  5000ms\n\nCall log:\n  - Expect \"toBeFocused\" locator('#register-title') with timeout 5000ms\n  - waiting for locator('#register-title')\n    14 × locator resolved to <h1 tabindex=\"-1\" id=\"register-title\">Регистрация</h1>\n       - unexpected value \"inactive\"\n\n    at captureRawStack (D:\\FixRate AI\\FixRate_AI\\.worktrees\\kran_dev\\frontend\\node_modules\\playwright-core\\lib\\coreBundle.js:9282:17)\n    at callMatcherAsStep (D:\\FixRate AI\\FixRate_AI\\.worktrees\\kran_dev\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:13316:57)\n    at Object.toBeFocused (D:\\FixRate AI\\FixRate_AI\\.worktrees\\kran_dev\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:13308:23)\n    at D:\\FixRate AI\\FixRate_AI\\.worktrees\\kran_dev\\var\\motion-system-qa\\early.cjs:5:761\n    at async test (D:\\FixRate AI\\FixRate_AI\\.worktrees\\kran_dev\\var\\motion-system-qa\\early.cjs:3:84)\n    at async D:\\FixRate AI\\FixRate_AI\\.worktrees\\kran_dev\\var\\motion-system-qa\\early.cjs:5:1"
+    },
+    {
+      "name": "reduced motion during exit",
+      "error": "Error: expect(locator).toBeFocused() failed\n\nLocator:  locator('#register-title')\nExpected: focused\nReceived: inactive\nTimeout:  5000ms\n\nCall log:\n  - Expect \"toBeFocused\" locator('#register-title') with timeout 5000ms\n  - waiting for locator('#register-title')\n    14 × locator resolved to <h1 tabindex=\"-1\" id=\"register-title\">Регистрация</h1>\n       - unexpected value \"inactive\"\n\n    at captureRawStack (D:\\FixRate AI\\FixRate_AI\\.worktrees\\kran_dev\\frontend\\node_modules\\playwright-core\\lib\\coreBundle.js:9282:17)\n    at callMatcherAsStep (D:\\FixRate AI\\FixRate_AI\\.worktrees\\kran_dev\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:13316:57)\n    at Object.toBeFocused (D:\\FixRate AI\\FixRate_AI\\.worktrees\\kran_dev\\frontend\\node_modules\\playwright\\lib\\matchers\\expect.js:13308:23)\n    at D:\\FixRate AI\\FixRate_AI\\.worktrees\\kran_dev\\var\\motion-system-qa\\early.cjs:6:423\n    at async test (D:\\FixRate AI\\FixRate_AI\\.worktrees\\kran_dev\\var\\motion-system-qa\\early.cjs:3:84)\n    at async D:\\FixRate AI\\FixRate_AI\\.worktrees\\kran_dev\\var\\motion-system-qa\\early.cjs:6:1"
+    }
+  ],
+  "passed": false,
+  "qaProbeNote": "The first logo assertion compared two distinct instances sharing the same SVG URL (small top brand and large scene brand), producing a false723px delta. Probe was corrected to key each DOM instance. The two heading-focus failures were real and were fixed before early-review.json/browser-review.json successful retests."
+}
