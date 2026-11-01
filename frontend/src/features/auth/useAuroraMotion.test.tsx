@@ -1,147 +1,96 @@
-import { Profiler, StrictMode } from "react";
-import { act, render } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { StrictMode } from "react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { AuroraScene } from "./AuroraScene";
 
 class Media extends EventTarget {
   constructor(public matches: boolean) { super(); }
   set(value: boolean) { this.matches = value; this.dispatchEvent(new Event("change")); }
 }
-
-let reduced: Media;
-let mouse: Media;
-let desktop: Media;
+let reduced: Media, mouse: Media, desktop: Media;
 let hidden: boolean;
-let callbacks: Map<number, FrameRequestCallback>;
-
+let intersect: IntersectionObserverCallback;
+const disconnect = vi.fn();
 beforeEach(() => {
-  reduced = new Media(false);
-  mouse = new Media(true);
-  desktop = new Media(true);
-  hidden = false;
-  callbacks = new Map();
-  let nextId = 0;
+  reduced = new Media(false); mouse = new Media(true); desktop = new Media(true); hidden = false;
   vi.stubGlobal("matchMedia", (query: string) => query.includes("reduced-motion") ? reduced : query.includes("pointer") ? mouse : desktop);
-  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { callbacks.set(++nextId, callback); return nextId; });
-  vi.stubGlobal("cancelAnimationFrame", (id: number) => callbacks.delete(id));
   vi.spyOn(document, "hidden", "get").mockImplementation(() => hidden);
-  vi.spyOn(performance, "now").mockReturnValue(0);
-  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ left: 460, top: 0, width: 980, height: 900, right: 1440, bottom: 900, x: 460, y: 0, toJSON: () => ({}) });
+  vi.stubGlobal("IntersectionObserver", class {
+    constructor(callback: IntersectionObserverCallback) { intersect = callback; }
+    observe() {} disconnect = disconnect;
+  });
+});
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+const visibility = (value: boolean) => act(() => { hidden = value; document.dispatchEvent(new Event("visibilitychange")); });
+const offscreen = (value: boolean) => act(() => intersect([{ isIntersecting: !value } as IntersectionObserverEntry], {} as IntersectionObserver));
+
+it("uses static shared paths without a JS frame loop or pointer writes; logo is outside the light container", () => {
+  const raf = vi.spyOn(window, "requestAnimationFrame");
+  const view = render(<AuroraScene />);
+  const scene = view.container.querySelector(".auth-aurora")!;
+  const paths = [...scene.querySelectorAll("[data-aurora-ribbon]")];
+  const initial = paths.map(path => path.getAttribute("d"));
+  fireEvent.pointerMove(window, { clientX: 1200, clientY: 650, pointerType: "mouse" });
+  expect(raf).not.toHaveBeenCalled();
+  expect(scene.getAttribute("style")).toBeNull();
+  expect(paths.map(path => path.getAttribute("d"))).toEqual(initial);
+  expect(scene.querySelector(".auth-light-motion .auth-aurora__brand")).toBeNull();
+  expect(scene.querySelectorAll(".auth-light-motion")).toHaveLength(2);
+  for (const wrapper of scene.querySelectorAll(".auth-light-motion")) {
+    expect(wrapper.querySelectorAll("[data-aurora-ribbon]")).toHaveLength(1);
+  }
+  expect(paths).toHaveLength(3);
 });
 
-afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+it("replaces the orbs with ten deterministic peripheral particles and no scene control", () => {
+  const view = render(<AuroraScene />);
+  expect(view.container.querySelectorAll('.auth-particle[aria-hidden="true"]')).toHaveLength(10);
+  expect(view.container.querySelector(".auth-orb, .auth-motion-toggle")).toBeNull();
+  expect(screen.queryByRole("button")).toBeNull();
+  expect(view.container.querySelector(".auth-aurora__scrim")).not.toBeNull();
+});
 
-function tick(time: number) {
-  const pending = [...callbacks.values()];
-  callbacks.clear();
-  for (const callback of pending) callback(time);
-}
+it("retains manual pause across hidden/offscreen/media changes without replacing the light node", () => {
+  const view = render(<AuroraScene />);
+  const scene = view.container.querySelector(".auth-aurora")!;
+  const light = scene.querySelector(".auth-light-motion");
+  expect(scene).toHaveAttribute("data-motion", "running");
+  view.rerender(<AuroraScene animationEnabled={false} />);
+  visibility(true); visibility(false); offscreen(true); offscreen(false);
+  act(() => { reduced.set(true); reduced.set(false); desktop.set(false); desktop.set(true); });
+  expect(scene).toHaveAttribute("data-motion", "paused");
+  expect(scene.querySelector(".auth-light-motion")).toBe(light);
+  view.rerender(<AuroraScene animationEnabled />);
+  expect(scene).toHaveAttribute("data-motion", "running");
+  visibility(true); expect(scene).toHaveAttribute("data-motion", "paused");
+  visibility(false); expect(scene).toHaveAttribute("data-motion", "running");
+  offscreen(true); expect(scene).toHaveAttribute("data-motion", "paused");
+  offscreen(false); expect(scene).toHaveAttribute("data-motion", "running");
+});
 
-function moveMouse() {
-  const event = new MouseEvent("pointermove", { clientX: 1195, clientY: 675 });
-  Object.defineProperty(event, "pointerType", { value: "mouse" });
-  window.dispatchEvent(event);
-}
-
-describe("aurora motion lifecycle", () => {
-  it("has the same pointer response after one second at 60, 120 and 144 Hz without measuring layout per frame", () => {
-    const positions = [60, 120, 144].map(fps => {
-      const view = render(<AuroraScene />);
-      const scene = view.container.firstElementChild as HTMLElement;
-      const reads = vi.mocked(HTMLElement.prototype.getBoundingClientRect).mock.calls.length;
-      moveMouse();
-      for (let index = 0; index <= fps; index++) {
-        tick(index * 1000 / fps);
-        expect(callbacks.size).toBe(1);
-      }
-      expect(vi.mocked(HTMLElement.prototype.getBoundingClientRect).mock.calls.length).toBe(reads);
-      const position = Number(scene.style.getPropertyValue("--aurora-x"));
-      view.unmount();
-      expect(callbacks.size).toBe(0);
-      return position;
-    });
-    expect(positions[0]).toBeGreaterThan(0.4);
-    positions.slice(1).forEach(position => expect(Math.abs(positions[0] - position)).toBeLessThan(0.0002));
-  });
-
-  it("runs no animation for reduced motion, touch devices or the mobile fallback", () => {
-    reduced.set(true);
-    const view = render(<AuroraScene />);
-    moveMouse();
-    expect(callbacks.size).toBe(0);
-    mouse.set(false);
-    reduced.set(false);
-    expect(callbacks.size).toBe(0);
-    desktop.set(false);
-    mouse.set(true);
-    expect(callbacks.size).toBe(0);
-    desktop.set(true);
-    expect(callbacks.size).toBe(1);
-    tick(0);
-    tick(100);
-    reduced.set(true);
-    expect(callbacks.size).toBe(0);
-    expect(view.container.firstElementChild?.getAttribute("style")).toBe("");
-  });
-
-  it("deforms all three shared curves while idle without rendering React or duplicating glow geometry", () => {
-    const renders = vi.fn();
-    const view = render(<Profiler id="flow" onRender={renders}><AuroraScene /></Profiler>);
-    const paths = [...view.container.querySelectorAll("[data-aurora-ribbon]")];
-    expect(paths).toHaveLength(3);
-    const initial = paths.map(path => path.getAttribute("d"));
-    const renderCount = renders.mock.calls.length;
-    for (let index = 0; index < 60; index++) tick(index * 1000 / 60);
-    paths.forEach((path, index) => expect(path.getAttribute("d")).not.toBe(initial[index]));
-    expect(renders.mock.calls.length).toBe(renderCount);
-    paths.forEach(path => expect(view.container.querySelectorAll(`use[href="#${path.id}"]`)).toHaveLength(3));
-    window.dispatchEvent(new Event("blur"));
-    const beforeLeave = paths.map(path => path.getAttribute("d"));
-    for (let index = 60; index < 120; index++) tick(index * 1000 / 60);
-    paths.forEach((path, index) => expect(path.getAttribute("d")).not.toBe(beforeLeave[index]));
-    reduced.set(true);
-    paths.forEach((path, index) => expect(path.getAttribute("d")).toBe(initial[index]));
-    expect(callbacks.size).toBe(0);
-  });
-
-  it("pauses a hidden tab and resumes with a single clock", () => {
-    const view = render(<AuroraScene />);
-    tick(0);
-    hidden = true;
-    act(() => document.dispatchEvent(new Event("visibilitychange")));
-    expect(callbacks.size).toBe(0);
-    hidden = false;
-    act(() => document.dispatchEvent(new Event("visibilitychange")));
-    expect(callbacks.size).toBe(1);
-    view.unmount();
-    expect(callbacks.size).toBe(0);
-  });
-
-  it("clears the last animated frame even when a browser updates media matches before its change event", () => {
-    const view = render(<AuroraScene />);
-    moveMouse();
-    tick(0);
-    tick(100);
-    reduced.matches = true;
-    tick(116);
-    expect(callbacks.size).toBe(0);
-    expect(view.container.firstElementChild?.getAttribute("style")).toBe("");
-  });
-
-  it("does not leave duplicate RAFs or event listeners after Strict Mode remounts", () => {
-    const add = vi.spyOn(window, "addEventListener");
-    const remove = vi.spyOn(window, "removeEventListener");
-    const view = render(<StrictMode><AuroraScene /></StrictMode>);
-    expect(callbacks.size).toBe(1);
-    view.unmount();
-    expect(callbacks.size).toBe(0);
-    for (const [type, listener] of add.mock.calls.filter(([type]) => ["pointermove", "pointerout", "resize", "blur"].includes(type))) {
-      expect(remove.mock.calls.some(([removedType, removedListener]) => removedType === type && removedListener === listener)).toBe(true);
+it("stays static for reduced motion, coarse pointer and mobile; cleans up StrictMode listeners", () => {
+  const add = vi.spyOn(document, "addEventListener");
+  const remove = vi.spyOn(document, "removeEventListener");
+  const mediaListeners = [reduced, mouse, desktop].map(media => ({ add: vi.spyOn(media, "addEventListener"), remove: vi.spyOn(media, "removeEventListener") }));
+  const view = render(<StrictMode><AuroraScene /></StrictMode>);
+  const scene = view.container.querySelector(".auth-aurora")!;
+  for (const media of [reduced, mouse, desktop]) {
+    act(() => media.set(media === reduced));
+    expect(scene).toHaveAttribute("data-motion", "paused");
+    expect(screen.queryByRole("button")).toBeNull();
+    act(() => media.set(media !== reduced));
+  }
+  view.unmount();
+  expect(disconnect).toHaveBeenCalled();
+  for (const [type, listener] of add.mock.calls.filter(([type]) => type === "visibilitychange")) {
+    expect(remove.mock.calls.some(([removedType, removedListener]) => removedType === type && removedListener === listener)).toBe(true);
+  }
+  for (const media of mediaListeners) {
+    for (const [type, listener] of media.add.mock.calls) {
+      expect(media.remove.mock.calls.some(([removedType, removedListener]) => removedType === type && removedListener === listener)).toBe(true);
     }
-    reduced.set(true);
-    reduced.set(false);
-    desktop.set(false);
-    desktop.set(true);
-    expect(callbacks.size).toBe(0);
-  });
+  }
+  visibility(true);
+  act(() => reduced.set(true));
+  expect(scene).toHaveAttribute("data-motion", "paused");
 });

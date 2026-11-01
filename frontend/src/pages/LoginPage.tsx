@@ -25,6 +25,8 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [needsSite, setNeedsSite] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [backgroundAnimation, setBackgroundAnimation] = useState(true);
+  const [reducedMotion, setReducedMotion] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from;
@@ -91,12 +93,9 @@ export function LoginPage() {
                     </div>
                   </FormField>
 
-                  <details className="auth-site" open={needsSite || undefined}>
-                    <summary>Доступ к нескольким объектам</summary>
-                    <FormField label="ID объекта" htmlFor="login-site">
+                  {needsSite && <FormField label="ID объекта" htmlFor="login-site" className="auth-field">
                       <Input id="login-site" name="site_id" className="auth-input" autoComplete="off" placeholder="UUID объекта" required={needsSite} value={siteId} onChange={e => setSiteId(e.target.value)} />
-                    </FormField>
-                  </details>
+                    </FormField>}
                   {error && <p id="login-error" role="alert" className="auth-error">{error}</p>}
                   <Button className="auth-submit" type="submit" disabled={pending}>
                     {pending ? <><span className="auth-spinner" aria-hidden="true" />Входим…</> : "Войти"}
@@ -114,13 +113,20 @@ export function LoginPage() {
         </footer>
       </section>
 
-      <AuroraScene />
+      <AuroraScene animationEnabled={backgroundAnimation} onReducedMotionChange={setReducedMotion} />
 
       <Modal open={showHelp} title="Помощь со входом" onClose={() => setShowHelp(false)}>
         <div className="space-y-4 text-sm leading-7 text-ink-soft">
           <p>По вопросам учётной записи, пароля и доступа обратитесь к администратору вашего объекта. Он проверит вашу регистрацию, назначенную роль и доступ к системе.</p>
           <p>Для входа используйте рабочую электронную почту. Самостоятельный сброс пароля пока недоступен. Новому сотруднику потребуется код компании от администратора.</p>
           <Link className="text-accent underline underline-offset-4" to="/register">Регистрация сотрудника</Link>
+          <div className="auth-motion-setting">
+            <label htmlFor="login-background-animation">
+              <input id="login-background-animation" type="checkbox" checked={backgroundAnimation && !reducedMotion} disabled={reducedMotion} aria-describedby={reducedMotion ? "login-motion-note" : undefined} onChange={event => setBackgroundAnimation(event.target.checked)} />
+              Анимация фона
+            </label>
+            {reducedMotion && <p id="login-motion-note">Анимация отключена системной настройкой уменьшения движения.</p>}
+          </div>
         </div>
       </Modal>
     </main>

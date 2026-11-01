@@ -1,14 +1,29 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type BrowserContext } from "@playwright/test";
 import { createHash } from "node:crypto";
 
-test.beforeEach(async ({ page }) => {
+const PASSWORD = "local-test-password";
+async function mockLocalApi(context: BrowserContext) {
+  await context.route("**/*", route => {
+    const url = new URL(route.request().url());
+    if (url.origin !== new URL(process.env.FIXRATE_BASE_URL!).origin) return route.abort();
+    if (!url.pathname.startsWith("/api/")) return route.continue();
+    if (url.pathname === "/api/v1/auth/login" && route.request().postDataJSON()?.password === PASSWORD) {
+      return route.fulfill({ json: { profile: { userId: "local-qa", name: "QA", email: "qa@example.test", role: "dispatcher", siteName: "QA", timezone: "UTC" } } });
+    }
+    return route.fulfill({ status: 401, json: { detail: "Неверный email или пароль" } });
+  });
+}
+
+test.beforeEach(async ({ page, context }) => {
   test.skip(!process.env.FIXRATE_BASE_URL, "Requires the running local application");
+  await mockLocalApi(context);
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: "С возвращением" })).toBeVisible();
+  await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
 });
 
 test("responsive login composition and original logo", async ({ page }, testInfo) => {
-  for (const [width, height] of [[1920, 1080], [1440, 900], [1366, 768], [1024, 768], [768, 1024], [390, 844], [375, 812]]) {
+  for (const [width, height] of [[1920, 1080], [1440, 900], [1366, 768], [1200, 900], [1199, 900], [1440, 700], [1024, 768], [768, 1024], [390, 844], [375, 812]]) {
     await page.setViewportSize({ width, height });
     const size = await page.evaluate(() => ({ viewport: innerWidth, document: document.documentElement.scrollWidth }));
     expect(size.document).toBeLessThanOrEqual(size.viewport);
@@ -18,7 +33,7 @@ test("responsive login composition and original logo", async ({ page }, testInfo
     expect(controls).toEqual([52, 52, 52]);
     await expect(page.locator(".auth-art__frame, .auth-divider, .auth-support")).toHaveCount(0);
     if (width > 820) {
-      const logo = page.locator(".auth-aurora__logo-motion img");
+      const logo = page.locator(".auth-aurora__logo img");
       await expect(logo).toBeVisible();
       expect(await logo.getAttribute("src")).toContain("fixrate-mark");
       const box = (await logo.boundingBox())!;
@@ -26,40 +41,80 @@ test("responsive login composition and original logo", async ({ page }, testInfo
       expect(box.width).toBeLessThanOrEqual(380);
     } else {
       await expect(page.locator(".auth-aurora__brand")).toBeHidden();
-      await expect(page.locator(".auth-ribbons")).toBeVisible();
+      await expect(page.locator(".auth-ribbons").first()).toBeVisible();
     }
     await expect(page.locator("[data-aurora-ribbon]")).toHaveCount(3);
+    await expect(page.locator(".auth-orb, .auth-motion-toggle")).toHaveCount(0);
+    await expect(page.locator(".auth-particle")).toHaveCount(10);
+    for (const particle of await page.locator(".auth-particle").all()) {
+      if (width <= 1199 || height <= 700) await expect(particle).toBeHidden();
+      else await expect(particle).toBeVisible();
+    }
     await page.screenshot({ path: testInfo.outputPath(`aurora-${width}x${height}.png`), fullPage: true });
   }
 });
 
-test("smooth scene motion, reduced motion and touch fallback", async ({ page, browser }) => {
+test("independent light motion, static logo, pause continuity, reduced motion and touch fallback", async ({ page, browser }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  const scene = page.locator(".auth-aurora");
-  const sceneBox = (await scene.boundingBox())!;
-  await page.mouse.move(sceneBox.x + sceneBox.width * 0.8, sceneBox.height * 0.7);
-  await expect.poll(() => scene.evaluate(element => Number((element as HTMLElement).style.getPropertyValue("--aurora-x")))).toBeGreaterThan(0.3);
-  const transform = await page.locator(".auth-aurora__logo-motion").evaluate(element => new DOMMatrixReadOnly(getComputedStyle(element).transform).m41);
-  expect(transform).toBeGreaterThan(0);
-  expect(transform).toBeLessThan(9);
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await expect.poll(() => scene.getAttribute("style")).toBe("");
-  await expect(page.locator(".auth-aurora__logo-motion")).toHaveCSS("transform", "none");
+  const lights = () => page.locator(".auth-light-motion, .auth-particle").evaluateAll(elements => elements.map(element => ({ transform: getComputedStyle(element).transform, time: element.getAnimations()[0]?.currentTime })));
+  const setAnimation = async (enabled: boolean) => {
+    await page.getByRole("button", { name: /Обратитесь к администратору/ }).click();
+    const checkbox = page.getByRole("checkbox", { name: "Анимация фона" });
+    await checkbox.focus();
+    await page.keyboard.press("Space");
+    if (enabled) await expect(checkbox).toBeChecked();
+    else await expect(checkbox).not.toBeChecked();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("button", { name: /Обратитесь к администратору/ })).toBeFocused();
+  };
+  const logos = () => page.locator(".auth-brand img, .auth-aurora__logo img").evaluateAll(elements => elements.map(element => ({ box: element.getBoundingClientRect().toJSON(), transform: getComputedStyle(element).transform, opacity: getComputedStyle(element).opacity })));
+  const originalLogo = await logos();
+  const start = await lights();
+  await page.waitForTimeout(2200);
+  expect((await lights()).every((light, index) => light.transform !== start[index].transform)).toBe(true);
   await page.mouse.move(1300, 650);
-  await expect(scene).toHaveAttribute("style", "");
+  expect(await logos()).toEqual(originalLogo);
+  await expect(page.locator(".auth-aurora button")).toHaveCount(0);
+  await setAnimation(false);
+  await page.waitForTimeout(100);
+  const paused = await lights();
+  await page.evaluate(() => { Object.defineProperty(document, "hidden", { configurable: true, value: true }); document.dispatchEvent(new Event("visibilitychange")); });
+  await page.evaluate(() => { Reflect.deleteProperty(document, "hidden"); document.dispatchEvent(new Event("visibilitychange")); });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1199, height: 700 });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(page.locator(".auth-aurora")).toHaveAttribute("data-motion", "paused");
+  await page.waitForTimeout(2200);
+  expect(await lights()).toEqual(paused);
+  await setAnimation(true);
+  const resumed = await lights();
+  resumed.forEach((light, index) => expect(Math.abs(Number(light.time) - Number(paused[index].time))).toBeLessThan(200));
+  expect(await logos()).toEqual(originalLogo);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.getByRole("button", { name: /Обратитесь к администратору/ }).click();
+  await expect(page.getByRole("checkbox", { name: "Анимация фона" })).toBeDisabled();
+  await expect(page.getByRole("checkbox", { name: "Анимация фона" })).not.toBeChecked();
+  await expect(page.getByText("Анимация отключена системной настройкой уменьшения движения.")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(100);
+  const reduced = await lights();
+  await page.waitForTimeout(2200);
+  expect(await lights()).toEqual(reduced);
   await page.getByLabel("Email", { exact: true }).fill("test@example.test");
   await expect(page.getByLabel("Email", { exact: true })).toHaveValue("test@example.test");
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await expect.poll(() => scene.evaluate(element => (element as HTMLElement).style.getPropertyValue("--aurora-breath"))).not.toBe("");
+  await expect(page.locator(".auth-aurora")).toHaveAttribute("data-motion", "running");
 
   const touch = await browser.newContext({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+  await mockLocalApi(touch);
   const touchPage = await touch.newPage();
   await touchPage.goto(`${process.env.FIXRATE_BASE_URL}/login`);
   await expect(touchPage.getByRole("heading", { name: "С возвращением" })).toBeVisible();
   await expect(touchPage.locator(".auth-aurora__brand")).toBeHidden();
-  await expect(touchPage.locator(".auth-ribbons")).toBeVisible();
-  expect(await touchPage.locator(".auth-aurora").getAttribute("style")).toBeNull();
+  await expect(touchPage.locator(".auth-ribbons").first()).toBeVisible();
+  await expect(touchPage.locator(".auth-aurora")).toHaveAttribute("data-motion", "paused");
   // A shorter viewport models the space left by an on-screen keyboard.
   await touchPage.setViewportSize({ width: 390, height: 460 });
   await touchPage.getByLabel("Пароль", { exact: true }).focus();
@@ -68,33 +123,64 @@ test("smooth scene motion, reduced motion and touch fallback", async ({ page, br
   await touch.close();
 });
 
-test("ribbons continuously change geometry while idle and keep a visible static reduced-motion fallback", async ({ page }, testInfo) => {
+test("ribbons retain separate static geometry; particles exclude the fully opaque protected brand", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const paths = page.locator("[data-aurora-ribbon]");
   const initial = await paths.evaluateAll(elements => elements.map(element => element.getAttribute("d")));
   await page.screenshot({ path: testInfo.outputPath("flow-idle-start.png") });
-  await expect.poll(async () => (await paths.evaluateAll(elements => elements.map(element => element.getAttribute("d")))).every((path, index) => path !== initial[index])).toBe(true);
+  await page.waitForTimeout(2200);
+  expect(await paths.evaluateAll(elements => elements.map(element => element.getAttribute("d")))).toEqual(initial);
+  const logo = (await page.locator(".auth-aurora__logo img").boundingBox())!;
+  for (const particle of await page.locator(".auth-particle").all()) {
+    const corridor = await particle.evaluate(element => {
+      const box = element.getBoundingClientRect();
+      const current = new DOMMatrixReadOnly(getComputedStyle(element).transform);
+      return (element.getAnimations()[0].effect as KeyframeEffect).getKeyframes().map(frame => {
+        const transform = new DOMMatrixReadOnly(String(frame.transform));
+        return { x: box.x - current.m41 + transform.m41, y: box.y - current.m42 + transform.m42, width: box.width, height: box.height };
+      });
+    });
+    for (const box of corridor) expect(box.x + box.width < logo.x - 48 || box.x > logo.x + logo.width + 48 || box.y + box.height < logo.y - 48 || box.y > logo.y + logo.height + 48).toBe(true);
+  }
+  await expect(page.locator(".auth-aurora__logo img")).toHaveCSS("opacity", "1");
+  const ancestors = await page.locator(".auth-aurora__logo img").evaluate(image => {
+    const values = [];
+    for (let element: Element | null = image; element; element = element.parentElement) {
+      const style = getComputedStyle(element);
+      values.push({ transform: style.transform, filter: style.filter, opacity: style.opacity, blend: style.mixBlendMode, animations: element.getAnimations().length });
+      if (element.classList.contains("auth-page")) break;
+    }
+    return values;
+  });
+  ancestors.forEach(value => expect(value).toEqual({ transform: "none", filter: "none", opacity: "1", blend: "normal", animations: 0 }));
+  const stack = await page.locator(".auth-aurora").evaluate(scene => [".auth-aurora__vignette", ".auth-aurora__scrim", ".auth-aurora__brand"].map(selector => Number(getComputedStyle(scene.querySelector(selector)!).zIndex)));
+  expect(stack).toEqual([2, 3, 4]);
+  expect(await page.locator(".auth-aurora__brand").evaluate(element => getComputedStyle(element, "::before").content)).toBe("none");
   await page.screenshot({ path: testInfo.outputPath("flow-idle-moving.png") });
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await expect.poll(() => page.locator(".auth-aurora").getAttribute("style")).toBe("");
+  await expect(page.locator(".auth-aurora")).toHaveAttribute("data-motion", "paused");
   const still = await paths.evaluateAll(elements => elements.map(element => element.getAttribute("d")));
   expect(still.every(path => path && path.includes(" C ") && path.includes(" S "))).toBe(true);
-  await expect(page.locator(".auth-ribbons")).toBeVisible();
+  await expect(page.locator(".auth-ribbons").first()).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("flow-reduced-motion.png") });
   expect(await paths.evaluateAll(elements => elements.map(element => element.getAttribute("d")))).toEqual(still);
 });
 
 test("retains object selection when the server requires a site ID", async ({ page }) => {
+  await expect(page.locator("details, summary, #login-site")).toHaveCount(0);
   await page.route("**/api/v1/auth/login", route => route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ detail: "Укажите site_id: у пользователя несколько объектов" }) }), { times: 1 });
   await page.getByLabel("Email", { exact: true }).fill("fixrate-demo-dispatcher@example.test");
-  await page.getByLabel("Пароль", { exact: true }).fill(process.env.FIXRATE_TEST_PASSWORD!);
+  await page.getByLabel("Пароль", { exact: true }).fill(PASSWORD);
   await page.getByRole("button", { name: "Войти", exact: true }).click();
   const site = page.getByLabel("ID объекта", { exact: true });
   await expect(site).toBeVisible();
   await expect(site).toHaveAttribute("required");
   const hex = createHash("md5").update("fixrate-demo-site").digest("hex");
-  await site.fill(`${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`);
+  const siteId = `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+  await site.fill(siteId);
+  const payload = page.waitForRequest(request => request.url().endsWith("/api/v1/auth/login"));
   await page.getByRole("button", { name: "Войти", exact: true }).click();
+  expect((await payload).postDataJSON().site_id).toBe(siteId);
   await expect(page).toHaveURL(/\/dispatcher$/);
 });
 
@@ -114,8 +200,6 @@ test("keyboard access, errors, pending state, password visibility and login retu
   await expect(password).toHaveAttribute("type", "text");
   await page.keyboard.press("Enter");
   await expect(password).toHaveAttribute("type", "password");
-  await page.keyboard.press("Tab");
-  await expect(page.locator(".auth-site summary")).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(page.getByRole("button", { name: "Войти", exact: true })).toBeFocused();
 
@@ -151,7 +235,7 @@ test("keyboard access, errors, pending state, password visibility and login retu
   await page.goto("/equipment?source=login#list");
   await expect(page).toHaveURL(/\/login$/);
   await email.fill("fixrate-demo-dispatcher@example.test");
-  await password.fill(process.env.FIXRATE_TEST_PASSWORD!);
+  await password.fill(PASSWORD);
   await password.press("Enter");
   await expect(page).toHaveURL(new URL("/equipment?source=login#list", process.env.FIXRATE_BASE_URL!).href);
   await expect(page.getByRole("heading", { name: "Оборудование", exact: true })).toBeVisible();
