@@ -1,11 +1,18 @@
 {
-  "task_id": "task-8840",
-  "regulation_id": "reg-501",
-  "planned_date": "2026-10-28",
-  "status": "completed",
-  "is_overdue": false,
-  "assigned_employee_id": "emp-12",
-  "assigned_brigade_id": null,
-  "actual_norm_hours": 1.0,
-  "completion_timestamp": "2026-10-28T14:15:00Z"
+  "schema_version": "maintenance-0.1",
+  "data_origin": "synthetic_demo",
+  "task_id": "00000000-0000-4000-8000-000000000042",
+  "occurrence_id": "00000000-0000-4000-8000-000000000041",
+  "equipment_id": "00000000-0000-4000-8000-000000000002",
+  "operation_version_id": "00000000-0000-4000-8000-000000000005",
+  "state": "submitted",
+  "revision": 4,
+  "scheduled_start": "2026-10-29T10:00:00+05:00",
+  "scheduled_end": "2026-10-29T11:00:00+05:00",
+  "assignment_ids": [
+    "00000000-0000-4000-8000-000000000043",
+    "00000000-0000-4000-8000-000000000044"
+  ],
+  "active_execution_id": "00000000-0000-4000-8000-000000000045",
+  "deadline_breached": false
 }

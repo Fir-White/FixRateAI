@@ -1,0 +1,21 @@
+{
+  "schema_version": "maintenance-0.1",
+  "model_ref": "synthetic_demo:rf:985a24f18a997f38",
+  "method_version": "rf-days-v1",
+  "feature_schema_version": "rf-features-v1",
+  "data_origin": "synthetic_demo",
+  "dataset_sha256": "f3029b9d5cd24cb0be69c2f59ce975cd22e7756296fb1b49b768ccc7baa5ffb9",
+  "artifact_sha256": "985a24f18a997f38d2ff2410dbbc048b05716408b573ef559fbecd35bb6566b1",
+  "random_seed": 42,
+  "trained_at": "2026-10-29T18:02:37.885776+00:00",
+  "verified_by": "Muhammad (AI Engineer)",
+  "n_train_samples": 40,
+  "n_test_samples": 10,
+  "metrics": {
+    "mae_days": 0.6042222222222222,
+    "mse_days": 1.5268738271604936,
+    "late_prediction_ratio": 1.0,
+    "n_test_samples": 10.0
+  },
+  "provenance_notes": "Обучено на Наборе B (synthetic_demo) без использования данных заказчика. Соответствует требованиям P0-08, P0-10, P0-22."
+}

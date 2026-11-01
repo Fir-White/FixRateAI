@@ -26,3 +26,14 @@ dist/
 *.egg-info/
 .vscode/
 !.vscode/extensions.json
+
+# Frontend
+node_modules/
+coverage/
+*.tsbuildinfo
+
+# Local runtime files and verification output
+/var/
+/test-results/
+/frontend/test-results/
+/frontend/playwright-report/

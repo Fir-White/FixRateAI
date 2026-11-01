@@ -1,8 +1,32 @@
 {
-  "template_id": "op-tmpl-101",
-  "name": "Контроль параметров показаний приборов (давление, температура)",
-  "to_type": "ТО1",
-  "norm_hours": 1.0,
-  "required_qualification": "Слесарь-сантехник 3 разряда",
-  "required_workers": 1
+  "schema_version": "maintenance-0.1",
+  "data_origin": "synthetic_demo",
+  "operation_id": "00000000-0000-4000-8000-000000000004",
+  "operation_version_id": "00000000-0000-4000-8000-000000000005",
+  "version": 1,
+  "code": "DEMO-CLEAN-01",
+  "title": "Демонстрационная очистка внешней поверхности узла",
+  "maintenance_type": "ТО2",
+  "instructions": "Зафиксировать исходный вид, очистить доступную поверхность и сделать фото того же ракурса. Это учебная операция.",
+  "crew_size": 2,
+  "raw_norm_value": "2.000",
+  "norm_unit": "person_hour",
+  "planning_duration_minutes": 60,
+  "duration_basis": "Синтетическая норма для демонстрации, не значение F9 исходного Excel.",
+  "qualification_ids": [
+    "00000000-0000-4000-8000-000000000006"
+  ],
+  "checklist": [
+    {
+      "checklist_item_id": "00000000-0000-4000-8000-000000000007",
+      "text": "Очистить доступную внешнюю поверхность узла",
+      "answer_kind": "boolean",
+      "unit": null,
+      "required": true,
+      "visual_verifiability": "visible",
+      "photo_required": true
+    }
+  ],
+  "status": "approved",
+  "source_ref": "synthetic_demo:cleaning-v1"
 }

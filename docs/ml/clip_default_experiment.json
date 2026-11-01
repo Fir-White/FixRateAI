@@ -1,0 +1,78 @@
+{
+  "run_at": "2026-10-30T18:41:17.131020+00:00",
+  "model_ref": "openai/clip-vit-base-patch32@3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268",
+  "torch_version": "2.5.1+cpu",
+  "transformers_version": "4.46.3",
+  "python": "3.11.9",
+  "device": "cpu",
+  "pairs": [
+    {
+      "source": "Файлы пользователя, Загрузки; case_01",
+      "before_sha256": "2ff768ac8e09084e559230977b250e4cbaa4e6735dba8dcccec2feaf9d09395c",
+      "after_sha256": "7216cfe02a920faaad1927a943d851796add81be9e4b9c9f36093855bee3d777",
+      "human_comparable": false,
+      "visual_verifiability": "visible",
+      "raw_clip_verdict": "visible_change",
+      "observation": "Формат учебного заключения: оценка соответствия описанию чистой поверхности после выше (дельта +0.27 >= 0.25). Это не доказательство качества работы.",
+      "scores": [
+        0.3864,
+        0.6579
+      ],
+      "status": "uncertain",
+      "quality_acceptable": true,
+      "elapsed_ms": 1407
+    },
+    {
+      "source": "Файлы пользователя, Загрузки; case_02",
+      "before_sha256": "bde6216ddb26d0674f6a79d9bc5ce0ee8940f8f2a67a47604f5774fe04b2a023",
+      "after_sha256": "4d0a014924ef19a37b0204b8e40100c7ed9a921e66de23a348d57e675334f092",
+      "human_comparable": false,
+      "visual_verifiability": "visible",
+      "raw_clip_verdict": "no_visible_change",
+      "observation": "Рост сходства с описанием чистой поверхности не достиг порога (дельта 0.02 < 0.25).",
+      "scores": [
+        0.75,
+        0.7698
+      ],
+      "status": "uncertain",
+      "quality_acceptable": true,
+      "elapsed_ms": 408
+    },
+    {
+      "source": "Файлы пользователя, Загрузки; case_03",
+      "before_sha256": "08c84084c7b0d5457f6ce1f588455619c84c065fc52dea6ea88cea306bb9181a",
+      "after_sha256": "310777ce75c22f0bd444275c11526934b95fcbced39a1bd64671efd2d419508d",
+      "human_comparable": true,
+      "visual_verifiability": "not_verifiable",
+      "raw_clip_verdict": "no_visible_change",
+      "observation": "Рост сходства с описанием чистой поверхности не достиг порога (дельта -0.12 < 0.25).",
+      "scores": [
+        0.9075,
+        0.7869
+      ],
+      "status": "not_verifiable",
+      "quality_acceptable": true,
+      "elapsed_ms": 638
+    },
+    {
+      "source": "Файлы пользователя, Загрузки; case_04",
+      "before_sha256": "b93d0523f26f57d6a341012339da70bcca16796c13900c91d2b1bd59263bdf7a",
+      "after_sha256": "0b18feb404cfed7c3c8994654c83c28a29600ca44e4acd9a10a24931a5f69bd4",
+      "human_comparable": true,
+      "visual_verifiability": "visible",
+      "raw_clip_verdict": "no_visible_change",
+      "observation": "Рост сходства с описанием чистой поверхности не достиг порога (дельта 0.06 < 0.25).",
+      "scores": [
+        0.6541,
+        0.7142
+      ],
+      "status": "uncertain",
+      "quality_acceptable": false,
+      "elapsed_ms": 622
+    }
+  ],
+  "limitations": [
+    "Comparability requires human assessment; view and lighting affect the scores.",
+    "The scores are uncalibrated and cannot verify hidden work or acceptance."
+  ]
+}

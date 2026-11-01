@@ -1,0 +1,3 @@
+# Complete integrated runtime (FastAPI + PostgreSQL + RF + image guardrails).
+-r backend/requirements.txt
+-r ml_service/requirements.txt

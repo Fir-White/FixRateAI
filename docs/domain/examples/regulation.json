@@ -1,7 +1,24 @@
 {
-  "regulation_id": "reg-501",
-  "item_id": "eq-item-991",
-  "template_id": "op-tmpl-101",
-  "frequency_type": "daily",
-  "frequency_value": "1/день"
+  "schema_version": "maintenance-0.1",
+  "data_origin": "synthetic_demo",
+  "rule_version_id": "00000000-0000-4000-8000-000000000008",
+  "regulation_version_id": "00000000-0000-4000-8000-000000000009",
+  "source_text": "Демонстрация: пять явно заданных дат за год",
+  "kind": "explicit_dates",
+  "confirmed": true,
+  "interval": null,
+  "calendar_unit": null,
+  "anchor_date": null,
+  "basis": null,
+  "explicit_dates": [
+    "2026-01-01",
+    "2026-03-15",
+    "2026-06-01",
+    "2026-09-01",
+    "2026-11-01"
+  ],
+  "yearly_count": 5,
+  "runtime_interval_hours": null,
+  "allowed_lead_days": 6,
+  "source_ref": "synthetic_demo:annual-v1"
 }

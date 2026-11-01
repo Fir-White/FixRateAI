@@ -22,7 +22,7 @@ def test_all_mappers_configure_without_database(monkeypatch):
             Table(item["name"], metadata, *columns)
 
     monkeypatch.setattr(MetaData, "reflect", fake_reflect)
-    monkeypatch.setattr(models, "inspect", lambda engine: SimpleNamespace(get_foreign_keys=lambda *args, **kwargs: [
+    monkeypatch.setattr(models, "inspect", lambda engine: SimpleNamespace(has_table=lambda *args, **kwargs: False, get_foreign_keys=lambda *args, **kwargs: [
         {"name": "fk_work_orders_entry_rule", "constrained_columns": ["site_id", "system_id", "schedule_entry_id", "maintenance_rule_id"],
          "referred_table": "schedule_entries", "referred_columns": ["site_id", "system_id", "schedule_entry_id", "maintenance_rule_id"], "options": {"ondelete": "RESTRICT"}}
     ]))

@@ -1,0 +1,6 @@
+{
+  "command": "HF_HOME=.venv/cv-cache .venv/cv/Scripts/python.exe scripts/prepare_clip.py --download",
+  "timeout_seconds": 90,
+  "exit_code": 0,
+  "status": "Пройдено"
+}

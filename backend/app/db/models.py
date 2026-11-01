@@ -58,8 +58,12 @@ def map_schema(engine: Engine, schema: str | None = None) -> Mappings:
     if engine.dialect.name != "postgresql":
         raise ValueError("The maintenance schema requires PostgreSQL")
     metadata = MetaData(schema=schema)
-    metadata.reflect(bind=engine, only=list(TABLES))
-    tables = {name: metadata.tables[f"{schema}.{name}" if schema else name] for name in TABLES}
+    names = list(TABLES)
+    for optional in ("planning_runs", "employee_shift_rules", "site_join_codes", "employment_applications"):
+        if inspect(engine).has_table(optional, schema=schema):
+            names.append(optional)
+    metadata.reflect(bind=engine, only=names)
+    tables = {name: metadata.tables[f"{schema}.{name}" if schema else name] for name in names}
     norm = tables["work_orders"].c.norm_hours_snapshot.type
     fks = inspect(engine).get_foreign_keys("work_orders", schema=schema)
     if (getattr(norm, "precision", None), getattr(norm, "scale", None)) != (13, 3):
@@ -74,7 +78,7 @@ def map_schema(engine: Engine, schema: str | None = None) -> Mappings:
         raise RuntimeError("Migration 004 is missing: work order/entry FK")
 
     mapper_registry = registry(metadata=metadata)
-    classes = {name: type(_class_name(name), (), {"__module__": __name__}) for name in TABLES}
+    classes = {name: type(_class_name(name), (), {"__module__": __name__}) for name in names}
 
     # Relationships are intentionally read-only: writes use explicit FK values,
     # avoiding ambiguous overlapping composite keys and implicit cascades.
@@ -101,7 +105,7 @@ def map_schema(engine: Engine, schema: str | None = None) -> Mappings:
     }
     from sqlalchemy import and_
     with _lock:
-        for name in TABLES:
+        for name in names:
             props = {}
             for attr, (target, columns) in links.get(name, {}).items():
                 join = and_(*(foreign(tables[name].c[local]) == tables[target].c[remote]

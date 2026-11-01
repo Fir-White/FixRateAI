@@ -1,0 +1,209 @@
+{
+  "notice": "Все вычислимые примеры — synthetic_demo, не утверждённый график заказчика. Неподтверждённый customer-пример не генерирует даты.",
+  "request": {
+    "schema_version": "maintenance-0.1",
+    "site": {
+      "schema_version": "maintenance-0.1",
+      "data_origin": "synthetic_demo",
+      "site_id": "00000000-0000-4000-8000-000000000001",
+      "name": "Демонстрационный объект",
+      "address": "Условный адрес, synthetic_demo",
+      "timezone": "Asia/Yekaterinburg"
+    },
+    "query": {
+      "site_id": "00000000-0000-4000-8000-000000000001",
+      "year": 2026,
+      "month": 10,
+      "include_cancelled": false
+    },
+    "as_of": "2026-10-31T12:00:00+05:00",
+    "bindings": [
+      {
+        "binding": {
+          "schema_version": "maintenance-0.1",
+          "data_origin": "synthetic_demo",
+          "source_ref": "synthetic_demo:binding-v1",
+          "equipment_id": "00000000-0000-4000-8000-000000000002",
+          "operation_version_id": "00000000-0000-4000-8000-000000000005",
+          "rule_version_id": "00000000-0000-4000-8000-000000000008",
+          "regulation_version_id": "00000000-0000-4000-8000-000000000009",
+          "effective_from": "2026-01-01",
+          "effective_to": null,
+          "baseline_runtime_hours": null,
+          "binding_id": "00000000-0000-4000-8000-000000000010",
+          "revision": 1
+        },
+        "equipment": {
+          "schema_version": "maintenance-0.1",
+          "data_origin": "synthetic_demo",
+          "equipment_id": "00000000-0000-4000-8000-000000000002",
+          "site_id": "00000000-0000-4000-8000-000000000001",
+          "equipment_type_id": "00000000-0000-4000-8000-000000000003",
+          "inventory_code": "DEMO-TP-001",
+          "name": "Учебный узел очистки",
+          "commissioned_on": "2026-01-01",
+          "state": "active",
+          "revision": 1
+        },
+        "operation": {
+          "schema_version": "maintenance-0.1",
+          "data_origin": "synthetic_demo",
+          "operation_id": "00000000-0000-4000-8000-000000000004",
+          "operation_version_id": "00000000-0000-4000-8000-000000000005",
+          "version": 1,
+          "code": "1.1",
+          "title": "DEMO: контроль показаний",
+          "maintenance_type": "ТО1",
+          "instructions": "DEMO: записать показания давления и температуры по чек-листу.",
+          "crew_size": 1,
+          "raw_norm_value": "1.000",
+          "norm_unit": "unconfirmed",
+          "planning_duration_minutes": null,
+          "duration_basis": null,
+          "qualification_ids": [
+            "00000000-0000-4000-8000-000000000006"
+          ],
+          "checklist": [
+            {
+              "checklist_item_id": "00000000-0000-4000-8000-000000000007",
+              "text": "Показания записаны",
+              "answer_kind": "boolean",
+              "unit": null,
+              "required": true,
+              "visual_verifiability": "visible",
+              "photo_required": false
+            }
+          ],
+          "status": "approved",
+          "source_ref": "synthetic_demo:daily-readings-v1"
+        },
+        "rule": {
+          "schema_version": "maintenance-0.1",
+          "data_origin": "synthetic_demo",
+          "rule_version_id": "00000000-0000-4000-8000-000000000008",
+          "regulation_version_id": "00000000-0000-4000-8000-000000000009",
+          "source_text": "1/день",
+          "kind": "calendar_interval",
+          "confirmed": true,
+          "interval": 1,
+          "calendar_unit": "day",
+          "anchor_date": "2026-01-01",
+          "basis": "fixed_calendar",
+          "explicit_dates": [],
+          "yearly_count": null,
+          "runtime_interval_hours": null,
+          "allowed_lead_days": 0,
+          "source_ref": "synthetic_demo:daily-v1"
+        },
+        "accepted_events": [],
+        "assumptions": [
+          "Год, опорная дата и утверждение правила заданы только для synthetic_demo."
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "total": 31,
+    "first_date": "2026-10-01",
+    "last_date": "2026-10-31",
+    "total_person_hours": null
+  },
+  "rules": {
+    "quarterly_fixed": {
+      "schema_version": "maintenance-0.1",
+      "data_origin": "synthetic_demo",
+      "rule_version_id": "00000000-0000-4000-8000-000000000008",
+      "regulation_version_id": "00000000-0000-4000-8000-000000000009",
+      "source_text": "1/квар",
+      "kind": "calendar_interval",
+      "confirmed": true,
+      "interval": 3,
+      "calendar_unit": "month",
+      "anchor_date": "2026-01-31",
+      "basis": "fixed_calendar",
+      "explicit_dates": [],
+      "yearly_count": null,
+      "runtime_interval_hours": null,
+      "allowed_lead_days": 0,
+      "source_ref": "synthetic_demo:quarterly-v1"
+    },
+    "quarterly_after_completion": {
+      "schema_version": "maintenance-0.1",
+      "data_origin": "synthetic_demo",
+      "rule_version_id": "00000000-0000-4000-8000-000000000008",
+      "regulation_version_id": "00000000-0000-4000-8000-000000000009",
+      "source_text": "1/квар",
+      "kind": "calendar_interval",
+      "confirmed": true,
+      "interval": 3,
+      "calendar_unit": "month",
+      "anchor_date": "2026-01-31",
+      "basis": "after_accepted_completion",
+      "explicit_dates": [],
+      "yearly_count": null,
+      "runtime_interval_hours": null,
+      "allowed_lead_days": 0,
+      "source_ref": "synthetic_demo:quarterly-v1"
+    },
+    "annual_explicit": {
+      "schema_version": "maintenance-0.1",
+      "data_origin": "synthetic_demo",
+      "rule_version_id": "00000000-0000-4000-8000-000000000008",
+      "regulation_version_id": "00000000-0000-4000-8000-000000000009",
+      "source_text": "Демонстрация: пять явно заданных дат за год",
+      "kind": "explicit_dates",
+      "confirmed": true,
+      "interval": null,
+      "calendar_unit": null,
+      "anchor_date": null,
+      "basis": null,
+      "explicit_dates": [
+        "2026-01-01",
+        "2026-03-15",
+        "2026-06-01",
+        "2026-09-01",
+        "2026-11-01"
+      ],
+      "yearly_count": 5,
+      "runtime_interval_hours": null,
+      "allowed_lead_days": 6,
+      "source_ref": "synthetic_demo:annual-v1"
+    },
+    "annual_unconfirmed": {
+      "schema_version": "maintenance-0.1",
+      "data_origin": "customer",
+      "rule_version_id": "00000000-0000-4000-8000-000000000008",
+      "regulation_version_id": "00000000-0000-4000-8000-000000000009",
+      "source_text": "5/год",
+      "kind": "explicit_dates",
+      "confirmed": false,
+      "interval": null,
+      "calendar_unit": null,
+      "anchor_date": null,
+      "basis": null,
+      "explicit_dates": [],
+      "yearly_count": 5,
+      "runtime_interval_hours": null,
+      "allowed_lead_days": 6,
+      "source_ref": "customer:sheet!D9"
+    },
+    "runtime_without_calendar_date": {
+      "schema_version": "maintenance-0.1",
+      "data_origin": "synthetic_demo",
+      "rule_version_id": "00000000-0000-4000-8000-000000000008",
+      "regulation_version_id": "00000000-0000-4000-8000-000000000009",
+      "source_text": "через 100 часов",
+      "kind": "runtime",
+      "confirmed": true,
+      "interval": null,
+      "calendar_unit": null,
+      "anchor_date": null,
+      "basis": null,
+      "explicit_dates": [],
+      "yearly_count": null,
+      "runtime_interval_hours": "100.000",
+      "allowed_lead_days": 0,
+      "source_ref": "synthetic_demo:daily-v1"
+    }
+  }
+}

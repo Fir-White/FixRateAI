@@ -1,0 +1,4 @@
+
+Fetching 8 files:   0%|          | 0/8 [00:00<?, ?it/s]
+Fetching 8 files: 100%|██████████| 8/8 [00:00<00:00, 2646.87it/s]
+{"status": "ready", "model_ref": "openai/clip-vit-base-patch32@3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268", "note": "Readiness only; real HTTP inference is checked with FIXRATE_REQUIRE_CLIP=1 scripts/verify.py"}

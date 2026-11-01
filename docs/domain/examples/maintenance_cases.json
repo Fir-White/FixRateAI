@@ -4,8 +4,14 @@
       "test_id": "TC-01",
       "operation_id": "1.1",
       "input_data": {
-        "start_date": "2026-10-01",
-        "last_maintenance_date": "2026-09-30"
+        "year": 2026,
+        "month": 10,
+        "active_from": "2026-10-01",
+        "pattern": {
+          "frequency": "day",
+          "anchor_date": "2026-01-01",
+          "interval": 1
+        }
       },
       "expected_dates": [
         "2026-10-01",
@@ -40,59 +46,91 @@
         "2026-10-30",
         "2026-10-31"
       ],
-      "expected_hours": 1.0,
       "expected_workers": 1,
-      "is_assumption": false
+      "is_assumption": false,
+      "raw_norm_value": "1.0",
+      "norm_unit": "unconfirmed",
+      "schema_version": "calendar-scenarios-v2"
     },
     {
       "test_id": "TC-02",
       "operation_id": "1.5",
       "input_data": {
-        "planning_horizon_start": "2026-10-01",
-        "planning_horizon_end": "2026-12-31",
-        "last_maintenance_date": "2026-09-30"
+        "year": 2026,
+        "month": 12,
+        "active_from": "2026-10-01",
+        "pattern": {
+          "frequency": "quarter",
+          "anchor_date": "2026-01-01",
+          "interval": 1
+        }
       },
       "expected_dates": [
         "2026-12-31"
       ],
-      "expected_hours": 48.0,
       "expected_workers": 1,
-      "is_assumption": true
+      "is_assumption": true,
+      "raw_norm_value": "48.0",
+      "norm_unit": "unconfirmed",
+      "schema_version": "calendar-scenarios-v2"
     },
     {
       "test_id": "TC-03",
       "operation_id": "1.6",
       "input_data": {
-        "planning_horizon_start": "2026-10-01",
-        "planning_horizon_end": "2026-12-31",
-        "last_maintenance_date": "2026-07-04"
+        "year": 2026,
+        "month": 10,
+        "active_from": "2026-10-01",
+        "pattern": {
+          "frequency": "month",
+          "anchor_date": "2026-07-04",
+          "interval": 3
+        }
       },
       "expected_dates": [
-        "2026-10-05"
+        "2026-10-04"
       ],
-      "expected_hours": 30.0,
       "expected_workers": 1,
-      "is_assumption": true
+      "is_assumption": true,
+      "raw_norm_value": "30.0",
+      "norm_unit": "unconfirmed",
+      "schema_version": "calendar-scenarios-v2"
     },
     {
       "test_id": "TC-04",
       "operation_id": "1.4",
       "input_data": {
-        "commissioning_date": "2026-10-01",
-        "last_maintenance_date": null
+        "year": 2026,
+        "month": 10,
+        "active_from": "2026-10-01",
+        "pattern": {
+          "frequency": "yearly_count",
+          "anchor_date": "2026-01-01",
+          "interval": 1,
+          "count_per_year": 5
+        }
       },
       "expected_dates": [
-        "2026-10-01"
+        "2026-10-20"
       ],
-      "expected_hours": 60.0,
       "expected_workers": 2,
-      "is_assumption": true
+      "is_assumption": true,
+      "raw_norm_value": "60.0",
+      "norm_unit": "unconfirmed",
+      "schema_version": "calendar-scenarios-v2"
     },
     {
       "test_id": "TC-05",
       "operation_id": "1.1",
       "input_data": {
-        "activation_date": "2026-10-15"
+        "year": 2026,
+        "month": 10,
+        "active_from": "2026-10-15",
+        "pattern": {
+          "frequency": "day",
+          "anchor_date": "2026-01-01",
+          "interval": 1
+        }
       },
       "expected_dates": [
         "2026-10-15",
@@ -113,9 +151,11 @@
         "2026-10-30",
         "2026-10-31"
       ],
-      "expected_hours": 1.0,
       "expected_workers": 1,
-      "is_assumption": true
+      "is_assumption": true,
+      "raw_norm_value": "1.0",
+      "norm_unit": "unconfirmed",
+      "schema_version": "calendar-scenarios-v2"
     }
   ]
 }

@@ -1,0 +1,47 @@
+INFO:     Started server process [20948]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:11898 (Press CTRL+C to quit)
+INFO:     127.0.0.1:11911 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:7742 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:7742 - "GET /assets/index-CA2JOu6F.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:2767 - "GET /assets/index-Cc8xtoWm.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:7742 - "GET /favicon.ico HTTP/1.1" 200 OK
+INFO:     127.0.0.1:2767 - "GET /api/v1/auth/session HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:7742 - "POST /api/v1/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:7742 - "GET /api/v1/maintenance/ui/tasks HTTP/1.1" 200 OK
+INFO:     127.0.0.1:7742 - "GET /api/v1/maintenance/ui/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:7742 - "POST /api/v1/maintenance/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014/start HTTP/1.1" 200 OK
+INFO:     127.0.0.1:7742 - "GET /api/v1/maintenance/ui/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:7742 - "PUT /api/v1/maintenance/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014/report HTTP/1.1" 200 OK
+INFO:     127.0.0.1:7742 - "GET /api/v1/maintenance/ui/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:7742 - "POST /api/v1/maintenance/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014/photos HTTP/1.1" 200 OK
+INFO:     127.0.0.1:7742 - "GET /api/v1/maintenance/ui/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:7742 - "GET /api/v1/maintenance/photos/187596c5-5036-4890-8726-9d0822401a60 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:7742 - "POST /api/v1/maintenance/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014/photos HTTP/1.1" 200 OK
+INFO:     127.0.0.1:7742 - "GET /api/v1/maintenance/ui/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:7742 - "GET /api/v1/maintenance/photos/c71090b0-a33b-4cc2-9bc5-dc39c67a900d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:7742 - "POST /api/v1/maintenance/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014/submit HTTP/1.1" 200 OK
+INFO:     127.0.0.1:7742 - "GET /api/v1/maintenance/ui/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12409 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12409 - "GET /assets/index-CA2JOu6F.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12546 - "GET /assets/index-Cc8xtoWm.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12546 - "GET /api/v1/auth/session HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:12409 - "GET /favicon.ico HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12409 - "POST /api/v1/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12409 - "GET /api/v1/maintenance/ui/quality HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12546 - "GET /quality/33e95b39-5a97-5aa9-4923-126ce24c9014 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12546 - "GET /api/v1/auth/session HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12546 - "GET /api/v1/maintenance/ui/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12546 - "GET /api/v1/maintenance/photos/c71090b0-a33b-4cc2-9bc5-dc39c67a900d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12409 - "GET /api/v1/maintenance/photos/187596c5-5036-4890-8726-9d0822401a60 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12409 - "POST /api/v1/maintenance/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014/photo-review HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12409 - "GET /api/v1/maintenance/ui/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12409 - "POST /api/v1/maintenance/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014/review HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12546 - "GET /tasks/33e95b39-5a97-5aa9-4923-126ce24c9014 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12546 - "GET /api/v1/auth/session HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12546 - "GET /api/v1/maintenance/ui/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:12546 - "GET /api/v1/maintenance/photos/c71090b0-a33b-4cc2-9bc5-dc39c67a900d HTTP/1.1" 200 OK
+INFO:     127.0.0.1:6233 - "GET /api/v1/maintenance/photos/187596c5-5036-4890-8726-9d0822401a60 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:6233 - "POST /api/v1/maintenance/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014/forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:6233 - "GET /api/v1/maintenance/ui/comparisons/904fd57d-c3ab-44b8-9042-ed0d4c16c19f HTTP/1.1" 200 OK
