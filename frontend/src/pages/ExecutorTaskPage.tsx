@@ -1,3 +1,4 @@
+import { FieldCaption } from "@/shared/ui/Form";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { maintenanceApi, type TaskBundle } from "@/shared/api/maintenance";
@@ -63,23 +64,23 @@ function ExecutionEditor({bundle, reload}: {bundle: TaskBundle; reload: () => vo
       <section className="space-y-4 rounded-2xl border border-line bg-surface p-5">
         <h2 className="text-lg">Чек-лист · Попытка №{execution.attemptNumber}</h2>
         {execution.checklist.map(item => <label key={item.id} className="block rounded border border-line p-3">
-          <span>{item.text}{item.required ? " *" : ""}</span>
+          <span className={item.answerKind === "boolean" ? undefined : "field-caption"}>{item.text}{item.required ? " *" : ""}</span>
           {item.answerKind === "boolean" ? <input className="ml-3" type="checkbox" checked={answers[item.id] === "done"} disabled={!editable || busy} onChange={e => setAnswers({...answers, [item.id]: e.target.checked ? "done" : "not_done"})} />
             : <input className="ml-3 rounded border border-line bg-surface-raised p-2" value={answers[item.id] ?? ""} disabled={!editable || busy} onChange={e => setAnswers({...answers, [item.id]: e.target.value})} />}
           {item.unit && <span> {item.unit}</span>}
           {item.photoRequired && <span className="ml-2 text-xs text-violet-200">Фото до/после обязательно</span>}
         </label>)}
-        <label className="block">Комментарий исполнителя<textarea className="mt-2 block w-full rounded border border-line bg-surface-raised p-3" value={narrative} disabled={!editable || busy} onChange={e => setNarrative(e.target.value)} /></label>
+        <label className="block"><FieldCaption>Комментарий исполнителя</FieldCaption><textarea className="mt-2 block w-full rounded border border-line bg-surface-raised p-3" value={narrative} disabled={!editable || busy} onChange={e => setNarrative(e.target.value)} /></label>
         {editable && <Button disabled={busy} onClick={() => act(saveDraft)}>Сохранить отчёт</Button>}
       </section>
       <section className="space-y-4 rounded-2xl border border-line bg-surface p-5">
         <h2 className="text-lg">Фотоотчёт</h2>
         <EvidenceGallery photos={execution.photos} />
         {editable && <fieldset disabled={busy} className="space-y-3">
-          <label className="block">Пункт чек-листа<select className="ml-2 bg-surface-raised p-2" value={itemId} onChange={e => setItemId(e.target.value)}>{execution.checklist.map(i => <option key={i.id} value={i.id}>{i.text}</option>)}</select></label>
-          <label className="block">Этап<select className="ml-2 bg-surface-raised p-2" value={phase} onChange={e => setPhase(e.target.value)}><option value="before">До</option><option value="after">После</option></select></label>
-          <label className="block">Ракурс<input className="ml-2 rounded border border-line bg-surface-raised p-2" value={viewKey} onChange={e => setViewKey(e.target.value)} /></label>
-          <label className="block">Файл фото<input className="block" type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setFile(e.target.files?.[0] ?? null)} /></label>
+          <label className="block"><FieldCaption>Пункт чек-листа</FieldCaption><select className="ml-2 bg-surface-raised p-2" value={itemId} onChange={e => setItemId(e.target.value)}>{execution.checklist.map(i => <option key={i.id} value={i.id}>{i.text}</option>)}</select></label>
+          <label className="block"><FieldCaption>Этап</FieldCaption><select className="ml-2 bg-surface-raised p-2" value={phase} onChange={e => setPhase(e.target.value)}><option value="before">До</option><option value="after">После</option></select></label>
+          <label className="block"><FieldCaption>Ракурс</FieldCaption><input className="ml-2 rounded border border-line bg-surface-raised p-2" value={viewKey} onChange={e => setViewKey(e.target.value)} /></label>
+          <label className="block"><FieldCaption>Файл фото</FieldCaption><input className="block" type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setFile(e.target.files?.[0] ?? null)} /></label>
           <Button variant="secondary" disabled={!file || !viewKey.trim()} onClick={() => file && act(async () => {
             const savedRevision = await saveDraft();
             return maintenanceApi.upload(task.id, savedRevision, itemId, phase, viewKey, file);

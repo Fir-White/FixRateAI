@@ -63,14 +63,12 @@ it("retains manual pause across hidden/offscreen/media changes without resetting
   tick(100000); expect(renderer.render.mock.calls.at(-1)![0]).toBe(phase);
   tick(100050); expect(renderer.render.mock.calls.at(-1)![0]).toBeGreaterThan(phase);
 });
-it("keeps static canvases for reduced motion and mobile and cleans up StrictMode", () => {
+it("keeps reduced motion static and cleans up StrictMode", () => {
   const add = vi.spyOn(document, "addEventListener"), remove = vi.spyOn(document, "removeEventListener");
   const view = render(<StrictMode><AuroraScene /></StrictMode>); const scene = view.container.querySelector(".auth-aurora")!;
   expect(frames.size).toBe(1); expect(renderer.resize).toHaveBeenCalled();
-  for (const media of [reduced, desktop]) {
-    act(() => media.set(media === reduced)); expect(scene).toHaveAttribute("data-motion", "paused"); expect(frames.size).toBe(0);
-    act(() => media.set(media !== reduced));
-  }
+  act(() => reduced.set(true)); expect(scene).toHaveAttribute("data-motion", "paused"); expect(frames.size).toBe(0);
+  act(() => reduced.set(false));expect(frames.size).toBe(1);
   view.unmount(); expect(frames.size).toBe(0); expect(renderer.destroy).toHaveBeenCalled(); expect(disconnect).toHaveBeenCalled();
   for (const [type, listener] of add.mock.calls.filter(([type]) => type === "visibilitychange")) expect(remove.mock.calls.some(([t,l]) => t === type && l === listener)).toBe(true);
 });
@@ -84,21 +82,36 @@ it("does not subscribe to cursor movement or make animation depend on mouse capa
   tick(0); tick(100); expect(renderer.render.mock.calls.at(-1)![0]).toBeCloseTo(.064);
   view.unmount(); expect(frames.size).toBe(0);
 });
-it("stops the clock in compact phone landscape and resumes the preserved phase on desktop", () => {
+it.each(["portrait","landscape"])("runs mobile %s at30 geometry updates with1.9x phase and no extra frame work", orientation => {
+  if(orientation==="portrait")desktop.matches=false;else compactLandscape.matches=true;
+  const renders=vi.fn();const view=render(<Profiler id="mobile" onRender={renders}><AuroraScene /></Profiler>);
+  expect(renderer.render.mock.calls.at(-1)).toEqual([0,true,"mobile"]);
+  const count=renders.mock.calls.length,layout=vi.spyOn(HTMLElement.prototype,"getBoundingClientRect");
+  renderer.render.mockClear();
+  for(let frame=0;frame<=144;frame++){tick(frame*1000/144);expect(frames.size).toBe(1);}
+  expect(renderer.render).toHaveBeenCalledTimes(30);
+  expect(renderer.render.mock.calls.every(([,lights,profile])=>lights&&profile==="mobile")).toBe(true);
+  expect(renderer.render.mock.calls.at(-1)?.[0]).toBeCloseTo(1.9,8);
+  expect(layout).not.toHaveBeenCalled();expect(renders.mock.calls.length).toBe(count);
+  expect(view.container.querySelector(".auth-aurora")).toHaveAttribute("data-profile","mobile");
+  const phase=renderer.render.mock.calls.at(-1)![0];visibility(true);expect(frames.size).toBe(0);
+  visibility(false);tick(60000);expect(renderer.render.mock.calls.at(-1)![0]).toBe(phase);
+  tick(60050);expect(renderer.render.mock.calls.at(-1)![0]).toBeCloseTo(phase+.05*1.9,8);
+});
+it("changes profiles in compact landscape while retaining the integrated phase", () => {
   render(<AuroraScene />);
   tick(0); tick(50);
   const phase = renderer.render.mock.calls.at(-1)![0];
   act(() => compactLandscape.set(true));
-  expect(frames.size).toBe(0);
-  const count = renderer.render.mock.calls.length;
-  tick(60000);
-  expect(renderer.render).toHaveBeenCalledTimes(count);
+  expect(frames.size).toBe(1);
+  expect(renderer.render.mock.calls.at(-1)).toEqual([phase,true,"mobile"]);
+  tick(100);
+  const mobilePhase=renderer.render.mock.calls.at(-1)![0];
+  expect(mobilePhase).toBeCloseTo(phase+.05*1.9,8);
   act(() => compactLandscape.set(false));
   expect(frames.size).toBe(1);
-  tick(120000);
-  expect(renderer.render.mock.calls.at(-1)![0]).toBe(phase);
-  tick(120050);
-  expect(renderer.render.mock.calls.at(-1)![0]).toBeGreaterThan(phase);
+  expect(renderer.render.mock.calls.at(-1)).toEqual([mobilePhase,true]);
+  tick(150);expect(renderer.render.mock.calls.at(-1)![0]).toBeCloseTo(mobilePhase+.05,8);
 });
 it("only resizes on resize events, and cancels immediately if reduced matches changes before its event", () => {
   const view = render(<AuroraScene />); tick(0); tick(50);

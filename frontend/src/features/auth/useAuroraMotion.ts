@@ -1,5 +1,6 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 import { createAuroraRenderer } from "./canvasRenderer";
+import { MOBILE_FLOW_SPEED, type AuroraProfile } from "./ribbonGeometry";
 
 const LIGHT_INTERVAL = 1 / 30;
 const PARTICLE_INTERVAL = 1 / 60;
@@ -9,7 +10,8 @@ export function useAuroraMotion(sceneRef: RefObject<HTMLDivElement | null>, anim
   const enabled = useRef(animationEnabled);
   const synchronize = useRef<(() => void) | null>(null);
   const elapsed = useRef(0);
-  useEffect(() => {
+  const phase = useRef(0);
+  useLayoutEffect(() => {
     const scene = sceneRef.current;
     if (!scene || typeof window.matchMedia !== "function") return;
     const renderer = createAuroraRenderer(scene);
@@ -21,13 +23,18 @@ export function useAuroraMotion(sceneRef: RefObject<HTMLDivElement | null>, anim
     let previousTime: number | null = null;
     let lastLightUpdate = elapsed.current;
     let lastParticleUpdate = elapsed.current;
-    let displayedParticleTime = elapsed.current;
-    const running = () => !!renderer && !reduced.matches && desktop.matches && !compactLandscape.matches && enabled.current && !document.hidden && intersecting;
+    let displayedParticleTime = phase.current;
+    let displayedLightTime = phase.current;
+    let profile: AuroraProfile = !desktop.matches || compactLandscape.matches ? "mobile" : "desktop";
+    const running = () => !!renderer && !reduced.matches && enabled.current && !document.hidden && intersecting;
+    const renderFrame = (seconds: number, lights: boolean) => profile === "mobile"
+      ? renderer?.render(seconds, lights, profile)
+      : renderer?.render(seconds, lights);
     const resize = (width: number, height: number) => {
       renderer?.resize(width, height, window.devicePixelRatio || 1);
       // Repaint the displayed phase rather than the newer clock value, so a
       // deferred resize cannot advance particles while paused or reduced.
-      renderer?.render(displayedParticleTime, false);
+      renderFrame(displayedParticleTime, false);
     };
     const measure = () => { const bounds = scene.getBoundingClientRect(); resize(bounds.width, bounds.height); };
     const animate = (time: number) => {
@@ -36,17 +43,25 @@ export function useAuroraMotion(sceneRef: RefObject<HTMLDivElement | null>, anim
       const delta = previousTime === null ? 0 : Math.min(Math.max((time - previousTime) / 1000, 0), 0.064);
       previousTime = time;
       elapsed.current += delta;
+      phase.current += delta * (profile === "mobile" ? MOBILE_FLOW_SPEED : 1);
       const lightUpdate = elapsed.current - lastLightUpdate >= LIGHT_INTERVAL - 1e-9;
       if (lightUpdate) lastLightUpdate += Math.floor((elapsed.current - lastLightUpdate + 1e-9) / LIGHT_INTERVAL) * LIGHT_INTERVAL;
       const particleUpdate = elapsed.current - lastParticleUpdate >= PARTICLE_INTERVAL - 1e-9;
       if (particleUpdate) lastParticleUpdate += Math.floor((elapsed.current - lastParticleUpdate + 1e-9) / PARTICLE_INTERVAL) * PARTICLE_INTERVAL;
-      if (lightUpdate || particleUpdate) {
-        renderer?.render(elapsed.current, lightUpdate);
-        displayedParticleTime = elapsed.current;
+      if (lightUpdate || (profile === "desktop" && particleUpdate)) {
+        renderFrame(phase.current, lightUpdate);
+        displayedParticleTime = phase.current;
+        if (lightUpdate) displayedLightTime = phase.current;
       }
       frame = requestAnimationFrame(animate);
     };
     const sync = () => {
+      const nextProfile = !desktop.matches || compactLandscape.matches ? "mobile" : "desktop";
+      if (nextProfile !== profile) {
+        profile = nextProfile;
+        renderFrame(displayedLightTime, true);
+      }
+      scene.dataset.profile = profile;
       onReducedMotionChange?.(reduced.matches);
       scene.dataset.motion = running() ? "running" : "paused";
       if (running()) {
@@ -63,6 +78,7 @@ export function useAuroraMotion(sceneRef: RefObject<HTMLDivElement | null>, anim
     }) : null;
     const sizing = typeof ResizeObserver === "function" ? new ResizeObserver(([entry]) => resize(entry.contentRect.width, entry.contentRect.height)) : null;
     measure();
+    if (profile === "mobile") renderFrame(displayedLightTime, true);
     sizing?.observe(scene);
     visibility?.observe(scene);
     window.addEventListener("resize", measure, { passive: true });

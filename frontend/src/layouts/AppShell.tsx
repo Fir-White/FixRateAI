@@ -9,7 +9,7 @@ import {
 } from "react-router-dom";
 import { BrandLockup } from "@/shared/ui/Brand";
 import { Button, IconButton } from "@/shared/ui/Button";
-import { Select } from "@/shared/ui/Form";
+import { FieldCaption, Select  } from "@/shared/ui/Form";
 import { Icon, type IconName } from "@/shared/ui/Icon";
 import { useDialogFocus } from "@/shared/lib/useDialogFocus";
 import { useSession } from "@/shared/session/SessionContext";
@@ -208,9 +208,9 @@ export function AppShell() {
             </nav>
             <div className="space-y-3 border-t border-line pt-4">
               <label className="block">
-                <span className="mb-1.5 block text-[10px] font-semibold tracking-[0.16em] text-muted uppercase">
+                <span className="mb-1.5 block text-[10px] font-semibold tracking-[0.16em] text-muted uppercase"><FieldCaption>
                   Роль
-                </span>
+                </FieldCaption></span>
                 <Select
                     disabled={!DEMO_MODE}
                   aria-label="Демонстрационная роль"

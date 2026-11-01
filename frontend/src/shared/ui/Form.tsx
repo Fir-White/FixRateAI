@@ -1,5 +1,6 @@
 import { cloneElement, isValidElement, useId } from "react";
 import { useFeedbackMotion } from "@/shared/motion/useFeedbackMotion";
+import "./Form.css";
 import type {
   ComponentPropsWithoutRef,
   InputHTMLAttributes,
@@ -11,6 +12,11 @@ import type {
 
 const CONTROL_CLASSES =
   "motion-input w-full rounded-xl border border-line-strong bg-white/[0.035] text-sm text-ink placeholder:text-muted/60 transition-colors hover:border-muted/50 focus:border-accent focus:ring-2 focus:ring-accent/15 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50";
+
+/** Offset caption text without changing a wrapping label or its control's layout. */
+export function FieldCaption({ children }: { children: ReactNode }) {
+  return <span className="field-caption">{children}</span>;
+}
 
 export function FormField({
   label,
@@ -46,12 +52,14 @@ export function FormField({
         htmlFor={htmlFor}
         className="mb-1.5 block text-xs font-semibold text-ink-soft"
       >
+        <FieldCaption>
         {label}
         {required ? (
           <span aria-hidden="true" className="ml-1 text-rose-300">
             *
           </span>
         ) : null}
+        </FieldCaption>
       </label>
       {control}
       <div ref={feedback} className="form-feedback">
@@ -61,14 +69,14 @@ export function FormField({
           role="alert"
           className="mt-1.5 text-xs leading-5 text-rose-300"
         >
-          {error}
+          <FieldCaption>{error}</FieldCaption>
         </p>
       ) : hint ? (
         <p
           id={descriptionId}
           className="mt-1.5 text-xs leading-5 text-muted"
         >
-          {hint}
+          <FieldCaption>{hint}</FieldCaption>
         </p>
       ) : null}
       </div>

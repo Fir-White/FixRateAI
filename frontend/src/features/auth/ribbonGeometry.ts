@@ -4,6 +4,11 @@ export type WaveFrame = { index: number; cubics: readonly Cubic[] };
 export const FLOW_WIDTH = 1200;
 export const FLOW_HEIGHT = 1000;
 export const CONTROL_DISPLACEMENT_LIMITS = [48, 36, 0] as const;
+export type AuroraProfile = "desktop" | "mobile";
+export const MOBILE_FLOW_SPEED = 1.9;
+export const MOBILE_CONTROL_DISPLACEMENT_LIMITS = [72, 54, 0] as const;
+const MOBILE_RAW_GAIN = 1.6;
+const MOBILE_LOWER_OFFSET = 48;
 const SOURCES = [
   [[-180, 1140], [90, 1030], [480, 760], [590, 470], [870, -20], [910, -260]],
   [[220, 1260], [360, 960], [710, 720], [1000, 625], [1380, 500], [1500, 320]],
@@ -106,13 +111,29 @@ function displacement(index: number, seconds: number, point: number): Point {
  * reflected S handle must remain in this shared budget. No frame randomness.
  * The third curve is static diffuse ambient light, without a recognizable core.
  */
-export function ribbonFrame(index: number, seconds: number): WaveFrame {
+export function ribbonFrame(index: number, seconds: number, profile: AuroraProfile = "desktop"): WaveFrame {
+  if (profile === "mobile") return mobileRibbonFrame(index, seconds);
   if (index === 2 || seconds === 0) return { index, cubics: cubics(BASE[index]) };
   const raw = BASE[index].map((_, point) => displacement(index, seconds, point));
   const actual = [...raw, [2 * raw[3][0] - raw[2][0], 2 * raw[3][1] - raw[2][1]] as Point];
   const limit = CONTROL_DISPLACEMENT_LIMITS[index];
   const scale = limit / Math.pow(limit ** 8 + actual.reduce((sum, point) => sum + Math.hypot(...point) ** 8, 0), 1 / 8);
   return { index, cubics: cubics(BASE[index].map((point, i) => [point[0] + raw[i][0] * scale, point[1] + raw[i][1] * scale])) };
+}
+
+/** Mobile has a separate certified control hull. Moving the lower baseline
+ * down48 leaves>15px all-time clearance at72/54. An additional global x budget
+ * of48/36 preserves the original positive x-control gaps. Both smooth scales
+ * include the reflected S handle and therefore retain the C1 join. */
+function mobileRibbonFrame(index: number, seconds: number): WaveFrame {
+  if (index === 2) return { index, cubics: cubics(BASE[index]) };
+  const raw = BASE[index].map((_, point) => displacement(index, seconds, point).map(value => value * MOBILE_RAW_GAIN) as unknown as Point);
+  const actual = [...raw, [2 * raw[3][0] - raw[2][0], 2 * raw[3][1] - raw[2][1]] as Point];
+  const limit = MOBILE_CONTROL_DISPLACEMENT_LIMITS[index];
+  const scale = limit / Math.pow(limit ** 8 + actual.reduce((sum, point) => sum + Math.hypot(...point) ** 8, 0), 1 / 8);
+  const xLimit = CONTROL_DISPLACEMENT_LIMITS[index];
+  const xScale = xLimit / Math.pow(xLimit ** 8 + actual.reduce((sum, point) => sum + Math.abs(point[0] * scale) ** 8, 0), 1 / 8);
+  return { index, cubics: cubics(BASE[index].map((point, i) => [point[0] + raw[i][0] * scale * xScale, point[1] + (index === 1 ? MOBILE_LOWER_OFFSET : 0) + raw[i][1] * scale])) };
 }
 export function ribbonPath(frame: WaveFrame): string {
   const [first, second] = frame.cubics;

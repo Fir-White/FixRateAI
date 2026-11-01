@@ -173,10 +173,10 @@ def check_documents():
             target = target.split("#")[0]
             require((path.parent / target).exists(), f"broken link: {path.name} -> {target}")
             count += 1
-    mermaid = (ROOT / "diagrams/system_architecture.mmd").read_text(encoding="utf-8").strip()
+    mermaid = (ROOT.parent / "assets/architecture/system_architecture.mmd").read_text(encoding="utf-8").strip()
     embedded = re.search(r"```mermaid\n(.*?)\n```", (ROOT.parent/"ARCHITECTURE.md").read_text(encoding="utf-8"), re.S).group(1).strip()
     require(embedded == mermaid, "embedded/source Mermaid differ")
-    drawing = ET.parse(ROOT / "diagrams/system_architecture.drawio")
+    drawing = ET.parse(ROOT.parent / "assets/architecture/system_architecture.drawio")
     cells = drawing.findall(".//mxCell")
     ids = {c.get("id") for c in cells}
     require(len(ids) == len(cells), "duplicate draw.io cell ID")

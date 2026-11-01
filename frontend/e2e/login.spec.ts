@@ -41,7 +41,7 @@ test("responsive open light scene and original small auth brand", async ({ page 
   }
 });
 
-test("independent curves, tiny particles, pause, reduced motion and static small brand", async ({page,browser},testInfo)=>{
+test("independent curves, tiny particles, automatic pauses, reduced motion and static small brand", async ({page,browser},testInfo)=>{
   await page.setViewportSize({width:1440,height:900});
   const pixels=()=>page.locator(".auth-aurora canvas").evaluateAll(elements=>elements.map(element=>{
     const canvas=element as HTMLCanvasElement, data=canvas.getContext("2d")!.getImageData(0,0,canvas.width,canvas.height).data;
@@ -52,7 +52,6 @@ test("independent curves, tiny particles, pause, reduced motion and static small
   const paths=()=>page.locator("[data-aurora-ribbon]").evaluateAll(elements=>elements.map(element=>element.getAttribute("d")));
   const snapshot=async()=>({paths:await paths(),pixels:await pixels()});
   const logos=()=>page.locator(".auth-brand img").evaluateAll(elements=>elements.map(element=>({box:element.getBoundingClientRect().toJSON(),transform:getComputedStyle(element).transform,opacity:getComputedStyle(element).opacity})));
-  const setAnimation=async()=>{ await page.locator(".auth-footer button").click(); await page.locator(".auth-motion-setting input").press("Space"); await page.keyboard.press("Escape"); };
   const original=await logos(), initial=await snapshot();
   expect(initial.pixels[0].maxAlpha).toBeGreaterThan(0);
   expect(initial.pixels[0].maxAlpha).toBeLessThan(92);
@@ -61,19 +60,35 @@ test("independent curves, tiny particles, pause, reduced motion and static small
   expect(moved.pixels[0].hash).not.toBe(initial.pixels[0].hash);
   await page.mouse.move(1300,650); expect(await logos()).toEqual(original);
   await page.screenshot({path:testInfo.outputPath("original-curves-moving.png")});
-  await setAnimation(); await expect(page.locator(".auth-aurora")).toHaveAttribute("data-motion","paused");
-  await page.evaluate(()=>{Object.defineProperty(document,"hidden",{configurable:true,value:true});document.dispatchEvent(new Event("visibilitychange"));Reflect.deleteProperty(document,"hidden");document.dispatchEvent(new Event("visibilitychange"));});
+  await page.evaluate(()=>{Object.defineProperty(document,"hidden",{configurable:true,value:true});document.dispatchEvent(new Event("visibilitychange"));});
+  await expect(page.locator(".auth-aurora")).toHaveAttribute("data-motion","paused");
   await page.setViewportSize({width:1199,height:700}); await page.setViewportSize({width:1440,height:900});
   const paused=await snapshot(); await page.waitForTimeout(500); expect(await snapshot()).toEqual(paused);
-  await setAnimation(); await expect(page.locator(".auth-aurora")).toHaveAttribute("data-motion","running");
+  await page.evaluate(()=>{Reflect.deleteProperty(document,"hidden");document.dispatchEvent(new Event("visibilitychange"));});
+  await expect(page.locator(".auth-aurora")).toHaveAttribute("data-motion","running");
   await page.waitForTimeout(300); expect(await snapshot()).not.toEqual(paused); expect(await logos()).toEqual(original);
+  const password=page.getByLabel("Пароль",{exact:true});
+  await password.focus();await password.press("Space");await expect(password).toHaveValue(" ");
+  await expect(page.locator(".auth-aurora")).toHaveAttribute("data-motion","running");
+  const beforeSpace=await paths();await page.waitForTimeout(300);expect(await paths()).not.toEqual(beforeSpace);
+  await password.fill("");
   await page.emulateMedia({reducedMotion:"reduce"}); await expect(page.locator(".auth-aurora")).toHaveAttribute("data-motion","paused");
   const reduced=await snapshot(); await page.waitForTimeout(500); expect(await snapshot()).toEqual(reduced);
-  await page.locator(".auth-footer button").click(); await expect(page.locator(".auth-motion-setting input")).toBeDisabled(); await page.keyboard.press("Escape");
+  await expect(page.getByRole("checkbox")).toHaveCount(0);await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.emulateMedia({reducedMotion:"no-preference"}); await expect(page.locator(".auth-aurora")).toHaveAttribute("data-motion","running");
   const touch=await browser.newContext({hasTouch:true,isMobile:true,viewport:{width:390,height:844}}); await mockLocalApi(touch);
   const touchPage=await touch.newPage(); await touchPage.goto(`${process.env.FIXRATE_BASE_URL}/login`);
-  await expect(touchPage.getByLabel("Email",{exact:true})).toBeVisible(); await expect(touchPage.locator(".auth-aurora")).toHaveAttribute("data-motion","paused");
+  await expect(touchPage.getByLabel("Email",{exact:true})).toBeVisible(); await expect(touchPage.locator(".auth-aurora")).toHaveAttribute("data-motion","running");
+  await expect(touchPage.locator(".auth-aurora")).toHaveAttribute("data-profile","mobile");
+  await expect(touchPage.locator(".auth-aurora")).toHaveAttribute("data-renderer","canvas");
+  await expect(touchPage.locator("svg.auth-ribbons")).toBeHidden();
+  const touchPixels=()=>touchPage.locator(".auth-aurora canvas").evaluate(element=>{
+    const canvas=element as HTMLCanvasElement,data=canvas.getContext("2d")!.getImageData(0,0,canvas.width,canvas.height).data;
+    let hash=2166136261;for(let i=3;i<data.length;i+=64)hash=Math.imul(hash^data[i],16777619);return hash;
+  });
+  const mobileStart=await touchPixels();await touchPage.waitForTimeout(500);expect(await touchPixels()).not.toBe(mobileStart);
+  await touchPage.emulateMedia({reducedMotion:"reduce"});await expect(touchPage.locator(".auth-aurora")).toHaveAttribute("data-motion","paused");
+  const mobileReduced=await touchPixels();await touchPage.waitForTimeout(300);expect(await touchPixels()).toBe(mobileReduced);
   await touch.close();
 });
 
@@ -150,11 +165,9 @@ test("keyboard access, errors, pending state, password visibility and login retu
   await expect(password).toBeEnabled();
   await page.unroute("**/api/v1/auth/login");
 
-  await page.getByRole("button", { name: /Обратитесь к администратору/ }).click();
-  await expect(page.getByRole("dialog", { name: "Помощь со входом" })).toBeVisible();
-  await page.keyboard.press("Escape");
+  await expect(page.locator(".auth-footer")).toHaveText("Не получается войти?Обратитесь к администратору вашего объекта для восстановления доступа.");
+  await expect(page.locator(".auth-footer a, .auth-footer button, .auth-footer input")).toHaveCount(0);
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /Обратитесь к администратору/ })).toBeFocused();
   await page.getByRole("link", { name: "Регистрация", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Регистрация" })).toBeVisible();
 
@@ -237,6 +250,65 @@ for (const target of ["submit", "password visibility"]) {
   });
 }
 
+test("mobile reload reveals the brand and the bounded moving background covers long forms and changing viewports",async({browser})=>{
+  for(const [width,height]of [[360,800],[390,844],[412,915],[430,932]]){
+    const context=await browser.newContext({viewport:{width,height},hasTouch:true,isMobile:true,deviceScaleFactor:3});
+    await mockLocalApi(context);const page=await context.newPage();
+    try{
+      await page.goto(`${process.env.FIXRATE_BASE_URL}/register`);
+      await expect(page.locator(".auth-aurora")).toHaveAttribute("data-renderer","canvas");
+      await page.evaluate(()=>scrollTo(0,80));expect(await page.evaluate(()=>scrollY)).toBeGreaterThan(0);
+      await page.reload();await expect(page.getByLabel("Имя и фамилия")).toBeVisible();
+      await expect.poll(()=>page.evaluate(()=>scrollY)).toBe(0);
+      expect(await page.locator(".auth-brand").evaluate(e=>e.getBoundingClientRect().top)).toBeGreaterThanOrEqual(28);
+      await page.getByRole("button",{name:"Зарегистрироваться",exact:true}).tap();await expect(page.getByRole("alert")).toHaveCount(5);
+      await page.evaluate(()=>scrollTo(0,document.documentElement.scrollHeight));
+      const covered=()=>page.locator(".auth-aurora").evaluate(e=>{const b=e.getBoundingClientRect();return b.top===0&&b.bottom>=innerHeight;});
+      expect(await covered()).toBe(true);
+      await page.setViewportSize({width,height:height-100});expect(await covered()).toBe(true);
+      expect(await page.evaluate(()=>scrollY)).toBeGreaterThan(0);
+      await page.setViewportSize({width,height:420});
+      const confirmation=page.getByLabel("Подтвердите пароль",{exact:true});await confirmation.fill("keyboard-check");await confirmation.scrollIntoViewIfNeeded();
+      await expect(confirmation).toBeInViewport();expect(await covered()).toBe(true);
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    }finally{await context.close();}
+  }
+});
+
+test("phone auth shares its brand anchor and compact heading rhythm while long forms remain scrollable",async({browser})=>{
+  const context=await browser.newContext({hasTouch:true,isMobile:true});
+  await mockLocalApi(context);
+  const page=await context.newPage();
+  const placement=()=>page.evaluate(()=>{
+    const brand=document.querySelector(".auth-brand")!.getBoundingClientRect();
+    const heading=document.querySelector(".auth-heading h1")!.getBoundingClientRect();
+    return {brand:brand.top+scrollY,heading:heading.top+scrollY,gap:heading.top-brand.bottom};
+  });
+  try {
+    for(const [width,height] of [[320,568],[375,667],[390,844],[430,932]]){
+      await page.setViewportSize({width,height});
+      await page.goto(`${process.env.FIXRATE_BASE_URL}/login`);
+      await page.getByLabel("Email",{exact:true}).focus();
+      const login=await placement();
+      expect(login.gap).toBeGreaterThanOrEqual(24);expect(login.gap).toBeLessThanOrEqual(32);
+      await page.getByRole("link",{name:"Регистрация",exact:true}).tap();
+      await expect(page.getByRole("heading",{name:"Регистрация",exact:true})).toBeFocused();
+      await expect(page.locator(".auth-page")).toHaveAttribute("data-transition","idle");
+      expect(await placement()).toEqual(login);
+      await page.getByRole("button",{name:"Зарегистрироваться",exact:true}).tap();
+      await expect(page.getByRole("alert")).toHaveCount(5);
+      await expect(page.getByLabel("Имя и фамилия")).toBeFocused();
+      if(height<700)expect(await page.evaluate(()=>document.documentElement.scrollHeight>innerHeight)).toBe(true);
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+      await page.setViewportSize({width,height:Math.min(height,420)});
+      const confirmation=page.getByLabel("Подтвердите пароль",{exact:true});
+      await confirmation.fill("short");await confirmation.scrollIntoViewIfNeeded();
+      await expect(confirmation).toBeInViewport();await expect(confirmation).toHaveValue("short");
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    }
+  } finally {await context.close();}
+});
+
 test("scrolled phone auth navigation places the focused new heading in view, including Back and Forward",async({browser})=>{
   const context=await browser.newContext({viewport:{width:320,height:568},hasTouch:true,isMobile:true});
   await mockLocalApi(context);
@@ -244,6 +316,7 @@ test("scrolled phone auth navigation places the focused new heading in view, inc
   const visibleHeading=async(name:string)=>{
     const heading=page.getByRole("heading",{name,exact:true});
     await expect(heading).toBeFocused();
+    await expect(page.locator(".auth-page")).toHaveAttribute("data-transition","idle");
     await expect.poll(()=>heading.evaluate(element=>{
       const box=element.getBoundingClientRect();
       return box.top>=0 && box.bottom<=window.innerHeight;
@@ -251,6 +324,8 @@ test("scrolled phone auth navigation places the focused new heading in view, inc
   };
   try {
     await page.goto(`${process.env.FIXRATE_BASE_URL}/login`);
+    await expect(page.getByRole("heading",{name:"Вход в систему",exact:true})).toBeVisible();
+    await page.getByLabel("Email",{exact:true}).focus();
     for(const [label,heading] of [["Регистрация","Регистрация"],["Перейти ко входу","Вход в систему"]]){
       await page.evaluate(()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:"instant"}));
       const link=page.getByRole("link",{name:label,exact:true});
@@ -289,7 +364,7 @@ test("confirmed phone login from a scrolled form reveals and focuses its safe ap
   } finally {await context.close();}
 });
 
-test("classic root scrollbar preserves auth geometry across overflow, errors and modal scroll locking",async()=>{
+test("classic root scrollbar preserves auth geometry across route overflow and errors",async()=>{
   const browser=await chromium.launch({channel:"chrome",headless:true,ignoreDefaultArgs:["--hide-scrollbars"],args:["--disable-features=OverlayScrollbar,OverlayScrollbars"]});
   const context=await browser.newContext({viewport:{width:1366,height:768}});
   await mockLocalApi(context);
@@ -318,16 +393,10 @@ test("classic root scrollbar preserves auth geometry across overflow, errors and
     await expect(page.locator(".auth-page")).toHaveAttribute("data-transition","idle");
     expect(await page.evaluate(()=>document.documentElement.scrollHeight>document.documentElement.clientHeight)).toBe(true);
     expect(await geometry()).toEqual(short);
-    const help=page.getByRole("button",{name:/Обратитесь к администратору/});
-    await help.scrollIntoViewIfNeeded();
-    const scroll=await page.evaluate(()=>window.scrollY);
-    await help.click();await expect(page.getByRole("dialog")).toBeVisible();
-    expect(await page.evaluate(()=>document.body.style.overflow)).toBe("hidden");
-    expect(await geometry()).toEqual(short);
-    await page.keyboard.press("Escape");await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.locator(".auth-footer")).toHaveText("Нужна помощь с регистрацией?Обратитесь к администратору вашего объекта.");
+    await expect(page.locator(".auth-footer a, .auth-footer button, .auth-footer input")).toHaveCount(0);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
     expect(await page.evaluate(()=>document.body.style.overflow)).toBe("");
-    expect(await page.evaluate(()=>window.scrollY)).toBe(scroll);
-    expect(await geometry()).toEqual(short);
     await page.getByRole("link",{name:"Перейти ко входу",exact:true}).click();
     await expect(page.getByRole("heading",{name:"Вход в систему",exact:true})).toBeFocused();
     await expect(page.locator(".auth-page")).toHaveAttribute("data-transition","idle");
@@ -343,4 +412,32 @@ test("classic root scrollbar preserves auth geometry across overflow, errors and
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
     await test.info().attach("classic-root-scrollbar-measurements",{body:JSON.stringify(measurements,null,2),contentType:"application/json"});
   } finally{await browser.close();}
+});
+
+test("editorial hero stays secondary, reveals once across auth navigation and respects mobile and reduced motion",async({page})=>{
+  await page.setViewportSize({width:1440,height:900});
+  const hero=page.locator(".auth-hero-copy");
+  const heading=page.getByRole("heading",{level:2,name:"Интеллектуальная система прогнозирования ТО и ППР."});
+  await expect(heading).toBeVisible();
+  await expect(page.getByRole("heading",{level:1,name:"Вход в систему"})).toBeVisible();
+  await expect(hero).toContainText("Планирование обслуживания, анализ состояния оборудования и контроль выполнения работ в единой системе.");
+  await expect(hero.locator("a,button,input,[tabindex]")).toHaveCount(0);
+  expect(await hero.evaluate(element=>element.closest('[aria-hidden="true"]')===null)).toBe(true);
+  const form=await page.locator(".auth-panel").boundingBox(),copy=await heading.boundingBox();
+  expect(copy!.x).toBeGreaterThan(form!.x+form!.width);
+  await expect.poll(()=>hero.evaluate(element=>element.getAnimations({subtree:true}).length)).toBe(0);
+  await expect(heading).toHaveCSS("opacity","1");await expect(heading).toHaveCSS("transform","none");
+  const original=await hero.elementHandle();
+  await page.getByRole("link",{name:"Регистрация",exact:true}).click();
+  await expect(page.getByRole("heading",{level:1,name:"Регистрация"})).toBeFocused();
+  expect(await hero.evaluate((element,previous)=>element===previous,original)).toBe(true);
+  expect(await hero.evaluate(element=>element.getAnimations({subtree:true}).length)).toBe(0);
+  await page.emulateMedia({reducedMotion:"reduce"});await page.reload();
+  await expect(heading).toBeVisible();await expect(heading).toHaveCSS("opacity","1");await expect(heading).toHaveCSS("transform","none");
+  expect(await hero.evaluate(element=>element.getAnimations({subtree:true}).length)).toBe(0);
+  for(const [width,height] of [[768,1024],[390,844],[844,390]]){
+    await page.setViewportSize({width,height});
+    await expect(hero).toBeHidden();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  }
 });

@@ -1,26 +1,29 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 import { LoginPage } from "./LoginPage";
 import { AuthLayout } from "./AuthLayout";
+import { RegistrationPage } from "./RegistrationPage";
 import { ApiError } from "@/shared/api/request";
 import userEvent from "@testing-library/user-event";
 
-const { signIn, renderScene } = vi.hoisted(() => ({ signIn: vi.fn(), renderScene: vi.fn((_props: { animationEnabled: boolean }) => null) }));
+const { signIn, renderScene } = vi.hoisted(() => ({ signIn: vi.fn(), renderScene: vi.fn((_props: { onReducedMotionChange?: (reduced: boolean) => void }) => null) }));
 vi.mock("@/shared/session/SessionContext", () => ({ useSession: () => ({ profile: null, loading: false, signIn }) }));
 vi.mock("@/features/auth/AuroraScene", () => ({ AuroraScene: renderScene }));
 vi.mock("@/shared/api/request", async importOriginal => ({ ...await importOriginal<typeof import("@/shared/api/request")>(), DEMO_MODE: false }));
 beforeEach(() => { signIn.mockReset(); });
 function Location() { const location = useLocation(); return <output>{location.pathname + location.search + location.hash}</output>; }
-it("keeps the background setting in Help rather than on the scene and forwards its state", () => {
-  render(<MemoryRouter initialEntries={["/login"]}><Routes><Route element={<AuthLayout />}><Route path="/login" element={<LoginPage />} /></Route></Routes></MemoryRouter>);
-  expect(screen.queryByRole("checkbox", { name: "Анимация фона" })).toBeNull();
-  fireEvent.click(screen.getByRole("button", { name: /Обратитесь к администратору/ }));
-  const checkbox = screen.getByRole("checkbox", { name: "Анимация фона" });
-  expect(checkbox).toBeChecked();
-  fireEvent.click(checkbox);
-  expect(checkbox).not.toBeChecked();
-  expect(renderScene.mock.calls.at(-1)?.[0]).toEqual(expect.objectContaining({ animationEnabled: false }));
+it.each([
+  ["/login","Не получается войти?","Обратитесь к администратору вашего объекта для восстановления доступа."],
+  ["/register","Нужна помощь с регистрацией?","Обратитесь к администратору вашего объекта."],
+])("shows static help on %s without a help dialog or a user animation switch", (path,title,description) => {
+  const view=render(<MemoryRouter initialEntries={[path]}><Routes><Route element={<AuthLayout />}><Route path="/login" element={<LoginPage />} /><Route path="/register" element={<RegistrationPage />} /></Route></Routes></MemoryRouter>);
+  const footer=within(view.container.querySelector(".auth-footer")!);
+  expect(footer.getByText(title)).toBeVisible();expect(footer.getByText(description)).toBeVisible();
+  expect(footer.queryByRole("button")).toBeNull();expect(footer.queryByRole("link")).toBeNull();
+  expect(screen.queryByRole("dialog")).toBeNull();expect(screen.queryByRole("checkbox")).toBeNull();
+  expect(renderScene.mock.calls.at(-1)?.[0]).not.toHaveProperty("animationEnabled");
+  expect(renderScene.mock.calls.at(-1)?.[0]).toMatchObject({onReducedMotionChange:expect.any(Function)});
 });
 it("shows only credentials initially and requires the existing site payload after a server requirement", async () => {
   signIn.mockRejectedValueOnce(new Error("Укажите site_id: несколько объектов"));

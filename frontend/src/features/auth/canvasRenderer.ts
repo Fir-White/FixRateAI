@@ -1,7 +1,8 @@
-import { FLOW_HEIGHT, FLOW_WIDTH, flattenWave, ribbonFrame, ribbonPath, type Point, type WaveFrame } from "./ribbonGeometry";
+import { FLOW_HEIGHT, FLOW_WIDTH, flattenWave, ribbonFrame, ribbonPath, type AuroraProfile, type Point, type WaveFrame } from "./ribbonGeometry";
+import { createMobileCanvasRenderer, type MobileCanvasRenderer } from "./mobileCanvasRenderer";
 export type SceneMapping = { scale: number; x: number; y: number };
 export type ParticleFrame = { x: number; y: number; radius: number; opacity: number };
-export type AuroraRenderer = { resize: (width: number, height: number, dpr: number) => void; render: (seconds: number, updateLights?: boolean) => void; destroy: () => void };
+export type AuroraRenderer = { resize: (width: number, height: number, dpr: number) => void; render: (seconds: number, updateLights?: boolean, profile?: AuroraProfile) => void; destroy: () => void };
 const PARTICLES = [
   [.08,.18,1,.28,12,-24,8,2], [.14,.28,1.5,.22,-18,32,7,5],
   [.09,.68,2,.18,24,-40,10,3], [.22,.88,1.5,.30,-10,18,6,4],
@@ -113,6 +114,7 @@ export function createAuroraRenderer(scene: HTMLDivElement): AuroraRenderer | nu
   const context = particles?.getContext("2d",{alpha:true});
   if (!particles || !context || paths.length !== 3) return null;
   let sprite: HTMLCanvasElement | null = null;
+  let mobile:MobileCanvasRenderer|null=null,profile:AuroraProfile="desktop",lastDpr=1;
   let width = 1, height = 1, mapping = sceneMapping(1,1), particlesVisible = false;
   let waves = [ribbonFrame(0,0),ribbonFrame(1,0)], coverage: WaveCoverage = [];
   // Rectangles are stored in backing-store pixels, independent of later resize.
@@ -124,9 +126,13 @@ export function createAuroraRenderer(scene: HTMLDivElement): AuroraRenderer | nu
     for (let i = 0; i < dirty.length; i += 4) context.clearRect(dirty[i],dirty[i + 1],dirty[i + 2],dirty[i + 3]);
     dirty.length = 0;
   };
-  return {
-    resize(nextWidth,nextHeight,dpr) {
+  const resize: AuroraRenderer["resize"] = (nextWidth,nextHeight,dpr) => {
+      lastDpr=dpr;
       width = Math.max(1,nextWidth); height = Math.max(1,nextHeight); mapping = sceneMapping(width,height);
+      if(profile==="mobile"&&mobile){
+        particlesVisible=false;coverage=[];dirty.length=0;
+        mobile.resize(width,height,dpr,mapping);return;
+      }
       particlesVisible = window.innerWidth >= 1200 && window.innerHeight > 700;
       const sizes = particlesVisible ? rasterSizes(width,height,dpr) : { particleWidth: 1, particleHeight: 1 };
       if (particles.width !== sizes.particleWidth || particles.height !== sizes.particleHeight) {
@@ -138,13 +144,24 @@ export function createAuroraRenderer(scene: HTMLDivElement): AuroraRenderer | nu
         dirty.length = 0;
       }
       coverage = particlesVisible ? waveCoverage(waves) : [];
-    },
-    render(seconds,updateLights = true) {
+  };
+  return {
+    resize,
+    render(seconds,updateLights = true,nextProfile = "desktop") {
+      if(nextProfile!==profile){
+        profile=nextProfile;
+        if(profile==="mobile")mobile=createMobileCanvasRenderer(scene,particles,context);
+        else {mobile?.destroy();mobile=null;}
+        scene.dataset.renderer=mobile?"canvas":"svg";
+        resize(width,height,lastDpr);
+      }
       if (updateLights) {
-        waves = [0,1].map(index => ribbonFrame(index,seconds));
+        waves = [0,1].map(index => ribbonFrame(index,seconds,profile));
+        if(profile==="mobile"&&mobile){mobile.render(waves);return;}
         waves.forEach((wave,index) => paths[index].setAttribute("d",ribbonPath(wave)));
         if (particlesVisible) coverage = waveCoverage(waves);
       }
+      if(profile==="mobile"&&mobile){mobile.render(waves);return;}
       if (!particlesVisible) return;
       const scaleX = particles.width / width, scaleY = particles.height / height;
       const frame = particleFrames(seconds,width,height);
@@ -161,6 +178,6 @@ export function createAuroraRenderer(scene: HTMLDivElement): AuroraRenderer | nu
         if (right > left && bottom > top) dirty.push(left,top,right - left,bottom - top);
       }
     },
-    destroy() { context.setTransform(1,0,0,1,0,0); context.clearRect(0,0,particles.width,particles.height); dirty.length = 0; },
+    destroy() { mobile?.destroy();mobile=null;delete scene.dataset.renderer;context.setTransform(1,0,0,1,0,0); context.clearRect(0,0,particles.width,particles.height); dirty.length = 0; },
   };
 }

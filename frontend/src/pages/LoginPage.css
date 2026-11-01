@@ -108,11 +108,10 @@
 .auth-register a { margin-left: 4px; color: var(--auth-accent); font-weight: 500; }
 .auth-register a { transition: color var(--motion-fast) var(--ease-standard), text-decoration-color var(--motion-fast) var(--ease-standard); }
 .auth-register a:hover { text-decoration: underline; text-underline-offset: 4px; }
-.auth-footer { flex-shrink: 0; font-size: 12px; line-height: 1.8; }
+.auth-footer { flex-shrink: 0; font-size: 12px; line-height: 1.7; }
 .auth-footer p { margin: 0; color: var(--auth-muted); }
-.auth-footer button { display: inline-block; margin-top: 1px; padding: 2px 0; border: 0; background: none; color: #c2d0d4; font-size: inherit; text-align: left; cursor: pointer; transition: color var(--motion-fast) var(--ease-standard); }
-.auth-footer button:hover { color: var(--auth-accent); }
-.auth-footer button span { display: inline-block; margin-left: 5px; color: #78969b; }
+.auth-footer p:first-child { color: #c2d0d4; font-size: 13px; }
+.auth-footer p + p { margin-top: 4px; }
 .auth-session-loading { margin-top: 32px; color: var(--auth-muted); font-size: 14px; }
 .auth-demo { display: grid; gap: 10px; margin-top: 28px; }
 .auth-demo .auth-demo__role { height: auto; min-height: 64px; justify-content: space-between; gap: 14px; padding: 14px 15px; border-color: #263c42; background: #0b171d; text-align: left; }
@@ -132,11 +131,6 @@
 .auth-ribbons__inner { opacity: 0.905; }
 .auth-ribbons__core { opacity: 0.85; }
 .auth-particles-canvas { z-index: 1; }
-.auth-motion-setting { margin-top: 20px; border-top: 1px solid #4f6c75; padding-top: 16px; }
-.auth-motion-setting label { display: flex; align-items: center; gap: 12px; min-height: 44px; cursor: pointer; }
-.auth-motion-setting input { width: 18px; height: 18px; accent-color: #74e4d4; }
-.auth-motion-setting input:focus-visible { outline: 2px solid #74e4d4; outline-offset: 4px; }
-.auth-motion-setting p { margin-top: 8px; font-size: 12px; }
 
 @media (max-width: 1199px) { .auth-page { grid-template-columns: 420px minmax(0, 1fr); } .auth-panel { padding-inline: 40px; } }
 @media (max-height: 800px) { .auth-panel { padding-top: 32px; padding-bottom: 26px; } .auth-panel__body { padding-block: 42px; } }
@@ -166,32 +160,59 @@
   .auth-page--registration .auth-register { margin-top: 16px; }
 }
 
-/* A bounded, static version of the same scene also fits a phone turned sideways. */
+/* A viewport-sized light stage stays independent of long, scrolling forms. */
 @media (max-width: 820px), (max-width: 1000px) and (max-height: 500px) {
-  .auth-page { --motion-slow: 160ms; }
-  .auth-page { display: block; overflow-x: clip; background: #050d12; }
+  html:has(.auth-page), body:has(.auth-page) { background: #050d12; }
+  body:has(.auth-page) { min-height: 100vh; min-height: 100dvh; }
+  .auth-page {
+    --motion-slow: 160ms;
+    --auth-brand-gap: 28px;
+    --auth-form-gap: 24px;
+    --auth-field-gap: 20px;
+    --auth-label-gap: 8px;
+    --auth-feedback-gap: 6px;
+    --auth-action-gap: 20px;
+    --auth-secondary-gap: 20px;
+    --auth-footer-gap: 28px;
+    --auth-control-height: 52px;
+    --auth-control-radius: 9px;
+    --auth-control-font: 16px;
+    --auth-button-font: 14px;
+  }
+  .auth-page--registration { --auth-form-gap: 20px; --auth-field-gap: 14px; }
+  .auth-page { display: block; min-height: 100vh; min-height: 100dvh; overflow-x: clip; background: #050d12; }
   .auth-panel, .auth-page--registration .auth-panel {
     width: 100%;
     max-width: 480px;
+    min-height: 100vh;
+    min-height: 100dvh;
     margin-inline: auto;
     padding: max(28px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
     border: 0;
     background: transparent;
   }
-  .auth-panel__body { padding-block: clamp(40px, 7svh, 64px); }
-  .auth-page--registration .auth-panel__body { padding-block: 28px; }
-  .auth-form .auth-input { height: 52px; font-size: 16px; scroll-margin-block: 24px; }
+  .auth-panel__body, .auth-page--registration .auth-panel__body { flex: 0 0 auto; justify-content: flex-start; padding-block: var(--auth-brand-gap) var(--auth-footer-gap); }
+  .auth-form { margin-top: var(--auth-form-gap); }
+  .auth-form .auth-field + .auth-field { margin-top: var(--auth-field-gap); }
+  .auth-form label { margin-bottom: var(--auth-label-gap); }
+  .auth-form .auth-field .form-feedback > p { margin-top: var(--auth-feedback-gap); }
+  .auth-form .auth-input { height: var(--auth-control-height); border-radius: var(--auth-control-radius); font-size: var(--auth-control-font); scroll-margin-block: 24px; }
+  .auth-form .auth-submit { height: var(--auth-control-height); margin-top: var(--auth-action-gap); border-radius: var(--auth-control-radius); font-size: var(--auth-button-font); }
+  .auth-page .auth-register { margin-top: var(--auth-secondary-gap); }
+  .auth-footer { margin-top: auto; }
   .auth-register a { display: inline-flex; min-height: 44px; align-items: center; }
-  .auth-footer button { display: inline-flex; min-height: 44px; align-items: center; }
   .auth-aurora, .auth-page--registration .auth-aurora {
-    position: absolute;
-    inset: 0 0 auto;
+    position: fixed;
+    inset: 0;
     z-index: 0;
-    height: clamp(700px, 100svh, 940px);
+    height: 100vh;
+    height: 100lvh;
     min-height: 0;
     opacity: 0.75;
   }
   .auth-ribbons { mask-image: linear-gradient(90deg, #000, rgb(0 0 0 / 0.36) 22%, rgb(0 0 0 / 0.2) 50%, rgb(0 0 0 / 0.55) 78%, #000); }
+  .auth-aurora[data-renderer="canvas"] .auth-ribbons { display: none; }
+  .auth-aurora[data-renderer="canvas"] .auth-particles-canvas { mask-image: linear-gradient(90deg, #000, rgb(0 0 0 / 0.36) 22%, rgb(0 0 0 / 0.2) 50%, rgb(0 0 0 / 0.55) 78%, #000); }
 }
 @media (max-width: 400px) { .auth-brand__mark { width: 40px; height: 40px; } .auth-brand__wordmark { width: 145px; } }
 @media (prefers-reduced-motion: reduce) { .auth-page[data-reveal="initial"] .auth-panel, .auth-page[data-reveal="initial"] .auth-heading h1, .auth-page[data-reveal="initial"] .auth-heading > p, .auth-page[data-reveal="initial"] .auth-field, .auth-page[data-reveal="initial"] .auth-submit, .auth-page[data-reveal="initial"] .auth-register, .auth-page[data-reveal="initial"] .auth-footer, .auth-error, .auth-success { animation: none; } }

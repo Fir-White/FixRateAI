@@ -17,12 +17,12 @@ frontend/src/shared/api/            production fetch и отдельный demo 
 database/migrations/                одна упорядоченная SQL-цепочка
 database/seeds/                     исходные демонстрационные данные
 database/qa/                        SQL QA из прежнего db/tests
-docs/verification/                 машинные протоколы прежних запусков
+reports/verification/              локальные протоколы прежних запусков, вне Git
 docs/service/verification.md        единственная методика, сценарии и доказательства
 scripts/verify.py                   автономный временный тестовый стенд
 docs/BRANCH_SOURCES.json            зафиксированные версии исходных веток
 docs/BRANCH_FILE_MAP.json           происхождение и адаптация исходных путей
-var/                               локальные фото/логи, игнорируется Git
+var/                               фото/логи и новые результаты текущего runner, вне Git
 ```
 
 Backend импортируется как `app`, ML исключительно как `ml_service.app`. Добавлен `ml_service/__init__.py` и pytest `--import-mode=importlib`: иначе ML test package мог заслонять `app` backend. В runtime используется тот же класс канонического DTO; JSON/provider границы ML сохранены.

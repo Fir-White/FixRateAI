@@ -11,7 +11,7 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1] / "assets/database"
 SVG = "http://www.w3.org/2000/svg"
 ET.register_namespace("", SVG)
 

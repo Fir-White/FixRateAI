@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { CONTROL_DISPLACEMENT_LIMITS, cubicPoint, flowNoise, ribbonFrame, ribbonPath, type Cubic, type Point } from "./ribbonGeometry";
+import { CONTROL_DISPLACEMENT_LIMITS, MOBILE_CONTROL_DISPLACEMENT_LIMITS, cubicPoint, flowNoise, ribbonFrame, ribbonPath, type Cubic, type Point } from "./ribbonGeometry";
+import desktopPaths from "./fixtures/desktop-ribbon-paths.json";
 const mid = (a: Point,b: Point): Point => [(a[0]+b[0])/2,(a[1]+b[1])/2];
 function split(c: Cubic): readonly Cubic[] {
   const a=mid(c[0],c[1]),b=mid(c[1],c[2]),d=mid(c[2],c[3]),e=mid(a,b),f=mid(b,d),g=mid(e,f);
@@ -25,19 +26,57 @@ function excursionEnvelope(segment:number,low:number,high:number):number {
 }
 // Independent interval proof: baseline convex hulls minus Holder excursion
 // bounds from the GLOBAL p8 budget, not a finite sample of animated frames.
-function certifyFlow(a:Cubic,ai:number,al:number,ah:number,b:Cubic,bi:number,bl:number,bh:number,depth=0):boolean {
+function certifyFlow(a:Cubic,ai:number,al:number,ah:number,b:Cubic,bi:number,bl:number,bh:number,depth=0,limits:readonly number[]=CONTROL_DISPLACEMENT_LIMITS):boolean {
   const x=box(a),y=box(b),dx=Math.max(0,x[0]-y[2],y[0]-x[2]),dy=Math.max(0,x[1]-y[3],y[1]-x[3]);
-  const separation=Math.hypot(dx,dy)-CONTROL_DISPLACEMENT_LIMITS[0]*excursionEnvelope(ai,al,ah)-CONTROL_DISPLACEMENT_LIMITS[1]*excursionEnvelope(bi,bl,bh);
+  const separation=Math.hypot(dx,dy)-limits[0]*excursionEnvelope(ai,al,ah)-limits[1]*excursionEnvelope(bi,bl,bh);
   if(separation>15+1e-7)return true;
   if(depth>=32)return false;
   if(Math.hypot(x[2]-x[0],x[3]-x[1])>=Math.hypot(y[2]-y[0],y[3]-y[1])) {
     const [left,right]=split(a),midpoint=(al+ah)/2;
-    return certifyFlow(left,ai,al,midpoint,b,bi,bl,bh,depth+1)&&certifyFlow(right,ai,midpoint,ah,b,bi,bl,bh,depth+1);
+    return certifyFlow(left,ai,al,midpoint,b,bi,bl,bh,depth+1,limits)&&certifyFlow(right,ai,midpoint,ah,b,bi,bl,bh,depth+1,limits);
   }
   const [left,right]=split(b),midpoint=(bl+bh)/2;
-  return certifyFlow(a,ai,al,ah,left,bi,bl,midpoint,depth+1)&&certifyFlow(a,ai,al,ah,right,bi,midpoint,bh,depth+1);
+  return certifyFlow(a,ai,al,ah,left,bi,bl,midpoint,depth+1,limits)&&certifyFlow(a,ai,al,ah,right,bi,midpoint,bh,depth+1,limits);
 }
 describe("original independently bending composition",()=>{
+  it("preserves the independently captured desktop paths at eleven baseline phases",()=>{
+    for(const {t,paths} of desktopPaths)expect([0,1,2].map(index=>ribbonPath(ribbonFrame(index,t)))).toEqual(paths);
+  });
+  it("certifies the mobile hull remains separated at every phase while its x budget prevents loops",()=>{
+    const first=ribbonFrame(0,0,"mobile"),second=ribbonFrame(1,0,"mobile");
+    first.cubics.forEach((a,ai)=>second.cubics.forEach((b,bi)=>expect(certifyFlow(a,ai,0,1,b,bi,0,1,0,MOBILE_CONTROL_DISPLACEMENT_LIMITS)).toBe(true)));
+    [first,second].forEach((frame,index)=>frame.cubics.forEach((curve,segment)=>curve.slice(1).forEach((point,i)=>{
+      const fixed=(segment===0&&i===0)||(segment===1&&i===2),joined=(segment===0&&i===2)||(segment===1&&i===0);
+      const xBound=CONTROL_DISPLACEMENT_LIMITS[index]*(fixed?1:joined?1/2**(1/8):2**(7/8));
+      expect(point[0]-curve[i][0]-xBound).toBeGreaterThan(1e-7);
+    })));
+    for(let sample=0;sample<160;sample++)for(const index of [0,1]){
+      const base=ribbonFrame(index,0,"mobile"),frame=ribbonFrame(index,sample*937.173,"mobile");
+      const deltas=[0,1,2,3,5,6,7].map(i=>[frame.cubics.flat()[i][0]-base.cubics.flat()[i][0],frame.cubics.flat()[i][1]-base.cubics.flat()[i][1]]);
+      expect(deltas.reduce((sum,p)=>sum+Math.hypot(...p)**8,0)).toBeLessThanOrEqual(MOBILE_CONTROL_DISPLACEMENT_LIMITS[index]**8*(1+1e-10));
+      expect(deltas.reduce((sum,p)=>sum+Math.abs(p[0])**8,0)).toBeLessThanOrEqual(CONTROL_DISPLACEMENT_LIMITS[index]**8*(1+1e-10));
+      expect(frame.cubics[0][0]).toEqual(base.cubics[0][0]);expect(frame.cubics[1][3]).toEqual(base.cubics[1][3]);
+      expect(frame.cubics[1][1][0]).toBeCloseTo(2*frame.cubics[0][3][0]-frame.cubics[0][2][0],10);
+      expect(frame.cubics[1][1][1]).toBeCloseTo(2*frame.cubics[0][3][1]-frame.cubics[0][2][1],10);
+    }
+    expect(ribbonFrame(2,12345,"mobile")).toEqual(ribbonFrame(2,0));
+  });
+  it("gives both mobile ribbons a genuinely wider centreline excursion over ten minutes",()=>{
+    for(const index of [0,1]){
+      const peaks=[0,0];
+      for(const [p,profile]of (["desktop","mobile"] as const).entries()){
+        const start=ribbonFrame(index,0,profile);
+        for(let seconds=0;seconds<=600;seconds+=.5){
+          const frame=ribbonFrame(index,seconds,profile);
+          for(const segment of [0,1])for(const t of [.25,.5,.75]){
+            const a=cubicPoint(start.cubics[segment],t),b=cubicPoint(frame.cubics[segment],t);
+            peaks[p]=Math.max(peaks[p],Math.hypot(b[0]-a[0],b[1]-a[1]));
+          }
+        }
+      }
+      expect(peaks[1]/peaks[0]).toBeGreaterThan(1.35);
+    }
+  });
   it("certifies original baseline centerline separation greater than70 using de Casteljau convex hull bounds",()=>{
     for(const a of ribbonFrame(0,0).cubics) for(const b of ribbonFrame(1,0).cubics) expect(certify(a,b)).toBe(true);
   });
