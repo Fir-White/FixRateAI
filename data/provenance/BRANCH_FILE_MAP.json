@@ -435,7 +435,7 @@
       },
       {
         "source_path": "backend/pytest.ini",
-        "dev_path": "backend/pytest.ini",
+        "dev_path": "pytest.ini",
         "source_blob": "03f586d41650da9718d8c6bdc6ada4a068cb96a8",
         "disposition": "retained_or_adapted"
       },
@@ -1038,7 +1038,7 @@
       },
       {
         "source_path": "backend/pytest.ini",
-        "dev_path": "backend/pytest.ini",
+        "dev_path": "pytest.ini",
         "source_blob": "03f586d41650da9718d8c6bdc6ada4a068cb96a8",
         "disposition": "retained_or_adapted"
       },
@@ -1135,7 +1135,7 @@
       },
       {
         "source_path": "backend/pytest.ini",
-        "dev_path": "backend/pytest.ini",
+        "dev_path": "pytest.ini",
         "source_blob": "03f586d41650da9718d8c6bdc6ada4a068cb96a8",
         "disposition": "retained_or_adapted"
       },
