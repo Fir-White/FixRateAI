@@ -127,9 +127,9 @@ powershell -ExecutionPolicy Bypass -File scripts/verify_schema.ps1
 
 ## Последний полный прогон
 
-01.11.2026, `verify-20261101-214613-7caf8e93`: **24/24 этапа**, **427 Python / 102 UI / 16 browser E2E**, 12 сценариев оркестрации. Проверены новая БД 001–008, upgrade заполненной 004 до 008, повтор миграций/seed, SQL QA, DTO/Schema/диаграммы, compileall, pip check, TypeScript/Vite и npm audit (0 уязвимостей).
+01.11.2026, `verify-20261101-225855-34c2aafb` (код `8bdcc9c`): **24/24 этапа**, **427 Python / 102 UI / 16 browser E2E**, 12 сценариев оркестрации. Проверены новая БД 001–008, upgrade заполненной 004 до 008, повтор миграций/seed, SQL QA, DTO/Schema/диаграммы, compileall, pip check, TypeScript/Vite и npm audit (0 уязвимостей).
 
-Команда: `.venv/cv/Scripts/python.exe -X utf8 -B scripts/verify.py --browser`, `FIXRATE_REQUIRE_CLIP=1`, подготовленный HF_HOME. HTTP-проверка использовала настоящий CLIP. Пять login E2E работают с mock API; остальные 11 — с настоящим API/PostgreSQL.
+Команда: `.venv/cv/Scripts/python.exe -X utf8 -B scripts/verify.py --browser`, `FIXRATE_REQUIRE_CLIP=1`, подготовленный HF_HOME. HTTP-проверка использовала настоящий CLIP. Пять login E2E работают с mock API; остальные 11 — с настоящим API/PostgreSQL. На рабочем стенде дополнительно проверены API/SPA на 8000 и Vite с API-прокси на 5173: форма входа открывается без ошибок JavaScript, содержимое БД сохранено.
 
 Runner сохраняет команды и результаты в `reports/verification/<run-id>/results.json`, журналы — в `logs/verification/<run-id>`, browser artifacts — в подкаталоге отчёта playwright. Эти материалы остаются локально.
 
