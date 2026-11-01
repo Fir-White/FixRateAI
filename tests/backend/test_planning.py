@@ -10,7 +10,7 @@ from sqlalchemy import text
 
 from app.db.repository import MaintenanceRepository
 from app.integration.demo import demo_id
-from backend.tests.test_runtime_integration import runtime, login, PREFIX
+from tests.backend.test_runtime_integration import runtime, login, PREFIX
 
 RULE=demo_id('planning-rule')
 

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
-import { LoginPage } from "./LoginPage";
+import { LoginPage } from "@/pages/LoginPage";
 
 const { signIn, renderScene } = vi.hoisted(() => ({ signIn: vi.fn(), renderScene: vi.fn((_props: { animationEnabled: boolean }) => null) }));
 vi.mock("@/shared/session/SessionContext", () => ({ useSession: () => ({ profile: null, loading: false, signIn }) }));

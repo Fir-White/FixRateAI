@@ -139,4 +139,4 @@ SHA-256: `8608662fe5d66519e990f65d1377f3fad32c1e6d29d6524dc4aeed24cd079957`.
 
 ### Машинные примеры
 
-[maintenance_cases.json](../tests/fixtures/domain/maintenance_cases.json) — исполняемые предметные сценарии. [operation_to_equipment_links.json](../tests/fixtures/domain/operation_to_equipment_links.json) — M:N привязки. Проверки находятся в [test_domain_scenarios.py](../backend/tests/test_domain_scenarios.py). Эти файлы являются единственными экземплярами fixtures.
+[maintenance_cases.json](../tests/fixtures/domain/maintenance_cases.json) — исполняемые предметные сценарии. [operation_to_equipment_links.json](../tests/fixtures/domain/operation_to_equipment_links.json) — M:N привязки. Проверки находятся в [test_domain_scenarios.py](../tests/backend/test_domain_scenarios.py). Эти файлы являются единственными экземплярами fixtures.

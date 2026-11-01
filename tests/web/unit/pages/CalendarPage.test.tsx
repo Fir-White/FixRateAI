@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CalendarPage } from "./CalendarPage";
+import { CalendarPage } from "@/pages/CalendarPage";
 import type { CalendarPreview, Role } from "@/shared/types/domain";
 
 const mocks = vi.hoisted(() => ({role: "dispatcher" as Role, list: vi.fn(), preview: vi.fn()}));

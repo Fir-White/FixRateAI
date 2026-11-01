@@ -1,11 +1,4 @@
 import { test, expect } from "@playwright/test";
-import { createHash } from "node:crypto";
-
-function demoId(key:string) {
-  const h=createHash("md5").update(`fixrate-demo-${key}`).digest("hex");
-  return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
-}
-
 test("calendar → two forecasts → single task → confirmed crew → persisted reload",async ({page}) => {
   test.skip(!process.env.FIXRATE_BASE_URL,"Use scripts/verify.py --browser");
   const errors:string[]=[];

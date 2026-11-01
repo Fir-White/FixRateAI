@@ -1,5 +1,5 @@
 import {afterEach,expect,it,vi} from 'vitest';
-import {formatDate,formatDateTime,todayAt} from './format';
+import {formatDate,formatDateTime,todayAt} from '@/shared/lib/format';
 
 afterEach(()=>vi.useRealTimers());
 

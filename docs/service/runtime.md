@@ -15,7 +15,7 @@ PowerShell, из корня проекта:
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-Copy-Item .env.example .env
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 # Отредактируйте DATABASE_URL: новая проектная PostgreSQL, не рабочая БД с чужими данными.
 $env:PYTHONPATH = "backend;."
 .\.venv\Scripts\python.exe -m app.manage migrate
@@ -25,7 +25,7 @@ npm --prefix frontend run build
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --app-dir backend --env-file .env --host 127.0.0.1 --port 8000
 ```
 
-CLI загружает корневой `.env`, сохраняя приоритет переменных окружения. Команда seed явная и необязательная. Она запрашивает пароль минимум из 12 символов (или читает `FIXRATE_DEMO_PASSWORD`, который не нужно сохранять/публиковать). При повторе не сбрасывает пароли и выполненные работы. Исходный SQL seed из `kran_dev` сохранён отдельно и тестируется как исходный артефакт.
+CLI загружает корневой `.env`, сохраняя приоритет переменных окружения; uvicorn получает его через `--env-file .env`. Vite читает тот же корень через envDir и публикует в клиент только VITE_* переменные. На текущем локальном стенде .env уже существует: он перенесён из var/local-demo/runtime.env с прежними значениями; копирование шаблона требуется только для нового стенда. Команда seed явная и необязательная. Она запрашивает пароль минимум из 12 символов (или читает `FIXRATE_DEMO_PASSWORD`, который не нужно сохранять/публиковать). При повторе не сбрасывает пароли и выполненные работы. Исходный SQL seed из `kran_dev` сохранён отдельно и тестируется как исходный артефакт.
 
 Демонстрационные аккаунты:
 
@@ -71,13 +71,12 @@ Docker Compose/nginx/CI в рабочих источниках были прое
 | Путь | Назначение |
 |---|---|
 | `var/local-demo/postgres` | Действующий локальный кластер PostgreSQL с данными, пользователями, назначениями и историей; внутренними файлами управляет СУБД |
-| `var/local-demo/runtime.env` | Локальные параметры подключения, фото и cache моделей; содержит секреты и не публикуется |
 | `var/local-demo/*.pid`, `local-state.json` | Локальные сведения о процессах/стенде; PID сам по себе не доказывает, что процесс ещё работает |
 | `var/local-demo/photos` | Заданный текущим стендом PHOTO_STORAGE_ROOT для загруженных файлов; создаётся по мере необходимости. Общий default приложения — `var/photos` |
 | `var/backups` | Частные дампы перед изменениями схемы; это резервные копии, а не заменяемые тестовые fixtures |
 | `var/local-demo/postgres.start.*.log` | Два открытых потока работающей PostgreSQL; Windows не позволяет их переместить. Они остаются до штатного обслуживания СУБД |
 
-Новые журналы пишутся в logs, результаты проверок — в reports, сохраняемые входные материалы и модели — в data. Временные PostgreSQL-кластеры полного runner создаются в системном TEMP и удаляются самим runner; рабочий кластер из var он не использует. Полная карта размещения находится в [development](development.md#структура-репозитория).
+Рабочие параметры подключения, фото и cache моделей находятся в корневом .env, а не в var. Новые журналы пишутся в logs, результаты проверок — в reports, сохраняемые входные материалы и модели — в data. Временные PostgreSQL-кластеры полного runner создаются в системном TEMP и удаляются самим runner; рабочий кластер из var он не использует. Полная карта размещения находится в [development](development.md#структура-репозитория).
 
 ## Проверки
 
@@ -121,7 +120,7 @@ npm --prefix frontend test
 npm --prefix frontend audit --audit-level=moderate
 ```
 
-Python-тесты находятся в backend/tests и ml_service/tests, UI-тесты — рядом с frontend/src, browser E2E — в frontend/e2e, общие fixtures и SQL — в tests. Единая команда scripts/verify.py --browser запускает все эти группы. Обычный pytest без тестовых URL пропускает PostgreSQL/HTTP проверки: такой запуск не равен полному прогону. Vitest использует demo fixtures для проверки всех исходных маршрутов/доступности; production transport отдельно проверяется браузерным E2E. Фактические итоги, команды и ограничения — в [проверках](verification.md).
+Все тесты находятся в корневом tests: Python — в tests/backend и tests/ml, UI — в tests/web/unit, browser E2E — в tests/web/e2e, общие fixtures и SQL — в tests/fixtures и tests/sql. Единая команда scripts/verify.py --browser запускает все эти группы. Команды npm выполняются из frontend либо через npm --prefix frontend; перенос тестов не требует новой установки Node-зависимостей. Обычный pytest без тестовых URL пропускает PostgreSQL/HTTP проверки: такой запуск не равен полному прогону. Vitest использует demo fixtures для проверки всех исходных маршрутов/доступности; production transport отдельно проверяется браузерным E2E. Фактические итоги, команды и ограничения — в [проверках](verification.md).
 
 ## Диагностика и ограничения
 

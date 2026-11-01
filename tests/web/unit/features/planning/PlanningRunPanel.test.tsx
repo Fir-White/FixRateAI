@@ -2,7 +2,7 @@ import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
-import { PlanningRunPanel } from "./PlanningRunPanel";
+import { PlanningRunPanel } from "@/features/planning/PlanningRunPanel";
 import type { CalendarPreview, PlanningRun } from "@/shared/types/domain";
 
 const mocks=vi.hoisted(() => ({generate:vi.fn()}));

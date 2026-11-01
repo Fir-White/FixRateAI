@@ -72,7 +72,7 @@ Frontend не вычисляет нормативные даты или приг
 Мутации требуют CSRF. Новые API не принимают роль или произвольный объект от клиента.
 Веб-сценарии: [настройки](../../frontend/src/pages/ServiceSettingsPage.tsx),
 [команда](../../frontend/src/pages/WorkforceSettingsPage.tsx),
-[сквозной тест](../../frontend/e2e/settings.spec.ts).
+[сквозной тест](../../tests/web/e2e/settings.spec.ts).
 
 
 ## Хранение и ошибки HTTP

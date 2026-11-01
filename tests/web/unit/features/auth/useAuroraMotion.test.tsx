@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { AuroraScene } from "./AuroraScene";
+import { AuroraScene } from "@/features/auth/AuroraScene";
 
 class Media extends EventTarget {
   constructor(public matches: boolean) { super(); }

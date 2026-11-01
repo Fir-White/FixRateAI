@@ -148,7 +148,7 @@ def main():
         run("pytest", [sys.executable, "-B", "-m", "pytest", "-q",*(args.pytest_target or [])], variables=test_env)
         run("architecture", [sys.executable, "-B", "scripts/validate_artifacts.py"])
         run("orchestration_scenarios", [sys.executable, "-B", "scripts/verify_orchestration.py", "--output", str(output / "orchestration")])
-        run("compileall", [sys.executable, "-m", "compileall", "-q", "backend/app", "ml_service"])
+        run("compileall", [sys.executable, "-m", "compileall", "-q", "backend/app", "ml_service", "tests"])
         run("pip_check", [sys.executable, "-m", "pip", "check"])
         npm = shutil.which("npm.cmd" if os.name == "nt" else "npm")
         run("frontend_build", [npm, "run", "build"], cwd=ROOT / "frontend")

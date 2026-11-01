@@ -49,7 +49,7 @@ yearly_count сначала строит упорядоченное множес
 
 ### Проверки
 
-`test_recurrence.py`, `test_scheduling.py`, `test_domain_scenarios.py`, `test_runtime_integration.py`, `test_management.py`; браузерный `frontend/e2e/settings.spec.ts`. Покрыты месяцы 28–31 день, високосный год, короткий месяц, ISO53/1, кварталы против month/3, годовое число с фильтрами, исключения, принятая история, ревизии и отсутствие автоматических назначений. Эталонные предметные входы: [maintenance_cases.json](../../tests/fixtures/domain/maintenance_cases.json).
+`test_recurrence.py`, `test_scheduling.py`, `test_domain_scenarios.py`, `test_runtime_integration.py`, `test_management.py`; браузерный `tests/web/e2e/settings.spec.ts`. Покрыты месяцы 28–31 день, високосный год, короткий месяц, ISO53/1, кварталы против month/3, годовое число с фильтрами, исключения, принятая история, ревизии и отсутствие автоматических назначений. Эталонные предметные входы: [maintenance_cases.json](../../tests/fixtures/domain/maintenance_cases.json).
 
 ### Эталонные календарные сценарии
 
@@ -57,7 +57,7 @@ yearly_count сначала строит упорядоченное множес
 `backend/app/schemas/maintenance.py`, расчёт в `backend/app/scheduling/recurrence.py`.
 Один механизм используется для обслуживания и регулярных смен.
 Входы и ожидания: [maintenance_cases.json](../../tests/fixtures/domain/maintenance_cases.json).
-Они исполняются `backend/tests/test_domain_scenarios.py`.
+Они исполняются `tests/backend/test_domain_scenarios.py`.
 
 | Сценарий | Настройка | Проверяемое ожидание |
 |---|---|---|
@@ -216,11 +216,11 @@ HTTP-результат содержит `status`, `code`, объяснение,
 Исходные правила заказчика не утверждаются автоматически. На существующем стенде
 новый сценарий появляется после повторного явного seed; обычное чтение его не создаёт.
 
-Проверки: `backend/tests/test_assignment.py` — интервалы, допуски, границы, загрузка,
+Проверки: `tests/backend/test_assignment.py` — интервалы, допуски, границы, загрузка,
 составы и детерминизм; `test_runtime_integration.py` — реальные HTTP + PostgreSQL,
 права/CSRF/revision, повторная загрузка фактов и отсутствие записи;
 `CrewSelectionPanel.test.tsx` — форма/ошибки/устаревшие ответы;
-`frontend/e2e/assignment.spec.ts` — полный браузерный сценарий без mock транспорта.
+`tests/web/e2e/assignment.spec.ts` — полный браузерный сценарий без mock транспорта.
 Запуск всех проверок из корня: `.venv/Scripts/python.exe -B scripts/verify.py --browser`.
 
 
@@ -343,7 +343,7 @@ Offset обязателен. Начало/конец — целые минуты
 предложение сбрасывается, карточка/контекст перечитываются; скрытого автоматического
 повторного сохранения нет. После перезагрузки страницы назначение остаётся в БД.
 
-`backend/tests/test_assignment_save.py`: реальные HTTP/PostgreSQL, права и CSRF,
+`tests/backend/test_assignment_save.py`: реальные HTTP/PostgreSQL, права и CSRF,
 состояния/ревизии, отзыв допуска/доступности после preview и после ожидания user lock,
 сохранённые интервалы/снимки/аудит, история переназначения, откат при ошибках записи,
 два независимых диспетчера на одном/разных заданиях, пересекающиеся и соседние интервалы,
@@ -493,10 +493,10 @@ BE05 повторно проверяет доступность и допуск�
 Частота несогласия относится только к сопоставимым предложениям в специально подобранном
 наборе, не является оценкой точности на заказчике. Старые допущения 90/73 дня не используются.
 
-`backend/tests/test_orchestration.py`, `test_planning.py` проверяют policy, bounded workers,
+`tests/backend/test_orchestration.py`, `test_planning.py` проверяют policy, bounded workers,
 реальные HTTP/PostgreSQL, конкуренцию, повторные ключи, изменившийся источник, смену даты,
 неизменность старого задания и откат при ошибке второй записи. RTL проверяет веб-форму,
-а `frontend/e2e/planning.spec.ts` — полный путь до сохранённой бригады и reload без mocks.
+а `tests/web/e2e/planning.spec.ts` — полный путь до сохранённой бригады и reload без mocks.
 
 Полный запуск: `.venv/Scripts/python.exe -B scripts/verify.py --browser`.
 Для существующего стенда применить цепочку до 008 через `app.manage migrate`, собрать frontend,

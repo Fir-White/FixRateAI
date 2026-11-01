@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ribbonPath } from "./ribbonGeometry";
+import { ribbonPath } from "@/features/auth/ribbonGeometry";
 
 const coordinates = (path: string) => [...path.matchAll(/-?\d+(?:\.\d+)?/g)].map(match => Number(match[0]));
 

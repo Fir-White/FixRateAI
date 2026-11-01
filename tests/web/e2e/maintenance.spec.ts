@@ -25,7 +25,7 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
   await executor.getByRole("checkbox", {name: /Поверхность очищена/}).check();
   await executor.getByLabel("Комментарий исполнителя").fill("Проверка полного процесса в браузере");
   // Upload must preserve the currently edited checklist and narrative without a manual save.
-  const photo = path.resolve("../data/demo/demo-photo.png");
+  const photo = path.resolve(test.info().project.testDir, "../../../data/demo/demo-photo.png");
   for (const phase of ["before", "after"]) {
     await executor.getByRole("combobox", {name: /Этап/}).selectOption(phase);
     await executor.getByLabel("Файл фото").setInputFiles(photo);

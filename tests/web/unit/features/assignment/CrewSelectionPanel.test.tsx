@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CrewSelectionPanel } from "./CrewSelectionPanel";
+import { CrewSelectionPanel } from "@/features/assignment/CrewSelectionPanel";
 import type { AssignmentContext, CrewSelection } from "@/shared/types/domain";
 
 const mocks = vi.hoisted(() => ({context: vi.fn(), preview: vi.fn(), assign: vi.fn()}));

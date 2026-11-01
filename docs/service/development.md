@@ -7,9 +7,11 @@
 Размещение определяется назначением файла. Это единственная карта каталогов проекта; команды запуска находятся в [runtime](runtime.md).
 
 ```text
-backend/                    backend и его компонентные тесты
-frontend/                   SPA, её конфиги, UI unit и browser E2E
-ml_service/                 ML/CV и его компонентные тесты
+README.md                   краткое назначение проекта и вход в документацию
+backend/                    backend
+frontend/                   SPA, её конфиги и Node-зависимости
+ml_service/                 ML/CV
+.env                        рабочие локальные параметры; не включается в Git
 .env.example                шаблон; настоящий .env остаётся локальным в корне
 requirements.txt            единственный список Python-зависимостей backend/ML/CV/тестов
 contracts/                  экспорт JSON Schema и примеры DTO/API
@@ -20,20 +22,28 @@ data/customer/              исходный Excel
 data/demo/                  сохраняемые demo-ресурсы
 data/models/                RF-модель и её manifest
 data/provenance/            исходные ветки, SHA и карта адаптации
+tests/backend/              Python-тесты backend и HTTP/PostgreSQL
+tests/ml/                   Python-тесты ML/CV и их pytest fixtures
+tests/web/unit/             UI unit-тесты с зеркалом структуры frontend/src
+tests/web/e2e/              браузерные сценарии SPA/API
+tests/web/setup.ts          общая настройка UI-тестов
+tests/web/tsconfig.json     проверка TypeScript всех UI/E2E-тестов
 tests/fixtures/             общие scheduling/domain fixtures
 tests/sql/                  исходные SQL assertion и полный schema QA
 scripts/                    проверки, экспорт ER и подготовка CLIP
 docs/                       описание проекта, ADR и docs/assets с иллюстрациями
 logs/                       журналы runtime, SQL и verification
 reports/                    результаты, метрики, screenshots и audits
-var/                        локальная БД, env/PID, фото и private backup
+var/                        локальная БД, PID, фото и private backup
 ```
 
 Новые проверки получают один run-id: `reports/verification/<run-id>` и `logs/verification/<run-id>`. `results.json` ссылается на логи относительными путями. `archive` содержит выбранные исторические доказательства в Git; `local-history` — перенесённые локальные материалы. Новые журналы и результаты игнорируются Git. Исторические команды/статусы/время не переписываются под новое расположение.
 
 SQL migrations/seed, Excel, модель и изображения сохраняют исходное содержимое. BRANCH-реестры меняют только текущие destinations; source SHA/blob/source_path сохраняются. [TXT охвата и точная карта переносов](../../reports/audits/REVIEWED_FILES.txt) — снимок проверки, не отдельное описание архитектуры.
 
-Компонентные тесты и конфиги остаются рядом со своим компонентом: `backend/tests`, `ml_service/tests`, `frontend/src`, `frontend/e2e`. Общие входы хранятся в `tests/fixtures`, SQL-проверки — в `tests/sql`. Настройки frontend, package.json/package-lock.json, pytest и реальные env-файлы остаются на своих местах. Python-зависимости всех компонентов и тестов поддерживаются только в корневом requirements.txt; прежние шесть вспомогательных manifests удалены. Папка config удалена: общий шаблон .env.example возвращён в корень, откуда копируется в .env. В MLConfig изменён только путь артефактов; самостоятельная система конфигурации не добавлялась.
+Все тесты и тестовые входы собраны в корневом tests; в компонентах тестовых копий нет. Единственный pytest.ini находится в корне. Vite/Vitest и Playwright используют tests/web, frontend/package.json сохраняет команды npm. Проверка TypeScript включает перенесённые UI-тесты и E2E; Node-зависимости остаются в frontend/node_modules без второго комплекта установки. Скрипты в scripts являются точками запуска проверок и экспорта, их результаты сохраняются в reports/logs.
+
+Рабочий env-файл находится только в корневом .env и исключён из Git; локальный runtime.env перенесён без изменения значений. CLI и uvicorn читают этот файл, Vite использует корень как envDir и передаёт в клиент только VITE_* параметры. Общий шаблон .env.example и единственный requirements.txt также находятся в корне. Папка config и шесть вспомогательных Python manifests удалены. Конфиги frontend остаются рядом со сборкой; при переносе тестов обновлены только необходимые пути и разрешение модулей.
 
 Изменяемое состояние var сохраняет своё рабочее расположение. [Состав var, назначение файлов и исключения для открытых журналов PostgreSQL](runtime.md#что-хранится-в-var) описаны в runtime; HF cache остаётся локальным ресурсом окружения.
 
@@ -50,7 +60,7 @@ SQL migrations/seed, Excel, модель и изображения сохран�
 | Яна Масалова | Backend/API, доступ, файлы, транзакции; `backend/app/main.py`, `integration`, `security` | HTTP/OpenAPI, атомарную запись, revision/locks, проверку объекта и фото; не меняет нормативную семантику и AI-модель самостоятельно |
 | Артём | Календарь, подбор и оркестратор; `scheduling`, `assignment`, `orchestrator` | Чистые функции, общие DTO, fixtures и объяснения результата/отказа; без ORM-сессий внутри алгоритма и без отмены deadline по совету AI |
 | Мухаммад | AI-прогноз, признаки, обучение и фотоанализ; `ml_service` | Версионированные артефакты/manifest, происхождение и ограниченные метрики, ForecastResult/PhotoReviewResult; без автоматической приёмки и подмены customer синтетикой |
-| Михаил Егоров | QA; `backend/tests`, `frontend/e2e`, `tests/sql`, `scripts/verify.py` | Воспроизводимые проверки успеха, отказа, гонок и повторов; команду, вход, ожидание, факт и владельца дефекта; различает mock/реальные веса и skip/успех |
+| Михаил Егоров | QA; `tests/backend`, `tests/web/e2e`, `tests/sql`, `scripts/verify.py` | Воспроизводимые проверки успеха, отказа, гонок и повторов; команду, вход, ожидание, факт и владельца дефекта; различает mock/реальные веса и skip/успех |
 | Анастасия | Аналитика, регламенты, словарь и критерии; [исходный график](../ARCHITECTURE.md#исходный-график-и-предметная-область) | Значения с единицами/источником, решения по неоднозначностям, допуски и чек-листы; техническое допущение не становится утверждением заказчика |
 
 ## Изменение общего контракта

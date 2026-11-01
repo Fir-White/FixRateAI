@@ -54,25 +54,25 @@
       },
       {
         "source_path": "backend/tests/test_dto_mapping.py",
-        "dev_path": "backend/tests/test_dto_mapping.py",
+        "dev_path": "tests/backend/test_dto_mapping.py",
         "source_blob": "d95fb2046a8fb2755e53d54f16e5e0b78a66ca56",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "backend/tests/test_mapping_configuration.py",
-        "dev_path": "backend/tests/test_mapping_configuration.py",
+        "dev_path": "tests/backend/test_mapping_configuration.py",
         "source_blob": "49454f3f38c1a1de83fb58c150bd5ffd0f75f3ef",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "backend/tests/test_persistence.py",
-        "dev_path": "backend/tests/test_persistence.py",
+        "dev_path": "tests/backend/test_persistence.py",
         "source_blob": "8becf36980dd3d70cc82db9e271d2ecf486cf18e",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "backend/tests/test_transactions.py",
-        "dev_path": "backend/tests/test_transactions.py",
+        "dev_path": "tests/backend/test_transactions.py",
         "source_blob": "6587b4e250f9fb4a383c9af29f57592f5fdde2ff",
         "disposition": "retained_or_adapted"
       },
@@ -385,25 +385,25 @@
       },
       {
         "source_path": "backend/tests/conftest.py",
-        "dev_path": "backend/tests/test_management.py",
+        "dev_path": "tests/backend/test_management.py",
         "source_blob": "8618c3ab8f8d8c12e27e0517297ca2cd8a231375",
         "disposition": "adapted_real_database_http_coverage_with_test_runtime_integration"
       },
       {
         "source_path": "backend/tests/test_auth.py",
-        "dev_path": "backend/tests/test_management.py",
+        "dev_path": "tests/backend/test_management.py",
         "source_blob": "7d75083eab6d5b9669c657797776824a00443e9e",
         "disposition": "adapted_real_database_http_coverage_with_test_runtime_integration"
       },
       {
         "source_path": "backend/tests/test_equipment_api.py",
-        "dev_path": "backend/tests/test_management.py",
+        "dev_path": "tests/backend/test_management.py",
         "source_blob": "fa71a4fc3801c4ccc802e97de729d1629694f08c",
         "disposition": "adapted_real_database_http_coverage_with_test_runtime_integration"
       },
       {
         "source_path": "backend/tests/test_rbac.py",
-        "dev_path": "backend/tests/test_management.py",
+        "dev_path": "tests/backend/test_management.py",
         "source_blob": "9499f542f5e05dfdb4dae7f4611e17e80705968e",
         "disposition": "adapted_real_database_http_coverage_with_test_runtime_integration"
       },
@@ -441,13 +441,13 @@
       },
       {
         "source_path": "backend/tests/test_authorization.py",
-        "dev_path": "backend/tests/test_authorization.py",
+        "dev_path": "tests/backend/test_authorization.py",
         "source_blob": "c97e2ac9ebd9164e4bf22257a32b42fa3b1ac5bb",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "backend/tests/test_maintenance_api.py",
-        "dev_path": "backend/tests/test_maintenance_api.py",
+        "dev_path": "tests/backend/test_maintenance_api.py",
         "source_blob": "0a03af3263294caad2991ccfc2409e02ee62ec0a",
         "disposition": "equivalent_base_test_retained"
       }
@@ -520,7 +520,7 @@
       },
       {
         "source_path": "frontend/src/app/router.test.tsx",
-        "dev_path": "frontend/src/app/router.test.tsx",
+        "dev_path": "tests/web/unit/app/router.test.tsx",
         "source_blob": "b0bdc83cf61d76e8e45827038531dc40cdf0660f",
         "disposition": "retained_or_adapted"
       },
@@ -784,7 +784,7 @@
       },
       {
         "source_path": "frontend/src/shared/ui/Modal.test.tsx",
-        "dev_path": "frontend/src/shared/ui/Modal.test.tsx",
+        "dev_path": "tests/web/unit/shared/ui/Modal.test.tsx",
         "source_blob": "5fff1fb2352518e369488d3aeb13079374165358",
         "disposition": "retained_or_adapted"
       },
@@ -820,7 +820,7 @@
       },
       {
         "source_path": "frontend/src/test/setup.ts",
-        "dev_path": "frontend/src/test/setup.ts",
+        "dev_path": "tests/web/setup.ts",
         "source_blob": "27627da04938032bcde97ab5b16d99ee7201f4d6",
         "disposition": "retained_or_adapted"
       },
@@ -995,25 +995,25 @@
       },
       {
         "source_path": "ml_service/tests/test_backend_adapter.py",
-        "dev_path": "ml_service/tests/test_backend_adapter.py",
+        "dev_path": "tests/ml/test_backend_adapter.py",
         "source_blob": "f29ffa7211c528922fb1a44599869a0b5aaed69d",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "ml_service/tests/test_condition_contract.py",
-        "dev_path": "ml_service/tests/test_condition_contract.py",
+        "dev_path": "tests/ml/test_condition_contract.py",
         "source_blob": "350fe75477c7e6536bafd02fd42a7d2e74d2109e",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "ml_service/tests/test_cv.py",
-        "dev_path": "ml_service/tests/test_cv.py",
+        "dev_path": "tests/ml/test_cv.py",
         "source_blob": "e75e5d12693421b0f28386044ba849c1d655c9c4",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "ml_service/tests/test_forecast.py",
-        "dev_path": "ml_service/tests/test_forecast.py",
+        "dev_path": "tests/ml/test_forecast.py",
         "source_blob": "04c9a388e4a553e4405eef5e81516909440f0dd4",
         "disposition": "retained_or_adapted"
       }
@@ -1050,19 +1050,19 @@
       },
       {
         "source_path": "backend/tests/test_authorization.py",
-        "dev_path": "backend/tests/test_authorization.py",
+        "dev_path": "tests/backend/test_authorization.py",
         "source_blob": "c97e2ac9ebd9164e4bf22257a32b42fa3b1ac5bb",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "backend/tests/test_maintenance_api.py",
-        "dev_path": "backend/tests/test_maintenance_api.py",
+        "dev_path": "tests/backend/test_maintenance_api.py",
         "source_blob": "0a03af3263294caad2991ccfc2409e02ee62ec0a",
         "disposition": "equivalent_base_test_retained"
       },
       {
         "source_path": "backend/tests/test_roles_contracts.py",
-        "dev_path": "backend/tests/test_roles_contracts.py",
+        "dev_path": "tests/backend/test_roles_contracts.py",
         "source_blob": "a239e867769a0383f0262de87870469769d26ee8",
         "disposition": "retained_or_adapted"
       }
@@ -1153,43 +1153,43 @@
       },
       {
         "source_path": "backend/tests/test_authorization.py",
-        "dev_path": "backend/tests/test_authorization.py",
+        "dev_path": "tests/backend/test_authorization.py",
         "source_blob": "c97e2ac9ebd9164e4bf22257a32b42fa3b1ac5bb",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "backend/tests/test_dto_mapping.py",
-        "dev_path": "backend/tests/test_dto_mapping.py",
+        "dev_path": "tests/backend/test_dto_mapping.py",
         "source_blob": "d95fb2046a8fb2755e53d54f16e5e0b78a66ca56",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "backend/tests/test_maintenance_api.py",
-        "dev_path": "backend/tests/test_maintenance_api.py",
+        "dev_path": "tests/backend/test_maintenance_api.py",
         "source_blob": "601e64fe4c60d6b4d4187d341b3b32e8e8973e48",
         "disposition": "equivalent_base_test_retained"
       },
       {
         "source_path": "backend/tests/test_mapping_configuration.py",
-        "dev_path": "backend/tests/test_mapping_configuration.py",
+        "dev_path": "tests/backend/test_mapping_configuration.py",
         "source_blob": "49454f3f38c1a1de83fb58c150bd5ffd0f75f3ef",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "backend/tests/test_persistence.py",
-        "dev_path": "backend/tests/test_persistence.py",
+        "dev_path": "tests/backend/test_persistence.py",
         "source_blob": "8becf36980dd3d70cc82db9e271d2ecf486cf18e",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "backend/tests/test_roles_contracts.py",
-        "dev_path": "backend/tests/test_roles_contracts.py",
+        "dev_path": "tests/backend/test_roles_contracts.py",
         "source_blob": "a239e867769a0383f0262de87870469769d26ee8",
         "disposition": "retained_or_adapted"
       },
       {
         "source_path": "backend/tests/test_transactions.py",
-        "dev_path": "backend/tests/test_transactions.py",
+        "dev_path": "tests/backend/test_transactions.py",
         "source_blob": "6587b4e250f9fb4a383c9af29f57592f5fdde2ff",
         "disposition": "retained_or_adapted"
       },
@@ -1331,14 +1331,14 @@
       },
       {
         "source_path": "frontend/e2e/login.spec.ts",
-        "dev_path": "frontend/e2e/login.spec.ts",
+        "dev_path": "tests/web/e2e/login.spec.ts",
         "source_blob": "6c17ed94a8481c0e48c7c6baaebdeb5232e8b6df",
         "source_change": "A",
         "disposition": "retained_exact_source_blob"
       },
       {
         "source_path": "frontend/e2e/roles.spec.ts",
-        "dev_path": "frontend/e2e/roles.spec.ts",
+        "dev_path": "tests/web/e2e/roles.spec.ts",
         "source_blob": "0e412391ceae1fc493b61a9270172da9a18136a7",
         "source_change": "M",
         "disposition": "retained_exact_source_blob"
@@ -1366,7 +1366,7 @@
       },
       {
         "source_path": "frontend/src/features/auth/ribbonGeometry.test.ts",
-        "dev_path": "frontend/src/features/auth/ribbonGeometry.test.ts",
+        "dev_path": "tests/web/unit/features/auth/ribbonGeometry.test.ts",
         "source_blob": "939b36d977cd830dba8e2cfffe35d53a35d6e13e",
         "source_change": "A",
         "disposition": "retained_exact_source_blob"
@@ -1380,7 +1380,7 @@
       },
       {
         "source_path": "frontend/src/features/auth/useAuroraMotion.test.tsx",
-        "dev_path": "frontend/src/features/auth/useAuroraMotion.test.tsx",
+        "dev_path": "tests/web/unit/features/auth/useAuroraMotion.test.tsx",
         "source_blob": "3856be681d32d72a518f7bd5731e1e02ca40e70b",
         "source_change": "A",
         "disposition": "retained_exact_source_blob"
@@ -1401,7 +1401,7 @@
       },
       {
         "source_path": "frontend/src/pages/LoginPage.test.tsx",
-        "dev_path": "frontend/src/pages/LoginPage.test.tsx",
+        "dev_path": "tests/web/unit/pages/LoginPage.test.tsx",
         "source_blob": "c9c2d7e5d7159aa79a947bb9d270dcca7ee1373b",
         "source_change": "A",
         "disposition": "retained_exact_source_blob"
@@ -1437,7 +1437,7 @@
     ],
     "dev_adaptations": [
       {
-        "dev_path": "frontend/e2e/settings.spec.ts",
+        "dev_path": "tests/web/e2e/settings.spec.ts",
         "reason": "Use the visible registration link name from the imported LoginPage."
       }
     ]

@@ -1,0 +1,14 @@
+{
+  "extends": "../../frontend/tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "../../frontend/node_modules/.tmp/tsconfig.tests.tsbuildinfo",
+    "types": ["node"],
+    "typeRoots": ["../../frontend/node_modules/@types"],
+    "paths": {
+      "@/*": ["./src/*"],
+      "*": ["./node_modules/@types/*", "./node_modules/*"]
+    }
+  },
+  "files": ["../../frontend/node_modules/vite/client.d.ts"],
+  "include": ["setup.ts", "unit", "e2e"]
+}

@@ -14,7 +14,7 @@ from sqlalchemy import text
 from app.db.repository import MaintenanceRepository
 from app.integration.demo import demo_id
 from app.schemas.maintenance import Assignment
-from backend.tests.test_runtime_integration import runtime, login, PREFIX
+from tests.backend.test_runtime_integration import runtime, login, PREFIX
 
 
 @pytest.fixture

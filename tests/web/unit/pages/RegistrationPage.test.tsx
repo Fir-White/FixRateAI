@@ -2,7 +2,7 @@ import {render,screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {MemoryRouter} from 'react-router-dom';
 import {expect,it,vi} from 'vitest';
-import {RegistrationPage} from './RegistrationPage';
+import {RegistrationPage} from '@/pages/RegistrationPage';
 
 const register=vi.hoisted(()=>vi.fn());
 vi.mock('@/shared/api/management',()=>({managementApi:{register}}));

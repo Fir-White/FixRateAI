@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 import pytest
 from sqlalchemy import text
 
-from backend.tests.test_runtime_integration import runtime,PREFIX
+from tests.backend.test_runtime_integration import runtime,PREFIX
 
 
 @pytest.fixture

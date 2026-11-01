@@ -1967,3 +1967,56 @@ Current provenance destinations updated: 6 manifests plus 1 env template; source
 Unified requirements validated in the existing full CV environment: all 59 pinned packages match installed metadata, all active dependencies are listed; pip --dry-run --no-index and pip check passed. Logs: logs/setup/unified-requirements-20261101-210639. No dependency installation/upgrades performed.
 Full unified-profile verification verify-20261101-210950-4e59fd40: 24/24, Python 427, UI 102, browser 16, orchestration 12, audit 0. FIXRATE_REQUIRE_CLIP=1 with existing HF_HOME; real CLIP required by the HTTP check. No package updates or working database changes. Current startup/dependency/test/var documentation updated.
 Final layout audit: no empty authored directories; config absent; one requirements.txt. All 20 maintained documents reachable, 206 local links/anchors valid; repository links depend only on tracked files; S01-S15 and P0-01-P0-23 unique. Current report/backup/branch-map destinations and Playwright output description corrected, historical commands preserved. Canonical artifact validator passed (27 examples, 3 comparison sets, 10 negative cases, 18 diagram edges). Legacy, application behavior, SQL and component configs unchanged.
+
+CENTRAL TESTS AND ROOT ENTRY FILES — 01.11.2026
+Baseline: 07dc37e. Test relocation map with original raw SHA256; test behavior/assertions preserved.
+backend/tests/test_assignment.py	tests/backend/test_assignment.py	6681825a0e68d173744a4be269bf40719e64e16dbbac8fbf5f2471eeddf29ecf
+backend/tests/test_assignment_save.py	tests/backend/test_assignment_save.py	4a81a9a662620b0e62c5b0f65c9a6728dd5ba6d0f26218c6ff866a0edb6ed967
+backend/tests/test_authorization.py	tests/backend/test_authorization.py	7cf5124c32fb7b6d986f311ae360285268eaf3f70981b6e9c32bdcec2405c034
+backend/tests/test_domain_scenarios.py	tests/backend/test_domain_scenarios.py	aa27e9228b2a127577e79c78118686d28a62d3e3e7713560df12b9707088fc87
+backend/tests/test_dto_mapping.py	tests/backend/test_dto_mapping.py	23caa7c73614334da8d763712014f871de1f3b59a0d5f413d46beb620e6aaab8
+backend/tests/test_maintenance_api.py	tests/backend/test_maintenance_api.py	f105af278f6038d4be734da9f751eecde969208024601ce6e850ca406e13743e
+backend/tests/test_management.py	tests/backend/test_management.py	9fd014b2b72cb7c8025ebde1e65d8b5e0993e7eaa0214c27407500a0ba8d3a68
+backend/tests/test_mapping_configuration.py	tests/backend/test_mapping_configuration.py	e91591dcf2853cfaa2c95a0576b97a0855a653a3c7fd2e4074f631c92c2489a6
+backend/tests/test_orchestration.py	tests/backend/test_orchestration.py	f09e855458e038ef3428d094b7527285f178278ddedacf5b8c79952a4c6b5a9f
+backend/tests/test_persistence.py	tests/backend/test_persistence.py	2efaa92bb1f1d3497ed997647f83576e7774fb8c0cca03da5744758454baa543
+backend/tests/test_planning.py	tests/backend/test_planning.py	39343e846a0e747cc2de338d90961573e6574689a0677b2ebdc61d44f860c0c2
+backend/tests/test_recurrence.py	tests/backend/test_recurrence.py	acf62cda789ab13b1c8f03a10b548630777a6c1c0061a21cd4abeb76958621a3
+backend/tests/test_roles_contracts.py	tests/backend/test_roles_contracts.py	bfb635d8464e73229b79fb6710f8c22284ba1432050af87f8a1da1a311ff4263
+backend/tests/test_runtime_integration.py	tests/backend/test_runtime_integration.py	8a0190b7bc34c6ccffc92269561fffe7c1e2a0ff2d496049c75f76c47e419ba7
+backend/tests/test_scheduling.py	tests/backend/test_scheduling.py	d42b82210875f9e3afa70359be057f91741a48b196c0710dfcfdd1df60265523
+backend/tests/test_shifts.py	tests/backend/test_shifts.py	114898cf340cea99c0ddbaf20d576d408ca328bc6f45b86b837888c111cd78b1
+backend/tests/test_transactions.py	tests/backend/test_transactions.py	a4f696f52ea274168ebd92462b9d816e09d21a883fc8cdef56fe6ac0c324d62c
+backend/tests/test_verification_paths.py	tests/backend/test_verification_paths.py	c3a973c065733dad6bc1bc372da62914607846d3d7394cbea18a590a183e8b6a
+ml_service/tests/conftest.py	tests/ml/conftest.py	7011d420ba8e57b6ed52b5d4c3140884a1c7f37d210a240d79856ec74693584e
+ml_service/tests/test_backend_adapter.py	tests/ml/test_backend_adapter.py	0b939ac089e6fbdfebe865fab9921387e8117fdbf525bffd71669de4539eb102
+ml_service/tests/test_condition_contract.py	tests/ml/test_condition_contract.py	26902851bd2594a9e93c9b4841b72d36b0bb8e194bc78451c8a3827ce9eef54f
+ml_service/tests/test_cv.py	tests/ml/test_cv.py	8694b308e11ac6bcd641fd0490a95602df0e06f8b2bf197bb4d9fc35bd0413c8
+ml_service/tests/test_forecast.py	tests/ml/test_forecast.py	73d268786f7ee7cf899f7d26450046506416ce5fedbed81d2a227310e4a45be4
+ml_service/tests/__init__.py	tests/ml/__init__.py	bb1f18c860b40e7580e1f8b4ed3956e92f3360f65dd8dd30ccf839cdbf54aef0
+frontend/e2e/assignment.spec.ts	tests/web/e2e/assignment.spec.ts	43b2762bbaa0e2e78e515c7cfd0523fbf7dcf43f466e8e00d78533f07942d455
+frontend/e2e/calendar.spec.ts	tests/web/e2e/calendar.spec.ts	4e84ff60ae8e9c7c5817aa0222269459b71921f4eee6f1cca036875ef0d92f5b
+frontend/e2e/login.spec.ts	tests/web/e2e/login.spec.ts	039363fe62d58e90fec6030a81dbfb43590486875589f7348460a5cf2f51e5a6
+frontend/e2e/maintenance.spec.ts	tests/web/e2e/maintenance.spec.ts	a0d56e31ffc2af2d93228c4bad2e8944077ad7a4ef16c7ce509f6bad7c7eb310
+frontend/e2e/planning.spec.ts	tests/web/e2e/planning.spec.ts	6d01322dcf3df489f026d3650a6c29c975e3baa9fa55f9eecf5f27410c23af3e
+frontend/e2e/roles.spec.ts	tests/web/e2e/roles.spec.ts	1c8dc3d22e5f1e6ec6747494a02d55d331abbde3916357a5b860977a6e88a5f1
+frontend/e2e/settings.spec.ts	tests/web/e2e/settings.spec.ts	6077e2f721304e44b7c39b1037231f44989146ad004ae9abdc8cb960717b5da4
+frontend/src/features/auth/ribbonGeometry.test.ts	tests/web/unit/features/auth/ribbonGeometry.test.ts	a151e540935eeeae47074413e628be2b3384715a8a221633cafca1767fdd6e69
+frontend/src/shared/api/request.test.ts	tests/web/unit/shared/api/request.test.ts	18daa45d632c254bf3d065aee96a57d965f106480ce4f2276037cd2576736a8f
+frontend/src/shared/lib/format.test.ts	tests/web/unit/shared/lib/format.test.ts	b660a1bd22a995556e26092d9aeed62ddb730afe4fc60407494f5b4055c71c81
+frontend/src/app/role-navigation.test.tsx	tests/web/unit/app/role-navigation.test.tsx	7984e9adeaba72a1b60ac20ab553a23feac669910ab4782cbbfe3eb43bfa3f32
+frontend/src/app/router.test.tsx	tests/web/unit/app/router.test.tsx	de61eb0ed665ce856963dc97af72048fda67ebfe25e94cf132fac920829bcb70
+frontend/src/features/assignment/CrewSelectionPanel.test.tsx	tests/web/unit/features/assignment/CrewSelectionPanel.test.tsx	248a39a726dd5f1c233a0a472e50f6caddf6c562f4ad67acf0efa784ca6ec14d
+frontend/src/features/auth/useAuroraMotion.test.tsx	tests/web/unit/features/auth/useAuroraMotion.test.tsx	61f0d90956da50659d37af47e8cc3702bd95c2531abfd42d3e3cfa2549bf4b28
+frontend/src/features/planning/PlanningRunPanel.test.tsx	tests/web/unit/features/planning/PlanningRunPanel.test.tsx	5e1564f4d72e05c34e2f0b64de8686402ff4b75107bfa2db44570682a2a133f1
+frontend/src/pages/CalendarPage.test.tsx	tests/web/unit/pages/CalendarPage.test.tsx	83ba835b9108d33f18f3b6f1330f3d462cd61a564b56b30e8927d9c15b985538
+frontend/src/pages/LoginPage.test.tsx	tests/web/unit/pages/LoginPage.test.tsx	376f6ac52783771b6e6701091ed23c97ed2f083752a57b7dd14f6e18bf0ae5c0
+frontend/src/pages/RegistrationPage.test.tsx	tests/web/unit/pages/RegistrationPage.test.tsx	469387cdaeb982ee99bed5828d7101966b6690c2e54680bbe42cb3d6e08d3e07
+frontend/src/shared/ui/Modal.test.tsx	tests/web/unit/shared/ui/Modal.test.tsx	a19b59b4a463428ae6a27fe1bf115231a8e7b8600c1884af9a2399c570eb1659
+frontend/src/test/setup.ts	tests/web/setup.ts	8c2b911b1f67e6e3ce4d78c72f081c20091b5478c73bbb3b103b8d59fa81fb6f
+Local runtime.env moved to root .env with identical bytes; secret contents and hash omitted. Obsolete backend/pytest.ini removed; root pytest config is canonical.
+Shared Python imports updated to tests.backend; UI rewrites restricted to import module specifiers, preserving selectors/assertions. E2E photo path anchored to test project directory; only unused demoId/createHash helper removed after enabling E2E type checking.
+Initial full run verify-20261101-213557-d48e4ca7: Python 427 passed, UI 98 passed/4 failed due to selector rewrite; restored baseline selectors, targeted 4/4 passed. Initial full run is not claimed successful.
+API restarted with root .env, PID 21624; logs/runtime/root-env-20261101-213658. Health/OpenAPI passed. All 41 working tables/198 rows retain identical aggregate SHA256 b180208b720fe9d9408f8955c886b8bbaf1fc943de58cb5ff1388641e83b67cb; PostgreSQL start time unchanged. No dependency, SQL, app-source or legacy changes.
+Final complete run verify-20261101-214613-7caf8e93: 24/24; Python 427, UI 102, browser 16, orchestration 12; real CLIP required. Npm audit 0 after one normal network retry; TLS verification retained. Results and logs in their canonical reports/verification and logs/verification directories.
+Final checks: 44 moved files preserve assertion text; only import/fixture paths and unused helper differ. Root README and ignored root .env present; no component test copies, obsolete test dirs, duplicate pytest config or empty authored folders. 21 documents reachable; 220 local links/anchors valid; source provenance preserved. Working API healthy with root env; all 41 table hashes and PostgreSQL identity unchanged after the complete run.
