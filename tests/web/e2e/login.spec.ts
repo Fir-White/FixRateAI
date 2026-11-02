@@ -63,6 +63,9 @@ test("independent curves, tiny particles, automatic pauses, reduced motion and s
   await page.evaluate(()=>{Object.defineProperty(document,"hidden",{configurable:true,value:true});document.dispatchEvent(new Event("visibilitychange"));});
   await expect(page.locator(".auth-aurora")).toHaveAttribute("data-motion","paused");
   await page.setViewportSize({width:1199,height:700}); await page.setViewportSize({width:1440,height:900});
+  // ResizeObserver can clear the bitmap before its deferred static redraw.
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+  await expect.poll(async()=>(await pixels())[0].maxAlpha).toBeGreaterThan(0);
   const paused=await snapshot(); await page.waitForTimeout(500); expect(await snapshot()).toEqual(paused);
   await page.evaluate(()=>{Reflect.deleteProperty(document,"hidden");document.dispatchEvent(new Event("visibilitychange"));});
   await expect(page.locator(".auth-aurora")).toHaveAttribute("data-motion","running");

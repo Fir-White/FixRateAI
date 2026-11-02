@@ -8,7 +8,7 @@ import type {
   TaskState,
 } from "@/shared/types/domain";
 
-const TASK_LABELS: Record<TaskState, string> = {
+export const TASK_LABELS: Record<TaskState, string> = {
   draft: "Черновик",
   assigned: "Назначено",
   in_progress: "В работе",

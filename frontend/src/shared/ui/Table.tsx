@@ -19,9 +19,10 @@ export function Table({
   return (
     <div
       role="region"
+      data-scroll-key={`table:${label}`}
       aria-label={label}
       tabIndex={0}
-      className={`overflow-x-auto rounded-b-2xl focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent ${className}`}
+      className={`relative overflow-x-auto rounded-b-2xl focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent ${className}`}
     >
       <table
         className="w-full border-collapse text-left"

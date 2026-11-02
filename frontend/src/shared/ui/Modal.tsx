@@ -1,9 +1,10 @@
-import { useId } from "react";
+import { useId, useRef } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { IconButton } from "@/shared/ui/Button";
 import { Icon } from "@/shared/ui/Icon";
 import { useDialogFocus } from "@/shared/lib/useDialogFocus";
+import { useScrollBoundary } from "@/shared/lib/useScrollBoundary";
 
 export function Modal({
   open,
@@ -25,6 +26,8 @@ export function Modal({
   const titleId = useId();
   const descriptionId = useId();
   const dialogRef = useDialogFocus<HTMLDivElement>(open, onClose);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useScrollBoundary(scrollRef, open);
 
   if (!open) {
     return null;
@@ -32,6 +35,7 @@ export function Modal({
 
   return createPortal(
     <div
+      ref={scrollRef}
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 p-0 backdrop-blur-sm sm:items-center sm:p-6"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
@@ -45,7 +49,7 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
-        className={`max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border bg-surface shadow-2xl shadow-black/60 sm:max-w-lg sm:rounded-2xl ${
+        className={`scroll-boundary max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border bg-surface shadow-2xl shadow-black/60 sm:max-w-lg sm:rounded-2xl ${
           tone === "danger" ? "border-rose-400/30" : "border-line-strong"
         }`}
       >
@@ -75,6 +79,6 @@ export function Modal({
         ) : null}
       </div>
     </div>,
-    document.body,
+    document.querySelector(".workspace-root") ?? document.body,
   );
 }

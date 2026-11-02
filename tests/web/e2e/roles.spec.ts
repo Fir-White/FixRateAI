@@ -10,7 +10,7 @@ const roles = ["admin", "dispatcher", "engineer", "executor"];
 const allowed: Record<string, string[]> = {
   dispatcher: ["admin", "dispatcher"], equipment: roles,
   calendar: ["dispatcher", "engineer", "executor"], tasks: ["dispatcher", "engineer"],
-  comparisons: ["dispatcher", "engineer"], quality: ["engineer"], executor: ["executor"],
+  comparisons: ["dispatcher", "engineer"], reports: ["dispatcher", "engineer"], quality: ["engineer"], executor: ["executor"],
   settings: ["admin","dispatcher","engineer"], "my-shifts": ["executor"],
 };
 
@@ -28,7 +28,7 @@ for (const role of roles) {
     await page.getByRole("button", {name: "Войти", exact: true}).click();
     await expect(page).toHaveURL(new URL(destination, process.env.FIXRATE_BASE_URL!).href);
     const routes = ["/dispatcher", "/equipment", `/equipment/${demoId("equipment-2")}`, "/calendar", "/tasks",
-      `/tasks/${demoId("runtime-order")}`, "/comparisons", "/quality", `/quality/${demoId("runtime-order")}`,
+      `/tasks/${demoId("runtime-order")}`, "/comparisons", "/reports", "/quality", `/quality/${demoId("runtime-order")}`,
       "/executor", `/executor/tasks/${demoId("runtime-order")}`,"/settings/equipment","/settings/workforce","/my-shifts"];
     for (const route of routes) {
       await page.goto(route);
@@ -67,7 +67,8 @@ for (const role of roles) {
       }
     }
     await page.goto(role === "executor" ? "/executor" : role === "engineer" ? "/quality" : "/dispatcher");
-    await page.getByRole("button", {name: "Выйти", exact: true}).last().click();
+    await page.locator(".workspace-account-trigger").click();
+    await page.getByRole("button", {name: "Выйти из аккаунта", exact: true}).click();
     await expect(page).toHaveURL(/\/login$/);
     await page.reload();
     await expect(page.getByRole("heading", {name: "Вход в систему"})).toBeVisible();

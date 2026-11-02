@@ -99,6 +99,9 @@
 }
 
 @layer utilities {
+  .scroll-boundary {
+    overscroll-behavior: contain;
+  }
   .app-backdrop {
     background-color: var(--color-canvas);
     background-image:

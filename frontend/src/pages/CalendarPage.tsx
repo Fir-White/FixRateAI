@@ -1,6 +1,7 @@
 import { DEMO_MODE } from "@/shared/api/request";
 import { useSession } from "@/shared/session/SessionContext";
 import { useMemo, useState } from "react";
+import { useWorkspaceState } from "@/shared/lib/workspaceState";
 import { Link } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
@@ -26,7 +27,11 @@ interface MonthCursor {
 export function CalendarPage() {
   const { profile } = useSession();
   const today = new Intl.DateTimeFormat("en-CA", {timeZone: profile?.timezone ?? "Asia/Yekaterinburg", year: "numeric", month: "2-digit", day: "2-digit"}).format(new Date());
-  const [cursor, setCursor] = useState<MonthCursor>(() => DEMO_MODE ? {year: 2026, month: 10} : {year: Number(today.slice(0,4)), month: Number(today.slice(5,7))});
+  const [cursor, setCursor] = useWorkspaceState<MonthCursor>("calendar.month", () => DEMO_MODE ? {year: 2026, month: 10} : {year: Number(today.slice(0,4)), month: Number(today.slice(5,7))}, (value): value is MonthCursor => {
+    if (!value || typeof value !== "object") return false;
+    const cursor = value as MonthCursor;
+    return Number.isInteger(cursor.year) && cursor.year >= 2000 && cursor.year <= 2200 && Number.isInteger(cursor.month) && cursor.month >= 1 && cursor.month <= 12;
+  });
   const [mode, setMode] = useState<"saved" | "preview">("saved");
   const [calculation, setCalculation] = useState(0);
   const mayPreview = profile?.role === "dispatcher" || profile?.role === "engineer";
@@ -154,6 +159,7 @@ export function CalendarPage() {
           <div
             role="region"
             aria-label="Сетка календаря"
+            data-scroll-key="calendar-grid"
             tabIndex={0}
             className="overflow-x-auto rounded-b-xl focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent"
           >

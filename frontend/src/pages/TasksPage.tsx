@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useWorkspaceState } from "@/shared/lib/workspaceState";
 import { Link } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
@@ -38,7 +39,7 @@ function matchesFilter(task: MaintenanceTask, filter: TaskFilter): boolean {
 export function TasksPage() {
   const { profile } = useSession();
   const query = useApiQuery(() => maintenanceApi.listTasks(), []);
-  const [filter, setFilter] = useState<TaskFilter>("all");
+  const [filter, setFilter] = useWorkspaceState<TaskFilter>("tasks.filter", "all", (value): value is TaskFilter => FILTERS.some(item => item.value === value));
 
   const tasks = useMemo(() => {
     if (query.status !== "success") {
@@ -65,8 +66,9 @@ export function TasksPage() {
         }
       />
 
-      <Card className="p-3 sm:p-4">
-        <div className="flex gap-2 overflow-x-auto">
+      <Card className="workspace-task-panel">
+        <div className="workspace-task-filters">
+        <div className="flex gap-2 overflow-x-auto" data-scroll-key="task-filters">
           {FILTERS.map((item) => (
             <FilterChip
               key={item.value}
@@ -77,7 +79,7 @@ export function TasksPage() {
             </FilterChip>
           ))}
         </div>
-      </Card>
+        </div>
 
       {query.status === "loading" ? <LoadingState /> : null}
       {query.status === "error" ? (
@@ -90,7 +92,7 @@ export function TasksPage() {
         />
       ) : null}
       {query.status === "success" && tasks.length > 0 ? (
-        <Card className="overflow-hidden">
+        <div className="overflow-hidden">
           <div className="flex items-center justify-between border-b border-line px-5 py-3 sm:px-6">
             <p className="text-xs font-semibold text-muted">
               Заданий: {tasks.length}
@@ -100,8 +102,9 @@ export function TasksPage() {
             </p>
           </div>
           <TaskTable items={tasks} />
-        </Card>
+        </div>
       ) : null}
+      </Card>
     </div>
   );
 }

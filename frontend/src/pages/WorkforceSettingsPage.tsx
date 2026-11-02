@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useScrollBoundary } from "@/shared/lib/useScrollBoundary";
+import { isShortString, useWorkspaceState } from "@/shared/lib/workspaceState";
 import { managementApi } from "@/shared/api/management";
 import { DEMO_MODE } from "@/shared/api/request";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
@@ -19,7 +21,7 @@ import { LoadingState,ErrorState } from "@/shared/ui/States";
 type Run = (action:()=>Promise<unknown>,message:string)=>Promise<boolean>;
 
 export function WorkforceSettingsPage() {
-  const {profile}=useSession();const [refresh,setRefresh]=useState(0);const [selected,setSelected]=useState("");
+  const {profile}=useSession();const [refresh,setRefresh]=useState(0);const [selected,setSelected]=useWorkspaceState("workforce.employee", "", isShortString);
   const [busy,setBusy]=useState(false);const [error,setError]=useState("");const [notice,setNotice]=useState("");
   const query=useApiQuery(()=>managementApi.workforce(),[refresh]);
   const admin=profile?.role==="admin";const mayEdit=admin||profile?.role==="dispatcher";
@@ -112,11 +114,19 @@ function Exceptions({person,today,busy,mayEdit,timezone,run}: {person:StaffMembe
 }
 
 export function EmployeeCalendar({person,today,timezone}: {person:Pick<StaffMember,"user_id">;today:string;timezone:string}) {
-  const [start,setStart]=useState(today);const [end,setEnd]=useState(today);const [period,setPeriod]=useState({start:today,end:today});
+  const [period,setPeriod]=useWorkspaceState(`employee-calendar:${person.user_id}.period`, {start:today,end:today}, (value): value is {start:string;end:string} => {
+    if (!value || typeof value !== "object") return false;
+    const period = value as {start:string;end:string};
+    const date = (value: unknown): value is string => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0,10) === value;
+    return date(period.start) && date(period.end) && period.start <= period.end;
+  });
+  const [start,setStart]=useState(period.start);const [end,setEnd]=useState(period.end);
   const query=useApiQuery(()=>managementApi.workerCalendar(person.user_id,period.start,period.end),[person.user_id,period.start,period.end]);
+  const scrollRef = useRef<HTMLUListElement>(null);
+  useScrollBoundary(scrollRef, query.status === "success");
   const stamp=(value:string)=>new Intl.DateTimeFormat("ru-RU",{timeZone:timezone,dateStyle:"short",timeStyle:"short"}).format(new Date(value));
   return <Card className="space-y-3 p-5"><h3 className="font-semibold">Календарь смен и исключений</h3><form className="flex flex-wrap items-end gap-3" onSubmit={e=>{e.preventDefault();setPeriod({start,end});}}><label className="text-sm"><FieldCaption>Показать с</FieldCaption><Input aria-label="Календарь сотрудника: с" type="date" required value={start} onChange={e=>setStart(e.target.value)}/></label><label className="text-sm"><FieldCaption>Показать по</FieldCaption><Input aria-label="Календарь сотрудника: по" type="date" min={start} required value={end} onChange={e=>setEnd(e.target.value)}/></label><Button type="submit" variant="secondary">Показать смены</Button></form>
-    {query.status==="loading"&&<LoadingState label="Расчёт смен"/>}{query.status==="error"&&<ErrorState description={query.error}/>}{query.status==="success"&&<><ul className="max-h-80 space-y-2 overflow-auto">{query.data.intervals.map((row,index)=><li key={index} className="text-sm">{stamp(row.start_at)} — {stamp(row.end_at)} · {row.status==="available" ? "Смена / рабочий интервал" : "Не работает"}</li>)}</ul>{!query.data.intervals.length&&<p className="text-sm text-muted">Рабочих интервалов за период нет.</p>}{query.data.diagnostics.map((row,index)=><Callout key={index} tone="warning">{row.date}: {row.explanation}</Callout>)}</>}
+    {query.status==="loading"&&<LoadingState label="Расчёт смен"/>}{query.status==="error"&&<ErrorState description={query.error}/>}{query.status==="success"&&<><ul data-scroll-key={`employee-calendar:${person.user_id}`} ref={scrollRef} className="scroll-boundary max-h-80 space-y-2 overflow-auto">{query.data.intervals.map((row,index)=><li key={index} className="text-sm">{stamp(row.start_at)} — {stamp(row.end_at)} · {row.status==="available" ? "Смена / рабочий интервал" : "Не работает"}</li>)}</ul>{!query.data.intervals.length&&<p className="text-sm text-muted">Рабочих интервалов за период нет.</p>}{query.data.diagnostics.map((row,index)=><Callout key={index} tone="warning">{row.date}: {row.explanation}</Callout>)}</>}
   </Card>;
 }
 

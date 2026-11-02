@@ -10,7 +10,7 @@ const roles: Role[] = ["admin", "dispatcher", "engineer", "executor"];
 const access: Record<string, Role[]> = {
   dispatcher: ["admin", "dispatcher"], equipment: roles,
   calendar: ["dispatcher", "engineer", "executor"], tasks: ["dispatcher", "engineer"],
-  comparisons: ["dispatcher", "engineer"], quality: ["engineer"], executor: ["executor"],
+  comparisons: ["dispatcher", "engineer"], reports: ["dispatcher", "engineer"], quality: ["engineer"], executor: ["executor"],
   settings: ["admin","dispatcher","engineer"], "my-shifts": ["executor"],
 };
 const routes = [
@@ -21,6 +21,7 @@ const routes = [
   ["/tasks", "Очередь заданий"],
   ["/tasks/b1000000-0000-4000-8000-000000000004", "Очистка учебного узла"],
   ["/comparisons", "Сравнение прогнозов"],
+  ["/reports", "Отчёты"],
   ["/comparisons/c1000000-0000-4000-8000-000000000001", "Учебный узел очистки"],
   ["/quality", "Контроль качества и приёмка"],
   ["/quality/b1000000-0000-4000-8000-000000000004", "Очистка учебного узла"],

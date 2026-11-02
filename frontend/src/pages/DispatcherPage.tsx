@@ -1,268 +1,139 @@
-import { useSession } from "@/shared/session/SessionContext";
 import { Link } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
 import { formatDate } from "@/shared/lib/format";
-import { useSiteDateTime } from "@/shared/lib/useSiteDateTime";
-import { PageHeader } from "@/shared/ui/PageHeader";
-import { StatCard } from "@/widgets/StatCard";
-import { Card, CardHeader } from "@/shared/ui/Card";
-import { Callout } from "@/shared/ui/Callout";
-import { LoadingState, ErrorState } from "@/shared/ui/States";
-import { buttonClassName } from "@/shared/ui/Button";
-import { Icon } from "@/shared/ui/Icon";
-import {
-  OriginBadge,
-  OverdueBadge,
-  TaskStateBadge,
-} from "@/shared/ui/StatusBadge";
-import type { MaintenanceTask } from "@/shared/types/domain";
 import { canOpenSection, taskPathForRole } from "@/shared/lib/roles";
+import { useSession } from "@/shared/session/SessionContext";
+import { ErrorState, LoadingState } from "@/shared/ui/States";
+import { OverdueBadge, TaskStateBadge } from "@/shared/ui/StatusBadge";
+import type { MaintenanceTask } from "@/shared/types/domain";
+
+function weekDates(today: string) {
+  const date = new Date(`${today}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - (date.getUTCDay() + 6) % 7);
+  return Array.from({ length: 7 }, (_, index) => {
+    const current = new Date(date);
+    current.setUTCDate(date.getUTCDate() + index);
+    return {
+      key: current.toISOString().slice(0, 10),
+      day: new Intl.DateTimeFormat("ru-RU", { day: "2-digit", timeZone: "UTC" }).format(current),
+      weekday: new Intl.DateTimeFormat("ru-RU", { weekday: "short", timeZone: "UTC" }).format(current),
+    };
+  });
+}
 
 export function DispatcherPage() {
   const { profile } = useSession();
-  const today = new Intl.DateTimeFormat("en-CA", {timeZone: profile?.timezone ?? "Asia/Yekaterinburg", year: "numeric", month: "2-digit", day: "2-digit"}).format(new Date());
-  const query = useApiQuery(
-    () =>
-      Promise.all([
-        maintenanceApi.listTasks(),
-        maintenanceApi.listComparisons(),
-      ]),
-    [],
-  );
+  const timezone = profile?.timezone ?? "Asia/Yekaterinburg";
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const query = useApiQuery(() => Promise.all([maintenanceApi.listTasks(), maintenanceApi.listComparisons()]), []);
 
-  if (query.status === "loading") {
-    return <LoadingState label="Загрузка панели диспетчера" />;
-  }
-
-  if (query.status === "error") {
-    return <ErrorState description={query.error} />;
-  }
+  if (query.status === "loading") return <LoadingState label="Загрузка панели диспетчера" />;
+  if (query.status === "error") return <ErrorState description={query.error} />;
 
   const [tasks, comparisons] = query.data;
-  const overdue = tasks.filter(
-    (task) => task.isOverdue && task.state !== "accepted" && task.state !== "cancelled",
-  );
-  const unassigned = tasks.filter(
-    (task) => task.state === "draft" && task.assignees.length === 0,
-  );
-  const onReview = tasks.filter((task) => task.state === "submitted");
-  const inProgress = tasks.filter((task) => task.state === "in_progress");
-  const todayTasks = tasks.filter(
-    (task) => task.mandatoryDueDate === today && task.state !== "accepted",
-  );
-  const latestRun = comparisons[0];
+  const overdue = tasks.filter(task => task.isOverdue && task.state !== "accepted" && task.state !== "cancelled");
+  const unassigned = tasks.filter(task => task.state === "draft" && task.assignees.length === 0);
+  const onReview = tasks.filter(task => task.state === "submitted");
+  const todayTasks = tasks.filter(task => task.mandatoryDueDate === today && task.state !== "accepted" && task.state !== "cancelled");
   const attention = tasks.filter(task => overdue.includes(task) || onReview.includes(task));
-  const canOpenTasks = canOpenSection(profile?.role, "tasks");
-  const canOpenCalendar = canOpenSection(profile?.role, "calendar");
-  const canOpenComparisons = canOpenSection(profile?.role, "comparisons");
+  const canTasks = canOpenSection(profile?.role, "tasks");
+  const canCalendar = canOpenSection(profile?.role, "calendar");
+  const canComparisons = canOpenSection(profile?.role, "comparisons");
+  const days = weekDates(today);
+  const weekKeys = new Set(days.map(day => day.key));
+  const weekTasks = tasks.filter(task => task.mandatoryDueDate && weekKeys.has(task.mandatoryDueDate) && task.state !== "cancelled");
+  const rows = new Map<string, MaintenanceTask[]>();
+  weekTasks.forEach(task => {
+    const key = `${task.operationCode}\u0000${task.title}`;
+    rows.set(key, [...(rows.get(key) ?? []), task]);
+  });
+  const latestRun = comparisons[0];
+  const dateLabel = new Intl.DateTimeFormat("ru-RU", { timeZone: timezone, weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date());
+  const monthLabel = new Intl.DateTimeFormat("ru-RU", { timeZone: timezone, month: "long", year: "numeric" }).format(new Date());
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="Диспетчер"
-        title="Панель диспетчера"
-        description="Просрочки, нераспределённые работы и задания, ожидающие решения. Обзор не заменяет рабочие разделы."
-        actions={
-          <>
-            {canOpenTasks && <Link to="/tasks" className={buttonClassName("primary")}>
-              Очередь заданий
-            </Link>}
-            {canOpenCalendar && <Link to="/calendar" className={buttonClassName("secondary")}>
-              Календарь ТО
-            </Link>}
-          </>
-        }
-      />
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Просрочено"
-          value={overdue.length}
-          hint="Незавершённые задания за обязательным сроком"
-          tone="danger"
-          icon={<Icon name="alert" />}
-        />
-        <StatCard
-          label="Без исполнителя"
-          value={unassigned.length}
-          hint="Черновики без назначенной бригады"
-          tone="warning"
-          icon={<Icon name="user" />}
-        />
-        <StatCard
-          label="На проверке"
-          value={onReview.length}
-          hint="Ожидают решения инженера"
-          tone="default"
-          icon={<Icon name="quality" />}
-        />
-        <StatCard
-          label="В работе"
-          value={inProgress.length}
-          hint="Начатые попытки выполнения"
-          tone="success"
-          icon={<Icon name="clock" />}
-        />
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
-        <div className="space-y-6">
-          <Card>
-            <CardHeader
-              title="Требуют внимания"
-              description="Просроченные задания и отчёты на проверке"
-              action={
-                canOpenTasks ? <Link
-                  to="/tasks"
-                  className="text-sm font-semibold text-accent hover:text-accent"
-                >
-                  Все задания
-                </Link> : null
-              }
-            />
-            {attention.length ? (
-              <ul className="divide-y divide-line">
-                {attention.map((task) => (
-                  <li key={task.id} className="px-5 py-4 sm:px-6">
-                    <TaskAttentionRow task={task} />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="px-5 py-8 text-center text-sm text-muted">
-                Просрочек и отчётов на проверке нет.
-              </p>
-            )}
-          </Card>
-
-          <Card>
-            <CardHeader
-              title={`Задания на ${formatDate(today)}`}
-              description={`Срок задания — локальные сутки объекта ${profile?.timezone}`}
-            />
-            {todayTasks.length ? (
-              <ul className="divide-y divide-line">
-                {todayTasks.map((task) => (
-                  <li key={task.id} className="px-5 py-4 sm:px-6">
-                    <TaskAttentionRow task={task} />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="px-5 py-8 text-center text-sm text-muted">
-                На выбранную дату заданий нет.
-              </p>
-            )}
-          </Card>
-        </div>
-
-        <div className="space-y-6">
-          <Card>
-            <CardHeader
-              title="Неполные данные"
-              description="Система хранит неопределённость и не подставляет значения"
-            />
-            <div className="space-y-3 p-5 sm:p-6">
-              <Callout tone="warning" title="ТО2: даты требуют уточнения">
-                <p className="text-xs leading-5">
-                  Для правила 1/квартал не подтверждены basis и anchor. Пять дат
-                  годового ТО не выдумываются.
-                </p>
-                {canOpenCalendar && <Link
-                  to="/calendar"
-                  className="mt-2 inline-flex items-center gap-1 text-xs font-semibold hover:underline"
-                >
-                  Открыть календарь
-                  <Icon name="chevron" size={14} />
-                </Link>}
-              </Callout>
-              <Callout tone="neutral" title="Нормо-часы не подтверждены">
-                <p className="text-xs leading-5">
-                  Исходная норма сохранена без округления. Планировочная
-                  длительность пуста до подтверждения заказчиком.
-                </p>
-              </Callout>
-              <Callout tone="violet" title="Набор B: synthetic_demo">
-                <p className="text-xs leading-5">
-                  Синтетические данные не являются историей заказчика и всегда
-                  маркируются в интерфейсе.
-                </p>
-              </Callout>
+    <div className="ops-overview">
+      <div className="ops-overview-main">
+        <section className="ops-intro" aria-labelledby="dispatcher-title">
+          <p className="ops-kicker">Оперативная смена / {dateLabel}</p>
+          <div className="ops-intro-heading">
+            <div>
+              <h1 id="dispatcher-title" aria-label="Панель диспетчера">Обслуживание.<br /><span>В поле зрения.</span></h1>
+              <p>Плановые работы, нормативные сроки и решения — в одном месте.</p>
             </div>
-          </Card>
+            {canTasks && <Link className="ops-outline-action" to="/tasks">Очередь заданий <span aria-hidden="true">→</span></Link>}
+          </div>
+          <div className="ops-statline" aria-label="Сводка заданий">
+            <Summary value={todayTasks.length} label={`на ${formatDate(today)}`} />
+            <Summary value={unassigned.length} label="без исполнителя" tone="warning" />
+            <Summary value={onReview.length} label="на проверке" tone="accent" />
+            <Summary value={overdue.length} label="просрочено" tone={overdue.length ? "danger" : undefined} />
+          </div>
+        </section>
 
-          {latestRun ? (
-            <Card>
-              <CardHeader
-                title="Последнее сравнение"
-                description="Оба метода на одном snapshot"
-              />
-              <div className="p-5 sm:p-6">
-                <div className="flex flex-wrap items-center gap-2">
-                  <OriginBadge origin={latestRun.dataOrigin} />
-                  <span className="text-xs text-muted">
-                    as_of {formatDate(latestRun.asOf)}
-                  </span>
-                </div>
-                <p className="mt-3 font-semibold text-ink">
-                  {latestRun.equipmentName}
-                </p>
-                <p className="mt-1 text-xs text-muted">
-                  {latestRun.operationTitle}
-                </p>
-                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-xl bg-sky-400/10 p-3">
-                    <p className="text-xs font-semibold text-sky-200">
-                      Алгоритм
-                    </p>
-                    <p className="mt-1 font-semibold text-ink">
-                      {formatDate(latestRun.algorithmic.recommendedDate)}
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-violet-400/10 p-3">
-                    <p className="text-xs font-semibold text-violet-200">AI</p>
-                    <p className="mt-1 font-semibold text-ink">
-                      {formatDate(latestRun.ai.recommendedDate)}
-                    </p>
-                  </div>
-                </div>
-                {canOpenComparisons && <Link
-                  to={`/comparisons/${latestRun.runId}`}
-                  className={buttonClassName("secondary", "sm", "mt-4 w-full")}
-                >
-                  Открыть решение
-                </Link>}
-              </div>
-            </Card>
-          ) : null}
-        </div>
+        <section className="ops-section" aria-labelledby="week-title">
+          <div className="ops-section-heading">
+            <div><h2 id="week-title">График на неделю</h2><p>Обязательные сроки заданий · {profile?.siteName}</p></div>
+            {canCalendar && <Link className="ops-outline-action" to="/calendar">{monthLabel} <span aria-hidden="true">→</span></Link>}
+          </div>
+          <div className="ops-week-scroll" role="region" aria-label="График заданий на неделю" tabIndex={0} data-scroll-key="overview-week">
+            <table className="ops-week-table">
+              <thead><tr><th scope="col">Работы / даты</th>{days.map(day => <th key={day.key} scope="col" className={day.key === today ? "is-today" : undefined}><span>{day.day}</span><small>{day.weekday}</small></th>)}</tr></thead>
+              <tbody>
+                {[...rows].slice(0, 6).map(([key, group]) => <tr key={key}>
+                  <th scope="row"><span className="ops-operation-code">{group[0].operationCode || "—"}</span><span className="ops-operation-name">{group[0].title}<small>{group[0].maintenanceType || "Обслуживание"}</small></span></th>
+                  {days.map(day => {
+                    const due = group.filter(task => task.mandatoryDueDate === day.key);
+                    const first = due[0];
+                    const path = first && (due.length > 1 && canTasks ? "/tasks" : taskPathForRole(profile?.role, first.id));
+                    const description = `${formatDate(day.key)}: ${due.length ? `заданий — ${due.length}` : "нет заданий"}`;
+                    const markClass = `ops-week-mark ${due.length > 1 ? "is-multiple" : `state-${first?.state}`}`;
+                    return <td key={day.key} className={day.key === today ? "is-today" : undefined}>
+                      {first ? path ? <Link to={path} className={markClass} aria-label={description} title={description}>{due.length > 1 ? due.length : ""}</Link> : <span className={markClass} aria-label={description} title={description}>{due.length > 1 ? due.length : ""}</span> : <span className="ops-week-empty" aria-label={description}>—</span>}
+                    </td>;
+                  })}
+                </tr>)}
+              </tbody>
+            </table>
+            {!rows.size && <p className="ops-empty">На этой неделе заданий с обязательным сроком нет.</p>}
+          </div>
+          <p className="ops-week-hint">Проведите по таблице вбок, чтобы увидеть всю неделю.</p>
+          <div className="ops-section-note"><p>Показаны {rows.size > 6 ? "первые шесть операций с заданиями" : "сохранённые задания"} по обязательному сроку объекта. Отметка не подтверждает выполнение работы.</p>{canCalendar && <Link to="/calendar">Открыть полный календарь →</Link>}</div>
+        </section>
+
+        <section className="ops-section" aria-labelledby="today-title">
+          <div className="ops-section-heading"><div><h2 id="today-title">Сегодня в работе</h2><p>Задания с обязательным сроком на {formatDate(today)}</p></div>{canTasks && <Link className="ops-text-link" to="/tasks">Все задания →</Link>}</div>
+          <TaskList tasks={todayTasks} empty="На сегодня заданий нет." />
+        </section>
+
+        {attention.length > 0 && <section className="ops-section" aria-labelledby="attention-title">
+          <div className="ops-section-heading"><div><h2 id="attention-title">Требуют внимания</h2><p>Просроченные задания и отчёты на проверке</p></div></div>
+          <TaskList tasks={attention} empty="Просрочек и отчётов на проверке нет." />
+        </section>}
       </div>
+
+      <aside className="ops-insights" aria-label="Панель решений">
+        <p className="ops-kicker">Панель решений</p>
+        <div className="ops-insight-number">{String(unassigned.length).padStart(2, "0")}<span>↗</span></div>
+        <h2>{unassigned.length ? "Требуют назначения исполнителя" : "Нет заданий без исполнителя"}</h2>
+        <div className="ops-insight-block"><p className="ops-kicker">Назначение</p><p>{unassigned.length ? "В очереди есть задания без назначенной бригады." : "Сейчас нет черновиков без назначенной бригады."}</p>{canTasks && <Link to="/tasks">Перейти к заданиям →</Link>}</div>
+        <div className="ops-insight-block"><p className="ops-kicker">AI / прогнозирование</p><h3>{latestRun ? latestRun.equipmentName : "Нет сохранённых сравнений"}</h3><p>{latestRun ? latestRun.operationTitle : "Сравнение будет доступно после запуска прогноза."}</p>{canComparisons && <Link to={latestRun ? `/comparisons/${latestRun.runId}` : "/comparisons"}>Открыть сравнение →</Link>}</div>
+        <div className="ops-insight-block"><p className="ops-kicker">Объект</p><h3>{profile?.siteName}</h3><p>Время и обязательные сроки показаны для часового пояса {timezone}.</p></div>
+      </aside>
     </div>
   );
 }
 
-function TaskAttentionRow({ task }: { task: MaintenanceTask }) {
-  const formatDateTime=useSiteDateTime();
+function Summary({ value, label, tone }: { value: number; label: string; tone?: "warning" | "accent" | "danger" }) {
+  return <div className="ops-stat"><strong className={tone ? `is-${tone}` : undefined}>{String(value).padStart(2, "0")}</strong><span>{label}</span></div>;
+}
+
+function TaskList({ tasks, empty }: { tasks: MaintenanceTask[]; empty: string }) {
   const { profile } = useSession();
-  const path = taskPathForRole(profile?.role, task.id);
-  return (
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          {path ? <Link
-            to={path}
-            className="font-semibold text-ink hover:text-accent"
-          >
-            {task.title}
-          </Link> : <span className="font-semibold text-ink">{task.title}</span>}
-          {task.isOverdue ? <OverdueBadge /> : null}
-        </div>
-        <p className="mt-1 text-xs text-muted">
-          {task.code} · {task.equipmentName} · срок {formatDateTime(task.scheduledEnd)}
-        </p>
-      </div>
-      <TaskStateBadge state={task.state} />
-    </div>
-  );
+  if (!tasks.length) return <p className="ops-empty ops-task-list">{empty}</p>;
+  return <ul className="ops-task-list">{tasks.map(task => {
+    const path = taskPathForRole(profile?.role, task.id);
+    return <li key={task.id}><div><div className="ops-task-title">{path ? <Link to={path}>{task.title}</Link> : task.title}{task.isOverdue && <OverdueBadge />}</div><p>{task.code} · {task.equipmentName}</p></div><TaskStateBadge state={task.state} /></li>;
+  })}</ul>;
 }
