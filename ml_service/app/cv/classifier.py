@@ -80,6 +80,8 @@ class CLIPZeroShotClassifier:
             with torch.no_grad():
                 if hasattr(self._model, "get_text_features"):
                     text_features = self._model.get_text_features(**inputs)
+                    if hasattr(text_features, "pooler_output") and text_features.pooler_output is not None:
+                        text_features = text_features.pooler_output
                     self._cached_text_features = text_features / text_features.norm(dim=-1, keepdim=True)
                 else:
                     self._cached_text_features = None
@@ -105,6 +107,8 @@ class CLIPZeroShotClassifier:
             if text_features is not None and hasattr(self._model, "get_image_features"):
                 inputs = self._processor(images=pil_images, return_tensors="pt")
                 image_features = self._model.get_image_features(**inputs)
+                if hasattr(image_features, "pooler_output") and image_features.pooler_output is not None:
+                    image_features = image_features.pooler_output
                 image_features = image_features / image_features.norm(dim=-1, keepdim=True)
                 logit_scale = self._model.logit_scale.exp()
                 logits = logit_scale * (image_features @ text_features.t())
