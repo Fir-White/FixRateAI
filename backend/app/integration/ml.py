@@ -18,6 +18,9 @@ class MLCommand(BaseModel):
     comparability_confirmed: bool = False
 
 
+PHOTO_REVIEW_TIMEOUT_SECONDS = 20.0
+
+
 def version(v, kind, name, version_name, artifact=None):
     from sqlalchemy import select
     from sqlalchemy.dialects.postgresql import insert
@@ -111,8 +114,12 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
                 answers=[dict(checklist_item_id=i["id"], status="done" if answers.get(i["id"]) == "done" else "not_done",
                     value=answers.get(i["id"]), unit=i["unit"], comment=None, completed_at=report.submitted_at.isoformat()) for i in report.checklist_snapshot],
                 photo_ids=[p["photo_id"] for p in payload_photos]))
-        result = invoke_review(PhotoReviewRequest.model_validate_json(json.dumps(request)), blobs.__getitem__,
-                               comparability_confirmed=lambda b, a: command.comparability_confirmed)
+        result = invoke_review(
+            PhotoReviewRequest.model_validate_json(json.dumps(request)),
+            blobs.__getitem__,
+            timeout_seconds=PHOTO_REVIEW_TIMEOUT_SECONDS,
+            comparability_confirmed=lambda b, a: command.comparability_confirmed,
+        )
         ui = dict(id=str(result.ai_review_id), executionId=str(result.execution_id), status=result.status,
             modelRef=result.model_ref, promptSetVersion=result.prompt_set_version, createdAt=result.created_at.isoformat(),
             items=[dict(id=str(i.checklist_item_id), label=next(c["text"] for c in report.checklist_snapshot if c["id"] == str(i.checklist_item_id)),
