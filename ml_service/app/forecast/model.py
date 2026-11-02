@@ -61,8 +61,16 @@ class RandomForestForecaster:
             raise RuntimeError("Model is not fitted yet.")
 
         x_2d = x.reshape(1, -1) if x.ndim == 1 else x
-        # Collect predictions from each individual decision tree
-        tree_predictions = np.array([tree.predict(x_2d)[0] for tree in self.model.estimators_])
+        # High-performance tree dispersion: direct Cython tree_.predict traversal bypasses per-tree sklearn overhead
+        try:
+            x_f32 = np.ascontiguousarray(x_2d, dtype=np.float32)
+            tree_predictions = np.fromiter(
+                (tree.tree_.predict(x_f32)[0, 0] for tree in self.model.estimators_),
+                dtype=np.float64,
+                count=len(self.model.estimators_),
+            )
+        except (AttributeError, IndexError):
+            tree_predictions = np.array([tree.predict(x_2d)[0] for tree in self.model.estimators_])
 
         point_pred = float(np.mean(tree_predictions))
         lower_bound = float(np.percentile(tree_predictions, p_lower))
@@ -73,6 +81,12 @@ class RandomForestForecaster:
         upper_bound = max(upper_bound, point_pred)
 
         return point_pred, lower_bound, upper_bound
+
+    def warmup(self) -> None:
+        """Run a dry-run prediction to prime memory and CPU caches."""
+        if self.is_fitted:
+            dummy = np.zeros(6, dtype=np.float64)
+            self.predict_with_dispersion(dummy)
 
     def evaluate(self, X_test: np.ndarray, y_test: np.ndarray) -> dict[str, float]:
         """Evaluate model performance on test set."""

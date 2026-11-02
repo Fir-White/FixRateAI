@@ -34,6 +34,7 @@ class CLIPZeroShotClassifier:
         self._model = None
         self._is_torch_available = False
         self._initialized = False
+        self._cached_text_features = None
 
     def _init_backend(self) -> None:
         """Attempt to load transformers and torch if available."""
@@ -59,27 +60,71 @@ class CLIPZeroShotClassifier:
         revision = getattr(getattr(self._model, "config", None), "_commit_hash", None)
         return f"{self.model_name}@{revision or self.revision}"
 
-    def _infer_single_image(self, image_bytes: bytes) -> float:
-        """Return relative prompt score, not a calibrated cleanliness probability."""
-        with Image.open(io.BytesIO(image_bytes)) as pil_img:
-            img = pil_img.convert("RGB")
+    def warmup(self) -> bool:
+        """Pre-load weights and cache static prompt embeddings."""
+        if not self.is_torch_active:
+            return False
+        try:
+            self._get_text_features()
+            return True
+        except Exception:
+            return False
 
-            if self.is_torch_active:
-                import torch
+    def _get_text_features(self):
+        """Compute and cache normalized text embeddings for DEFAULT_PROMPTS."""
+        if self._cached_text_features is None:
+            if not self.is_torch_active:
+                raise RuntimeError("CLIP model unavailable")
+            import torch
+            inputs = self._processor(text=DEFAULT_PROMPTS, return_tensors="pt", padding=True)
+            with torch.no_grad():
+                if hasattr(self._model, "get_text_features"):
+                    text_features = self._model.get_text_features(**inputs)
+                    self._cached_text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+                else:
+                    self._cached_text_features = None
+        return self._cached_text_features
+
+    def _infer_batch(self, images_bytes: list[bytes]) -> list[float]:
+        """Infer relative clean prompt scores for a batch of images in a single forward pass."""
+        if not images_bytes:
+            return []
+        if not self.is_torch_active:
+            raise RuntimeError("CLIP model unavailable")
+
+        import torch
+
+        pil_images = []
+        for b in images_bytes:
+            with Image.open(io.BytesIO(b)) as pil_img:
+                pil_images.append(pil_img.convert("RGB"))
+
+        text_features = self._get_text_features()
+
+        with torch.no_grad():
+            if text_features is not None and hasattr(self._model, "get_image_features"):
+                inputs = self._processor(images=pil_images, return_tensors="pt")
+                image_features = self._model.get_image_features(**inputs)
+                image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+                logit_scale = self._model.logit_scale.exp()
+                logits = logit_scale * (image_features @ text_features.t())
+                probs = logits.softmax(dim=1).cpu().numpy()
+                return [float(p[1]) for p in probs]
+            else:
                 inputs = self._processor(
                     text=DEFAULT_PROMPTS,
-                    images=img,
+                    images=pil_images,
                     return_tensors="pt",
                     padding=True,
                 )
-                with torch.no_grad():
-                    outputs = self._model(**inputs)
-                    logits_per_image = outputs.logits_per_image
-                    probs = logits_per_image.softmax(dim=1).cpu().numpy()[0]
-                    # Index 1 corresponds to clean label
-                    return float(probs[1])
-            else:
-                raise RuntimeError("CLIP model unavailable")
+                outputs = self._model(**inputs)
+                logits = outputs.logits_per_image
+                probs = logits.softmax(dim=1).cpu().numpy()
+                return [float(p[1]) for p in probs]
+
+    def _infer_single_image(self, image_bytes: bytes) -> float:
+        """Return relative prompt score, not a calibrated cleanliness probability."""
+        return self._infer_batch([image_bytes])[0]
 
     def evaluate_pair(
         self,
@@ -90,8 +135,8 @@ class CLIPZeroShotClassifier:
         after_bytes: bytes,
     ) -> ItemPhotoReview:
         """Evaluate a pair of before/after photos and return structured item review."""
-        p_before = self._infer_single_image(before_bytes)
-        p_after = self._infer_single_image(after_bytes)
+        scores = self._infer_batch([before_bytes, after_bytes])
+        p_before, p_after = scores[0], scores[1]
 
         delta = p_after - p_before
 
