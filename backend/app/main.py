@@ -522,6 +522,8 @@ def create_app(engine=None):
 
     from app.integration.management import register_routes
     register_routes(app,views,db)
+    from app.integration.maintenance_api import register_routes as register_maintenance_api_routes
+    register_maintenance_api_routes(app, views)
     from app.integration.ml import register_ml_routes
     register_ml_routes(app, views, photo_path, require_role, check_revision)
 
