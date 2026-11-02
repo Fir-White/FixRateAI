@@ -14,6 +14,7 @@ from uuid import UUID, uuid4
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -42,6 +43,15 @@ from app.storage import PhotoValidationError, safe_storage_path, validate_photo
 
 ROOT = Path(__file__).resolve().parents[2]
 logger = logging.getLogger(__name__)
+
+
+def configured_cors_origins(value: str | None = None) -> list[str]:
+    """Return explicit browser origins; credentials must never use a wildcard."""
+    raw = os.environ.get("CORS_ORIGINS", "") if value is None else value
+    origins = [origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip()]
+    if "*" in origins:
+        raise ValueError("CORS_ORIGINS must contain explicit origins, not '*'")
+    return origins
 
 
 class Command(BaseModel):
@@ -140,12 +150,23 @@ def create_app(engine=None):
                 app.state.engine.dispose()
 
     app = FastAPI(title="FixRate AI", version="dev-0.1", lifespan=lifespan)
+    cors_origins = configured_cors_origins()
+    if cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=cors_origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
     @app.middleware('http')
     async def request_identity(request,call_next):
         request.state.request_id=str(uuid4())
         response=await call_next(request)
         response.headers['X-Request-ID']=request.state.request_id
+        logger.info("%s %s -> %s request_id=%s", request.method, request.url.path,
+                    response.status_code, request.state.request_id)
         return response
 
     def error_response(request,status,message,code=None,details=None,headers=None):
@@ -192,8 +213,15 @@ def create_app(engine=None):
 
     @app.exception_handler(SQLAlchemyError)
     async def database_error(request, exc):
-        logger.error("Database operation failed: %s", type(exc).__name__)
+        logger.error("Database operation failed: %s request_id=%s", type(exc).__name__,
+                     getattr(request.state, "request_id", "unknown"))
         return error_response(request,503,'База данных недоступна')
+
+    @app.exception_handler(Exception)
+    async def unexpected_error(request, exc):
+        logger.exception("Unhandled API error request_id=%s",
+                         getattr(request.state, "request_id", "unknown"))
+        return error_response(request, 500, "Внутренняя ошибка сервера", code="INTERNAL_ERROR")
 
     @app.get("/api/health")
     def health(session=Depends(db)):
@@ -204,7 +232,8 @@ def create_app(engine=None):
     def login(payload: Login, response: Response, request: Request, session=Depends(db)):
         # Login is also same-origin; the session is not chosen by a role header.
         origin = request.headers.get("origin")
-        if origin and origin.rstrip("/") != str(request.base_url).rstrip("/"):
+        same_origin = origin and origin.rstrip("/") == str(request.base_url).rstrip("/")
+        if origin and not same_origin and origin.rstrip("/") not in cors_origins:
             raise HTTPException(403, "Недопустимый origin")
         user = session.execute(text("SELECT * FROM users WHERE lower(email)=lower(:email) AND is_active"),
                                {"email": payload.email}).mappings().first()

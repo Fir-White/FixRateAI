@@ -1,0 +1,61 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-fixrate}
+      POSTGRES_USER: ${POSTGRES_USER:-fixrate}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fixrate-local-only}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - fixrate-postgres:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-fixrate}:${POSTGRES_PASSWORD:-fixrate-local-only}@db:5432/${POSTGRES_DB:-fixrate}
+      PHOTO_STORAGE_ROOT: /var/photos
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - fixrate-photos:/var/photos
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-fixrate}:${POSTGRES_PASSWORD:-fixrate-local-only}@db:5432/${POSTGRES_DB:-fixrate}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["python", "-m", "app.manage", "migrate"]
+
+  seed:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-fixrate}:${POSTGRES_PASSWORD:-fixrate-local-only}@db:5432/${POSTGRES_DB:-fixrate}
+      FIXRATE_DEMO_PASSWORD: ${FIXRATE_DEMO_PASSWORD:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      - sh
+      - -c
+      - test -n "$$FIXRATE_DEMO_PASSWORD" || { echo "Set FIXRATE_DEMO_PASSWORD for seed"; exit 64; }; python -m app.manage seed-demo
+
+volumes:
+  fixrate-postgres:
+  fixrate-photos:
