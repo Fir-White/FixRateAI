@@ -29,7 +29,14 @@ from app.integration.projections import Views
 from app.integration.calendar import preview_calendar
 from app.integration.assignment import assignment_context, assignment_preview
 from app.integration.assignments import save_assignment, lock_workers
+from app.integration.maintenance_jobs import _job_payload, create_job, job_history, transition_job
 from app.schemas.maintenance import AssignmentCommand, ErrorResponse
+from app.schemas.maintenance_api import (
+    MaintenanceJobCreate,
+    MaintenanceJobHistoryItem,
+    MaintenanceJobResponse,
+    MaintenanceJobTransition,
+)
 from app.schemas.management import CancelTask
 from app.security.authorization import AuthorizationError, require_any_role
 from app.security.sessions import COOKIE, Principal, SQL_ROLES, authenticate, create_session, digest, verify_password
@@ -241,6 +248,65 @@ def create_app(engine=None):
         response.delete_cookie("fixrate_csrf", path="/")
 
     prefix = "/api/v1/maintenance"
+
+    @app.get("/api/v1/maintenance_jobs", response_model=list[MaintenanceJobResponse])
+    @app.get(prefix + "/jobs", response_model=list[MaintenanceJobResponse])
+    def maintenance_job_list(status: str | None = None, v=Depends(views)):
+        from app.maintenance_jobs import public_status
+
+        require_role(v.principal, "admin", "dispatcher", "engineer", "executor")
+        if status is not None and status not in {
+            "planned", "assigned", "in_progress", "submitted", "accepted", "rework",
+        }:
+            raise HTTPException(422, "Некорректный статус задания")
+        orders = v.repo.orders(
+            v.principal.site_id,
+            user_id=v.principal.user_id if v.principal.role == "executor" else None,
+        )
+        return [
+            _job_payload(v, order)
+            for order in orders
+            if (status is None or public_status(order.status) == status)
+            and public_status(order.status) != "cancelled"
+        ]
+
+    @app.post("/api/v1/maintenance_jobs", status_code=201, response_model=MaintenanceJobResponse)
+    @app.post(prefix + "/jobs", status_code=201, response_model=MaintenanceJobResponse)
+    def maintenance_job_create(command: MaintenanceJobCreate, v=Depends(views)):
+        require_role(v.principal, "admin", "dispatcher")
+        order = create_job(
+            v,
+            command.schedule_entry_id,
+            command.equipment_id,
+            command.maintenance_rule_id,
+            command.planned_start_at,
+        )
+        return _job_payload(v, order)
+
+    @app.get("/api/v1/maintenance_jobs/{job_id}", response_model=MaintenanceJobResponse)
+    @app.get(prefix + "/jobs/{job_id}", response_model=MaintenanceJobResponse)
+    def maintenance_job_detail(job_id: UUID, v=Depends(views)):
+        require_role(v.principal, "admin", "dispatcher", "engineer", "executor")
+        return _job_payload(v, v.task(job_id))
+
+    @app.post("/api/v1/maintenance_jobs/{job_id}/transitions", response_model=MaintenanceJobResponse)
+    @app.post(prefix + "/jobs/{job_id}/transitions", response_model=MaintenanceJobResponse)
+    @app.patch("/api/v1/maintenance_jobs/{job_id}", response_model=MaintenanceJobResponse)
+    @app.patch(prefix + "/jobs/{job_id}", response_model=MaintenanceJobResponse)
+    def maintenance_job_transition(
+        job_id: UUID, command: MaintenanceJobTransition, v=Depends(views)
+    ):
+        require_role(v.principal, "admin", "dispatcher", "engineer", "executor")
+        order = transition_job(
+            v, job_id, command.status, command.expected_revision, command.reason
+        )
+        return _job_payload(v, order)
+
+    @app.get("/api/v1/maintenance_jobs/{job_id}/history", response_model=list[MaintenanceJobHistoryItem])
+    @app.get(prefix + "/jobs/{job_id}/history", response_model=list[MaintenanceJobHistoryItem])
+    def maintenance_job_history(job_id: UUID, v=Depends(views)):
+        require_role(v.principal, "admin", "dispatcher", "engineer", "executor")
+        return job_history(v, job_id)
 
     @app.get(prefix + "/ui/equipment")
     def equipment_list(v=Depends(views)):

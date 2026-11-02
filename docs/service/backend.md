@@ -129,6 +129,21 @@ ServiceConfiguration.checklist содержит объекты text/answer_kind/
 
 Все многоточия в таблице означают `/api/v1/maintenance`. Изменяющие запросы после входа требуют `X-CSRF-Token`. Frontend читает его из отдельной `fixrate_csrf` cookie. Изменения ревизии клиента не принимаются: backend блокирует строку задания и проверяет `expected_revision`, затем увеличивает ревизию сам.
 
+### Ресурс `maintenance_jobs`
+
+`POST /api/v1/maintenance_jobs` (также `/api/v1/maintenance/jobs`) создаёт задание
+из `schedule_entry_id` и связанного `equipment_id`. Backend проверяет объект, систему,
+регламент и `rule_equipment`, поэтому чужое оборудование или регламент не могут быть
+подставлены. Начальный статус — `planned`; повторное создание для той же регламентной
+даты отклоняется.
+
+`GET` списка/задания возвращает статусы `planned/assigned/in_progress/submitted/accepted/rework`.
+`PATCH /api/v1/maintenance_jobs/{id}` или `POST …/{id}/transitions` принимает
+`expected_revision`, `status` и необязательный `reason`. Разрешены только переходы
+`planned→assigned→in_progress→submitted→accepted|rework→in_progress`; принятую
+заявку закрыть повторно нельзя. `GET …/{id}/history` возвращает изменения из
+транзакционного `audit_events`.
+
 ### Доступные действия в карточке
 
 `allowedActions` вычисляется сервером для текущего пользователя и последней попытки. Это подсказка интерфейсу: команда всё равно заново проверяет права, состояние и ревизию.

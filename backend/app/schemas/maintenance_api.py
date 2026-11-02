@@ -1,12 +1,12 @@
 """REST request and response models for maintenance-0.1."""
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
 from .maintenance import (
     Assignment,
@@ -222,6 +222,41 @@ class CalendarResponse(ApiModel):
         if self.total != len(self.items):
             raise ValueError("total must equal number of returned items")
         return self
+
+
+class MaintenanceJobCreate(ApiModel):
+    schedule_entry_id: UUID
+    equipment_id: UUID
+    maintenance_rule_id: UUID | None = None
+    planned_start_at: AwareDatetime | None = None
+
+
+class MaintenanceJobTransition(ApiModel):
+    expected_revision: PositiveInt
+    status: Literal["assigned", "in_progress", "submitted", "accepted", "rework"]
+    reason: Text | None = None
+
+
+class MaintenanceJobResponse(ApiModel):
+    schema_version: Literal["maintenance-0.1"] = SCHEMA_VERSION
+    job_id: UUID
+    schedule_entry_id: UUID
+    equipment_id: UUID
+    maintenance_rule_id: UUID
+    planned_date: date
+    regulatory_deadline_at: AwareDatetime
+    status: Literal["planned", "assigned", "in_progress", "submitted", "accepted", "rework"]
+    revision: PositiveInt
+    created_at: AwareDatetime
+
+
+class MaintenanceJobHistoryItem(ApiModel):
+    event_id: UUID
+    from_status: str | None = None
+    to_status: str | None = None
+    action: Text
+    reason: str | None = None
+    changed_at: AwareDatetime
 
 
 class AssignmentResponse(Assignment):
