@@ -63,9 +63,6 @@ def forecast_view(result):
 
 
 def register_ml_routes(app, views, photo_path, require_role, check_revision):
-    # Imported lazily by create_app; the ML namespace never shadows backend app.
-    from ml_service.app.cv.api import invoke_review
-
     @app.post("/api/v1/maintenance/tasks/{task_id}/forecast")
     def forecast(task_id: UUID, command: MLCommand, v=Depends(views)):
         from .forecasting import forecast_task
@@ -74,6 +71,8 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
 
     @app.post("/api/v1/maintenance/tasks/{task_id}/photo-review")
     def photo_review(task_id: UUID, command: MLCommand, v=Depends(views)):
+        from ml_service.app.cv.api import invoke_review
+
         require_role(v.principal, "engineer")
         order = v.task(task_id, lock=True)
         check_revision(order, command.expected_revision)
