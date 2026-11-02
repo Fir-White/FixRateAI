@@ -109,11 +109,28 @@ def save_assignment(v, task_id, command, crew_id=None):
         raise HTTPException(403, "Действие недоступно для текущей роли")
     with service_transaction(v.session):
         order = v.task(task_id, lock=True)
+        previous = _lock(v, "work_assignments", work_order_id=task_id)
+        active = [row for row in previous if row.status not in ("cancelled", "declined")]
+        requested_ids = set(command.executor_ids)
+        if len(requested_ids) != len(command.executor_ids):
+            raise HTTPException(422, "Исполнитель указан несколько раз")
+        if (
+            order.status == "assigned"
+            and active
+            and {row.user_id for row in active} == requested_ids
+            and all(row.crew_id == crew_id for row in active)
+            and all(row.start_at == command.start_at and row.end_at == command.end_at for row in active)
+            and all(row.reason == command.reason.strip() for row in active)
+            and order.planned_start_at == command.start_at
+            and order.planned_end_at == command.end_at
+        ):
+            return dict(
+                **v.bundle(order),
+                assignments=[_assignment_json(row, order) for row in active],
+            )
         if order.revision != command.expected_revision:
             raise HTTPException(409, "REVISION_CONFLICT: обновите данные и повторите подбор")
         ids = set(command.executor_ids)
-        if len(ids) != len(command.executor_ids):
-            raise HTTPException(422, "Исполнитель указан несколько раз")
         if len(ids) != order.required_people_snapshot:
             raise HTTPException(409, "INSUFFICIENT_CAPACITY: нужен полный состав бригады")
         begin, end = command.start_at.astimezone(timezone.utc), command.end_at.astimezone(timezone.utc)
@@ -121,8 +138,6 @@ def save_assignment(v, task_id, command, crew_id=None):
             raise HTTPException(422, "Нужен положительный интервал в целых минутах не более 32 суток")
         if not command.reason.strip():
             raise HTTPException(422, "Укажите основание назначения")
-        previous = _lock(v, "work_assignments", work_order_id=task_id)
-        active = [row for row in previous if row.status not in ("cancelled", "declined")]
         lock_workers(v, ids | {row.user_id for row in active}, actor=True)
         _lock(v, "sites", read=True, site_id=v.principal.site_id)
         actor = v.one("users", user_id=v.principal.user_id)

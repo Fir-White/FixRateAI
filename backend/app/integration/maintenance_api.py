@@ -321,12 +321,23 @@ def register_routes(app, views) -> None:
         _guard(v, "admin", "dispatcher", "engineer", "executor")
         v.one("equipment", equipment_id=equipment_id)
         reports = []
+        visible_order = False
         for link in v.rows("work_order_equipment", equipment_id=equipment_id):
             order = v.one("work_orders", work_order_id=link.work_order_id)
+            if v.principal.role == "executor":
+                try:
+                    v.task(order.work_order_id)
+                except HTTPException as exc:
+                    if exc.status_code == 404:
+                        continue
+                    raise
+            visible_order = True
             reports.extend(
                 _execution_payload(v, report, order, equipment_id)
                 for report in v.rows("work_reports", work_order_id=order.work_order_id)
             )
+        if v.principal.role == "executor" and not visible_order:
+            raise HTTPException(404, "Оборудование не найдено")
         reports.sort(
             key=lambda item: (item["submitted_at"] or item["performed_at"]).isoformat()
             if item["submitted_at"] or item["performed_at"]

@@ -83,7 +83,8 @@ class MaintenanceRepository:
         if user_id is not None:
             Assignment = self.models["work_assignments"]
             query = query.where(select(Assignment.work_assignment_id).where(Assignment.site_id == Order.site_id,
-                              Assignment.work_order_id == Order.work_order_id, Assignment.user_id == user_id).exists())
+                              Assignment.work_order_id == Order.work_order_id, Assignment.user_id == user_id,
+                              Assignment.status.not_in(("cancelled", "declined"))).exists())
         if overdue_at is not None:
             if overdue_at.tzinfo is None or overdue_at.utcoffset() is None:
                 raise ValueError("overdue_at must be timezone-aware")
