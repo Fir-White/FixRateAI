@@ -4,7 +4,6 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import hashlib
-import io
 import logging
 import os
 import re
@@ -18,7 +17,6 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from PIL import Image
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -40,6 +38,7 @@ from app.schemas.maintenance_api import (
 from app.schemas.management import CancelTask
 from app.security.authorization import AuthorizationError, require_any_role
 from app.security.sessions import COOKIE, Principal, SQL_ROLES, authenticate, create_session, digest, verify_password
+from app.storage import PhotoValidationError, safe_storage_path, validate_photo
 
 ROOT = Path(__file__).resolve().parents[2]
 logger = logging.getLogger(__name__)
@@ -477,8 +476,9 @@ def create_app(engine=None):
         # Source demo photo is read-only and served only through the same access check.
         if photo.storage_key == "database/demo/demo-photo.png":
             return ROOT / "data/demo/demo-photo.png"
-        path = (storage / photo.storage_key).resolve()
-        if not path.is_relative_to(storage):
+        try:
+            path = safe_storage_path(storage, photo.storage_key)
+        except ValueError:
             raise HTTPException(404, "Файл не найден")
         return path
 
@@ -489,23 +489,20 @@ def create_app(engine=None):
         order, report = editable(v, task_id, expected_revision)
         if str(checklist_item_id) not in {i["id"] for i in report.checklist_snapshot} or not view_key.strip() or len(view_key) > 200:
             raise HTTPException(422, "Укажите пункт чек-листа и ракурс")
-        data = file.file.read(10_485_761)
-        if not data or len(data) > 10_485_760:
-            raise HTTPException(422, "Размер фото должен быть от 1 байта до 10 МиБ")
         try:
-            with Image.open(io.BytesIO(data)) as img:
-                if img.width * img.height > 20_000_000 or img.format not in ("JPEG", "PNG", "WEBP"):
-                    raise ValueError()
-                mime = Image.MIME[img.format]
-                img.verify()
-        except Exception:
-            raise HTTPException(422, "Недопустимое изображение") from None
+            data = file.file.read(10_485_761)
+            mime = validate_photo(data, file.filename, file.content_type)
+        except PhotoValidationError as exc:
+            raise HTTPException(422, str(exc)) from None
         links = v.rows("work_order_equipment", work_order_id=task_id)
         if len(links) != 1:
             raise HTTPException(422, "Фото API требует ровно одно оборудование в задании")
         identity = uuid4()
         key = f"{v.principal.site_id}/{identity}"
-        path = storage / key
+        try:
+            path = safe_storage_path(storage, key)
+        except ValueError:
+            raise HTTPException(500, "Некорректное хранилище файлов") from None
         path.parent.mkdir(parents=True, exist_ok=True)
         try:
             path.write_bytes(data)

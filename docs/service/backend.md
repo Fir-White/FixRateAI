@@ -120,8 +120,8 @@ ServiceConfiguration.checklist содержит объекты text/answer_kind/
 | `GET …/ui/quality` | Задания на приёмке или доработке |
 | `POST …/tasks/{id}/start` | `{expected_revision}`; новая попытка из назначенного задания или доработки |
 | `PUT …/tasks/{id}/report` | `{expected_revision,narrative,answers:{item_uuid:value}}`; запись своего черновика |
-| `POST …/tasks/{id}/photos` | Multipart: `expected_revision,checklist_item_id,phase,view_key,file` |
-| `GET …/photos/{id}/content` | Авторизованное чтение файла; короткий путь `…/photos/{id}` также работает |
+| `POST …/tasks/{id}/photos` | Multipart: `expected_revision,checklist_item_id,phase,view_key,file`; только JPEG/PNG, расширение и MIME должны совпадать, размер до 10 МиБ |
+| `GET …/photos/{id}/content` | Авторизованное чтение файла из закрытого локального хранилища; короткий путь `…/photos/{id}` также работает |
 | `POST …/tasks/{id}/submit` | `{expected_revision}`; проверка чек-листа/пар фото, заморозка |
 | `POST …/tasks/{id}/review` | `expected_revision,execution_id,verdict,reason`, необязательные `reviewed_ai_result_id,additional_evidence_refs` |
 | `POST …/tasks/{id}/forecast` | `{expected_revision}`; построение/сохранение общего снимка и результатов |
