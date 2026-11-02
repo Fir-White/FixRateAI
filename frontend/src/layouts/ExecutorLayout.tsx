@@ -1,6 +1,6 @@
 import { DEMO_MODE } from "@/shared/api/request";
-import { useState } from "react";
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useRef, useState } from "react";
+import { Link, NavLink, Outlet, useLocation, useNavigate, useNavigationType } from "react-router-dom";
 import { BrandLockup } from "@/shared/ui/Brand";
 import { IconButton } from "@/shared/ui/Button";
 import { Select } from "@/shared/ui/Form";
@@ -8,6 +8,8 @@ import { Icon, type IconName } from "@/shared/ui/Icon";
 import { useSession } from "@/shared/session/SessionContext";
 import { ROLE_LABELS, homePathForRole } from "@/shared/lib/roles";
 import type { Role } from "@/shared/types/domain";
+import { usePageEntry } from "@/shared/motion/usePageEntry";
+import { isAuthEntryNavigation } from "@/shared/motion/authEntry";
 
 const ROLES: Role[] = ["dispatcher", "engineer", "executor", "admin"];
 
@@ -22,6 +24,10 @@ const BOTTOM_NAV: { to: string; label: string; icon: IconName; end?: boolean }[]
 export function ExecutorLayout() {
   const { profile, logout, switchRole } = useSession();
   const navigate = useNavigate();
+  const location = useLocation();
+  const navigationType = useNavigationType();
+  const contentRef = useRef<HTMLElement>(null);
+  usePageEntry(contentRef, location.key, isAuthEntryNavigation(location.state, navigationType));
   const [logoutError, setLogoutError] = useState("");
 
   if (!profile) {
@@ -79,6 +85,7 @@ export function ExecutorLayout() {
       </header>
 
       <main
+        ref={contentRef}
         id="executor-content"
         tabIndex={-1}
         className="mx-auto max-w-3xl px-4 py-5 sm:py-7"

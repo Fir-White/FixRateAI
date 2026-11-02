@@ -1,0 +1,7 @@
+:root { --field-caption-inset: 5px; }
+
+.field-caption {
+  position: relative;
+  inset-inline-start: var(--field-caption-inset);
+  margin-block: 0;
+}

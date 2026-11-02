@@ -127,9 +127,9 @@ powershell -ExecutionPolicy Bypass -File scripts/verify_schema.ps1
 
 ## Последний полный прогон
 
-01.11.2026, `verify-20261101-225855-34c2aafb` (код `8bdcc9c`): **24/24 этапа**, **427 Python / 102 UI / 16 browser E2E**, 12 сценариев оркестрации. Проверены новая БД 001–008, upgrade заполненной 004 до 008, повтор миграций/seed, SQL QA, DTO/Schema/диаграммы, compileall, pip check, TypeScript/Vite и npm audit (0 уязвимостей).
+02.11.2026, `verify-20261102-194510-64feb8bc` (перенос `5fc4e8e` поверх `dev` `6a09f3b`): **24/24 этапа**, **427 Python / 196 UI / 24 browser E2E**, 12 сценариев оркестрации. Проверены новая БД 001–008, upgrade заполненной 004 до 008, повтор миграций/seed, SQL QA, DTO/Schema/диаграммы, compileall, pip check, TypeScript/Vite и npm audit (0 уязвимостей).
 
-Команда: `.venv/cv/Scripts/python.exe -X utf8 -B scripts/verify.py --browser`, `FIXRATE_REQUIRE_CLIP=1`, подготовленный HF_HOME. HTTP-проверка использовала настоящий CLIP. Пять login E2E работают с mock API; остальные 11 — с настоящим API/PostgreSQL. На рабочем стенде дополнительно проверены API/SPA на 8000 и Vite с API-прокси на 5173: форма входа открывается без ошибок JavaScript, содержимое БД сохранено.
+Команда: `.venv/cv/Scripts/python.exe -X utf8 -B scripts/verify.py --browser`, `FIXRATE_REQUIRE_CLIP=1`, подготовленный HF_HOME. HTTP-проверка использовала настоящий CLIP. 13 auth E2E работают с mock API; остальные 11 — с настоящим API/PostgreSQL. Снимки входа 1440×900 и 390×844 просмотрены после сборки; favicon и ссылки dist ведут к существующим assets.
 
 Runner сохраняет команды и результаты в `reports/verification/<run-id>/results.json`, журналы — в `logs/verification/<run-id>`, browser artifacts — в подкаталоге отчёта playwright. Эти материалы остаются локально.
 
@@ -202,6 +202,7 @@ Runner сохраняет команды и результаты в `reports/ver
 | Гибкие календари, 01.11 | 423 / 91 / 11 | ISO-чётность, реальные кварталы/годы, настройки и SQL 008 |
 | Вход feature/frontend-kran, 01.11 | 423 / 102 / 16 | Форма входа, Aurora, регистрация и четыре роли |
 | Перенос тестов и env, 01.11 | 427 / 102 / 16 | Общий tests, транзакции, веб и настоящий CLIP |
+| Полный запуск, 01.11 | 427 / 102 / 16 | Настоящий CLIP, API/SPA на 8000 и Vite с API-прокси на 5173; сохранность рабочей БД |
 | Аудит путей, 01.11 | 4 path-теста / 102 UI; коллекция 427 Python и 16 E2E | TypeScript, ссылки, provenance, готовность CLIP и удаление устаревших кешей |
 
 ### 01.11.2026: перенос входа feature/frontend-kran в dev
@@ -213,3 +214,9 @@ Runner сохраняет команды и результаты в `reports/ver
 Четыре пары сравнивались с [TinyCLIP](../../reports/ml/archive/clip_experiment.json), [основным CLIP](../../reports/ml/archive/clip_default_experiment.json) и [сервисом с DEMO-метаданными](../../reports/ml/archive/clip_service_experiment.json). Case 01/02 — разные приборы, case 03 — панель, case 04 — фильтр до/после. Получены ложный visible_change и пропуск изменения фильтра; сервис ограничил выводы uncertain/not_verifiable. Происхождение фото и факт ТО не подтверждены. SHA весов основной модели: `a63082132ba4f97a80bea76823f544493bffa8082296d62d71581a4feff1576f`.
 
 Методика, закреплённая ревизия и ограничения моделей — в [ML/CV](ml.md).
+
+## 02.11.2026: интеграция web из feature/frontend-kran
+
+Перенесены изменения `2948458…5fc4e8e`: общая auth-оболочка, подтверждение пароля, сообщения полей/API, переходы, мобильная Aurora и подписи полей. UI/E2E остаются в tests/web, эталон desktop-фаз — в tests/fixtures/web. Параметры описаны в [web](web.md), конечные эффекты — в [web-motion](web-motion.md), выбор Canvas — в [ADR](../decisions/2026-11-02--mobile-aurora-canvas.md).
+
+Полный прогон `verify-20261102-194510-64feb8bc`: 427 Python, 196 UI-тестов в 18 файлах и 24 E2E прошли; SQL, контракты, сборка, pip check и npm audit также успешны. Браузерная регрессия проверяет touch/viewport, первый клик, ошибки, фокус, Back/Forward, reduced-motion и сохранение фазы. Auth-сценарии используют mock API; сценарии назначения, регистрации, доступа и выполнения запускаются с настоящим backend и временной PostgreSQL. Эмуляция не подтверждает работу физической клавиатуры телефона или производительность iOS/Android.
