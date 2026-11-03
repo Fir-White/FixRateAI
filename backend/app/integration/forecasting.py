@@ -1,6 +1,7 @@
 """Server snapshots and persistence for independent ALG04 forecasts."""
 from datetime import datetime, time, timedelta, timezone
 import json
+import logging
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
@@ -12,6 +13,8 @@ from app.schemas.maintenance import ForecastSnapshot
 from app.scheduling.schemas import SchedulingBinding
 from .calendar import _binding_payload, _json_value
 from .ml import forecast_view, version
+
+logger = logging.getLogger(__name__)
 
 
 def binding_input(v, binding, *, as_of=None):
@@ -77,6 +80,21 @@ def calculate(snapshot, item, forecaster, *, timeout_seconds=2, provider=None):
     return compare_forecasts(snapshot, item, chosen, timeout_seconds=timeout_seconds)
 
 
+def condition_evidence_output(snapshot):
+    from ml_service.app.forecast.backend_adapter import predict_condition_for_snapshot
+
+    try:
+        condition = predict_condition_for_snapshot(snapshot)
+        return json.loads(condition.model_dump_json())
+    except (ValueError, RuntimeError):
+        logger.exception("condition_provider_failed snapshot=%s", snapshot.snapshot_id)
+        return {
+            "status": "failed",
+            "error_code": "CONDITION_PROVIDER_ERROR",
+            "explanation": "Проверка состояния AI недоступна; решение сохранено по регламентному прогнозу.",
+        }
+
+
 def persist_comparison(v, snapshot, algorithmic, ai, decision, *, system_id, deadline_at, condition=None):
     saved = []
     for result, kind in ((algorithmic, "rule"), (ai, "ai")):
@@ -109,13 +127,12 @@ def persist_comparison(v, snapshot, algorithmic, ai, decision, *, system_id, dea
 
 
 def forecast_task(v, task_id, revision, forecaster):
-    from ml_service.app.forecast.backend_adapter import predict_condition_for_snapshot
     order = v.task(task_id)
     if order.revision != revision:
         raise HTTPException(409, "REVISION_CONFLICT: обновите данные")
     snapshot, item, entry = task_snapshot(v, order)
     values = calculate(snapshot, item, forecaster)
-    condition = predict_condition_for_snapshot(snapshot)
+    condition_output = condition_evidence_output(snapshot)
     v.session.expire_all()
     order = v.task(task_id, lock=True)
     if order.revision != revision:
@@ -124,6 +141,6 @@ def forecast_task(v, task_id, revision, forecaster):
     if current.content_sha256 != snapshot.content_sha256:
         raise HTTPException(409, "STALE_SNAPSHOT: исходные данные изменились; повторите расчёт")
     ui, _ = persist_comparison(v, snapshot, *values, system_id=order.system_id, deadline_at=entry.regulatory_deadline_at,
-                               condition=json.loads(condition.model_dump_json()))
+                               condition=condition_output)
     v.session.commit()
     return {"run": ui}

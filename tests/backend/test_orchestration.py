@@ -7,6 +7,7 @@ import pytest
 
 from app.orchestrator import compare_forecasts, decide
 from app.orchestrator.forecast import bounded_ai, algorithmic_forecast
+from app.integration.forecasting import condition_evidence_output
 from ml_service.app.forecast.synthetic import compute_snapshot_hash
 from scripts.verify_orchestration import inputs, ai_value, scenarios, verify
 
@@ -100,3 +101,21 @@ def test_worker_capacity_is_bounded_and_recovers_after_timeouts():
     finally: gate.set()
     time.sleep(0.02)
     assert bounded_ai(snapshot,uuid4(),lambda s:ai_value(s)).status=='ok'
+
+
+def test_condition_provider_failure_is_persistable_and_does_not_fake_success(monkeypatch):
+    snapshot, _ = inputs()
+
+    def failed_provider(_):
+        raise RuntimeError("provider unavailable")
+
+    monkeypatch.setattr(
+        "ml_service.app.forecast.backend_adapter.predict_condition_for_snapshot",
+        failed_provider,
+    )
+
+    result = condition_evidence_output(snapshot)
+
+    assert result["status"] == "failed"
+    assert result["error_code"] == "CONDITION_PROVIDER_ERROR"
+    assert "сохран" in result["explanation"]

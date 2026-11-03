@@ -69,6 +69,7 @@ RF загружается при startup backend, CLIP — лениво при �
 ## Связь с backend
 
 `backend/app/integration/forecasting.py` строит снимок из актуальной привязки и принятой истории той же операции/происхождения; клиентские снимки через HTTP не принимаются. JSON сохраняется в `forecast_runs.input_snapshot`. `calendar-rules-v2` вызывает ALG02 независимо от RF; старые `persisted-calendar-v1` сравнения остаются в истории. Condition-adapter вызывается рядом с RF и сохраняет оценку полноты в output snapshot, не выдавая её за обученную дату. Отсутствующий/повреждённый RF не ломает чтение сервера. SQL не допускает выбранную дату после deadline.
+Ошибка condition-adapter сохраняется в том же сравнении как `failed/CONDITION_PROVIDER_ERROR`; она не отменяет bounded AI-результат, решение оркестратора или fallback к регламентной дате. Photo-review передаёт провайдеру явный лимит ожидания, а `failed/unavailable` результат сохраняется в `ai_quality_checks`.
 
 ## Проверки и ограничения
 

@@ -4,7 +4,6 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import hashlib
-import io
 import logging
 import os
 import re
@@ -15,10 +14,10 @@ from uuid import UUID, uuid4
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from PIL import Image
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -29,13 +28,31 @@ from app.integration.projections import Views
 from app.integration.calendar import preview_calendar
 from app.integration.assignment import assignment_context, assignment_preview
 from app.integration.assignments import save_assignment, lock_workers
+from app.integration.maintenance_jobs import _job_payload, create_job, job_history
+from app.maintenance_jobs import InvalidJobTransition, ensure_transition, public_status
 from app.schemas.maintenance import AssignmentCommand, ErrorResponse
+from app.schemas.maintenance_api import (
+    MaintenanceJobCreate,
+    MaintenanceJobHistoryItem,
+    MaintenanceJobResponse,
+    MaintenanceJobTransition,
+)
 from app.schemas.management import CancelTask
 from app.security.authorization import AuthorizationError, require_any_role
 from app.security.sessions import COOKIE, Principal, SQL_ROLES, authenticate, create_session, digest, verify_password
+from app.storage import PhotoValidationError, safe_storage_path, validate_photo
 
 ROOT = Path(__file__).resolve().parents[2]
 logger = logging.getLogger(__name__)
+
+
+def configured_cors_origins(value: str | None = None) -> list[str]:
+    """Return explicit browser origins; credentials must never use a wildcard."""
+    raw = os.environ.get("CORS_ORIGINS", "") if value is None else value
+    origins = [origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip()]
+    if "*" in origins:
+        raise ValueError("CORS_ORIGINS must contain explicit origins, not '*'")
+    return origins
 
 
 class Command(BaseModel):
@@ -134,12 +151,23 @@ def create_app(engine=None):
                 app.state.engine.dispose()
 
     app = FastAPI(title="FixRate AI", version="dev-0.1", lifespan=lifespan)
+    cors_origins = configured_cors_origins()
+    if cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=cors_origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
     @app.middleware('http')
     async def request_identity(request,call_next):
         request.state.request_id=str(uuid4())
         response=await call_next(request)
         response.headers['X-Request-ID']=request.state.request_id
+        logger.info("%s %s -> %s request_id=%s", request.method, request.url.path,
+                    response.status_code, request.state.request_id)
         return response
 
     def error_response(request,status,message,code=None,details=None,headers=None):
@@ -186,8 +214,15 @@ def create_app(engine=None):
 
     @app.exception_handler(SQLAlchemyError)
     async def database_error(request, exc):
-        logger.error("Database operation failed: %s", type(exc).__name__)
+        logger.error("Database operation failed: %s request_id=%s", type(exc).__name__,
+                     getattr(request.state, "request_id", "unknown"))
         return error_response(request,503,'База данных недоступна')
+
+    @app.exception_handler(Exception)
+    async def unexpected_error(request, exc):
+        logger.exception("Unhandled API error request_id=%s",
+                         getattr(request.state, "request_id", "unknown"))
+        return error_response(request, 500, "Внутренняя ошибка сервера", code="INTERNAL_ERROR")
 
     @app.get("/api/health")
     def health(session=Depends(db)):
@@ -198,7 +233,8 @@ def create_app(engine=None):
     def login(payload: Login, response: Response, request: Request, session=Depends(db)):
         # Login is also same-origin; the session is not chosen by a role header.
         origin = request.headers.get("origin")
-        if origin and origin.rstrip("/") != str(request.base_url).rstrip("/"):
+        same_origin = origin and origin.rstrip("/") == str(request.base_url).rstrip("/")
+        if origin and not same_origin and origin.rstrip("/") not in cors_origins:
             raise HTTPException(403, "Недопустимый origin")
         user = session.execute(text("SELECT * FROM users WHERE lower(email)=lower(:email) AND is_active"),
                                {"email": payload.email}).mappings().first()
@@ -241,6 +277,88 @@ def create_app(engine=None):
         response.delete_cookie("fixrate_csrf", path="/")
 
     prefix = "/api/v1/maintenance"
+
+    @app.get("/api/v1/maintenance_jobs", response_model=list[MaintenanceJobResponse])
+    @app.get(prefix + "/jobs", response_model=list[MaintenanceJobResponse])
+    def maintenance_job_list(status: str | None = None, v=Depends(views)):
+        require_role(v.principal, "admin", "dispatcher", "engineer", "executor")
+        if status is not None and status not in {
+            "planned", "assigned", "in_progress", "submitted", "accepted", "rework",
+        }:
+            raise HTTPException(422, "Некорректный статус задания")
+        orders = v.repo.orders(
+            v.principal.site_id,
+            user_id=v.principal.user_id if v.principal.role == "executor" else None,
+        )
+        return [
+            _job_payload(v, order)
+            for order in orders
+            if (status is None or public_status(order.status) == status)
+            and public_status(order.status) != "cancelled"
+        ]
+
+    @app.post("/api/v1/maintenance_jobs", status_code=201, response_model=MaintenanceJobResponse)
+    @app.post(prefix + "/jobs", status_code=201, response_model=MaintenanceJobResponse)
+    def maintenance_job_create(command: MaintenanceJobCreate, v=Depends(views)):
+        require_role(v.principal, "admin", "dispatcher")
+        order = create_job(
+            v,
+            command.schedule_entry_id,
+            command.equipment_id,
+            command.maintenance_rule_id,
+            command.planned_start_at,
+        )
+        return _job_payload(v, order)
+
+    @app.get("/api/v1/maintenance_jobs/{job_id}", response_model=MaintenanceJobResponse)
+    @app.get(prefix + "/jobs/{job_id}", response_model=MaintenanceJobResponse)
+    def maintenance_job_detail(job_id: UUID, v=Depends(views)):
+        require_role(v.principal, "admin", "dispatcher", "engineer", "executor")
+        return _job_payload(v, v.task(job_id))
+
+    @app.post("/api/v1/maintenance_jobs/{job_id}/transitions", response_model=MaintenanceJobResponse)
+    @app.post(prefix + "/jobs/{job_id}/transitions", response_model=MaintenanceJobResponse)
+    @app.patch("/api/v1/maintenance_jobs/{job_id}", response_model=MaintenanceJobResponse)
+    @app.patch(prefix + "/jobs/{job_id}", response_model=MaintenanceJobResponse)
+    def maintenance_job_transition(
+        job_id: UUID, command: MaintenanceJobTransition, v=Depends(views)
+    ):
+        require_role(v.principal, "admin", "dispatcher", "engineer", "executor")
+        order = v.task(job_id, lock=True)
+        check_revision(order, command.expected_revision)
+        _job_payload(v, order)
+        try:
+            ensure_transition(public_status(order.status), command.status)
+        except InvalidJobTransition as exc:
+            raise HTTPException(409, f"INVALID_STATUS_TRANSITION: {exc}") from None
+
+        revision = Revision(expected_revision=command.expected_revision)
+        if command.status == "assigned":
+            raise HTTPException(409, "ASSIGNMENT_REQUIRED: подтвердите состав и интервал через команду назначения")
+        if command.status == "in_progress":
+            start(job_id, revision, v)
+        elif command.status == "submitted":
+            submit(job_id, revision, v)
+        else:
+            require_role(v.principal, "engineer")
+            report = max(v.rows("work_reports", work_order_id=job_id),
+                         key=lambda item: item.revision_no, default=None)
+            if report is None:
+                raise HTTPException(409, "Принимать можно только текущую отправленную попытку")
+            reason = (command.reason or "").strip()
+            if not reason or len(reason) > 10000:
+                raise HTTPException(422, "Укажите причину решения длиной до 10000 символов")
+            review(job_id, Review(expected_revision=command.expected_revision,
+                                  execution_id=report.work_report_id,
+                                  verdict="accepted" if command.status == "accepted" else "rejected",
+                                  reason=reason), v)
+        return _job_payload(v, order)
+
+    @app.get("/api/v1/maintenance_jobs/{job_id}/history", response_model=list[MaintenanceJobHistoryItem])
+    @app.get(prefix + "/jobs/{job_id}/history", response_model=list[MaintenanceJobHistoryItem])
+    def maintenance_job_history(job_id: UUID, v=Depends(views)):
+        require_role(v.principal, "admin", "dispatcher", "engineer", "executor")
+        return job_history(v, job_id)
 
     @app.get(prefix + "/ui/equipment")
     def equipment_list(v=Depends(views)):
@@ -411,8 +529,9 @@ def create_app(engine=None):
         # Source demo photo is read-only and served only through the same access check.
         if photo.storage_key == "database/demo/demo-photo.png":
             return ROOT / "data/demo/demo-photo.png"
-        path = (storage / photo.storage_key).resolve()
-        if not path.is_relative_to(storage):
+        try:
+            path = safe_storage_path(storage, photo.storage_key)
+        except ValueError:
             raise HTTPException(404, "Файл не найден")
         return path
 
@@ -423,23 +542,20 @@ def create_app(engine=None):
         order, report = editable(v, task_id, expected_revision)
         if str(checklist_item_id) not in {i["id"] for i in report.checklist_snapshot} or not view_key.strip() or len(view_key) > 200:
             raise HTTPException(422, "Укажите пункт чек-листа и ракурс")
-        data = file.file.read(10_485_761)
-        if not data or len(data) > 10_485_760:
-            raise HTTPException(422, "Размер фото должен быть от 1 байта до 10 МиБ")
         try:
-            with Image.open(io.BytesIO(data)) as img:
-                if img.width * img.height > 20_000_000 or img.format not in ("JPEG", "PNG", "WEBP"):
-                    raise ValueError()
-                mime = Image.MIME[img.format]
-                img.verify()
-        except Exception:
-            raise HTTPException(422, "Недопустимое изображение") from None
+            data = file.file.read(10_485_761)
+            mime = validate_photo(data, file.filename, file.content_type)
+        except PhotoValidationError as exc:
+            raise HTTPException(422, str(exc)) from None
         links = v.rows("work_order_equipment", work_order_id=task_id)
         if len(links) != 1:
             raise HTTPException(422, "Фото API требует ровно одно оборудование в задании")
         identity = uuid4()
         key = f"{v.principal.site_id}/{identity}"
-        path = storage / key
+        try:
+            path = safe_storage_path(storage, key)
+        except ValueError:
+            raise HTTPException(500, "Некорректное хранилище файлов") from None
         path.parent.mkdir(parents=True, exist_ok=True)
         try:
             path.write_bytes(data)
@@ -522,6 +638,8 @@ def create_app(engine=None):
 
     from app.integration.management import register_routes
     register_routes(app,views,db)
+    from app.integration.maintenance_api import register_routes as register_maintenance_api_routes
+    register_maintenance_api_routes(app, views)
     from app.integration.ml import register_ml_routes
     register_ml_routes(app, views, photo_path, require_role, check_revision)
 

@@ -65,6 +65,11 @@ Frontend не вычисляет нормативные даты или приг
 | GET/POST `/equipment/{id}/service-configurations` | Чтение / создание настраиваемого обслуживания |
 | PUT `/equipment/{id}/service-configurations/{binding_id}` | Новая версия с выбранной даты; действующие задания не переписываются |
 | POST `/tasks/{id}/cancel` | Диспетчер отменяет не начатое задание с причиной, освобождает назначения, сохраняет историю |
+| GET/POST/PATCH/DELETE `/operations[/{id}]` | CRUD операций; создание требует `system_id`, изменение и вывод из эксплуатации проверяют ревизию |
+| GET `/regulations` | Регламенты и редакции из PostgreSQL в пределах текущего объекта |
+| GET `/calendar?year=…&month=…` | Канонический календарь выбранного месяца, даты вычисляет серверный планировщик |
+| GET `/tasks` | Плановые задания текущего объекта с фильтром по статусу |
+| GET `/equipment/{id}/executions` | История выполнений оборудования с пагинацией |
 
 Управление оборудованием, обслуживанием, сменами и бригадами доступно
 администратору/диспетчеру; инженер читает настройки и выполняет приёмку.
@@ -115,14 +120,30 @@ ServiceConfiguration.checklist содержит объекты text/answer_kind/
 | `GET …/ui/quality` | Задания на приёмке или доработке |
 | `POST …/tasks/{id}/start` | `{expected_revision}`; новая попытка из назначенного задания или доработки |
 | `PUT …/tasks/{id}/report` | `{expected_revision,narrative,answers:{item_uuid:value}}`; запись своего черновика |
-| `POST …/tasks/{id}/photos` | Multipart: `expected_revision,checklist_item_id,phase,view_key,file` |
-| `GET …/photos/{id}/content` | Авторизованное чтение файла; короткий путь `…/photos/{id}` также работает |
+| `POST …/tasks/{id}/photos` | Multipart: `expected_revision,checklist_item_id,phase,view_key,file`. JPEG, PNG и WebP до 10 МиБ. Расширение и заявленный MIME должны совпадать с содержимым |
+| `GET …/photos/{id}/content` | Авторизованное чтение файла из закрытого локального хранилища; короткий путь `…/photos/{id}` также работает |
 | `POST …/tasks/{id}/submit` | `{expected_revision}`; проверка чек-листа/пар фото, заморозка |
 | `POST …/tasks/{id}/review` | `expected_revision,execution_id,verdict,reason`, необязательные `reviewed_ai_result_id,additional_evidence_refs` |
 | `POST …/tasks/{id}/forecast` | `{expected_revision}`; построение/сохранение общего снимка и результатов |
 | `POST …/tasks/{id}/photo-review` | `{expected_revision,comparability_confirmed:false}`; ML/CV для текущей submitted-попытки |
 
 Все многоточия в таблице означают `/api/v1/maintenance`. Изменяющие запросы после входа требуют `X-CSRF-Token`. Frontend читает его из отдельной `fixrate_csrf` cookie. Изменения ревизии клиента не принимаются: backend блокирует строку задания и проверяет `expected_revision`, затем увеличивает ревизию сам.
+
+### Ресурс `maintenance_jobs`
+
+`POST /api/v1/maintenance_jobs` (также `/api/v1/maintenance/jobs`) создаёт задание
+из `schedule_entry_id` и связанного `equipment_id`. Backend проверяет объект, систему,
+регламент и `rule_equipment`, поэтому чужое оборудование или регламент не могут быть
+подставлены. Начальный статус — `planned`; повторное создание для той же регламентной
+даты отклоняется.
+
+`GET` списка/задания возвращает статусы `planned/assigned/in_progress/submitted/accepted/rework`.
+`PATCH /api/v1/maintenance_jobs/{id}` или `POST …/{id}/transitions` принимает
+`expected_revision`, `status` и `reason` для решения инженера. Переходы используют
+те же команды старта, сдачи и приёмки, что и основной API. Подтверждение состава
+и интервала выполняется через `POST …/tasks/{id}/assign`. При устаревшей ревизии
+сервер возвращает `409`, включая повтор запроса назначения.
+`GET …/{id}/history` возвращает события из транзакционного `audit_events`.
 
 ### Доступные действия в карточке
 

@@ -8,6 +8,55 @@
 
 ## Установка и запуск
 
+### Docker Compose (чистая машина)
+
+Требуется Docker Desktop с Compose v2. Из корня репозитория:
+
+```powershell
+docker compose up -d db
+docker compose build backend
+docker compose run --rm migrate
+$env:FIXRATE_DEMO_PASSWORD = "Local-demo-password-2026"
+docker compose run --rm seed
+docker compose up -d backend
+Invoke-WebRequest http://127.0.0.1:8000/api/health
+```
+
+`migrate` и `seed` выполняются явно, поэтому запуск API не меняет схему или
+данные. Отдельная команда `build` собирает образ один раз: `migrate`, `seed` и
+`backend` используют один тег `${FIXRATE_IMAGE:-fixrate-ai:local}`. Docker BuildKit
+кэширует Python-пакеты между сборками, а PyTorch устанавливается из официального
+CPU-only индекса без CUDA-зависимостей. Значение `FIXRATE_DEMO_PASSWORD` не
+следует сохранять в `.env` или репозитории. Настройки контейнеров определены
+в [compose.yaml](../../compose.yaml): `POSTGRES_DB`, `POSTGRES_USER`,
+`POSTGRES_PASSWORD`, `BACKEND_PORT`, `FIXRATE_IMAGE`, `COOKIE_SECURE`
+и список разрешённых origin `CORS_ORIGINS`. Для остановки используйте
+`docker compose down`. Добавление `-v` удаляет тома БД и фотографий Compose.
+
+Для production образ следует собрать один раз в CI и отправить в registry, а на
+сервере использовать тот же immutable tag или digest:
+
+```powershell
+$env:FIXRATE_IMAGE = "ghcr.io/your-org/fixrate-ai:2026.11.03"
+docker compose build backend
+docker push $env:FIXRATE_IMAGE
+```
+
+На production-хосте задайте `FIXRATE_IMAGE` в окружении и запускайте Compose без
+локальной сборки. Это переносит долгую установку PyTorch и frontend на CI, а
+сервер получает уже проверенный образ. GPU-образ не смешивается с CPU-профилем:
+если для CLIP понадобится GPU, используйте отдельный Dockerfile/тег и
+проверяйте его отдельно. Для production не выполняйте `seed`: он предназначен
+только для локальных demo-аккаунтов.
+
+```powershell
+$env:FIXRATE_IMAGE = "ghcr.io/your-org/fixrate-ai:2026.11.03"
+docker compose pull backend migrate
+docker compose up -d db
+docker compose run --rm --no-build migrate
+docker compose up -d --no-build backend
+```
+
 Проверено: Windows, Python 3.12, PostgreSQL 16.13, Node 24.14.0. Python-зависимости backend, RF, CLIP и тестов зафиксированы в `requirements.txt` (59 пакетов проверенного профиля). Frontend использует `package-lock.json` и `npm ci`.
 
 PowerShell, из корня проекта:
@@ -75,12 +124,15 @@ Vite исполняет frontend, Python-процесс — backend. `npm run de
 | `DATABASE_URL` | `postgresql+psycopg://…`; обязательно |
 | `PHOTO_STORAGE_ROOT` | Каталог файлов, по умолчанию `var/photos`; не внутри публичной статики |
 | `COOKIE_SECURE` | `false` для loopback HTTP; `true` для HTTPS |
+| `CORS_ORIGINS` | Явный список разрешённых origin через запятую; wildcard не используется с credentials |
 | `HF_HOME` | Необязательный каталог cache моделей |
 | `VITE_DEMO_MODE` | По умолчанию false; true создаёт явно демонстрационную SPA с fixtures, без реальных изменений |
 | `TEST_DATABASE_URL` | Только исходные ORM тесты; пустая база `fixrate_test_*` |
 | `INTEGRATION_DATABASE_URL`, `FIXRATE_TEST_PASSWORD` | Только подготовленный временный HTTP тестовый стенд; задаёт runner |
 
-Docker Compose/nginx/CI в рабочих источниках были проектными решениями, исполняемых конфигураций не было. Они не выдаются за готовый способ развёртывания. Сейчас реализован запуск одного FastAPI процесса со статикой и PostgreSQL. Инфраструктура для публичного доступа, TLS, резервное копирование и эксплуатационный мониторинг требуют отдельной задачи.
+Compose предоставляет воспроизводимый локальный backend и PostgreSQL путь; nginx,
+TLS, резервное копирование и эксплуатационный мониторинг для публичного доступа
+требуют отдельной задачи.
 
 ## Что хранится в var
 
@@ -158,9 +210,20 @@ npm --prefix frontend audit --audit-level=moderate
 
 ## Границы поставки
 
-Готовых конфигураций Docker Compose, nginx и CI для всего приложения в текущем дереве нет. Проектный ориентир 4 CPU / 8 ГБ RAM не является измеренным ресурсным бюджетом. GPU не обязателен архитектурно. Перед внешней эксплуатацией нужны замеры на целевом стенде, резервирование БД/фото/моделей и проверка восстановления, мониторинг, ограничения запросов и политика регистрации. Миграции применяются отдельно; `create_all()` не используется.
+Compose покрывает локальный backend, PostgreSQL, volumes и healthcheck. Полная
+публичная эксплуатация с nginx и CI сюда не входит. Проектный ориентир 4 CPU /
+8 ГБ RAM не является измеренным ресурсным бюджетом. GPU не обязателен
+архитектурно. Перед внешней эксплуатацией нужны замеры на целевом стенде,
+резервирование БД/фото/моделей и проверка восстановления, мониторинг,
+ограничения запросов и политика регистрации. Миграции применяются отдельно;
+`create_all()` не используется.
 
-Для будущего развёртывания сохранена последовательность: готовность PostgreSQL → отдельное применение миграций с остановкой при ошибке → запуск backend → проверка `/api/health` → SPA/proxy с корректным Host/origin. БД, фото и модели требуют постоянного хранения и совместимого восстановления. Сейчас health проверяет `SELECT 1`, а не качество или готовность AI; Compose volumes/healthchecks остаются проектом, не существующей конфигурацией. Прогрев CLIP при startup не реализован, см. [ML/CV](ml.md).
+Последовательность развёртывания: готовность PostgreSQL → отдельное применение
+миграций с остановкой при ошибке → seed при необходимости → запуск backend →
+проверка `/api/health` → SPA/proxy с корректным Host/origin. БД, фото и модели
+требуют постоянного хранения и совместимого восстановления. Сейчас health
+проверяет `SELECT 1`, а не качество или готовность AI. Прогрев CLIP при startup
+не реализован, см. [ML/CV](ml.md).
 
 ## Связи
 
