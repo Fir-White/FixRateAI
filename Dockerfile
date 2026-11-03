@@ -9,6 +9,7 @@ RUN npm ci
 
 COPY frontend ./
 COPY tests/web /tests/web
+COPY tests/fixtures/web /tests/fixtures/web
 RUN npm run build
 
 FROM python:3.12-slim

@@ -1,25 +1,12 @@
 """Application service for the maintenance_jobs resource."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from uuid import UUID
 
 from fastapi import HTTPException
 
-from app.maintenance_jobs import (
-    InvalidJobTransition,
-    ensure_transition,
-    internal_status,
-    public_status,
-)
-
-
-def _active_assignments(v, job_id: UUID):
-    return [
-        row
-        for row in v.rows("work_assignments", work_order_id=job_id)
-        if row.status not in ("cancelled", "declined")
-    ]
+from app.maintenance_jobs import public_status
 
 
 def _job_payload(v, order):
@@ -92,53 +79,6 @@ def create_job(v, schedule_entry_id: UUID, equipment_id: UUID, maintenance_rule_
     return order
 
 
-def transition_job(v, job_id: UUID, target: str, expected_revision: int, reason: str | None):
-    order = v.task(job_id, lock=True)
-    if order.revision != expected_revision:
-        raise HTTPException(409, "REVISION_CONFLICT: обновите задание")
-    current = public_status(order.status)
-    try:
-        ensure_transition(current, target)
-    except InvalidJobTransition as exc:
-        raise HTTPException(409, f"INVALID_STATUS_TRANSITION: {exc}") from None
-
-    active = _active_assignments(v, job_id)
-    if target == "assigned" and not active:
-        raise HTTPException(409, "ASSIGNMENT_REQUIRED: сначала назначьте исполнителя")
-    if target in ("in_progress", "submitted") and not any(
-        row.user_id == v.principal.user_id for row in active
-    ):
-        raise HTTPException(403, "Задание доступно только назначенному исполнителю")
-    if target in ("accepted", "rework") and v.principal.role != "engineer":
-        raise HTTPException(403, "Приёмка доступна инженеру")
-
-    before = {"status": current, "revision": order.revision}
-    order.status = internal_status(target)
-    now = datetime.now(timezone.utc)
-    if target == "in_progress" and order.started_at is None:
-        order.started_at = now
-    if target == "accepted":
-        order.completed_at = now
-    order.revision += 1
-    v.session.flush()
-    v.repo.add(
-        "audit_events",
-        site_id=v.principal.site_id,
-        actor_type="user",
-        actor_user_id=v.principal.user_id,
-        entity_type="maintenance_jobs",
-        entity_id=job_id,
-        action="status_changed",
-        before_snapshot=before,
-        after_snapshot={
-            "status": target,
-            "revision": order.revision,
-            "reason": reason,
-        },
-    )
-    return order
-
-
 def job_history(v, job_id: UUID):
     v.task(job_id)
     events = v.rows("audit_events", entity_id=job_id)
@@ -146,11 +86,12 @@ def job_history(v, job_id: UUID):
     for event in sorted(events, key=lambda item: item.occurred_at):
         before = event.before_snapshot or {}
         after = event.after_snapshot or {}
+        from_status, to_status = before.get("status"), after.get("status")
         result.append(
             {
                 "event_id": event.audit_event_id,
-                "from_status": before.get("status"),
-                "to_status": after.get("status"),
+                "from_status": public_status(from_status) if from_status else None,
+                "to_status": public_status(to_status) if to_status else None,
                 "action": event.action,
                 "reason": after.get("reason"),
                 "changed_at": event.occurred_at,

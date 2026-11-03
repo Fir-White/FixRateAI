@@ -1,6 +1,6 @@
 {
   "base": "d94f528df8c0e0f69c344ebd8c79a99bfbe5c1f2",
-  "captured_at": "2026-11-01",
+  "captured_at": "2026-11-02",
   "sources": [
     {
       "branch": "main",
@@ -73,8 +73,8 @@
     },
     {
       "branch": "feature/frontend-kran",
-      "sha": "29484582c649ecd94771204466be39fc14b13f16",
-      "reviewed_sha": "29484582c649ecd94771204466be39fc14b13f16",
+      "sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+      "reviewed_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
       "status": "integrated",
       "document": "docs/service/development.md",
       "comparison_base": "720a8dd9c3d4e4e8051485e8f438a8b40c3cb631",
@@ -93,19 +93,26 @@
         "Source deletion and ignore rule for AGENTS.md: current tracked dev instructions retained",
         "Ignore rules for docs/ui/design-brief.md and docs/ui/login-refinement-plan.md: canonical documentation remains visible",
         "Historical docs/database/orm_ddl_validation.md and tl03_target.md: already accounted kran_dev material kept in canonical service documents",
-        "Nonfunctional new_file placeholder (a)"
+        "Nonfunctional new_file placeholder (a)",
+        "Unused favicon.svg and inactive assets/favicons export: active favicons-visible set retained.",
+        "Source-only unreferenced login screenshots: current documentation illustrations retained.",
+        "Older source layout and documentation housekeeping: current dev resource paths, root env, centralized tests, ignore rules and canonical documents retained."
       ],
       "adaptations": [
-        "frontend/e2e/settings.spec.ts: registration link locator updated to the new visible label; source frontend implementation preserved"
+        "UI and browser tests moved to tests/web; imports adapted to project alias; desktop path fixture placed in tests/fixtures/web.",
+        "Source web description consolidated into docs/service/web.md and web-motion.md; mobile Canvas ADR indexed; current dev layout, runtime, dependencies and contract documentation preserved."
       ],
       "pending_paths": [],
-      "verification": "reports/verification/archive/2026-11-01-frontend-kran/results.json",
+      "verification": "reports/verification/verify-20261102-194510-64feb8bc/results.json",
       "validation_limits": [
-        "New login E2E use mocked API; real sessions/RBAC and application workflows are checked by existing browser scenarios",
-        "No new customer ML accuracy or real CLIP inference claim; separate model profile not repeated",
-        "Behavior and artifacts accounted without merging source Git history or restoring obsolete documentation"
+        "Auth browser scenarios use mocked API; sessions/RBAC, registration and application workflows are checked by existing real-backend browser scenarios.",
+        "Viewport/touch/reduced-motion are Chrome emulation; physical mobile keyboards and device GPU performance are not measured.",
+        "Changes integrated as adapted files without merging source Git history."
       ],
-      "fully_accounted_source_sha": "29484582c649ecd94771204466be39fc14b13f16"
+      "fully_accounted_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+      "previous_accounted_sha": "29484582c649ecd94771204466be39fc14b13f16",
+      "incremental_comparison_base": "29484582c649ecd94771204466be39fc14b13f16",
+      "integration_date": "2026-11-02"
     },
     {
       "branch": "archive/legacy-ai-estimator",

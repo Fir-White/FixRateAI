@@ -16,15 +16,15 @@ def image_bytes(format_name: str) -> bytes:
 @pytest.mark.parametrize(
     ("filename", "content_type", "format_name"),
     [("photo.jpg", "image/jpeg", "JPEG"), ("photo.jpeg", "image/jpeg", "JPEG"),
-     ("photo.PNG", "image/png", "PNG")],
+     ("photo.PNG", "image/png", "PNG"), ("photo.webp", "image/webp", "WEBP")],
 )
-def test_validate_photo_accepts_jpeg_and_png(filename, content_type, format_name):
+def test_validate_photo_accepts_supported_formats(filename, content_type, format_name):
     assert validate_photo(image_bytes(format_name), filename, content_type) == content_type
 
 
 @pytest.mark.parametrize(
     ("filename", "content_type", "format_name"),
-    [("photo.webp", "image/webp", "WEBP"), ("photo.jpg", "image/png", "JPEG"),
+    [("photo.webp", "image/webp", "PNG"), ("photo.jpg", "image/png", "JPEG"),
      ("photo.png", "image/png", "JPEG"), ("photo.txt", "image/jpeg", "JPEG")],
 )
 def test_validate_photo_rejects_wrong_type_or_extension(filename, content_type, format_name):

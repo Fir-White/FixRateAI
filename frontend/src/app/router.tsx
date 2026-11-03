@@ -3,6 +3,7 @@ import { RequireRole, RequireSession } from "@/app/guards";
 import { AppShell } from "@/layouts/AppShell";
 import { ExecutorLayout } from "@/layouts/ExecutorLayout";
 import { LoginPage } from "@/pages/LoginPage";
+import { AuthLayout } from "@/pages/AuthLayout";
 import { HomeRedirect } from "@/pages/HomeRedirect";
 import { DispatcherPage } from "@/pages/DispatcherPage";
 import { EquipmentPage } from "@/pages/EquipmentPage";
@@ -26,8 +27,10 @@ import { SECTION_ROLES } from "@/shared/lib/roles";
 export function AppRouter() {
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegistrationPage />} />
+      <Route element={<AuthLayout />}>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegistrationPage />} />
+      </Route>
 
       <Route element={<RequireSession />}>
         <Route path="/" element={<HomeRedirect />} />

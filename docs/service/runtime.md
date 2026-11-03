@@ -27,9 +27,11 @@ Invoke-WebRequest http://127.0.0.1:8000/api/health
 `backend` используют один тег `${FIXRATE_IMAGE:-fixrate-ai:local}`. Docker BuildKit
 кэширует Python-пакеты между сборками, а PyTorch устанавливается из официального
 CPU-only индекса без CUDA-зависимостей. Значение `FIXRATE_DEMO_PASSWORD` не
-следует сохранять в `.env` или репозитории. Полный перечень Compose-параметров и
-остановка стенда описаны в
-[`backend/README.md`](../../backend/README.md).
+следует сохранять в `.env` или репозитории. Настройки контейнеров определены
+в [compose.yaml](../../compose.yaml): `POSTGRES_DB`, `POSTGRES_USER`,
+`POSTGRES_PASSWORD`, `BACKEND_PORT`, `FIXRATE_IMAGE`, `COOKIE_SECURE`
+и список разрешённых origin `CORS_ORIGINS`. Для остановки используйте
+`docker compose down`. Добавление `-v` удаляет тома БД и фотографий Compose.
 
 Для production образ следует собрать один раз в CI и отправить в registry, а на
 сервере использовать тот же immutable tag или digest:
@@ -95,7 +97,25 @@ Linux/macOS: `python3.12 -m venv .venv`, `.venv/bin/python` вместо Windows
 
 Приложение: `http://127.0.0.1:8000`, OpenAPI: `/docs`, готовность: `/api/health`. Сначала примените миграции и соберите frontend, потом запускайте backend. Импорт модуля не соединяется с БД; lifespan откажет с понятной ошибкой, если схема не готова.
 
-Для горячей разработки запускайте backend так же, а во второй консоли `npm --prefix frontend run dev`. Vite слушает 5173 и проксирует `/api` на 8000, сохраняя Host для same-origin проверки. Остановка: Ctrl+C в обеих консолях; PostgreSQL управляется его штатным сервисом. Локальный скрипт проверки останавливает только созданные им процессы.
+### Режим разработки
+
+Открывайте **http://127.0.0.1:5173**. Vite показывает текущие исходники интерфейса и автоматически подхватывает их изменения. Запросы `/api` он передаёт FastAPI на 8000 через [proxy](../../frontend/vite.config.ts), сохраняя Host для same-origin проверки. Оба адреса используют один backend, корневой .env и одну БД; функциональность и права доступа одинаковы.
+
+После установки зависимостей и подготовки БД запустите в первой консоли backend с автоматическим перезапуском при изменении Python:
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --app-dir backend --env-file .env --host 127.0.0.1 --port 8000 --reload --reload-dir backend --reload-dir ml_service
+```
+
+Во второй консоли, также из корня проекта:
+
+```powershell
+npm --prefix frontend run dev -- --host 127.0.0.1
+```
+
+Vite исполняет frontend, Python-процесс — backend. `npm run dev` сейчас запускает только Vite; общей команды запуска двух процессов в проекте пока нет. На 8000 доступен также интерфейс из `frontend/dist`: он обновляется после `npm --prefix frontend run build`. При разработке интерфейса пересборка dist не нужна.
+
+Остановка: Ctrl+C в обеих консолях; PostgreSQL управляется отдельно. Локальный скрипт проверки останавливает только созданные им процессы.
 
 Переменные:
 

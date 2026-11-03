@@ -1,5 +1,12 @@
 export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
 
+export class ApiError extends Error {
+  constructor(public readonly status: number, message: string, public readonly details?: unknown, public readonly code?: string) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 export async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   if (options.body && !(options.body instanceof FormData)) headers.set("Content-Type", "application/json");
@@ -8,7 +15,7 @@ export async function request<T>(url: string, options: RequestInit = {}): Promis
   const response = await fetch(url, {...options, headers, credentials: "same-origin"});
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
-    throw new Error(typeof payload?.detail === "string" ? payload.detail : `Ошибка API (${response.status})`);
+    throw new ApiError(response.status, typeof payload?.detail === "string" ? payload.detail : `Ошибка API (${response.status})`, payload?.error?.details ?? payload?.detail, payload?.error?.code);
   }
   return response.status === 204 ? undefined as T : response.json() as Promise<T>;
 }

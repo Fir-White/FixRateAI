@@ -312,6 +312,7 @@ def image_bytes(seed):
 def test_execution_photo_rework_acceptance_preserves_attempts(runtime):
     engine, app = runtime
     executor, engineer = login(app, "executor"), login(app, "engineer")
+    transitions = f"/api/v1/maintenance_jobs/{TASK}/transitions"
     task = executor.get(PREFIX+f"/ui/tasks/{TASK}").json()["task"]
     assert executor.get(PREFIX+f"/ui/tasks/{TASK}").json()["allowedActions"] == ["start"]
     assert executor.post(PREFIX+f"/tasks/{TASK}/start", json={"expected_revision": task["revision"]},
@@ -328,6 +329,7 @@ def test_execution_photo_rework_acceptance_preserves_attempts(runtime):
         report = bundle["execution"]
         assert report["attemptNumber"] == attempt
         assert executor.post(PREFIX+f"/tasks/{TASK}/submit", json={"expected_revision": revision}).status_code == 422
+        assert executor.post(transitions, json={"expected_revision": revision, "status": "submitted"}).status_code == 422
         item_id = report["checklist"][0]["id"]
         response = executor.put(PREFIX+f"/tasks/{TASK}/report", json={"expected_revision": revision,
             "narrative": f"Attempt {attempt}", "answers": {item_id: "done"}})
@@ -349,9 +351,10 @@ def test_execution_photo_rework_acceptance_preserves_attempts(runtime):
             stored = executor.get(photo["url"])
             assert stored.status_code == 200 and stored.content == blob
             assert stored.headers["cache-control"] == "private, no-store"
-        response = executor.post(PREFIX+f"/tasks/{TASK}/submit", json={"expected_revision": bundle["task"]["revision"]})
+        response = executor.post(transitions, json={"expected_revision": bundle["task"]["revision"], "status": "submitted"})
         assert response.status_code == 200, response.text
-        bundle = response.json()
+        assert response.json()["status"] == "submitted"
+        bundle = executor.get(PREFIX+f"/ui/tasks/{TASK}").json()
         assert bundle["task"]["state"] == "submitted"
         assert executor.put(PREFIX+f"/tasks/{TASK}/report", json={"expected_revision": bundle["task"]["revision"], "narrative": "tampered", "answers": {}}).status_code == 409
         if attempt == 1:
@@ -370,19 +373,22 @@ def test_execution_photo_rework_acceptance_preserves_attempts(runtime):
         try:
             assert "review" not in executor.get(PREFIX+f"/ui/tasks/{TASK}").json()["allowedActions"]
             assert executor.post(PREFIX+f"/tasks/{TASK}/review", json=review).status_code == 403
+            assert executor.post(transitions, json={"expected_revision": review["expected_revision"],
+                "status": "accepted", "reason": review["reason"]}).status_code == 403
         finally:
             with engine.begin() as conn:
                 conn.execute(text("UPDATE site_memberships SET role='technician' WHERE user_id=:id"), {"id": demo_id("user-1")})
-        response = engineer.post(PREFIX+f"/tasks/{TASK}/review", json=review)
+        response = engineer.post(transitions, json={"expected_revision": review["expected_revision"],
+            "status": "rework" if attempt == 1 else "accepted", "reason": review["reason"]})
         assert response.status_code == 200, response.text
-        bundle = response.json()
+        bundle = engineer.get(PREFIX+f"/ui/tasks/{TASK}").json()
         if attempt == 1:
             assert bundle["task"]["state"] == "rework_required"
             assert "review" not in bundle["allowedActions"]
             assert executor.get(PREFIX+f"/ui/tasks/{TASK}").json()["allowedActions"] == ["start"]
-            response = executor.post(PREFIX+f"/tasks/{TASK}/start", json={"expected_revision": bundle["task"]["revision"]})
+            response = executor.post(transitions, json={"expected_revision": bundle["task"]["revision"], "status": "in_progress"})
             assert response.status_code == 200, response.text
-            bundle = response.json()
+            bundle = executor.get(PREFIX+f"/ui/tasks/{TASK}").json()
             assert bundle["execution"]["id"] != first_report
     assert bundle["task"]["state"] == "accepted"
     assert bundle["allowedActions"] == ["forecast"]

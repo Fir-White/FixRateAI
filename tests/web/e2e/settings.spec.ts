@@ -30,6 +30,7 @@ test("web registration → role → shift/qualification/crew → equipment/servi
   await page.getByLabel("Имя и фамилия",{exact:true}).fill(workerName);
   await page.getByLabel("Email",{exact:true}).fill(workerEmail);
   await page.getByLabel("Пароль",{exact:true}).fill(password);
+  await page.getByLabel("Подтвердите пароль",{exact:true}).fill(password);
   await page.getByLabel("Код компании",{exact:true}).fill(code);
   await page.getByRole("button",{name:"Зарегистрироваться",exact:true}).click();
   await expect(page.getByText(/Учётная запись создана/)).toBeVisible();

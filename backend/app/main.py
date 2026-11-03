@@ -28,7 +28,8 @@ from app.integration.projections import Views
 from app.integration.calendar import preview_calendar
 from app.integration.assignment import assignment_context, assignment_preview
 from app.integration.assignments import save_assignment, lock_workers
-from app.integration.maintenance_jobs import _job_payload, create_job, job_history, transition_job
+from app.integration.maintenance_jobs import _job_payload, create_job, job_history
+from app.maintenance_jobs import InvalidJobTransition, ensure_transition, public_status
 from app.schemas.maintenance import AssignmentCommand, ErrorResponse
 from app.schemas.maintenance_api import (
     MaintenanceJobCreate,
@@ -280,8 +281,6 @@ def create_app(engine=None):
     @app.get("/api/v1/maintenance_jobs", response_model=list[MaintenanceJobResponse])
     @app.get(prefix + "/jobs", response_model=list[MaintenanceJobResponse])
     def maintenance_job_list(status: str | None = None, v=Depends(views)):
-        from app.maintenance_jobs import public_status
-
         require_role(v.principal, "admin", "dispatcher", "engineer", "executor")
         if status is not None and status not in {
             "planned", "assigned", "in_progress", "submitted", "accepted", "rework",
@@ -325,9 +324,34 @@ def create_app(engine=None):
         job_id: UUID, command: MaintenanceJobTransition, v=Depends(views)
     ):
         require_role(v.principal, "admin", "dispatcher", "engineer", "executor")
-        order = transition_job(
-            v, job_id, command.status, command.expected_revision, command.reason
-        )
+        order = v.task(job_id, lock=True)
+        check_revision(order, command.expected_revision)
+        _job_payload(v, order)
+        try:
+            ensure_transition(public_status(order.status), command.status)
+        except InvalidJobTransition as exc:
+            raise HTTPException(409, f"INVALID_STATUS_TRANSITION: {exc}") from None
+
+        revision = Revision(expected_revision=command.expected_revision)
+        if command.status == "assigned":
+            raise HTTPException(409, "ASSIGNMENT_REQUIRED: подтвердите состав и интервал через команду назначения")
+        if command.status == "in_progress":
+            start(job_id, revision, v)
+        elif command.status == "submitted":
+            submit(job_id, revision, v)
+        else:
+            require_role(v.principal, "engineer")
+            report = max(v.rows("work_reports", work_order_id=job_id),
+                         key=lambda item: item.revision_no, default=None)
+            if report is None:
+                raise HTTPException(409, "Принимать можно только текущую отправленную попытку")
+            reason = (command.reason or "").strip()
+            if not reason or len(reason) > 10000:
+                raise HTTPException(422, "Укажите причину решения длиной до 10000 символов")
+            review(job_id, Review(expected_revision=command.expected_revision,
+                                  execution_id=report.work_report_id,
+                                  verdict="accepted" if command.status == "accepted" else "rejected",
+                                  reason=reason), v)
         return _job_payload(v, order)
 
     @app.get("/api/v1/maintenance_jobs/{job_id}/history", response_model=list[MaintenanceJobHistoryItem])

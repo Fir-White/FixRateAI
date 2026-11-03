@@ -1,5 +1,8 @@
 .git
 .gitignore
+**/.env
+**/.env.*
+!.env.example
 .venv
 __pycache__
 *.py[cod]
@@ -12,6 +15,9 @@ reports
 tests/*
 !tests/web
 !tests/web/**
+!tests/fixtures
+!tests/fixtures/web
+!tests/fixtures/web/**
 docs
 contracts
 database/schema

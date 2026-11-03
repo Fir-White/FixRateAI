@@ -120,7 +120,7 @@ ServiceConfiguration.checklist содержит объекты text/answer_kind/
 | `GET …/ui/quality` | Задания на приёмке или доработке |
 | `POST …/tasks/{id}/start` | `{expected_revision}`; новая попытка из назначенного задания или доработки |
 | `PUT …/tasks/{id}/report` | `{expected_revision,narrative,answers:{item_uuid:value}}`; запись своего черновика |
-| `POST …/tasks/{id}/photos` | Multipart: `expected_revision,checklist_item_id,phase,view_key,file`; только JPEG/PNG, расширение и MIME должны совпадать, размер до 10 МиБ |
+| `POST …/tasks/{id}/photos` | Multipart: `expected_revision,checklist_item_id,phase,view_key,file`. JPEG, PNG и WebP до 10 МиБ. Расширение и заявленный MIME должны совпадать с содержимым |
 | `GET …/photos/{id}/content` | Авторизованное чтение файла из закрытого локального хранилища; короткий путь `…/photos/{id}` также работает |
 | `POST …/tasks/{id}/submit` | `{expected_revision}`; проверка чек-листа/пар фото, заморозка |
 | `POST …/tasks/{id}/review` | `expected_revision,execution_id,verdict,reason`, необязательные `reviewed_ai_result_id,additional_evidence_refs` |
@@ -139,10 +139,11 @@ ServiceConfiguration.checklist содержит объекты text/answer_kind/
 
 `GET` списка/задания возвращает статусы `planned/assigned/in_progress/submitted/accepted/rework`.
 `PATCH /api/v1/maintenance_jobs/{id}` или `POST …/{id}/transitions` принимает
-`expected_revision`, `status` и необязательный `reason`. Разрешены только переходы
-`planned→assigned→in_progress→submitted→accepted|rework→in_progress`; принятую
-заявку закрыть повторно нельзя. `GET …/{id}/history` возвращает изменения из
-транзакционного `audit_events`.
+`expected_revision`, `status` и `reason` для решения инженера. Переходы используют
+те же команды старта, сдачи и приёмки, что и основной API. Подтверждение состава
+и интервала выполняется через `POST …/tasks/{id}/assign`. При устаревшей ревизии
+сервер возвращает `409`, включая повтор запроса назначения.
+`GET …/{id}/history` возвращает события из транзакционного `audit_events`.
 
 ### Доступные действия в карточке
 

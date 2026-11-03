@@ -1,42 +1,100 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
+import { createAuroraRenderer } from "./canvasRenderer";
+import { MOBILE_FLOW_SPEED, type AuroraProfile } from "./ribbonGeometry";
 
-/** Pause CSS timelines without replacing animations or resetting their current time. */
+const LIGHT_INTERVAL = 1 / 30;
+const PARTICLE_INTERVAL = 1 / 60;
+
+/** One lifecycle-managed clock; bounded SVG geometry updates and existing particles. */
 export function useAuroraMotion(sceneRef: RefObject<HTMLDivElement | null>, animationEnabled: boolean, onReducedMotionChange?: (reduced: boolean) => void) {
   const enabled = useRef(animationEnabled);
   const synchronize = useRef<(() => void) | null>(null);
-
-  useEffect(() => {
+  const elapsed = useRef(0);
+  const phase = useRef(0);
+  useLayoutEffect(() => {
     const scene = sceneRef.current;
     if (!scene || typeof window.matchMedia !== "function") return;
+    const renderer = createAuroraRenderer(scene);
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const mouse = window.matchMedia("(hover: hover) and (pointer: fine)");
     const desktop = window.matchMedia("(min-width: 821px)");
+    const compactLandscape = window.matchMedia("(max-width: 1000px) and (max-height: 500px)");
     let intersecting = true;
+    let frame: number | null = null;
+    let previousTime: number | null = null;
+    let lastLightUpdate = elapsed.current;
+    let lastParticleUpdate = elapsed.current;
+    let displayedParticleTime = phase.current;
+    let displayedLightTime = phase.current;
+    let profile: AuroraProfile = !desktop.matches || compactLandscape.matches ? "mobile" : "desktop";
+    const running = () => !!renderer && !reduced.matches && enabled.current && !document.hidden && intersecting;
+    const renderFrame = (seconds: number, lights: boolean) => profile === "mobile"
+      ? renderer?.render(seconds, lights, profile)
+      : renderer?.render(seconds, lights);
+    const resize = (width: number, height: number) => {
+      renderer?.resize(width, height, window.devicePixelRatio || 1);
+      // Repaint the displayed phase rather than the newer clock value, so a
+      // deferred resize cannot advance particles while paused or reduced.
+      renderFrame(displayedParticleTime, false);
+    };
+    const measure = () => { const bounds = scene.getBoundingClientRect(); resize(bounds.width, bounds.height); };
+    const animate = (time: number) => {
+      frame = null;
+      if (!running()) { sync(); return; }
+      const delta = previousTime === null ? 0 : Math.min(Math.max((time - previousTime) / 1000, 0), 0.064);
+      previousTime = time;
+      elapsed.current += delta;
+      phase.current += delta * (profile === "mobile" ? MOBILE_FLOW_SPEED : 1);
+      const lightUpdate = elapsed.current - lastLightUpdate >= LIGHT_INTERVAL - 1e-9;
+      if (lightUpdate) lastLightUpdate += Math.floor((elapsed.current - lastLightUpdate + 1e-9) / LIGHT_INTERVAL) * LIGHT_INTERVAL;
+      const particleUpdate = elapsed.current - lastParticleUpdate >= PARTICLE_INTERVAL - 1e-9;
+      if (particleUpdate) lastParticleUpdate += Math.floor((elapsed.current - lastParticleUpdate + 1e-9) / PARTICLE_INTERVAL) * PARTICLE_INTERVAL;
+      if (lightUpdate || (profile === "desktop" && particleUpdate)) {
+        renderFrame(phase.current, lightUpdate);
+        displayedParticleTime = phase.current;
+        if (lightUpdate) displayedLightTime = phase.current;
+      }
+      frame = requestAnimationFrame(animate);
+    };
     const sync = () => {
-      const eligible = !reduced.matches && mouse.matches && desktop.matches;
+      const nextProfile = !desktop.matches || compactLandscape.matches ? "mobile" : "desktop";
+      if (nextProfile !== profile) {
+        profile = nextProfile;
+        renderFrame(displayedLightTime, true);
+      }
+      scene.dataset.profile = profile;
       onReducedMotionChange?.(reduced.matches);
-      scene.dataset.motion = eligible && enabled.current && !document.hidden && intersecting ? "running" : "paused";
+      scene.dataset.motion = running() ? "running" : "paused";
+      if (running()) {
+        if (frame === null) { previousTime = null; frame = requestAnimationFrame(animate); }
+      } else {
+        if (frame !== null) cancelAnimationFrame(frame);
+        frame = null;
+        previousTime = null;
+      }
     };
     synchronize.current = sync;
-    const observer = typeof IntersectionObserver === "function" ? new IntersectionObserver(([entry]) => {
-      intersecting = entry.isIntersecting;
-      sync();
+    const visibility = typeof IntersectionObserver === "function" ? new IntersectionObserver(([entry]) => {
+      intersecting = entry.isIntersecting; sync();
     }) : null;
-    observer?.observe(scene);
+    const sizing = typeof ResizeObserver === "function" ? new ResizeObserver(([entry]) => resize(entry.contentRect.width, entry.contentRect.height)) : null;
+    measure();
+    if (profile === "mobile") renderFrame(displayedLightTime, true);
+    sizing?.observe(scene);
+    visibility?.observe(scene);
+    window.addEventListener("resize", measure, { passive: true });
     document.addEventListener("visibilitychange", sync);
-    for (const media of [reduced, mouse, desktop]) media.addEventListener("change", sync);
+    for (const media of [reduced, desktop, compactLandscape]) media.addEventListener("change", sync);
     sync();
     return () => {
       synchronize.current = null;
+      if (frame !== null) cancelAnimationFrame(frame);
       scene.dataset.motion = "paused";
-      observer?.disconnect();
+      sizing?.disconnect(); visibility?.disconnect();
+      window.removeEventListener("resize", measure);
       document.removeEventListener("visibilitychange", sync);
-      for (const media of [reduced, mouse, desktop]) media.removeEventListener("change", sync);
+      for (const media of [reduced, desktop, compactLandscape]) media.removeEventListener("change", sync);
+      renderer?.destroy();
     };
   }, [sceneRef, onReducedMotionChange]);
-
-  useEffect(() => {
-    enabled.current = animationEnabled;
-    synchronize.current?.();
-  }, [animationEnabled]);
+  useEffect(() => { enabled.current = animationEnabled; synchronize.current?.(); }, [animationEnabled]);
 }

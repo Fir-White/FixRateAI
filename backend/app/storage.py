@@ -14,11 +14,12 @@ PHOTO_TYPES = {
     ".jpg": ("image/jpeg", "JPEG"),
     ".jpeg": ("image/jpeg", "JPEG"),
     ".png": ("image/png", "PNG"),
+    ".webp": ("image/webp", "WEBP"),
 }
 
 
 class PhotoValidationError(ValueError):
-    """Raised when an uploaded photo is not an allowed JPEG or PNG."""
+    """Raised when an uploaded photo does not meet the storage requirements."""
 
 
 def validate_photo(data: bytes, filename: str | None, content_type: str | None) -> str:
@@ -30,7 +31,7 @@ def validate_photo(data: bytes, filename: str | None, content_type: str | None) 
 
     media = PHOTO_TYPES.get(Path(filename).suffix.lower())
     if media is None or content_type != media[0]:
-        raise PhotoValidationError("Разрешены только JPEG и PNG с корректным MIME-типом")
+        raise PhotoValidationError("Разрешены JPEG, PNG и WebP с корректным MIME-типом")
 
     try:
         with Image.open(io.BytesIO(data)) as image:

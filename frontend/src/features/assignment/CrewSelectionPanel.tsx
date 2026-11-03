@@ -1,3 +1,4 @@
+import { FieldCaption } from "@/shared/ui/Form";
 import { useEffect, useRef, useState } from "react";
 import { maintenanceApi } from "@/shared/api/maintenance";
 import type { TaskBundle } from "@/shared/api/maintenance";
@@ -73,17 +74,17 @@ function Picker({context, saving, setSaving, onAssigned, onSaveError, onSearch}:
         <p className="text-xs text-muted">Допустимо: {showTime(context.earliestAt)} — {showTime(context.deadlineAt)}. Исходная норма: {context.rawNormValue ?? "не задана"}; длительность подтверждена отдельно.</p>
         {context.dataOrigin === "synthetic_demo" && <p className="text-xs text-amber-200">DEMO: синтетические условия работы и исполнители.</p>}
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="space-y-1 text-sm">Начало окна поиска
-            <input aria-label="Начало окна поиска" type="datetime-local" required disabled={saving} value={start} onChange={event => {invalidate(); setStart(event.target.value);}}
+          <label className="space-y-1 text-sm"><FieldCaption>Начало окна поиска
+            </FieldCaption><input aria-label="Начало окна поиска" type="datetime-local" required disabled={saving} value={start} onChange={event => {invalidate(); setStart(event.target.value);}}
               className="w-full rounded-lg border border-line bg-canvas p-3 text-ink" />
           </label>
-          <label className="space-y-1 text-sm">Конец окна поиска
-            <input aria-label="Конец окна поиска" type="datetime-local" required disabled={saving} value={end} onChange={event => {invalidate(); setEnd(event.target.value);}}
+          <label className="space-y-1 text-sm"><FieldCaption>Конец окна поиска
+            </FieldCaption><input aria-label="Конец окна поиска" type="datetime-local" required disabled={saving} value={end} onChange={event => {invalidate(); setEnd(event.target.value);}}
               className="w-full rounded-lg border border-line bg-canvas p-3 text-ink" />
           </label>
         </div>
-        <label className="block space-y-1 text-sm">Состав
-          <select aria-label="Состав" disabled={saving} value={crew} onChange={event => {invalidate(); setCrew(event.target.value);}}
+        <label className="block space-y-1 text-sm"><FieldCaption>Состав
+          </FieldCaption><select aria-label="Состав" disabled={saving} value={crew} onChange={event => {invalidate(); setCrew(event.target.value);}}
             className="w-full rounded-lg border border-line bg-canvas p-3 text-ink">
             <option value="">Автоматический подбор работников</option>
             <option value="@individual">Работники без постоянной бригады</option>

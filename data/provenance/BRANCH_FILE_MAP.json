@@ -1293,7 +1293,7 @@
   },
   {
     "branch": "feature/frontend-kran",
-    "source_sha": "29484582c649ecd94771204466be39fc14b13f16",
+    "source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
     "comparison_base": "720a8dd9c3d4e4e8051485e8f438a8b40c3cb631",
     "frontend_change_base": "306f7fa98f2e33fa16b8e76fa0af1b520d3bb7d0",
     "files": [
@@ -1303,7 +1303,8 @@
         "source_blob": "87b83ef89193fcc52b0fcae72c74c5b430d42d7d",
         "source_change": "M",
         "disposition": "adapted_local_tooling_rules",
-        "reason": "Four local-tool directories ignored; AGENTS.md and documentation ignore rules excluded."
+        "reason": "Four local-tool directories ignored; AGENTS.md and documentation ignore rules excluded.",
+        "accounted_at_source_sha": "29484582c649ecd94771204466be39fc14b13f16"
       },
       {
         "source_path": "AGENTS.md",
@@ -1311,7 +1312,36 @@
         "source_blob": null,
         "source_change": "D",
         "disposition": "retained_dev_instructions",
-        "reason": "Source deletion excluded; tracked canonical project instructions remain in dev."
+        "reason": "Source deletion excluded; tracked canonical project instructions remain in dev.",
+        "accounted_at_source_sha": "29484582c649ecd94771204466be39fc14b13f16"
+      },
+      {
+        "source_path": "README.md",
+        "dev_path": "README.md",
+        "source_blob": "984c68466775593abf25ac0a5bfc04fd187ff305",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "disposition": "adapted_to_canonical_dev_documentation"
+      },
+      {
+        "source_path": "docs/PLAN.md",
+        "dev_path": "docs/PLAN.md",
+        "source_blob": "be04d79b073db4ed1b981255cdcfbcd8e83dd1f4",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "disposition": "adapted_to_canonical_dev_documentation"
+      },
+      {
+        "source_path": "docs/assets/login/login-desktop.png",
+        "dev_path": null,
+        "source_blob": "3e310ec3b07cb7700a4f14c4d69d6224e13a645d",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "disposition": "excluded_unreferenced_source_screenshot"
+      },
+      {
+        "source_path": "docs/assets/login/login-mobile.png",
+        "dev_path": null,
+        "source_blob": "9a5fd91ed9c5bf4ab9732b991c5aea0633b26dba",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "disposition": "excluded_unreferenced_source_screenshot"
       },
       {
         "source_path": "docs/database/orm_ddl_validation.md",
@@ -1319,7 +1349,8 @@
         "source_blob": "83ba19fb3b5067ec37e6552109c11136afaa4e87",
         "source_change": "A",
         "disposition": "already_accounted_canonical_documentation",
-        "reason": "Inherited kran_dev document; existing unified documentation retained instead of restoring old Markdown."
+        "reason": "Inherited kran_dev document; existing unified documentation retained instead of restoring old Markdown.",
+        "accounted_at_source_sha": "29484582c649ecd94771204466be39fc14b13f16"
       },
       {
         "source_path": "docs/database/tl03_target.md",
@@ -1327,119 +1358,558 @@
         "source_blob": "8649f5cba07f99fe57ad6e8acb46ac5679b09b50",
         "source_change": "A",
         "disposition": "already_accounted_canonical_documentation",
-        "reason": "Inherited kran_dev document; existing unified documentation retained instead of restoring old Markdown."
+        "reason": "Inherited kran_dev document; existing unified documentation retained instead of restoring old Markdown.",
+        "accounted_at_source_sha": "29484582c649ecd94771204466be39fc14b13f16"
+      },
+      {
+        "source_path": "docs/decisions/2026-11-02--mobile-aurora-canvas.md",
+        "dev_path": "docs/decisions/2026-11-02--mobile-aurora-canvas.md",
+        "source_blob": "af28f004f1395ab11ee033aead4f42e58e55aa4e",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "disposition": "adapted_to_canonical_dev_documentation"
+      },
+      {
+        "source_path": "docs/decisions/INDEX.md",
+        "dev_path": "docs/decisions/INDEX.md",
+        "source_blob": "6b84fa0678f085cbb6c8bb874a1b970c66771707",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "disposition": "adapted_to_canonical_dev_documentation"
+      },
+      {
+        "source_path": "docs/service/INDEX.md",
+        "dev_path": "docs/service/INDEX.md",
+        "source_blob": "48b9e6e22c02de415aa2eab9be79c0f9c3397b4b",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "disposition": "adapted_to_canonical_dev_documentation"
+      },
+      {
+        "source_path": "docs/service/verification.md",
+        "dev_path": "docs/service/verification.md",
+        "source_blob": "0dcdb79d376d7cd03d3c601d7d4d31ef83289617",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "disposition": "adapted_to_canonical_dev_documentation"
+      },
+      {
+        "source_path": "docs/service/web.md",
+        "dev_path": "docs/service/web.md",
+        "source_blob": "a3bc8b06b39d4ef087531cd196c2ed0ff6e3dc92",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "disposition": "adapted_to_canonical_dev_documentation"
+      },
+      {
+        "source_path": "docs/ui/motion-system.md",
+        "dev_path": "docs/service/web-motion.md",
+        "source_blob": "5e9f23bb86e31ba90c205f6c35438ec473906a2b",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "disposition": "adapted_to_canonical_dev_documentation"
       },
       {
         "source_path": "frontend/e2e/login.spec.ts",
         "dev_path": "tests/web/e2e/login.spec.ts",
-        "source_blob": "6c17ed94a8481c0e48c7c6baaebdeb5232e8b6df",
-        "source_change": "A",
-        "disposition": "retained_exact_source_blob"
+        "source_blob": "bff8765c9f9c2afcc9803231176b083b329303ae",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
       },
       {
         "source_path": "frontend/e2e/roles.spec.ts",
         "dev_path": "tests/web/e2e/roles.spec.ts",
-        "source_blob": "0e412391ceae1fc493b61a9270172da9a18136a7",
-        "source_change": "M",
-        "disposition": "retained_exact_source_blob"
+        "source_blob": "8070d916570edeb9bac5123e59ccf5d475c4ce6d",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/e2e/settings.spec.ts",
+        "dev_path": "tests/web/e2e/settings.spec.ts",
+        "source_blob": "37d194810eb7622c0a83f05e9752b9ce0afbb71d",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/index.html",
+        "dev_path": "frontend/index.html",
+        "source_blob": "cc7f0148e7dbdfe18967a8474b1c4ff38ce84c5b",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/app/router.tsx",
+        "dev_path": "frontend/src/app/router.tsx",
+        "source_blob": "0fa028fd7bdd9a21d78f8f9c559a0195aba1be5c",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/assets/favicon.svg",
+        "dev_path": null,
+        "disposition": "excluded_unused_favicon_export",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "source_blob": "ad403799986affb8c8fb771d9cd8dd1fa3c2fd9f"
+      },
+      {
+        "source_path": "frontend/src/assets/favicons-visible/favicon-active-16.png",
+        "dev_path": "frontend/src/assets/favicons-visible/favicon-active-16.png",
+        "source_blob": "3fcaaa924d2782fe6bb487fc735cfb6e0eecb01b",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/assets/favicons-visible/favicon-active-32.png",
+        "dev_path": "frontend/src/assets/favicons-visible/favicon-active-32.png",
+        "source_blob": "fef21b7d694d4429eb01237bc005777131725558",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/assets/favicons-visible/favicon-active.ico",
+        "dev_path": "frontend/src/assets/favicons-visible/favicon-active.ico",
+        "source_blob": "51ebd1dd0cfaff62a4171adc4a35e8122df12166",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/assets/favicons/favicon-active-16.png",
+        "dev_path": null,
+        "disposition": "excluded_unused_favicon_export",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "source_blob": "097024c5f71e384cf5a13d99b9b58332118c186d"
+      },
+      {
+        "source_path": "frontend/src/assets/favicons/favicon-active-32.png",
+        "dev_path": null,
+        "disposition": "excluded_unused_favicon_export",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "source_blob": "465da0fa4b4537be762a47ba33742862ad136c26"
+      },
+      {
+        "source_path": "frontend/src/assets/favicons/favicon-active.ico",
+        "dev_path": null,
+        "disposition": "excluded_unused_favicon_export",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "source_blob": "9ba1ff948168dbe0eddc2c8fb824e5320f81d1c0"
       },
       {
         "source_path": "frontend/src/assets/fixrate-mark.svg",
         "dev_path": "frontend/src/assets/fixrate-mark.svg",
         "source_blob": "2b3a6dcff5bbd29deef3397c9bcc3d47fc790cd5",
         "source_change": "A",
-        "disposition": "retained_exact_source_blob"
+        "disposition": "retained_exact_source_blob",
+        "accounted_at_source_sha": "29484582c649ecd94771204466be39fc14b13f16"
       },
       {
         "source_path": "frontend/src/assets/fixrate-wordmark.svg",
         "dev_path": "frontend/src/assets/fixrate-wordmark.svg",
         "source_blob": "2b97e881bfa50f22ce0ac200cb305bb36837ff30",
         "source_change": "A",
-        "disposition": "retained_exact_source_blob"
+        "disposition": "retained_exact_source_blob",
+        "accounted_at_source_sha": "29484582c649ecd94771204466be39fc14b13f16"
+      },
+      {
+        "source_path": "frontend/src/features/assignment/CrewSelectionPanel.tsx",
+        "dev_path": "frontend/src/features/assignment/CrewSelectionPanel.tsx",
+        "source_blob": "d2f62726d349d6dc1cb17a5468883d7880e15be0",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
       },
       {
         "source_path": "frontend/src/features/auth/AuroraScene.tsx",
         "dev_path": "frontend/src/features/auth/AuroraScene.tsx",
-        "source_blob": "96a335fc6edb232d29f0907c706bb255b27da91e",
-        "source_change": "A",
-        "disposition": "retained_exact_source_blob"
+        "source_blob": "9d813e95726b9429c95059f7d234959037375d13",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthFormError.tsx",
+        "dev_path": "frontend/src/features/auth/AuthFormError.tsx",
+        "source_blob": "97fb4f150f10b16f056491664930683e6abcb28a",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthHeroCopy.css",
+        "dev_path": "frontend/src/features/auth/AuthHeroCopy.css",
+        "source_blob": "c00e43735ccb3f44406e3ef684e96b356cff1ef6",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthHeroCopy.tsx",
+        "dev_path": "frontend/src/features/auth/AuthHeroCopy.tsx",
+        "source_blob": "13fc5200b12f393ef562440700d125d8984809ec",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthMotion.test.tsx",
+        "dev_path": "tests/web/unit/features/auth/AuthMotion.test.tsx",
+        "source_blob": "00d8b3a01db2072bdd1a5c10d17f174f0c4d1879",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthMotionContext.ts",
+        "dev_path": "frontend/src/features/auth/AuthMotionContext.ts",
+        "source_blob": "09d9b3721a63cad01d4ff86b2868de7628aa4129",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthPasswordInput.tsx",
+        "dev_path": "frontend/src/features/auth/AuthPasswordInput.tsx",
+        "source_blob": "994ba69e2ae597947ba20c7c44474ac44bce1c7f",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/authGesture.ts",
+        "dev_path": "frontend/src/features/auth/authGesture.ts",
+        "source_blob": "b25e967c412ca7bda4444b7a7fba99deda8b1ad4",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/authValidation.test.ts",
+        "dev_path": "tests/web/unit/features/auth/authValidation.test.ts",
+        "source_blob": "fb488a5d471e2f8afaa7c19cd6b2b0d51aec7c1a",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/authValidation.ts",
+        "dev_path": "frontend/src/features/auth/authValidation.ts",
+        "source_blob": "8103d43fb19950b312ed8dbef8ef0f18a5e57ef8",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/canvasRenderer.test.ts",
+        "dev_path": "tests/web/unit/features/auth/canvasRenderer.test.ts",
+        "source_blob": "b1de4e04ca78e5907ca4bbbb9f4d4d7421f4ea98",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/canvasRenderer.ts",
+        "dev_path": "frontend/src/features/auth/canvasRenderer.ts",
+        "source_blob": "de820880193473d32e6ed3c2a9a3b7e1b184c600",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/fixtures/desktop-ribbon-paths.json",
+        "dev_path": "tests/fixtures/web/desktop-ribbon-paths.json",
+        "source_blob": "c0a18b98ad195aff1bc9d176ecd970ad05adf43b",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/mobileCanvasRenderer.test.ts",
+        "dev_path": "tests/web/unit/features/auth/mobileCanvasRenderer.test.ts",
+        "source_blob": "8046915ad198dab7a703b465e2724a01f9327963",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/mobileCanvasRenderer.ts",
+        "dev_path": "frontend/src/features/auth/mobileCanvasRenderer.ts",
+        "source_blob": "b6af2a332aceb47816e4a6cef33dc25bad01d74f",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
       },
       {
         "source_path": "frontend/src/features/auth/ribbonGeometry.test.ts",
         "dev_path": "tests/web/unit/features/auth/ribbonGeometry.test.ts",
-        "source_blob": "939b36d977cd830dba8e2cfffe35d53a35d6e13e",
-        "source_change": "A",
-        "disposition": "retained_exact_source_blob"
+        "source_blob": "c2db25e0f7461deac0198d1eacc6d0d40bfac752",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
       },
       {
         "source_path": "frontend/src/features/auth/ribbonGeometry.ts",
         "dev_path": "frontend/src/features/auth/ribbonGeometry.ts",
-        "source_blob": "476ff964f18d01a5245d75a28ef73692142351c3",
-        "source_change": "A",
-        "disposition": "retained_exact_source_blob"
+        "source_blob": "d5c0c914614fc84f78b6def804290861f767adc0",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
       },
       {
         "source_path": "frontend/src/features/auth/useAuroraMotion.test.tsx",
         "dev_path": "tests/web/unit/features/auth/useAuroraMotion.test.tsx",
-        "source_blob": "3856be681d32d72a518f7bd5731e1e02ca40e70b",
-        "source_change": "A",
-        "disposition": "retained_exact_source_blob"
+        "source_blob": "4cde70b2a7a94ef995b6a0599c5af729db25f475",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
       },
       {
         "source_path": "frontend/src/features/auth/useAuroraMotion.ts",
         "dev_path": "frontend/src/features/auth/useAuroraMotion.ts",
-        "source_blob": "4f61755ff3d4d97905e1e6091dc13f854ef7c4ac",
-        "source_change": "A",
-        "disposition": "retained_exact_source_blob"
+        "source_blob": "ea6ea030c240b8a807b4f368f25f6817d178a3ad",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useAuthTransition.ts",
+        "dev_path": "frontend/src/features/auth/useAuthTransition.ts",
+        "source_blob": "d53cbceb27ef4df4ef3c4cee7bf4af9425068aa3",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useAuthValidation.ts",
+        "dev_path": "frontend/src/features/auth/useAuthValidation.ts",
+        "source_blob": "da058a6183025f41dc4a2755fb623a3d937f70d5",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useInitialReveal.ts",
+        "dev_path": "frontend/src/features/auth/useInitialReveal.ts",
+        "source_blob": "6d4a129daa618b93916a2030e371c195c2b5e0b9",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useMobileAuthViewport.test.tsx",
+        "dev_path": "tests/web/unit/features/auth/useMobileAuthViewport.test.tsx",
+        "source_blob": "74300e0b0cc5e7c1cae1a27c1152a9870c2090a2",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useMobileAuthViewport.ts",
+        "dev_path": "frontend/src/features/auth/useMobileAuthViewport.ts",
+        "source_blob": "84753611e67e5135dfeab21b872e33d9010050ab",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/settings/CalendarPatternEditor.tsx",
+        "dev_path": "frontend/src/features/settings/CalendarPatternEditor.tsx",
+        "source_blob": "68c2f07a6862d218c3aaa224a2cf2e744d9da9dc",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/index.css",
+        "dev_path": "frontend/src/index.css",
+        "source_blob": "51f5c6ae1c8537dd6e4c8038ec33bb97bf93e85b",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/layouts/AppShell.tsx",
+        "dev_path": "frontend/src/layouts/AppShell.tsx",
+        "source_blob": "eaa41275885210bbc66429b8416808c06cd62e85",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/layouts/ExecutorLayout.tsx",
+        "dev_path": "frontend/src/layouts/ExecutorLayout.tsx",
+        "source_blob": "19d5611b4fa9976935c65d4e132743016b5e694c",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/pages/AuthLayout.tsx",
+        "dev_path": "frontend/src/pages/AuthLayout.tsx",
+        "source_blob": "d7ce7feb2ec27ed93a4d6887fbccb98d040a8c5f",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/pages/ExecutorTaskPage.tsx",
+        "dev_path": "frontend/src/pages/ExecutorTaskPage.tsx",
+        "source_blob": "5545ef3ef5d57b281f111ed6c69f46f6cb71ff60",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/pages/HomeRedirect.tsx",
+        "dev_path": "frontend/src/pages/HomeRedirect.tsx",
+        "source_blob": "6c7facdbad91dc5e4408820c8f29a1ab0b7f0059",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
       },
       {
         "source_path": "frontend/src/pages/LoginPage.css",
         "dev_path": "frontend/src/pages/LoginPage.css",
-        "source_blob": "93f9ad8747b486bf5ecb5b89ffa8161d82a3a0c8",
-        "source_change": "A",
-        "disposition": "retained_exact_source_blob"
+        "source_blob": "6a196e7ec0edf66dc99df8585fa3bdf9c9ba3329",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
       },
       {
         "source_path": "frontend/src/pages/LoginPage.test.tsx",
         "dev_path": "tests/web/unit/pages/LoginPage.test.tsx",
-        "source_blob": "c9c2d7e5d7159aa79a947bb9d270dcca7ee1373b",
-        "source_change": "A",
-        "disposition": "retained_exact_source_blob"
+        "source_blob": "3d3812dc2fb92bf00df65999aff47de61e674fce",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
       },
       {
         "source_path": "frontend/src/pages/LoginPage.tsx",
         "dev_path": "frontend/src/pages/LoginPage.tsx",
-        "source_blob": "e60ecf4fa6b94352d47c176715e11b147536ccad",
-        "source_change": "M",
-        "disposition": "retained_exact_source_blob"
+        "source_blob": "3abb88ec1b186c97a82d9f96f336463725f5236d",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/pages/RegistrationPage.test.tsx",
+        "dev_path": "tests/web/unit/pages/RegistrationPage.test.tsx",
+        "source_blob": "f14d46b49a258bfcd2c8e1dea08d1e3a20cb7197",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/pages/RegistrationPage.tsx",
+        "dev_path": "frontend/src/pages/RegistrationPage.tsx",
+        "source_blob": "ab62ec8ca707c22e1ee3b21464428ebdb96164c4",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/pages/ServiceSettingsPage.tsx",
+        "dev_path": "frontend/src/pages/ServiceSettingsPage.tsx",
+        "source_blob": "ea0a6a7384d6c26b742bcb615aa011ef736aad99",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/pages/TaskDetailPage.tsx",
+        "dev_path": "frontend/src/pages/TaskDetailPage.tsx",
+        "source_blob": "4d0c84a7bb0ba1102756af813e0e3e8b015fc930",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/pages/WorkforceSettingsPage.tsx",
+        "dev_path": "frontend/src/pages/WorkforceSettingsPage.tsx",
+        "source_blob": "f12e4de1a9efc686479190d56282b62cbf204857",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/api/request.test.ts",
+        "dev_path": "tests/web/unit/shared/api/request.test.ts",
+        "source_blob": "8120d07b7260d940ef856edc8d2503a34e7a9e51",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/api/request.ts",
+        "dev_path": "frontend/src/shared/api/request.ts",
+        "source_blob": "b579ea6a39f6ac7da16ca6fb7a7e9d010fe90177",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/animate.ts",
+        "dev_path": "frontend/src/shared/motion/animate.ts",
+        "source_blob": "73c51fef78af7dedc8e8d60da40f1950f5c62c75",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/authEntry.ts",
+        "dev_path": "frontend/src/shared/motion/authEntry.ts",
+        "source_blob": "07459656c64709bd90e094c57bd5b223acff4852",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/feedbackMotion.ts",
+        "dev_path": "frontend/src/shared/motion/feedbackMotion.ts",
+        "source_blob": "c07cebede587897e7ce164483c66be10a4f4c600",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/motion.css",
+        "dev_path": "frontend/src/shared/motion/motion.css",
+        "source_blob": "f383f32277d42d1ccede0cbbd5fc8394a6797f42",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/useFeedbackMotion.ts",
+        "dev_path": "frontend/src/shared/motion/useFeedbackMotion.ts",
+        "source_blob": "739cbd6737e346a77f99f14c75104234254baa94",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/usePageEntry.ts",
+        "dev_path": "frontend/src/shared/motion/usePageEntry.ts",
+        "source_blob": "6d9141767ffec3d97711433ddc1cc43ee50acdcf",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Button.tsx",
+        "dev_path": "frontend/src/shared/ui/Button.tsx",
+        "source_blob": "7b494d3e512f0164250c2126b95c8fa83300cf7d",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Form.css",
+        "dev_path": "frontend/src/shared/ui/Form.css",
+        "source_blob": "04e402ac575696c8d516851c5a2d9ae353980afe",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Form.test.tsx",
+        "dev_path": "tests/web/unit/shared/ui/Form.test.tsx",
+        "source_blob": "0bc4f3b90122d0e3c251226c9242c79ab3792edc",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Form.tsx",
+        "dev_path": "frontend/src/shared/ui/Form.tsx",
+        "source_blob": "3b8e91260ef61fbaa88358fd2dfd3ee180fb1597",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Modal.test.tsx",
+        "dev_path": "tests/web/unit/shared/ui/Modal.test.tsx",
+        "source_blob": "648adc1077d1adb2ef45ac7375320271932ed71c",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
       },
       {
         "source_path": "images/image.png",
         "dev_path": "docs/assets/login/image.png",
         "source_blob": "b52f1b82f6608ecf4c3a01d0fa664b70354dd115",
         "source_change": "A",
-        "disposition": "retained_exact_source_blob"
+        "disposition": "retained_exact_source_blob",
+        "accounted_at_source_sha": "29484582c649ecd94771204466be39fc14b13f16"
       },
       {
         "source_path": "images/login-aurora-flow-2026-11-01.png",
         "dev_path": "docs/assets/login/login-aurora-flow-2026-11-01.png",
         "source_blob": "00dec6484bc5601130c54293db44f17bb0a0580a",
         "source_change": "A",
-        "disposition": "retained_exact_source_blob"
+        "disposition": "retained_exact_source_blob",
+        "accounted_at_source_sha": "29484582c649ecd94771204466be39fc14b13f16"
       },
       {
         "source_path": "new_file",
         "dev_path": null,
         "source_blob": "2e65efe2a145dda7ee51d1741299f848e5bf752e",
         "source_change": "A",
-        "disposition": "excluded_nonfunctional_placeholder"
+        "disposition": "excluded_nonfunctional_placeholder",
+        "accounted_at_source_sha": "29484582c649ecd94771204466be39fc14b13f16"
       }
     ],
     "dev_adaptations": [
       {
         "dev_path": "tests/web/e2e/settings.spec.ts",
-        "reason": "Use the visible registration link name from the imported LoginPage."
+        "reason": "Password confirmation supplied for the updated registration form."
+      },
+      {
+        "dev_path": "docs/service/web-motion.md",
+        "reason": "Motion reference and test links adapted to the current service documentation structure."
       }
-    ]
+    ],
+    "previous_accounted_sha": "29484582c649ecd94771204466be39fc14b13f16",
+    "incremental_comparison_base": "29484582c649ecd94771204466be39fc14b13f16"
   }
 ]
