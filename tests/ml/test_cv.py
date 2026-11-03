@@ -301,3 +301,43 @@ def test_review_photos_loader_failure_handling(canonical_photo_review_request: P
     assert result.status == "uncertain"
     assert result.item_results[0].verdict == "uncertain"
     assert "Не удалось загрузить" in result.item_results[0].observation
+
+
+def test_quality_guard_large_image_downscaling():
+    """Verify ImageQualityGuard downscales oversized images (>1280px) safely to preserve memory."""
+    img = Image.new("RGB", (1600, 1400), color=(180, 180, 180))
+    draw = ImageDraw.Draw(img)
+    for i in range(100, 1300, 100):
+        draw.line([(i, 0), (i, 1400)], fill=(20, 20, 20), width=4)
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=85)
+    large_bytes = buf.getvalue()
+
+    guard = ImageQualityGuard()
+    res = guard.assess_bytes(large_bytes)
+    assert res.is_acceptable is True
+    assert res.laplacian_var > 100.0
+    assert 50.0 <= res.mean_brightness <= 220.0
+
+
+def test_pair_consistency_different_lengths(canonical_photo_review_request: PhotoReviewRequest):
+    """Verify pair consistency passes when photos differ in byte length without redundant hashing."""
+    guard = ImageQualityGuard()
+    p1 = canonical_photo_review_request.photos[0]
+    p2 = canonical_photo_review_request.photos[1]
+    b1 = make_test_jpeg("dirty")
+    b2 = make_test_jpeg("clean_serviced")
+    assert len(b1) != len(b2)
+
+    ok, issue = guard.verify_pair_consistency(p1, p2, b1, b2)
+    assert ok is True
+    assert issue is None
+
+
+def test_classifier_warmup_and_batch_api():
+    """Verify classifier warmup and batch inference error handling."""
+    classifier = CLIPZeroShotClassifier(model_name="missing-local-model", revision="missing")
+    assert classifier.warmup() is False
+    assert classifier._infer_batch([]) == []
+    with pytest.raises(RuntimeError, match="CLIP model unavailable"):
+        classifier._infer_batch([b"fake-bytes"])

@@ -5,7 +5,7 @@ import hashlib
 import io
 from typing import Literal
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageStat
 
 from ml_service.app.core.config import settings
 from ml_service.app.schemas import PhotoReport
@@ -68,13 +68,25 @@ class ImageQualityGuard:
 
                 # Convert to 8-bit grayscale
                 gray = pil_img.convert("L")
-                arr = np.array(gray, dtype=np.float64)
+                # Direct C-level mean brightness without array allocation
+                mean_brightness = float(ImageStat.Stat(gray).mean[0])
+
+                # Downsample large images (>1280px) for Laplacian sharpness check to limit RAM and CPU spikes
+                max_dim = max(width, height)
+                if max_dim > 1280:
+                    scale = 1280.0 / max_dim
+                    target_w = max(3, int(width * scale))
+                    target_h = max(3, int(height * scale))
+                    gray_sharp = gray.resize((target_w, target_h), Image.Resampling.BILINEAR)
+                else:
+                    gray_sharp = gray
+
+                arr = np.array(gray_sharp, dtype=np.float32)
 
         except Exception as exc:
             return ImageQualityResult(False, f"Ошибка декодирования изображения: {type(exc).__name__}", sha256=content_sha256)
 
         # 4. Brightness check
-        mean_brightness = float(np.mean(arr))
         if mean_brightness < self.min_brightness:
             return ImageQualityResult(
                 False,
@@ -92,7 +104,7 @@ class ImageQualityGuard:
 
         # 5. Sharpness check: 2D discrete Laplacian variance
         if arr.shape[0] >= 3 and arr.shape[1] >= 3:
-            lap = arr[:-2, 1:-1] + arr[2:, 1:-1] + arr[1:-1, :-2] + arr[1:-1, 2:] - 4 * arr[1:-1, 1:-1]
+            lap = arr[:-2, 1:-1] + arr[2:, 1:-1] + arr[1:-1, :-2] + arr[1:-1, 2:] - 4.0 * arr[1:-1, 1:-1]
             lap_var = float(np.var(lap))
         else:
             lap_var = 0.0
@@ -130,10 +142,11 @@ class ImageQualityGuard:
         if before_report.original_sha256 == after_report.original_sha256:
             return False, "Обнаружены идентичные фотографии для фаз 'до' и 'после' (одинаковый SHA-256)"
 
-        # 3. Byte level hash comparison
-        hash_before = hashlib.sha256(before_bytes).hexdigest()
-        hash_after = hashlib.sha256(after_bytes).hexdigest()
-        if hash_before == hash_after:
-            return False, "Обнаружено тождественное содержимое файлов для фаз 'до' и 'после'"
+        # 3. Byte level comparison (fast short-circuit by length before SHA-256 hashing)
+        if len(before_bytes) == len(after_bytes):
+            hash_before = hashlib.sha256(before_bytes).hexdigest()
+            hash_after = hashlib.sha256(after_bytes).hexdigest()
+            if hash_before == hash_after:
+                return False, "Обнаружено тождественное содержимое файлов для фаз 'до' и 'после'"
 
         return True, None

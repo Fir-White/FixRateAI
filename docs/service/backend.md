@@ -138,12 +138,12 @@ ServiceConfiguration.checklist содержит объекты text/answer_kind/
 даты отклоняется.
 
 `GET` списка/задания возвращает статусы `planned/assigned/in_progress/submitted/accepted/rework`.
-`PATCH /api/v1/maintenance_jobs/{id}` или `POST …/{id}/transitions` принимает
+`PATCH /api/v1/maintenance_jobs/{id}` или `POST /api/v1/maintenance_jobs/{id}/transitions` принимает
 `expected_revision`, `status` и `reason` для решения инженера. Переходы используют
 те же команды старта, сдачи и приёмки, что и основной API. Подтверждение состава
 и интервала выполняется через `POST …/tasks/{id}/assign`. При устаревшей ревизии
 сервер возвращает `409`, включая повтор запроса назначения.
-`GET …/{id}/history` возвращает события из транзакционного `audit_events`.
+`GET /api/v1/maintenance_jobs/{id}/history` возвращает события из транзакционного `audit_events`.
 
 ### Доступные действия в карточке
 

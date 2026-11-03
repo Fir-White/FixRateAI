@@ -48,7 +48,8 @@ class FeatureExtractor:
 
         if valid_events:
             last_event = valid_events[-1]
-            last_event_date = last_event.performed_at.astimezone(site_tz).date()
+            event_dates = [e.performed_at.astimezone(site_tz).date() for e in valid_events]
+            last_event_date = event_dates[-1]
             days_since_last_service = float(max(0, (as_of_date - last_event_date).days))
 
             # Runtime hours delta since last service
@@ -60,13 +61,9 @@ class FeatureExtractor:
                 runtime_hours_delta = 0.0
 
             # Mean prior interval in days
-            if len(valid_events) >= 2:
-                intervals = []
-                for i in range(1, len(valid_events)):
-                    d_prev = valid_events[i - 1].performed_at.astimezone(site_tz).date()
-                    d_curr = valid_events[i].performed_at.astimezone(site_tz).date()
-                    intervals.append(max(1, (d_curr - d_prev).days))
-                mean_prior_interval_days = float(np.mean(intervals))
+            if len(event_dates) >= 2:
+                intervals = [max(1, (event_dates[i] - event_dates[i - 1]).days) for i in range(1, len(event_dates))]
+                mean_prior_interval_days = float(sum(intervals) / len(intervals))
             else:
                 mean_prior_interval_days = 30.0
         else:
@@ -93,4 +90,4 @@ class FeatureExtractor:
         """Extract a 2D numpy array of shape (N, 6) from a list of snapshots."""
         if not snapshots:
             return np.empty((0, len(FEATURE_NAMES)), dtype=np.float64)
-        return np.vstack([self.extract_features(s) for s in snapshots])
+        return np.array([self.extract_features(s) for s in snapshots], dtype=np.float64)

@@ -1,6 +1,6 @@
 {
   "base": "d94f528df8c0e0f69c344ebd8c79a99bfbe5c1f2",
-  "captured_at": "2026-11-02",
+  "captured_at": "2026-11-03",
   "sources": [
     {
       "branch": "main",
@@ -122,6 +122,30 @@
       "not_included": [
         "All unique legacy estimator changes"
       ]
+    },
+    {
+      "branch": "backend",
+      "sha": "89d819d5b3fc448101d61a3c134292b9bf56c8c2",
+      "status": "integrated",
+      "document": "docs/service/development.md",
+      "not_included": [],
+      "adaptations": [
+        "Preserved dev's revision conflict and assignment transaction semantics",
+        "Routed job transitions through the existing execution and engineer review commands",
+        "Consolidated backend README and historical verification notes into service documentation"
+      ],
+      "fully_accounted_source_sha": "89d819d5b3fc448101d61a3c134292b9bf56c8c2"
+    },
+    {
+      "branch": "feat/ml-demo-cases-eval",
+      "sha": "95e695df491e12833c7bf8bc5df2a5f8e856928d",
+      "status": "integrated",
+      "document": "docs/service/development.md",
+      "not_included": [],
+      "adaptations": [
+        "Made CLI confirmation of comparable views opt-in"
+      ],
+      "fully_accounted_source_sha": "95e695df491e12833c7bf8bc5df2a5f8e856928d"
     }
   ]
 }

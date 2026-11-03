@@ -1911,5 +1911,217 @@
     ],
     "previous_accounted_sha": "29484582c649ecd94771204466be39fc14b13f16",
     "incremental_comparison_base": "29484582c649ecd94771204466be39fc14b13f16"
+  },
+  {
+    "branch": "backend",
+    "source_sha": "89d819d5b3fc448101d61a3c134292b9bf56c8c2",
+    "comparison_base": "6a09f3b446f3215112569784ff796a8e10bf99f5",
+    "files": [
+      {
+        "source_path": ".dockerignore",
+        "dev_path": ".dockerignore",
+        "source_blob": "e613386a0d91fb83b8adf6b354f27ae088c4027d",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": ".env.example",
+        "dev_path": ".env.example",
+        "source_blob": "40e4c5c03daa3f85fcb3a012d129234f591e60e6",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "Dockerfile",
+        "dev_path": "Dockerfile",
+        "source_blob": "20ae30999e341b3b642e66a7bb520a61f4eee697",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "README.md",
+        "dev_path": "README.md",
+        "source_blob": "ecf3ec5a3cd4d6d7b4fe8cdffe23250d4b475349",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/README.md",
+        "dev_path": "docs/service/runtime.md",
+        "source_blob": "aab78614acbeb0b0de2b354d6cda0ffbf0699b9a",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/repository.py",
+        "dev_path": "backend/app/db/repository.py",
+        "source_blob": "f279eb457820fa40ea1414d805bca7cd4f7e7a0f",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "backend/app/integration/assignments.py",
+        "dev_path": "backend/app/integration/assignments.py",
+        "source_blob": "fcc3ccb9bf5ab3b9affebd9e847906cd8d18694a",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/integration/forecasting.py",
+        "dev_path": "backend/app/integration/forecasting.py",
+        "source_blob": "b012eb7513b35dd04227e27bd4c9a1f6929888b8",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "backend/app/integration/maintenance_api.py",
+        "dev_path": "backend/app/integration/maintenance_api.py",
+        "source_blob": "dfb3e6622615d79d15a05517071a1213a85cdfc9",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "backend/app/integration/maintenance_jobs.py",
+        "dev_path": "backend/app/integration/maintenance_jobs.py",
+        "source_blob": "2fd50f768d7833b24b73210119a5a3f92f1664b8",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/integration/ml.py",
+        "dev_path": "backend/app/integration/ml.py",
+        "source_blob": "3d8a60447d5835fd281597c0b09f33eb34dafdc9",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "backend/app/main.py",
+        "dev_path": "backend/app/main.py",
+        "source_blob": "95cb80a4922b9b485f83a943e4539222242340d3",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/maintenance_jobs.py",
+        "dev_path": "backend/app/maintenance_jobs.py",
+        "source_blob": "6bbd405861565931a743a4e5d871a38e82c67496",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "backend/app/schemas/maintenance_api.py",
+        "dev_path": "backend/app/schemas/maintenance_api.py",
+        "source_blob": "4fc41534c04f88705ac39109da0d0508d952243d",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "backend/app/storage.py",
+        "dev_path": "backend/app/storage.py",
+        "source_blob": "4aea715411f5244156df4c6a9ac0b593746d3e45",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "compose.yaml",
+        "dev_path": "compose.yaml",
+        "source_blob": "ce88c0dd7b1df8aee9a77fa37450ea806f6864bb",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "docs/service/backend.md",
+        "dev_path": "docs/service/backend.md",
+        "source_blob": "4ac34f0302afbcd2af8a220066a514f132f379a3",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/service/ml.md",
+        "dev_path": "docs/service/ml.md",
+        "source_blob": "d71d2491a425e654a4e40d658388b021c2e64126",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/service/runtime.md",
+        "dev_path": "docs/service/runtime.md",
+        "source_blob": "24538d9cae737602cb7f79ab348bfcd6ec533682",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/service/verification-log.md",
+        "dev_path": "docs/service/verification.md",
+        "source_blob": "a1e929534accb6e632b39e13d0dc2494bf42eb98",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "tests/backend/test_api_hardening.py",
+        "dev_path": "tests/backend/test_api_hardening.py",
+        "source_blob": "6311a79076aaaa61b758745880ac7708dee5e3ed",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "tests/backend/test_maintenance_jobs.py",
+        "dev_path": "tests/backend/test_maintenance_jobs.py",
+        "source_blob": "de6c0db960159ee7131aee6524b4c6ac96f6337b",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "tests/backend/test_orchestration.py",
+        "dev_path": "tests/backend/test_orchestration.py",
+        "source_blob": "e11cc9cd1df5ad58a3bebe8dc424bfd81a3146a6",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "tests/backend/test_storage.py",
+        "dev_path": "tests/backend/test_storage.py",
+        "source_blob": "9d71500b7abb9c476747d12cd23773f26a58492f",
+        "disposition": "retained_or_adapted"
+      }
+    ]
+  },
+  {
+    "branch": "feat/ml-demo-cases-eval",
+    "source_sha": "95e695df491e12833c7bf8bc5df2a5f8e856928d",
+    "comparison_base": "73cd49a112b0721174d84cc05f4000cb03779350",
+    "files": [
+      {
+        "source_path": "docs/service/ml.md",
+        "dev_path": "docs/service/ml.md",
+        "source_blob": "74e347a3ecd28753bd364cf5adf7d43f259eb952",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/app/cv/classifier.py",
+        "dev_path": "ml_service/app/cv/classifier.py",
+        "source_blob": "01aed32e6ff7f68d473e2eddf77a11e07440d7be",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "ml_service/app/cv/quality.py",
+        "dev_path": "ml_service/app/cv/quality.py",
+        "source_blob": "798826d4b7a12a25ee9fb81d1db6c0c824742db6",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "ml_service/app/forecast/client.py",
+        "dev_path": "ml_service/app/forecast/client.py",
+        "source_blob": "42772a3d3eab4fd7c2ae38471e1af23b84d906cb",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "ml_service/app/forecast/features.py",
+        "dev_path": "ml_service/app/forecast/features.py",
+        "source_blob": "208636b2d4bae76c0f0400319e08a82bd3138a1e",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "ml_service/app/forecast/model.py",
+        "dev_path": "ml_service/app/forecast/model.py",
+        "source_blob": "029f11ae9ec78f483fe3449665cf2b55ad7bf82a",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "scripts/inspect_my_photos.py",
+        "dev_path": "scripts/inspect_my_photos.py",
+        "source_blob": "d3d572e36f7509d8600edacfef89927ff036fce9",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "tests/ml/test_cv.py",
+        "dev_path": "tests/ml/test_cv.py",
+        "source_blob": "0eb35a28697e383404d283ce1d1f7ce0c9201a49",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "tests/ml/test_forecast.py",
+        "dev_path": "tests/ml/test_forecast.py",
+        "source_blob": "f281f9236dec654b852460f9b1927b1912bd469f",
+        "disposition": "retained_exact_source_blob"
+      }
+    ]
   }
 ]

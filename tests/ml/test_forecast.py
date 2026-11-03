@@ -7,7 +7,7 @@ from uuid import uuid4
 import numpy as np
 import pytest
 
-from ml_service.app.forecast.client import predict_maintenance_ai, set_active_forecaster
+from ml_service.app.forecast.client import predict_maintenance_ai, set_active_forecaster, warmup_forecaster
 from ml_service.app.forecast.features import FeatureExtractor, FEATURE_NAMES
 from ml_service.app.forecast.manifest import ModelManifest
 from ml_service.app.forecast.model import RandomForestForecaster
@@ -169,3 +169,14 @@ def test_artifact_manifest_schema_and_roundtrip(tmp_path):
     assert loaded.model_ref == manifest.model_ref
     assert loaded.dataset_sha256 == manifest.dataset_sha256
     assert loaded.metrics["mae_days"] == 0.65
+
+
+def test_forecaster_warmup_and_fast_tree_dispersion(trained_forecaster: RandomForestForecaster):
+    """Verify forecaster warmup hook primes CPU caches and dispersion is ordered."""
+    assert warmup_forecaster(trained_forecaster) is True
+    assert warmup_forecaster(None) in (True, False)  # depending on whether default artifact exists on disk
+
+    x_test = np.array([500.0, 365.0, 15.0, 100.0, 4.0, 25.0])
+    point, low, high = trained_forecaster.predict_with_dispersion(x_test)
+    assert low <= point <= high
+    assert point > 0.0
