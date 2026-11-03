@@ -6,6 +6,7 @@
 
 ```powershell
 docker compose up -d db
+docker compose build backend
 docker compose run --rm migrate
 $env:FIXRATE_DEMO_PASSWORD = "Local-demo-password-2026"
 docker compose run --rm seed

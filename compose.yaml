@@ -14,6 +14,7 @@ services:
       - fixrate-postgres:/var/lib/postgresql/data
 
   backend:
+    image: ${FIXRATE_IMAGE:-fixrate-ai:local}
     build:
       context: .
       dockerfile: Dockerfile
@@ -31,6 +32,7 @@ services:
       - fixrate-photos:/var/photos
 
   migrate:
+    image: ${FIXRATE_IMAGE:-fixrate-ai:local}
     build:
       context: .
       dockerfile: Dockerfile
@@ -42,6 +44,7 @@ services:
     command: ["python", "-m", "app.manage", "migrate"]
 
   seed:
+    image: ${FIXRATE_IMAGE:-fixrate-ai:local}
     build:
       context: .
       dockerfile: Dockerfile

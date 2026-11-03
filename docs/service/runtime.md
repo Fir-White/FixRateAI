@@ -14,6 +14,7 @@
 
 ```powershell
 docker compose up -d db
+docker compose build backend
 docker compose run --rm migrate
 $env:FIXRATE_DEMO_PASSWORD = "Local-demo-password-2026"
 docker compose run --rm seed
@@ -22,9 +23,37 @@ Invoke-WebRequest http://127.0.0.1:8000/api/health
 ```
 
 `migrate` и `seed` выполняются явно, поэтому запуск API не меняет схему или
-данные. Значение `FIXRATE_DEMO_PASSWORD` не следует сохранять в `.env` или
-репозитории. Полный перечень Compose-параметров и остановка стенда описаны в
+данные. Отдельная команда `build` собирает образ один раз: `migrate`, `seed` и
+`backend` используют один тег `${FIXRATE_IMAGE:-fixrate-ai:local}`. Docker BuildKit
+кэширует Python-пакеты между сборками, а PyTorch устанавливается из официального
+CPU-only индекса без CUDA-зависимостей. Значение `FIXRATE_DEMO_PASSWORD` не
+следует сохранять в `.env` или репозитории. Полный перечень Compose-параметров и
+остановка стенда описаны в
 [`backend/README.md`](../../backend/README.md).
+
+Для production образ следует собрать один раз в CI и отправить в registry, а на
+сервере использовать тот же immutable tag или digest:
+
+```powershell
+$env:FIXRATE_IMAGE = "ghcr.io/your-org/fixrate-ai:2026.11.03"
+docker compose build backend
+docker push $env:FIXRATE_IMAGE
+```
+
+На production-хосте задайте `FIXRATE_IMAGE` в окружении и запускайте Compose без
+локальной сборки. Это переносит долгую установку PyTorch и frontend на CI, а
+сервер получает уже проверенный образ. GPU-образ не смешивается с CPU-профилем:
+если для CLIP понадобится GPU, используйте отдельный Dockerfile/тег и
+проверяйте его отдельно. Для production не выполняйте `seed`: он предназначен
+только для локальных demo-аккаунтов.
+
+```powershell
+$env:FIXRATE_IMAGE = "ghcr.io/your-org/fixrate-ai:2026.11.03"
+docker compose pull backend migrate
+docker compose up -d db
+docker compose run --rm --no-build migrate
+docker compose up -d --no-build backend
+```
 
 Проверено: Windows, Python 3.12, PostgreSQL 16.13, Node 24.14.0. Python-зависимости backend, RF, CLIP и тестов зафиксированы в `requirements.txt` (59 пакетов проверенного профиля). Frontend использует `package-lock.json` и `npm ci`.
 
