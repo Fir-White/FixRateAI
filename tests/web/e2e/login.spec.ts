@@ -66,6 +66,9 @@ test("independent curves, tiny particles, automatic pauses, reduced motion and s
   // ResizeObserver can clear the bitmap before its deferred static redraw.
   await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
   await expect.poll(async()=>(await pixels())[0].maxAlpha).toBeGreaterThan(0);
+  // ResizeObserver redraw is asynchronous even while animation is paused.
+  // Wait for the restored desktop canvas before comparing its frozen frames.
+  await expect.poll(async () => (await pixels())[0]?.maxAlpha ?? 0).toBeGreaterThan(0);
   const paused=await snapshot(); await page.waitForTimeout(500); expect(await snapshot()).toEqual(paused);
   await page.evaluate(()=>{Reflect.deleteProperty(document,"hidden");document.dispatchEvent(new Event("visibilitychange"));});
   await expect(page.locator(".auth-aurora")).toHaveAttribute("data-motion","running");
