@@ -128,3 +128,5 @@ Runner создаёт временную PostgreSQL, проверяет мигр
 - Подготовить nginx/CI, мониторинг и проверку восстановления БД, фото и моделей.
 
 Критерии и состояние задач — в [плане проекта](docs/PLAN.md).
+
+Основной Git-хостинг: [GitHub](https://github.com/krangras/FixRateAI); [автоматическая синхронизация GitVerse](docs/service/git-hosting.md).

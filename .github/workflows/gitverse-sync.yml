@@ -1,0 +1,59 @@
+name: Sync GitVerse
+
+on:
+  push:
+    branches: ['**']
+    tags: ['**']
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gitverse-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'krangras/FixRateAI'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Synchronize branches and tags without overwriting divergent history
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITVERSE_USERNAME: ${{ secrets.GITVERSE_USERNAME }}
+          GITVERSE_TOKEN: ${{ secrets.GITVERSE_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$GITVERSE_USERNAME" || { echo 'Missing GITVERSE_USERNAME secret'; exit 1; }
+          test -n "$GITVERSE_TOKEN" || { echo 'Missing GITVERSE_TOKEN secret'; exit 1; }
+          export GIT_TERMINAL_PROMPT=0
+          export GIT_ASKPASS="$RUNNER_TEMP/gitverse-askpass.sh"
+          umask 077
+          cat > "$GIT_ASKPASS" <<'ASKPASS'
+          #!/usr/bin/env bash
+          case "$1" in
+            *sername*) printf '%s\n' "$GITVERSE_USERNAME" ;;
+            *assword*) printf '%s\n' "$GITVERSE_TOKEN" ;;
+            *) exit 1 ;;
+          esac
+          ASKPASS
+          chmod 700 "$GIT_ASKPASS"
+          trap 'rm -f "$GIT_ASKPASS"' EXIT
+          gh auth setup-git --hostname github.com
+          source_url="https://github.com/${GITHUB_REPOSITORY}.git"
+          target_url='https://gitverse.ru/firewhite/FixRate_AI'
+          git ls-remote --heads --tags "$source_url" | sort > "$RUNNER_TEMP/source-refs"
+          git -c credential.helper= ls-remote --heads --tags "$target_url" | sort > "$RUNNER_TEMP/target-refs"
+          if test -z "$(comm -23 "$RUNNER_TEMP/source-refs" "$RUNNER_TEMP/target-refs")"; then
+            echo 'All GitHub branches and tags are already present in GitVerse.'
+            exit 0
+          fi
+          mirror="$RUNNER_TEMP/gitverse-mirror.git"
+          git init --bare --quiet "$mirror"
+          git -C "$mirror" fetch --quiet --no-tags "$source_url" '+refs/heads/*:refs/heads/*' '+refs/tags/*:refs/tags/*'
+          git -C "$mirror" -c credential.helper= push --atomic --porcelain "$target_url" 'refs/heads/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
