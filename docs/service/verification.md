@@ -1,5 +1,15 @@
 # Проверки и доказательства
 
+## 04.11.2026: перенос GitVerse в GitHub
+
+По явному запросу владельца история перенесена в публичный https://github.com/krangras/FixRateAI. Сохранены 18 веток, 3 тега, все исходные 12 GitVerse-веток и коммиты трёх PR heads. Незакоммиченные исходники сохранены в migration/local-dev-20261104 и migration/frontend-next-20261104 без замены файлов/staging. Снимки не объявляются слитыми с актуальной dev.
+
+Основная dev GitHub продолжает 7676d6a GitVerse; отдельный коммит добавляет workflow и документацию. origin переключён на GitHub, gitverse сохранён вторым remote, remote.pushDefault=origin, default branch GitHub=dev. Секреты GitVerse добавлены в GitHub Secrets после отдельного подтверждения владельца; .env/runtime и reports.zip в новые снимки не включены.
+
+Sync GitVerse: автоматический push-run [41817344524](https://github.com/krangras/FixRateAI/actions/runs/41817344524) и ручной dev-run [41817427171](https://github.com/krangras/FixRateAI/actions/runs/41817427171) — success. Все 21 heads/tags совпали по SHA; токен в скачанных Actions logs отсутствует. Workflow использует atomic fast-forward push без force/удалений, с расписанием для исторических веток без workflow. Проверены YAML/Bash syntax, сохранение исходных refs и отсутствие LFS-объектов. Приложение в рамках переноса повторно не тестировалось: код auth/backend проверен в отдельном срезе local-dev, frontend snapshot имеет самостоятельную историю проверок.
+
+Протокол — reports/git-migration/20261104-results.json, логи — logs/git-migration; private mirror/bundle и снимки файлов — var/git-migration/20261104T104549Z. [Адреса, доступ и правила работы](git-hosting.md).
+
 ## 04.11.2026: исправление версии входа и мобильной Aurora
 
 Локальный Docker-стенд собирался из старого checkout dev (6a09f3b), в котором ещё не было адаптивного auth ac8a8ae. Поэтому на desktop сохранялся большой знак справа, а мобильную Aurora перекрывал почти непрозрачный фон формы; touch-профиль также останавливал движение. Проверка локальной ancestry выполнялась до последующего fetch новых коммитов GitVerse: после fetch удалённая dev уже содержит ac8a8ae. Это расхождение локальной сборки и опубликованной истории, не потеря коммита.
