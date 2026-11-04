@@ -142,3 +142,7 @@ SHA-256: `8608662fe5d66519e990f65d1377f3fad32c1e6d29d6524dc4aeed24cd079957`.
 ### Машинные примеры
 
 [maintenance_cases.json](../tests/fixtures/domain/maintenance_cases.json) — исполняемые предметные сценарии. [operation_to_equipment_links.json](../tests/fixtures/domain/operation_to_equipment_links.json) — M:N привязки. Проверки находятся в [test_domain_scenarios.py](../tests/backend/test_domain_scenarios.py).
+
+## Переданные материалы аналитика
+
+[Работа Анастасии](analysis/INDEX.md) содержит словарь, роли, M:N-связи операций, шесть регламентных строк, календарные кейсы, AN06 и проект AN07. [Сопоставление](analysis/INTEGRATION.md) связывает эти материалы с текущими SQL/DTO, ролями и политиками дат. Исходный Excel и описанные выше неизвестные единицы норм сохраняют свой статус; передача не добавляет подтверждённую историю или согласованные даты.

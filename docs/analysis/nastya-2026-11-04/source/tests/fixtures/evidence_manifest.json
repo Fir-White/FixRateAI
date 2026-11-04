@@ -1,0 +1,225 @@
+{
+  "manifest_version": "1.2",
+  "project": "FixRate AI — ТОиР ЖКХ / Тепловой пункт",
+  "evaluation_status": "expected_test_specification_only (ML04 runtime not executed yet)",
+  "dependencies": {
+    "domain_model": "AN05",
+    "cv_models": "ML04"
+  },
+  "repository_photo_directory": "tests/fixtures/photos",
+  "evidence_cases": [
+    {
+      "case_id": "CASE-01",
+      "operation_id": "1.1",
+      "operation_name": "Контроль параметров показаний приборов (давление, температура)",
+      "equipment_item_id": "eq-item-991",
+      "evidence_type": "photo",
+      "photo_before_path": "tests/fixtures/photos/case_01_before.jpg",
+      "photo_after_path": "tests/fixtures/photos/case_01_after.jpg",
+      "image_provenance": {
+        "before_source": "Манометр 0-4 bar CL 1.6 (Unsplash/Pexels) с программным поворотом стрелки на отметку ~1.15 бар командой FixRate AI",
+        "after_source": "Исходный снимок того же манометра 0-4 bar CL 1.6 (Unsplash/Pexels) со стрелкой на отметке ~3.2 бар",
+        "usage_rights": "CC0 / Public Domain + собственная модификация команды проекта для некоммерческого учебного стенда"
+      },
+      "visible_differences": "На фото 'До' и 'После' зафиксирован один и тот же стационарный манометр на латунном штуцере (шкала 0-4 bar, CL 1.6). На фото 'До' стрелка прибора указывает на ~1.15 бар. На фото 'После' стрелка этого же манометра находится на отметке ~3.2 бар.",
+      "expected_ai_verdict": "approved",
+      "expected_test_metrics": {
+        "is_executed": false,
+        "expected_same_instrument_match": true,
+        "expected_before_reading_bar": 1.15,
+        "expected_after_reading_bar": 3.2,
+        "target_confidence_threshold": 0.7
+      },
+      "ai_status_message": "Ожидаемый результат теста: На обоих кадрах подтвержден один и тот же манометр (0-4 bar), зафиксировано смещение стрелки с ~1.15 до ~3.2 бар.",
+      "reasoning": "Ожидается, что при запуске пайплайна ML04 модель подтвердит совпадение прибора на кадрах 'До' и 'После' и определит угол поворота стрелки относительно шкалы bar для сверки с введенными показаниями."
+    },
+    {
+      "case_id": "CASE-02",
+      "operation_id": "1.2",
+      "operation_name": "Протоколирование показаний счетчиков (согласно инструкции)",
+      "equipment_item_id": "eq-item-994",
+      "evidence_type": "photo",
+      "photo_before_path": "tests/fixtures/photos/case_02_before.jpg",
+      "photo_after_path": "tests/fixtures/photos/case_02_after.jpg",
+      "image_provenance": {
+        "before_source": "Открытые демонстрационные материалы коллекторного узла счетчиков «Пульсар»",
+        "after_source": "Открытые демонстрационные материалы опроса теплосчетчиков «Пульсар»",
+        "usage_rights": "Fair Use / Некоммерческое учебное использование в рамках университетского проекта"
+      },
+      "visible_differences": "На фото 'До' на коллекторе расположены пять счетчиков «Пульсар» с погашенными (темными) ЖК-экранами. На фото 'После' крупным планом сняты три счетчика «Пульсар», палец нажимает синюю кнопку на центральном корпусе, на ЖК-экранах центрального и правого приборов отображаются цифровые символы (15056 и 192410).",
+      "expected_ai_verdict": "manual_review",
+      "expected_test_metrics": {
+        "is_executed": false,
+        "expected_display_active_after": true,
+        "target_ocr_confidence_threshold": 0.7
+      },
+      "ai_status_message": "Ожидаемый результат теста: На кадре «После» зафиксирован активный ЖК-дисплей с читаемыми символами. Подтверждение корректности протоколирования и привязки к линии учета выполняется Инженером.",
+      "reasoning": "По фотографии фиксируется только видимое изменение — переход ЖК-индикатора из спящего режима в активный и наличие цифр на табло. Само фото не подтверждает фактическое выполнение регламентного протоколирования, поэтому финальная проверка остается за Инженером."
+    },
+    {
+      "case_id": "CASE-03",
+      "operation_id": "1.3",
+      "operation_name": "Проверка функционирования управляющего модуля",
+      "equipment_item_id": "eq-item-995",
+      "evidence_type": "checklist",
+      "photo_before_path": "tests/fixtures/photos/case_03_before.jpg",
+      "photo_after_path": "tests/fixtures/photos/case_03_after.jpg",
+      "image_provenance": {
+        "before_source": "Открытый каталог сборки щитов АВР (выполнена ретушь посторонней текстовой маркировки командой FixRate AI)",
+        "after_source": "Открытый демонстрационный материал проверки индикации щита АВР",
+        "usage_rights": "Производный учебный тестовый артефакт для некоммерческого использования в проекте"
+      },
+      "visible_differences": "На фото 'До' на лицевой панели щита управления в нижнем ряду светятся три красные сигнальные лампы «АВАРИЯ», зеленые лампы «РАБОТА» в верхнем ряду не светятся. На фото 'После' красные индикаторы «АВАРИЯ» погашены, в верхнем ряду светятся зеленые индикаторы «РАБОТА».",
+      "expected_ai_verdict": "manual_review",
+      "expected_test_metrics": {
+        "is_executed": false,
+        "expected_red_alarm_off": true,
+        "expected_green_run_on": true,
+        "target_confidence_threshold": 0.7
+      },
+      "ai_status_message": "Ожидаемый результат теста: Зафиксировано изменение внешней световой индикации на дверце щита (погасание красных ламп «АВАРИЯ» и свечение зеленых ламп «РАБОТА»). Фактическое функционирование модуля проверяется Инженером по чек-листу.",
+      "reasoning": "Камера фиксирует только оптическое состояние сигнальных ламп на лицевой панели, но не может подтвердить реальную исправность внутренних реле и логики АВР. Вывод о выполнении работы делается Инженером на основании чек-листа."
+    },
+    {
+      "case_id": "CASE-04",
+      "operation_id": "1.4",
+      "operation_name": "Чистка всех узлов и агрегатов системы",
+      "equipment_item_id": "eq-item-996",
+      "evidence_type": "manual_act",
+      "photo_before_path": "tests/fixtures/photos/case_04_before.jpg",
+      "photo_after_path": "tests/fixtures/photos/case_04_after.jpg",
+      "image_provenance": {
+        "before_source": "Открытый учебно-технический материал по обслуживанию сетчатого фильтра ИТП (кадр 'До' из коллажа)",
+        "after_source": "Открытый учебно-технический материал по обслуживанию сетчатого фильтра ИТП (кадр 'После' из коллажа)",
+        "usage_rights": "Fair Use / Некоммерческое учебное использование в рамках университетского проекта"
+      },
+      "visible_differences": "На фото 'До' под синим фланцевым корпусом косого фильтра-грязевика находится извлеченный сетчатый элемент, покрытый черным слоем шлама. На фото 'После' под тем же корпусом виден очищенный сетчатый элемент со светлой металлической сеткой.",
+      "expected_ai_verdict": "manual_review",
+      "expected_test_metrics": {
+        "is_executed": false,
+        "expected_surface_cleanliness_change": true,
+        "target_confidence_threshold": 0.7
+      },
+      "ai_status_message": "Ожидаемый результат теста: Визуально зафиксировано очищение поверхности извлеченной сетки фильтра. Приемка полной чистки всех узлов системы и герметичности после сборки выполняется Инженером по акту.",
+      "reasoning": "Фотографии показывают только очистку одной извлеченной сетки грязевика, но не подтверждают выполнение полной чистки всех агрегатов системы (60 нормо-часов) и отсутствие протечек после сборки узла. Требуется ручная приемка по акту."
+    },
+    {
+      "case_id": "CASE-05",
+      "operation_id": "1.5",
+      "operation_name": "Проверка приборов измерения температуры и давления на повреждения и точность показаний",
+      "equipment_item_id": "eq-item-992",
+      "evidence_type": "manual_act",
+      "photo_before_path": "tests/fixtures/photos/case_05_before.jpg",
+      "photo_after_path": "tests/fixtures/photos/case_05_after.jpg",
+      "image_provenance": {
+        "before_source": "Открытый технический архив дефектов КИПиА (манометр ДМ8008А-ВУ-У2 со сквозной трещиной стекла)",
+        "after_source": "Синтетическая реставрация кадра case_05_before.jpg командой FixRate AI (удаление трещины стекла на том же приборе ДМ8008А-ВУ-У2)",
+        "usage_rights": "Собственный производный тестовый артефакт команды проекта для некоммерческого учебного стенда"
+      },
+      "visible_differences": "На фото 'До' на защитном стекле манометра ДМ8008А-ВУ-У2 (0-60 kgf/cm2) видна вертикальная сквозная трещина, проходящая через центр циферблата от отметки 50 до отметки -10. На фото 'После' зафиксирован тот же самый манометр с целым стеклом без трещины.",
+      "expected_ai_verdict": "manual_review",
+      "expected_test_metrics": {
+        "is_executed": false,
+        "expected_same_instrument_match": true,
+        "expected_glass_defect_removed": true,
+        "target_confidence_threshold": 0.7
+      },
+      "ai_status_message": "Ожидаемый результат теста: На кадре «После» отсутствуют видимые механические повреждения (трещины) стекла манометра. Для подтверждения метрологической точности показаний требуется проверка акта сверки Инженером.",
+      "reasoning": "Ожидается, что компьютерное зрение зафиксирует устранение видимого дефекта стекла (трещины), однако метрологическую точность и погрешность хода стрелки манометра невозможно проверить по фото — окончательное решение принимает Инженер по акту инструментальной сверки."
+    },
+    {
+      "case_id": "CASE-06",
+      "operation_id": "1.6",
+      "operation_name": "Выпустить воздух из системы отопления/теплоснабжения",
+      "equipment_item_id": "eq-item-997",
+      "evidence_type": "checklist",
+      "photo_before_path": "tests/fixtures/photos/case_06_before.jpg",
+      "photo_after_path": "tests/fixtures/photos/case_06_after.jpg",
+      "image_provenance": {
+        "before_source": "Открытый обучающий материал по обслуживанию распределительного коллектора отопления (выкрученный клапан)",
+        "after_source": "Открытый обучающий материал по обслуживанию коллекторного узла отопления в сборе с манометром и воздухоотводчиком",
+        "usage_rights": "Fair Use / Некоммерческое учебное использование в рамках университетского проекта"
+      },
+      "visible_differences": "На фото 'До' показан коллектор с четырьмя белыми вентилями, из правого контура выкручен латунный клапан с уплотнительным кольцом (находится в руке техника). На фото 'После' показан собранный коллекторный узел с четырьмя белыми вентилями, закрытым нижним латунным узлом и манометром справа без видимых следов подтекания воды.",
+      "expected_ai_verdict": "manual_review",
+      "expected_test_metrics": {
+        "is_executed": false,
+        "expected_visible_leakage": false,
+        "target_confidence_threshold": 0.7
+      },
+      "ai_status_message": "Ожидаемый результат теста: На кадре «После» зафиксирован собранный коллекторный узел без видимых внешних протечек. Факт полного удаления воздуха из системы проверяется Инженером по чек-листу.",
+      "reasoning": "Фотографии отражают только внешнее состояние арматуры коллектора до и после манипуляций, но наличие или отсутствие воздуха внутри непрозрачных труб визуально неверифицируемо. Приемка операции выполняется Инженером по чек-листу."
+    },
+    {
+      "case_id": "CASE-NEG-01",
+      "operation_id": "1.2",
+      "operation_name": "Протоколирование показаний счетчиков (согласно инструкции)",
+      "equipment_item_id": "eq-item-994",
+      "evidence_type": "photo",
+      "photo_before_path": "tests/fixtures/photos/case_02_before.jpg",
+      "photo_after_path": "tests/fixtures/photos/neg_01_after_blurry_glare.jpg",
+      "image_provenance": {
+        "before_source": "Файл tests/fixtures/photos/case_02_before.jpg (счетчики «Пульсар»)",
+        "after_source": "Синтетически модифицированный кадр счетчиков «Пульс» с наложением Motion Blur и блика вспышки командой FixRate AI",
+        "usage_rights": "Собственный синтетический тестовый артефакт команды проекта"
+      },
+      "visible_differences": "На фото 'После' (neg_01_after_blurry_glare.jpg) кадр со счетчиками сильно размыт, а яркий белый блик от вспышки полностью перекрывает ЖК-экран левого счетчика №1.",
+      "expected_ai_verdict": "rejected",
+      "expected_test_metrics": {
+        "is_executed": false,
+        "target_min_blur_score": 0.35,
+        "target_max_glare_overlap": 0.5,
+        "target_min_ocr_confidence": 0.7
+      },
+      "ai_status_message": "Ожидаемый результат теста: Недостаточно доказательств — изображение размыто и засвечено вспышкой в зоне ЖК-экрана счетчика. Зафиксируйте камеру, отключите прямую вспышку и переснимите табло.",
+      "reasoning": "Негативный тест проверяет ожидаемое срабатывание фильтра качества изображения (по целевым порогам резкости blur_score < 0.35 и засветки области экрана) до запуска распознавания текста."
+    },
+    {
+      "case_id": "CASE-NEG-02",
+      "operation_id": "1.3",
+      "operation_name": "Проверка функционирования управляющего модуля",
+      "equipment_item_id": "eq-item-995",
+      "evidence_type": "photo",
+      "photo_before_path": "tests/fixtures/photos/case_03_before.jpg",
+      "photo_after_path": "tests/fixtures/photos/neg_02_after_blurry_glare.jpg",
+      "image_provenance": {
+        "before_source": "Файл tests/fixtures/photos/case_03_before.jpg (лицевая панель щита АВР)",
+        "after_source": "Синтетически модифицированный кадр открытого шкафа управления с наложением Motion Blur и блика вспышки командой FixRate AI",
+        "usage_rights": "Собственный синтетический тестовый артефакт команды проекта"
+      },
+      "visible_differences": "На фото 'До' снята лицевая панель дверцы щита с индикаторами «АВАРИЯ». На фото 'После' (neg_02_after_blurry_glare.jpg) дверца открыта, снят внутренний монтаж шкафа с сильным размытием и ярким бликом вспышки по центру, внешние световые индикаторы в кадре отсутствуют.",
+      "expected_ai_verdict": "rejected",
+      "expected_test_metrics": {
+        "is_executed": false,
+        "expected_viewpoint_match": false,
+        "target_min_blur_score": 0.35
+      },
+      "ai_status_message": "Ожидаемый результат теста: Ошибка проверки фото — кадр «После» сильно размыт, засвечен вспышкой и не совпадает по ракурсу с кадром «До» (не видны лицевые индикаторы «РАБОТА / АВАРИЯ»). Сделайте четкий фронтальный снимок панели управления.",
+      "reasoning": "Негативный тест проверяет ожидаемое отклонение фотоотчета по двум критериям: несовпадение ракурса съемки (Viewpoint Mismatch) и критический брак качества кадра (размытие + блик)."
+    },
+    {
+      "case_id": "CASE-NEG-03",
+      "operation_id": "1.1",
+      "operation_name": "Контроль параметров показаний приборов (давление, температура)",
+      "equipment_item_id": "eq-item-991",
+      "evidence_type": "photo",
+      "photo_before_path": "tests/fixtures/photos/case_01_before.jpg",
+      "photo_after_path": "tests/fixtures/photos/case_02_before.jpg",
+      "image_provenance": {
+        "before_source": "Файл tests/fixtures/photos/case_01_before.jpg (манометр 0-4 bar)",
+        "after_source": "Файл tests/fixtures/photos/case_02_before.jpg (коллектор со счетчиками «Пульсар»)",
+        "usage_rights": "Перекрестная тестовая пара из фикстур репозитория проекта"
+      },
+      "visible_differences": "На фото 'До' снят манометр (eq-item-991). На фото 'После' прикреплен снимок коллектора с теплосчетчиками «Пульсар» (несовпадение класса оборудования).",
+      "expected_ai_verdict": "rejected",
+      "expected_test_metrics": {
+        "is_executed": false,
+        "expected_class_match": false,
+        "expected_before_class": "pressure_gauge",
+        "expected_after_class": "heat_meter"
+      },
+      "ai_status_message": "Ожидаемый результат теста: Ошибка проверки фото — кадры «До» и «После» принадлежат разным видам оборудования (манометр и приборы учета). Загрузите корректный снимок манометра.",
+      "reasoning": "Негативный тест проверяет ожидаемую блокировку отчета классификатором ML04 при несовпадении типа оборудования между кадрами 'До' и 'После' (Object Mismatch)."
+    }
+  ]
+}

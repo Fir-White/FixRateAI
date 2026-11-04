@@ -1,0 +1,64 @@
+{
+  "maintenance_operations": [
+    {
+      "operation_id": "1.1",
+      "name": "Контроль параметров показаний приборов (давление, температура)",
+      "to_type": "ТО1",
+      "frequency_type": "daily",
+      "frequency_value": "1/день",
+      "required_workers": 1,
+      "norm_hours": 1.0,
+      "confirmed": true
+    },
+    {
+      "operation_id": "1.2",
+      "name": "Протоколирование показаний счетчиков (согласно инструкции)",
+      "to_type": "ТО1",
+      "frequency_type": "daily",
+      "frequency_value": "1/день",
+      "required_workers": 1,
+      "norm_hours": 1.0,
+      "confirmed": true
+    },
+    {
+      "operation_id": "1.3",
+      "name": "Проверка функционирования управляющего модуля",
+      "to_type": "ТО1",
+      "frequency_type": "daily",
+      "frequency_value": "1/день",
+      "required_workers": 1,
+      "norm_hours": 1.0,
+      "confirmed": true
+    },
+    {
+      "operation_id": "1.4",
+      "name": "Чистка всех узлов и агрегатов системы",
+      "to_type": "ТО2",
+      "frequency_type": "custom_annual",
+      "frequency_value": "5/год",
+      "required_workers": 2,
+      "norm_hours": 60.0,
+      "confirmed": false
+    },
+    {
+      "operation_id": "1.5",
+      "name": "Проверка приборов измерения температуры и давления на повреждения и точность показаний",
+      "to_type": "ТО2",
+      "frequency_type": "quarterly",
+      "frequency_value": "1/квар",
+      "required_workers": 1,
+      "norm_hours": 48.0,
+      "confirmed": true
+    },
+    {
+      "operation_id": "1.6",
+      "name": "Выпустить воздух из системы отопления/теплоснабжения",
+      "to_type": "ТО2",
+      "frequency_type": "quarterly",
+      "frequency_value": "1/квар",
+      "required_workers": 1,
+      "norm_hours": 30.0,
+      "confirmed": true
+    }
+  ]
+}

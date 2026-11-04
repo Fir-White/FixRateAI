@@ -9,7 +9,7 @@
 
 `ТО / ППР` · `Python 3.12` · `React` · `PostgreSQL 18`
 
-[Архитектура](docs/ARCHITECTURE.md) · [База данных](docs/service/database.md) · [API](docs/service/backend.md) · [План](docs/PLAN.md)
+[Работа аналитика и исходные сценарии](docs/analysis/INDEX.md) · [Архитектура](docs/ARCHITECTURE.md) · [База данных](docs/service/database.md) · [API](docs/service/backend.md) · [План](docs/PLAN.md)
 
 </div>
 

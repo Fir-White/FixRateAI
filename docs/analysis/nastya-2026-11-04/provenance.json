@@ -1,0 +1,207 @@
+{
+  "format_version": 1,
+  "analyst": "Анастасия (Настя)",
+  "received_on": "2026-11-04",
+  "source_archive": "FixRate_AI_Analyst_Nastya_Complete_Handoff.zip",
+  "archive_sha256": "d391201e1607ac46e1cdba7ad9b34d17436b72a98642574f8f8ff7d20161ebd9",
+  "archive_size_bytes": 3121808,
+  "integration_base_commit": "862dfc9428f7ad4c77cba18125e7226c654fde77",
+  "target_branch": "dev",
+  "source_root": "source",
+  "source_modified": false,
+  "scope": "Received analyst documents/examples/demo images; not runtime results or customer approval.",
+  "attribution": {
+    "source/docs/domain": "analyst handoff; authorship per supplied package",
+    "source/docs/acceptance/demo_acceptance.md": "analyst AN07 draft",
+    "source/docs/acceptance/INTEGRATION_REVIEW.md": "assistant review; not authored by analyst",
+    "source/HANDOFF_README.md": "package cover and checksums"
+  },
+  "files": [
+    {
+      "archive_path": "HANDOFF_README.md",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/HANDOFF_README.md",
+      "size_bytes": 5404,
+      "sha256": "ca26f543627917215ce2443617ee383dc7daa5e54ce8311a2d7a693a5b348d1e"
+    },
+    {
+      "archive_path": "docs/acceptance/INTEGRATION_REVIEW.md",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/docs/acceptance/INTEGRATION_REVIEW.md",
+      "size_bytes": 6474,
+      "sha256": "e8d131021d71fdefb9708e122e1368571db401263c6d3390d9f63c9007373132"
+    },
+    {
+      "archive_path": "docs/acceptance/demo_acceptance.md",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/docs/acceptance/demo_acceptance.md",
+      "size_bytes": 24327,
+      "sha256": "f25468f6b47335a572fa3be180209cdfd6bb00d50a6a7e0c81ad48d8091107f6"
+    },
+    {
+      "archive_path": "docs/domain/data_dictionary.md",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/docs/domain/data_dictionary.md",
+      "size_bytes": 17504,
+      "sha256": "2974e0a8f5b6b0307bc236594cb99f2fab33fb548a3803c816a5a1ee30b39427"
+    },
+    {
+      "archive_path": "docs/domain/examples/maintenance_cases.json",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/docs/domain/examples/maintenance_cases.json",
+      "size_bytes": 2732,
+      "sha256": "29f0a92cd8790f28d1e88268b1ee73dfff6c0d2f2981959874debc7ef8c45c38"
+    },
+    {
+      "archive_path": "docs/domain/examples/maintenance_operations.json",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/docs/domain/examples/maintenance_operations.json",
+      "size_bytes": 2113,
+      "sha256": "7488369453be0f498a348d8dac93da0c1fe38c91c75b17784bbe1fc986c30c68"
+    },
+    {
+      "archive_path": "docs/domain/examples/maintenance_task.json",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/docs/domain/examples/maintenance_task.json",
+      "size_bytes": 283,
+      "sha256": "048ad68677f10c0fee3b4a24fd16236572db2b465770987d7b56087bdbadef44"
+    },
+    {
+      "archive_path": "docs/domain/examples/operation_template.json",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/docs/domain/examples/operation_template.json",
+      "size_bytes": 314,
+      "sha256": "a5aedd762291833764001c14173f1e91da8489f2ddabfa2ab53c3dbc8fc3c21e"
+    },
+    {
+      "archive_path": "docs/domain/examples/operation_to_equipment_links.json",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/docs/domain/examples/operation_to_equipment_links.json",
+      "size_bytes": 962,
+      "sha256": "a45420449d557b3be7965a652c5ec7ef1dbe83bdeea8145623f8e7c73f8c635f"
+    },
+    {
+      "archive_path": "docs/domain/examples/regulation.json",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/docs/domain/examples/regulation.json",
+      "size_bytes": 156,
+      "sha256": "c5e6a734234cd2641404a519c3eef15add7b35e93337d8bab110d1c6d3816dd1"
+    },
+    {
+      "archive_path": "docs/domain/expected_schedule.md",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/docs/domain/expected_schedule.md",
+      "size_bytes": 11463,
+      "sha256": "964a9e86988e5f9861aa6107f27ce35bd32c11562ccbeb260ab96dbe1718450f"
+    },
+    {
+      "archive_path": "docs/domain/inspection_criteria.md",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/docs/domain/inspection_criteria.md",
+      "size_bytes": 26416,
+      "sha256": "c704204e6e91dca55c1057ef2abf2ef767f5bcfccc0770d60fec093c613fb565"
+    },
+    {
+      "archive_path": "docs/domain/pilot_regulations.md",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/docs/domain/pilot_regulations.md",
+      "size_bytes": 10465,
+      "sha256": "ecea5639a5c05173ba9b9870ff4b7d477fc6d579976f4070757b39b7c0ec1cfa"
+    },
+    {
+      "archive_path": "docs/domain/roles.md",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/docs/domain/roles.md",
+      "size_bytes": 20615,
+      "sha256": "1384f792f64c2c3b89c386ea43e1654e2b8e79a3256779d83d6c9e2c93a7a696"
+    },
+    {
+      "archive_path": "docs/domain/scope.md",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/docs/domain/scope.md",
+      "size_bytes": 9358,
+      "sha256": "8c19d82bedb768418c28887ad17b318fea5c0621cb25f55e2dcc5c10a389becc"
+    },
+    {
+      "archive_path": "docs/domain/user_flows.md",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/docs/domain/user_flows.md",
+      "size_bytes": 16382,
+      "sha256": "47b1acbb69b563798fca9239ef2f0ab90f1c2a7390563d4b8cc046f4cb4cce72"
+    },
+    {
+      "archive_path": "tests/fixtures/evidence_manifest.json",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/tests/fixtures/evidence_manifest.json",
+      "size_bytes": 22884,
+      "sha256": "164afea48aa4858f40d2c6edf80c4bf5474e76809ca3be0359dd6a1699b2d28d"
+    },
+    {
+      "archive_path": "tests/fixtures/photos/case_01_after.jpg",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/tests/fixtures/photos/case_01_after.jpg",
+      "size_bytes": 197526,
+      "sha256": "7216cfe02a920faaad1927a943d851796add81be9e4b9c9f36093855bee3d777"
+    },
+    {
+      "archive_path": "tests/fixtures/photos/case_01_before.jpg",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/tests/fixtures/photos/case_01_before.jpg",
+      "size_bytes": 118861,
+      "sha256": "2ff768ac8e09084e559230977b250e4cbaa4e6735dba8dcccec2feaf9d09395c"
+    },
+    {
+      "archive_path": "tests/fixtures/photos/case_02_after.jpg",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/tests/fixtures/photos/case_02_after.jpg",
+      "size_bytes": 168062,
+      "sha256": "4d0a014924ef19a37b0204b8e40100c7ed9a921e66de23a348d57e675334f092"
+    },
+    {
+      "archive_path": "tests/fixtures/photos/case_02_before.jpg",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/tests/fixtures/photos/case_02_before.jpg",
+      "size_bytes": 117481,
+      "sha256": "bde6216ddb26d0674f6a79d9bc5ce0ee8940f8f2a67a47604f5774fe04b2a023"
+    },
+    {
+      "archive_path": "tests/fixtures/photos/case_03_after.jpg",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/tests/fixtures/photos/case_03_after.jpg",
+      "size_bytes": 88564,
+      "sha256": "310777ce75c22f0bd444275c11526934b95fcbced39a1bd64671efd2d419508d"
+    },
+    {
+      "archive_path": "tests/fixtures/photos/case_03_before.jpg",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/tests/fixtures/photos/case_03_before.jpg",
+      "size_bytes": 449766,
+      "sha256": "76919089df9ec5514b0b21a742a43a70129af4805b9f6b580a8c5ee896201e61"
+    },
+    {
+      "archive_path": "tests/fixtures/photos/case_04_after.jpg",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/tests/fixtures/photos/case_04_after.jpg",
+      "size_bytes": 117941,
+      "sha256": "0b18feb404cfed7c3c8994654c83c28a29600ca44e4acd9a10a24931a5f69bd4"
+    },
+    {
+      "archive_path": "tests/fixtures/photos/case_04_before.jpg",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/tests/fixtures/photos/case_04_before.jpg",
+      "size_bytes": 105901,
+      "sha256": "b93d0523f26f57d6a341012339da70bcca16796c13900c91d2b1bd59263bdf7a"
+    },
+    {
+      "archive_path": "tests/fixtures/photos/case_05_after.jpg",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/tests/fixtures/photos/case_05_after.jpg",
+      "size_bytes": 120280,
+      "sha256": "81716d8a4fc2d9583871625422532fdad8c25730d7eaa2d3133225a37f5313d3"
+    },
+    {
+      "archive_path": "tests/fixtures/photos/case_05_before.jpg",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/tests/fixtures/photos/case_05_before.jpg",
+      "size_bytes": 32039,
+      "sha256": "4f2f531f0e82ec3cf606af144092a98dbbd08cb145db09caefc5f7ee8e8d8492"
+    },
+    {
+      "archive_path": "tests/fixtures/photos/case_06_after.jpg",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/tests/fixtures/photos/case_06_after.jpg",
+      "size_bytes": 55617,
+      "sha256": "531b0fdd5f453f1da33b1de813af55fffdc19916f49d0e4632447e819a60796e"
+    },
+    {
+      "archive_path": "tests/fixtures/photos/case_06_before.jpg",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/tests/fixtures/photos/case_06_before.jpg",
+      "size_bytes": 92984,
+      "sha256": "bdb43c028723e6998f8d413e5567f30cd1c3b6ba4b0b31311fce28e76715bbba"
+    },
+    {
+      "archive_path": "tests/fixtures/photos/neg_01_after_blurry_glare.jpg",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/tests/fixtures/photos/neg_01_after_blurry_glare.jpg",
+      "size_bytes": 788777,
+      "sha256": "e4bb580d5d89e824f14588824c6afd150779bfe20bf4f02fb98aef326ab94ea4"
+    },
+    {
+      "archive_path": "tests/fixtures/photos/neg_02_after_blurry_glare.jpg",
+      "repository_path": "docs/analysis/nastya-2026-11-04/source/tests/fixtures/photos/neg_02_after_blurry_glare.jpg",
+      "size_bytes": 620516,
+      "sha256": "dea9105b192a57d43070d796651ed754111ad702dfff55c4914d928f5b849dc9"
+    }
+  ]
+}

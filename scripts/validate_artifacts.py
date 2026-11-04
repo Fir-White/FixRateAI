@@ -1,6 +1,6 @@
 """Локальная проверка проектных артефактов; не интеграционные тесты приложения.
 
-Зависимости: Python >=3.11, Pydantic >=2.5,<3, tzdata для Windows.
+Зависимости: Python >=3.11, Pydantic >=2.5,<3, Pillow, tzdata для Windows.
 Запуск из корня: python -B scripts/validate_artifacts.py
 Обновление экспортированной схемы: добавить --write-schema.
 """
@@ -219,8 +219,12 @@ def main():
     parsed = validate_models(examples)
     comparisons = check_relations(parsed, examples)
     negatives = negative_checks(parsed, examples)
+    from scripts.validate_analyst_handoff import validate_handoff
+
+    handoff = validate_handoff()
     links, edges = check_documents()
     print(f"OK: {len(examples)} JSON examples; {comparisons} comparison sets; {negatives} negative checks; schema matches; {links} local links; {edges} diagram edges; S01..S15 present.")
+    print(f"OK analyst source: {handoff['files']} unchanged files; {handoff['evidence_cases']} evidence cases; {handoff['jpeg']} decoded JPEGs.")
     print("This validates design artifacts only; application/API/DB/ML integration was not run.")
 
 
