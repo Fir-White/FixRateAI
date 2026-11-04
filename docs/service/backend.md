@@ -9,13 +9,13 @@
 варианты добавлены вместе со всеми потребителями. Прежние сохранённые снимки
 сохраняют исходные поля и хеши. Версия вычисления теперь `calendar-rules-v2`.
 
-Browser UI использует camelCase-проекции `/api/v1/maintenance/ui`; команды и настройки —
+Browser UI использует camelCase-проекции в пространстве `/api/v1/maintenance/ui/*`; команды и настройки —
 snake_case DTO. Это явная граница сериализации, а не два независимых расчёта.
 Frontend не вычисляет нормативные даты или пригодность бригады повторно.
 
 ## Устойчивость HTTP и файлов
 
-Все `/api/` маршруты применяют same-origin политику: чужой Origin и `null` получают 403; запросы без Origin допускаются для CLI с обычной авторизацией. Разрешающие CORS-заголовки не выдаются; SPA работает с того же адреса или через Vite proxy. CSRF остаётся обязательным для команд. Cookie Secure задаётся только явным true/false.
+Все `/api/` маршруты применяют same-origin политику: чужой Origin и `null` получают 403; запросы без Origin допускаются для CLI с обычной авторизацией. CORS_ORIGINS настраивает CORS middleware, но не отменяет эту проверку: SPA работает с того же адреса или через Vite proxy. CSRF остаётся обязательным для команд. Cookie Secure задаётся только явным true/false.
 
 Ошибки API возвращают канонический ErrorResponse и X-Request-ID. Неожиданная ошибка — 500/INTERNAL_ERROR без текста исключения; журнал содержит только ID и класс ошибки. Конфликт БД — 409, недоступность БД — 503. SQLAlchemy скрывает параметры SQL. Штатный launcher отключает access log с query string; пароли, cookie, DSN и содержимое файлов не журналируются приложением. Исходные исключения провайдеров ML также не сохраняются.
 
@@ -159,6 +159,8 @@ ServiceConfiguration.checklist содержит объекты text/answer_kind/
 сервер возвращает `409`, включая повтор запроса назначения.
 `GET /api/v1/maintenance_jobs/{id}/history` возвращает события из транзакционного `audit_events`.
 
+OpenAPI задаёт уникальные operationId для каждого метода и алиаса maintenance_jobs; оба варианта URL публикуют эквивалентные схемы параметров, тела и ответов. Проверка — [test_openapi_contract.py](../../tests/backend/test_openapi_contract.py), HTTP /openapi.json без PostgreSQL lifespan.
+
 ### Доступные действия в карточке
 
 `allowedActions` вычисляется сервером для текущего пользователя и последней попытки. Это подсказка интерфейсу: команда всё равно заново проверяет права, состояние и ревизию.
@@ -208,7 +210,7 @@ ServiceConfiguration.checklist содержит объекты text/answer_kind/
 
 ## Границы фактической реализации
 
-- Runtime-команды описаны в `backend/app/main.py`, `backend/app/integration/management.py` и `backend/app/schemas/management.py`. `maintenance_api.py` сохраняет также исходные проектные DTO; наличие класса в нём не означает отдельный действующий endpoint.
+- HTTP-маршруты реализованы в `backend/app/main.py`, `backend/app/integration/management.py` и `backend/app/integration/maintenance_api.py`; последний модуль регистрирует действующий maintenance API. DTO находятся в `backend/app/schemas/maintenance.py`, `maintenance_api.py` и `management.py`. Наличие DTO-класса само по себе не означает отдельный endpoint; список проверяется по зарегистрированным маршрутам/OpenAPI.
 - `start` создаёт попытку и фиксирует `started_at`. `submit` фиксирует `completed_at` задания и `submitted_at` отчёта. Именно `completed_at` затем используется как `performed_at` принятой истории. Отдельного ввода произвольной фактической даты/времени выполнения текущий HTTP не предоставляет.
 - Принятый факт — проекция `acceptance_reviews(decision=accepted)` и связанных работ; отдельной физической таблицы ServiceEvent нет. В снимке прогноза review ID становится `service_event_id`. Чтение наработки из `work_readings` в этот снимок пока не подключено: `runtime_reading`/`runtime_hours` возвращаются null.
 - Приёмка требует текущую submitted-попытку, правильную ревизию и непустой reason. `reviewed_ai_result_id` и `additional_evidence_refs` API принимает как необязательные поля; нынешняя веб-форма передаёт reason без этих полей. Проверки обязательности дополнительных доказательств в зависимости от AI-статуса нет. Архитектурное требование учитывать ограничения AI сохраняется в ADR.

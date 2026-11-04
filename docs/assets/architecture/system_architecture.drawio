@@ -41,7 +41,7 @@
         <mxCell id="R" value="Репозитории и аудит" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=15;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="180" y="800" width="360" height="70" />
         </mxCell>
-        <mxCell id="DB" value="PostgreSQL 16" style="shape=cylinder3;whiteSpace=wrap;html=0;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=15;" vertex="1" parent="1">
+        <mxCell id="DB" value="PostgreSQL 18" style="shape=cylinder3;whiteSpace=wrap;html=0;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=15;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="170" y="1040" width="300" height="90" />
         </mxCell>
         <mxCell id="PH" value="Локальное хранилище фото" style="shape=cylinder3;whiteSpace=wrap;html=0;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=15;" vertex="1" parent="1">

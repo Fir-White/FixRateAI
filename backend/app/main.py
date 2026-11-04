@@ -283,7 +283,7 @@ def create_app(engine=None):
 
     prefix = "/api/v1/maintenance"
 
-    @app.get("/api/v1/maintenance_jobs", response_model=list[MaintenanceJobResponse])
+    @app.get("/api/v1/maintenance_jobs", response_model=list[MaintenanceJobResponse], operation_id="maintenance_jobs_list")
     @app.get(prefix + "/jobs", response_model=list[MaintenanceJobResponse])
     def maintenance_job_list(status: str | None = None, v=Depends(views)):
         require_role(v.principal, "admin", "dispatcher", "engineer", "executor")
@@ -302,7 +302,7 @@ def create_app(engine=None):
             and public_status(order.status) != "cancelled"
         ]
 
-    @app.post("/api/v1/maintenance_jobs", status_code=201, response_model=MaintenanceJobResponse)
+    @app.post("/api/v1/maintenance_jobs", status_code=201, response_model=MaintenanceJobResponse, operation_id="maintenance_jobs_create")
     @app.post(prefix + "/jobs", status_code=201, response_model=MaintenanceJobResponse)
     def maintenance_job_create(command: MaintenanceJobCreate, v=Depends(views)):
         require_role(v.principal, "admin", "dispatcher")
@@ -315,15 +315,15 @@ def create_app(engine=None):
         )
         return _job_payload(v, order)
 
-    @app.get("/api/v1/maintenance_jobs/{job_id}", response_model=MaintenanceJobResponse)
+    @app.get("/api/v1/maintenance_jobs/{job_id}", response_model=MaintenanceJobResponse, operation_id="maintenance_jobs_read")
     @app.get(prefix + "/jobs/{job_id}", response_model=MaintenanceJobResponse)
     def maintenance_job_detail(job_id: UUID, v=Depends(views)):
         require_role(v.principal, "admin", "dispatcher", "engineer", "executor")
         return _job_payload(v, v.task(job_id))
 
-    @app.post("/api/v1/maintenance_jobs/{job_id}/transitions", response_model=MaintenanceJobResponse)
+    @app.post("/api/v1/maintenance_jobs/{job_id}/transitions", response_model=MaintenanceJobResponse, operation_id="maintenance_jobs_transition_post")
     @app.post(prefix + "/jobs/{job_id}/transitions", response_model=MaintenanceJobResponse)
-    @app.patch("/api/v1/maintenance_jobs/{job_id}", response_model=MaintenanceJobResponse)
+    @app.patch("/api/v1/maintenance_jobs/{job_id}", response_model=MaintenanceJobResponse, operation_id="maintenance_jobs_transition_patch")
     @app.patch(prefix + "/jobs/{job_id}", response_model=MaintenanceJobResponse)
     def maintenance_job_transition(
         job_id: UUID, command: MaintenanceJobTransition, v=Depends(views)
@@ -359,7 +359,7 @@ def create_app(engine=None):
                                   reason=reason), v)
         return _job_payload(v, order)
 
-    @app.get("/api/v1/maintenance_jobs/{job_id}/history", response_model=list[MaintenanceJobHistoryItem])
+    @app.get("/api/v1/maintenance_jobs/{job_id}/history", response_model=list[MaintenanceJobHistoryItem], operation_id="maintenance_jobs_history")
     @app.get(prefix + "/jobs/{job_id}/history", response_model=list[MaintenanceJobHistoryItem])
     def maintenance_job_history(job_id: UUID, v=Depends(views)):
         require_role(v.principal, "admin", "dispatcher", "engineer", "executor")

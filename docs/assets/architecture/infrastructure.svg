@@ -57,7 +57,7 @@
   <path d="M600 650 V690" class="wire"/>
   <path d="M960 650 V690" class="wire"/>
   <rect x="80" y="702" width="320" height="96" rx="14" fill="#13252d" stroke="#3a7077"/>
-  <text x="100" y="740" class="heading">PostgreSQL 16</text>
+  <text x="100" y="740" class="heading">PostgreSQL 18</text>
   <text x="100" y="774" class="body">SQLAlchemy · данные · аудит</text>
   <rect x="440" y="702" width="320" height="96" rx="14" fill="#13252d" stroke="#3a7077"/>
   <text x="460" y="740" class="heading">Фотоотчёты</text>

@@ -6,7 +6,7 @@
 
 Оборудование → регламент → календарь → задание → фотоотчёт → приёмка
 
-`ТО / ППР` · `Python 3.12` · `React` · `PostgreSQL 16`
+`ТО / ППР` · `Python 3.12` · `React` · `PostgreSQL 18`
 
 [Архитектура](docs/ARCHITECTURE.md) · [База данных](docs/service/database.md) · [API](docs/service/backend.md) · [План](docs/PLAN.md)
 
@@ -44,7 +44,7 @@ FixRate AI управляет обслуживанием инженерного 
 |---|---|---|
 | Интерфейс | React, TypeScript, Vite, Tailwind CSS | Реестр, календарь, задания, прогнозы и приёмка |
 | Backend | Python 3.12, FastAPI, Pydantic 2 | REST, роли, доменные сервисы и транзакции |
-| Хранение | PostgreSQL 16, SQLAlchemy, psycopg | Версии, назначения, отчёты и аудит |
+| Хранение | PostgreSQL 18, SQLAlchemy, psycopg | Версии, назначения, отчёты и аудит |
 | Прогнозирование | Календарные правила, NumPy, scikit-learn | Два независимых результата и решение оркестратора |
 | Фотоанализ | Pillow, Transformers, PyTorch, CLIP | Оценка видимых изменений в фотоотчёте |
 
@@ -99,24 +99,25 @@ docs/          архитектура, узлы сервиса, план и ADR
 
 ## Локальный запуск и проверка
 
-Нужны Python 3.12, Node.js, PostgreSQL 16 и Chrome для браузерных тестов. Начальная установка в PowerShell:
+Для постоянного Docker-стенда нужны Git, работающий Docker Desktop/Engine с Compose и Python. Node 24, PostgreSQL 18 и backend собираются в контейнерах. При первом запуске подготовьте CLIP-cache по [инструкции чистого checkout](docs/service/runtime.md#первый-запуск-с-чистого-checkout); подготовка модели использует Python 3.12 и корневой requirements.txt.
 
 ```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-npm --prefix frontend ci
-if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+python scripts/start_local.py
+python scripts/start_local.py --status
+# Остановка с сохранением БД и фото:
+python scripts/start_local.py --stop
 ```
 
-Настройте `DATABASE_URL` в `.env`, примените миграции, соберите SPA и запустите API по [инструкции](docs/service/runtime.md#установка-и-запуск). Подготовка весов CLIP описана там же.
+Адрес и выбранный порт печатает helper; по умолчанию это http://127.0.0.1:8000. Учётки и пароль создаются локально в var/compose-local/accounts.txt. Корневой .env для этого helper не требуется. [Native-запуск без Docker](docs/service/runtime.md#установка-и-запуск) описан отдельно.
 
-Полная проверка из настроенного окружения:
+Для полного native-прогона тестов дополнительно нужны Node 24, установленная PostgreSQL 18 с утилитами и Chrome. После создания .venv из requirements.txt:
 
 ```powershell
-python scripts/verify.py --browser
+npm.cmd --prefix frontend ci
+.\.venv\Scripts\python.exe scripts/verify.py --browser --pg-bin "C:\Program Files\PostgreSQL\18\bin"
 ```
 
-Runner создаёт временную PostgreSQL, проверяет миграции и upgrade, Python, сборку, UI и браузер. Результаты записываются в `reports`, журналы — в `logs`.
+Runner создаёт собственную временную PostgreSQL, проверяет миграции и upgrade, Python, сборку, UI и браузер. Результаты записываются в reports, журналы — в logs. [Последний полный прогон и границы проверки](docs/service/verification.md#последний-полный-прогон).
 
 ## Дальнейшие работы
 
@@ -124,7 +125,7 @@ Runner создаёт временную PostgreSQL, проверяет мигр
 - Добавить восстановительное планирование просрочки и изменение состава после начала работ.
 - Уточнить у заказчика единицы норм, длительность и неоднозначные правила исходного графика.
 - Проверить модели на реальных размеченных данных.
-- Подготовить Docker Compose/nginx/CI, мониторинг и проверку восстановления БД, фото и моделей.
+- Настроить nginx/TLS, автоматический прогон тестов в CI, мониторинг и проверку восстановления БД, фото и моделей. Compose и workflow синхронизации уже существуют.
 
 Критерии и состояние задач — в [плане проекта](docs/PLAN.md).
 

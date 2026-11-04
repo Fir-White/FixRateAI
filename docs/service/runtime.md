@@ -1,6 +1,28 @@
 # Запуск и эксплуатация
 
-Назначение: установить и проверить текущий модульный сервис. Команды выполняются из корня репозитория; исходный полный профиль — Windows/Python 3.12/PostgreSQL 16.13. Аудит 04.11.2026 дополнительно подтвердил Windows/Python 3.14.7/PostgreSQL 18.6 (API/тесты) и чистый Linux Compose/Python 3.12/CPU PyTorch; подробности и ограничения — в журнале проверок.
+Назначение: установить и проверить текущий модульный сервис. Команды выполняются из корня выбранного checkout dev. Текущий Compose использует PostgreSQL 18 и Python 3.12/CPU PyTorch. Полный native-прогон 04.11.2026 выполнен на Windows/Python 3.14.7/PostgreSQL 18.6; native-подготовка CLIP описана для Python 3.12. Прежние результаты PostgreSQL 16.13 относятся к датированным историческим протоколам.
+
+## Первый запуск с чистого checkout
+
+Выберите dev при клонировании:
+
+```powershell
+git clone --branch dev https://github.com/krangras/FixRateAI.git
+Set-Location FixRateAI
+```
+
+Для постоянного стенда установите и запустите Docker Desktop/Engine с Compose. Native Node и PostgreSQL для этого варианта не нужны. Если закреплённый CLIP-cache уже подготовлен на этой машине, сразу используйте python scripts/start_local.py --cache "путь-к-cache". Для чистой машины сначала создайте Python 3.12 окружение и подготовьте веса:
+
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$env:HF_HOME = Join-Path (Resolve-Path .venv).Path 'hf-cache'
+.\.venv\Scripts\python.exe scripts/prepare_clip.py --download
+.\.venv\Scripts\python.exe scripts/start_local.py --cache "$env:HF_HOME"
+```
+
+Скачивание выполняется явно один раз и требует сети. Команда без --download проверяет существующий cache offline. Веса не включены в Git; подготовка не требует проектной PostgreSQL или .env. Helper создаёт отдельный постоянный Docker-стенд, применяет миграции, выполняет demo seed, проверяет модели и печатает адрес/путь к учёткам. Без cache можно проверить API с контролируемым MODEL_NOT_READY через обычный [Compose](#чистая-postgresql-и-compose); start_local.py требует готовности обеих моделей.
 
 ## Постоянный локальный стенд для тестирования
 
@@ -41,12 +63,13 @@ python scripts/start_local.py --stop
 
 ## Установка и запуск
 
-Для полного native ML-профиля используйте Python 3.12; Node 24 и установленную PostgreSQL 16/18. Python-зависимости backend, RF, CLIP и тестов зафиксированы в `requirements.txt` (59 пакетов проверенного профиля). Frontend использует `package-lock.json` и `npm ci`.
+Для native ML-профиля используйте Python 3.12, Node 24 и PostgreSQL 18. Создание роли и отдельной БД описано в [подготовке PostgreSQL](#чистая-postgresql-и-compose); выполните его до миграций в блоке ниже. Python-зависимости backend, RF, CLIP и тестов зафиксированы в `requirements.txt` (59 пакетов проверенного профиля). Frontend использует `package-lock.json` и `npm ci`.
 
 PowerShell, из корня проекта:
 
 ```powershell
 py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 # Отредактируйте DATABASE_URL: новая проектная PostgreSQL, не рабочая БД с чужими данными.
@@ -73,16 +96,16 @@ CLI и scripts/start_backend.py загружают корневой `.env`, со
 Учётные записи создаются только внутри demo объекта. Для создания обычного пользователя существующего объекта:
 
 ```powershell
-.\.venv\Scripts\python.exe -m app.manage create-user --email user@example.test --name "Имя" --site <UUID-объекта> --role engineer
+.\.venv\Scripts\python.exe -m app.manage create-user --email user@example.test --name "Имя" --site "UUID-объекта" --role engineer
 ```
 
-Первый объект создаётся через SQL/bootstrap; оборудование и настройки обслуживания вводятся через /settings/equipment, работники и смены — /settings/workforce. Исходный импорт Excel хранится отдельно от новых операторских версий.
+Замените UUID-объекта действительным идентификатором существующего объекта. Первый объект создаётся через SQL/bootstrap; оборудование и настройки обслуживания вводятся через /settings/equipment, работники и смены — /settings/workforce. Исходный импорт Excel хранится отдельно от новых операторских версий.
 
 Linux/macOS: `python3.12 -m venv .venv`, `.venv/bin/python` вместо Windows python.exe, `export PYTHONPATH=backend:.`; используйте npm вместо npm.cmd; остальные команды аналогичны. Полный Windows-стенд и Linux-контейнер проверяются отдельно, журнал указан ниже.
 
 Приложение: `http://127.0.0.1:8000`, OpenAPI: `/docs`, готовность: `/api/health`. Сначала примените миграции и соберите frontend, потом запускайте backend. Импорт модуля не соединяется с БД; lifespan откажет с понятной ошибкой, если схема не готова.
 
-Для горячей разработки запускайте backend так же, а во второй консоли `npm --prefix frontend run dev`. Vite слушает 5173 и проксирует `/api` на 8000, сохраняя Host для same-origin проверки. Остановка: Ctrl+C в обеих консолях; PostgreSQL управляется его штатным сервисом. Локальный скрипт проверки останавливает только созданные им процессы.
+Для горячей разработки запускайте backend так же, а во второй консоли `npm --prefix frontend run dev`. Vite слушает 5173 и проксирует `/api` на 8000, сохраняя Host для same-origin проверки. Открывайте UI именно на адресе Vite и используйте его относительные /api URL; прямой запрос браузера с 5173 на 8000 останется межсайтовым. Остановка: Ctrl+C в обеих консолях; PostgreSQL управляется его штатным сервисом. Локальный скрипт проверки останавливает только созданные им процессы.
 
 Переменные:
 
@@ -91,7 +114,8 @@ Linux/macOS: `python3.12 -m venv .venv`, `.venv/bin/python` вместо Windows
 | `DATABASE_URL` | `postgresql+psycopg://…`; обязательно |
 | `PHOTO_STORAGE_ROOT` | Каталог файлов, по умолчанию `var/photos`; не внутри публичной статики |
 | `COOKIE_SECURE` | `false` для loopback HTTP; `true` для HTTPS |
-| `HF_HOME` | Необязательный каталог cache моделей |
+| `HF_HOME` | Native cache моделей; для helper по умолчанию используйте .venv/hf-cache |
+| `CORS_ORIGINS` | Настройка CORS middleware; не отменяет same-origin проверку API. Для Vite используется proxy |
 | `VITE_DEMO_MODE` | По умолчанию false; true создаёт явно демонстрационную SPA с fixtures, без реальных изменений |
 | `FORECAST_TIMEOUT_SECONDS` | Дедлайн одного RF-вызова в (0, 5], по умолчанию 2; календарный бюджет 8 секунд сохраняется |
 | `PHOTO_REVIEW_MAX_FILES`, `PHOTO_REVIEW_MAX_BYTES` | Пакет анализа: 20 фото / 50 МиБ по умолчанию; общий upload-лимит одного файла не меняется |
@@ -182,10 +206,10 @@ python -B scripts/verify_compose.py
 `pip install -r requirements.txt` устанавливает библиотеки для backend, ML/CV и тестов одним списком. Веса CLIP устанавливаются отдельно: они не являются Python-пакетом, не включаются в Git и не скачиваются API во время запроса.
 
 ```powershell
-$env:HF_HOME = Join-Path (Resolve-Path .venv).Path 'cv-cache'
+$env:HF_HOME = Join-Path (Resolve-Path .venv).Path 'hf-cache'
 .\.venv\Scripts\python.exe scripts/prepare_clip.py --download
 $env:FIXRATE_REQUIRE_CLIP = '1'
-.\.venv\Scripts\python.exe scripts/verify.py --browser
+.\.venv\Scripts\python.exe scripts/verify.py --browser --pg-bin "C:\Program Files\PostgreSQL\18\bin"
 ```
 
 `--download` нужен для явной подготовки отсутствующих весов закреплённой ревизии. Если cache уже подготовлен, `scripts/prepare_clip.py` без флага проверяет готовность полностью локально. `FIXRATE_REQUIRE_CLIP=1` требует настоящий model_ref в HTTP-проверке; unavailable или подставной классификатор такой прогон не заменяют. Эти проверки подтверждают исполнение модели, но не её точность на заказчике.
@@ -197,14 +221,14 @@ $env:FIXRATE_REQUIRE_CLIP = '1'
 Основная команда из корня:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/verify.py --browser --pg-bin "C:\Program Files\PostgreSQL\16\bin"
+.\.venv\Scripts\python.exe scripts/verify.py --browser --pg-bin "C:\Program Files\PostgreSQL\18\bin"
 ```
 
 `--browser` требует установленный Chrome. Без этого флага выполняются все остальные проверки. Каждый запуск создаёт новые `reports/verification/<run-id>` и `logs/verification/<run-id>`; команда печатает оба пути. Playwright artifacts сохраняются в подкаталоге отчёта `playwright`; конфигурация frontend остаётся на месте. `--output reports/verification/<новое-имя>` задаёт каталог отчёта; внутри репозитория выход разрешён только в reports. Повтор с каталогом, уже содержащим результаты, отклоняется, чтобы не перезаписать доказательства. Для внешнего CI-каталога results.json сохраняет разрешимые ссылки на логи.
 
 Runner не использует рабочий `DATABASE_URL`: создаёт новый кластер в TEMP, слушающий loopback на свободном порту, отдельные БД для ORM, runtime, upgrade и браузера; останавливает свои процессы и удаляет только проверенный собственный временный каталог.
 
-Проверяются 001–004 и все SQL assertion исходников, повторный исходный seed, upgrade заполненной 004 до 008 с сохранением прежних полей восьми таблиц истории, повтор мигратора, новая 001–008, повтор runtime seed, все Python тесты с настоящей БД, 12 исполняемых сценариев оркестрации, архитектурный валидатор, compileall, TypeScript/Vite, UI тесты и npm audit. Browser E2E использует собранную SPA и настоящий uvicorn: календарь → два прогноза → создание задания → подтверждение бригады → reload; также сохранены проверки четырёх ролей, фотоотчёта, доработки, приёмки и RF.
+Проверяются 001–004 и все SQL assertion исходников, повторный исходный seed, upgrade заполненной 004 до 008 с сохранением прежних полей восьми таблиц истории, повтор мигратора, новая 001–008, повтор runtime seed, все Python тесты с настоящей БД, 12 исполняемых сценариев оркестрации, архитектурный валидатор, compileall, TypeScript/Vite, UI тесты и npm audit. Browser E2E использует собранную SPA: 13 auth-сценариев работают с mock API, остальные 11 — с настоящим uvicorn/PostgreSQL: календарь → два прогноза → создание задания → подтверждение бригады → reload; также сохранены проверки четырёх ролей, фотоотчёта, доработки, приёмки и RF.
 
 Изолированные команды:
 
@@ -222,7 +246,7 @@ npm.cmd --prefix frontend audit --audit-level=moderate
 ## Диагностика и ограничения
 
 - `DATABASE_URL is required`: настройте `.env` и используйте scripts/start_backend.py; драйвер должен быть `postgresql+psycopg`.
-- Ошибка startup о 004/008: примените SQL-цепочку. Сам API не создаёт таблицы через ORM; --migrate у launcher и Compose явно запускают мигратор перед API.
+- Ошибка startup о 004/008: примените SQL-цепочку. Сам API не создаёт таблицы через ORM; --migrate у launcher и Docker CMD явно запускают мигратор перед API.
 - UI 404 при прямом открытии: сначала соберите `frontend/dist`, затем перезапустите backend; статика монтируется при создании приложения.
 - 401: повторный вход или проверка активности пользователя/членства/объекта; клиентский выбор роли в production не даёт доступ.
 - 403 при mutation: CSRF cookie/header, роль или запрет собственной приёмки. За reverse proxy сохраняйте корректный Host/origin.
@@ -236,9 +260,9 @@ npm.cmd --prefix frontend audit --audit-level=moderate
 
 ## Границы поставки
 
-Готовых конфигураций Docker Compose, nginx и CI для всего приложения в текущем дереве нет. Проектный ориентир 4 CPU / 8 ГБ RAM не является измеренным ресурсным бюджетом. GPU не обязателен архитектурно. Перед внешней эксплуатацией нужны замеры на целевом стенде, резервирование БД/фото/моделей и проверка восстановления, мониторинг, ограничения запросов и политика регистрации. Миграции применяются отдельно; `create_all()` не используется.
+В репозитории есть Dockerfile, compose.yaml/compose.ml.yaml, постоянный локальный launcher и GitHub Actions для синхронизации GitVerse. Автоматического CI-прогона полного набора тестов в GitHub Actions, nginx/TLS-конфигурации, мониторинга и проверенного backup/restore пока нет. Проектный ориентир 4 CPU / 8 ГБ RAM не является измеренным ресурсным бюджетом. Для внешней эксплуатации нужны отдельные замеры, резервирование БД/фото/моделей, ограничения запросов и политика регистрации.
 
-Для будущего развёртывания сохранена последовательность: готовность PostgreSQL → отдельное применение миграций с остановкой при ошибке → запуск backend → проверка `/api/health` → SPA/proxy с корректным Host/origin. БД, фото и модели требуют постоянного хранения и совместимого восстановления. Сейчас health проверяет `SELECT 1`, а не качество или готовность AI; Compose volumes/healthchecks остаются проектом, не существующей конфигурацией. Прогрев CLIP при startup не реализован, см. [ML/CV](ml.md).
+Последовательность Compose: health PostgreSQL → launcher --migrate с остановкой при ошибке → API → app healthcheck. Volumes postgres_data и photos сохраняют данные; подготовленные веса подключаются отдельным read-only volume в ML-профиле. /api/health проверяет SELECT 1, а не качество или готовность AI; готовность обеих моделей проверяют start_local.py и отдельный контейнерный сценарий. Прогрев CLIP при startup API автоматически не вызывается; библиотечный warmup() доступен отдельно, см. [ML/CV](ml.md).
 
 ## Связи
 
