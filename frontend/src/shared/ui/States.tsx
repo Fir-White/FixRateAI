@@ -8,7 +8,7 @@ export function LoadingState({
   label?: string;
 }) {
   return (
-    <Card className="p-6" role="status" aria-live="polite" aria-label={label}>
+    <Card className="p-6" role="status" aria-live="polite" aria-label={label} data-workspace-loading="true">
       <span className="sr-only">{label}</span>
       <div aria-hidden="true" className="space-y-4">
         <div className="flex items-center gap-3">

@@ -41,6 +41,7 @@ test("calendar → two forecasts → single task → confirmed crew → persiste
   const persisted=await page.request.get(`/api/v1/maintenance/ui/tasks/${row.taskId}`);
   expect((await persisted.json()).task.assignees).toHaveLength(2);
   await page.goto(`/comparisons/${row.comparison.runId}`);
+  await page.locator(".forecast-snapshot summary").click();
   await expect(page.getByText(row.comparison.snapshotHash,{exact:true})).toBeVisible();
   await expect(page.getByText("Решение оркестратора",{exact:true})).toBeVisible();
   expect(errors).toEqual([]);

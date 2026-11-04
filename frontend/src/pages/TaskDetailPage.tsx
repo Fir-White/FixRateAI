@@ -61,7 +61,7 @@ export function TaskDetailPage() {
   const canOpenQuality = canOpenSection(profile?.role, "quality");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 task-detail-page">
       <Link
         to="/tasks"
         className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink"
@@ -105,6 +105,7 @@ export function TaskDetailPage() {
         }
       />
 
+      {DEMO_MODE && <Callout tone="neutral">DEMO · Данные для просмотра. Назначение, расчёт и отмена требуют подключения к API.</Callout>}
       {notice && <div role="alert"><Callout tone="danger">{notice}</Callout></div>}
       {showCancellation&&query.data.allowedActions?.includes('cancel')&&<Card className="space-y-3 p-5"><h2 className="font-semibold">Отмена задания до начала выполнения</h2><p className="text-sm text-muted">Назначения освободятся. Задание и история сохранятся.</p><label className="block text-sm"><FieldCaption>Причина отмены</FieldCaption><textarea aria-label="Причина отмены" disabled={busy} className="mt-1 w-full rounded-lg border border-line bg-canvas p-3" value={cancelReason} onChange={e=>setCancelReason(e.target.value)}/></label><Button variant="secondary" disabled={busy||!cancelReason.trim()} onClick={async()=>{
         setBusy(true);setNotice("");try{await maintenanceApi.cancel(task.id,task.revision,cancelReason.trim());setShowCancellation(false);setShowCrewSelection(false);setRefreshToken(value=>value+1);}catch(failure){setNotice(failure instanceof Error?failure.message:"Отмена не выполнена");setRefreshToken(value=>value+1);}finally{setBusy(false);}

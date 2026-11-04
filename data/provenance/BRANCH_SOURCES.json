@@ -149,20 +149,19 @@
     },
     {
       "branch": "feature/frontend-next",
-      "sha": "ac8a8ae52089b570e2c6284d242cd50abc23d5ca",
-      "reviewed_sha": "ac8a8ae52089b570e2c6284d242cd50abc23d5ca",
-      "status": "partially_integrated",
+      "sha": "8d6935c4d013ac1875757cccccaed78013dc4a7c",
+      "reviewed_sha": "8d6935c4d013ac1875757cccccaed78013dc4a7c",
+      "status": "integrated",
       "document": "docs/service/development.md",
       "comparison_base": "6a09f3b446f3215112569784ff796a8e10bf99f5",
-      "included_scope": "Responsive auth, mobile Aurora and required shared dependencies/tests only",
+      "included_scope": "Full Aurora Workspace, operational screen redesign and associated tests",
       "pending_paths": [],
-      "not_included": [
-        "Workspace commit 3e95724 and local frontend redesign are retained on feature/frontend-next; not merged into dev"
-      ],
-      "verification": "reports/verification/verify-20261104-151956-afe4399c/results.json",
+      "not_included": [],
+      "verification": "reports/frontend-integration/20261104/results.json",
       "adaptations": [
-        "All auth/shared editor paths from published dev retained during local readiness merge; previous pending auth paths resolved"
-      ]
+        "Normal merge of workspace, redesign and tests; current dev backend, SQL, ML, demo credentials and canonical documentation retained."
+      ],
+      "fully_accounted_source_sha": "8d6935c4d013ac1875757cccccaed78013dc4a7c"
     }
   ]
 }

@@ -6,6 +6,7 @@ export const SECTION_ROLES: Record<string, Role[]> = {
   calendar: ["dispatcher", "engineer", "executor"],
   tasks: ["dispatcher", "engineer"],
   comparisons: ["dispatcher", "engineer"],
+  reports: ["dispatcher", "engineer"],
   quality: ["engineer"],
   executor: ["executor"],
   service_settings: ["admin", "dispatcher", "engineer"],

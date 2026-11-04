@@ -108,3 +108,12 @@ Dockerfile.bundled, compose.bundled.yaml и scripts/build_bundled_image.py до�
 backend/app/demo_accounts.py определяет стабильные UUID демо-пользователей, валидацию и атомарное обновление email/password_hash. scripts/start_local.py читает только FIXRATE_DEMO_* из корневого .env без зависимостей host Python; остальные Docker-параметры сохраняет приватный runtime.env. Изменение реквизитов выполняет явный seed-demo --configure-accounts. Обычный seed_demo сохраняет прежнее идемпотентное поведение. Backend не применяет эти параметры при старте HTTP-приложения.
 
 Проверки tests/backend/test_demo_credentials.py различают file-only разбор конфигурации и реальные HTTP/PostgreSQL сценарии ротации, отказа старому доступу, повторного применения и конфликта email. Runtime-пароли не включаются в Docker build context и протоколы. [Пользовательская инструкция](runtime.md#логин-и-пароль-демо-стенда-через-env).
+
+### Поставка frontend из архива, 03.11.2026
+
+Поставка `FixRateAI_frontend_redesign.zip` учитывается отдельно от Git-веток в [FRONTEND_REDESIGN.json](../../data/provenance/FRONTEND_REDESIGN.json): SHA-256 архива, пути и хэши исходников, адаптации и исключения. BRANCH_SOURCES/BRANCH_FILE_MAP продолжают описывать Git-источники. Доменные тесты адаптированы под общий Vitest в tests/web/unit, браузерные сценарии — в tests/web/e2e. Переносимый demo-бандлер и исторические отчёты архива не добавлялись в рабочую сборку. Поведение описано в [web](web.md#редизайн-рабочих-экранов-03112026), команды и результаты — в [verification](verification.md#03112026-перенос-редизайна-из-архива); новые описательные README вне документации не создавались.
+
+
+## Интеграция frontend-next в dev, 04.11.2026
+
+Ветка feature/frontend-next 8d6935c объединена с dev обычным merge: рабочие экраны, Aurora Workspace, навигация, состояние интерфейса и их тесты. Backend/SQL/ML и настройка демо-доступа сохранены из dev. Указанные выше записи о частичном переносе auth отражают предыдущий этап. Новые результаты текущего merge приводятся в verification.

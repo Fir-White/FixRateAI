@@ -10,17 +10,18 @@ const roles: Role[] = ["admin", "dispatcher", "engineer", "executor"];
 const access: Record<string, Role[]> = {
   dispatcher: ["admin", "dispatcher"], equipment: roles,
   calendar: ["dispatcher", "engineer", "executor"], tasks: ["dispatcher", "engineer"],
-  comparisons: ["dispatcher", "engineer"], quality: ["engineer"], executor: ["executor"],
+  comparisons: ["dispatcher", "engineer"], reports: ["dispatcher", "engineer"], quality: ["engineer"], executor: ["executor"],
   settings: ["admin","dispatcher","engineer"], "my-shifts": ["executor"],
 };
 const routes = [
   ["/dispatcher", "Панель диспетчера"],
   ["/equipment", "Оборудование"],
   ["/equipment/e1000000-0000-4000-8000-000000000001", "Тепловой пункт №1"],
-  ["/calendar", "Календарь технического обслуживания"],
-  ["/tasks", "Очередь заданий"],
+  ["/calendar", "График ТО и ППР"],
+  ["/tasks", "Наряды и назначения"],
   ["/tasks/b1000000-0000-4000-8000-000000000004", "Очистка учебного узла"],
   ["/comparisons", "Сравнение прогнозов"],
+  ["/reports", "Отчёты"],
   ["/comparisons/c1000000-0000-4000-8000-000000000001", "Учебный узел очистки"],
   ["/quality", "Контроль качества и приёмка"],
   ["/quality/b1000000-0000-4000-8000-000000000004", "Очистка учебного узла"],
@@ -39,11 +40,11 @@ describe("role access and links on every screen", () => {
       for (const link of screen.getAllByRole("link")) {
         const href = link.getAttribute("href") ?? "";
         if (!href.startsWith("/")) continue;
-        const section = href.split("/")[1];
+        const section = new URL(href, "http://localhost").pathname.split("/")[1];
         if (section && section !== "login") expect(access[section], href).toContain(role);
       }
       if (allowed && role === "executor" && path === "/calendar") {
-        expect(screen.getAllByRole("link").some(link => link.getAttribute("href")?.startsWith("/executor/tasks/"))).toBe(true);
+        expect(screen.queryByRole("button", {name: "Рассчитать график"})).not.toBeInTheDocument();
       }
     },
   );

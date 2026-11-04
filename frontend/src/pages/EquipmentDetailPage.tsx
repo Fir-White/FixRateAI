@@ -64,12 +64,12 @@ export function EquipmentDetailPage() {
         actions={
           <>
             {canCompare && <Link
-              to="/comparisons"
+              to={`/comparisons?equipment=${encodeURIComponent(equipmentId)}`}
               className={buttonClassName("secondary")}
             >
               Сравнить прогнозы
             </Link>}
-            {tasksPath && <Link to={tasksPath} className={buttonClassName("primary")}>
+            {tasksPath && <Link to={`${tasksPath}?equipment=${encodeURIComponent(equipmentId)}`} className={buttonClassName("primary")}>
               {profile?.role === "executor" ? "Мои задания" : "Очередь заданий"}
             </Link>}
           </>
@@ -170,14 +170,14 @@ export function EquipmentDetailPage() {
             <CardHeader title="Связи" />
             <div className="space-y-2 p-5 sm:p-6">
               {canCompare && <Link
-                to="/comparisons"
+                to={`/comparisons?equipment=${encodeURIComponent(equipmentId)}`}
                 className="flex items-center justify-between rounded-xl border border-line p-3 text-sm font-semibold text-ink-soft hover:border-accent/40 hover:bg-accent/[0.07]"
               >
                 Прогнозы оборудования
                 <Icon name="chevron" size={16} />
               </Link>}
               {tasksPath && <Link
-                to={tasksPath}
+                to={`${tasksPath}?equipment=${encodeURIComponent(equipmentId)}`}
                 className="flex items-center justify-between rounded-xl border border-line p-3 text-sm font-semibold text-ink-soft hover:border-accent/40 hover:bg-accent/[0.07]"
               >
                 {profile?.role === "executor" ? "Мои задания" : "Задания и назначения"}

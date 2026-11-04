@@ -345,3 +345,34 @@ Runner проверяет базовые ограничения 001–004, upgra
 Первое обновление 3a8b243 сохранило прежние 6 work orders, 3 evidence records и 2 приёмки без изменений; backup — var/backups/before-bundled-20261104T130902Z. При последующем обновлении eab7f5d все исходные ID и метаданные прежних фото сохранены; backup — var/backups/before-demo-env-20261104T133931Z. Во время последующей проверки пользователь менял отчёт и добавлял фото (audit_events save_report/upload_photo), эти действия не откатывались. Первые 4 browser sessions: logs/bundled-image/live-roles.log; после обновления 7 HTTP login/logout прошли: reports/bundled-image/demo-env-deployment.json. Runtime.env/accounts.txt сохраняют прежние реквизиты; mode bundled и source_revision записаны в state.json.
 
 Готовый архив обоих образов: var/bundled-image/20261104T133847Z-67569416/fixrate-ai-eab7f5d-bundled.tar, 979705856 bytes. SHA-256: efaa6d2a2e8cdcf1f064f5cefd263aa454a596af10458290fa3bd12f811c390a. Проверен manifest Docker tar с двумя RepoTags. В архиве нет runtime-паролей, рабочей БД и загруженных пользователем фотографий. Для новой машины clone dev → docker image load → python scripts/start_local.py --bundled-image fixrate-ai:bundled.
+
+## Исторические запуски frontend-next
+
+Следующие записи относятся к отдельному worktree до объединения с dev. Текущий Docker-стенд использует API, VITE_DEMO_MODE=false и параметры постоянного fixrate-local, описанные выше.
+
+## Локальный запуск после редизайна, 03.11.2026
+
+В worktree frontend-next собрана production SPA из исходников новой поставки. FastAPI слушает **http://127.0.0.1:8000**, Vite — **http://127.0.0.1:5173**, его /api проксируется к тому же backend. VITE_DEMO_MODE=false: это серверные сессии и существующие данные, а не архивный dist-demo. Обновление интерфейса на 8000 требует `npm.cmd --prefix frontend run build`; на 5173 работает автоматическое обновление.
+
+Для этого запуска повторно использованы существующие настройки БД fixrate_kran_demo на 127.0.0.1:5433 и каталог фотографий соседнего kran_dev; они не очищались и не пересоздавались. Локальный .env frontend-next создан с тем же подключением и абсолютным PHOTO_STORAGE_ROOT, секреты в Git не добавлены. Миграции 001–008 уже присутствовали: повторный seed и изменение схемы рабочей БД не выполнялись. Проектный PostgreSQL 18.6, FastAPI и Vite запущены в фоне без новых окон. Журналы — logs/frontend-redesign, PID — var/local-demo. Системный PostgreSQL на 5432 не изменялся.
+
+Использовано уже установленное Python 3.11.9 окружение `../kran_dev/.venv/runtime311/Scripts/python.exe`, Node 24.21.0 и PostgreSQL 18.6. Это локальный профиль, отличный от основного проверенного Python 3.12/PostgreSQL 16.13; полный SQL gate на 18 не прошёл (см. verification). Random Forest загрузился; наличие и исполнение настоящих CLIP-весов этим запуском не подтверждено.
+
+Повторный запуск из корня worktree (при остановленных серверах):
+
+```powershell
+$runtimePython = (Resolve-Path '../kran_dev/.venv/runtime311/Scripts/python.exe').Path
+& $runtimePython -m uvicorn app.main:app --app-dir backend --env-file .env --host 127.0.0.1 --port 8000
+# В другой консоли:
+npm.cmd --prefix frontend run dev -- --host 127.0.0.1 --strictPort
+```
+
+На Windows с запретом npm.ps1 используется npm.cmd без изменения ExecutionPolicy. Основные инструкции установки чистого окружения находятся выше. Текущие фоновые процессы можно остановить по PID после проверки CommandLine; backend на Windows может иметь отдельный дочерний python.exe, поэтому один сохранённый PID не заменяет проверку дерева процесса.
+
+
+
+## DEMO с выбором ролей, 04.11.2026
+
+Для просмотра всех ролей в корневом локальном .env установлено `VITE_DEMO_MODE=true`. Vite запущен на **http://127.0.0.1:5173/login**. На первом входе выбирается роль без логина и пароля; в рабочей оболочке роль меняется через список «Демонстрационная роль» в верхней панели. Доступны диспетчер, инженер, исполнитель и администратор. Используются учебные fixtures; запись рабочих данных требует API-режима.
+
+Запуск: `npm.cmd --prefix frontend run dev -- --host 127.0.0.1 --port 5173 --strictPort`. Журналы этого запуска находятся в logs/demo, PID — var/local-demo/vite.pid. Для возврата к API установите `VITE_DEMO_MODE=false` и перезапустите Vite. Сборка frontend/dist обновляется отдельной командой build и использует значение флага на момент сборки.

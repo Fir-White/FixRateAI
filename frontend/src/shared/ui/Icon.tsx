@@ -6,6 +6,7 @@ export type IconName =
   | "calendar"
   | "tasks"
   | "forecast"
+  | "report"
   | "quality"
   | "executor"
   | "logout"
@@ -56,6 +57,11 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M3 17l5-5 4 4 6-8" />
       <path d="M15 8h4v4" />
       <path d="M3 21h18" />
+    </>
+  ),
+  report: (
+    <>
+      <path d="M4 20h16M6 17V9M12 17V4M18 17v-6" />
     </>
   ),
   quality: (

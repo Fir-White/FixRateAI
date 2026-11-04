@@ -2126,368 +2126,890 @@
   },
   {
     "branch": "feature/frontend-next",
-    "source_sha": "ac8a8ae52089b570e2c6284d242cd50abc23d5ca",
+    "source_sha": "8d6935c4d013ac1875757cccccaed78013dc4a7c",
     "comparison_base": "6a09f3b446f3215112569784ff796a8e10bf99f5",
     "files": [
       {
+        "source_path": ".gitignore",
+        "dev_path": ".gitignore",
+        "source_blob": "203782989d03315c2797c8c07297e2bfeb04baf3",
+        "disposition": "merged_exact"
+      },
+      {
         "source_path": "README.md",
         "dev_path": "README.md",
-        "source_blob": "74cc9b3762c36ccf58d715db5fe87434532b5111",
-        "disposition": "retained_or_adapted_auth_only"
+        "source_blob": "81a632d78d0ed7b8a7bdf0e17d391413b1259832",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "data/provenance/BRANCH_FILE_MAP.json",
+        "dev_path": "data/provenance/BRANCH_FILE_MAP.json",
+        "source_blob": "fc458e70c1f39de3109b0237e5387624116903be",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "data/provenance/BRANCH_SOURCES.json",
+        "dev_path": "data/provenance/BRANCH_SOURCES.json",
+        "source_blob": "37f70a941b73e49c0e2afe1296e8eed23535153e",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "data/provenance/FRONTEND_REDESIGN.json",
+        "dev_path": "data/provenance/FRONTEND_REDESIGN.json",
+        "source_blob": "bd15f938e59660bcf3b366abcb6c1271b872ed32",
+        "disposition": "merged_exact"
       },
       {
         "source_path": "docs/ARCHITECTURE.md",
         "dev_path": "docs/ARCHITECTURE.md",
-        "source_blob": "baa88771a04205327bc8ed367da4bd852b639610",
-        "disposition": "retained_or_adapted_auth_only"
+        "source_blob": "34423fb381a2bbcaa8e727b88764885527d72b3f",
+        "disposition": "adapted_preserving_current_dev"
       },
       {
         "source_path": "docs/PLAN.md",
         "dev_path": "docs/PLAN.md",
-        "source_blob": "891fcbccf192caee991c2ec8031cda24ecd32089",
-        "disposition": "retained_or_adapted_auth_only"
+        "source_blob": "36394cf470d4700a7990cb3de8adee1b8a52664e",
+        "disposition": "adapted_preserving_current_dev"
       },
       {
         "source_path": "docs/decisions/2026-11-02--mobile-aurora-canvas.md",
         "dev_path": "docs/decisions/2026-11-02--mobile-aurora-canvas.md",
         "source_blob": "5c700a6f0ea082c548f895d89a25045358a202fc",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "adapted_preserving_current_dev"
       },
       {
         "source_path": "docs/decisions/INDEX.md",
         "dev_path": "docs/decisions/INDEX.md",
         "source_blob": "48336e3ef65b2e2147796771a2e1d8bc545ba44c",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "adapted_preserving_current_dev"
       },
       {
         "source_path": "docs/service/INDEX.md",
         "dev_path": "docs/service/INDEX.md",
         "source_blob": "16f78494a379ab8345800e33d5d2daaf4750b87e",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "docs/service/development.md",
+        "dev_path": "docs/service/development.md",
+        "source_blob": "fac0e8f479a6334ae7450cbc921965ff2d2b6e10",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "docs/service/runtime.md",
+        "dev_path": "docs/service/runtime.md",
+        "source_blob": "b341d049e5d6f1bbbbd6fdea3ff77b4addfa3475",
+        "disposition": "adapted_preserving_current_dev"
       },
       {
         "source_path": "docs/service/verification.md",
         "dev_path": "docs/service/verification.md",
-        "source_blob": "f9b44c6708d5c48aa1f896e955a3b06fa0bca488",
-        "disposition": "retained_or_adapted_auth_only"
+        "source_blob": "dddc0b58ad15d855c21ffc6612e1e26bf4422f24",
+        "disposition": "adapted_preserving_current_dev"
       },
       {
         "source_path": "docs/service/web-motion.md",
         "dev_path": "docs/service/web-motion.md",
         "source_blob": "a75c77653500c1c3864f7f29a8c2ac5101b59134",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "adapted_preserving_current_dev"
       },
       {
         "source_path": "docs/service/web.md",
         "dev_path": "docs/service/web.md",
-        "source_blob": "8a53fb19c58757b8f38be22cddbd050c8db6c15a",
-        "disposition": "retained_or_adapted_auth_only"
+        "source_blob": "f1a9c76ec691ffcdf476329dedde4e83222ad127",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "frontend/index.html",
+        "dev_path": "frontend/index.html",
+        "source_blob": "bd91a0e18729360de6614a505406c830f016daa4",
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/app/router.tsx",
         "dev_path": "frontend/src/app/router.tsx",
-        "source_blob": "0fa028fd7bdd9a21d78f8f9c559a0195aba1be5c",
-        "disposition": "retained_or_adapted_auth_only"
+        "source_blob": "1f22a0c76167a7586fee5d0bed18dee384a98271",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/assets/favicons-visible/favicon-aurora-16.png",
+        "dev_path": "frontend/src/assets/favicons-visible/favicon-aurora-16.png",
+        "source_blob": "cbedd4b51fa83ec5dc60a57206f20671fb08a0a9",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/assets/favicons-visible/favicon-aurora-32.png",
+        "dev_path": "frontend/src/assets/favicons-visible/favicon-aurora-32.png",
+        "source_blob": "b368fe5b8981866a85a2aea9db57ca325a106460",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/assets/favicons-visible/favicon-aurora.ico",
+        "dev_path": "frontend/src/assets/favicons-visible/favicon-aurora.ico",
+        "source_blob": "6bd69410d91af6e641033d5185f7e7bf828a7f40",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/assets/favicons-visible/favicon-aurora.svg",
+        "dev_path": "frontend/src/assets/favicons-visible/favicon-aurora.svg",
+        "source_blob": "89123a1de32d5af4dd3d59e8003dc5d7832824ba",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/entities/equipment/EquipmentTable.tsx",
+        "dev_path": "frontend/src/entities/equipment/EquipmentTable.tsx",
+        "source_blob": "01ef8d322ab4a5aafbfd1906494b8c899ee9ac2f",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/entities/execution/EvidenceComparison.tsx",
+        "dev_path": "frontend/src/entities/execution/EvidenceComparison.tsx",
+        "source_blob": "5d68e938e71eab18b11d9cc8027b0e8a3667f078",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/entities/execution/EvidenceGallery.tsx",
+        "dev_path": "frontend/src/entities/execution/EvidenceGallery.tsx",
+        "source_blob": "9f982caa0456028f018e4cdf64298f9fb1bb423e",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/entities/forecast/ForecastResultCard.tsx",
+        "dev_path": "frontend/src/entities/forecast/ForecastResultCard.tsx",
+        "source_blob": "0f8ca4daa55385e55eecce58abf7c87309d5c0ca",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/entities/task/TaskLine.tsx",
+        "dev_path": "frontend/src/entities/task/TaskLine.tsx",
+        "source_blob": "579c12f3b8e75e162267962f2db4b121c396b361",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/entities/task/TaskTable.tsx",
+        "dev_path": "frontend/src/entities/task/TaskTable.tsx",
+        "source_blob": "b67d1a2e98fbe56eba0bf1819187a51213925545",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/assignment/CrewSelectionPanel.tsx",
+        "dev_path": "frontend/src/features/assignment/CrewSelectionPanel.tsx",
+        "source_blob": "d2f62726d349d6dc1cb17a5468883d7880e15be0",
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/features/auth/AuroraScene.tsx",
         "dev_path": "frontend/src/features/auth/AuroraScene.tsx",
         "source_blob": "9d813e95726b9429c95059f7d234959037375d13",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/features/auth/AuthFormError.tsx",
         "dev_path": "frontend/src/features/auth/AuthFormError.tsx",
         "source_blob": "97fb4f150f10b16f056491664930683e6abcb28a",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/features/auth/AuthHeroCopy.css",
         "dev_path": "frontend/src/features/auth/AuthHeroCopy.css",
         "source_blob": "c00e43735ccb3f44406e3ef684e96b356cff1ef6",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/features/auth/AuthHeroCopy.tsx",
         "dev_path": "frontend/src/features/auth/AuthHeroCopy.tsx",
         "source_blob": "13fc5200b12f393ef562440700d125d8984809ec",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/features/auth/AuthMotionContext.ts",
         "dev_path": "frontend/src/features/auth/AuthMotionContext.ts",
         "source_blob": "09d9b3721a63cad01d4ff86b2868de7628aa4129",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/features/auth/AuthPasswordInput.tsx",
         "dev_path": "frontend/src/features/auth/AuthPasswordInput.tsx",
         "source_blob": "994ba69e2ae597947ba20c7c44474ac44bce1c7f",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/features/auth/authGesture.ts",
         "dev_path": "frontend/src/features/auth/authGesture.ts",
         "source_blob": "b25e967c412ca7bda4444b7a7fba99deda8b1ad4",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/features/auth/authValidation.ts",
         "dev_path": "frontend/src/features/auth/authValidation.ts",
         "source_blob": "8103d43fb19950b312ed8dbef8ef0f18a5e57ef8",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/features/auth/canvasRenderer.ts",
         "dev_path": "frontend/src/features/auth/canvasRenderer.ts",
         "source_blob": "de820880193473d32e6ed3c2a9a3b7e1b184c600",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/features/auth/mobileCanvasRenderer.ts",
         "dev_path": "frontend/src/features/auth/mobileCanvasRenderer.ts",
         "source_blob": "b6af2a332aceb47816e4a6cef33dc25bad01d74f",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/features/auth/ribbonGeometry.ts",
         "dev_path": "frontend/src/features/auth/ribbonGeometry.ts",
         "source_blob": "d5c0c914614fc84f78b6def804290861f767adc0",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/features/auth/useAuroraMotion.ts",
         "dev_path": "frontend/src/features/auth/useAuroraMotion.ts",
         "source_blob": "ea6ea030c240b8a807b4f368f25f6817d178a3ad",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/features/auth/useAuthTransition.ts",
         "dev_path": "frontend/src/features/auth/useAuthTransition.ts",
         "source_blob": "d53cbceb27ef4df4ef3c4cee7bf4af9425068aa3",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/features/auth/useAuthValidation.ts",
         "dev_path": "frontend/src/features/auth/useAuthValidation.ts",
         "source_blob": "da058a6183025f41dc4a2755fb623a3d937f70d5",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/features/auth/useInitialReveal.ts",
         "dev_path": "frontend/src/features/auth/useInitialReveal.ts",
         "source_blob": "6d4a129daa618b93916a2030e371c195c2b5e0b9",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/features/auth/useMobileAuthViewport.ts",
         "dev_path": "frontend/src/features/auth/useMobileAuthViewport.ts",
         "source_blob": "84753611e67e5135dfeab21b872e33d9010050ab",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/calendar/CalendarBoard.tsx",
+        "dev_path": "frontend/src/features/calendar/CalendarBoard.tsx",
+        "source_blob": "6cdda22d248863dd59648279da95d84eb7ea7607",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/calendar/calendar.css",
+        "dev_path": "frontend/src/features/calendar/calendar.css",
+        "source_blob": "520956e9b987dc02fe60e63b4c2cc5afeae06c3b",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/settings/CalendarPatternEditor.tsx",
+        "dev_path": "frontend/src/features/settings/CalendarPatternEditor.tsx",
+        "source_blob": "68c2f07a6862d218c3aaa224a2cf2e744d9da9dc",
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/index.css",
         "dev_path": "frontend/src/index.css",
-        "source_blob": "51f5c6ae1c8537dd6e4c8038ec33bb97bf93e85b",
-        "disposition": "retained_or_adapted_auth_only"
+        "source_blob": "08e357b7ad160f8cbda95f036f80db82a1c1f39f",
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/layouts/AppShell.tsx",
         "dev_path": "frontend/src/layouts/AppShell.tsx",
-        "source_blob": "eaa41275885210bbc66429b8416808c06cd62e85",
-        "disposition": "retained_or_adapted_auth_only"
+        "source_blob": "c8296054f08298f004baddcdebfb0e5918a82756",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/CommandMenu.tsx",
+        "dev_path": "frontend/src/layouts/CommandMenu.tsx",
+        "source_blob": "946e4359ac1b02fb8c71e2a4eac002ab7f0694b3",
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/layouts/ExecutorLayout.tsx",
         "dev_path": "frontend/src/layouts/ExecutorLayout.tsx",
-        "source_blob": "19d5611b4fa9976935c65d4e132743016b5e694c",
-        "disposition": "retained_or_adapted_auth_only"
+        "source_blob": "039af4f5aa5024831ed4b3bebd233a628298dac6",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/Sidebar.css",
+        "dev_path": "frontend/src/layouts/Sidebar.css",
+        "source_blob": "47a77d3ce19e21102f6bed5ad50942bef0634d6b",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/Sidebar.tsx",
+        "dev_path": "frontend/src/layouts/Sidebar.tsx",
+        "source_blob": "c9982b59ca115a3a4c2dae6226150cfb0750d457",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/SidebarAccount.tsx",
+        "dev_path": "frontend/src/layouts/SidebarAccount.tsx",
+        "source_blob": "8aeb3ad30674aa0b89ab10abf65428049b654ce9",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/WorkspaceAuroraBackground.tsx",
+        "dev_path": "frontend/src/layouts/WorkspaceAuroraBackground.tsx",
+        "source_blob": "0ab9e5144b30d9dc35ee9fb76d247c05dfc3b2e9",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/WorkspaceLayout.tsx",
+        "dev_path": "frontend/src/layouts/WorkspaceLayout.tsx",
+        "source_blob": "b60229d43164b967876706b4cc5119623727a1dd",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/navigation.ts",
+        "dev_path": "frontend/src/layouts/navigation.ts",
+        "source_blob": "9fcff3b32ca5c4ead61783240b5a76b34ba09a1c",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/operations.css",
+        "dev_path": "frontend/src/layouts/operations.css",
+        "source_blob": "f2764530b26bb248da0876d926657b6bf9698dbe",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/workspace.css",
+        "dev_path": "frontend/src/layouts/workspace.css",
+        "source_blob": "d455db83180adcab1f8fc48135f9aea5982def20",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/workspaceAuroraInteraction.ts",
+        "dev_path": "frontend/src/layouts/workspaceAuroraInteraction.ts",
+        "source_blob": "3bda6f4af5fb877ad2921451b2f779daba0d0ad1",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/workspaceAuroraRenderer.ts",
+        "dev_path": "frontend/src/layouts/workspaceAuroraRenderer.ts",
+        "source_blob": "3af4624cf56b61aa9658577191da2aef21f7cdff",
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/pages/AuthLayout.tsx",
         "dev_path": "frontend/src/pages/AuthLayout.tsx",
         "source_blob": "d7ce7feb2ec27ed93a4d6887fbccb98d040a8c5f",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/CalendarPage.tsx",
+        "dev_path": "frontend/src/pages/CalendarPage.tsx",
+        "source_blob": "38afd1aba3ae1dfc0a42fabd49db3fa57e99696c",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/ComparisonDetailPage.tsx",
+        "dev_path": "frontend/src/pages/ComparisonDetailPage.tsx",
+        "source_blob": "79539e9d7771498dea6fcb31a170183feeffccb5",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/ComparisonsPage.tsx",
+        "dev_path": "frontend/src/pages/ComparisonsPage.tsx",
+        "source_blob": "24376ad84928a6edeccdc50da46d93aa6d3bce0e",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/DispatcherPage.tsx",
+        "dev_path": "frontend/src/pages/DispatcherPage.tsx",
+        "source_blob": "8ef35017b00c6ab7b6758820456860dd5538ccd9",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/EquipmentDetailPage.tsx",
+        "dev_path": "frontend/src/pages/EquipmentDetailPage.tsx",
+        "source_blob": "fb2bfc398aeebddba4c03c93f206a11477b35480",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/EquipmentPage.tsx",
+        "dev_path": "frontend/src/pages/EquipmentPage.tsx",
+        "source_blob": "36a690b232634a2c7be5a3e97921d1125da28c6f",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/ExecutorPage.tsx",
+        "dev_path": "frontend/src/pages/ExecutorPage.tsx",
+        "source_blob": "23073a5cc7086bd3522908304f2bec25843f4fca",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/ExecutorTaskPage.tsx",
+        "dev_path": "frontend/src/pages/ExecutorTaskPage.tsx",
+        "source_blob": "75516e00042ccdd536d861daac8321e0e8498889",
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/pages/HomeRedirect.tsx",
         "dev_path": "frontend/src/pages/HomeRedirect.tsx",
         "source_blob": "6c7facdbad91dc5e4408820c8f29a1ab0b7f0059",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/pages/LoginPage.css",
         "dev_path": "frontend/src/pages/LoginPage.css",
         "source_blob": "6a196e7ec0edf66dc99df8585fa3bdf9c9ba3329",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/pages/LoginPage.tsx",
         "dev_path": "frontend/src/pages/LoginPage.tsx",
         "source_blob": "3abb88ec1b186c97a82d9f96f336463725f5236d",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/QualityPage.tsx",
+        "dev_path": "frontend/src/pages/QualityPage.tsx",
+        "source_blob": "7308ce83e6f3743b103f117c2b628e6c59c20749",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/QualityTaskPage.tsx",
+        "dev_path": "frontend/src/pages/QualityTaskPage.tsx",
+        "source_blob": "5137851ed0176249f0e6845fb77980d63dba6ff9",
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/pages/RegistrationPage.tsx",
         "dev_path": "frontend/src/pages/RegistrationPage.tsx",
         "source_blob": "ab62ec8ca707c22e1ee3b21464428ebdb96164c4",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/ReportsPage.tsx",
+        "dev_path": "frontend/src/pages/ReportsPage.tsx",
+        "source_blob": "73457818b43be76062941056d399a73553a2db6a",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/ServiceSettingsPage.tsx",
+        "dev_path": "frontend/src/pages/ServiceSettingsPage.tsx",
+        "source_blob": "86a1ceaed2bf752262e4d20932c4b5305040eaba",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/TaskDetailPage.tsx",
+        "dev_path": "frontend/src/pages/TaskDetailPage.tsx",
+        "source_blob": "dc303040f5322795b0a898b03f2e8cb09eb63856",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/TasksPage.tsx",
+        "dev_path": "frontend/src/pages/TasksPage.tsx",
+        "source_blob": "4860d05c032f87bfcb5617bfeb585fac7cfed1ce",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/WorkforceSettingsPage.tsx",
+        "dev_path": "frontend/src/pages/WorkforceSettingsPage.tsx",
+        "source_blob": "1ff8a0ce445393b8fd4ec63b985290675fc54887",
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/shared/api/request.ts",
         "dev_path": "frontend/src/shared/api/request.ts",
         "source_blob": "b579ea6a39f6ac7da16ca6fb7a7e9d010fe90177",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/evidence.ts",
+        "dev_path": "frontend/src/shared/lib/evidence.ts",
+        "source_blob": "fa9d65667ef9d62749bcc8845c67526290ab97ab",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/exportCsv.ts",
+        "dev_path": "frontend/src/shared/lib/exportCsv.ts",
+        "source_blob": "652613f508fdc1d762763f9d1278146b0c43bbd1",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/forecastPresentation.ts",
+        "dev_path": "frontend/src/shared/lib/forecastPresentation.ts",
+        "source_blob": "3f702a0d610c9faba4b586853d3fb9db36cc25ed",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/operations.ts",
+        "dev_path": "frontend/src/shared/lib/operations.ts",
+        "source_blob": "9b8db565d9a912dcfd298696a52cfd28d57bcb71",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/roles.ts",
+        "dev_path": "frontend/src/shared/lib/roles.ts",
+        "source_blob": "6cbf6df671950be926558e5464ed6f60d603a624",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/useDialogFocus.ts",
+        "dev_path": "frontend/src/shared/lib/useDialogFocus.ts",
+        "source_blob": "e07bbb1499bee1bceb52be946714a7a2acd7cdb1",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/useMediaQuery.ts",
+        "dev_path": "frontend/src/shared/lib/useMediaQuery.ts",
+        "source_blob": "9ef37c103b62cecd1c4868db1c96bf5c65c12ef8",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/useScrollBoundary.ts",
+        "dev_path": "frontend/src/shared/lib/useScrollBoundary.ts",
+        "source_blob": "b3b1e7b0ece79009384493977a95ba46dd6e37bf",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/useWorkspaceView.ts",
+        "dev_path": "frontend/src/shared/lib/useWorkspaceView.ts",
+        "source_blob": "4912a06095079d7c31ea228d0e01f283b3764bae",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/workspaceState.tsx",
+        "dev_path": "frontend/src/shared/lib/workspaceState.tsx",
+        "source_blob": "2785230dd384bfee6e8eb9a59ecce73f12eef970",
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/shared/motion/animate.ts",
         "dev_path": "frontend/src/shared/motion/animate.ts",
         "source_blob": "73c51fef78af7dedc8e8d60da40f1950f5c62c75",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/shared/motion/authEntry.ts",
         "dev_path": "frontend/src/shared/motion/authEntry.ts",
         "source_blob": "07459656c64709bd90e094c57bd5b223acff4852",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/shared/motion/feedbackMotion.ts",
         "dev_path": "frontend/src/shared/motion/feedbackMotion.ts",
         "source_blob": "c07cebede587897e7ce164483c66be10a4f4c600",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/shared/motion/motion.css",
         "dev_path": "frontend/src/shared/motion/motion.css",
         "source_blob": "f383f32277d42d1ccede0cbbd5fc8394a6797f42",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/shared/motion/useFeedbackMotion.ts",
         "dev_path": "frontend/src/shared/motion/useFeedbackMotion.ts",
         "source_blob": "739cbd6737e346a77f99f14c75104234254baa94",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/shared/motion/usePageEntry.ts",
         "dev_path": "frontend/src/shared/motion/usePageEntry.ts",
         "source_blob": "6d9141767ffec3d97711433ddc1cc43ee50acdcf",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Brand.tsx",
+        "dev_path": "frontend/src/shared/ui/Brand.tsx",
+        "source_blob": "e13939f0cd02abd1f69645aa4a926aa18f34afb7",
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/shared/ui/Button.tsx",
         "dev_path": "frontend/src/shared/ui/Button.tsx",
-        "source_blob": "7b494d3e512f0164250c2126b95c8fa83300cf7d",
-        "disposition": "retained_or_adapted_auth_only"
+        "source_blob": "07316aef64309e16eec83aecfbe687c5d401ba10",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Card.tsx",
+        "dev_path": "frontend/src/shared/ui/Card.tsx",
+        "source_blob": "40ca3678d745426bfe00e30c05777b2906966b80",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/ConnectionRequired.tsx",
+        "dev_path": "frontend/src/shared/ui/ConnectionRequired.tsx",
+        "source_blob": "32d5d42c2db7acf09187ed03e3996e2ab4e5e9b4",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Drawer.tsx",
+        "dev_path": "frontend/src/shared/ui/Drawer.tsx",
+        "source_blob": "6919a9e81454186da3874e3baa089be05ff2bd35",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/FilterChip.tsx",
+        "dev_path": "frontend/src/shared/ui/FilterChip.tsx",
+        "source_blob": "fdcba195541c15c846edc5c56602d2c5b2081fa9",
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/shared/ui/Form.css",
         "dev_path": "frontend/src/shared/ui/Form.css",
         "source_blob": "04e402ac575696c8d516851c5a2d9ae353980afe",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "frontend/src/shared/ui/Form.tsx",
         "dev_path": "frontend/src/shared/ui/Form.tsx",
-        "source_blob": "3b8e91260ef61fbaa88358fd2dfd3ee180fb1597",
-        "disposition": "retained_or_adapted_auth_only"
+        "source_blob": "f14ea750cb992c020e18ea2948e2e62656128ef2",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Icon.tsx",
+        "dev_path": "frontend/src/shared/ui/Icon.tsx",
+        "source_blob": "11221379aad0ab2692b758df82338a0672bbcb4a",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Modal.tsx",
+        "dev_path": "frontend/src/shared/ui/Modal.tsx",
+        "source_blob": "70c871a2cdc8ff95412bf5afaf795a1b9ecdb219",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/PageHeader.tsx",
+        "dev_path": "frontend/src/shared/ui/PageHeader.tsx",
+        "source_blob": "86f2dd4d852c1f86a545e38d0906caf299d9afdf",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/States.tsx",
+        "dev_path": "frontend/src/shared/ui/States.tsx",
+        "source_blob": "41632555590ec9e0f8836f8b8a7c2b36e99fe57e",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/StatusBadge.tsx",
+        "dev_path": "frontend/src/shared/ui/StatusBadge.tsx",
+        "source_blob": "aa80422470aff1048f6da2d857d100e87d3ec7a1",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Table.tsx",
+        "dev_path": "frontend/src/shared/ui/Table.tsx",
+        "source_blob": "65ceb057aadae1efbceb53de9316f7aeed076d4b",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "scripts/verify_web.py",
+        "dev_path": "scripts/verify_web.py",
+        "source_blob": "5473bd34e754d6a57c9d716a101659bfbe31d8c1",
+        "disposition": "merged_exact"
       },
       {
         "source_path": "tests/fixtures/web/desktop-ribbon-paths.json",
         "dev_path": "tests/fixtures/web/desktop-ribbon-paths.json",
         "source_blob": "c0a18b98ad195aff1bc9d176ecd970ad05adf43b",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "tests/web/e2e/login.spec.ts",
         "dev_path": "tests/web/e2e/login.spec.ts",
-        "source_blob": "bff8765c9f9c2afcc9803231176b083b329303ae",
-        "disposition": "retained_or_adapted_auth_only"
+        "source_blob": "8f502a1d9a200927f7c6121232beb0e137d3578a",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "tests/web/e2e/maintenance.spec.ts",
+        "dev_path": "tests/web/e2e/maintenance.spec.ts",
+        "source_blob": "a285ea47f1366d337febb41aab2f689dd9d36467",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/e2e/planning.spec.ts",
+        "dev_path": "tests/web/e2e/planning.spec.ts",
+        "source_blob": "04d81023bbdf9d0297a4ba11fee232e89bbd417e",
+        "disposition": "merged_exact"
       },
       {
         "source_path": "tests/web/e2e/roles.spec.ts",
         "dev_path": "tests/web/e2e/roles.spec.ts",
-        "source_blob": "8070d916570edeb9bac5123e59ccf5d475c4ce6d",
-        "disposition": "retained_or_adapted_auth_only"
+        "source_blob": "4a9086f5c49601b93912580e9aaa0b3208905a16",
+        "disposition": "merged_exact"
       },
       {
         "source_path": "tests/web/e2e/settings.spec.ts",
         "dev_path": "tests/web/e2e/settings.spec.ts",
-        "source_blob": "37d194810eb7622c0a83f05e9752b9ce0afbb71d",
-        "disposition": "retained_or_adapted_auth_only"
+        "source_blob": "8d358bc59e0626a7be90fe3763baf4dc217ccf3c",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/e2e/workspace-state.spec.ts",
+        "dev_path": "tests/web/e2e/workspace-state.spec.ts",
+        "source_blob": "4e1b4496109653ba6c7168a788223585a537b6ca",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/e2e/workspace.spec.ts",
+        "dev_path": "tests/web/e2e/workspace.spec.ts",
+        "source_blob": "c2caec49b8715d68c0b4b495cf71ee216efb41a9",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/setup.ts",
+        "dev_path": "tests/web/setup.ts",
+        "source_blob": "8c322eb7ab504fd80c3929a17efbf48a9fc16d38",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/app/role-navigation.test.tsx",
+        "dev_path": "tests/web/unit/app/role-navigation.test.tsx",
+        "source_blob": "e380529a4c00b643cebd82d61681d9836c780d80",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/app/router.test.tsx",
+        "dev_path": "tests/web/unit/app/router.test.tsx",
+        "source_blob": "daa22323118527ae32a9610c51202ca0791cd3b9",
+        "disposition": "merged_exact"
       },
       {
         "source_path": "tests/web/unit/features/auth/AuthMotion.test.tsx",
         "dev_path": "tests/web/unit/features/auth/AuthMotion.test.tsx",
         "source_blob": "00d8b3a01db2072bdd1a5c10d17f174f0c4d1879",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "tests/web/unit/features/auth/authValidation.test.ts",
         "dev_path": "tests/web/unit/features/auth/authValidation.test.ts",
         "source_blob": "d7b9c819a30ab26b54e2eafeaced2694d6e8154c",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "tests/web/unit/features/auth/canvasRenderer.test.ts",
         "dev_path": "tests/web/unit/features/auth/canvasRenderer.test.ts",
         "source_blob": "94a70c4e7a2e2169273c19e354afbce12d403420",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "tests/web/unit/features/auth/mobileCanvasRenderer.test.ts",
         "dev_path": "tests/web/unit/features/auth/mobileCanvasRenderer.test.ts",
         "source_blob": "ae44d6a53af7e674f35fb56a5a35cda048acba81",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "tests/web/unit/features/auth/ribbonGeometry.test.ts",
         "dev_path": "tests/web/unit/features/auth/ribbonGeometry.test.ts",
         "source_blob": "61ccd5d9c8cd11c2afbfa4d92dd5eb174472a239",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "tests/web/unit/features/auth/useAuroraMotion.test.tsx",
         "dev_path": "tests/web/unit/features/auth/useAuroraMotion.test.tsx",
         "source_blob": "ed7ba448287e3a9c5330858f383a0453e33cc617",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "tests/web/unit/features/auth/useMobileAuthViewport.test.tsx",
         "dev_path": "tests/web/unit/features/auth/useMobileAuthViewport.test.tsx",
         "source_blob": "5f0836fcc32c3866b112a2dcac2b6fae98981a3b",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/layouts/Sidebar.test.tsx",
+        "dev_path": "tests/web/unit/layouts/Sidebar.test.tsx",
+        "source_blob": "aadac6c7d1be6cb0aed007d22b236acce9a1ab80",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/layouts/SidebarAccount.test.tsx",
+        "dev_path": "tests/web/unit/layouts/SidebarAccount.test.tsx",
+        "source_blob": "5dcd22996a36a28936fb02603f073bf03fb49ec8",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/layouts/WorkspaceAuroraBackground.test.tsx",
+        "dev_path": "tests/web/unit/layouts/WorkspaceAuroraBackground.test.tsx",
+        "source_blob": "d320461927411b2c1da8e4e502ee3d1bf438373b",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/layouts/workspaceAuroraInteraction.test.ts",
+        "dev_path": "tests/web/unit/layouts/workspaceAuroraInteraction.test.ts",
+        "source_blob": "0725d5f8b04d1ac1fdb4728f9f82090721ab88a8",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/pages/CalendarPage.test.tsx",
+        "dev_path": "tests/web/unit/pages/CalendarPage.test.tsx",
+        "source_blob": "40010b5c0bbb72ef463f837030ee35152c2b5aee",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/pages/DispatcherPage.test.tsx",
+        "dev_path": "tests/web/unit/pages/DispatcherPage.test.tsx",
+        "source_blob": "dde235944f8e9b12035ec6b7ecda1cb674fe352a",
+        "disposition": "merged_exact"
       },
       {
         "source_path": "tests/web/unit/pages/LoginPage.test.tsx",
         "dev_path": "tests/web/unit/pages/LoginPage.test.tsx",
         "source_blob": "f44596977b7ee630cdf64f7ca184d98c2961c647",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "tests/web/unit/pages/RegistrationPage.test.tsx",
         "dev_path": "tests/web/unit/pages/RegistrationPage.test.tsx",
         "source_blob": "a4eaf6c7211cc98e238317db63c1e6e10c4aff0e",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/pages/ReportsPage.test.tsx",
+        "dev_path": "tests/web/unit/pages/ReportsPage.test.tsx",
+        "source_blob": "26ec1c9b0e64598ac6c9fe36329275e835724874",
+        "disposition": "merged_exact"
       },
       {
         "source_path": "tests/web/unit/shared/api/request.test.ts",
         "dev_path": "tests/web/unit/shared/api/request.test.ts",
         "source_blob": "279969b710214555a08c0017b3eb4011afb06f98",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/shared/lib/redesign-domain.test.ts",
+        "dev_path": "tests/web/unit/shared/lib/redesign-domain.test.ts",
+        "source_blob": "3931884de5e52426995a33ffc527ad233fd83aaf",
+        "disposition": "merged_exact"
       },
       {
         "source_path": "tests/web/unit/shared/ui/Form.test.tsx",
         "dev_path": "tests/web/unit/shared/ui/Form.test.tsx",
         "source_blob": "53402f23e22a6a4e2afb5beb21c043b56bae76ad",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
       },
       {
         "source_path": "tests/web/unit/shared/ui/Modal.test.tsx",
         "dev_path": "tests/web/unit/shared/ui/Modal.test.tsx",
         "source_blob": "648adc1077d1adb2ef45ac7375320271932ed71c",
-        "disposition": "retained_or_adapted_auth_only"
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/shared/useScrollBoundary.test.tsx",
+        "dev_path": "tests/web/unit/shared/useScrollBoundary.test.tsx",
+        "source_blob": "cb99a0cad3132d49cb2082b22a0cc04bd17a0ea6",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/shared/useWorkspaceView.test.tsx",
+        "dev_path": "tests/web/unit/shared/useWorkspaceView.test.tsx",
+        "source_blob": "f6c69d9e8fef0cae8542154cbea7c9903aae7c05",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/shared/workspaceState.test.tsx",
+        "dev_path": "tests/web/unit/shared/workspaceState.test.tsx",
+        "source_blob": "2ae8355737618b66ea4628aece4a8a16a267cf8b",
+        "disposition": "merged_exact"
       }
     ]
   }

@@ -1,3 +1,4 @@
+import { ConnectionRequired } from "@/shared/ui/ConnectionRequired";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { managementApi } from "@/shared/api/management";
@@ -18,6 +19,9 @@ import { Callout } from "@/shared/ui/Callout";
 import { LoadingState, ErrorState } from "@/shared/ui/States";
 
 export function ServiceSettingsPage() {
+  return DEMO_MODE ? <ConnectionRequired title="Настройка обслуживания" description="Оборудование, регламенты и правила календаря." capabilities={["Создание оборудования и привязка операций", "Периодичность, нормативы и чек-листы", "Проверка исходных данных перед планированием"]}/> : <LiveServiceSettingsPage/>;
+}
+function LiveServiceSettingsPage() {
   const {profile}=useSession();
   const [params,setParams]=useSearchParams();
   const selected=params.get("equipment")??"";
@@ -26,7 +30,7 @@ export function ServiceSettingsPage() {
   const query=useApiQuery(()=>Promise.all([managementApi.catalog(),maintenanceApi.listEquipment()]),[refresh]);
   const mayEdit=profile?.role==="admin"||profile?.role==="dispatcher";
   const today=todayAt(profile?.timezone??"Asia/Yekaterinburg");
-  if(DEMO_MODE) return <Callout title="Настройки требуют подключения к серверу">Откройте приложение с рабочим API.</Callout>;
+
   if(query.status==="loading") return <LoadingState label="Загрузка настроек обслуживания"/>;
   if(query.status==="error") return <ErrorState description={query.error}/>;
   const [catalog,equipment]=query.data;

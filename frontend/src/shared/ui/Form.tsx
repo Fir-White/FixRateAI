@@ -11,7 +11,7 @@ import type {
 } from "react";
 
 const CONTROL_CLASSES =
-  "motion-input w-full rounded-xl border border-line-strong bg-white/[0.035] text-sm text-ink placeholder:text-muted/60 transition-colors hover:border-muted/50 focus:border-accent focus:ring-2 focus:ring-accent/15 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50";
+  "motion-input w-full min-w-0 rounded-lg border border-line-strong bg-white/[0.035] text-sm text-ink placeholder:text-muted/60 transition-colors hover:border-muted/50 focus:border-accent focus:ring-2 focus:ring-accent/15 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50";
 
 /** Offset caption text without changing a wrapping label or its control's layout. */
 export function FieldCaption({ children }: { children: ReactNode }) {
