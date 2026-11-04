@@ -1,6 +1,6 @@
 {
   "base": "d94f528df8c0e0f69c344ebd8c79a99bfbe5c1f2",
-  "captured_at": "2026-11-03",
+  "captured_at": "2026-11-04",
   "sources": [
     {
       "branch": "main",
@@ -146,6 +146,23 @@
         "Made CLI confirmation of comparable views opt-in"
       ],
       "fully_accounted_source_sha": "95e695df491e12833c7bf8bc5df2a5f8e856928d"
+    },
+    {
+      "branch": "feature/frontend-next",
+      "sha": "ac8a8ae52089b570e2c6284d242cd50abc23d5ca",
+      "reviewed_sha": "ac8a8ae52089b570e2c6284d242cd50abc23d5ca",
+      "status": "partially_integrated",
+      "document": "docs/service/development.md",
+      "comparison_base": "6a09f3b446f3215112569784ff796a8e10bf99f5",
+      "included_scope": "Responsive auth, mobile Aurora and required shared dependencies/tests only",
+      "pending_paths": [],
+      "not_included": [
+        "Workspace commit 3e95724 and local frontend redesign are retained on feature/frontend-next; not merged into dev"
+      ],
+      "verification": "reports/verification/verify-20261104-151956-afe4399c/results.json",
+      "adaptations": [
+        "All auth/shared editor paths from published dev retained during local readiness merge; previous pending auth paths resolved"
+      ]
     }
   ]
 }

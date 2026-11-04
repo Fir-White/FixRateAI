@@ -2,6 +2,8 @@
 from datetime import timezone
 import json
 import logging
+import math
+import time as timer
 from queue import Queue, Empty
 from threading import BoundedSemaphore, Thread
 from uuid import uuid4
@@ -52,24 +54,31 @@ def algorithmic_forecast(snapshot, binding, run_id):
 
 
 def bounded_ai(snapshot, run_id, provider, *, timeout_seconds=2):
+    started = timer.monotonic()
     def failed(code, status="unavailable"):
         logger.warning("forecast_provider_rejected run=%s snapshot=%s code=%s", run_id, snapshot.snapshot_id, code)
-        return forecast_result(snapshot, run_id, "ai", status=status, error=code,
+        result = forecast_result(snapshot, run_id, "ai", status=status, error=code,
             explanation="AI не дал пригодный результат. Планирование продолжится по подтверждённому регламенту.")
-    if timeout_seconds <= 0:
+        return result.model_copy(update={"elapsed_ms": int((timer.monotonic()-started)*1000)})
+    if not math.isfinite(timeout_seconds) or timeout_seconds <= 0:
         return failed("REQUEST_BUDGET_EXHAUSTED")
-    if not _slots.acquire(blocking=False):
+    slots = _slots
+    if not slots.acquire(blocking=False):
         return failed("AI_BUSY")
     output = Queue(maxsize=1)
     def invoke():
         try:
             output.put((True, provider(snapshot.model_copy(deep=True))))
-        except Exception:
+        except BaseException:
             output.put((False, None))
         finally:
-            _slots.release()
+            slots.release()
     # At most two daemon workers can outlive their deadline; no DB session is shared.
-    Thread(target=invoke, daemon=True, name="maintenance-ai").start()
+    try:
+        Thread(target=invoke, daemon=True, name="maintenance-ai").start()
+    except Exception:
+        slots.release()
+        return failed("PROVIDER_ERROR", "failed")
     try:
         ok, raw = output.get(timeout=min(timeout_seconds, 5))
     except Empty:

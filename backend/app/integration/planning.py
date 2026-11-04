@@ -57,7 +57,7 @@ def _lock_sources(v):
             .execution_options(populate_existing=True)).all()
 
 
-def generate_tasks(v, year, month, key, token, forecaster):
+def generate_tasks(v, year, month, key, token, forecaster, *, forecast_timeout_seconds=2):
     if v.principal.role != "dispatcher":
         raise HTTPException(403, "Сохранение плана доступно диспетчеру")
     request_hash = digest(dict(year=year, month=month, token=token))
@@ -84,7 +84,7 @@ def generate_tasks(v, year, month, key, token, forecaster):
         binding = v.one("rule_equipment", binding_id=UUID(row["bindingId"]))
         item = binding_input(v, binding, as_of=now)
         snapshot = make_snapshot(v, item, date.fromisoformat(row["earliestDate"]), date.fromisoformat(row["mandatoryDueDate"]), as_of=now)
-        values = calculate(snapshot, item, forecaster, timeout_seconds=min(2, budget_end-timer.monotonic()))
+        values = calculate(snapshot, item, forecaster, timeout_seconds=min(forecast_timeout_seconds, budget_end-timer.monotonic()))
         prepared.append((row, binding.binding_id, item, snapshot, values))
     lock_key = int.from_bytes(sha256(f"{site.site_id}:{year}:{month}".encode()).digest()[:8], "big", signed=True)
     with service_transaction(v.session):

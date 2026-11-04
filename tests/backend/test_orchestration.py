@@ -119,3 +119,28 @@ def test_condition_provider_failure_is_persistable_and_does_not_fake_success(mon
     assert result["status"] == "failed"
     assert result["error_code"] == "CONDITION_PROVIDER_ERROR"
     assert "сохран" in result["explanation"]
+
+
+@pytest.mark.parametrize('origin,kind,calibrated,expected',[
+    ('customer','unknown',False,'fallback'),
+    ('customer','tree_dispersion',False,'fallback'),
+    ('synthetic_demo','unknown',False,'fallback'),
+    ('synthetic_demo','tree_dispersion',False,'selected'),
+    ('customer','deterministic',True,'selected'),
+])
+def test_qa04_uncertainty_follows_explicit_policy_without_invented_confidence_threshold(origin,kind,calibrated,expected):
+    from app.schemas.maintenance import Uncertainty
+    from app.orchestrator.decision import POLICY_VERSION
+    snapshot,item=inputs(origin)
+    def provider(value):
+        candidate=ai_value(value,'2026-11-05',calibrated=calibrated)
+        return candidate.model_copy(update={'uncertainty':Uncertainty(kind=kind,
+            lower_date=None if kind=='unknown' else date(2026,11,5),
+            upper_date=None if kind=='unknown' else date(2026,11,5),calibrated=calibrated,
+            note='QA04 uncertainty fixture; no empirical confidence score')})
+    algorithmic,ai,decision=compare_forecasts(snapshot,item,provider)
+    assert decision.policy_version==POLICY_VERSION=='maintenance-orchestrator-v1'
+    assert decision.status==expected
+    assert decision.selected_date==(date(2026,11,10) if expected=='fallback' else date(2026,11,5))
+    assert ai.recommended_date==date(2026,11,5) and algorithmic.recommended_date==date(2026,11,10)
+    if expected=='fallback': assert 'AI_EARLY_UNSUPPORTED' in decision.reasons[0]

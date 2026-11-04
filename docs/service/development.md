@@ -12,6 +12,9 @@ ml_service/                 ML/CV
 .env                        локальные параметры подключения и приложения
 .env.example                шаблон локальных параметров
 requirements.txt            Python-зависимости backend/ML/CV/тестов
+compose.yaml, Dockerfile    локальный PostgreSQL + FastAPI/SPA, CPU ML
+compose.ml.yaml             дополнительный real-CLIP профиль с read-only cache
+.dockerignore               исключение секретов и runtime из build context
 contracts/                  экспорт JSON Schema и примеры DTO/API
 database/migrations/        неизменяемая применённая SQL-цепочка
 database/seeds/             исходный явный seed SQL
@@ -28,7 +31,7 @@ tests/web/setup.ts          общая настройка UI-тестов
 tests/web/tsconfig.json     проверка TypeScript всех UI/E2E-тестов
 tests/fixtures/             общие scheduling/domain fixtures
 tests/sql/                  исходные SQL assertion и полный schema QA
-scripts/                    проверки, экспорт ER и подготовка CLIP
+scripts/                    проверки, экспорт ER, CLIP и start_local.py для постоянного стенда
 docs/                       описание проекта, ADR и docs/assets с иллюстрациями
 logs/                       журналы runtime, SQL и verification
 reports/                    результаты, метрики, screenshots и audits
@@ -77,3 +80,17 @@ var/                        локальная БД, PID, фото и private ba
 | qa/roles-contracts, docs/tests-p0 | Проверки доступа и критерии демонстрации |
 
 При обновлении источника сравнивают последний учтённый SHA с новым tip, адаптируют изменённые пути по карте и проверяют затронутые сценарии. Принятые SQL 001–008 сохраняются; изменения схемы получают следующую миграцию. После проверки обновляют учтённый SHA и соответствие файлов в реестрах.
+
+## Частичный перенос auth из frontend-next, 04.11.2026
+
+Локальный контейнер собирает frontend из основного checkout dev, а не из соседнего worktree. До fetch новых коммитов проверка локального checkout выявила, что ac8a8ae с адаптивным auth не входил в ancestry локальной dev: там оставался вариант 7d0f625 с большим знаком справа, непрозрачной мобильной панелью и паузой движения на touch. Перенесены auth-компоненты/общий layout, нужные Form/API/motion зависимости и тесты из ac8a8ae; router/index адаптированы к текущей dev. Docker build context дополнен геометрической JSON-фикстурой, проверка регистрации — подтверждением пароля. Backend и существующая БД не заменялись.
+
+Коммит 3e95724 с Workspace и локальные незакоммиченные правки рабочих экранов frontend-next не включены в этот перенос. Поэтому весь tip ветки не отмечается полностью интегрированным: выбранные source blobs и оставшиеся пути записаны отдельно в BRANCH_SOURCES/BRANCH_FILE_MAP. Старые записи о полностью учтённой feature/frontend-kran сохранены как исторические. [Поведение входа](web.md#вход-и-фон-aurora), [протокол и развёртывание](verification.md#04112026-исправление-версии-входа-и-мобильной-aurora).
+
+## Первоначальный перенос GitVerse → GitHub, 04.11.2026
+
+По запросу владельца основной адрес проекта переносится в https://github.com/krangras/FixRateAI, GitVerse сохраняется вторым хостингом. История удалённых веток переносится без переписывания. Незакоммиченные исходники рабочего dev и frontend-next сохраняются отдельными migration-ветками: это снимки текущей работы, а не утверждение, что все ветки объединены или проверены одной регрессией. Runtime, .env, кеши, отчёты запусков и архив reports.zip не публикуются. Полная Git-история сохранена в var/git-migration перед переносом. Настройка и итоговая проверка синхронизации описываются в [git-hosting](git-hosting.md) основной ветки GitHub.
+
+## Объединение локальных исходников и очистка веток, 04.11.2026
+
+По уточнению владельца публичный набор веток возвращается к 12 исходным веткам GitVerse. Локальные backend/QA/Compose/auth изменения объединяются merge-коммитом с актуальной dev; опубликованные backend endpoints и ML batching/quality/condition-error изменения сохраняются. При конфликтах Docker/Compose сохранена проверенная local-readiness конфигурация; тесты обеих сторон объединены. Локальный Workspace-редизайн записывается в существующую feature/frontend-next; объединение этого редизайна с dev не выполняется. Добавленные при первом переносе PR/archive/migration ветки и backup-теги удаляются после сохранения полного bundle в var/git-migration/20261104T104549Z/before-cleanup-all.bundle. Исходная archive/legacy-ai-estimator остаётся частью исходного набора.

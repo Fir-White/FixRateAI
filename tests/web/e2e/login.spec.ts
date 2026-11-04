@@ -63,6 +63,9 @@ test("independent curves, tiny particles, automatic pauses, reduced motion and s
   await page.evaluate(()=>{Object.defineProperty(document,"hidden",{configurable:true,value:true});document.dispatchEvent(new Event("visibilitychange"));});
   await expect(page.locator(".auth-aurora")).toHaveAttribute("data-motion","paused");
   await page.setViewportSize({width:1199,height:700}); await page.setViewportSize({width:1440,height:900});
+  // ResizeObserver redraw is asynchronous even while animation is paused.
+  // Wait for the restored desktop canvas before comparing its frozen frames.
+  await expect.poll(async () => (await pixels())[0]?.maxAlpha ?? 0).toBeGreaterThan(0);
   const paused=await snapshot(); await page.waitForTimeout(500); expect(await snapshot()).toEqual(paused);
   await page.evaluate(()=>{Reflect.deleteProperty(document,"hidden");document.dispatchEvent(new Event("visibilitychange"));});
   await expect(page.locator(".auth-aurora")).toHaveAttribute("data-motion","running");

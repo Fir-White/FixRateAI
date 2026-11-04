@@ -226,8 +226,10 @@ def test_assignment_failure_rolls_back_released_members_new_rows_task_and_audit(
                 raise RuntimeError("injected assignment transaction failure")
             return original(repo, table, **values)
         monkeypatch.setattr(MaintenanceRepository, "add", broken)
-        with pytest.raises(RuntimeError, match="injected"):
-            client.post(PREFIX+f"/tasks/{task}/assign", json=body)
+        response=client.post(PREFIX+f"/tasks/{task}/assign", json=body)
+        assert response.status_code==500
+        assert response.json()["error"]["code"]=="INTERNAL_ERROR"
+        assert "injected" not in response.text
         assert snapshot(engine, task) == before
 
 

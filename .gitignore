@@ -67,3 +67,6 @@ Desktop.ini
 /.codex/
 /.agents/
 /.worktrees/
+
+# Generated local source/report archive
+/reports.zip

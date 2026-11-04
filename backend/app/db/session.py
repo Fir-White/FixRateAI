@@ -4,7 +4,7 @@ from contextlib import contextmanager
 import os
 
 from sqlalchemy import create_engine
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import Engine, make_url
 from sqlalchemy.orm import Session, sessionmaker, SessionTransactionOrigin
 
 
@@ -12,9 +12,14 @@ def make_engine(url: str | None = None) -> Engine:
     url = url or os.environ.get("DATABASE_URL")
     if not url:
         raise RuntimeError("DATABASE_URL is required")
-    if not url.startswith("postgresql+psycopg://"):
+    try:
+        parsed = make_url(url)
+        _ = parsed.port
+    except Exception:
+        raise ValueError("Invalid DATABASE_URL") from None
+    if parsed.drivername != "postgresql+psycopg":
         raise ValueError("Use a PostgreSQL URL with the psycopg driver")
-    return create_engine(url, pool_pre_ping=True)
+    return create_engine(parsed, pool_pre_ping=True, hide_parameters=True)
 
 
 def make_session_factory(engine: Engine) -> sessionmaker[Session]:

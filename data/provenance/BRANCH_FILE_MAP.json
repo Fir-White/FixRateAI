@@ -2123,5 +2123,372 @@
         "disposition": "retained_exact_source_blob"
       }
     ]
+  },
+  {
+    "branch": "feature/frontend-next",
+    "source_sha": "ac8a8ae52089b570e2c6284d242cd50abc23d5ca",
+    "comparison_base": "6a09f3b446f3215112569784ff796a8e10bf99f5",
+    "files": [
+      {
+        "source_path": "README.md",
+        "dev_path": "README.md",
+        "source_blob": "74cc9b3762c36ccf58d715db5fe87434532b5111",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "docs/ARCHITECTURE.md",
+        "dev_path": "docs/ARCHITECTURE.md",
+        "source_blob": "baa88771a04205327bc8ed367da4bd852b639610",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "docs/PLAN.md",
+        "dev_path": "docs/PLAN.md",
+        "source_blob": "891fcbccf192caee991c2ec8031cda24ecd32089",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "docs/decisions/2026-11-02--mobile-aurora-canvas.md",
+        "dev_path": "docs/decisions/2026-11-02--mobile-aurora-canvas.md",
+        "source_blob": "5c700a6f0ea082c548f895d89a25045358a202fc",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "docs/decisions/INDEX.md",
+        "dev_path": "docs/decisions/INDEX.md",
+        "source_blob": "48336e3ef65b2e2147796771a2e1d8bc545ba44c",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "docs/service/INDEX.md",
+        "dev_path": "docs/service/INDEX.md",
+        "source_blob": "16f78494a379ab8345800e33d5d2daaf4750b87e",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "docs/service/verification.md",
+        "dev_path": "docs/service/verification.md",
+        "source_blob": "f9b44c6708d5c48aa1f896e955a3b06fa0bca488",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "docs/service/web-motion.md",
+        "dev_path": "docs/service/web-motion.md",
+        "source_blob": "a75c77653500c1c3864f7f29a8c2ac5101b59134",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "docs/service/web.md",
+        "dev_path": "docs/service/web.md",
+        "source_blob": "8a53fb19c58757b8f38be22cddbd050c8db6c15a",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/app/router.tsx",
+        "dev_path": "frontend/src/app/router.tsx",
+        "source_blob": "0fa028fd7bdd9a21d78f8f9c559a0195aba1be5c",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuroraScene.tsx",
+        "dev_path": "frontend/src/features/auth/AuroraScene.tsx",
+        "source_blob": "9d813e95726b9429c95059f7d234959037375d13",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthFormError.tsx",
+        "dev_path": "frontend/src/features/auth/AuthFormError.tsx",
+        "source_blob": "97fb4f150f10b16f056491664930683e6abcb28a",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthHeroCopy.css",
+        "dev_path": "frontend/src/features/auth/AuthHeroCopy.css",
+        "source_blob": "c00e43735ccb3f44406e3ef684e96b356cff1ef6",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthHeroCopy.tsx",
+        "dev_path": "frontend/src/features/auth/AuthHeroCopy.tsx",
+        "source_blob": "13fc5200b12f393ef562440700d125d8984809ec",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthMotionContext.ts",
+        "dev_path": "frontend/src/features/auth/AuthMotionContext.ts",
+        "source_blob": "09d9b3721a63cad01d4ff86b2868de7628aa4129",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthPasswordInput.tsx",
+        "dev_path": "frontend/src/features/auth/AuthPasswordInput.tsx",
+        "source_blob": "994ba69e2ae597947ba20c7c44474ac44bce1c7f",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/features/auth/authGesture.ts",
+        "dev_path": "frontend/src/features/auth/authGesture.ts",
+        "source_blob": "b25e967c412ca7bda4444b7a7fba99deda8b1ad4",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/features/auth/authValidation.ts",
+        "dev_path": "frontend/src/features/auth/authValidation.ts",
+        "source_blob": "8103d43fb19950b312ed8dbef8ef0f18a5e57ef8",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/features/auth/canvasRenderer.ts",
+        "dev_path": "frontend/src/features/auth/canvasRenderer.ts",
+        "source_blob": "de820880193473d32e6ed3c2a9a3b7e1b184c600",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/features/auth/mobileCanvasRenderer.ts",
+        "dev_path": "frontend/src/features/auth/mobileCanvasRenderer.ts",
+        "source_blob": "b6af2a332aceb47816e4a6cef33dc25bad01d74f",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/features/auth/ribbonGeometry.ts",
+        "dev_path": "frontend/src/features/auth/ribbonGeometry.ts",
+        "source_blob": "d5c0c914614fc84f78b6def804290861f767adc0",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useAuroraMotion.ts",
+        "dev_path": "frontend/src/features/auth/useAuroraMotion.ts",
+        "source_blob": "ea6ea030c240b8a807b4f368f25f6817d178a3ad",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useAuthTransition.ts",
+        "dev_path": "frontend/src/features/auth/useAuthTransition.ts",
+        "source_blob": "d53cbceb27ef4df4ef3c4cee7bf4af9425068aa3",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useAuthValidation.ts",
+        "dev_path": "frontend/src/features/auth/useAuthValidation.ts",
+        "source_blob": "da058a6183025f41dc4a2755fb623a3d937f70d5",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useInitialReveal.ts",
+        "dev_path": "frontend/src/features/auth/useInitialReveal.ts",
+        "source_blob": "6d4a129daa618b93916a2030e371c195c2b5e0b9",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useMobileAuthViewport.ts",
+        "dev_path": "frontend/src/features/auth/useMobileAuthViewport.ts",
+        "source_blob": "84753611e67e5135dfeab21b872e33d9010050ab",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/index.css",
+        "dev_path": "frontend/src/index.css",
+        "source_blob": "51f5c6ae1c8537dd6e4c8038ec33bb97bf93e85b",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/layouts/AppShell.tsx",
+        "dev_path": "frontend/src/layouts/AppShell.tsx",
+        "source_blob": "eaa41275885210bbc66429b8416808c06cd62e85",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/layouts/ExecutorLayout.tsx",
+        "dev_path": "frontend/src/layouts/ExecutorLayout.tsx",
+        "source_blob": "19d5611b4fa9976935c65d4e132743016b5e694c",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/pages/AuthLayout.tsx",
+        "dev_path": "frontend/src/pages/AuthLayout.tsx",
+        "source_blob": "d7ce7feb2ec27ed93a4d6887fbccb98d040a8c5f",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/pages/HomeRedirect.tsx",
+        "dev_path": "frontend/src/pages/HomeRedirect.tsx",
+        "source_blob": "6c7facdbad91dc5e4408820c8f29a1ab0b7f0059",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/pages/LoginPage.css",
+        "dev_path": "frontend/src/pages/LoginPage.css",
+        "source_blob": "6a196e7ec0edf66dc99df8585fa3bdf9c9ba3329",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/pages/LoginPage.tsx",
+        "dev_path": "frontend/src/pages/LoginPage.tsx",
+        "source_blob": "3abb88ec1b186c97a82d9f96f336463725f5236d",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/pages/RegistrationPage.tsx",
+        "dev_path": "frontend/src/pages/RegistrationPage.tsx",
+        "source_blob": "ab62ec8ca707c22e1ee3b21464428ebdb96164c4",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/shared/api/request.ts",
+        "dev_path": "frontend/src/shared/api/request.ts",
+        "source_blob": "b579ea6a39f6ac7da16ca6fb7a7e9d010fe90177",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/animate.ts",
+        "dev_path": "frontend/src/shared/motion/animate.ts",
+        "source_blob": "73c51fef78af7dedc8e8d60da40f1950f5c62c75",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/authEntry.ts",
+        "dev_path": "frontend/src/shared/motion/authEntry.ts",
+        "source_blob": "07459656c64709bd90e094c57bd5b223acff4852",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/feedbackMotion.ts",
+        "dev_path": "frontend/src/shared/motion/feedbackMotion.ts",
+        "source_blob": "c07cebede587897e7ce164483c66be10a4f4c600",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/motion.css",
+        "dev_path": "frontend/src/shared/motion/motion.css",
+        "source_blob": "f383f32277d42d1ccede0cbbd5fc8394a6797f42",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/useFeedbackMotion.ts",
+        "dev_path": "frontend/src/shared/motion/useFeedbackMotion.ts",
+        "source_blob": "739cbd6737e346a77f99f14c75104234254baa94",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/usePageEntry.ts",
+        "dev_path": "frontend/src/shared/motion/usePageEntry.ts",
+        "source_blob": "6d9141767ffec3d97711433ddc1cc43ee50acdcf",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Button.tsx",
+        "dev_path": "frontend/src/shared/ui/Button.tsx",
+        "source_blob": "7b494d3e512f0164250c2126b95c8fa83300cf7d",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Form.css",
+        "dev_path": "frontend/src/shared/ui/Form.css",
+        "source_blob": "04e402ac575696c8d516851c5a2d9ae353980afe",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Form.tsx",
+        "dev_path": "frontend/src/shared/ui/Form.tsx",
+        "source_blob": "3b8e91260ef61fbaa88358fd2dfd3ee180fb1597",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "tests/fixtures/web/desktop-ribbon-paths.json",
+        "dev_path": "tests/fixtures/web/desktop-ribbon-paths.json",
+        "source_blob": "c0a18b98ad195aff1bc9d176ecd970ad05adf43b",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "tests/web/e2e/login.spec.ts",
+        "dev_path": "tests/web/e2e/login.spec.ts",
+        "source_blob": "bff8765c9f9c2afcc9803231176b083b329303ae",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "tests/web/e2e/roles.spec.ts",
+        "dev_path": "tests/web/e2e/roles.spec.ts",
+        "source_blob": "8070d916570edeb9bac5123e59ccf5d475c4ce6d",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "tests/web/e2e/settings.spec.ts",
+        "dev_path": "tests/web/e2e/settings.spec.ts",
+        "source_blob": "37d194810eb7622c0a83f05e9752b9ce0afbb71d",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "tests/web/unit/features/auth/AuthMotion.test.tsx",
+        "dev_path": "tests/web/unit/features/auth/AuthMotion.test.tsx",
+        "source_blob": "00d8b3a01db2072bdd1a5c10d17f174f0c4d1879",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "tests/web/unit/features/auth/authValidation.test.ts",
+        "dev_path": "tests/web/unit/features/auth/authValidation.test.ts",
+        "source_blob": "d7b9c819a30ab26b54e2eafeaced2694d6e8154c",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "tests/web/unit/features/auth/canvasRenderer.test.ts",
+        "dev_path": "tests/web/unit/features/auth/canvasRenderer.test.ts",
+        "source_blob": "94a70c4e7a2e2169273c19e354afbce12d403420",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "tests/web/unit/features/auth/mobileCanvasRenderer.test.ts",
+        "dev_path": "tests/web/unit/features/auth/mobileCanvasRenderer.test.ts",
+        "source_blob": "ae44d6a53af7e674f35fb56a5a35cda048acba81",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "tests/web/unit/features/auth/ribbonGeometry.test.ts",
+        "dev_path": "tests/web/unit/features/auth/ribbonGeometry.test.ts",
+        "source_blob": "61ccd5d9c8cd11c2afbfa4d92dd5eb174472a239",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "tests/web/unit/features/auth/useAuroraMotion.test.tsx",
+        "dev_path": "tests/web/unit/features/auth/useAuroraMotion.test.tsx",
+        "source_blob": "ed7ba448287e3a9c5330858f383a0453e33cc617",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "tests/web/unit/features/auth/useMobileAuthViewport.test.tsx",
+        "dev_path": "tests/web/unit/features/auth/useMobileAuthViewport.test.tsx",
+        "source_blob": "5f0836fcc32c3866b112a2dcac2b6fae98981a3b",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "tests/web/unit/pages/LoginPage.test.tsx",
+        "dev_path": "tests/web/unit/pages/LoginPage.test.tsx",
+        "source_blob": "f44596977b7ee630cdf64f7ca184d98c2961c647",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "tests/web/unit/pages/RegistrationPage.test.tsx",
+        "dev_path": "tests/web/unit/pages/RegistrationPage.test.tsx",
+        "source_blob": "a4eaf6c7211cc98e238317db63c1e6e10c4aff0e",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "tests/web/unit/shared/api/request.test.ts",
+        "dev_path": "tests/web/unit/shared/api/request.test.ts",
+        "source_blob": "279969b710214555a08c0017b3eb4011afb06f98",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "tests/web/unit/shared/ui/Form.test.tsx",
+        "dev_path": "tests/web/unit/shared/ui/Form.test.tsx",
+        "source_blob": "53402f23e22a6a4e2afb5beb21c043b56bae76ad",
+        "disposition": "retained_or_adapted_auth_only"
+      },
+      {
+        "source_path": "tests/web/unit/shared/ui/Modal.test.tsx",
+        "dev_path": "tests/web/unit/shared/ui/Modal.test.tsx",
+        "source_blob": "648adc1077d1adb2ef45ac7375320271932ed71c",
+        "disposition": "retained_or_adapted_auth_only"
+      }
+    ]
   }
 ]

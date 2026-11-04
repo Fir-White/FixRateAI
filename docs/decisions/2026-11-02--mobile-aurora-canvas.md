@@ -23,7 +23,7 @@
 
 Canvas устраняет мобильные SVG filter raster и изменения `d` без второй системы движения и новых зависимостей. Первый грубый вариант свечения отклонён из-за видимых полос; Gaussian-opacity quantiles сохранили мягкость. Текстурные сегменты усложнили бы стыки и кэш, а необходимость WebGL измерениями не подтверждена.
 
-Отзыв о плавности на Android зафиксирован в исходной frontend-ветке. Проверки интеграции воспроизводятся отдельно и описаны в [протоколе](../service/verification.md#02112026-интеграция-web-из-featurefrontend-kran); эмуляция Chrome не измеряет FPS физического телефона.
+Отзыв о плавности на Android зафиксирован в исходной frontend-ветке. Проверки интеграции воспроизводятся отдельно и описаны в [протоколе](../service/verification.md#04112026-исправление-версии-входа-и-мобильной-aurora); эмуляция Chrome не измеряет FPS физического телефона.
 
 ## Последствия
 
@@ -36,4 +36,4 @@ Desktop проверяется отдельными эталонными path-ф
 - [AuroraScene](../../frontend/src/features/auth/AuroraScene.tsx), [общий lifecycle](../../frontend/src/features/auth/useAuroraMotion.ts).
 - [Геометрия](../../frontend/src/features/auth/ribbonGeometry.ts), [общий renderer](../../frontend/src/features/auth/canvasRenderer.ts), [мобильный Canvas](../../frontend/src/features/auth/mobileCanvasRenderer.ts).
 - [Viewport guard](../../frontend/src/features/auth/useMobileAuthViewport.ts), [auth-стили](../../frontend/src/pages/LoginPage.css).
-- [Проверки и их границы](../service/verification.md#02112026-интеграция-web-из-featurefrontend-kran).
+- [Проверки и их границы](../service/verification.md#04112026-исправление-версии-входа-и-мобильной-aurora).

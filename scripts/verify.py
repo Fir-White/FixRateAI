@@ -78,9 +78,10 @@ def main():
             print((log_output / f"{name}.log").read_text(encoding="utf-8")[-15000:])
             raise RuntimeError(f"{name} failed")
 
-    def sql(db, file, name):
+    def sql(db, file, name, *, variables=None):
+        options = [part for key, value in (variables or {}).items() for part in ("-v", f"{key}={value}")]
         run(name, [exe("psql"), "-X", "-h", "127.0.0.1", "-p", str(pg_port), "-U", "postgres", "-d", db,
-                   "-v", "ON_ERROR_STOP=1", "-f", str(file)])
+                   "-v", "ON_ERROR_STOP=1", "-v", "VERBOSITY=verbose", *options, "-f", str(file)])
 
     def create_db(name):
         subprocess.run([exe("createdb"), "-h", "127.0.0.1", "-p", str(pg_port), "-U", "postgres", name], check=True, **hidden)
@@ -112,32 +113,25 @@ def main():
             sql("fixrate_test_upgrade", file, "upgrade_" + file.stem)
         for file in sorted((ROOT / "tests/sql").glob("00[1-4]*.sql")):
             sql("fixrate_test_upgrade", file, "sql_" + file.stem)
-        sql("fixrate_test_upgrade", ROOT / "tests/sql/test_maintenance_schema.sql", "sql_qa_schema")
+        sql("fixrate_test_upgrade", ROOT / "tests/sql/test_maintenance_schema.sql", "sql_qa_schema", variables={"qa03_keep_fixtures": "true"})
         sql("fixrate_test_upgrade", ROOT / "database/seeds/001_customer_schedule_demo.sql", "seed_source")
         sql("fixrate_test_upgrade", ROOT / "database/seeds/001_customer_schedule_demo.sql", "seed_source_rerun")
         sql("fixrate_test_upgrade", ROOT / "tests/sql/005_demo_seed.sql", "sql_demo_seed")
         from app.manage import migrate, seed_demo
         from app.db.session import make_engine
         engine = make_engine(upgrade_url)
-        import hashlib
-        with engine.connect() as conn:
-            raw = conn.connection.driver_connection
-            before = raw.execute("SELECT md5(string_agg(to_jsonb(w)::text,',' ORDER BY work_order_id)) FROM work_orders w").fetchone()[0]
-            assignments_before = raw.execute("SELECT md5(string_agg(to_jsonb(a)::text,',' ORDER BY work_assignment_id)) FROM work_assignments a").fetchone()[0]
+        sql("fixrate_test_upgrade", ROOT / "tests/sql/test_maintenance_history_upgrade.sql", "history_before_upgrade", variables={"qa03_capture": "true"})
         migrate(engine, adopt_existing=True)
         migrate(engine)
-        with engine.connect() as conn:
-            # New nullable columns must not rewrite existing work history.
-            raw = conn.connection.driver_connection
-            after = raw.execute("SELECT md5(string_agg((to_jsonb(w)-'revision'-'planned_end_at')::text,',' ORDER BY work_order_id)) FROM work_orders w").fetchone()[0]
-            assert before == after, "Upgrade changed existing work history"
-            assignments_after = raw.execute("SELECT md5(string_agg((to_jsonb(a)-'start_at'-'end_at'-'qualification_snapshot'-'reason'-'released_at')::text,',' ORDER BY work_assignment_id)) FROM work_assignments a").fetchone()[0]
-            assert assignments_before == assignments_after, "Upgrade changed existing assignments"
+        sql("fixrate_test_upgrade", ROOT / "tests/sql/test_maintenance_history_upgrade.sql", "history_after_upgrade")
+        sql("fixrate_test_upgrade", ROOT / "tests/sql/test_runtime_schema.sql", "upgraded_runtime_schema")
         engine.dispose()
-        results.append(dict(check="upgrade_004_to_008_and_idempotence", command="app.manage.migrate(adopt_existing=True); migrate(); compare persisted history", status="Пройдено"))
+        results.append(dict(check="upgrade_004_to_008_and_idempotence", command="app.manage.migrate(adopt_existing=True); migrate(); compare all original fields across eight nonempty history tables", status="Пройдено"))
         # Independent fresh installation, then seed twice without resetting history or passwords.
         engine = make_engine(runtime_url)
         migrate(engine)
+        sql("fixrate_test_runtime", ROOT / "tests/sql/test_maintenance_schema.sql", "fresh_base_schema")
+        sql("fixrate_test_runtime", ROOT / "tests/sql/test_runtime_schema.sql", "fresh_runtime_schema")
         password = "Verification-" + os.urandom(12).hex()
         seed_demo(engine, password)
         seed_demo(engine, password)
@@ -162,7 +156,7 @@ def main():
             api_port = unused_port()
             api_env = dict(env, DATABASE_URL=browser_url, PHOTO_STORAGE_ROOT=str(scratch / "browser-photos"))
             api_log = (log_output / "api.log").open("w", encoding="utf-8")
-            api = subprocess.Popen([sys.executable, "-m", "uvicorn", "app.main:app", "--app-dir", "backend",
+            api = subprocess.Popen([sys.executable, "scripts/start_backend.py",
                                     "--host", "127.0.0.1", "--port", str(api_port)], cwd=ROOT, env=api_env,
                                    stdout=api_log, stderr=subprocess.STDOUT, **hidden)
             for attempt in range(100):
