@@ -23,6 +23,9 @@ COPY data/models/ data/models/
 COPY scripts/start_backend.py scripts/start_backend.py
 COPY --from=web /build/frontend/dist frontend/dist
 RUN useradd --create-home --uid 10001 fixrate && mkdir -p /app/var/photos && chown -R fixrate:fixrate /app/var
+ARG SOURCE_REVISION=unknown
+LABEL org.opencontainers.image.revision=${SOURCE_REVISION}
+ENV FIXRATE_SOURCE_REVISION=${SOURCE_REVISION}
 USER fixrate
 EXPOSE 8000
 CMD ["python", "scripts/start_backend.py", "--migrate", "--host", "0.0.0.0"]

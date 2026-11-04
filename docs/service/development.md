@@ -98,3 +98,7 @@ var/                        локальная БД, PID, фото и private ba
 ## Согласованность документации, 04.11.2026
 
 Текущее состояние описывают README, service/runtime и раздел последнего полного прогона service/verification. Датированные протоколы остаются историей конкретного среза; их числа не подменяют текущую сводку. Ссылки проверяются вместе с якорями заголовков. При изменении версии PostgreSQL синхронно обновляются встроенный Mermaid, system_architecture.mmd/drawio и инфраструктурные SVG/PNG. Swagger алиасов должен иметь уникальные operationId и эквивалентные схемы; это проверяет test_openapi_contract.py. [Результат аудита](verification.md#04112026-аудит-документации-github-dev).
+
+## Переносимый ML-образ
+
+Dockerfile.bundled, compose.bundled.yaml и scripts/build_bundled_image.py добавляют локальную поставку приложения с закреплёнными весами CLIP внутри image. Экспорт разрешает только MODEL_FILES, проверяет границы snapshot и создаёт новый context без перезаписи. Реквизиты остаются в private runtime.env; cache credentials не экспортируются. tests/backend/test_model_bundle.py проверяет изоляцию модели, целостность manifest, отказ при неполном snapshot/повторном каталоге и совместимость постоянных volumes с обычным Compose. verify_compose.py проверяет API до/после рестарта и сохранённые результаты. [Запуск](runtime.md#готовый-образ-с-rf-и-clip-внутри).

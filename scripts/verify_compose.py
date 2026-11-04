@@ -25,7 +25,9 @@ from app.integration.demo import demo_id
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--docker',default=shutil.which('docker') or 'docker')
-    parser.add_argument('--ml-cache',type=Path,help='Require real CLIP using an existing read-only host cache')
+    models=parser.add_mutually_exclusive_group()
+    models.add_argument('--ml-cache',type=Path,help='Require real CLIP using an existing read-only host cache')
+    models.add_argument('--bundled-image',help='Use a prebuilt local image containing RF and CLIP weights')
     args=parser.parse_args()
     if args.ml_cache and not args.ml_cache.resolve().is_dir():
         parser.error('--ml-cache must point to an existing cache directory')
@@ -39,7 +41,9 @@ def main():
     # Empty env-file prevents accidental use of a real project .env.
     temporary=tempfile.TemporaryDirectory(prefix='fixrate-compose-')
     envfile=Path(temporary.name)/'empty.env'; envfile.write_text('')
-    base=[args.docker,'compose','--project-name',project,'--file',str(ROOT/'compose.yaml'),
+    if args.bundled_image: env['FIXRATE_IMAGE']=args.bundled_image
+    compose_file='compose.bundled.yaml' if args.bundled_image else 'compose.yaml'
+    base=[args.docker,'compose','--project-name',project,'--file',str(ROOT/compose_file),
           '--env-file',str(envfile),'--project-directory',str(ROOT)]
     if args.ml_cache:
         env['CLIP_CACHE_ROOT']=str(args.ml_cache.resolve())
@@ -93,8 +97,17 @@ def main():
         return result,photo['url'],blob
     try:
         command('config','config','--quiet')
-        command('build','build','app')
+        if args.bundled_image:
+            done=subprocess.run([args.docker,'image','inspect',args.bundled_image],capture_output=True,text=True)
+            assert done.returncode==0,'Bundled image must already exist locally'
+        else:
+            command('build','build','app')
         command('up','up','--detach','--no-build','--wait','--wait-timeout','180')
+        if args.bundled_image:
+            container=command('app_container','ps','--quiet','app').strip()
+            mounts=subprocess.run([args.docker,'inspect','--format','{{json .Mounts}}',container],capture_output=True,text=True,check=True).stdout
+            assert not any('/app/model-cache'==m['Destination'] or '/app/model-cache'.startswith(m['Destination'].rstrip('/')+'/') for m in json.loads(mounts))
+            results.append(dict(check='model_weights_inside_image_without_host_mount',passed=True))
         plain=build_opener()
         assert http('health',plain,'/api/health')['database']=='ready'
         http('spa',plain,'/')
@@ -147,7 +160,7 @@ def main():
         result=http('real_photo_review',engineer,prefix+f'/tasks/{task}/photo-review',method='POST',csrf=csrf,body=dict(expected_revision=bundle['task']['revision']))
         results.append(dict(check='actual_cv_result',status=result['status'],model_ref=result['modelRef'],error_code=result['errorCode'],items=result['items']))
         print(json.dumps(results[-1],ensure_ascii=True),flush=True)
-        if args.ml_cache:
+        if args.ml_cache or args.bundled_image:
             from ml_service.app.core.config import settings
             expected=f'{settings.clip_model_name}@{settings.clip_revision}'
             assert result['modelRef']==expected and result['status'] in ('completed','uncertain') and result['errorCode'] is None
@@ -158,8 +171,30 @@ def main():
         from app.schemas.maintenance import PhotoReviewResult
         canonical=PhotoReviewResult.model_validate_json(saved.strip())
         assert str(canonical.ai_review_id)==result['id'] and canonical.model_ref==result['modelRef']
-        if args.ml_cache: assert any(item.scores for item in canonical.item_results)
+        if args.ml_cache or args.bundled_image: assert any(item.scores for item in canonical.item_results)
         results.append(dict(check='both_canonical_models_persisted',passed=True))
+        # Restart while submitted, then call both real tools again through the API.
+        saved_run=http('comparison_before_restart',engineer,prefix+'/ui/comparisons/'+run['runId'])['run']
+        assert saved_run==run
+        command('restart_before_acceptance','restart','app')
+        for attempt in range(60):
+            try:
+                http('models_restart_health',plain,'/api/health'); break
+            except (OSError,AssertionError): time.sleep(.5)
+        else: raise RuntimeError('Model restart did not become healthy')
+        restored=http('comparison_after_restart',engineer,prefix+'/ui/comparisons/'+run['runId'])['run']
+        assert restored==saved_run
+        results.append(dict(check='both_forecast_dates_inputs_and_reason_restored',passed=True))
+        repeated_rf=http('rf_after_restart',engineer,prefix+f'/tasks/{task}/forecast',method='POST',csrf=csrf,
+            body=dict(expected_revision=bundle['task']['revision']))['run']
+        assert repeated_rf['ai']['status']=='ok' and repeated_rf['ai']['modelRef']==run['ai']['modelRef']
+        repeated_cv=http('cv_after_restart',engineer,prefix+f'/tasks/{task}/photo-review',method='POST',csrf=csrf,
+            body=dict(expected_revision=bundle['task']['revision']))
+        if args.ml_cache or args.bundled_image:
+            assert repeated_cv['modelRef']==result['modelRef'] and repeated_cv['errorCode'] is None
+        else:
+            assert repeated_cv['status']=='unavailable' and repeated_cv['errorCode']=='MODEL_NOT_READY'
+        results.append(dict(check='both_ml_tools_invoked_after_restart',passed=True))
         bundle=http('accept',engineer,prefix+f'/tasks/{task}/review',method='POST',csrf=csrf,body=dict(expected_revision=bundle['task']['revision'],execution_id=bundle['execution']['id'],verdict='accepted',reason='Compose smoke acceptance'))
         assert bundle['task']['state']=='accepted'
         command('seed_after_acceptance','exec','-T','-e','FIXRATE_DEMO_PASSWORD','app','python','-m','app.manage','seed-demo')
@@ -173,7 +208,13 @@ def main():
             except (OSError,AssertionError): time.sleep(.5)
         else: raise RuntimeError('Restart did not become healthy')
         http('persistent_session',executor,'/api/v1/auth/session')
-        assert http('persistent_task',executor,prefix+f'/ui/tasks/{task}')['task']['state']=='accepted'
+        persisted=http('persistent_task',executor,prefix+f'/ui/tasks/{task}')
+        assert persisted['task']['state']=='accepted' and persisted['execution']['id']==bundle['execution']['id']
+        assert persisted['review']['id']==repeated_cv['id']
+        assert http('closed_job_comparison',engineer,prefix+'/ui/comparisons/'+run['runId'])['run']==saved_run
+        history=http('closed_job_equipment_history',engineer,prefix+'/ui/equipment/'+persisted['task']['equipmentId'])['history']
+        assert any(event['taskCode']==task[:8] for event in history)
+        results.append(dict(check='closed_job_history_and_comparison_survive_restart',passed=True))
         assert http('persistent_photo',executor,photo_url)==photo_blob
         command('app_logs','logs','--no-color','app')
         raw=(logs/'app_logs.log').read_text(encoding='utf-8')

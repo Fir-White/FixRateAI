@@ -28,10 +28,13 @@ def main():
     parser.add_argument("--port",type=int)
     parser.add_argument("--cache",type=Path,default=ROOT/".venv/hf-cache")
     parser.add_argument("--no-build",action="store_true")
+    parser.add_argument("--bundled-image",help="Use a prebuilt local image with RF/CLIP weights inside")
     action=parser.add_mutually_exclusive_group()
     action.add_argument("--stop",action="store_true",help="Stop this project; keep all persistent volumes")
     action.add_argument("--status",action="store_true")
     args=parser.parse_args()
+    if args.bundled_image and (args.stop or args.status):
+        parser.error("Select an image when starting, not with --status or --stop")
     hidden={"creationflags":subprocess.CREATE_NO_WINDOW} if os.name=="nt" else {}
     exists=ENVFILE.is_file()
     if not exists and (args.stop or args.status):
@@ -42,7 +45,7 @@ def main():
         if found.stdout.strip():
             raise RuntimeError("Existing local volumes have no matching private configuration; refusing to replace credentials")
         cache=args.cache.resolve()
-        if not cache.is_dir(): raise ValueError("Prepared CLIP cache directory is required; use --cache")
+        if not args.bundled_image and not cache.is_dir(): raise ValueError("Prepared CLIP cache directory is required; use --cache")
         port=args.port
         if port is None:
             for candidate in (8000,8080,8090):
@@ -62,9 +65,17 @@ def main():
         values=dict(line.split("=",1) for line in ENVFILE.read_text(encoding="utf-8").splitlines() if line and not line.startswith("#"))
         if args.port is not None and str(args.port)!=values["FIXRATE_PORT"]:
             raise ValueError("Existing port is preserved; edit private runtime.env deliberately to change it")
+    if args.bundled_image:
+        subprocess.run([args.docker,"image","inspect",args.bundled_image],check=True,stdout=subprocess.DEVNULL,**hidden)
+        values["FIXRATE_IMAGE"]=args.bundled_image
+        values["FIXRATE_ML_PROFILE"]="bundled"
+        ENVFILE.write_text("".join(key+"="+value+"\n" for key,value in values.items()),encoding="utf-8")
+    bundled=values.get("FIXRATE_ML_PROFILE")=="bundled"
     env=dict(os.environ,**values)
     base=[args.docker,"compose","--project-name",PROJECT,"--env-file",str(ENVFILE),
-        "--project-directory",str(ROOT),"-f",str(ROOT/"compose.yaml"),"-f",str(ROOT/"compose.ml.yaml")]
+        "--project-directory",str(ROOT)]
+    for filename in (["compose.bundled.yaml"] if bundled else ["compose.yaml","compose.ml.yaml"]):
+        base.extend(["-f",str(ROOT/filename)])
     logdir=ROOT/"logs/local"/datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     logdir.mkdir(parents=True,exist_ok=False)
     def command(name,*parts):
@@ -85,13 +96,14 @@ def main():
     if args.status:
         print(command("status","ps"))
         return
-    if not Path(values["CLIP_CACHE_ROOT"]).is_dir(): raise ValueError("Prepared CLIP cache is missing")
-    if not args.no_build: command("build","build","app")
+    if not bundled and not Path(values["CLIP_CACHE_ROOT"]).is_dir(): raise ValueError("Prepared CLIP cache is missing")
+    if not args.no_build and not bundled: command("build","build","app")
     command("start","up","--detach","--no-build","--wait","--wait-timeout","180")
     command("seed","exec","-T","-e","FIXRATE_DEMO_PASSWORD","app","python","-m","app.manage","seed-demo")
     readiness=command("models","exec","-T","app","python","-c",
-        "import json; from ml_service.app.forecast.runtime import load_verified_forecaster; from ml_service.app.cv.classifier import CLIPZeroShotClassifier; rf=load_verified_forecaster(); cv=CLIPZeroShotClassifier(); assert rf.is_fitted and cv.is_torch_active; print(json.dumps(dict(rf='synthetic_demo:rf:'+rf.artifact_sha256[:16],clip=cv.model_ref)))")
-    models=json.loads(readiness)
+        "import json,os; from ml_service.app.forecast.runtime import load_verified_forecaster; from ml_service.app.cv.classifier import CLIPZeroShotClassifier; rf=load_verified_forecaster(); cv=CLIPZeroShotClassifier(); assert rf.is_fitted and cv.is_torch_active; print(json.dumps(dict(rf='synthetic_demo:rf:'+rf.artifact_sha256[:16],clip=cv.model_ref,source_revision=os.environ.get('FIXRATE_SOURCE_REVISION','unknown'))))")
+    image_readiness=json.loads(readiness)
+    models={key:image_readiness[key] for key in ("rf","clip")}
     origin="http://127.0.0.1:"+values["FIXRATE_PORT"]
     with urlopen(origin+"/api/health",timeout=10) as response:
         assert json.load(response)["database"]=="ready"
@@ -104,7 +116,9 @@ def main():
     if previous and previous.get("project")!=PROJECT:
         raise RuntimeError("Private state belongs to a different project")
     previous.update(project=PROJECT,url=origin,models=models,logs=str(logdir),
-        database_volume=PROJECT+"_postgres_data",photo_volume=PROJECT+"_photos",started_at=datetime.now(timezone.utc).isoformat())
+        database_volume=PROJECT+"_postgres_data",photo_volume=PROJECT+"_photos",started_at=datetime.now(timezone.utc).isoformat(),
+        image=values.get("FIXRATE_IMAGE","fixrate-ai:local"),image_profile="bundled" if bundled else "external-cache",
+        source_revision=image_readiness.get("source_revision","unknown"))
     state_path.write_text(json.dumps(previous,indent=2),encoding="utf-8")
     print(command("status","ps"))
     print("URL: "+origin)

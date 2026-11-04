@@ -97,6 +97,8 @@ docs/          архитектура, узлы сервиса, план и ADR
 | Средой и командами | [Запуск](docs/service/runtime.md) · [Проверки](docs/service/verification.md) |
 | Структурой и работой команды | [Разработка](docs/service/development.md) · [Индекс документации](docs/INDEX.md) |
 
+Для варианта с весами RF/CLIP внутри готового образа: [переносимый ML-стенд](docs/service/runtime.md#готовый-образ-с-rf-и-clip-внутри). После сборки он запускается без host cache через `python scripts/start_local.py --bundled-image fixrate-ai:bundled`.
+
 ## Локальный запуск и проверка
 
 Для постоянного Docker-стенда нужны Git, работающий Docker Desktop/Engine с Compose и Python. Node 24, PostgreSQL 18 и backend собираются в контейнерах. При первом запуске подготовьте CLIP-cache по [инструкции чистого checkout](docs/service/runtime.md#первый-запуск-с-чистого-checkout); подготовка модели использует Python 3.12 и корневой requirements.txt.

@@ -2,6 +2,40 @@
 
 Назначение: установить и проверить текущий модульный сервис. Команды выполняются из корня выбранного checkout dev. Текущий Compose использует PostgreSQL 18 и Python 3.12/CPU PyTorch. Полный native-прогон 04.11.2026 выполнен на Windows/Python 3.14.7/PostgreSQL 18.6; native-подготовка CLIP описана для Python 3.12. Прежние результаты PostgreSQL 16.13 относятся к датированным историческим протоколам.
 
+## Готовый образ с RF и CLIP внутри
+
+Для переносимого стенда используется Dockerfile.bundled поверх текущего приложения. Образ включает frontend, backend, RF и только восемь разрешённых файлов закреплённого CLIP. HF-токены, .env, БД и пользовательские фотографии в образ не копируются. Метаданные файла/размера/SHA-256 записываются в bundle-manifest.json; готовность обеих моделей проверяется в контейнере с отключённой сетью. RF обучен на synthetic_demo, CLIP оценивает видимые изменения; приёмка остаётся решением инженера.
+
+Сборка на машине с уже подготовленным cache требует Docker/BuildKit и Python 3.11+; host Torch для самого упаковщика не нужен:
+
+```powershell
+python scripts/build_bundled_image.py --cache .venv/hf-cache --tag fixrate-ai:bundled
+python scripts/start_local.py --bundled-image fixrate-ai:bundled
+```
+
+Упаковщик читает pin из ml_service/app/core/config.py, копирует только выбранный snapshot, строит отдельный runtime base и image с моделями. Дополнительный build context содержит только разрешённые файлы модели. Ничего не скачивается неявно. Внутри image устанавливаются HF_HOME=/app/model-cache и offline-флаги. Ревизия исходников записывается в OCI label и FIXRATE_SOURCE_REVISION; незакоммиченная сборка явно помечается -dirty. Отчёты — reports/bundled-image, логи — logs/bundled-image, подготовленный build context — var/bundled-image.
+
+start_local.py сохраняет выбранный image/profile в приватном runtime.env. Последующие --status, --stop и обычный старт используют тот же профиль. compose.bundled.yaml запускает готовый image без build и без model bind mount, с теми же postgres_data/photos volumes и адресом/паролями постоянного fixrate-local. Приложение можно обновить без удаления БД и фото. Readiness и source_revision записываются в var/compose-local/state.json.
+
+Проверка именно готового образа на отдельном одноразовом проекте:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/verify_compose.py --bundled-image fixrate-ai:bundled
+```
+
+Она проверяет отсутствие host mount для моделей, реальные RF/CLIP-вызовы, повтор обоих вызовов после restart, неизменность сохранённого сравнения и историю принятой работы после следующего restart. Для обычного профиля --ml-cache сохраняется; параметры --bundled-image и --ml-cache взаимоисключающие.
+
+Чтобы перенести image на другую совместимую Docker-машину:
+
+```powershell
+docker image save --output var/bundled-image/fixrate-ai-bundled.tar fixrate-ai:bundled
+# На другой машине после клонирования dev:
+docker image load --input fixrate-ai-bundled.tar
+python scripts/start_local.py --bundled-image fixrate-ai:bundled
+```
+
+Для такого запуска host CLIP-cache и Python ML-зависимости не нужны; достаточно Docker и стандартного Python для launcher. PostgreSQL и пользовательские файлы остаются отдельными постоянными volumes. Перенос существующих пользовательских данных требует отдельного backup/restore, image их не содержит.
+
 ## Первый запуск с чистого checkout
 
 Выберите dev при клонировании:
