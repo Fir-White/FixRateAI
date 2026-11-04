@@ -222,9 +222,13 @@ def main():
     from scripts.validate_analyst_handoff import validate_handoff
 
     handoff = validate_handoff()
+    from scripts.validate_checklist_catalog import validate_catalog
+
+    checklists = validate_catalog()
     links, edges = check_documents()
     print(f"OK: {len(examples)} JSON examples; {comparisons} comparison sets; {negatives} negative checks; schema matches; {links} local links; {edges} diagram edges; S01..S15 present.")
     print(f"OK analyst source: {handoff['files']} unchanged files; {handoff['evidence_cases']} evidence cases; {handoff['jpeg']} decoded JPEGs.")
+    print(f"OK checklist drafts: {checklists['profiles']} operations; {checklists['items']} source-linked fields; settings DTO matches.")
     print("This validates design artifacts only; application/API/DB/ML integration was not run.")
 
 
