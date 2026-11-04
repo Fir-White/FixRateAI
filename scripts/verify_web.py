@@ -55,6 +55,7 @@ def main():
             raise RuntimeError(f"{name} failed; see {log_path}")
 
     try:
+        run("frontend_build", [shutil.which("npm.cmd" if os.name == "nt" else "npm"), "run", "build"], cwd=ROOT / "frontend")
         run("initdb", [executable("initdb"), "-D", str(cluster), "-U", "postgres", "-A", "trust", "--encoding=UTF8", "--locale=C"])
         pg_port = unused_port()
         with (logs / "postgres.log").open("w", encoding="utf-8") as pg_log, (logs / "api.log").open("w", encoding="utf-8") as api_log:

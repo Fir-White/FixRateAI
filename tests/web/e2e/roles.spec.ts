@@ -38,7 +38,7 @@ for (const role of roles) {
         continue;
       }
       await expect(page.locator("h1")).toBeVisible();
-      await expect(page.getByRole("status")).toHaveCount(0);
+      await expect(page.locator("[data-workspace-loading]")).toHaveCount(0);
       await expect(page.getByRole("alert")).toHaveCount(0);
       const hrefs = await page.locator("a[href]").evaluateAll(links => links.map(link => link.getAttribute("href")!));
       for (const href of hrefs.filter(href => href.startsWith("/"))) {
@@ -58,7 +58,7 @@ for (const role of roles) {
         if (!(await event.count())) {
           // The seed schedules tomorrow, which can fall in the next local month.
           await page.getByRole("button", {name: "Следующий месяц"}).click();
-          await expect(page.getByRole("status")).toHaveCount(0);
+          await expect(page.locator("[data-workspace-loading]")).toHaveCount(0);
         }
         await event.click();
         await page.getByRole("dialog").getByRole("link", {name: "Открыть наряд"}).click();
