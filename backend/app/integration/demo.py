@@ -64,6 +64,6 @@ def add_runtime_demo(repo, password_hash):
     ensure("work_assignments", "work_assignment_id", "runtime-assignment", site_id=site,
         work_order_id=order.work_order_id, user_id=demo_id("user-1"), assigned_by=demo_id("dispatcher"))
     from .assignment_demo import add_assignment_demo
-    add_assignment_demo(repo)
+    add_assignment_demo(repo, password_hash=password_hash)
     from .planning_demo import add_planning_demo
     add_planning_demo(repo)

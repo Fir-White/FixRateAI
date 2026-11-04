@@ -4,9 +4,9 @@ Scope and honesty rules
 -----------------------
 These tests are **contract tests**, not integration tests. They use in-memory
 fixtures only: no PostgreSQL, no real session store, no AI runtime and no HTTP
-server. FX26-BE01 explicitly shipped DTOs without fake endpoints, so the route
-table below is the executable specification of the documented role matrix
-until the real router exists.
+server. The route table specifies the current role matrix and is checked
+against registered FastAPI routes. Handler authorization runs separately in
+test_qa02_runtime_contracts.py and test_runtime_integration.py.
 
 The file checks three layers:
 
@@ -17,7 +17,7 @@ The file checks three layers:
 3. Task visibility and self-review rules are enforced for the executor and
    engineer roles.
 
-When the real API appears, the same expectations must be re-run against it.
+The real HTTP/PostgreSQL checks run separately through scripts/verify.py.
 A green run here does **not** prove that the server works.
 """
 from __future__ import annotations
@@ -70,34 +70,21 @@ class RoutePolicy:
 
 
 ROUTES: tuple[RoutePolicy, ...] = (
-    RoutePolicy("GET", "/api/v1/maintenance/tasks", KNOWN_ROLES,
-                assigned_only_roles=frozenset({"executor"})),
-    RoutePolicy("GET", "/api/v1/maintenance/tasks/{task_id}", KNOWN_ROLES,
-                assigned_only_roles=frozenset({"executor"})),
-    RoutePolicy("POST", "/api/v1/maintenance/tasks", frozenset({"dispatcher"}),
-                mutation=True),
-    RoutePolicy("POST", "/api/v1/maintenance/tasks/{task_id}/assign",
-                frozenset({"dispatcher"}), mutation=True),
-    RoutePolicy("POST", "/api/v1/maintenance/tasks/{task_id}/start",
-                frozenset({"executor"}), mutation=True),
-    RoutePolicy("POST", "/api/v1/maintenance/tasks/{task_id}/review",
-                frozenset({"engineer"}), mutation=True),
-    RoutePolicy("POST", "/api/v1/maintenance/tasks/{task_id}/cancel",
-                frozenset({"dispatcher"}), mutation=True),
-    RoutePolicy("POST", "/api/v1/maintenance/operations",
-                frozenset({"dispatcher", "admin"}), mutation=True),
-    RoutePolicy("POST", "/api/v1/maintenance/operations/{operation_id}/approve",
-                frozenset({"engineer"}), mutation=True),
-    RoutePolicy("PATCH", "/api/v1/maintenance/regulations/{regulation_id}",
-                frozenset({"dispatcher", "admin"}), mutation=True),
-    RoutePolicy("POST", "/api/v1/maintenance/bindings",
-                frozenset({"dispatcher", "engineer"}), mutation=True),
-    RoutePolicy("POST", "/api/v1/maintenance/plans/generate",
-                frozenset({"dispatcher"}), mutation=True),
-    RoutePolicy("POST", "/api/v1/maintenance/plans/{plan_id}/approve",
-                frozenset({"engineer"}), mutation=True),
-    RoutePolicy("POST", "/api/v1/maintenance/executions/{execution_id}/submit",
-                frozenset({"executor"}), mutation=True),
+    RoutePolicy("GET", "/api/v1/maintenance/ui/tasks", KNOWN_ROLES, assigned_only_roles=frozenset({"executor"})),
+    RoutePolicy("GET", "/api/v1/maintenance/ui/tasks/{task_id}", KNOWN_ROLES, assigned_only_roles=frozenset({"executor"})),
+    RoutePolicy("GET", "/api/v1/maintenance/ui/calendar", frozenset({"dispatcher","engineer","executor"})),
+    RoutePolicy("GET", "/api/v1/maintenance/ui/calendar/preview", frozenset({"dispatcher","engineer"})),
+    RoutePolicy("GET", "/api/v1/maintenance/ui/quality", frozenset({"engineer"})),
+    RoutePolicy("GET", "/api/v1/maintenance/equipment/{equipment_id}/service-configurations", frozenset({"admin","dispatcher","engineer"})),
+    RoutePolicy("POST", "/api/v1/maintenance/calendar/generate", frozenset({"dispatcher"}), mutation=True),
+    RoutePolicy("POST", "/api/v1/maintenance/tasks/{task_id}/assign", frozenset({"dispatcher"}), mutation=True),
+    RoutePolicy("POST", "/api/v1/maintenance/tasks/{task_id}/start", frozenset({"executor"}), mutation=True),
+    RoutePolicy("POST", "/api/v1/maintenance/tasks/{task_id}/review", frozenset({"engineer"}), mutation=True),
+    RoutePolicy("POST", "/api/v1/maintenance/tasks/{task_id}/cancel", frozenset({"dispatcher"}), mutation=True),
+    RoutePolicy("PUT", "/api/v1/maintenance/tasks/{task_id}/report", frozenset({"executor"}), mutation=True),
+    RoutePolicy("POST", "/api/v1/maintenance/tasks/{task_id}/submit", frozenset({"executor"}), mutation=True),
+    RoutePolicy("POST", "/api/v1/maintenance/equipment/{equipment_id}/service-configurations", frozenset({"admin","dispatcher"}), mutation=True),
+    RoutePolicy("PUT", "/api/v1/maintenance/equipment/{equipment_id}/service-configurations/{binding_id}", frozenset({"admin","dispatcher"}), mutation=True),
 )
 
 
@@ -384,8 +371,8 @@ def test_route_matrix_allows_or_denies_role(policy: RoutePolicy, role: str) -> N
     "policy",
     [
         route("POST", "/api/v1/maintenance/tasks/{task_id}/review"),
-        route("POST", "/api/v1/maintenance/operations/{operation_id}/approve"),
-        route("PATCH", "/api/v1/maintenance/regulations/{regulation_id}"),
+        route("GET", "/api/v1/maintenance/ui/quality"),
+        route("PUT", "/api/v1/maintenance/equipment/{equipment_id}/service-configurations/{binding_id}"),
         route("POST", "/api/v1/maintenance/tasks/{task_id}/assign"),
     ],
 )
@@ -399,7 +386,7 @@ def test_engineer_cannot_change_regulation() -> None:
     with pytest.raises(AuthorizationError):
         require_any_role(
             ["engineer"],
-            route("PATCH", "/api/v1/maintenance/regulations/{regulation_id}").allowed_roles,
+            route("PUT", "/api/v1/maintenance/equipment/{equipment_id}/service-configurations/{binding_id}").allowed_roles,
         )
 
 
@@ -412,10 +399,10 @@ def test_engineer_cannot_assign_or_cancel_tasks() -> None:
             require_any_role(["engineer"], policy.allowed_roles)
 
 
-def test_dispatcher_cannot_review_or_approve_operations() -> None:
+def test_dispatcher_cannot_review_or_read_quality_queue() -> None:
     for policy in (
         route("POST", "/api/v1/maintenance/tasks/{task_id}/review"),
-        route("POST", "/api/v1/maintenance/operations/{operation_id}/approve"),
+        route("GET", "/api/v1/maintenance/ui/quality"),
     ):
         with pytest.raises(AuthorizationError):
             require_any_role(["dispatcher"], policy.allowed_roles)
@@ -424,7 +411,7 @@ def test_dispatcher_cannot_review_or_approve_operations() -> None:
 def test_admin_alone_does_not_replace_engineer_or_dispatcher() -> None:
     for policy in (
         route("POST", "/api/v1/maintenance/tasks/{task_id}/review"),
-        route("POST", "/api/v1/maintenance/operations/{operation_id}/approve"),
+        route("GET", "/api/v1/maintenance/ui/quality"),
         route("POST", "/api/v1/maintenance/tasks/{task_id}/assign"),
     ):
         with pytest.raises(AuthorizationError):
@@ -453,7 +440,7 @@ def test_disabled_user_is_rejected(directory: PrincipalDirectory) -> None:
 
 def test_authenticated_user_can_list_tasks(directory: PrincipalDirectory) -> None:
     principal = directory.authenticate(EXECUTOR_1)
-    require_any_role(principal.roles, route("GET", "/api/v1/maintenance/tasks").allowed_roles)
+    require_any_role(principal.roles, route("GET", "/api/v1/maintenance/ui/tasks").allowed_roles)
 
 
 def http_status(error: Exception | None) -> int:
@@ -560,6 +547,15 @@ def test_engineer_can_review_foreign_execution(
 
 
 def test_visibility_rule_marks_executor_routes_as_assigned_only() -> None:
-    assert route("GET", "/api/v1/maintenance/tasks").requires_own_task(["executor"])
-    assert route("GET", "/api/v1/maintenance/tasks/{task_id}").requires_own_task(["executor"])
-    assert not route("GET", "/api/v1/maintenance/tasks").requires_own_task(["engineer"])
+    assert route("GET", "/api/v1/maintenance/ui/tasks").requires_own_task(["executor"])
+    assert route("GET", "/api/v1/maintenance/ui/tasks/{task_id}").requires_own_task(["executor"])
+    assert not route("GET", "/api/v1/maintenance/ui/tasks").requires_own_task(["engineer"])
+
+
+def test_route_contract_names_registered_fastapi_routes() -> None:
+    from fastapi.routing import APIRoute
+    from app.main import create_app
+    registered = {(method, entry.path) for entry in create_app().routes
+                  if isinstance(entry, APIRoute) for method in entry.methods}
+    missing = {(entry.method, entry.path) for entry in ROUTES} - registered
+    assert not missing, f"Role contract contains unregistered routes: {sorted(missing)}"

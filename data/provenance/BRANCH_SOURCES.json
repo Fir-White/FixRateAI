@@ -1,6 +1,6 @@
 {
   "base": "d94f528df8c0e0f69c344ebd8c79a99bfbe5c1f2",
-  "captured_at": "2026-11-01",
+  "captured_at": "2026-11-04",
   "sources": [
     {
       "branch": "main",
@@ -115,6 +115,32 @@
       "not_included": [
         "All unique legacy estimator changes"
       ]
+    },
+    {
+      "branch": "feature/frontend-next",
+      "sha": "ac8a8ae52089b570e2c6284d242cd50abc23d5ca",
+      "reviewed_sha": "ac8a8ae52089b570e2c6284d242cd50abc23d5ca",
+      "status": "partially_integrated",
+      "document": "docs/service/development.md",
+      "comparison_base": "6a09f3b446f3215112569784ff796a8e10bf99f5",
+      "included_scope": "Responsive auth, mobile Aurora and required shared dependencies/tests only",
+      "pending_paths": [
+        "frontend/index.html",
+        "frontend/src/assets/favicons-visible/favicon-active-16.png",
+        "frontend/src/assets/favicons-visible/favicon-active-32.png",
+        "frontend/src/assets/favicons-visible/favicon-active.ico",
+        "frontend/src/features/assignment/CrewSelectionPanel.tsx",
+        "frontend/src/features/settings/CalendarPatternEditor.tsx",
+        "frontend/src/pages/ExecutorTaskPage.tsx",
+        "frontend/src/pages/ServiceSettingsPage.tsx",
+        "frontend/src/pages/TaskDetailPage.tsx",
+        "frontend/src/pages/WorkforceSettingsPage.tsx"
+      ],
+      "not_included": [
+        "Workspace commit 3e95724 and subsequent/uncommitted workspace redesign",
+        "Unrelated editor/workflow motion changes from ac8a8ae"
+      ],
+      "verification": "reports/verification/verify-20261104-151956-afe4399c/results.json"
     }
   ]
 }

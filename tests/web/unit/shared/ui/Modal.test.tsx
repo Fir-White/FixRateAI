@@ -27,12 +27,14 @@ function Harness() {
 describe("Modal", () => {
   it("traps focus, closes on Escape and restores focus", async () => {
     const user = userEvent.setup();
+    const previousOverflow=document.body.style.overflow;
     render(<Harness />);
 
     const trigger = screen.getByRole("button", { name: "Открыть" });
     await user.click(trigger);
 
     const dialog = screen.getByRole("dialog", { name: "Подтверждение" });
+    expect(document.body.style.overflow).toBe("hidden");
     expect(dialog).toContainElement(document.activeElement as HTMLElement);
 
     await user.tab({ shift: true });
@@ -43,6 +45,7 @@ describe("Modal", () => {
     await user.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(trigger).toHaveFocus();
+    expect(document.body.style.overflow).toBe(previousOverflow);
   });
 
   it("does not render a closed dialog", () => {

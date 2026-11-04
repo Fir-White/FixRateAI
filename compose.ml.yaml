@@ -1,0 +1,14 @@
+# Optional real-CLIP profile: docker compose -f compose.yaml -f compose.ml.yaml up --build -d
+services:
+  app:
+    environment:
+      HF_HOME: /app/model-cache
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+    volumes:
+      - type: bind
+        source: ${CLIP_CACHE_ROOT:?Set an existing directory with the pinned CLIP cache}
+        target: /app/model-cache
+        read_only: true
+        bind:
+          create_host_path: false

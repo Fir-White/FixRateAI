@@ -1,15 +1,26 @@
 """Build immutable ML inputs from persisted, site-scoped execution facts."""
 from __future__ import annotations
 
-import io
+import hashlib
 import json
+import logging
 from uuid import UUID
 
 from fastapi import Depends, HTTPException
-from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.maintenance import PhotoReviewRequest
+from app.files import inspect_image, MAX_BYTES
+
+
+logger = logging.getLogger(__name__)
+
+
+def logged_error_code(code):
+    allowed={"MODEL_NOT_READY","INSUFFICIENT_HISTORY","AI_INFERENCE_FAILED","TIMEOUT","PROVIDER_ERROR",
+             "PROVIDER_BUSY","AI_BUSY","INVALID_RESPONSE","INVALID_AI_JSON","AI_SNAPSHOT_MISMATCH",
+             "PHOTO_REVIEW_FAILED","INVALID_TIMEOUT","REQUEST_BUDGET_EXHAUSTED"}
+    return code if code in allowed else "UNCLASSIFIED" if code else "none"
 
 
 class MLCommand(BaseModel):
@@ -65,12 +76,14 @@ def forecast_view(result):
 def register_ml_routes(app, views, photo_path, require_role, check_revision):
     # Imported lazily by create_app; the ML namespace never shadows backend app.
     from ml_service.app.cv.api import invoke_review
+    from ml_service.app.core.config import settings as ml_settings
 
     @app.post("/api/v1/maintenance/tasks/{task_id}/forecast")
     def forecast(task_id: UUID, command: MLCommand, v=Depends(views)):
         from .forecasting import forecast_task
         require_role(v.principal, "dispatcher", "engineer")
-        return forecast_task(v, task_id, command.expected_revision, app.state.forecaster)
+        return forecast_task(v, task_id, command.expected_revision, app.state.forecaster,
+                             timeout_seconds=app.state.settings.forecast_timeout_seconds)
 
     @app.post("/api/v1/maintenance/tasks/{task_id}/photo-review")
     def photo_review(task_id: UUID, command: MLCommand, v=Depends(views)):
@@ -87,16 +100,32 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
                 if p.stage in ("before", "after") and p.checklist_item_id and p.equipment_id and p.view_key]
         if len(rows) < 2:
             raise HTTPException(422, "Недостаточно фото с привязками для анализа")
+        limits = app.state.settings
+        if len(rows) > limits.photo_review_max_files or sum(p.file_size for p in rows) > limits.photo_review_max_bytes:
+            raise HTTPException(413, "PHOTO_REVIEW_LIMIT_EXCEEDED")
         payload_photos = []
+        total_bytes = 0
         blobs = {}
         for p in rows:
             path = photo_path(p)
             if not path.is_file():
                 raise HTTPException(422, "Фотография отсутствует в хранилище")
-            blob = path.read_bytes()
+            try:
+                with path.open("rb") as stream:
+                    blob = stream.read(MAX_BYTES + 1)
+            except OSError:
+                raise HTTPException(503, "PHOTO_STORAGE_UNAVAILABLE") from None
+            total_bytes += len(blob)
+            if total_bytes > limits.photo_review_max_bytes:
+                raise HTTPException(413, "PHOTO_REVIEW_LIMIT_EXCEEDED")
+            try:
+                mime, _, width, height = inspect_image(blob)
+                if (len(blob) != p.file_size or hashlib.sha256(blob).hexdigest() != p.sha256.strip()
+                        or mime != p.mime_type):
+                    raise ValueError("Stored evidence changed")
+            except Exception:
+                raise HTTPException(422, "PHOTO_CONTENT_INVALID") from None
             blobs[p.evidence_file_id] = blob
-            with Image.open(io.BytesIO(blob)) as img:
-                width, height = img.size
             payload_photos.append(dict(schema_version="maintenance-0.1", data_origin=op["data_origin"],
                 photo_id=str(p.evidence_file_id), execution_id=str(report.work_report_id), equipment_id=str(p.equipment_id),
                 checklist_item_id=str(p.checklist_item_id), phase=p.stage, view_key=p.view_key, mime_type=p.mime_type,
@@ -105,7 +134,7 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
                 uploaded_by=str(p.uploaded_by), content_url=f"/api/v1/maintenance/photos/{p.evidence_file_id}/content"))
         answers = {str(a.checklist_template_id): a.response_value.get("answer") for a in v.rows("checklist_results", work_report_id=report.work_report_id)}
         request = dict(schema_version="maintenance-0.1", data_origin=op["data_origin"], execution_id=str(report.work_report_id),
-            operation=op, photos=payload_photos, prompt_set_version="demo-clean-pairs-v1", report=dict(
+            operation=op, photos=payload_photos, prompt_set_version=ml_settings.prompt_set_version, report=dict(
                 schema_version="maintenance-0.1", data_origin=op["data_origin"], execution_id=str(report.work_report_id),
                 task_id=str(task_id), attempt_number=report.revision_no, state="submitted", performed_at=order.completed_at.isoformat(),
                 submitted_at=report.submitted_at.isoformat(), submitted_by=str(report.submitted_by), narrative=report.comment or "Отчёт без комментария",
@@ -113,7 +142,9 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
                     value=answers.get(i["id"]), unit=i["unit"], comment=None, completed_at=report.submitted_at.isoformat()) for i in report.checklist_snapshot],
                 photo_ids=[p["photo_id"] for p in payload_photos]))
         result = invoke_review(PhotoReviewRequest.model_validate_json(json.dumps(request)), blobs.__getitem__,
-                               comparability_confirmed=lambda b, a: command.comparability_confirmed)
+                               comparability_confirmed=lambda b, a: command.comparability_confirmed,
+                               timeout_seconds=app.state.settings.photo_review_timeout_seconds,
+                               expected_model_ref=f"{ml_settings.clip_model_name}@{ml_settings.clip_revision}")
         ui = dict(id=str(result.ai_review_id), executionId=str(result.execution_id), status=result.status,
             modelRef=result.model_ref, promptSetVersion=result.prompt_set_version, createdAt=result.created_at.isoformat(),
             items=[dict(id=str(i.checklist_item_id), label=next(c["text"] for c in report.checklist_snapshot if c["id"] == str(i.checklist_item_id)),
@@ -125,4 +156,7 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
             status="failed" if result.status == "failed" else "ok" if result.status == "completed" else "inconclusive",
             assessment="inconclusive", findings={"canonical": json.loads(result.model_dump_json()), "ui": ui})
         v.session.commit()
+        logger.info("ml_result tool=photo-review task=%s review=%s status=%s model=%s code=%s elapsed_ms=%s",
+                    task_id, result.ai_review_id, result.status, result.model_ref or "none",
+                    logged_error_code(result.error_code), result.elapsed_ms)
         return ui

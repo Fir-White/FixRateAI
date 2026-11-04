@@ -215,10 +215,51 @@ def test_generation_failure_rolls_back_tasks_forecasts_plan_and_idempotency_reco
                 if calls==2: raise RuntimeError('injected generation failure')
                 return original(repo,table,**values)
             monkeypatch.setattr(MaintenanceRepository,'add',broken)
-            with pytest.raises(RuntimeError,match='injected'):
-                client.post(PREFIX+'/calendar/generate',json=request)
+            response=client.post(PREFIX+'/calendar/generate',json=request)
+            assert response.status_code==500
+            assert response.json()['error']['code']=='INTERNAL_ERROR'
+            assert 'injected' not in response.text
             assert counts(engine)==before
     finally:
         with engine.begin() as c:
             c.execute(text('UPDATE maintenance_rules SET period_unit=:unit,active_from=:start,active_until=:end,schedule_parameters=CAST(:params AS jsonb) WHERE maintenance_rule_id=:id'),
                 {'id':RULE,'unit':prior['period_unit'],'start':prior['active_from'],'end':prior['active_until'],'params':json.dumps(prior['schedule_parameters'])})
+
+
+@pytest.mark.parametrize('failure,code',[('exception','PROVIDER_ERROR'),('timeout','TIMEOUT'),('invalid','INVALID_AI_JSON')])
+def test_generation_keeps_regulatory_task_and_persists_actual_ai_failure(planning,monkeypatch,failure,code,caplog):
+    from threading import Event
+    import app.integration.planning as routes
+    from app.integration.forecasting import calculate
+    engine,app,day=planning
+    release=Event()
+    def provider(snapshot):
+        if failure=='timeout': release.wait(2)
+        if failure=='exception': raise RuntimeError('private-forecast-token')
+        return '{invalid}'
+    def bounded(snapshot,item,forecaster,**kwargs):
+        return calculate(snapshot,item,forecaster,timeout_seconds=.01,provider=provider)
+    monkeypatch.setattr(routes,'calculate',bounded)
+    try:
+        with closing(login(app,'dispatcher')) as client:
+            response=client.post(PREFIX+'/calendar/generate',json=body(client,day))
+            assert response.status_code==200,response.text
+            result=response.json()
+            assert result['createdCount']==1
+            row=next(row for row in result['items'] if row['comparison'] and row['comparison']['ai']['errorCode']==code)
+            comparison=row['comparison']
+            assert comparison['algorithmic']['status']=='ok'
+            assert comparison['decision']['status']=='fallback'
+            assert comparison['decision']['selectedDate']==comparison['algorithmic']['recommendedDate']
+            assert client.get(PREFIX+f"/ui/tasks/{row['taskId']}").status_code==200
+        assert counts(engine)==dict(work_orders=1,schedule_entries=1,forecast_runs=2,orchestration_decisions=1,runs=1)
+        with engine.connect() as conn:
+            forecasts=conn.execute(text('SELECT method,output_snapshot FROM forecast_runs WHERE maintenance_rule_id=:id'),dict(id=RULE)).all()
+            ai=next(snapshot['canonical'] for method,snapshot in forecasts if method=='ai')
+            assert ai['error_code']==code and ai['recommended_date'] is None
+            decision=conn.execute(text('SELECT reason,comparison_snapshot FROM orchestration_decisions WHERE maintenance_rule_id=:id'),dict(id=RULE)).one()
+            assert decision.reason and decision.comparison_snapshot['canonical']['status']=='fallback'
+            assert 'private-forecast-token' not in str(forecasts)+str(decision)
+        assert 'private-forecast-token' not in response.text+caplog.text
+    finally:
+        release.set()

@@ -1,6 +1,9 @@
 @import "tailwindcss";
+@import "./shared/motion/motion.css";
 
 @theme {
+  --default-transition-duration: var(--motion-fast);
+  --default-transition-timing-function: var(--ease-standard);
   --font-sans:
     "Segoe UI", "Helvetica Neue", Inter, ui-sans-serif, system-ui, sans-serif;
   --font-mono:
@@ -27,6 +30,7 @@
 @layer base {
   html {
     min-width: 320px;
+    scrollbar-gutter: stable;
     background-color: var(--color-canvas);
     color: var(--color-ink);
     color-scheme: dark;

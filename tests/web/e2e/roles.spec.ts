@@ -70,7 +70,7 @@ for (const role of roles) {
     await page.getByRole("button", {name: "Выйти", exact: true}).last().click();
     await expect(page).toHaveURL(/\/login$/);
     await page.reload();
-    await expect(page.getByRole("heading", {name: "С возвращением"})).toBeVisible();
+    await expect(page.getByRole("heading", {name: "Вход в систему"})).toBeVisible();
     const session = await page.request.get("/api/v1/auth/session");
     expect(session.status()).toBe(401);
     expect(errors).toEqual([]);

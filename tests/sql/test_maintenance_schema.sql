@@ -1,4 +1,4 @@
--- FixRate AI: deployment contract test for migrations 001-004.
+-- FixRate AI: base ER contract after migrations 001-004 (also on later schemas).
 --
 -- Run only on a clean, isolated database after applying:
 --   database/migrations/001_tl02.sql
@@ -6,7 +6,8 @@
 --   database/migrations/003_occurrence_uniqueness.sql
 --   database/migrations/004_tl03_safe_constraints.sql
 --
--- The script is read-only for the target schema: every fixture is rolled back.
+-- Fixtures roll back by default. Only isolated upgrade runners set
+-- -v qa03_keep_fixtures=true to retain a nonempty history before migration.
 -- It checks:
 --   1. all 35 TL02 tables and the columns added by 002/004 exist;
 --   2. primary keys, mandatory foreign keys, unique occurrence indexes and
@@ -16,6 +17,10 @@
 --   4. mandatory relations reject incomplete or cross-site rows;
 --   5. invalid statuses, ranges and duplicate business keys are rejected.
 \set ON_ERROR_STOP on
+\if :{?qa03_keep_fixtures}
+\else
+\set qa03_keep_fixtures false
+\endif
 
 BEGIN;
 
@@ -24,9 +29,7 @@ DO $$
 DECLARE
     missing text;
     pk_count integer;
-BEGIN
-    SELECT string_agg(name, ', ') INTO missing
-    FROM unnest(ARRAY[
+    base_tables CONSTANT text[] := ARRAY[
         'sites','users','site_memberships','engineering_systems',
         'equipment_types','equipment','skills','user_skills',
         'availability_slots','crews','crew_members','maintenance_types',
@@ -37,7 +40,10 @@ BEGIN
         'work_reports','checklist_results','work_readings','evidence_files',
         'acceptance_reviews','predictor_versions','forecast_runs',
         'orchestration_decisions','ai_quality_checks','audit_events'
-    ]) AS name
+];
+BEGIN
+    SELECT string_agg(name, ', ') INTO missing
+    FROM unnest(base_tables) AS name
     WHERE to_regclass('public.' || name) IS NULL;
 
     IF missing IS NOT NULL THEN
@@ -48,10 +54,10 @@ BEGIN
     FROM pg_constraint c
     JOIN pg_class t ON t.oid = c.conrelid
     JOIN pg_namespace n ON n.oid = t.relnamespace
-    WHERE n.nspname = 'public' AND c.contype = 'p';
+    WHERE n.nspname = 'public' AND c.contype = 'p' AND t.relname = ANY(base_tables);
 
     IF pk_count <> 35 THEN
-        RAISE EXCEPTION 'expected 35 primary keys, found %', pk_count;
+        RAISE EXCEPTION 'expected 35 base-table primary keys, found %', pk_count;
     END IF;
 
     IF NOT EXISTS (
@@ -503,19 +509,22 @@ BEGIN
     BEGIN
         DELETE FROM forecast_runs WHERE forecast_run_id = fr_rule;
         RAISE EXCEPTION 'forecast referenced by a decision was deleted';
-    EXCEPTION WHEN foreign_key_violation THEN NULL;
+    EXCEPTION WHEN restrict_violation OR foreign_key_violation THEN
+        RAISE NOTICE 'Referenced history deletion blocked (SQLSTATE %)', SQLSTATE;
     END;
 
     BEGIN
         DELETE FROM work_orders WHERE work_order_id = wo;
         RAISE EXCEPTION 'work order with report was deleted';
-    EXCEPTION WHEN foreign_key_violation THEN NULL;
+    EXCEPTION WHEN restrict_violation OR foreign_key_violation THEN
+        RAISE NOTICE 'Referenced history deletion blocked (SQLSTATE %)', SQLSTATE;
     END;
 
     BEGIN
         DELETE FROM maintenance_rules WHERE maintenance_rule_id = r1;
         RAISE EXCEPTION 'rule with schedule history was deleted';
-    EXCEPTION WHEN foreign_key_violation THEN NULL;
+    EXCEPTION WHEN restrict_violation OR foreign_key_violation THEN
+        RAISE NOTICE 'Referenced history deletion blocked (SQLSTATE %)', SQLSTATE;
     END;
 
     -- Final invariants: no fixture was lost or duplicated by the negative runs.
@@ -539,7 +548,12 @@ BEGIN
     END IF;
 END $$;
 
+\if :qa03_keep_fixtures
+\echo '== 3. retain fixtures ONLY for isolated upgrade verification =='
+COMMIT;
+\else
 \echo '== 3. rollback fixtures =='
 ROLLBACK;
+\endif
 
 \echo 'ALL SCHEMA CHECKS PASSED'

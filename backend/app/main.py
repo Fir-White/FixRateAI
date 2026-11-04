@@ -4,9 +4,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import hashlib
-import io
 import logging
-import os
 import re
 from pathlib import Path
 import secrets
@@ -18,11 +16,12 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from PIL import Image
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
+from app.config import RuntimeSettings
+from app.files import validate_upload
 from app.db.models import map_schema
 from app.db.session import make_engine, make_session_factory
 from app.integration.projections import Views
@@ -103,6 +102,7 @@ def check_revision(order, revision):
 
 
 def create_app(engine=None):
+    runtime_settings = RuntimeSettings.from_environment()
     @asynccontextmanager
     async def lifespan(app):
         app.state.engine = engine if engine is not None else make_engine()
@@ -114,18 +114,10 @@ def create_app(engine=None):
             app.state.factory = make_session_factory(app.state.engine)
             app.state.forecaster = None
             try:
-                import json
-                from ml_service.app.core.config import settings
-                from ml_service.app.forecast.model import RandomForestForecaster
-                artifact = settings.artifacts_path / "rf_model.joblib"
-                manifest = settings.artifacts_path / "artifact_manifest.json"
-                if artifact.is_file() and manifest.is_file():
-                    metadata = json.loads(manifest.read_text(encoding="utf-8"))
-                    if hashlib.sha256(artifact.read_bytes()).hexdigest() != metadata["artifact_sha256"]:
-                        raise ValueError("RF artifact hash does not match manifest")
-                    app.state.forecaster = RandomForestForecaster.from_file(artifact)
-            except Exception:
-                logger.exception("RF artifact could not be loaded; forecasting will report unavailable")
+                from ml_service.app.forecast.runtime import load_verified_forecaster
+                app.state.forecaster = load_verified_forecaster()
+            except Exception as exc:
+                logger.error("RF artifact unavailable: %s", type(exc).__name__)
             yield
         finally:
             if hasattr(app.state, "models"):
@@ -135,10 +127,20 @@ def create_app(engine=None):
 
     app = FastAPI(title="FixRate AI", version="dev-0.1", lifespan=lifespan)
 
+    app.state.settings = runtime_settings
+
     @app.middleware('http')
     async def request_identity(request,call_next):
         request.state.request_id=str(uuid4())
-        response=await call_next(request)
+        origin = request.headers.get("origin")
+        if request.url.path.startswith("/api/") and origin and origin.rstrip("/") != str(request.base_url).rstrip("/"):
+            response = error_response(request, 403, "Недопустимый origin")
+        else:
+            try:
+                response = await call_next(request)
+            except Exception as exc:
+                logger.error("Request failed id=%s type=%s", request.state.request_id, type(exc).__name__)
+                response = error_response(request, 500, "Внутренняя ошибка сервера", code="INTERNAL_ERROR")
         response.headers['X-Request-ID']=request.state.request_id
         return response
 
@@ -221,9 +223,9 @@ def create_app(engine=None):
         # Commit before setting a successful cookie/response.
         session.commit()
         response.set_cookie(COOKIE, token, httponly=True, samesite="lax", max_age=28800,
-                            secure=os.environ.get("COOKIE_SECURE", "false").lower() == "true", path="/")
+                            secure=runtime_settings.cookie_secure, path="/")
         response.set_cookie("fixrate_csrf", csrf, httponly=False, samesite="lax", max_age=28800,
-                            secure=os.environ.get("COOKIE_SECURE", "false").lower() == "true", path="/")
+                            secure=runtime_settings.cookie_secure, path="/")
         who = Principal(user["user_id"], member["site_id"], SQL_ROLES[member["role"]], user["full_name"],
                         user["email"], member["name"], member["timezone"])
         return {"profile": who.profile(), "csrfToken": csrf}
@@ -317,7 +319,8 @@ def create_app(engine=None):
         from app.integration.planning import generate_tasks
         require_role(v.principal, "dispatcher")
         response.headers["Cache-Control"] = "private, no-store"
-        return generate_tasks(v, command.year, command.month, command.idempotency_key, command.preview_token, app.state.forecaster)
+        return generate_tasks(v, command.year, command.month, command.idempotency_key, command.preview_token, app.state.forecaster,
+                              forecast_timeout_seconds=app.state.settings.forecast_timeout_seconds)
 
     @app.get(prefix + "/ui/comparisons")
     def comparisons(v=Depends(views)):
@@ -405,7 +408,7 @@ def create_app(engine=None):
         v.session.commit()
         return result
 
-    storage = Path(os.environ.get("PHOTO_STORAGE_ROOT", ROOT / "var/photos")).resolve()
+    storage = runtime_settings.photo_storage_root
 
     def photo_path(photo):
         # Source demo photo is read-only and served only through the same access check.
@@ -427,11 +430,7 @@ def create_app(engine=None):
         if not data or len(data) > 10_485_760:
             raise HTTPException(422, "Размер фото должен быть от 1 байта до 10 МиБ")
         try:
-            with Image.open(io.BytesIO(data)) as img:
-                if img.width * img.height > 20_000_000 or img.format not in ("JPEG", "PNG", "WEBP"):
-                    raise ValueError()
-                mime = Image.MIME[img.format]
-                img.verify()
+            mime = validate_upload(data, file.filename, file.content_type)
         except Exception:
             raise HTTPException(422, "Недопустимое изображение") from None
         links = v.rows("work_order_equipment", work_order_id=task_id)
@@ -439,10 +438,19 @@ def create_app(engine=None):
             raise HTTPException(422, "Фото API требует ровно одно оборудование в задании")
         identity = uuid4()
         key = f"{v.principal.site_id}/{identity}"
-        path = storage / key
-        path.parent.mkdir(parents=True, exist_ok=True)
+        path = (storage / key).resolve()
+        if not path.is_relative_to(storage):
+            raise HTTPException(503, "PHOTO_STORAGE_UNAVAILABLE")
         try:
+            path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(data)
+        except OSError:
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise HTTPException(503, "PHOTO_STORAGE_UNAVAILABLE") from None
+        try:
             v.repo.add("evidence_files", evidence_file_id=identity, site_id=v.principal.site_id,
                 work_order_id=task_id, work_report_id=report.work_report_id, uploaded_by=v.principal.user_id,
                 stage=phase, storage_key=key, mime_type=mime, file_size=len(data), sha256=hashlib.sha256(data).hexdigest(),
@@ -453,7 +461,10 @@ def create_app(engine=None):
             result = v.bundle(order)
             v.session.commit()
         except BaseException:
-            path.unlink(missing_ok=True)
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                logger.error("Photo cleanup failed")
             raise
         return result
 

@@ -301,3 +301,62 @@ def test_review_photos_loader_failure_handling(canonical_photo_review_request: P
     assert result.status == "uncertain"
     assert result.item_results[0].verdict == "uncertain"
     assert "Не удалось загрузить" in result.item_results[0].observation
+
+
+def test_review_adapter_bounds_hung_providers_and_recovers(canonical_photo_review_request,monkeypatch):
+    from threading import BoundedSemaphore,Event
+    import ml_service.app.cv.api as adapter
+    slots=BoundedSemaphore(2)
+    monkeypatch.setattr(adapter,'_slots',slots)
+    release=Event()
+    req=canonical_photo_review_request
+    def blocked(*args):
+        release.wait(2)
+        return '{invalid}'
+    try:
+        for _ in range(2):
+            result=adapter.invoke_review(req,lambda _:b'',provider=blocked,timeout_seconds=.005)
+            assert result.error_code=='TIMEOUT' and not result.item_results and result.model_ref is None
+        result=adapter.invoke_review(req,lambda _:b'',provider=blocked,timeout_seconds=.005)
+        assert result.error_code=='PROVIDER_BUSY'
+    finally:
+        release.set()
+    assert slots.acquire(timeout=2)
+    assert slots.acquire(timeout=2)
+    slots.release(); slots.release()
+    def broken(*args): raise RuntimeError('private-provider-token')
+    result=adapter.invoke_review(req,lambda _:b'',provider=broken)
+    assert result.error_code=='PROVIDER_ERROR'
+    assert 'private-provider-token' not in result.model_dump_json()
+    assert adapter.invoke_review(req,lambda _:b'',provider=lambda *a:'{invalid}').error_code=='INVALID_RESPONSE'
+
+
+def test_review_adapter_rejects_different_prompt_version(canonical_photo_review_request):
+    from datetime import datetime,timezone
+    from uuid import uuid4
+    from ml_service.app.cv.api import invoke_review
+    from ml_service.app.schemas import PhotoReviewResult
+    req=canonical_photo_review_request
+    result=PhotoReviewResult(schema_version=req.schema_version,data_origin=req.data_origin,
+        ai_review_id=uuid4(),execution_id=req.execution_id,operation_version_id=req.operation.operation_version_id,
+        status='unavailable',model_ref=None,prompt_set_version='unapproved-prompts-v999',
+        input_photo_ids=[p.photo_id for p in req.photos],item_results=[],limitations=['Test-only provider'],
+        error_code='MODEL_NOT_READY',elapsed_ms=1,created_at=datetime.now(timezone.utc))
+    actual=invoke_review(req,lambda _:b'',provider=lambda *a:result)
+    assert actual.error_code=='INVALID_RESPONSE'
+    assert actual.prompt_set_version==req.prompt_set_version
+
+
+def test_review_adapter_rejects_unapproved_model_version(canonical_photo_review_request):
+    from datetime import datetime,timezone
+    from uuid import uuid4
+    from ml_service.app.cv.api import invoke_review
+    from ml_service.app.schemas import PhotoReviewResult
+    req=canonical_photo_review_request
+    result=PhotoReviewResult(schema_version=req.schema_version,data_origin=req.data_origin,
+        ai_review_id=uuid4(),execution_id=req.execution_id,operation_version_id=req.operation.operation_version_id,
+        status='uncertain',model_ref='unapproved-model@999',prompt_set_version=req.prompt_set_version,
+        input_photo_ids=[p.photo_id for p in req.photos],item_results=[],limitations=['Test-only provider'],
+        error_code=None,elapsed_ms=1,created_at=datetime.now(timezone.utc))
+    actual=invoke_review(req,lambda _:b'',provider=lambda *a:result,expected_model_ref='approved-model@1')
+    assert actual.error_code=='INVALID_RESPONSE' and actual.model_ref is None

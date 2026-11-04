@@ -1,6 +1,7 @@
 """Server snapshots and persistence for independent ALG04 forecasts."""
 from datetime import datetime, time, timedelta, timezone
 import json
+import logging
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
@@ -11,7 +12,10 @@ from app.orchestrator import compare_forecasts
 from app.schemas.maintenance import ForecastSnapshot
 from app.scheduling.schemas import SchedulingBinding
 from .calendar import _binding_payload, _json_value
-from .ml import forecast_view, version
+from .ml import forecast_view, version, logged_error_code
+
+
+logger = logging.getLogger(__name__)
 
 
 def binding_input(v, binding, *, as_of=None):
@@ -74,7 +78,11 @@ def task_snapshot(v, order, *, as_of=None, snapshot_id=None):
 def calculate(snapshot, item, forecaster, *, timeout_seconds=2, provider=None):
     from ml_service.app.forecast.client import predict_maintenance_ai
     chosen = provider or (lambda value: predict_maintenance_ai(value, forecaster=forecaster, use_active_model=False))
-    return compare_forecasts(snapshot, item, chosen, timeout_seconds=timeout_seconds)
+    values = compare_forecasts(snapshot, item, chosen, timeout_seconds=timeout_seconds)
+    logger.info("ml_call_done tool=forecast run=%s snapshot=%s status=%s code=%s elapsed_ms=%s",
+                values[1].run_id, snapshot.snapshot_id, values[1].status,
+                logged_error_code(values[1].error_code), values[1].elapsed_ms)
+    return values
 
 
 def persist_comparison(v, snapshot, algorithmic, ai, decision, *, system_id, deadline_at, condition=None):
@@ -108,13 +116,13 @@ def persist_comparison(v, snapshot, algorithmic, ai, decision, *, system_id, dea
     return ui, row
 
 
-def forecast_task(v, task_id, revision, forecaster):
+def forecast_task(v, task_id, revision, forecaster, *, timeout_seconds=2):
     from ml_service.app.forecast.backend_adapter import predict_condition_for_snapshot
     order = v.task(task_id)
     if order.revision != revision:
         raise HTTPException(409, "REVISION_CONFLICT: обновите данные")
     snapshot, item, entry = task_snapshot(v, order)
-    values = calculate(snapshot, item, forecaster)
+    values = calculate(snapshot, item, forecaster, timeout_seconds=timeout_seconds)
     condition = predict_condition_for_snapshot(snapshot)
     v.session.expire_all()
     order = v.task(task_id, lock=True)
@@ -126,4 +134,6 @@ def forecast_task(v, task_id, revision, forecaster):
     ui, _ = persist_comparison(v, snapshot, *values, system_id=order.system_id, deadline_at=entry.regulatory_deadline_at,
                                condition=json.loads(condition.model_dump_json()))
     v.session.commit()
+    logger.info("ml_result tool=forecast task=%s run=%s status=%s elapsed_ms=%s",
+                task_id, ui["runId"], values[1].status, values[1].elapsed_ms)
     return {"run": ui}
