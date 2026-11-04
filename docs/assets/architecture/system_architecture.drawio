@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <mxfile host="app.diagrams.net" type="device">
   <diagram id="maintenance-system" name="FixRate ТО/ППР — компоненты">
-    <mxGraphModel dx="1500" dy="1200" grid="1" gridSize="10" page="1" pageScale="1" pageWidth="1600" pageHeight="1400">
+    <mxGraphModel dx="1500" dy="1200" grid="1" gridSize="10" page="1" pageScale="1" pageWidth="2000" pageHeight="1400">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -35,7 +35,7 @@
         <mxCell id="F" value="AI-прогноз по истории" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=15;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="1060" y="720" width="270" height="70" />
         </mxCell>
-        <mxCell id="V" value="AI-анализ видимых изменений" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=15;" vertex="1" parent="1">
+        <mxCell id="V" value="Фотоанализ и проверка ответа модели" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=15;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="660" y="600" width="290" height="70" />
         </mxCell>
         <mxCell id="R" value="Репозитории и аудит" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=15;" vertex="1" parent="1">
@@ -103,6 +103,18 @@
         </mxCell>
         <mxCell id="edge17" edge="1" parent="1" source="V" target="M" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;endFill=1;">
           <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="OLLAMA" value="Локальный GPU-сервис Ollama: Qwen3.5" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=15;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1490" y="600" width="350" height="80" />
+        </mxCell>
+        <mxCell id="VMODELS" value="Постоянный volume весов vision" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=15;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1490" y="1050" width="350" height="80" />
+        </mxCell>
+        <mxCell id="vision-edge-1" source="V" target="OLLAMA" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="vision-edge-2" source="OLLAMA" target="VMODELS" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;">
+          <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
