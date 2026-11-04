@@ -45,6 +45,7 @@ def main():
     env.pop("TEST_DATABASE_URL", None)
     env.pop("INTEGRATION_DATABASE_URL", None)
     env.pop("VITE_DEMO_MODE", None)
+    env["PHOTO_REVIEW_PROVIDER"] = "clip"  # Dedicated local-vision checks run separately.
     pg_port = unused_port()
     scratch = Path(tempfile.mkdtemp(prefix="fixrate-verify-"))
     pg_data = scratch / "postgres"

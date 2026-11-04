@@ -36,6 +36,35 @@ python scripts/start_local.py --bundled-image fixrate-ai:bundled
 
 Для такого запуска host CLIP-cache и Python ML-зависимости не нужны; достаточно Docker и стандартного Python для launcher. PostgreSQL и пользовательские файлы остаются отдельными постоянными volumes. Перенос существующих пользовательских данных требует отдельного backup/restore, image их не содержит.
 
+## Локальная vision-модель для фотоотчёта
+
+Подробный разбор до/после использует отдельный Ollama-контейнер на локальном NVIDIA GPU и постоянный volume fixrate-local_vision_models. Существующие задания, приёмка, PostgreSQL/photos volumes и демо-реквизиты сохраняются. Полностью offline работает анализ; для первоначальной установки требуется интернет и около 3,34 GB весов плюс Docker image.
+
+```powershell
+# Один раз: явная загрузка закреплённых Ollama и Qwen3-VL 4B Instruct.
+python scripts/prepare_local_vision.py
+# Собрать обновлённое приложение, если готовый image ещё не загружен.
+python scripts/build_bundled_image.py --cache .venv/hf-cache --tag fixrate-ai:bundled
+# Выбрать и сохранить локальный vision-профиль.
+python scripts/start_local.py --bundled-image fixrate-ai:bundled --local-vision
+```
+
+Следующие python scripts/start_local.py / --status / --stop используют сохранённый профиль. prepare завершает свой временный bootstrap, оставляя веса в volume; --keep-bootstrap нужен только для явной диагностики и не используется обычным запуском. Перед запуском рабочего профиля такой диагностический контейнер нужно остановить и удалить без удаления volume, чтобы он не занимал GPU.
+
+Профиль compose.vision.yaml добавляет vision с GPU и internal network без внешнего порта. Закреплённые image/model digest сохраняются в var/local-vision/model.json и private runtime.env. Отдельный прогрев завершается до сообщения готовности launcher; сервис остаётся в памяти, поэтому пользовательский запрос не повторяет первоначальную загрузку. Конфигурация рассчитана на проверенную RTX 4050 6 ГБ; на другом GPU нужна собственная проверка скорости и памяти.
+
+В интерфейсе инженер открывает отправленное задание, сверяет сопоставимость пары, запускает «Анализировать фото» и получает отдельные описания до/после, изменения, замечания, дальнейшие проверки и ограничения. Ошибка сервиса или неразличимый результат не считаются подтверждением выполнения. Прежние CLIP-заключения сохраняются и помечаются как результат прежней модели; для нового содержательного анализа требуется повторный запрос.
+
+Для native backend предусмотрены PHOTO_REVIEW_PROVIDER=ollama, OLLAMA_BASE_URL (только локальный адрес), OLLAMA_VISION_MODEL, OLLAMA_VISION_DIGEST и PHOTO_REVIEW_TIMEOUT_SECONDS=120; пример находится в .env.example. В Docker эти параметры передаёт профиль, внешние AI API и API-ключи не нужны. [Контракт и ограничения](ml.md#подробный-локальный-разбор-фото).
+
+Настоящий API/БД-прогон на отдельном Compose-проекте после подготовки весов:
+
+```powershell
+python scripts/verify_compose.py --bundled-image fixrate-ai:bundled --local-vision
+```
+
+Он использует отдельные БД/photos, проверяет сохранение структурированного ответа, restart и отказ модели без CLIP fallback. Подготовленный model volume — внешний, cleanup QA-проекта его и рабочие volumes не удаляет. Для дополнительного прогона на собственной паре добавьте --photo-before и --photo-after с локальными путями; фотографии не попадут в Git.
+
 ## Логин и пароль демо-стенда через .env
 
 В корневом `.env` того checkout, из которого запускается scripts/start_local.py, можно задать:

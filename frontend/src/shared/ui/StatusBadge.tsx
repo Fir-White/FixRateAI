@@ -69,7 +69,7 @@ const DECISION_TONES: Record<OrchestrationDecision["status"], BadgeTone> = {
 };
 
 const REVIEW_LABELS: Record<PhotoReviewStatus, string> = {
-  completed: "Анализ выполнен",
+  completed: "Сравнение выполнено",
   uncertain: "Неуверенный результат",
   not_verifiable: "Не проверяется по фото",
   unavailable: "AI недоступен",
@@ -77,7 +77,7 @@ const REVIEW_LABELS: Record<PhotoReviewStatus, string> = {
 };
 
 const REVIEW_TONES: Record<PhotoReviewStatus, BadgeTone> = {
-  completed: "success",
+  completed: "info",
   uncertain: "warning",
   not_verifiable: "info",
   unavailable: "danger",
@@ -86,7 +86,7 @@ const REVIEW_TONES: Record<PhotoReviewStatus, BadgeTone> = {
 
 const VERDICT_LABELS: Record<PhotoVerdict, string> = {
   visible_change: "Видимое изменение",
-  no_visible_change: "Без видимого изменения",
+  no_visible_change: "Изменения не подтверждены",
   uncertain: "Неуверенно",
   not_verifiable: "Не проверяется",
 };

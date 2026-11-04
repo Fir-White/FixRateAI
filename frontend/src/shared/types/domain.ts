@@ -298,11 +298,28 @@ export type PhotoVerdict =
   | "uncertain"
   | "not_verifiable";
 
+export interface VisualAssessment {
+  subject_matches_task: "yes" | "no" | "uncertain";
+  same_subject: "yes" | "no" | "uncertain";
+  comparable: "yes" | "no" | "uncertain";
+  before_description: string;
+  after_description: string;
+  visible_changes: string[];
+  concerns: string[];
+  recommended_actions: string[];
+  cannot_confirm: string[];
+  conclusion: "visible_improvement" | "no_clear_improvement" | "insufficient_evidence";
+  summary: string;
+}
+
 export interface PhotoReviewItem {
   id: string;
   label: string;
   verdict: PhotoVerdict;
   note: string;
+  beforePhotoId?: string | null;
+  afterPhotoId?: string | null;
+  assessment?: VisualAssessment | null;
 }
 
 export interface PhotoReview {
@@ -311,6 +328,7 @@ export interface PhotoReview {
   status: PhotoReviewStatus;
   modelRef: string | null;
   promptSetVersion: string;
+  errorCode?: string | null;
   createdAt: string;
   items: PhotoReviewItem[];
   limitations: string[];

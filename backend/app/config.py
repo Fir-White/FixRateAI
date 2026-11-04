@@ -14,6 +14,7 @@ class RuntimeSettings:
     forecast_timeout_seconds: float
     photo_review_max_files: int
     photo_review_max_bytes: int
+    photo_review_provider: str = "clip"
 
     @classmethod
     def from_environment(cls):
@@ -48,7 +49,10 @@ class RuntimeSettings:
             if not minimum <= value <= maximum:
                 raise ValueError(name + " is outside the supported range")
             return value
+        provider = os.environ.get("PHOTO_REVIEW_PROVIDER", "clip").strip().lower()
+        if provider not in {"clip", "ollama"}:
+            raise ValueError("PHOTO_REVIEW_PROVIDER must be clip or ollama")
         return cls(secure == "true", storage, timeout,
             number("FORECAST_TIMEOUT_SECONDS", "2", 5),
             integer("PHOTO_REVIEW_MAX_FILES", "20", 2, 100),
-            integer("PHOTO_REVIEW_MAX_BYTES", "52428800", 1, 524288000))
+            integer("PHOTO_REVIEW_MAX_BYTES", "52428800", 1, 524288000), provider)

@@ -23,12 +23,23 @@ from scripts.verification_paths import prepare_run
 from app.integration.demo import demo_id
 
 def main():
+    docker=shutil.which('docker')
+    if not docker and os.name=='nt':
+        candidate=Path(os.environ.get('LOCALAPPDATA',''))/'Programs/DockerDesktop/resources/bin/docker.exe'
+        if candidate.is_file(): docker=str(candidate)
     parser=argparse.ArgumentParser()
-    parser.add_argument('--docker',default=shutil.which('docker') or 'docker')
+    parser.add_argument('--docker',default=docker or 'docker')
     models=parser.add_mutually_exclusive_group()
     models.add_argument('--ml-cache',type=Path,help='Require real CLIP using an existing read-only host cache')
     models.add_argument('--bundled-image',help='Use a prebuilt local image containing RF and CLIP weights')
+    parser.add_argument('--local-vision',action='store_true',help='Require real prepared Ollama vision alongside --bundled-image')
+    parser.add_argument('--photo-before',type=Path,help='Optional private before photo for the isolated QA task')
+    parser.add_argument('--photo-after',type=Path,help='Optional private after photo for the isolated QA task')
     args=parser.parse_args()
+    if args.local_vision and not args.bundled_image:
+        parser.error('--local-vision requires --bundled-image')
+    if bool(args.photo_before) != bool(args.photo_after):
+        parser.error('Provide both --photo-before and --photo-after')
     if args.ml_cache and not args.ml_cache.resolve().is_dir():
         parser.error('--ml-cache must point to an existing cache directory')
     output,logs=prepare_run(prefix='compose')
@@ -48,6 +59,11 @@ def main():
     if args.ml_cache:
         env['CLIP_CACHE_ROOT']=str(args.ml_cache.resolve())
         base.extend(['--file',str(ROOT/'compose.ml.yaml')])
+    if args.local_vision:
+        prepared=json.loads((ROOT/'var/local-vision/model.json').read_text(encoding='utf-8'))
+        env.update(OLLAMA_IMAGE=prepared['image'],OLLAMA_VISION_MODEL=prepared['model'],
+            OLLAMA_VISION_DIGEST=prepared['digest'],PHOTO_REVIEW_TIMEOUT_SECONDS='120')
+        base.extend(['--file',str(ROOT/'compose.vision.yaml')])
     results=[]
     def safe(value): return value.replace(db_password,'[REDACTED]').replace(password,'[REDACTED]')
     def command(label,*parts):
@@ -68,7 +84,7 @@ def main():
         headers={'Content-Type':'application/json'}
         if csrf: headers['X-CSRF-Token']=csrf
         request=Request(origin+path,data=json.dumps(body).encode() if body is not None else None,headers=headers,method=method)
-        try: response=opener.open(request,timeout=30)
+        try: response=opener.open(request,timeout=130 if args.local_vision else 30)
         except HTTPError as exc: response=exc
         with response:
             status=response.status; data=response.read()
@@ -79,7 +95,11 @@ def main():
         from PIL import Image
         stream=io.BytesIO()
         pixels=random.Random(410 if phase=='before' else 411).randbytes(128*128*3)
-        Image.frombytes('RGB',(128,128),pixels).save(stream,format=fmt)
+        supplied=args.photo_before if phase=='before' else args.photo_after
+        if supplied:
+            with Image.open(supplied) as image: image.convert('RGB').save(stream,format=fmt)
+        else:
+            Image.frombytes('RGB',(128,128),pixels).save(stream,format=fmt)
         blob=stream.getvalue(); boundary='fixrate'+uuid4().hex
         fields=dict(expected_revision=bundle['task']['revision'],checklist_item_id=bundle['execution']['checklist'][0]['id'],phase=phase,view_key='front')
         chunks=[]
@@ -113,6 +133,9 @@ def main():
         http('spa',plain,'/')
         http('openapi',plain,'/openapi.json')
         command('pip_check','exec','-T','app','python','-m','pip','check')
+        if args.local_vision:
+            command('vision_warmup','exec','-T','app','python','-c',
+                'from ml_service.app.cv.local_vision import warmup_local_model; print(warmup_local_model())')
         command('seed','exec','-T','-e','FIXRATE_DEMO_PASSWORD','app','python','-m','app.manage','seed-demo')
         counts_sql="SELECT (SELECT count(*) FROM fixrate_schema_migrations),(SELECT count(*) FROM operation_templates),(SELECT count(*) FROM work_orders),(SELECT count(*) FROM users);"
         before=command('counts_before','exec','-T','db','psql','-U','fixrate','-d','fixrate','-At','-c',counts_sql).strip()
@@ -157,10 +180,15 @@ def main():
                 bundle,_,_=upload(client,task,bundle,'after','JPEG','jpg','image/jpeg',login['csrfToken'])
                 bundle=http('submit',client,prefix+f'/tasks/{task}/submit',method='POST',csrf=login['csrfToken'],body=dict(expected_revision=bundle['task']['revision']))
         engineer,csrf=clients['engineer']
-        result=http('real_photo_review',engineer,prefix+f'/tasks/{task}/photo-review',method='POST',csrf=csrf,body=dict(expected_revision=bundle['task']['revision']))
+        result=http('real_photo_review',engineer,prefix+f'/tasks/{task}/photo-review',method='POST',csrf=csrf,body=dict(expected_revision=bundle['task']['revision'],comparability_confirmed=args.local_vision))
         results.append(dict(check='actual_cv_result',status=result['status'],model_ref=result['modelRef'],error_code=result['errorCode'],items=result['items']))
         print(json.dumps(results[-1],ensure_ascii=True),flush=True)
-        if args.ml_cache or args.bundled_image:
+        if args.local_vision:
+            expected='ollama:'+prepared['model']+'@'+prepared['digest']
+            assert result['modelRef']==expected and result['status'] in ('completed','uncertain') and result['errorCode'] is None
+            assert any(item.get('assessment') for item in result['items'])
+            results.append(dict(check='actual_structured_vision',passed=True,model_ref=expected))
+        elif args.ml_cache or args.bundled_image:
             from ml_service.app.core.config import settings
             expected=f'{settings.clip_model_name}@{settings.clip_revision}'
             assert result['modelRef']==expected and result['status'] in ('completed','uncertain') and result['errorCode'] is None
@@ -171,7 +199,8 @@ def main():
         from app.schemas.maintenance import PhotoReviewResult
         canonical=PhotoReviewResult.model_validate_json(saved.strip())
         assert str(canonical.ai_review_id)==result['id'] and canonical.model_ref==result['modelRef']
-        if args.ml_cache or args.bundled_image: assert any(item.scores for item in canonical.item_results)
+        if args.local_vision: assert any(item.visual_assessment for item in canonical.item_results)
+        elif args.ml_cache or args.bundled_image: assert any(item.scores for item in canonical.item_results)
         results.append(dict(check='both_canonical_models_persisted',passed=True))
         # Restart while submitted, then call both real tools again through the API.
         saved_run=http('comparison_before_restart',engineer,prefix+'/ui/comparisons/'+run['runId'])['run']
@@ -188,6 +217,16 @@ def main():
         repeated_rf=http('rf_after_restart',engineer,prefix+f'/tasks/{task}/forecast',method='POST',csrf=csrf,
             body=dict(expected_revision=bundle['task']['revision']))['run']
         assert repeated_rf['ai']['status']=='ok' and repeated_rf['ai']['modelRef']==run['ai']['modelRef']
+        if args.local_vision:
+            command('disable_vision','stop','vision')
+            outage=http('vision_offline',engineer,prefix+f'/tasks/{task}/photo-review',method='POST',csrf=csrf,
+                body=dict(expected_revision=bundle['task']['revision'],comparability_confirmed=True))
+            assert outage['status']=='unavailable' and outage['modelRef'] is None and outage['errorCode']=='LOCAL_VISION_UNAVAILABLE'
+            outage_saved=command('vision_error_persisted','exec','-T','db','psql','-U','fixrate','-d','fixrate','-At','-c',
+                "SELECT findings->'ui'->>'errorCode' FROM ai_quality_checks WHERE ai_quality_check_id='"+outage['id']+"';")
+            assert outage_saved.strip()=='LOCAL_VISION_UNAVAILABLE'
+            command('restore_vision','up','--detach','--no-build','--wait','--wait-timeout','120','vision')
+            results.append(dict(check='local_vision_outage_no_fake_clip_fallback',passed=True))
         repeated_cv=http('cv_after_restart',engineer,prefix+f'/tasks/{task}/photo-review',method='POST',csrf=csrf,
             body=dict(expected_revision=bundle['task']['revision']))
         if args.ml_cache or args.bundled_image:

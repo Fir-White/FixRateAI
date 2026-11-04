@@ -461,6 +461,21 @@ class ImageLabelScore(Value):
     score: Annotated[float, Field(ge=0, le=1)]
 
 
+class VisualAssessment(Value):
+    """Observed photo content, separate from an engineer's acceptance decision."""
+    subject_matches_task: Literal["yes", "no", "uncertain"]
+    same_subject: Literal["yes", "no", "uncertain"]
+    comparable: Literal["yes", "no", "uncertain"]
+    before_description: Annotated[str, Field(min_length=1, max_length=2000)]
+    after_description: Annotated[str, Field(min_length=1, max_length=2000)]
+    visible_changes: Annotated[list[Annotated[str, Field(min_length=1, max_length=800)]], Field(max_length=8)]
+    concerns: Annotated[list[Annotated[str, Field(min_length=1, max_length=800)]], Field(max_length=8)]
+    recommended_actions: Annotated[list[Annotated[str, Field(min_length=1, max_length=800)]], Field(max_length=8)]
+    cannot_confirm: Annotated[list[Annotated[str, Field(min_length=1, max_length=800)]], Field(min_length=1, max_length=8)]
+    conclusion: Literal["visible_improvement", "no_clear_improvement", "insufficient_evidence"]
+    summary: Annotated[str, Field(min_length=1, max_length=2000)]
+
+
 class ItemPhotoReview(Value):
     checklist_item_id: UUID
     verdict: Literal["visible_change", "no_visible_change", "uncertain", "not_verifiable"]
@@ -468,6 +483,7 @@ class ItemPhotoReview(Value):
     after_photo_id: UUID | None
     observation: Text
     scores: list[ImageLabelScore]
+    visual_assessment: VisualAssessment | None = None
 
 
 class PhotoReviewResult(Contract):

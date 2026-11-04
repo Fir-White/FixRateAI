@@ -117,3 +117,7 @@ backend/app/demo_accounts.py определяет стабильные UUID де
 ## Интеграция frontend-next в dev, 04.11.2026
 
 Ветка feature/frontend-next 8d6935c объединена с dev обычным merge: рабочие экраны, Aurora Workspace, навигация, состояние интерфейса и их тесты. Backend/SQL/ML и настройка демо-доступа сохранены из dev. Указанные выше записи о частичном переносе auth отражают предыдущий этап. Новые результаты текущего merge приводятся в verification.
+
+## Локальный фотоанализ
+
+VisualAssessment добавлен к общему ItemPhotoReview как необязательное поле; JSON Schema обновлена, ML adapter экспортирует тот же класс. Backend выбирает clip/ollama по RuntimeSettings, сохраняет canonical/UI в существующий JSON findings. PhotoReviewCard показывает наблюдения до/после, замечания и действия; model hash/prompt/сырой legacy note находятся в раскрываемых технических сведениях. Прежние отзывы не переписываются. Проверки локального клиента находятся в tests/ml/test_local_vision.py; UI — tests/web/unit/entities/execution/PhotoReviewCard.test.tsx; реальные GPU/API/БД — scripts/verify_compose.py --local-vision. Обычные release runners принудительно выбирают clip, чтобы личный .env не подменял их провайдер; настоящий локальный профиль проверяется отдельно.

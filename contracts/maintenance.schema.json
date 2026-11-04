@@ -1231,6 +1231,17 @@
           },
           "title": "Scores",
           "type": "array"
+        },
+        "visual_assessment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VisualAssessment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -2503,6 +2514,122 @@
         "note"
       ],
       "title": "Uncertainty",
+      "type": "object"
+    },
+    "VisualAssessment": {
+      "additionalProperties": false,
+      "description": "Observed photo content, separate from an engineer's acceptance decision.",
+      "properties": {
+        "subject_matches_task": {
+          "enum": [
+            "yes",
+            "no",
+            "uncertain"
+          ],
+          "title": "Subject Matches Task",
+          "type": "string"
+        },
+        "same_subject": {
+          "enum": [
+            "yes",
+            "no",
+            "uncertain"
+          ],
+          "title": "Same Subject",
+          "type": "string"
+        },
+        "comparable": {
+          "enum": [
+            "yes",
+            "no",
+            "uncertain"
+          ],
+          "title": "Comparable",
+          "type": "string"
+        },
+        "before_description": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Before Description",
+          "type": "string"
+        },
+        "after_description": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "After Description",
+          "type": "string"
+        },
+        "visible_changes": {
+          "items": {
+            "maxLength": 800,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Visible Changes",
+          "type": "array"
+        },
+        "concerns": {
+          "items": {
+            "maxLength": 800,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Concerns",
+          "type": "array"
+        },
+        "recommended_actions": {
+          "items": {
+            "maxLength": 800,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Recommended Actions",
+          "type": "array"
+        },
+        "cannot_confirm": {
+          "items": {
+            "maxLength": 800,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Cannot Confirm",
+          "type": "array"
+        },
+        "conclusion": {
+          "enum": [
+            "visible_improvement",
+            "no_clear_improvement",
+            "insufficient_evidence"
+          ],
+          "title": "Conclusion",
+          "type": "string"
+        },
+        "summary": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "subject_matches_task",
+        "same_subject",
+        "comparable",
+        "before_description",
+        "after_description",
+        "visible_changes",
+        "concerns",
+        "recommended_actions",
+        "cannot_confirm",
+        "conclusion",
+        "summary"
+      ],
+      "title": "VisualAssessment",
       "type": "object"
     }
   }

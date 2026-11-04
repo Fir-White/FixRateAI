@@ -7,9 +7,10 @@ import { formatDate } from "@/shared/lib/format";
 import { useSiteDateTime } from "@/shared/lib/useSiteDateTime";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Card, CardHeader } from "@/shared/ui/Card";
-import { EmptyState, ErrorState, LoadingState } from "@/shared/ui/States";
+import { ErrorState, LoadingState } from "@/shared/ui/States";
 import { Button, buttonClassName } from "@/shared/ui/Button";
 import { Icon } from "@/shared/ui/Icon";
+import { PhotoReviewCard } from "@/entities/execution/PhotoReviewCard";
 import { EvidenceComparison } from "@/entities/execution/EvidenceComparison";
 import { ChecklistSummary } from "@/entities/execution/ChecklistSummary";
 import { Callout } from "@/shared/ui/Callout";
@@ -20,9 +21,7 @@ import {
   EngineerDecisionBadge,
   OriginBadge,
   OverdueBadge,
-  ReviewStatusBadge,
   TaskStateBadge,
-  VerdictBadge,
 } from "@/shared/ui/StatusBadge";
 
 export function QualityTaskPage() {
@@ -30,6 +29,7 @@ export function QualityTaskPage() {
   const { taskId = "" } = useParams();
   const [refresh, setRefresh] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [reason, setReason] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
@@ -115,11 +115,12 @@ export function QualityTaskPage() {
       {canAnalyze && <div className="space-y-3 rounded-xl border border-line p-4">
         <label className="block text-sm"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /> Подтверждаю, что фото показывают тот же объект и сопоставимый ракурс</label>
         <Button variant="secondary" disabled={busy || !confirmed} onClick={async () => {
-          setBusy(true); setNotice(null);
+          setBusy(true); setAnalyzing(true); setNotice(null);
           try { await maintenanceApi.photoReview(task.id, task.revision, confirmed); setRefresh(n => n+1); }
           catch (error) { setNotice(error instanceof Error ? error.message : "Ошибка анализа"); }
-          finally { setBusy(false); }
-        }}>Анализировать фото</Button>
+          finally { setBusy(false); setAnalyzing(false); }
+        }}>{analyzing?"Фотографии анализируются…":"Анализировать фото"}</Button>
+        {analyzing&&<p role="status" className="text-sm leading-6 text-muted">Модель сравнивает фотографии с заданием. Дождитесь результата; повторно нажимать кнопку не нужно.</p>}
       </div>}
       {DEMO_MODE && <Callout tone="neutral">DEMO · Фото и решения показаны из примера. Анализ и приёмка доступны только при подключении к API.</Callout>}
       <div className="quality-detail-grid">
@@ -158,69 +159,7 @@ export function QualityTaskPage() {
             </div>
           </Card>
 
-          <Card>
-            <CardHeader
-              title="AI-заключение"
-              description="Ограниченный анализ видимых изменений"
-              action={
-                review ? <ReviewStatusBadge status={review.status} /> : null
-              }
-            />
-            <div className="p-5 sm:p-6">
-              {review ? (
-                <>
-                  <div className="rounded-xl bg-white/[0.035] p-4">
-                    <p className="text-xs font-semibold text-muted">
-                      Модель
-                    </p>
-                    <p className="mt-1 font-mono text-xs break-all text-ink-soft">
-                      {review.modelRef ?? "Модель не использовалась"}
-                    </p>
-                    <p className="mt-2 text-xs text-muted">
-                      Prompt set {review.promptSetVersion} ·{" "}
-                      {formatDateTime(review.createdAt)}
-                    </p>
-                  </div>
-
-                  <ul className="mt-4 space-y-3">
-                    {review.items.map((item) => (
-                      <li
-                        key={item.id}
-                        className="rounded-xl border border-line p-3"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-ink">
-                            {item.label}
-                          </p>
-                          <VerdictBadge verdict={item.verdict} />
-                        </div>
-                        <p className="mt-1 text-xs leading-5 text-muted">
-                          {item.note}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Callout
-                    tone="warning"
-                    title="Ограничения"
-                    className="mt-4 text-xs"
-                  >
-                    <ul className="space-y-1">
-                      {review.limitations.map((limitation) => (
-                        <li key={limitation}>{limitation}</li>
-                      ))}
-                    </ul>
-                  </Callout>
-                </>
-              ) : (
-                <EmptyState
-                  title="AI-заключение не создано"
-                  description="Фотоанализ доступен для текущей отправленной попытки. Решение о приёмке принимает инженер."
-                />
-              )}
-            </div>
-          </Card>
+          <PhotoReviewCard review={review} formatDateTime={formatDateTime}/>
         </div>
 
         <div className="space-y-6 quality-decision-rail">

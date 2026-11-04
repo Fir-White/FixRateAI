@@ -19,7 +19,9 @@ logger = logging.getLogger(__name__)
 def logged_error_code(code):
     allowed={"MODEL_NOT_READY","INSUFFICIENT_HISTORY","AI_INFERENCE_FAILED","TIMEOUT","PROVIDER_ERROR",
              "PROVIDER_BUSY","AI_BUSY","INVALID_RESPONSE","INVALID_AI_JSON","AI_SNAPSHOT_MISMATCH",
-             "PHOTO_REVIEW_FAILED","INVALID_TIMEOUT","REQUEST_BUDGET_EXHAUSTED"}
+             "PHOTO_REVIEW_FAILED","INVALID_TIMEOUT","REQUEST_BUDGET_EXHAUSTED",
+             "LOCAL_VISION_UNAVAILABLE","LOCAL_VISION_MODEL_NOT_READY","LOCAL_VISION_MODEL_CHANGED",
+             "LOCAL_VISION_INVALID_RESPONSE","LOCAL_VISION_REDIRECT_REJECTED","LOCAL_VISION_FAILED","LOCAL_VISION_TIMEOUT"}
     return code if code in allowed else "UNCLASSIFIED" if code else "none"
 
 
@@ -138,8 +140,23 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
                 captured_at=p.captured_at.isoformat() if p.captured_at else None, uploaded_at=p.uploaded_at.isoformat(),
                 uploaded_by=str(p.uploaded_by), content_url=f"/api/v1/maintenance/photos/{p.evidence_file_id}/content"))
         answers = {str(a.checklist_template_id): a.response_value.get("answer") for a in v.rows("checklist_results", work_report_id=report.work_report_id)}
+        provider = None
+        expected_model = f"{ml_settings.clip_model_name}@{ml_settings.clip_revision}"
+        prompt_version = ml_settings.prompt_set_version
+        predictor_family = "clip"
+        if limits.photo_review_provider == "ollama":
+            from ml_service.app.cv.local_vision import LocalVisionConfig, PROMPT_VERSION, review_local_photos
+            try:
+                vision_config = LocalVisionConfig.from_environment()
+            except ValueError:
+                raise HTTPException(503, "LOCAL_VISION_CONFIGURATION_INVALID") from None
+            prompt_version = PROMPT_VERSION
+            expected_model = vision_config.model_ref
+            predictor_family = "ollama"
+            provider = lambda req, loader: review_local_photos(req, loader, config=vision_config,
+                comparability_confirmed=lambda b, a: command.comparability_confirmed)
         request = dict(schema_version="maintenance-0.1", data_origin=op["data_origin"], execution_id=str(report.work_report_id),
-            operation=op, photos=payload_photos, prompt_set_version=ml_settings.prompt_set_version, report=dict(
+            operation=op, photos=payload_photos, prompt_set_version=prompt_version, report=dict(
                 schema_version="maintenance-0.1", data_origin=op["data_origin"], execution_id=str(report.work_report_id),
                 task_id=str(task_id), attempt_number=report.revision_no, state="submitted", performed_at=order.completed_at.isoformat(),
                 submitted_at=report.submitted_at.isoformat(), submitted_by=str(report.submitted_by), narrative=report.comment or "Отчёт без комментария",
@@ -149,13 +166,16 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
         result = invoke_review(PhotoReviewRequest.model_validate_json(json.dumps(request)), blobs.__getitem__,
                                comparability_confirmed=lambda b, a: command.comparability_confirmed,
                                timeout_seconds=app.state.settings.photo_review_timeout_seconds,
-                               expected_model_ref=f"{ml_settings.clip_model_name}@{ml_settings.clip_revision}")
+                               provider=provider, expected_model_ref=expected_model)
         ui = dict(id=str(result.ai_review_id), executionId=str(result.execution_id), status=result.status,
             modelRef=result.model_ref, promptSetVersion=result.prompt_set_version, createdAt=result.created_at.isoformat(),
             items=[dict(id=str(i.checklist_item_id), label=next(c["text"] for c in report.checklist_snapshot if c["id"] == str(i.checklist_item_id)),
-                        verdict=i.verdict, note=i.observation) for i in result.item_results],
+                        verdict=i.verdict, note=i.observation,
+                        beforePhotoId=str(i.before_photo_id) if i.before_photo_id else None,
+                        afterPhotoId=str(i.after_photo_id) if i.after_photo_id else None,
+                        assessment=i.visual_assessment.model_dump() if i.visual_assessment else None) for i in result.item_results],
             limitations=result.limitations, errorCode=result.error_code)
-        predictor = version(v, "vision", "clip", result.model_ref or "unavailable", result.model_ref)
+        predictor = version(v, "vision", predictor_family, result.model_ref or "unavailable", result.model_ref)
         v.repo.add("ai_quality_checks", ai_quality_check_id=result.ai_review_id, site_id=v.principal.site_id,
             work_order_id=task_id, work_report_id=report.work_report_id, predictor_version_id=predictor.predictor_version_id,
             status="failed" if result.status == "failed" else "ok" if result.status == "completed" else "inconclusive",

@@ -1,0 +1,37 @@
+import type { PhotoReview } from "@/shared/types/domain";
+import { Card, CardHeader } from "@/shared/ui/Card";
+import { Callout } from "@/shared/ui/Callout";
+import { EmptyState } from "@/shared/ui/States";
+import { ReviewStatusBadge, VerdictBadge } from "@/shared/ui/StatusBadge";
+
+function Findings({title,items,empty}:{title:string;items:string[];empty?:string}) {
+  return <section className="mt-4"><h4 className="text-sm font-semibold text-ink">{title}</h4>
+    {items.length?<ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6 text-ink-soft">{items.map((text,index)=><li key={index}>{text}</li>)}</ul>:empty?<p className="mt-2 text-sm leading-6 text-muted">{empty}</p>:null}</section>;
+}
+
+export function PhotoReviewCard({review,formatDateTime}:{review:PhotoReview|null;formatDateTime:(value:string)=>string}) {
+  const legacy=review?.modelRef?.includes("clip-")??false;
+  const hasChanges=review?.items.some(item=>item.verdict==="visible_change");
+  const uncertain=review?.status!=="completed"||review.items.some(item=>item.verdict!=="visible_change");
+  const title=review?.status==="failed"||review?.status==="unavailable"?"Не удалось выполнить фотоанализ":legacy?"Качество работы по этой проверке не подтверждено":uncertain?"Для приёмки нужны дополнительные подтверждения":hasChanges?"На фото обнаружены видимые изменения":"Данных для вывода недостаточно";
+  return <Card><CardHeader title="Разбор фотоотчёта" description="Наблюдения по фотографиям и основания для решения инженера" action={review?<ReviewStatusBadge status={review.status}/>:null}/>
+    <div className="p-5 sm:p-6">{review?<>
+      <Callout tone={uncertain||legacy?"warning":"neutral"} title={title}>
+        {legacy?"Сохранённый результат получен прежней моделью CLIP, которая сравнивает сходство с текстовыми описаниями. Для разбора содержимого фотографий запустите новый анализ.":"Вывод модели помогает проверить отчёт. Приёмку и необходимые контрольные измерения выполняет инженер."}
+      </Callout>
+      {(review.status==="unavailable"||review.status==="failed")&&<p className="mt-3 text-sm leading-6 text-ink-soft">{review.errorCode==="LOCAL_VISION_TIMEOUT"||review.errorCode==="TIMEOUT"?"Модель не успела закончить проверку. Дождитесь готовности локального сервиса и повторите анализ.":review.status==="unavailable"?"Локальная модель сейчас недоступна. Запустите сервис анализа и повторите запрос.":"Ответ модели не удалось проверить. Повторите анализ; при повторной ошибке обратитесь к администратору стенда."}</p>}
+      <div className="mt-5 space-y-5">{review.items.map(item=><article key={item.id} className="rounded-xl border border-line p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-semibold text-ink">Проверяемый пункт: {item.label}</h3><VerdictBadge verdict={item.verdict}/></div>
+        {item.assessment?<>
+          <p className="mt-3 text-sm leading-6 text-ink">{item.note}</p>
+          <div className="mt-4 grid gap-4 md:grid-cols-2"><section className="rounded-lg bg-white/[0.03] p-4"><h4 className="text-xs font-semibold uppercase tracking-wider text-muted">Что видно до работы</h4><p className="mt-2 text-sm leading-6 text-ink-soft">{item.assessment.before_description}</p></section><section className="rounded-lg bg-white/[0.03] p-4"><h4 className="text-xs font-semibold uppercase tracking-wider text-muted">Что видно после работы</h4><p className="mt-2 text-sm leading-6 text-ink-soft">{item.assessment.after_description}</p></section></div>
+          <Findings title="Видимые изменения" items={item.assessment.visible_changes} empty="Модель не смогла выделить подтверждаемые изменения."/>
+          <Findings title="Замечания по доказательствам" items={item.assessment.concerns} empty="Отдельных замечаний модель не выделила. Это не подтверждает отсутствие дефектов."/>
+          <Findings title="Что проверить или запросить" items={item.assessment.recommended_actions}/>
+          <Findings title="Что по фото подтвердить нельзя" items={item.assessment.cannot_confirm}/>
+        </>:<p className="mt-3 text-sm leading-6 text-muted">{legacy?"Оценки CLIP не позволяют сделать подробное заключение о выполнении этого пункта.":item.note}</p>}
+      </article>)}</div>
+      <details className="mt-5 rounded-xl border border-line p-4"><summary className="cursor-pointer text-sm text-muted">Модель, версия и исходный результат</summary><p className="mt-3 break-all font-mono text-xs text-muted">{review.modelRef??"Модель не применялась"}</p><p className="mt-2 text-xs text-muted">{review.promptSetVersion} · {formatDateTime(review.createdAt)}</p>{review.errorCode&&<p className="mt-2 font-mono text-xs text-muted">{review.errorCode}</p>}{legacy&&review.items.map(item=><p key={item.id} className="mt-2 text-xs text-muted">{item.note}</p>)}<ul className="mt-3 list-disc space-y-1 pl-4 text-xs leading-5 text-muted">{review.limitations.map(text=><li key={text}>{text}</li>)}</ul></details>
+    </>:<EmptyState title="Фотоанализ ещё не выполнен" description="Отправьте отчёт с фотографиями до и после. Затем инженер сможет запустить проверку."/>}</div>
+  </Card>;
+}
