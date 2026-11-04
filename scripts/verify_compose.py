@@ -226,6 +226,8 @@ def main():
                 "SELECT findings->'ui'->>'errorCode' FROM ai_quality_checks WHERE ai_quality_check_id='"+outage['id']+"';")
             assert outage_saved.strip()=='LOCAL_VISION_UNAVAILABLE'
             command('restore_vision','up','--detach','--no-build','--wait','--wait-timeout','120','vision')
+            command('vision_warmup_after_outage','exec','-T','app','python','-c',
+                'from ml_service.app.cv.local_vision import warmup_local_model; print(warmup_local_model())')
             results.append(dict(check='local_vision_outage_no_fake_clip_fallback',passed=True))
         repeated_cv=http('cv_after_restart',engineer,prefix+f'/tasks/{task}/photo-review',method='POST',csrf=csrf,
             body=dict(expected_revision=bundle['task']['revision']))

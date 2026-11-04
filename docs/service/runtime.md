@@ -38,10 +38,10 @@ python scripts/start_local.py --bundled-image fixrate-ai:bundled
 
 ## Локальная vision-модель для фотоотчёта
 
-Подробный разбор до/после использует отдельный Ollama-контейнер на локальном NVIDIA GPU и постоянный volume fixrate-local_vision_models. Существующие задания, приёмка, PostgreSQL/photos volumes и демо-реквизиты сохраняются. Полностью offline работает анализ; для первоначальной установки требуется интернет и около 3,34 GB весов плюс Docker image.
+Подробный разбор до/после использует отдельный Ollama-контейнер на локальном NVIDIA GPU и постоянный volume fixrate-local_vision_models. Существующие задания, приёмка, PostgreSQL/photos volumes и демо-реквизиты сохраняются. Полностью offline работает анализ; для первоначальной установки требуется интернет и около 3,33 GB весов плюс Docker image.
 
 ```powershell
-# Один раз: явная загрузка закреплённых Ollama и Qwen3-VL 4B Instruct.
+# Один раз: явная загрузка закреплённых Ollama и Qwen3.5 4B.
 python scripts/prepare_local_vision.py
 # Собрать обновлённое приложение, если готовый image ещё не загружен.
 python scripts/build_bundled_image.py --cache .venv/hf-cache --tag fixrate-ai:bundled

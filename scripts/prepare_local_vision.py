@@ -23,8 +23,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--docker", default=docker or "docker")
     parser.add_argument("--image", default="ollama/ollama:0.40.14@sha256:ebaef4f4c5d93660e1f25f8ad085a112f51ccfb0e8458073e71793959dba91c9")
-    parser.add_argument("--model", default="qwen3-vl:4b-instruct")
-    parser.add_argument("--expected-digest", default="sha256:84f7ed8042fa7cdbd902f7dcb7d0370e032095047cc3244179f263b77b5bc318")
+    parser.add_argument("--model", default="qwen3.5:4b")
+    parser.add_argument("--expected-digest", default="sha256:d8b0f5e9760cd1682034f292d7ef72ec46f432149be0df7574bf2d6e92e38c04")
     parser.add_argument("--keep-bootstrap", action="store_true", help="Keep a loopback-only service for explicit local verification")
     args = parser.parse_args()
     if not re.fullmatch(r"[a-z0-9._/-]+:[a-z0-9._-]+", args.model) or "cloud" in args.model:
