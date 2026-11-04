@@ -80,3 +80,7 @@ var/                        локальная БД, PID, фото и private ba
 ### Поставка frontend из архива, 03.11.2026
 
 Поставка `FixRateAI_frontend_redesign.zip` учитывается отдельно от Git-веток в [FRONTEND_REDESIGN.json](../../data/provenance/FRONTEND_REDESIGN.json): SHA-256 архива, пути и хэши исходников, адаптации и исключения. BRANCH_SOURCES/BRANCH_FILE_MAP продолжают описывать Git-источники. Доменные тесты адаптированы под общий Vitest в tests/web/unit, браузерные сценарии — в tests/web/e2e. Переносимый demo-бандлер и исторические отчёты архива не добавлялись в рабочую сборку. Поведение описано в [web](web.md#редизайн-рабочих-экранов-03112026), команды и результаты — в [verification](verification.md#03112026-перенос-редизайна-из-архива); новые описательные README вне документации не создавались.
+
+## Хостинг и локальные исходники, 04.11.2026
+
+Основной origin — https://github.com/krangras/FixRateAI; gitverse сохраняет https://gitverse.ru/firewhite/FixRate_AI. Локальный редизайн версионируется в исходной feature/frontend-next без дополнительной migration-ветки. GitHub/GitVerse возвращаются к исходному набору 12 веток; подробный протокол и настройка Actions находятся в docs/service/git-hosting.md ветки dev. Приватная среда и генерируемый reports.zip не входят в исходники.
