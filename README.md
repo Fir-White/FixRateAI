@@ -37,7 +37,7 @@ FixRate AI управляет обслуживанием инженерного 
 
 Для облачного демо: `python scripts/start_local.py --cloud-ai`, ключ и модели задаются в `.env`. [AI Tunnel / Qwen3.7 Flash: настройка и ограничения](docs/service/aitunnel.md).
 
-Для локального тестирования из корня: `python scripts/start_local.py` (нужны Docker и подготовленные веса либо готовый bundled image). Стенд доступен на http://127.0.0.1:8000, учётки — в var/compose-local/accounts.txt. [Запуск, остановка и тестовые роли](docs/service/runtime.md#постоянный-локальный-стенд-для-тестирования).
+Для локального профиля RF/CLIP из корня: `python scripts/start_local.py` (нужны Docker и подготовленные веса либо готовый bundled image). Стенд доступен на http://127.0.0.1:8000, учётки — в var/compose-local/accounts.txt. [Запуск, остановка и тестовые роли](docs/service/runtime.md#постоянный-локальный-стенд-для-тестирования).
 
 ## Инфраструктура и потоки данных
 
