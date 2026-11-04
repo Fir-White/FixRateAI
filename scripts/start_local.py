@@ -16,6 +16,23 @@ ROOT=Path(__file__).resolve().parents[1]
 PROJECT="fixrate-local"
 STATE=ROOT/"var/compose-local"
 ENVFILE=STATE/"runtime.env"
+sys.path.insert(0, str(ROOT / "backend"))
+from app.demo_accounts import DEMO_ACCOUNTS, DEMO_KEYS, read_demo_environment, validate_demo_credentials
+
+
+def write_runtime_values(path, values):
+    # Compose expands $, so escape it on disk; subprocess env carries literal values.
+    path.write_text("".join(key+"="+json.dumps(value, ensure_ascii=False).replace("$", "$$")+"\n"
+                            for key,value in values.items()), encoding="utf-8")
+
+
+def read_runtime_values(path):
+    values = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line and not line.startswith("#"):
+            key, value = line.split("=", 1)
+            values[key] = json.loads(value).replace("$$", "$") if value.startswith('"') else value
+    return values
 
 
 def main():
@@ -35,6 +52,7 @@ def main():
     args=parser.parse_args()
     if args.bundled_image and (args.stop or args.status):
         parser.error("Select an image when starting, not with --status or --stop")
+    requested=read_demo_environment(ROOT/".env", os.environ) if not (args.stop or args.status) else {}
     hidden={"creationflags":subprocess.CREATE_NO_WINDOW} if os.name=="nt" else {}
     exists=ENVFILE.is_file()
     if not exists and (args.stop or args.status):
@@ -56,20 +74,25 @@ def main():
         if port is None or not 1<=port<=65535:
             raise ValueError("Select an available port with --port")
         with socket.socket() as sock: sock.bind(("127.0.0.1",port))
-        values=dict(POSTGRES_PASSWORD=secrets.token_hex(32),FIXRATE_DEMO_PASSWORD="Local-"+secrets.token_urlsafe(15),
+        values=dict(POSTGRES_PASSWORD=secrets.token_hex(32),FIXRATE_DEMO_PASSWORD=requested.get("FIXRATE_DEMO_PASSWORD", "Local-"+secrets.token_urlsafe(15)),
             FIXRATE_PORT=str(port),CLIP_CACHE_ROOT=cache.as_posix(),COOKIE_SECURE="false",
             FORECAST_TIMEOUT_SECONDS="2",PHOTO_REVIEW_TIMEOUT_SECONDS="20",PHOTO_REVIEW_MAX_FILES="20",PHOTO_REVIEW_MAX_BYTES="52428800")
         STATE.mkdir(parents=True,exist_ok=True)
-        ENVFILE.write_text("".join(key+"="+value+"\n" for key,value in values.items()),encoding="utf-8")
     else:
-        values=dict(line.split("=",1) for line in ENVFILE.read_text(encoding="utf-8").splitlines() if line and not line.startswith("#"))
+        values=read_runtime_values(ENVFILE)
         if args.port is not None and str(args.port)!=values["FIXRATE_PORT"]:
             raise ValueError("Existing port is preserved; edit private runtime.env deliberately to change it")
+    if not (args.stop or args.status):
+        values.update(requested)
+        for key, (_, _, default) in DEMO_ACCOUNTS.items():
+            values.setdefault(key, default)
+        validate_demo_credentials(values["FIXRATE_DEMO_PASSWORD"], values)
     if args.bundled_image:
         subprocess.run([args.docker,"image","inspect",args.bundled_image],check=True,stdout=subprocess.DEVNULL,**hidden)
         values["FIXRATE_IMAGE"]=args.bundled_image
         values["FIXRATE_ML_PROFILE"]="bundled"
-        ENVFILE.write_text("".join(key+"="+value+"\n" for key,value in values.items()),encoding="utf-8")
+    if not exists:
+        write_runtime_values(ENVFILE, values)
     bundled=values.get("FIXRATE_ML_PROFILE")=="bundled"
     env=dict(os.environ,**values)
     base=[args.docker,"compose","--project-name",PROJECT,"--env-file",str(ENVFILE),
@@ -99,7 +122,9 @@ def main():
     if not bundled and not Path(values["CLIP_CACHE_ROOT"]).is_dir(): raise ValueError("Prepared CLIP cache is missing")
     if not args.no_build and not bundled: command("build","build","app")
     command("start","up","--detach","--no-build","--wait","--wait-timeout","180")
-    command("seed","exec","-T","-e","FIXRATE_DEMO_PASSWORD","app","python","-m","app.manage","seed-demo")
+    account_env=[part for key in DEMO_KEYS for part in ("-e", key)]
+    command("seed","exec","-T",*account_env,"app","python","-m","app.manage","seed-demo","--configure-accounts")
+    write_runtime_values(ENVFILE, values)
     readiness=command("models","exec","-T","app","python","-c",
         "import json,os; from ml_service.app.forecast.runtime import load_verified_forecaster; from ml_service.app.cv.classifier import CLIPZeroShotClassifier; rf=load_verified_forecaster(); cv=CLIPZeroShotClassifier(); assert rf.is_fitted and cv.is_torch_active; print(json.dumps(dict(rf='synthetic_demo:rf:'+rf.artifact_sha256[:16],clip=cv.model_ref,source_revision=os.environ.get('FIXRATE_SOURCE_REVISION','unknown'))))")
     image_readiness=json.loads(readiness)
@@ -108,7 +133,7 @@ def main():
     with urlopen(origin+"/api/health",timeout=10) as response:
         assert json.load(response)["database"]=="ready"
     accounts=STATE/"accounts.txt"
-    emails=["fixrate-demo-admin@example.test","fixrate-demo-dispatcher@example.test","fixrate-demo-engineer@example.test","fixrate-demo-1@example.test"]
+    emails=[role+": "+values[key] for key,(role,_,_) in DEMO_ACCOUNTS.items()]
     emails.extend("fixrate-assignment-"+str(number)+"@example.test" for number in (1,2,3))
     accounts.write_text(origin+"\n\n"+"\n".join(emails)+"\n\nPassword: "+values["FIXRATE_DEMO_PASSWORD"]+"\n",encoding="utf-8")
     state_path=STATE/"state.json"

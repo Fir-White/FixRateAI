@@ -1,5 +1,13 @@
 # Проверки и доказательства
 
+## 04.11.2026: демо-реквизиты из .env
+
+FIXRATE_DEMO_LOGIN (email диспетчера), FIXRATE_DEMO_PASSWORD и необязательные email остальных ролей теперь читаются launcher из корневого .env. seed-demo --configure-accounts явно применяет реквизиты к семи стабильным демо-пользователям; обычный seed сохраняет пароли. Проверяются валидные/различные email, длина пароля и конфликт адреса. При смене реквизитов отзываются сессии, при повторе без изменений сессии сохраняются. Рабочие данные не сбрасываются; параметры БД из корневого .env не заменяют private Docker-конфигурацию.
+
+Первый целевой прогон verify-20261104-183546-cbef6a2f: **16 Python / 196 UI**, SQL fresh/upgrade/seed, build, architecture и npm audit 0. В tests/backend/test_demo_credentials.py — 11 file-only/validation случаев и 2 настоящих HTTP/PostgreSQL сценария. Проверены новый вход всех семи пользователей, отказ старым логину/паролю/сессии, идемпотентность, точное равенство work orders/assignments/reports/photos/acceptance до/после, атомарный отказ занятому email и сохранение обычного пользователя. Остальные 3 Python-кейса — существующие логины работников бригады. Это целевой прогон, не новый полный release E2E. Протоколы — reports/verification/verify-20261104-183546-cbef6a2f и logs/verification/verify-20261104-183546-cbef6a2f.
+
+[Настройка и применение](runtime.md#логин-и-пароль-демо-стенда-через-env). Реальные логины/пароли остаются только в локальном .env/runtime.env/accounts.txt, в документацию и Git не переносятся.
+
 ## 04.11.2026: переносимый образ с моделями и обновление 8000
 
 Собран и проверен image fixrate-ai:bundled из кода **3a8b243**, image ID sha256:30f03e3577624abe636b4ad93adbb25f4d7938206ee7fcd391228078fb00c57c. Сборщик экспортирует только 8 файлов pinned CLIP из доверенного cache и записывает SHA-256 каждого; токены cache/.env/пользовательские данные не копируются. Standalone model check выполнен с --network none: RF fitted, CLIP active/warmup. Манифест image и сборки: reports/bundled-image/20261104T130551Z-77071e1c/results.json; логи — logs/bundled-image/20261104T130551Z-77071e1c.

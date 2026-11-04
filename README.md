@@ -110,7 +110,7 @@ python scripts/start_local.py --status
 python scripts/start_local.py --stop
 ```
 
-Адрес и выбранный порт печатает helper; по умолчанию это http://127.0.0.1:8000. Учётки и пароль создаются локально в var/compose-local/accounts.txt. Корневой .env для этого helper не требуется. [Native-запуск без Docker](docs/service/runtime.md#установка-и-запуск) описан отдельно.
+Адрес и выбранный порт печатает helper; по умолчанию это http://127.0.0.1:8000. Учётки и пароль создаются локально в var/compose-local/accounts.txt. Корневой .env необязателен; FIXRATE_DEMO_LOGIN и FIXRATE_DEMO_PASSWORD позволяют задать [демо-реквизиты](docs/service/runtime.md#логин-и-пароль-демо-стенда-через-env). [Native-запуск без Docker](docs/service/runtime.md#установка-и-запуск) описан отдельно.
 
 Для полного native-прогона тестов дополнительно нужны Node 24, установленная PostgreSQL 18 с утилитами и Chrome. После создания .venv из requirements.txt:
 

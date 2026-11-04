@@ -102,3 +102,9 @@ var/                        локальная БД, PID, фото и private ba
 ## Переносимый ML-образ
 
 Dockerfile.bundled, compose.bundled.yaml и scripts/build_bundled_image.py добавляют локальную поставку приложения с закреплёнными весами CLIP внутри image. Экспорт разрешает только MODEL_FILES, проверяет границы snapshot и создаёт новый context без перезаписи. Реквизиты остаются в private runtime.env; cache credentials не экспортируются. tests/backend/test_model_bundle.py проверяет изоляцию модели, целостность manifest, отказ при неполном snapshot/повторном каталоге и совместимость постоянных volumes с обычным Compose. verify_compose.py проверяет API до/после рестарта и сохранённые результаты. [Запуск](runtime.md#готовый-образ-с-rf-и-clip-внутри).
+
+## Настройка демо-доступа
+
+backend/app/demo_accounts.py определяет стабильные UUID демо-пользователей, валидацию и атомарное обновление email/password_hash. scripts/start_local.py читает только FIXRATE_DEMO_* из корневого .env без зависимостей host Python; остальные Docker-параметры сохраняет приватный runtime.env. Изменение реквизитов выполняет явный seed-demo --configure-accounts. Обычный seed_demo сохраняет прежнее идемпотентное поведение. Backend не применяет эти параметры при старте HTTP-приложения.
+
+Проверки tests/backend/test_demo_credentials.py различают file-only разбор конфигурации и реальные HTTP/PostgreSQL сценарии ротации, отказа старому доступу, повторного применения и конфликта email. Runtime-пароли не включаются в Docker build context и протоколы. [Пользовательская инструкция](runtime.md#логин-и-пароль-демо-стенда-через-env).
