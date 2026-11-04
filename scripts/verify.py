@@ -41,6 +41,9 @@ def main():
     results = []
     env = dict(os.environ, PYTHONPATH=os.pathsep.join([str(ROOT / "backend"), str(ROOT)]), PYTHONUTF8="1")
     # Test destinations are created here, never accepted from the calling shell.
+    # Ordinary regression must never spend the user's cloud balance or inherit secrets.
+    # The explicit verify_compose.py --cloud-ai profile performs real external checks.
+    env.update(PHOTO_REVIEW_PROVIDER="clip", FORECAST_PROVIDER="rf", AITUNNEL_API_KEY="", AI_TUNNEL_API_KEY="")
     env.pop("DATABASE_URL", None)
     env.pop("TEST_DATABASE_URL", None)
     env.pop("INTEGRATION_DATABASE_URL", None)

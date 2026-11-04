@@ -133,11 +133,12 @@ def create_app(engine=None):
                     raise RuntimeError("Apply migrations through 008 before starting the API")
             app.state.factory = make_session_factory(app.state.engine)
             app.state.forecaster = None
-            try:
-                from ml_service.app.forecast.runtime import load_verified_forecaster
-                app.state.forecaster = load_verified_forecaster()
-            except Exception as exc:
-                logger.error("RF artifact unavailable: %s", type(exc).__name__)
+            if runtime_settings.forecast_provider == "rf":
+                try:
+                    from ml_service.app.forecast.runtime import load_verified_forecaster
+                    app.state.forecaster = load_verified_forecaster()
+                except Exception as exc:
+                    logger.error("RF artifact unavailable: %s", type(exc).__name__)
             yield
         finally:
             if hasattr(app.state, "models"):

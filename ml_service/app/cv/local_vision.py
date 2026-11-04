@@ -210,7 +210,8 @@ def warmup_local_model():
     return config.model_ref
 
 
-def review_local_photos(request, photo_loader, *, config=None, client=None, quality_guard=None, comparability_confirmed=None):
+def review_vision_photos(request, photo_loader, *, config=None, client=None, quality_guard=None, comparability_confirmed=None,
+                         limitations=None, failure_code="LOCAL_VISION_FAILED", unavailable_codes=None):
     started = time.monotonic()
     config = config or LocalVisionConfig.from_environment()
     client = client or LocalVisionClient(config)
@@ -222,7 +223,7 @@ def review_local_photos(request, photo_loader, *, config=None, client=None, qual
             operation_version_id=request.operation.operation_version_id, status=status,
             model_ref=config.model_ref if any(i.visual_assessment is not None for i in items) else None,
             prompt_set_version=request.prompt_set_version, input_photo_ids=[p.photo_id for p in request.photos],
-            item_results=items, limitations=LIMITATIONS, error_code=error,
+            item_results=items, limitations=limitations or LIMITATIONS, error_code=error,
             elapsed_ms=int((time.monotonic()-started)*1000), created_at=datetime.now(timezone.utc))
     try:
         ready = False
@@ -272,6 +273,10 @@ def review_local_photos(request, photo_loader, *, config=None, client=None, qual
         status = "not_verifiable" if items and all(i.verdict == "not_verifiable" for i in items) else "uncertain" if not items or any(i.verdict in ("uncertain", "no_visible_change") for i in items) else "completed"
         return result(status)
     except ProviderFailure as exc:
-        return result("unavailable" if str(exc) in {"LOCAL_VISION_UNAVAILABLE", "LOCAL_VISION_MODEL_NOT_READY"} else "failed", str(exc))
+        return result("unavailable" if str(exc) in (unavailable_codes or {"LOCAL_VISION_UNAVAILABLE", "LOCAL_VISION_MODEL_NOT_READY"}) else "failed", str(exc))
     except Exception:
-        return result("failed", "LOCAL_VISION_FAILED")
+        return result("failed", failure_code)
+
+
+def review_local_photos(request, photo_loader, **kwargs):
+    return review_vision_photos(request, photo_loader, **kwargs)

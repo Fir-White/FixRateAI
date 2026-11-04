@@ -77,7 +77,15 @@ def task_snapshot(v, order, *, as_of=None, snapshot_id=None):
 
 def calculate(snapshot, item, forecaster, *, timeout_seconds=2, provider=None):
     from ml_service.app.forecast.client import predict_maintenance_ai
-    chosen = provider or (lambda value: predict_maintenance_ai(value, forecaster=forecaster, use_active_model=False))
+    import os
+    if provider is None and os.environ.get("FORECAST_PROVIDER", "rf").strip().lower() == "aitunnel":
+        from ml_service.app.forecast.aitunnel import predict_cloud_maintenance
+        from ml_service.app.providers.aitunnel import AITunnelConfig
+        from dataclasses import replace
+        config = replace(AITunnelConfig.from_environment("forecast"), timeout=min(110, max(.01, timeout_seconds)))
+        chosen = lambda value: predict_cloud_maintenance(value, config=config)
+    else:
+        chosen = provider or (lambda value: predict_maintenance_ai(value, forecaster=forecaster, use_active_model=False))
     values = compare_forecasts(snapshot, item, chosen, timeout_seconds=timeout_seconds)
     logger.info("ml_call_done tool=forecast run=%s snapshot=%s status=%s code=%s elapsed_ms=%s",
                 values[1].run_id, snapshot.snapshot_id, values[1].status,

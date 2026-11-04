@@ -80,7 +80,7 @@ def bounded_ai(snapshot, run_id, provider, *, timeout_seconds=2):
         slots.release()
         return failed("PROVIDER_ERROR", "failed")
     try:
-        ok, raw = output.get(timeout=min(timeout_seconds, 5))
+        ok, raw = output.get(timeout=min(timeout_seconds, 120))
     except Empty:
         return failed("TIMEOUT")
     if not ok:

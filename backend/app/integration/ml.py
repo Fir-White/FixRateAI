@@ -20,6 +20,9 @@ def logged_error_code(code):
     allowed={"MODEL_NOT_READY","INSUFFICIENT_HISTORY","AI_INFERENCE_FAILED","TIMEOUT","PROVIDER_ERROR",
              "PROVIDER_BUSY","AI_BUSY","INVALID_RESPONSE","INVALID_AI_JSON","AI_SNAPSHOT_MISMATCH",
              "PHOTO_REVIEW_FAILED","INVALID_TIMEOUT","REQUEST_BUDGET_EXHAUSTED",
+             "AITUNNEL_NOT_CONFIGURED","AITUNNEL_AUTH_FAILED","AITUNNEL_QUOTA_EXCEEDED","AITUNNEL_RATE_LIMITED",
+             "AITUNNEL_MODEL_UNAVAILABLE","AITUNNEL_UNAVAILABLE","AITUNNEL_INVALID_REQUEST","AITUNNEL_INVALID_RESPONSE",
+             "AITUNNEL_REDIRECT_REJECTED","AITUNNEL_MODEL_MISMATCH","AITUNNEL_TIMEOUT","AITUNNEL_FAILED","AITUNNEL_DATE_OUT_OF_RANGE","AITUNNEL_INSUFFICIENT_EVIDENCE",
              "LOCAL_VISION_UNAVAILABLE","LOCAL_VISION_MODEL_NOT_READY","LOCAL_VISION_MODEL_CHANGED",
              "LOCAL_VISION_INVALID_RESPONSE","LOCAL_VISION_REDIRECT_REJECTED","LOCAL_VISION_FAILED","LOCAL_VISION_TIMEOUT"}
     return code if code in allowed else "UNCLASSIFIED" if code else "none"
@@ -154,6 +157,17 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
             expected_model = vision_config.model_ref
             predictor_family = "ollama"
             provider = lambda req, loader: review_local_photos(req, loader, config=vision_config,
+                comparability_confirmed=lambda b, a: command.comparability_confirmed)
+        elif limits.photo_review_provider == "aitunnel":
+            from ml_service.app.cv.aitunnel import PROMPT_VERSION, review_cloud_photos
+            from ml_service.app.providers.aitunnel import AITunnelConfig
+            from dataclasses import replace
+            cloud_config = replace(AITunnelConfig.from_environment("vision"),
+                timeout=min(110, limits.photo_review_timeout_seconds))
+            prompt_version = PROMPT_VERSION
+            expected_model = cloud_config.model_ref
+            predictor_family = "aitunnel"
+            provider = lambda req, loader: review_cloud_photos(req, loader, config=cloud_config,
                 comparability_confirmed=lambda b, a: command.comparability_confirmed)
         request = dict(schema_version="maintenance-0.1", data_origin=op["data_origin"], execution_id=str(report.work_report_id),
             operation=op, photos=payload_photos, prompt_set_version=prompt_version, report=dict(

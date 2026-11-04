@@ -116,6 +116,15 @@
         <mxCell id="vision-edge-2" source="OLLAMA" target="VMODELS" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;endArrow=block;">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
+        <mxCell id="AIT" value="AI Tunnel HTTPS: Qwen3.7 Flash (облачный режим)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1510" y="1050" width="310" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-F-AIT" edge="1" parent="1" source="F" target="AIT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-V-AIT" edge="1" parent="1" source="V" target="AIT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>

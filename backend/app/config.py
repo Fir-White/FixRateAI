@@ -15,6 +15,7 @@ class RuntimeSettings:
     photo_review_max_files: int
     photo_review_max_bytes: int
     photo_review_provider: str = "clip"
+    forecast_provider: str = "rf"
 
     @classmethod
     def from_environment(cls):
@@ -50,9 +51,18 @@ class RuntimeSettings:
                 raise ValueError(name + " is outside the supported range")
             return value
         provider = os.environ.get("PHOTO_REVIEW_PROVIDER", "clip").strip().lower()
-        if provider not in {"clip", "ollama"}:
-            raise ValueError("PHOTO_REVIEW_PROVIDER must be clip or ollama")
+        if provider not in {"clip", "ollama", "aitunnel"}:
+            raise ValueError("PHOTO_REVIEW_PROVIDER must be clip, ollama or aitunnel")
+        forecast_provider = os.environ.get("FORECAST_PROVIDER", "rf").strip().lower()
+        if forecast_provider not in {"rf", "aitunnel"}:
+            raise ValueError("FORECAST_PROVIDER must be rf or aitunnel")
+        if provider == "aitunnel" or forecast_provider == "aitunnel":
+            from ml_service.app.providers.aitunnel import AITunnelConfig
+            if provider == "aitunnel":
+                AITunnelConfig.from_environment("vision")
+            if forecast_provider == "aitunnel":
+                AITunnelConfig.from_environment("forecast")
         return cls(secure == "true", storage, timeout,
-            number("FORECAST_TIMEOUT_SECONDS", "2", 5),
+            number("FORECAST_TIMEOUT_SECONDS", "90" if forecast_provider == "aitunnel" else "2", 120 if forecast_provider == "aitunnel" else 5),
             integer("PHOTO_REVIEW_MAX_FILES", "20", 2, 100),
-            integer("PHOTO_REVIEW_MAX_BYTES", "52428800", 1, 524288000), provider)
+            integer("PHOTO_REVIEW_MAX_BYTES", "52428800", 1, 524288000), provider, forecast_provider)

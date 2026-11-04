@@ -405,3 +405,7 @@ npm.cmd --prefix frontend run dev -- --host 127.0.0.1 --strictPort
 Для просмотра всех ролей в корневом локальном .env установлено `VITE_DEMO_MODE=true`. Vite запущен на **http://127.0.0.1:5173/login**. На первом входе выбирается роль без логина и пароля; в рабочей оболочке роль меняется через список «Демонстрационная роль» в верхней панели. Доступны диспетчер, инженер, исполнитель и администратор. Используются учебные fixtures; запись рабочих данных требует API-режима.
 
 Запуск: `npm.cmd --prefix frontend run dev -- --host 127.0.0.1 --port 5173 --strictPort`. Журналы этого запуска находятся в logs/demo, PID — var/local-demo/vite.pid. Для возврата к API установите `VITE_DEMO_MODE=false` и перезапустите Vite. Сборка frontend/dist обновляется отдельной командой build и использует значение флага на момент сборки.
+
+## Облачное демо без локальной vision-модели
+
+`python scripts/start_local.py --cloud-ai` читает ключ AI Tunnel и qwen3.7-flash из .env. На чистой машине нужны Docker, Python и python-dotenv; локальный CLIP-cache/GPU не требуются. Для существующего готового образа можно добавить `--bundled-image fixrate-ai:aitunnel`. [Полная инструкция, env, модели и проверка](aitunnel.md). Локальные postgres_data/photos и подготовленный volume Ollama сохраняются; cloud-профиль не запускает GPU-контейнер. Учётки демо и API-токен AI Tunnel настраиваются независимо.

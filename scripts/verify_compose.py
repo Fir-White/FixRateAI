@@ -1,6 +1,7 @@
 """Build and smoke-test a unique disposable Compose project, never the user's stack."""
 import argparse
 from http.cookiejar import CookieJar
+from datetime import datetime, timedelta, timezone
 import json
 import io
 import random
@@ -33,9 +34,12 @@ def main():
     models.add_argument('--ml-cache',type=Path,help='Require real CLIP using an existing read-only host cache')
     models.add_argument('--bundled-image',help='Use a prebuilt local image containing RF and CLIP weights')
     parser.add_argument('--local-vision',action='store_true',help='Require real prepared Ollama vision alongside --bundled-image')
+    parser.add_argument('--cloud-ai',action='store_true',help='Use real AI Tunnel; requires a private key in .env')
     parser.add_argument('--photo-before',type=Path,help='Optional private before photo for the isolated QA task')
     parser.add_argument('--photo-after',type=Path,help='Optional private after photo for the isolated QA task')
     args=parser.parse_args()
+    if args.cloud_ai and args.local_vision:
+        parser.error('Select --cloud-ai or --local-vision')
     if args.local_vision and not args.bundled_image:
         parser.error('--local-vision requires --bundled-image')
     if bool(args.photo_before) != bool(args.photo_after):
@@ -64,8 +68,22 @@ def main():
         env.update(OLLAMA_IMAGE=prepared['image'],OLLAMA_VISION_MODEL=prepared['model'],
             OLLAMA_VISION_DIGEST=prepared['digest'],PHOTO_REVIEW_TIMEOUT_SECONDS='120')
         base.extend(['--file',str(ROOT/'compose.vision.yaml')])
+    cloud_key = None
+    if args.cloud_ai:
+        from scripts.start_local import read_ai_environment
+        from ml_service.app.providers.aitunnel import AITunnelConfig
+        cloud_values=read_ai_environment(ROOT/'.env')
+        cloud_key=AITunnelConfig.from_environment('vision',cloud_values).api_key
+        if not cloud_key:
+            raise ValueError('Set AITUNNEL_API_KEY in private .env before real cloud verification')
+        env.update({key:value for key,value in cloud_values.items() if key != 'AI_TUNNEL_API_KEY'})
+        env.update(AITUNNEL_API_KEY=cloud_key,PHOTO_REVIEW_TIMEOUT_SECONDS='120',FORECAST_TIMEOUT_SECONDS='100')
+        env.pop('AI_TUNNEL_API_KEY',None)
+        base.extend(['--file',str(ROOT/'compose.cloud.yaml')])
     results=[]
-    def safe(value): return value.replace(db_password,'[REDACTED]').replace(password,'[REDACTED]')
+    def safe(value):
+        value=value.replace(db_password,'[REDACTED]').replace(password,'[REDACTED]')
+        return value.replace(cloud_key,'[REDACTED]') if cloud_key else value
     def command(label,*parts):
         print(label,flush=True)
         started=time.monotonic()
@@ -74,8 +92,8 @@ def main():
         content=safe(raw)
         (logs/(label+'.log')).write_text(content,encoding='utf-8')
         results.append(dict(check=label,exit_code=done.returncode,seconds=round(time.monotonic()-started,2)))
-        if label=='app_logs':
-            assert db_password not in raw and password not in raw,'Secret appeared in raw application logs'
+        if label.startswith('app_logs'):
+            assert db_password not in raw and password not in raw and (not cloud_key or cloud_key not in raw),'Secret appeared in raw application logs'
             results.append(dict(check='no_secrets_in_raw_app_logs',passed=True))
         if done.returncode: raise RuntimeError(label+' failed; see log')
         return done.stdout
@@ -84,7 +102,7 @@ def main():
         headers={'Content-Type':'application/json'}
         if csrf: headers['X-CSRF-Token']=csrf
         request=Request(origin+path,data=json.dumps(body).encode() if body is not None else None,headers=headers,method=method)
-        try: response=opener.open(request,timeout=130 if args.local_vision else 30)
+        try: response=opener.open(request,timeout=130 if (args.local_vision or args.cloud_ai) else 30)
         except HTTPError as exc: response=exc
         with response:
             status=response.status; data=response.read()
@@ -157,11 +175,17 @@ def main():
             http(role+'_equipment',client,prefix+'/ui/equipment')
             http(role+'_tasks',client,prefix+'/ui/tasks')
             if role=='dispatcher':
-                run=http('real_rf_forecast',client,prefix+f'/tasks/{task}/forecast',method='POST',csrf=login['csrfToken'],body=dict(expected_revision=1))['run']
-                assert run['ai']['status']=='ok' and run['ai']['recommendedDate']
-                assert run['ai']['modelRef'].startswith('synthetic_demo:rf:')
-                results.append(dict(check='actual_rf_result',status=run['ai']['status'],model_ref=run['ai']['modelRef'],method_version=run['ai']['methodVersion'],snapshot_hash=run['snapshotHash']))
-                saved=command('rf_persistence','exec','-T','db','psql','-U','fixrate','-d','fixrate','-At','-c',
+                run=http('real_cloud_forecast' if args.cloud_ai else 'real_rf_forecast',client,prefix+f'/tasks/{task}/forecast',method='POST',csrf=login['csrfToken'],body=dict(expected_revision=1))['run']
+                if args.cloud_ai:
+                    assert run['ai']['status'] in ('ok','needs_input') and run['ai']['modelRef'].startswith('aitunnel:')
+                    if run['ai']['status']=='needs_input':
+                        assert run['ai']['recommendedDate'] is None and run['ai']['errorCode']=='INSUFFICIENT_HISTORY'
+                    assert run['decision']['selectedDate'] is None or run['decision']['selectedDate'] <= run['mandatoryDueDate']
+                else:
+                    assert run['ai']['status']=='ok' and run['ai']['recommendedDate']
+                    assert run['ai']['modelRef'].startswith('synthetic_demo:rf:')
+                results.append(dict(check='actual_cloud_forecast_result' if args.cloud_ai else 'actual_rf_result',status=run['ai']['status'],model_ref=run['ai']['modelRef'],method_version=run['ai']['methodVersion'],snapshot_hash=run['snapshotHash']))
+                saved=command('cloud_forecast_persistence' if args.cloud_ai else 'rf_persistence','exec','-T','db','psql','-U','fixrate','-d','fixrate','-At','-c',
                     "SELECT output_snapshot->'canonical' FROM forecast_runs WHERE forecast_run_id='"+run['ai']['resultId']+"';")
                 from app.schemas.maintenance import ForecastResult
                 canonical=ForecastResult.model_validate_json(saved.strip())
@@ -180,10 +204,15 @@ def main():
                 bundle,_,_=upload(client,task,bundle,'after','JPEG','jpg','image/jpeg',login['csrfToken'])
                 bundle=http('submit',client,prefix+f'/tasks/{task}/submit',method='POST',csrf=login['csrfToken'],body=dict(expected_revision=bundle['task']['revision']))
         engineer,csrf=clients['engineer']
-        result=http('real_photo_review',engineer,prefix+f'/tasks/{task}/photo-review',method='POST',csrf=csrf,body=dict(expected_revision=bundle['task']['revision'],comparability_confirmed=args.local_vision))
+        result=http('real_photo_review',engineer,prefix+f'/tasks/{task}/photo-review',method='POST',csrf=csrf,body=dict(expected_revision=bundle['task']['revision'],comparability_confirmed=args.local_vision or args.cloud_ai))
         results.append(dict(check='actual_cv_result',status=result['status'],model_ref=result['modelRef'],error_code=result['errorCode'],items=result['items']))
-        print(json.dumps(results[-1],ensure_ascii=True),flush=True)
-        if args.local_vision:
+        print('Real photo review:',result['status'],result['modelRef'],result['errorCode'],flush=True)
+        if args.cloud_ai:
+            expected=AITunnelConfig.from_environment('vision',cloud_values).model_ref
+            assert result['modelRef']==expected and result['status'] in ('completed','uncertain') and result['errorCode'] is None
+            assert any(item.get('assessment') for item in result['items'])
+            results.append(dict(check='actual_structured_cloud_vision',passed=True,model_ref=expected))
+        elif args.local_vision:
             expected='ollama:'+prepared['model']+'@'+prepared['digest']
             assert result['modelRef']==expected and result['status'] in ('completed','uncertain') and result['errorCode'] is None
             assert any(item.get('assessment') for item in result['items'])
@@ -199,7 +228,7 @@ def main():
         from app.schemas.maintenance import PhotoReviewResult
         canonical=PhotoReviewResult.model_validate_json(saved.strip())
         assert str(canonical.ai_review_id)==result['id'] and canonical.model_ref==result['modelRef']
-        if args.local_vision: assert any(item.visual_assessment for item in canonical.item_results)
+        if args.local_vision or args.cloud_ai: assert any(item.visual_assessment for item in canonical.item_results)
         elif args.ml_cache or args.bundled_image: assert any(item.scores for item in canonical.item_results)
         results.append(dict(check='both_canonical_models_persisted',passed=True))
         # Restart while submitted, then call both real tools again through the API.
@@ -214,9 +243,9 @@ def main():
         restored=http('comparison_after_restart',engineer,prefix+'/ui/comparisons/'+run['runId'])['run']
         assert restored==saved_run
         results.append(dict(check='both_forecast_dates_inputs_and_reason_restored',passed=True))
-        repeated_rf=http('rf_after_restart',engineer,prefix+f'/tasks/{task}/forecast',method='POST',csrf=csrf,
+        repeated_rf=http('cloud_forecast_after_restart' if args.cloud_ai else 'rf_after_restart',engineer,prefix+f'/tasks/{task}/forecast',method='POST',csrf=csrf,
             body=dict(expected_revision=bundle['task']['revision']))['run']
-        assert repeated_rf['ai']['status']=='ok' and repeated_rf['ai']['modelRef']==run['ai']['modelRef']
+        assert repeated_rf['ai']['status'] in (('ok','needs_input') if args.cloud_ai else ('ok',)) and repeated_rf['ai']['modelRef']==run['ai']['modelRef']
         if args.local_vision:
             command('disable_vision','stop','vision')
             outage=http('vision_offline',engineer,prefix+f'/tasks/{task}/photo-review',method='POST',csrf=csrf,
@@ -229,9 +258,41 @@ def main():
             command('vision_warmup_after_outage','exec','-T','app','python','-c',
                 'from ml_service.app.cv.local_vision import warmup_local_model; print(warmup_local_model())')
             results.append(dict(check='local_vision_outage_no_fake_clip_fallback',passed=True))
+        if args.cloud_ai:
+            command('app_logs_before_cloud_disable','logs','--no-color','app')
+            env['AITUNNEL_API_KEY']=''
+            command('disable_cloud_key','up','--detach','--no-build','--wait','--wait-timeout','120','app')
+            outage=http('cloud_unconfigured',engineer,prefix+f'/tasks/{task}/photo-review',method='POST',csrf=csrf,
+                body=dict(expected_revision=bundle['task']['revision'],comparability_confirmed=True))
+            assert outage['status']=='unavailable' and outage['modelRef'] is None and outage['errorCode']=='AITUNNEL_NOT_CONFIGURED'
+            saved_error=command('cloud_error_persisted','exec','-T','db','psql','-U','fixrate','-d','fixrate','-At','-c',
+                "SELECT findings->'ui'->>'errorCode' FROM ai_quality_checks WHERE ai_quality_check_id='"+outage['id']+"';")
+            assert saved_error.strip()=='AITUNNEL_NOT_CONFIGURED'
+            # The original runtime rule is intentionally a draft. Create a separate
+            # explicitly configured rule through the public API, never by SQL edits.
+            admin,admin_csrf=clients['admin']; dispatcher,dispatcher_csrf=clients['dispatcher']
+            day=(datetime.now(timezone.utc)+timedelta(days=1)).date()
+            configured=http('published_cloud_test_configuration',admin,
+                prefix+f"/equipment/{demo_id('equipment-2')}/service-configurations",expected=201,method='POST',csrf=admin_csrf,
+                body=dict(code='CLOUD-SMOKE',title='Explicit cloud fallback test',instructions='Synthetic API fixture, not a customer regulation',
+                    maintenance_type='ТО2',pattern=dict(frequency='dates',anchor_date=str(day),dates=[str(day)]),valid_from=str(day),
+                    crew_size=1,norm_value='1.000',norm_unit='person_hour',duration_minutes=60,qualification_ids=[],
+                    checklist=[dict(text='Synthetic fallback check')],allowed_lead_days=0))
+            preview=http('published_cloud_test_preview',dispatcher,prefix+f'/ui/calendar/preview?year={day.year}&month={day.month}')
+            generated=http('published_cloud_test_generation',dispatcher,prefix+'/calendar/generate',method='POST',csrf=dispatcher_csrf,
+                body=dict(year=day.year,month=day.month,preview_token=preview['generationToken'],idempotency_key=str(uuid4())))
+            generated_task=next(row for row in generated['items'] if row['operationTitle']=='Explicit cloud fallback test')['taskId']
+            fallback=http('cloud_disabled_forecast',engineer,prefix+f'/tasks/{generated_task}/forecast',method='POST',csrf=csrf,
+                body=dict(expected_revision=1))['run']
+            assert fallback['ai']['status']=='unavailable' and fallback['ai']['errorCode']=='AITUNNEL_NOT_CONFIGURED'
+            assert fallback['decision']['status']=='fallback' and fallback['decision']['selectedDate']==fallback['algorithmic']['recommendedDate']
+            command('app_logs_cloud_disabled','logs','--no-color','app')
+            env['AITUNNEL_API_KEY']=cloud_key
+            command('restore_cloud_key','up','--detach','--no-build','--wait','--wait-timeout','120','app')
+            results.append(dict(check='missing_cloud_key_persisted_and_regulatory_fallback',passed=True))
         repeated_cv=http('cv_after_restart',engineer,prefix+f'/tasks/{task}/photo-review',method='POST',csrf=csrf,
             body=dict(expected_revision=bundle['task']['revision']))
-        if args.ml_cache or args.bundled_image:
+        if args.ml_cache or args.bundled_image or args.cloud_ai:
             assert repeated_cv['modelRef']==result['modelRef'] and repeated_cv['errorCode'] is None
         else:
             assert repeated_cv['status']=='unavailable' and repeated_cv['errorCode']=='MODEL_NOT_READY'
@@ -258,7 +319,8 @@ def main():
         results.append(dict(check='closed_job_history_and_comparison_survive_restart',passed=True))
         assert http('persistent_photo',executor,photo_url)==photo_blob
         command('app_logs','logs','--no-color','app')
-        raw=(logs/'app_logs.log').read_text(encoding='utf-8')
+        raw='\n'.join(path.read_text(encoding='utf-8') for path in sorted(logs.glob('app_logs*.log')))
+        (logs/'app_logs_combined.log').write_text(raw,encoding='utf-8')
         assert 'ml_call_done tool=forecast' in raw and 'ml_result tool=photo-review' in raw
         results.append(dict(check='both_ml_calls_logged',passed=True))
         assert db_password not in raw and password not in raw

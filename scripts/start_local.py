@@ -16,7 +16,7 @@ ROOT=Path(__file__).resolve().parents[1]
 PROJECT="fixrate-local"
 STATE=ROOT/"var/compose-local"
 ENVFILE=STATE/"runtime.env"
-sys.path.insert(0, str(ROOT / "backend"))
+sys.path[:0] = [str(ROOT / "backend"), str(ROOT)]
 from app.demo_accounts import DEMO_ACCOUNTS, DEMO_KEYS, read_demo_environment, validate_demo_credentials
 
 
@@ -35,6 +35,18 @@ def read_runtime_values(path):
     return values
 
 
+AI_KEYS = ("AITUNNEL_API_KEY", "AI_TUNNEL_API_KEY", "AITUNNEL_BASE_URL", "AITUNNEL_VISION_MODEL",
+           "AITUNNEL_FORECAST_MODEL", "AITUNNEL_TIMEOUT_SECONDS", "AITUNNEL_REASONING_EFFORT", "FIXRATE_CLOUD_AI")
+
+
+def read_ai_environment(path, environment=None):
+    from dotenv import dotenv_values
+    values = dotenv_values(path)
+    current = os.environ if environment is None else environment
+    return {key: current.get(key, values.get(key)) for key in AI_KEYS
+            if current.get(key, values.get(key)) is not None}
+
+
 def main():
     docker=shutil.which("docker")
     if not docker and os.name=="nt":
@@ -45,15 +57,19 @@ def main():
     parser.add_argument("--port",type=int)
     parser.add_argument("--cache",type=Path,default=ROOT/".venv/hf-cache")
     parser.add_argument("--no-build",action="store_true")
-    parser.add_argument("--local-vision",action="store_true",help="Use the prepared local vision-language model on GPU")
+    ai_mode=parser.add_mutually_exclusive_group()
+    ai_mode.add_argument("--local-vision",action="store_true",help="Use the prepared local vision-language model on GPU")
+    ai_mode.add_argument("--cloud-ai",action="store_true",help="Use AI Tunnel for photo review and maintenance advice")
     parser.add_argument("--bundled-image",help="Use a prebuilt local image with RF/CLIP weights inside")
     action=parser.add_mutually_exclusive_group()
     action.add_argument("--stop",action="store_true",help="Stop this project; keep all persistent volumes")
     action.add_argument("--status",action="store_true")
     args=parser.parse_args()
-    if (args.bundled_image or args.local_vision) and (args.stop or args.status):
+    if (args.bundled_image or args.local_vision or args.cloud_ai) and (args.stop or args.status):
         parser.error("Select an image when starting, not with --status or --stop")
     requested=read_demo_environment(ROOT/".env", os.environ) if not (args.stop or args.status) else {}
+    requested_ai=read_ai_environment(ROOT/".env") if not (args.stop or args.status) else {}
+    cloud_requested=args.cloud_ai or (not args.local_vision and requested_ai.get("FIXRATE_CLOUD_AI", "").lower()=="true")
     hidden={"creationflags":subprocess.CREATE_NO_WINDOW} if os.name=="nt" else {}
     exists=ENVFILE.is_file()
     if not exists and (args.stop or args.status):
@@ -64,7 +80,7 @@ def main():
         if found.stdout.strip():
             raise RuntimeError("Existing local volumes have no matching private configuration; refusing to replace credentials")
         cache=args.cache.resolve()
-        if not args.bundled_image and not cache.is_dir(): raise ValueError("Prepared CLIP cache directory is required; use --cache")
+        if not args.bundled_image and not cloud_requested and not cache.is_dir(): raise ValueError("Prepared CLIP cache directory is required; use --cache")
         port=args.port
         if port is None:
             for candidate in (8000,8080,8090):
@@ -92,7 +108,18 @@ def main():
         subprocess.run([args.docker,"image","inspect",args.bundled_image],check=True,stdout=subprocess.DEVNULL,**hidden)
         values["FIXRATE_IMAGE"]=args.bundled_image
         values["FIXRATE_ML_PROFILE"]="bundled"
+    if not (args.stop or args.status):
+        values.update(requested_ai)
+    if args.cloud_ai or (not args.local_vision and values.get("FIXRATE_CLOUD_AI", "").lower()=="true"):
+        values.update(FIXRATE_CLOUD_AI="true", FIXRATE_LOCAL_VISION="false", PHOTO_REVIEW_TIMEOUT_SECONDS="120",
+                      FORECAST_TIMEOUT_SECONDS="100")
+        from ml_service.app.providers.aitunnel import AITunnelConfig
+        for tool in ("vision", "forecast"):
+            if not AITunnelConfig.from_environment(tool, values).api_key:
+                raise ValueError("Set AITUNNEL_API_KEY (or AI_TUNNEL_API_KEY) in .env before starting cloud mode")
     if args.local_vision:
+        values["FIXRATE_CLOUD_AI"]="false"
+        values["FORECAST_TIMEOUT_SECONDS"]="2"
         metadata_path=ROOT/"var/local-vision/model.json"
         if not metadata_path.is_file():
             raise ValueError("Prepare local vision first: python scripts/prepare_local_vision.py")
@@ -105,19 +132,23 @@ def main():
     env=dict(os.environ,**values)
     base=[args.docker,"compose","--project-name",PROJECT,"--env-file",str(ENVFILE),
         "--project-directory",str(ROOT)]
-    for filename in (["compose.bundled.yaml"] if bundled else ["compose.yaml","compose.ml.yaml"]):
+    cloud_ai=values.get("FIXRATE_CLOUD_AI")=="true"
+    for filename in (["compose.bundled.yaml"] if bundled else ["compose.yaml"] if cloud_ai else ["compose.yaml","compose.ml.yaml"]):
         base.extend(["-f",str(ROOT/filename)])
     local_vision=values.get("FIXRATE_LOCAL_VISION")=="true"
+    cloud_ai=values.get("FIXRATE_CLOUD_AI")=="true"
     if local_vision:
         base.extend(["-f",str(ROOT/"compose.vision.yaml")])
+    if cloud_ai:
+        base.extend(["-f",str(ROOT/"compose.cloud.yaml")])
     logdir=ROOT/"logs/local"/datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     logdir.mkdir(parents=True,exist_ok=False)
     def command(name,*parts):
         print(name,flush=True)
         result=subprocess.run([*base,*parts],cwd=ROOT,env=env,capture_output=True,text=True,encoding="utf-8",errors="replace",**hidden)
         raw=result.stdout+"\n"+result.stderr
-        for key in ("POSTGRES_PASSWORD","FIXRATE_DEMO_PASSWORD"):
-            raw=raw.replace(values[key],"[REDACTED]")
+        for key in ("POSTGRES_PASSWORD","FIXRATE_DEMO_PASSWORD","AITUNNEL_API_KEY","AI_TUNNEL_API_KEY"):
+            if values.get(key): raw=raw.replace(values[key],"[REDACTED]")
         (logdir/(name+".log")).write_text(raw,encoding="utf-8")
         if result.returncode:
             raise RuntimeError(name+" failed; see "+str(logdir/(name+".log")))
@@ -130,16 +161,22 @@ def main():
     if args.status:
         print(command("status","ps"))
         return
-    if not bundled and not Path(values["CLIP_CACHE_ROOT"]).is_dir(): raise ValueError("Prepared CLIP cache is missing")
+    if not bundled and not cloud_ai and not Path(values["CLIP_CACHE_ROOT"]).is_dir(): raise ValueError("Prepared CLIP cache is missing")
     if not args.no_build and not bundled: command("build","build","app")
-    command("start","up","--detach","--no-build","--wait","--wait-timeout","180")
+    command("start","up","--detach","--no-build","--remove-orphans","--wait","--wait-timeout","180")
     account_env=[part for key in DEMO_KEYS for part in ("-e", key)]
     command("seed","exec","-T",*account_env,"app","python","-m","app.manage","seed-demo","--configure-accounts")
     write_runtime_values(ENVFILE, values)
-    readiness=command("models","exec","-T","app","python","-c",
-        "import json,os; from ml_service.app.forecast.runtime import load_verified_forecaster; from ml_service.app.cv.classifier import CLIPZeroShotClassifier; rf=load_verified_forecaster(); cv=CLIPZeroShotClassifier(); assert rf.is_fitted and cv.is_torch_active; print(json.dumps(dict(rf='synthetic_demo:rf:'+rf.artifact_sha256[:16],clip=cv.model_ref,source_revision=os.environ.get('FIXRATE_SOURCE_REVISION','unknown'))))")
-    image_readiness=json.loads(readiness)
-    models={key:image_readiness[key] for key in ("rf","clip")}
+    if cloud_ai:
+        readiness=command("models","exec","-T","app","python","-c",
+            "import json,os; from ml_service.app.providers.aitunnel import AITunnelConfig; v=AITunnelConfig.from_environment('vision'); f=AITunnelConfig.from_environment('forecast'); assert v.api_key and f.api_key; print(json.dumps(dict(vision=v.model_ref,forecast=f.model_ref,source_revision=os.environ.get('FIXRATE_SOURCE_REVISION','unknown'))))")
+        image_readiness=json.loads(readiness)
+        models={key:image_readiness[key] for key in ("vision","forecast")}
+    else:
+        readiness=command("models","exec","-T","app","python","-c",
+            "import json,os; from ml_service.app.forecast.runtime import load_verified_forecaster; from ml_service.app.cv.classifier import CLIPZeroShotClassifier; rf=load_verified_forecaster(); cv=CLIPZeroShotClassifier(); assert rf.is_fitted and cv.is_torch_active; print(json.dumps(dict(rf='synthetic_demo:rf:'+rf.artifact_sha256[:16],clip=cv.model_ref,source_revision=os.environ.get('FIXRATE_SOURCE_REVISION','unknown'))))")
+        image_readiness=json.loads(readiness)
+        models={key:image_readiness[key] for key in ("rf","clip")}
     if local_vision:
         vision_readiness=command("vision_model","exec","-T","app","python","-c",
             "from ml_service.app.cv.local_vision import LocalVisionConfig,LocalVisionClient; c=LocalVisionConfig.from_environment(); LocalVisionClient(c).check_model(); print(c.model_ref)")
@@ -159,7 +196,7 @@ def main():
         raise RuntimeError("Private state belongs to a different project")
     previous.update(project=PROJECT,url=origin,models=models,logs=str(logdir),
         database_volume=PROJECT+"_postgres_data",photo_volume=PROJECT+"_photos",started_at=datetime.now(timezone.utc).isoformat(),
-        image=values.get("FIXRATE_IMAGE","fixrate-ai:local"),image_profile="bundled" if bundled else "external-cache",
+        image=values.get("FIXRATE_IMAGE","fixrate-ai:local"),image_profile="cloud" if cloud_ai else "bundled" if bundled else "external-cache",
         source_revision=image_readiness.get("source_revision","unknown"))
     state_path.write_text(json.dumps(previous,indent=2),encoding="utf-8")
     print(command("status","ps"))

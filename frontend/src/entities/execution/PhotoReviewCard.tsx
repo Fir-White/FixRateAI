@@ -11,6 +11,8 @@ function Findings({title,items,empty}:{title:string;items:string[];empty?:string
 
 export function PhotoReviewCard({review,formatDateTime}:{review:PhotoReview|null;formatDateTime:(value:string)=>string}) {
   const legacy=review?.modelRef?.includes("clip-")??false;
+  const cloud=review?.modelRef?.startsWith("aitunnel:")||review?.errorCode?.startsWith("AITUNNEL_");
+  const errorMessage=review?.errorCode==="AITUNNEL_RATE_LIMITED"?"Сервис временно ограничил частоту запросов. Подождите и повторите анализ.":review?.errorCode==="AITUNNEL_QUOTA_EXCEEDED"?"Лимит облачного анализа исчерпан. Обратитесь к администратору стенда.":review?.errorCode==="AITUNNEL_NOT_CONFIGURED"||review?.errorCode==="AITUNNEL_AUTH_FAILED"?"Облачный анализ сейчас не настроен или доступ отклонён. Обратитесь к администратору стенда.":review?.errorCode?.endsWith("TIMEOUT")?"Модель не успела закончить проверку. Повторите анализ через некоторое время.":review?.status==="unavailable"?cloud?"Облачный сервис анализа сейчас недоступен. Повторите запрос позже.":"Локальная модель сейчас недоступна. Запустите сервис анализа и повторите запрос.":"Ответ модели не удалось проверить. Повторите анализ; при повторной ошибке обратитесь к администратору стенда.";
   const hasChanges=review?.items.some(item=>item.verdict==="visible_change");
   const uncertain=review?.status!=="completed"||review.items.some(item=>item.verdict!=="visible_change");
   const title=review?.status==="failed"||review?.status==="unavailable"?"Не удалось выполнить фотоанализ":legacy?"Качество работы по этой проверке не подтверждено":uncertain?"Для приёмки нужны дополнительные подтверждения":hasChanges?"На фото обнаружены видимые изменения":"Данных для вывода недостаточно";
@@ -19,7 +21,7 @@ export function PhotoReviewCard({review,formatDateTime}:{review:PhotoReview|null
       <Callout tone={uncertain||legacy?"warning":"neutral"} title={title}>
         {legacy?"Сохранённый результат получен прежней моделью CLIP, которая сравнивает сходство с текстовыми описаниями. Для разбора содержимого фотографий запустите новый анализ.":"Вывод модели помогает проверить отчёт. Приёмку и необходимые контрольные измерения выполняет инженер."}
       </Callout>
-      {(review.status==="unavailable"||review.status==="failed")&&<p className="mt-3 text-sm leading-6 text-ink-soft">{review.errorCode==="LOCAL_VISION_TIMEOUT"||review.errorCode==="TIMEOUT"?"Модель не успела закончить проверку. Дождитесь готовности локального сервиса и повторите анализ.":review.status==="unavailable"?"Локальная модель сейчас недоступна. Запустите сервис анализа и повторите запрос.":"Ответ модели не удалось проверить. Повторите анализ; при повторной ошибке обратитесь к администратору стенда."}</p>}
+      {(review.status==="unavailable"||review.status==="failed")&&<p className="mt-3 text-sm leading-6 text-ink-soft">{errorMessage}</p>}
       <div className="mt-5 space-y-5">{review.items.map(item=><article key={item.id} className="rounded-xl border border-line p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-semibold text-ink">Проверяемый пункт: {item.label}</h3><VerdictBadge verdict={item.verdict}/></div>
         {item.assessment?<>
