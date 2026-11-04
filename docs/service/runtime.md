@@ -25,10 +25,10 @@ start_local.py сохраняет выбранный image/profile в прива
 
 Она проверяет отсутствие host mount для моделей, реальные RF/CLIP-вызовы, повтор обоих вызовов после restart, неизменность сохранённого сравнения и историю принятой работы после следующего restart. Для обычного профиля --ml-cache сохраняется; параметры --bundled-image и --ml-cache взаимоисключающие.
 
-Чтобы перенести image на другую совместимую Docker-машину:
+Для переноса на другую совместимую Docker-машину архивируйте оба образа — приложение и PostgreSQL, чтобы при запуске не требовалось скачивать postgres:18:
 
 ```powershell
-docker image save --output var/bundled-image/fixrate-ai-bundled.tar fixrate-ai:bundled
+docker image save --output var/bundled-image/fixrate-ai-bundled.tar fixrate-ai:bundled postgres:18
 # На другой машине после клонирования dev:
 docker image load --input fixrate-ai-bundled.tar
 python scripts/start_local.py --bundled-image fixrate-ai:bundled
@@ -60,7 +60,7 @@ $env:HF_HOME = Join-Path (Resolve-Path .venv).Path 'hf-cache'
 
 ## Постоянный локальный стенд для тестирования
 
-Проверенная сборка dev запущена 04.11.2026 как Compose-проект fixrate-local: **http://127.0.0.1:8000**, Swagger — /docs, готовность — /api/health. Это один FastAPI со SPA, PostgreSQL 18 и реальные RF/CLIP; CLIP читает подготовленный read-only cache. Адрес 5173 относится к отдельному Vite-процессу, для этого стенда используйте 8000. Созданные данные и фотографии сохраняются между запусками.
+Проверенная сборка dev запущена 04.11.2026 как Compose-проект fixrate-local: **http://127.0.0.1:8000**, Swagger — /docs, готовность — /api/health. Это один FastAPI со SPA, PostgreSQL 18 и реальные RF/CLIP. Текущий bundled-профиль содержит CLIP внутри image; прежний профиль compose.ml.yaml читает подготовленный read-only host cache. Адрес 5173 относится к отдельному Vite-процессу, для этого стенда используйте 8000. Созданные данные и фотографии сохраняются между запусками.
 
 Из корня D:\FixRate AI\FixRate_AI:
 
@@ -310,3 +310,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify_schema.ps
 ```
 
 Runner проверяет базовые ограничения 001–004, upgrade заполненной истории до текущей схемы и отдельную чистую установку всех SQL-миграций. Добавлены тесты tests/sql/test_runtime_schema.sql и test_maintenance_history_upgrade.sql. Используется только собственный кластер в TEMP; Port=0 по умолчанию выбирает свободный loopback-порт. -Port задаёт явный свободный порт, -Database — имя тестовой БД, -LogPath — новый лог (существующий отклоняется). По умолчанию результаты находятся в logs/sql/<дата-PID>/run_schema_test.log. Сообщение ALL CHECKS PASSED появляется после остановки и удаления собственного кластера. Полный scripts/verify.py включает те же проверки; [актуальные результаты](verification.md#04112026-исправление-qa03-и-полный-успешный-прогон-dev).
+
+## Фактический bundled-стенд 04.11.2026
+
+На 127.0.0.1:8000 развёрнут fixrate-ai:bundled, image sha256:30f03e3577624abe636b4ad93adbb25f4d7938206ee7fcd391228078fb00c57c. Исходники image — 3a8b243; последующие изменения протокола в документации не меняют его backend/frontend. RF synthetic_demo:rf:985a24f18a997f38 и CLIP openai/clip-vit-base-patch32@3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268 находятся внутри image, model bind mount отсутствует. На 8000 теперь 68 OpenAPI paths и текущая JS-сборка index-Bj-SXA9J.js.
+
+Прежние 6 work orders, 3 evidence records и 2 приёмки, включая статусы/ревизии/хеши фото и сохранённые прогнозы, сравнивались до/после обновления и совпали. Private backup: var/backups/before-bundled-20261104T130902Z. Проверка четырёх реальных browser sessions: logs/bundled-image/live-roles.log, 4 passed; бизнес-данные тестом ролей не изменялись. Runtime.env/accounts.txt сохраняют прежние реквизиты; mode bundled и source_revision записаны в state.json.
+
+Готовый архив обоих образов: var/bundled-image/20261104T130551Z-77071e1c/fixrate-ai-3a8b243-bundled.tar, 979703808 bytes. SHA-256: a6faf0bebc27dc2260236c2a452cb2a8e31f0a03aa035fb00fe7d3ddcbace79e. Проверен manifest Docker tar с двумя RepoTags. В архиве нет runtime-паролей, рабочей БД и загруженных пользователем фотографий. Для новой машины clone dev → docker image load → python scripts/start_local.py --bundled-image fixrate-ai:bundled.
