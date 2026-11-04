@@ -50,18 +50,18 @@ for (const role of roles) {
           expect(photo.headers()["cache-control"]).toBe("private, no-store");
           continue;
         }
-        const section = href.split("/")[1];
+        const section = new URL(href, process.env.FIXRATE_BASE_URL!).pathname.split("/")[1];
         if (section && section !== "login") expect(allowed[section], `${role}: ${route} → ${href}`).toContain(role);
       }
       if (role === "executor" && route === "/calendar") {
-        const links = page.locator(`a[href="/executor/tasks/${demoId("runtime-order")}"]`);
-        if (!(await links.count())) {
+        const event = page.getByRole("button", {name: /DEMO — чистка учебного узла/}).first();
+        if (!(await event.count())) {
           // The seed schedules tomorrow, which can fall in the next local month.
           await page.getByRole("button", {name: "Следующий месяц"}).click();
           await expect(page.getByRole("status")).toHaveCount(0);
         }
-        await expect(links.first()).toBeVisible();
-        await links.first().click();
+        await event.click();
+        await page.getByRole("dialog").getByRole("link", {name: "Открыть наряд"}).click();
         await expect(page).toHaveURL(new RegExp(`/executor/tasks/${demoId("runtime-order")}$`));
         await expect(page.getByRole("heading", {name: "DEMO — чистка учебного узла"})).toBeVisible();
       }

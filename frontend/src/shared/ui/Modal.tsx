@@ -14,6 +14,7 @@ export function Modal({
   children,
   footer,
   tone = "default",
+  size = "default",
 }: {
   open: boolean;
   title: string;
@@ -22,6 +23,7 @@ export function Modal({
   children: ReactNode;
   footer?: ReactNode;
   tone?: "default" | "danger";
+  size?: "default" | "wide";
 }) {
   const titleId = useId();
   const descriptionId = useId();
@@ -36,7 +38,7 @@ export function Modal({
   return createPortal(
     <div
       ref={scrollRef}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-black/75 p-0 backdrop-blur-sm sm:items-center sm:p-6"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -49,7 +51,7 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
-        className={`scroll-boundary max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border bg-surface shadow-2xl shadow-black/60 sm:max-w-lg sm:rounded-2xl ${
+        className={`fr-modal ${size === "wide" ? "fr-modal--wide" : ""} scroll-boundary max-h-[92dvh] w-full overflow-y-auto rounded-t-2xl border bg-surface shadow-2xl shadow-black/60 sm:max-w-lg sm:rounded-2xl ${
           tone === "danger" ? "border-rose-400/30" : "border-line-strong"
         }`}
       >

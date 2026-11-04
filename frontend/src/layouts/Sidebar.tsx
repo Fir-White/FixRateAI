@@ -100,8 +100,10 @@ export function Sidebar({ items, homePath, expanded, mobile, open, onToggle, onC
       </div>
 
       <nav aria-label="Основная навигация" className="ops-sidebar-nav scroll-boundary" data-scroll-key="sidebar" onScroll={() => setTooltip(null)}>
+        <p className="fr-nav-caption ops-sidebar-label">Рабочее пространство</p>
         <ul>
-          {items.map(item => <li key={item.to}>
+          {items.map((item, index) => <li key={item.to}>
+            {item.to.startsWith("/settings") && !items[index-1]?.to.startsWith("/settings") && <p className="fr-nav-caption fr-nav-divider ops-sidebar-label">Управление</p>}
             <NavLink
               to={item.to}
               end={item.end}

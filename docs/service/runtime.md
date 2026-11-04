@@ -165,3 +165,30 @@ npm --prefix frontend audit --audit-level=moderate
 ## Связи
 
 [Данные и миграции](database.md) · [проверки и протоколы](verification.md) · [разработка и обновление источников](development.md).
+
+
+## Локальный запуск после редизайна, 03.11.2026
+
+В worktree frontend-next собрана production SPA из исходников новой поставки. FastAPI слушает **http://127.0.0.1:8000**, Vite — **http://127.0.0.1:5173**, его /api проксируется к тому же backend. VITE_DEMO_MODE=false: это серверные сессии и существующие данные, а не архивный dist-demo. Обновление интерфейса на 8000 требует `npm.cmd --prefix frontend run build`; на 5173 работает автоматическое обновление.
+
+Для этого запуска повторно использованы существующие настройки БД fixrate_kran_demo на 127.0.0.1:5433 и каталог фотографий соседнего kran_dev; они не очищались и не пересоздавались. Локальный .env frontend-next создан с тем же подключением и абсолютным PHOTO_STORAGE_ROOT, секреты в Git не добавлены. Миграции 001–008 уже присутствовали: повторный seed и изменение схемы рабочей БД не выполнялись. Проектный PostgreSQL 18.6, FastAPI и Vite запущены в фоне без новых окон. Журналы — logs/frontend-redesign, PID — var/local-demo. Системный PostgreSQL на 5432 не изменялся.
+
+Использовано уже установленное Python 3.11.9 окружение `../kran_dev/.venv/runtime311/Scripts/python.exe`, Node 24.21.0 и PostgreSQL 18.6. Это локальный профиль, отличный от основного проверенного Python 3.12/PostgreSQL 16.13; полный SQL gate на 18 не прошёл (см. verification). Random Forest загрузился; наличие и исполнение настоящих CLIP-весов этим запуском не подтверждено.
+
+Повторный запуск из корня worktree (при остановленных серверах):
+
+```powershell
+$runtimePython = (Resolve-Path '../kran_dev/.venv/runtime311/Scripts/python.exe').Path
+& $runtimePython -m uvicorn app.main:app --app-dir backend --env-file .env --host 127.0.0.1 --port 8000
+# В другой консоли:
+npm.cmd --prefix frontend run dev -- --host 127.0.0.1 --strictPort
+```
+
+На Windows с запретом npm.ps1 используется npm.cmd без изменения ExecutionPolicy. Основные инструкции установки чистого окружения находятся выше. Текущие фоновые процессы можно остановить по PID после проверки CommandLine; backend на Windows может иметь отдельный дочерний python.exe, поэтому один сохранённый PID не заменяет проверку дерева процесса.
+
+
+## DEMO с выбором ролей, 04.11.2026
+
+Для просмотра всех ролей в корневом локальном .env установлено `VITE_DEMO_MODE=true`. Vite запущен на **http://127.0.0.1:5173/login**. На первом входе выбирается роль без логина и пароля; в рабочей оболочке роль меняется через список «Демонстрационная роль» в верхней панели. Доступны диспетчер, инженер, исполнитель и администратор. Используются учебные fixtures; запись рабочих данных требует API-режима.
+
+Запуск: `npm.cmd --prefix frontend run dev -- --host 127.0.0.1 --port 5173 --strictPort`. Журналы этого запуска находятся в logs/demo, PID — var/local-demo/vite.pid. Для возврата к API установите `VITE_DEMO_MODE=false` и перезапустите Vite. Сборка frontend/dist обновляется отдельной командой build и использует значение флага на момент сборки.

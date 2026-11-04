@@ -10,7 +10,7 @@ import { Card, CardHeader } from "@/shared/ui/Card";
 import { EmptyState, ErrorState, LoadingState } from "@/shared/ui/States";
 import { Button, buttonClassName } from "@/shared/ui/Button";
 import { Icon } from "@/shared/ui/Icon";
-import { EvidenceGallery } from "@/entities/execution/EvidenceGallery";
+import { EvidenceComparison } from "@/entities/execution/EvidenceComparison";
 import { ChecklistSummary } from "@/entities/execution/ChecklistSummary";
 import { Callout } from "@/shared/ui/Callout";
 import { FormField, Textarea } from "@/shared/ui/Form";
@@ -69,7 +69,7 @@ export function QualityTaskPage() {
   }
 
   const { task, execution, review, decision } = query.data;
-  const canReview = DEMO_MODE ? task.state === "submitted" : !!query.data.allowedActions?.includes("review");
+  const canReview = !DEMO_MODE && !!query.data.allowedActions?.includes("review");
   const canAnalyze = !DEMO_MODE && !!query.data.allowedActions?.includes("photo_review");
 
   const handleDecision = async (verdict: "accepted" | "rejected") => {
@@ -114,14 +114,15 @@ export function QualityTaskPage() {
 
       {canAnalyze && <div className="space-y-3 rounded-xl border border-line p-4">
         <label className="block text-sm"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /> Подтверждаю, что фото показывают тот же объект и сопоставимый ракурс</label>
-        <Button variant="secondary" disabled={busy} onClick={async () => {
+        <Button variant="secondary" disabled={busy || !confirmed} onClick={async () => {
           setBusy(true); setNotice(null);
           try { await maintenanceApi.photoReview(task.id, task.revision, confirmed); setRefresh(n => n+1); }
           catch (error) { setNotice(error instanceof Error ? error.message : "Ошибка анализа"); }
           finally { setBusy(false); }
         }}>Анализировать фото</Button>
       </div>}
-      <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+      {DEMO_MODE && <Callout tone="neutral">DEMO · Фото и решения показаны из примера. Анализ и приёмка доступны только при подключении к API.</Callout>}
+      <div className="quality-detail-grid">
         <div className="space-y-6">
           <Card>
             <CardHeader
@@ -149,14 +150,11 @@ export function QualityTaskPage() {
 
           <Card>
             <CardHeader
-              title="Фотографии попытки"
-              description="Доступ проверяется по Site и заданию"
+              title="До / после"
+              description="Сравнение по пункту чек-листа и одинаковому ракурсу"
             />
             <div className="p-5 sm:p-6">
-              <EvidenceGallery
-                photos={execution?.photos ?? []}
-                emptyText="Фото к этой попытке не приложены"
-              />
+              <EvidenceComparison photos={execution?.photos ?? []} checklist={execution?.checklist ?? []} />
             </div>
           </Card>
 
@@ -225,13 +223,13 @@ export function QualityTaskPage() {
           </Card>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-6 quality-decision-rail">
           <Card>
             <CardHeader title="Основание решения" />
             <div className="p-5 sm:p-6">
               <InfoList className="grid grid-cols-2 gap-4">
                 <InfoItem
-                  label="Срок"
+                  label="Обязательный срок"
                   value={formatDate(task.mandatoryDueDate)}
                 />
                 <InfoItem label="Ревизия" value={String(task.revision)} />
@@ -250,6 +248,7 @@ export function QualityTaskPage() {
               >
                 <Textarea
                   id="quality-reason"
+                  disabled={!canReview || busy}
                   value={reason}
                   onChange={(event) => {
                     setReason(event.target.value);
@@ -261,9 +260,7 @@ export function QualityTaskPage() {
               </FormField>
 
               {notice ? (
-                <Callout tone="info" className="mt-3 text-xs">
-                  {notice}
-                </Callout>
+                <div role="alert"><Callout tone="danger" className="mt-3 text-xs">{notice}</Callout></div>
               ) : null}
 
               <div className="mt-4 grid gap-2">

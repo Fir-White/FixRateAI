@@ -5,10 +5,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CalendarPage } from "@/pages/CalendarPage";
 import type { CalendarPreview, Role } from "@/shared/types/domain";
 
-const mocks = vi.hoisted(() => ({role: "dispatcher" as Role, list: vi.fn(), preview: vi.fn()}));
+const mocks = vi.hoisted(() => ({role: "dispatcher" as Role, list: vi.fn(), preview: vi.fn(), tasks: vi.fn()}));
 vi.mock("@/shared/api/request", () => ({DEMO_MODE: false}));
 vi.mock("@/shared/session/SessionContext", () => ({useSession: () => ({profile: {role: mocks.role, timezone: "Asia/Yekaterinburg"}})}));
-vi.mock("@/shared/api/maintenance", () => ({maintenanceApi: {listCalendar: mocks.list, previewCalendar: mocks.preview}}));
+vi.mock("@/shared/api/maintenance", () => ({maintenanceApi: {listCalendar: mocks.list, previewCalendar: mocks.preview, listTasks: mocks.tasks}}));
 
 function preview(year: number, month: number): CalendarPreview {
   const day = `${year}-${String(month).padStart(2, "0")}-15`;
@@ -33,6 +33,7 @@ function mount() { return render(<MemoryRouter><CalendarPage /></MemoryRouter>);
 beforeEach(() => {
   mocks.role = "dispatcher";
   mocks.list.mockReset().mockResolvedValue([]);
+  mocks.tasks.mockReset().mockResolvedValue([]);
   mocks.preview.mockReset().mockImplementation(async (year, month) => preview(year, month));
 });
 
@@ -48,10 +49,12 @@ describe("calendar generator integration", () => {
     expect(screen.getByText("Нужны данные")).toBeInTheDocument();
     expect(screen.getByText("DEMO / допущение")).toBeInTheDocument();
     const grid = screen.getByRole("region", {name: "Сетка календаря"});
-    await user.click(within(grid).getByText("1.4 Очистка"));
-    expect(within(grid).getByText("Бригада: 2 чел.")).toBeVisible();
-    expect(within(grid).getByText(/единица требует уточнения/)).toBeVisible();
-    expect(within(grid).queryByRole("link")).not.toBeInTheDocument();
+    await user.click(within(grid).getByRole("button", {name: /15 .* Очистка/}));
+    const details = screen.getByRole("dialog", {name: "Очистка"});
+    expect(within(details).getByText("2 чел.")).toBeVisible();
+    expect(within(details).getByText(/Единица не подтверждена/)).toBeVisible();
+    expect(within(details).queryByRole("link", {name: /Открыть наряд/})).not.toBeInTheDocument();
+    await user.keyboard("{Escape}");
     await user.click(screen.getByRole("button", {name: "Сохранённый график"}));
     await waitFor(() => expect(screen.queryByRole("heading", {name: "Результат по оборудованию и операциям"})).not.toBeInTheDocument());
     expect(mocks.list).toHaveBeenCalledTimes(2);
@@ -94,4 +97,19 @@ describe("calendar generator integration", () => {
     expect(screen.queryByRole("button", {name: "Рассчитать график"})).not.toBeInTheDocument();
     expect(mocks.preview).not.toHaveBeenCalled();
   });
+
+  it("opens an executor task from the saved calendar drawer", async () => {
+    mocks.role = "executor";
+    mocks.list.mockResolvedValue([{...preview(2026, 11).items[0], taskId: "assigned-task", status: "planned"}]);
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={["/calendar?date=2026-11-15"]}><CalendarPage /></MemoryRouter>);
+    await user.click(await screen.findByRole("button", {name: /15 ноября.*Очистка/}));
+    const details = screen.getByRole("dialog", {name: "Очистка"});
+    expect(within(details).getByRole("link", {name: /Открыть наряд/})).toHaveAttribute("href", "/executor/tasks/assigned-task");
+    expect(within(details).getByRole("link", {name: "Оборудование"})).toHaveAttribute("href", "/equipment/equipment");
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(mocks.preview).not.toHaveBeenCalled();
+  });
+
 });

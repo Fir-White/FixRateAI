@@ -1,151 +1,38 @@
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
-import { dateDifference, formatDate, formatDays } from "@/shared/lib/format";
+import { formatDate } from "@/shared/lib/format";
+import { exceedsDeadline, forecastUnavailableLabel } from "@/shared/lib/forecastPresentation";
 import { PageHeader } from "@/shared/ui/PageHeader";
-import { Card } from "@/shared/ui/Card";
 import { EmptyState, ErrorState, LoadingState } from "@/shared/ui/States";
 import { buttonClassName } from "@/shared/ui/Button";
 import { Icon } from "@/shared/ui/Icon";
-import {
-  DecisionStatusBadge,
-  ForecastStatusBadge,
-  OriginBadge,
-} from "@/shared/ui/StatusBadge";
+import { DecisionStatusBadge, ForecastStatusBadge } from "@/shared/ui/StatusBadge";
+import type { ForecastResult } from "@/shared/types/domain";
 
 export function ComparisonsPage() {
   const query = useApiQuery(() => maintenanceApi.listComparisons(), []);
-
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="Прогнозирование"
-        title="Сравнение прогнозов"
-        description="Оба метода получают один неизменяемый snapshot. Исходные даты сохраняются отдельно, решение оркестратора объясняется."
-        actions={
-          <Link to="/equipment" className={buttonClassName("secondary")}>
-            Оборудование
-          </Link>
-        }
-      />
-
-      {query.status === "loading" ? <LoadingState /> : null}
-      {query.status === "error" ? (
-        <ErrorState description={query.error} />
-      ) : null}
-      {query.status === "success" && query.data.length === 0 ? (
-        <EmptyState
-          title="Запусков сравнения нет"
-          description="Сравнение создаётся для подтверждённой привязки оборудования и регламента."
-        />
-      ) : null}
-
-      {query.status === "success" && query.data.length > 0 ? (
-        <div className="grid gap-4">
-          {query.data.map((run) => {
-            const difference =
-              run.algorithmic.recommendedDate && run.ai.recommendedDate
-                ? dateDifference(
-                    run.algorithmic.recommendedDate,
-                    run.ai.recommendedDate,
-                  )
-                : null;
-
-            return (
-              <Card key={run.runId} className="p-5 transition hover:border-accent/25 sm:p-6">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <OriginBadge origin={run.dataOrigin} />
-                      <DecisionStatusBadge status={run.decision.status} />
-                    </div>
-                    <h2 className="mt-3 text-base font-semibold text-ink">
-                      {run.equipmentName}
-                    </h2>
-                    <p className="mt-1 text-sm text-muted">
-                      {run.operationTitle} · as_of {formatDate(run.asOf)}
-                    </p>
-                  </div>
-                  <Link
-                    to={`/comparisons/${run.runId}`}
-                    className={buttonClassName("secondary", "sm")}
-                  >
-                    Открыть
-                    <Icon name="chevron" size={16} />
-                  </Link>
-                </div>
-
-                <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                  <ForecastMini
-                    label="Алгоритмический"
-                    date={run.algorithmic.recommendedDate}
-                    status={run.algorithmic.status}
-                    tone="sky"
-                  />
-                  <ForecastMini
-                    label="AI"
-                    date={run.ai.recommendedDate}
-                    status={run.ai.status}
-                    tone="violet"
-                  />
-                  <ForecastMini
-                    label="Решение"
-                    date={run.decision.selectedDate}
-                    status={run.decision.status === "selected" ? "ok" : "needs_input"}
-                    tone="emerald"
-                  />
-                </div>
-
-                <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted">
-                  <span className="font-mono">
-                    snapshot {run.snapshotHash.slice(0, 12)}…
-                  </span>
-                  <span>
-                    Обязательный срок {formatDate(run.mandatoryDueDate)}
-                  </span>
-                  {difference !== null ? (
-                    <span className="font-semibold text-ink-soft">
-                      Разница дат: {formatDays(difference)}
-                    </span>
-                  ) : null}
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      ) : null}
-    </div>
-  );
+  const [params, setParams] = useSearchParams();
+  const search = params.get("q") ?? "";
+  const equipment = params.get("equipment") ?? "";
+  const setFilter = (key: string, value: string) => { const next = new URLSearchParams(params); value ? next.set(key, value) : next.delete(key); setParams(next, { replace: true }); };
+  const all = query.data ?? [];
+  const options = Array.from(new Map(all.filter(r => r.equipmentId).map(r => [r.equipmentId!, r.equipmentName])));
+  const items = all.filter(r => (!equipment || r.equipmentId === equipment) && `${r.equipmentName} ${r.operationTitle} ${r.runId}`.toLocaleLowerCase("ru").includes(search.trim().toLocaleLowerCase("ru"))).sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+  return <div className="space-y-6">
+    <PageHeader eyebrow="Планирование / Поддержка решений" title="Сравнение прогнозов" description="Один снимок данных. Два метода. Объяснимое решение — без переноса обязательного срока." actions={<Link to="/equipment" className={buttonClassName("secondary")}>Оборудование<Icon name="chevron" size={16}/></Link>} />
+    <div className="forecast-rule"><Icon name="quality" size={20}/><p><strong>Регламент — граница, а не рекомендация.</strong><span>Исходный ответ AI сохраняется отдельно. Недостаток данных не заменяется вымышленной датой или точностью.</span></p></div>
+    {query.status === "loading" && <LoadingState/>}{query.status === "error" && <ErrorState description={query.error}/>}
+    {query.status === "success" && <><div className="ops-register-tools"><label className="ops-search"><Icon name="search" size={17}/><input aria-label="Поиск сравнения" placeholder="Оборудование или операция" value={search} onChange={e => setFilter("q", e.target.value)}/></label>
+      <select aria-label="Оборудование для сравнения" value={equipment} onChange={e => setFilter("equipment",e.target.value)}><option value="">Всё оборудование</option>{options.map(([id,name]) => <option key={id} value={id}>{name}</option>)}</select><span className="text-xs text-muted">{items.length} из {all.length}</span></div>
+      {items.length === 0 ? <EmptyState title={all.length ? "Нет подходящих сравнений" : "Запусков сравнения нет"} description={all.length ? "Измените поиск или фильтр оборудования." : "Сравнение запускается из карточки наряда для подтверждённой привязки регламента."}/> : <div className="forecast-register">{items.map(run => <article key={run.runId} className="forecast-row">
+        <header><div><span className="ops-kicker">Снимок на {formatDate(run.asOf)}</span><h2><Link to={`/comparisons/${run.runId}`}>{run.equipmentName}</Link></h2><p>{run.operationTitle}</p></div><DecisionStatusBadge status={run.decision.status}/></header>
+        <div className="forecast-lanes"><Result label="Алгоритмический" result={run.algorithmic}/><Result label="AI-прогноз" result={run.ai}/><div className="forecast-lane forecast-lane--decision"><span>Решение оркестратора</span><strong>{run.decision.selectedDate ? formatDate(run.decision.selectedDate) : "Нужно уточнение"}</strong><p>{run.decision.reasons[0] || "Объяснение не передано"}</p>{exceedsDeadline(run.decision.selectedDate,run.mandatoryDueDate) && <b className="text-warning">Нарушение нормативной границы</b>}</div></div>
+        <footer><span><Icon name="clock" size={14}/>Обязательный срок <b>{formatDate(run.mandatoryDueDate)}</b></span><Link to={`/comparisons/${run.runId}`}>Разобрать решение<Icon name="chevron" size={16}/></Link></footer>
+      </article>)}</div>}
+    </>}
+  </div>;
 }
-
-function ForecastMini({
-  label,
-  date,
-  status,
-  tone,
-}: {
-  label: string;
-  date: string | null;
-  status: "ok" | "needs_input" | "unavailable" | "failed";
-  tone: "sky" | "violet" | "emerald";
-}) {
-  const toneClasses = {
-    sky: "bg-sky-400/10",
-    violet: "bg-violet-400/10",
-    emerald: "bg-accent/10",
-  }[tone];
-
-  return (
-    <div className={`rounded-xl p-4 ${toneClasses}`}>
-      <p className="text-xs font-semibold text-ink-soft">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-ink">
-        {formatDate(date)}
-      </p>
-      <div className="mt-2">
-        {tone === "emerald" ? null : (
-          <ForecastStatusBadge status={status} />
-        )}
-      </div>
-    </div>
-  );
+function Result({label,result}:{label:string;result:ForecastResult}) {
+  return <div className="forecast-lane"><span>{label}</span><strong className={result.status === "ok" && result.recommendedDate ? "" : "forecast-unavailable"}>{result.status === "ok" && result.recommendedDate ? formatDate(result.recommendedDate) : forecastUnavailableLabel(result)}</strong><ForecastStatusBadge status={result.status}/>{exceedsDeadline(result.recommendedDate,result.mandatoryDueDate) && <small className="text-warning">Позже обязательного срока</small>}</div>;
 }

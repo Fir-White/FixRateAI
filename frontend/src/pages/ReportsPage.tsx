@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
 import type { MaintenanceTask } from "@/shared/types/domain";
@@ -8,12 +9,8 @@ import { ErrorState, LoadingState } from "@/shared/ui/States";
 import { TASK_LABELS } from "@/shared/ui/StatusBadge";
 import { TaskTable } from "@/entities/task/TaskTable";
 
-/** Quote values and prevent spreadsheet apps from interpreting input as a formula. */
-export function csvCell(value: string | null): string {
-  const text = value ?? "";
-  const safe = /^[\u0000-\u0020]*[=+\-@]/.test(text) ? `'${text}` : text;
-  return `"${safe.replace(/"/g, '""')}"`;
-}
+import { csvCell } from "@/shared/lib/exportCsv";
+export { csvCell } from "@/shared/lib/exportCsv";
 
 function exportTasks(tasks: MaintenanceTask[]) {
   const rows = [
@@ -36,10 +33,10 @@ export function ReportsPage() {
   const query = useApiQuery(() => maintenanceApi.listTasks(), []);
   const tasks = query.status === "success" ? query.data : [];
   const metrics = [
-    { label: "Всего заданий", value: tasks.length },
-    { label: "Принято", value: tasks.filter(task => task.state === "accepted").length },
-    { label: "В работе", value: tasks.filter(task => task.state === "in_progress").length },
-    { label: "На проверке", value: tasks.filter(task => task.state === "submitted").length },
+    { label: "Всего заданий", value: tasks.length, filter: "all" },
+    { label: "Принято", value: tasks.filter(task => task.state === "accepted").length, filter: "accepted" },
+    { label: "В работе", value: tasks.filter(task => task.state === "in_progress").length, filter: "in_progress" },
+    { label: "На проверке", value: tasks.filter(task => task.state === "submitted").length, filter: "submitted" },
   ];
   const grouped = new Map<string, { code: string; title: string; count: number }>();
   tasks.forEach(task => {
@@ -57,12 +54,12 @@ export function ReportsPage() {
     {query.status === "loading" && <LoadingState label="Загрузка отчётов" />}
     {query.status === "error" && <ErrorState description={query.error} />}
     {query.status === "success" && <>
-      <div className="ops-report-metrics">{metrics.map(item => <div className="ops-report-metric" key={item.label}><p>{item.label}</p><strong>{String(item.value).padStart(2, "0")}</strong></div>)}</div>
+      <div className="ops-report-metrics">{metrics.map(item => <Link to={`/tasks?status=${item.filter}`} className="ops-report-metric" key={item.label}><p>{item.label}</p><strong>{String(item.value).padStart(2, "0")}</strong></Link>)}</div>
       <div className="ops-report-split">
         <Card className="p-5 sm:p-6"><h2 className="ops-report-title">Задания по операциям</h2><p className="ops-report-caption">Количество доступных заданий, включая завершённые и отменённые.</p>
           {operations.length ? <ul className="ops-report-bars">{operations.map(item => <li key={`${item.code}:${item.title}`}><div><span>{item.code || "—"} · {item.title}</span><strong>{item.count}</strong></div><div className="ops-report-track"><span style={{ width: `${item.count / maxCount * 100}%` }} /></div></li>)}</ul> : <p className="ops-empty">Пока нет заданий для сводки.</p>}
         </Card>
-        <Card className="p-5 sm:p-6"><p className="ops-kicker">Экспорт / данные</p><h2 className="ops-report-title mt-3">Срез заданий</h2><p className="ops-report-caption">CSV содержит только доступные текущему пользователю задания и их текущее состояние. Это не отдельный журнал аудита.</p><Button variant="secondary" className="mt-5" disabled={!tasks.length} onClick={() => exportTasks(tasks)}>Выгрузить CSV</Button></Card>
+        <Card className="p-5 sm:p-6"><p className="ops-kicker">Экспорт / данные</p><h2 className="ops-report-title mt-3">Срез заданий</h2><p className="ops-report-caption">CSV содержит только доступные текущему пользователю задания и их текущее состояние. Это не отдельный журнал аудита.</p><p className="mt-5 text-xs leading-6 text-muted">Выгрузка доступна сверху страницы. Формат CSV открывается в Excel; значения защищены от интерпретации как формулы.</p></Card>
       </div>
       <Card className="overflow-hidden"><div className="border-b border-line px-5 py-4 sm:px-6"><h2 className="ops-report-title">Задания объекта</h2><p className="ops-report-caption">Откройте карточку для подробностей и доступных действий.</p></div>{tasks.length ? <TaskTable items={tasks} /> : <p className="ops-empty">Заданий пока нет.</p>}</Card>
     </>}

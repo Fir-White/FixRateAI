@@ -71,7 +71,7 @@ describe("app routes", () => {
     );
   });
 
-  it("confirms a quality decision in an accessible modal", async () => {
+  it("keeps quality decisions unavailable in demo mode", async () => {
     const user = userEvent.setup();
     renderAt(
       "/quality/b1000000-0000-4000-8000-000000000004",
@@ -85,16 +85,8 @@ describe("app routes", () => {
     const reason = screen.getByLabelText(/Причина решения/);
     expect(reason).toHaveAccessibleDescription(/EngineerDecision/);
     await user.type(reason, "Фотографии и чек-лист проверены.");
-    await user.click(accept);
-
-    expect(
-      screen.getByRole("dialog", { name: "Принять работу?" }),
-    ).toBeInTheDocument();
-
-    await user.keyboard("{Escape}");
-    await waitFor(() =>
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
-    );
+    expect(accept).toBeDisabled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("redirects to login without a session", async () => {
@@ -147,12 +139,12 @@ const PAGE_ROUTES: { path: string; role: string; heading: string }[] = [
   {
     path: "/calendar",
     role: "dispatcher",
-    heading: "Календарь технического обслуживания",
+    heading: "График ТО и ППР",
   },
   {
     path: "/tasks",
     role: "dispatcher",
-    heading: "Очередь заданий",
+    heading: "Наряды и назначения",
   },
   {
     path: "/tasks/b1000000-0000-4000-8000-000000000001",

@@ -27,7 +27,7 @@ export function useDialogFocus<T extends HTMLElement>(
         container?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? [],
       ).filter((item) => !item.hasAttribute("disabled"));
 
-    items()[0]?.focus();
+    (container?.querySelector<HTMLElement>("[data-dialog-autofocus]") ?? items()[0])?.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {

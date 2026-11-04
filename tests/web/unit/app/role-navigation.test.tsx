@@ -17,8 +17,8 @@ const routes = [
   ["/dispatcher", "Панель диспетчера"],
   ["/equipment", "Оборудование"],
   ["/equipment/e1000000-0000-4000-8000-000000000001", "Тепловой пункт №1"],
-  ["/calendar", "Календарь технического обслуживания"],
-  ["/tasks", "Очередь заданий"],
+  ["/calendar", "График ТО и ППР"],
+  ["/tasks", "Наряды и назначения"],
   ["/tasks/b1000000-0000-4000-8000-000000000004", "Очистка учебного узла"],
   ["/comparisons", "Сравнение прогнозов"],
   ["/reports", "Отчёты"],
@@ -40,11 +40,11 @@ describe("role access and links on every screen", () => {
       for (const link of screen.getAllByRole("link")) {
         const href = link.getAttribute("href") ?? "";
         if (!href.startsWith("/")) continue;
-        const section = href.split("/")[1];
+        const section = new URL(href, "http://localhost").pathname.split("/")[1];
         if (section && section !== "login") expect(access[section], href).toContain(role);
       }
       if (allowed && role === "executor" && path === "/calendar") {
-        expect(screen.getAllByRole("link").some(link => link.getAttribute("href")?.startsWith("/executor/tasks/"))).toBe(true);
+        expect(screen.queryByRole("button", {name: "Рассчитать график"})).not.toBeInTheDocument();
       }
     },
   );

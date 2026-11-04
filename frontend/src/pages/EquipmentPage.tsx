@@ -45,7 +45,7 @@ export function EquipmentPage() {
       <PageHeader
         eyebrow="Реестр"
         title="Оборудование"
-        description="Единицы оборудования в пределах доступного объекта. Инвентарный номер уникален внутри Site."
+        description="Паспорт, регламенты и принятая история — в одном месте. Только оборудование доступного объекта."
         actions={
           <>
             {(profile?.role === "admin" || profile?.role === "dispatcher") && <Link className={buttonClassName("secondary")} to="/settings/equipment">
@@ -59,7 +59,7 @@ export function EquipmentPage() {
         }
       />
 
-      <Card className="p-4 sm:p-5">
+      <div className="equipment-toolbar">
         <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_15rem]">
           <FormField label="Поиск" htmlFor="equipment-search">
             <Input
@@ -85,7 +85,7 @@ export function EquipmentPage() {
             </Select>
           </FormField>
         </div>
-      </Card>
+      </div>
 
       {query.status === "loading" ? <LoadingState /> : null}
       {query.status === "error" ? (

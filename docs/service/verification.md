@@ -1,5 +1,39 @@
 # Проверки и доказательства
 
+## 03.11.2026: перенос редизайна из архива
+
+Источник — `FixRateAI_frontend_redesign.zip`, 46 обновлённых/новых frontend-исходников; контрольные суммы и исключения — [FRONTEND_REDESIGN.json](../../data/provenance/FRONTEND_REDESIGN.json). [Поведение интерфейса](web.md#редизайн-рабочих-экранов-03112026), [фактический запуск](runtime.md#локальный-запуск-после-редизайна-03112026). Исторические проверки поставщика из ZIP не считаются результатами этого прогона.
+
+Проверено локально на Windows: Node 24.21.0, Python 3.11.9 из `../kran_dev/.venv/runtime311`, PostgreSQL 18.6 и установленный Chrome. Существующие frontend/node_modules и lockfile пригодны для этой ОС; зависимости поставки совпали, повторная установка не потребовалась.
+
+| Проверка | Факт |
+|---|---|
+| `npm.cmd --prefix frontend run build` | PASS: TypeScript и стандартный Vite, 152 модуля, рабочий frontend/dist; Vite предупреждает о JS chunk 519 kB до gzip |
+| `npm.cmd --prefix frontend run typecheck` | PASS: приложение, конфиги и UI/E2E TypeScript |
+| `npm.cmd --prefix frontend test` | 296/296, 28 файлов; 59 доменных проверок архива включены в общий Vitest, добавлен переход исполнителя через календарный Drawer |
+| `scripts/verify_web.py --pg-bin ...` | PASS: 29/29 в едином прогоне `verify-20261103-231307-6da232c7`, 2,1 мин; реальный API/PostgreSQL для назначения, выполнения, фото, приёмки, настроек и четырёх ролей; auth/workspace используют fixtures |
+| Chrome с существующим локальным API | 15/15 сочетаний: dispatcher, calendar, tasks, equipment, comparisons на 1440, 390 и 320 px; нет pageerror, alert и горизонтального переполнения документа |
+| HTTP 8000 и 5173 | 6/6: health, login и вложенный calendar возвращают 200, прокси Vite работает |
+| Целостность | Backend, SQL, ML, contracts, API transport, session/types/roles/router/auth и SVG не изменены; SHA-256 перенесённых исходников совпадают с ZIP |
+| `scripts/validate_artifacts.py`, `git diff --check` | PASS: контракты, локальные ссылки и артефакты; whitespace-ошибок нет |
+| Полный `scripts/verify.py --browser` | FAIL до Python/UI/E2E на `sql_qa_schema`: PostgreSQL 18 отклоняет DELETE из forecast_runs по RESTRICT fk_63 orchestration_decisions |
+
+Итоговые UI-данные — `reports/frontend-redesign-unit.json`, снимки и протокол настоящего сайта — `reports/frontend-redesign-live/`. Полный браузерный запуск сохраняет `reports/verification/verify-20261103-231307-6da232c7/results.json`, screenshots и Playwright artifacts рядом; журнал — `logs/verification/verify-20261103-231307-6da232c7/browser_e2e.log`. Первые попытки с устаревшими селекторами сохранены отдельно: `verify-20261103-230535-2af49934`, `verify-20261103-230922-84d6ce0c`; точечный успешный повтор трёх сценариев — `verify-20261103-231146-aa4db24f`.
+
+Штатные тесты адаптированы к новой компоновке: calendar открывает подробности в Drawer, карточка исполнителя имеет действие «Открыть задание», сдача требует Modal, снимок прогноза раскрывается через details, мобильный реестр показывает строки без горизонтальной прокрутки. Проверки API, ролей, CSRF/revision и сохранённых результатов сохранены. В DEMO подтверждение приёмки недоступно; настоящее подтверждение проверяет HTTP E2E.
+
+Для изолированной браузерной регрессии добавлен [verify_web.py](../../scripts/verify_web.py). Он создаёт новый кластер PostgreSQL в TEMP на свободном loopback-порту, применяет 001–008, выполняет явный seed только там, запускает отдельный API с frontend/dist, выполняет tests/web/e2e и останавливает собственные процессы. Перед удалением проверяет абсолютный путь своего временного каталога. Рабочий DATABASE_URL исключён из окружения теста. Это сфокусированная проверка SPA/API, а не замена общему release gate.
+
+```powershell
+npm.cmd --prefix frontend run build
+npm.cmd --prefix frontend test
+$runtimePython = (Resolve-Path '../kran_dev/.venv/runtime311/Scripts/python.exe').Path
+& $runtimePython scripts/verify_web.py --pg-bin 'C:\Program Files\PostgreSQL\18\bin'
+```
+
+Полный неуспешный запуск — `reports/verification/verify-20261103-230314-3abb170f/results.json`, лог SQL — `logs/verification/verify-20261103-230314-3abb170f/sql_qa_schema.log`. До отказа прошли исходная SQL-цепочка 001–004 и четыре отдельные SQL assertion. Backend/SQL ради frontend не менялись. Полный gate следует повторить на документированной PostgreSQL 16.13 либо отдельно согласовать совместимость SQL-проверки с 18; успешная браузерная регрессия не делает этот gate зелёным. Полные Python/ML-тесты и настоящий CLIP-inference в этом запуске не подтверждены. Фото E2E проверяют guardrails на одинаковых учебных снимках, а не качество модели. Камера, клавиатура телефона и Safari/Firefox отдельно не проверялись.
+
+
 ## 03.11.2026: итоговая проверка Aurora Workspace перед коммитом
 
 В `feature/frontend-next` повторно прошли TypeScript typecheck, production build, 236 unit-тестов в 27 файлах и 18 браузерных E2E (13 auth, два workspace, три persistence). В auth E2E уточнено ожидание после смены viewport: два кадра и непустой статичный Canvas до сравнения пикселей в паузе. Это устраняет чтение временно очищенного bitmap между resize и отложенной перерисовкой; проверка неподвижности через 500 ms сохранена, исходники auth не менялись.
@@ -293,3 +327,8 @@ Runner сохраняет команды и результаты в `reports/ver
 Перенесены изменения `2948458…5fc4e8e`: общая auth-оболочка, подтверждение пароля, сообщения полей/API, переходы, мобильная Aurora и подписи полей. UI/E2E остаются в tests/web, эталон desktop-фаз — в tests/fixtures/web. Параметры описаны в [web](web.md), конечные эффекты — в [web-motion](web-motion.md), выбор Canvas — в [ADR](../decisions/2026-11-02--mobile-aurora-canvas.md).
 
 Полный прогон `verify-20261102-194510-64feb8bc`: 427 Python, 196 UI-тестов в 18 файлах и 24 E2E прошли; SQL, контракты, сборка, pip check и npm audit также успешны. Браузерная регрессия проверяет touch/viewport, первый клик, ошибки, фокус, Back/Forward, reduced-motion и сохранение фазы. Auth-сценарии используют mock API; сценарии назначения, регистрации, доступа и выполнения запускаются с настоящим backend и временной PostgreSQL. Эмуляция не подтверждает работу физической клавиатуры телефона или производительность iOS/Android.
+
+
+## 04.11.2026: локальный DEMO с переключением ролей
+
+Vite на 127.0.0.1:5173 вернул HTTP 200. В настоящем Chrome проверены экран «Выберите роль», вход диспетчером и последовательное переключение dispatcher, engineer, executor и admin через «Демонстрационная роль». Выбранные роли сохраняются, ошибок pageerror нет. Протокол — reports/demo/roles-20261104.json; изменена только локальная конфигурация запуска, новый прогон production/API-тестов не выполнялся.

@@ -28,7 +28,7 @@ async function login(page: Page, email = "qa@workspace.test") {
   await page.getByRole("button", { name: "Войти", exact: true }).click();
   await expect(page).not.toHaveURL(/\/login$/);
   if (!page.url().endsWith("/dispatcher")) await page.goto("/dispatcher");
-  await page.locator(".ops-overview").waitFor();
+  await page.locator(".fr-overview").waitFor();
   await expect(page.locator(".workspace-root [data-workspace-loading]")).toHaveCount(0);
 }
 
@@ -39,7 +39,7 @@ test("reload retains sidebar width, page scroll, month and filters without leaki
   await page.setViewportSize({ width: 1440, height: 500 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await login(page);
-  for (const expanded of [true, false]) {
+  for (const expanded of [false, true]) {
     await page.locator(".ops-sidebar-toggle").click();
     await page.evaluate(() => scrollTo(0, 300));
     await expect.poll(() => page.evaluate(() => scrollY)).toBe(300);
@@ -67,16 +67,18 @@ test("reload retains sidebar width, page scroll, month and filters without leaki
   await expect(page.getByLabel("Состояние", { exact: true })).toHaveValue("all");
 });
 
-test("phone reload retains an open menu and horizontal table position", async ({ page, context }) => {
+test("phone reload retains an open menu and shows equipment without document overflow", async ({ page, context }) => {
   await fixtures(context);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await login(page);
   await page.goto("/equipment");
-  const table = page.getByRole("region", { name: "Реестр оборудования" });
-  await table.waitFor(); await table.evaluate(element => { element.scrollLeft = 200; });
+  const table = page.locator(".equipment-register");
+  await table.waitFor();
+  await expect(table.getByText("Насос QA", {exact: true})).toBeVisible();
   await page.reload();
-  await expect.poll(() => table.evaluate(element => element.scrollLeft)).toBe(200);
+  await expect(table.getByText("Насос QA", {exact: true})).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await page.getByRole("button", { name: "Открыть меню", exact: true }).click();
   await page.reload();
   await expect(page.getByRole("dialog", { name: "Мобильная навигация" })).toBeVisible();

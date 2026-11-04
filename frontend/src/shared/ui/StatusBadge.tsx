@@ -21,7 +21,7 @@ export const TASK_LABELS: Record<TaskState, string> = {
 const TASK_TONES: Record<TaskState, BadgeTone> = {
   draft: "neutral",
   assigned: "info",
-  in_progress: "violet",
+  in_progress: "info",
   submitted: "warning",
   rework_required: "danger",
   accepted: "success",
@@ -56,7 +56,7 @@ const FORECAST_TONES: Record<ForecastStatus, BadgeTone> = {
 
 const DECISION_LABELS: Record<OrchestrationDecision["status"], string> = {
   selected: "Дата выбрана",
-  fallback: "Fallback",
+  fallback: "Резервный метод",
   needs_input: "Нужны данные",
   manual_review: "Ручной разбор",
 };
@@ -151,6 +151,6 @@ export function OriginBadge({
   return origin === "customer" ? (
     <Badge tone="info">Данные заказчика</Badge>
   ) : (
-    <Badge tone="violet">synthetic_demo</Badge>
+    <Badge tone="neutral">DEMO</Badge>
   );
 }

@@ -1,139 +1,59 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
+import { DEMO_MODE } from "@/shared/api/request";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
-import { formatDate } from "@/shared/lib/format";
-import { canOpenSection, taskPathForRole } from "@/shared/lib/roles";
+import { todayAt, formatShortDate, pluralize } from "@/shared/lib/format";
+import { canOpenSection } from "@/shared/lib/roles";
 import { useSession } from "@/shared/session/SessionContext";
 import { ErrorState, LoadingState } from "@/shared/ui/States";
-import { OverdueBadge, TaskStateBadge } from "@/shared/ui/StatusBadge";
-import type { MaintenanceTask } from "@/shared/types/domain";
-
-function weekDates(today: string) {
-  const date = new Date(`${today}T12:00:00Z`);
-  date.setUTCDate(date.getUTCDate() - (date.getUTCDay() + 6) % 7);
-  return Array.from({ length: 7 }, (_, index) => {
-    const current = new Date(date);
-    current.setUTCDate(date.getUTCDate() + index);
-    return {
-      key: current.toISOString().slice(0, 10),
-      day: new Intl.DateTimeFormat("ru-RU", { day: "2-digit", timeZone: "UTC" }).format(current),
-      weekday: new Intl.DateTimeFormat("ru-RU", { weekday: "short", timeZone: "UTC" }).format(current),
-    };
-  });
-}
+import { buttonClassName, IconButton } from "@/shared/ui/Button";
+import { Icon } from "@/shared/ui/Icon";
+import { TaskLine } from "@/entities/task/TaskLine";
+import { DEMO_DATE, dateLabel, isOpenTask, isTaskOverdue, isUnassigned, matchesTaskFilter, shiftDay, taskPriority, taskWorkDate, weekFor } from "@/shared/lib/operations";
 
 export function DispatcherPage() {
-  const { profile } = useSession();
-  const timezone = profile?.timezone ?? "Asia/Yekaterinburg";
-  const today = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-  const query = useApiQuery(() => Promise.all([maintenanceApi.listTasks(), maintenanceApi.listComparisons()]), []);
-
-  if (query.status === "loading") return <LoadingState label="Загрузка панели диспетчера" />;
-  if (query.status === "error") return <ErrorState description={query.error} />;
-
-  const [tasks, comparisons] = query.data;
-  const overdue = tasks.filter(task => task.isOverdue && task.state !== "accepted" && task.state !== "cancelled");
-  const unassigned = tasks.filter(task => task.state === "draft" && task.assignees.length === 0);
-  const onReview = tasks.filter(task => task.state === "submitted");
-  const todayTasks = tasks.filter(task => task.mandatoryDueDate === today && task.state !== "accepted" && task.state !== "cancelled");
-  const attention = tasks.filter(task => overdue.includes(task) || onReview.includes(task));
-  const canTasks = canOpenSection(profile?.role, "tasks");
-  const canCalendar = canOpenSection(profile?.role, "calendar");
-  const canComparisons = canOpenSection(profile?.role, "comparisons");
-  const days = weekDates(today);
-  const weekKeys = new Set(days.map(day => day.key));
-  const weekTasks = tasks.filter(task => task.mandatoryDueDate && weekKeys.has(task.mandatoryDueDate) && task.state !== "cancelled");
-  const rows = new Map<string, MaintenanceTask[]>();
-  weekTasks.forEach(task => {
-    const key = `${task.operationCode}\u0000${task.title}`;
-    rows.set(key, [...(rows.get(key) ?? []), task]);
-  });
-  const latestRun = comparisons[0];
-  const dateLabel = new Intl.DateTimeFormat("ru-RU", { timeZone: timezone, weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date());
-  const monthLabel = new Intl.DateTimeFormat("ru-RU", { timeZone: timezone, month: "long", year: "numeric" }).format(new Date());
-
-  return (
-    <div className="ops-overview">
-      <div className="ops-overview-main">
-        <section className="ops-intro" aria-labelledby="dispatcher-title">
-          <p className="ops-kicker">Оперативная смена / {dateLabel}</p>
-          <div className="ops-intro-heading">
-            <div>
-              <h1 id="dispatcher-title" aria-label="Панель диспетчера">Обслуживание.<br /><span>В поле зрения.</span></h1>
-              <p>Плановые работы, нормативные сроки и решения — в одном месте.</p>
-            </div>
-            {canTasks && <Link className="ops-outline-action" to="/tasks">Очередь заданий <span aria-hidden="true">→</span></Link>}
-          </div>
-          <div className="ops-statline" aria-label="Сводка заданий">
-            <Summary value={todayTasks.length} label={`на ${formatDate(today)}`} />
-            <Summary value={unassigned.length} label="без исполнителя" tone="warning" />
-            <Summary value={onReview.length} label="на проверке" tone="accent" />
-            <Summary value={overdue.length} label="просрочено" tone={overdue.length ? "danger" : undefined} />
-          </div>
-        </section>
-
-        <section className="ops-section" aria-labelledby="week-title">
-          <div className="ops-section-heading">
-            <div><h2 id="week-title">График на неделю</h2><p>Обязательные сроки заданий · {profile?.siteName}</p></div>
-            {canCalendar && <Link className="ops-outline-action" to="/calendar">{monthLabel} <span aria-hidden="true">→</span></Link>}
-          </div>
-          <div className="ops-week-scroll" role="region" aria-label="График заданий на неделю" tabIndex={0} data-scroll-key="overview-week">
-            <table className="ops-week-table">
-              <thead><tr><th scope="col">Работы / даты</th>{days.map(day => <th key={day.key} scope="col" className={day.key === today ? "is-today" : undefined}><span>{day.day}</span><small>{day.weekday}</small></th>)}</tr></thead>
-              <tbody>
-                {[...rows].slice(0, 6).map(([key, group]) => <tr key={key}>
-                  <th scope="row"><span className="ops-operation-code">{group[0].operationCode || "—"}</span><span className="ops-operation-name">{group[0].title}<small>{group[0].maintenanceType || "Обслуживание"}</small></span></th>
-                  {days.map(day => {
-                    const due = group.filter(task => task.mandatoryDueDate === day.key);
-                    const first = due[0];
-                    const path = first && (due.length > 1 && canTasks ? "/tasks" : taskPathForRole(profile?.role, first.id));
-                    const description = `${formatDate(day.key)}: ${due.length ? `заданий — ${due.length}` : "нет заданий"}`;
-                    const markClass = `ops-week-mark ${due.length > 1 ? "is-multiple" : `state-${first?.state}`}`;
-                    return <td key={day.key} className={day.key === today ? "is-today" : undefined}>
-                      {first ? path ? <Link to={path} className={markClass} aria-label={description} title={description}>{due.length > 1 ? due.length : ""}</Link> : <span className={markClass} aria-label={description} title={description}>{due.length > 1 ? due.length : ""}</span> : <span className="ops-week-empty" aria-label={description}>—</span>}
-                    </td>;
-                  })}
-                </tr>)}
-              </tbody>
-            </table>
-            {!rows.size && <p className="ops-empty">На этой неделе заданий с обязательным сроком нет.</p>}
-          </div>
-          <p className="ops-week-hint">Проведите по таблице вбок, чтобы увидеть всю неделю.</p>
-          <div className="ops-section-note"><p>Показаны {rows.size > 6 ? "первые шесть операций с заданиями" : "сохранённые задания"} по обязательному сроку объекта. Отметка не подтверждает выполнение работы.</p>{canCalendar && <Link to="/calendar">Открыть полный календарь →</Link>}</div>
-        </section>
-
-        <section className="ops-section" aria-labelledby="today-title">
-          <div className="ops-section-heading"><div><h2 id="today-title">Сегодня в работе</h2><p>Задания с обязательным сроком на {formatDate(today)}</p></div>{canTasks && <Link className="ops-text-link" to="/tasks">Все задания →</Link>}</div>
-          <TaskList tasks={todayTasks} empty="На сегодня заданий нет." />
-        </section>
-
-        {attention.length > 0 && <section className="ops-section" aria-labelledby="attention-title">
-          <div className="ops-section-heading"><div><h2 id="attention-title">Требуют внимания</h2><p>Просроченные задания и отчёты на проверке</p></div></div>
-          <TaskList tasks={attention} empty="Просрочек и отчётов на проверке нет." />
-        </section>}
-      </div>
-
-      <aside className="ops-insights" aria-label="Панель решений">
-        <p className="ops-kicker">Панель решений</p>
-        <div className="ops-insight-number">{String(unassigned.length).padStart(2, "0")}<span>↗</span></div>
-        <h2>{unassigned.length ? "Требуют назначения исполнителя" : "Нет заданий без исполнителя"}</h2>
-        <div className="ops-insight-block"><p className="ops-kicker">Назначение</p><p>{unassigned.length ? "В очереди есть задания без назначенной бригады." : "Сейчас нет черновиков без назначенной бригады."}</p>{canTasks && <Link to="/tasks">Перейти к заданиям →</Link>}</div>
-        <div className="ops-insight-block"><p className="ops-kicker">AI / прогнозирование</p><h3>{latestRun ? latestRun.equipmentName : "Нет сохранённых сравнений"}</h3><p>{latestRun ? latestRun.operationTitle : "Сравнение будет доступно после запуска прогноза."}</p>{canComparisons && <Link to={latestRun ? `/comparisons/${latestRun.runId}` : "/comparisons"}>Открыть сравнение →</Link>}</div>
-        <div className="ops-insight-block"><p className="ops-kicker">Объект</p><h3>{profile?.siteName}</h3><p>Время и обязательные сроки показаны для часового пояса {timezone}.</p></div>
-      </aside>
+  const {profile}=useSession();
+  const timezone=profile?.timezone??"Asia/Yekaterinburg";
+  const today=DEMO_MODE?DEMO_DATE:todayAt(timezone);
+  const [selected,setSelected]=useState(today);
+  const canTasks=canOpenSection(profile?.role,"tasks"), canCalendar=canOpenSection(profile?.role,"calendar"), canCompare=canOpenSection(profile?.role,"comparisons");
+  const query=useApiQuery(()=>maintenanceApi.listTasks(),[]);
+  const forecasts=useApiQuery(()=>canCompare?maintenanceApi.listComparisons():Promise.resolve([]),[canCompare]);
+  if(query.status==="loading")return <LoadingState label="Загрузка оперативного центра"/>;
+  if(query.status==="error")return <ErrorState description={query.error}/>;
+  const tasks=query.data, open=tasks.filter(isOpenTask);
+  const days=weekFor(selected);
+  const daily=tasks.filter(t=>t.state!=="cancelled" && taskWorkDate(t,timezone)===selected).sort((a,b)=>(a.scheduledStart??"z").localeCompare(b.scheduledStart??"z")||taskPriority(a)-taskPriority(b));
+  const attention=tasks.filter(t=>matchesTaskFilter(t,"attention")).sort((a,b)=>taskPriority(a)-taskPriority(b));
+  const overdue=tasks.filter(isTaskOverdue).length, unassigned=tasks.filter(isUnassigned).length, review=tasks.filter(t=>t.state==="submitted").length;
+  const run=forecasts.status==="success"?[...forecasts.data].sort((a,b)=>b.createdAt.localeCompare(a.createdAt))[0]:null;
+  const signals=[{value:overdue,label:"Просрочено",filter:"overdue",tone:"danger"},{value:unassigned,label:"Без исполнителя",filter:"unassigned",tone:"warning"},{value:review,label:"На проверке",filter:"submitted",tone:"accent"}];
+  return <div className="fr-overview">
+    <header className="fr-overview-heading"><div><p className="fr-eyebrow">Эксплуатация / обзор объекта</p><h1 aria-label="Панель диспетчера">Оперативный центр<span className="fr-title-dot">.</span></h1><p>Работы, обязательные сроки и решения на одной странице.</p></div>
+      {canCalendar && <Link to={`/calendar?date=${selected}`} className={buttonClassName("primary")}><Icon name="calendar" size={17}/>Открыть график</Link>}
+    </header>
+    <div className="fr-signal-strip"><div className="fr-signal-total"><span className="fr-live-dot"/><strong>{open.length}</strong><span>незавершённых нарядов</span></div>
+      <div className="fr-signals">{signals.map(s=>canTasks?<Link key={s.filter} to={`/tasks?status=${s.filter}`} className={`fr-signal ${s.value?`tone-${s.tone}`:""}`}><span>{s.label}</span><strong>{s.value}</strong><span aria-hidden="true">↗</span></Link>:<span key={s.filter} className={`fr-signal ${s.value?`tone-${s.tone}`:""}`}><span>{s.label}</span><strong>{s.value}</strong></span>)}</div>
     </div>
-  );
-}
-
-function Summary({ value, label, tone }: { value: number; label: string; tone?: "warning" | "accent" | "danger" }) {
-  return <div className="ops-stat"><strong className={tone ? `is-${tone}` : undefined}>{String(value).padStart(2, "0")}</strong><span>{label}</span></div>;
-}
-
-function TaskList({ tasks, empty }: { tasks: MaintenanceTask[]; empty: string }) {
-  const { profile } = useSession();
-  if (!tasks.length) return <p className="ops-empty ops-task-list">{empty}</p>;
-  return <ul className="ops-task-list">{tasks.map(task => {
-    const path = taskPathForRole(profile?.role, task.id);
-    return <li key={task.id}><div><div className="ops-task-title">{path ? <Link to={path}>{task.title}</Link> : task.title}{task.isOverdue && <OverdueBadge />}</div><p>{task.code} · {task.equipmentName}</p></div><TaskStateBadge state={task.state} /></li>;
-  })}</ul>;
+    <div className="fr-overview-grid"><div className="fr-overview-work">
+      <section className="fr-daybook" aria-labelledby="daybook-title"><div className="fr-section-heading"><div><p className="fr-eyebrow">План работ</p><h2 id="daybook-title">{dateLabel(selected,{day:"numeric",month:"long"})}<span className="fr-heading-aside">{dateLabel(selected,{weekday:"long"})}</span></h2></div>
+        <div className="fr-toolbar"><IconButton label="Предыдущая неделя" onClick={()=>setSelected(shiftDay(selected,-7))}><Icon name="back" size={16}/></IconButton><button type="button" className="fr-text-button" onClick={()=>setSelected(today)}>{DEMO_MODE?"Дата демо":"Сегодня"}</button><IconButton label="Следующая неделя" onClick={()=>setSelected(shiftDay(selected,7))}><Icon name="chevron" size={16}/></IconButton></div></div>
+        <div className="fr-week-picker" aria-label="Выбор дня недели">{days.map(day=>{const count=tasks.filter(t=>t.state!=="cancelled"&&taskWorkDate(t,timezone)===day).length;return <button key={day} type="button" aria-pressed={day===selected} className={day===selected?"is-selected":""} onClick={()=>setSelected(day)} aria-label={`${dateLabel(day,{day:"numeric",month:"long"})}, нарядов: ${count}`}><span>{dateLabel(day,{weekday:"short"})}</span><strong>{day.slice(8)}</strong><small>{count?`${count} ${pluralize(count,"наряд","наряда","нарядов")}`:"Нет работ"}</small>{day===today&&<i aria-label={DEMO_MODE?"Дата демо":"Сегодня"}/>}</button>})}</div>
+        <div className="fr-list-caption"><span>{daily.length?`Нарядов на выбранный день: ${daily.length}`:"Свободный день в сохранённом плане"}</span><span>Время объекта · {timezone}</span></div>
+        {daily.length?<ul className="fr-task-lines">{daily.map(task=><TaskLine key={task.id} task={task}/>)}</ul>:<div className="fr-empty-inline"><Icon name="calendar" size={24}/><h3>На этот день работ нет</h3><p>Это не отменяет регламент. Проверьте другие даты или задания без планового времени.</p>{canTasks&&<Link to="/tasks?status=unassigned">Посмотреть неназначенные наряды →</Link>}</div>}
+        <div className="fr-section-footer"><span>Плановое начало; без него — обязательная дата. Это разные сроки.</span>{canTasks&&<Link to={`/tasks?date=${selected}`}>Наряды дня →</Link>}</div>
+      </section>
+      <section className="fr-attention" aria-labelledby="attention-title"><div className="fr-section-heading"><div><p className="fr-eyebrow">Очередь решений</p><h2 id="attention-title">Требуют внимания <span className="fr-count">{attention.length}</span></h2></div>{canTasks&&<Link className="fr-text-link" to="/tasks?status=attention">Вся очередь →</Link>}</div>
+        {attention.length?<ul className="fr-task-lines">{attention.slice(0,4).map(task=><TaskLine key={task.id} task={task} compact/>)}</ul>:<div className="fr-empty-inline compact"><Icon name="check"/><p>Нет просроченных, неназначенных нарядов и отчётов, ожидающих решения.</p></div>}
+        {attention.length>4&&<p className="text-xs text-muted mt-3">Показаны 4 из {attention.length}. Остальные — в полной очереди.</p>}
+      </section>
+    </div><aside className="fr-decision-rail" aria-label="Панель решений">
+      <section className="fr-rail-section"><p className="fr-eyebrow">Обязательные сроки</p><h2>Сначала — регламент.</h2><p>Алгоритм и AI помогают выбрать дату внутри допустимого окна. Нормативная граница не переносится.</p><div className="fr-deadline-note"><Icon name="quality" size={20}/><span>Решения остаются<br/><strong>под контролем инженера</strong></span></div></section>
+      {canCompare&&<section className="fr-rail-section"><div className="fr-rail-label"><span className="fr-eyebrow">Последнее сравнение</span><span className="fr-ai-label">AI / ALG</span></div>
+        {forecasts.status==="loading"?<p>Загрузка сравнения…</p>:forecasts.status==="error"?<p role="alert">Не удалось загрузить сравнения. Основной план доступен.</p>:run?<><h3>{run.equipmentName}</h3><p>{run.operationTitle}</p><dl className="fr-rail-dates"><div><dt>Регламент</dt><dd>{formatShortDate(run.mandatoryDueDate)}</dd></div><div><dt>Алгоритм</dt><dd>{formatShortDate(run.algorithmic.recommendedDate)}</dd></div><div><dt>AI-прогноз</dt><dd>{run.ai.recommendedDate?formatShortDate(run.ai.recommendedDate):"Нет результата"}</dd></div></dl><p className="fr-rail-explanation">{run.decision.reasons[0]||"Обоснование не передано сервером."}</p><Link className="fr-text-link" to={`/comparisons/${run.runId}`}>Разобрать решение <span>↗</span></Link></>:<><h3>Пока нет результатов</h3><p>Запустите сравнение из карточки наряда после проверки исходных данных.</p><Link className="fr-text-link" to="/comparisons">Перейти к прогнозам →</Link></>}
+      </section>}
+      <section className="fr-rail-section fr-site-note"><p className="fr-eyebrow">Рабочий объект</p><h3>{profile?.siteName}</h3><p>{timezone}</p>{DEMO_MODE&&<p className="fr-demo-note">DEMO · снимок на 30.10.2026. Демонстрационные записи не обновляют сервер.</p>}</section>
+    </aside></div>
+  </div>;
 }

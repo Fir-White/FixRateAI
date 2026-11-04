@@ -20,6 +20,7 @@ import { Sidebar } from "./Sidebar";
 import { SidebarAccount } from "./SidebarAccount";
 import { NAVIGATION_ITEMS } from "./navigation";
 import "./operations.css";
+import { CommandMenu } from "./CommandMenu";
 
 const ROLES: Role[] = ["dispatcher", "engineer", "executor", "admin"];
 
@@ -36,7 +37,7 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
   const previousPath = useRef(location.pathname);
   const [logoutError, setLogoutError] = useState("");
   const [logoutPending, setLogoutPending] = useState(false);
-  const [sidebarExpanded, setSidebarExpanded] = useWorkspaceState("sidebar.expanded", false, isBoolean);
+  const [sidebarExpanded, setSidebarExpanded] = useWorkspaceState("sidebar.expanded", true, isBoolean);
   const [isMobile, setIsMobile] = useState(() => window.matchMedia?.("(max-width: 1023px)")?.matches ?? false);
   const mobileOpen = isMobile && menuOpen;
 
@@ -121,23 +122,25 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
               >
                 <Icon name="menu" size={20} />
               </IconButton>
-              <span className="truncate text-sm font-medium text-muted">{activeItem?.label ?? "Рабочее пространство"}</span>
+              <div className="fr-breadcrumb"><span>Рабочее пространство</span><i>/</i><strong>{activeItem?.label ?? "Обзор"}</strong></div>
             </div>
 
+              <div className="fr-topbar-actions"><CommandMenu items={items}/><span className="fr-site-label"><span className="fr-site-square"/>{profile.siteName}</span>
+              {DEMO_MODE && <span className="fr-demo-badge">DEMO</span>}
               {DEMO_MODE && <Select
                 aria-label="Демонстрационная роль"
                 value={profile.role}
                 onChange={(event) =>
                   handleRoleChange(event.target.value as Role)
                 }
-                className="hidden h-9 w-auto max-w-36 text-xs md:block md:max-w-40"
+                className="fr-role-switch h-9 w-auto max-w-36 text-xs"
               >
                 {ROLES.map((role) => (
                   <option key={role} value={role}>
                     {ROLE_LABELS[role]}
                   </option>
                 ))}
-              </Select>}
+              </Select>}</div>
 
           </div>
         </header>
