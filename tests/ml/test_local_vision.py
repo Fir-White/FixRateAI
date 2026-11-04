@@ -178,3 +178,5 @@ def test_independent_photo_observations_are_not_overwritten_by_comparison(canoni
     assert result.after_description=="После: стекло снято крупным планом"
     assert [len(call["messages"][-1]["images"]) for call in calls]==[1,1,2]
     assert all(call["keep_alive"]==-1 for call in calls)
+    assert calls[0]["messages"][0]["content"] != calls[1]["messages"][0]["content"]
+    assert all(call["think"] is False for call in calls)
