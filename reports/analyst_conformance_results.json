@@ -73,5 +73,16 @@
     "browser_page_checks": 17,
     "old_business_columns_preserved": true,
     "evidence_files_verified": 11
+  },
+  "role_menu_regression_20261106": {
+    "run": "verify-20261106-003609-577607ae",
+    "stages_passed": 29,
+    "python_passed": 714,
+    "ui_passed": 331,
+    "browser_passed": 31,
+    "npm_vulnerabilities": 0,
+    "source_revision": "7feb2fb57e4b9bdc4d25fe286cb5ceb4ac6f144e",
+    "previous_direct_url_checks_did_not_confirm_complete_menus": true,
+    "customer_e2e": "BLOCKED"
   }
 }

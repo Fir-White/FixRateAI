@@ -1,0 +1,93 @@
+{
+  "date": "2026-11-06",
+  "url": "http://127.0.0.1:8000",
+  "image": "fixrate-ai:roles-prototype",
+  "image_id": "sha256:5454ab750c582393298e168da8ba55a3a615f360d03628496c4c55e92c9bc7d8",
+  "source_revision": "7feb2fb57e4b9bdc4d25fe286cb5ceb4ac6f144e",
+  "health": {
+    "status": "ok",
+    "database": "ready"
+  },
+  "business_counts_before": {
+    "work_orders": 624,
+    "work_reports": 377,
+    "acceptance_reviews": 249,
+    "evidence_files": 11
+  },
+  "business_counts_after": {
+    "work_orders": 624,
+    "work_reports": 377,
+    "acceptance_reviews": 249,
+    "evidence_files": 11
+  },
+  "counts_preserved": true,
+  "backup": "var\\backups\\before-role-menu-20261105T193740Z",
+  "models": {
+    "vision": "aitunnel:qwen3.7-flash",
+    "forecast": "aitunnel:qwen3.7-flash"
+  },
+  "customer_operations": "BLOCKED: approved methodologies and norms unavailable",
+  "fresh_cloud_inference": false,
+  "live_browser": {
+    "checks": [
+      {
+        "role": "executive",
+        "menu": [
+          "/dispatcher",
+          "/calendar",
+          "/equipment",
+          "/tasks",
+          "/comparisons",
+          "/reports"
+        ],
+        "routes": 6,
+        "mobile": false
+      },
+      {
+        "role": "chief_engineer",
+        "menu": [
+          "/dispatcher",
+          "/quality",
+          "/calendar",
+          "/equipment",
+          "/tasks",
+          "/comparisons",
+          "/reports",
+          "/settings/equipment",
+          "/settings/workforce"
+        ],
+        "routes": 9,
+        "mobile": false
+      },
+      {
+        "role": "engineer",
+        "menu": [
+          "/dispatcher",
+          "/quality",
+          "/calendar",
+          "/equipment",
+          "/tasks",
+          "/comparisons",
+          "/reports",
+          "/settings/equipment",
+          "/settings/workforce"
+        ],
+        "routes": 9,
+        "mobile": false
+      },
+      {
+        "role": "executor",
+        "menu": [
+          "/executor",
+          "/calendar",
+          "/equipment",
+          "/my-shifts"
+        ],
+        "routes": 4,
+        "mobile": true
+      }
+    ],
+    "errors": [],
+    "status": "PASS"
+  }
+}
