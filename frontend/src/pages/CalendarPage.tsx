@@ -90,7 +90,7 @@ function PreviewDiagnostics({preview}: {preview: CalendarPreview}) {
         </tr></thead>
         <tbody>{preview.diagnostics.map(item => <tr key={item.bindingId} className="border-t border-line align-top">
           <td className="p-4"><p>{item.equipmentName}</p><p>{item.operationCode} {item.operationTitle}</p>
-            <p className="mt-1 text-xs text-muted">{item.isAssumption ? "DEMO / допущение" : "Данные заказчика"}</p></td>
+            </td>
           <td className="p-4"><p>{labels[item.status]}</p><p className="text-xs text-muted">Дат: {item.occurrencesCount}</p></td>
           <td className="p-4"><p>{item.totalPersonHours === null ? "Человеко-часы требуют уточнения" : `${item.totalPersonHours} чел.-ч`}</p>
             <p className="text-xs text-muted">{item.totalPlanningPersonMinutes === null ? "Длительность требует уточнения" : `${item.totalPlanningPersonMinutes} чел.-мин.`}</p></td>

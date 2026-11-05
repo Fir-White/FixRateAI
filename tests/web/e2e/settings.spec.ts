@@ -61,7 +61,6 @@ test("web registration → role → shift/qualification/crew → equipment/servi
   await page.goto("/settings/equipment");
   await page.getByLabel("Инвентарный номер",{exact:true}).fill(`SETTINGS-${marker}`);
   await page.getByLabel("Название оборудования",{exact:true}).fill(`Настройка — насос ${marker}`);
-  await page.getByLabel("Происхождение данных",{exact:true}).selectOption("synthetic_demo");
   await page.getByRole("button",{name:"Сохранить оборудование",exact:true}).click();
   await page.getByRole("button",{name:"Добавить обслуживание",exact:true}).click();
   await page.getByLabel("Код операции",{exact:true}).fill(`SETTING-OP-${marker}`);

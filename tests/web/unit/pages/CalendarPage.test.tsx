@@ -47,7 +47,7 @@ describe("calendar generator integration", () => {
     expect(mocks.preview).toHaveBeenCalledTimes(1);
     expect(screen.getByText("Не задана опорная дата.")).toBeInTheDocument();
     expect(screen.getByText("Нужны данные")).toBeInTheDocument();
-    expect(screen.getByText("DEMO / допущение")).toBeInTheDocument();
+    expect(screen.queryByText("DEMO / допущение")).not.toBeInTheDocument();
     const grid = screen.getByRole("region", {name: "Сетка календаря"});
     await user.click(within(grid).getByRole("button", {name: /15 .* Очистка/}));
     const details = screen.getByRole("dialog", {name: "Очистка"});

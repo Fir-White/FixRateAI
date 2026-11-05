@@ -142,15 +142,7 @@ export function OverdueBadge() {
   return <Badge tone="danger">Просрочено</Badge>;
 }
 
-export function OriginBadge({
-  origin,
-}: {
-  origin: "customer" | "synthetic_demo" | null;
-}) {
-  if (!origin) return <Badge tone="neutral">Источник не указан</Badge>;
-  return origin === "customer" ? (
-    <Badge tone="info">Данные заказчика</Badge>
-  ) : (
-    <Badge tone="neutral">DEMO</Badge>
-  );
+// Provenance remains in API/storage; it is not a badge in the working interface.
+export function OriginBadge(_props: { origin: "customer" | "synthetic_demo" | null }) {
+  return null;
 }

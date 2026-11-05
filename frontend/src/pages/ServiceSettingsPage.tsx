@@ -79,7 +79,6 @@ function EquipmentEditor({initial,catalog,mayEdit,onSaved}: {initial:EquipmentRe
     <label className="space-y-1 text-sm"><FieldCaption>Расположение</FieldCaption><Input aria-label="Расположение" value={value.location??""} onChange={e=>set({location:e.target.value||null})}/></label>
     <label className="space-y-1 text-sm"><FieldCaption>Серийный номер</FieldCaption><Input aria-label="Серийный номер" value={value.serial_number??""} onChange={e=>set({serial_number:e.target.value||null})}/></label>
     <label className="space-y-1 text-sm"><FieldCaption>Состояние оборудования</FieldCaption><Select aria-label="Состояние оборудования" value={value.status} onChange={e=>set({status:e.target.value as EquipmentInput["status"]})}><option value="active">В эксплуатации</option><option value="under_repair">В ремонте</option><option value="retired">Списано</option></Select></label>
-    <label className="space-y-1 text-sm"><FieldCaption>Происхождение данных</FieldCaption><Select aria-label="Происхождение данных" value={value.data_origin} onChange={e=>set({data_origin:e.target.value as EquipmentInput["data_origin"]})}><option value="customer">Рабочие данные</option><option value="synthetic_demo">Демонстрационные данные</option></Select></label>
   </fieldset>{error&&<div role="alert"><Callout tone="danger">{error}</Callout></div>}
     {mayEdit&&<Button type="submit" disabled={busy}>{busy ? "Сохранение…" : "Сохранить оборудование"}</Button>}
   </form></Card>;

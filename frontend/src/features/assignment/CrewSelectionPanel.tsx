@@ -72,7 +72,6 @@ function Picker({context, saving, setSaving, onAssigned, onSaveError, onSearch}:
         <p className="text-sm text-muted">Нужно {context.crewSize} чел. на {context.durationMinutes} мин. · Время объекта: {context.timezone}</p>
         <p className="text-sm text-muted">Допуски: {context.requiredQualifications.length ? context.requiredQualifications.join(" · ") : "дополнительные требования отсутствуют"}</p>
         <p className="text-xs text-muted">Допустимо: {showTime(context.earliestAt)} — {showTime(context.deadlineAt)}. Исходная норма: {context.rawNormValue ?? "не задана"}; длительность подтверждена отдельно.</p>
-        {context.dataOrigin === "synthetic_demo" && <p className="text-xs text-amber-200">DEMO: синтетические условия работы и исполнители.</p>}
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="space-y-1 text-sm"><FieldCaption>Начало окна поиска
             </FieldCaption><input aria-label="Начало окна поиска" type="datetime-local" required disabled={saving} value={start} onChange={event => {invalidate(); setStart(event.target.value);}}
