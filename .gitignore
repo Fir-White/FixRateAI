@@ -70,3 +70,6 @@ Desktop.ini
 
 # Generated local source/report archive
 /reports.zip
+
+# Local verification bundles are artifacts, not repository sources.
+reports*.zip
