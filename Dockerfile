@@ -19,6 +19,7 @@ COPY ml_service/ ml_service/
 COPY database/ database/
 COPY data/customer/ data/customer/
 COPY data/demo/ data/demo/
+COPY data/presentation/ data/presentation/
 COPY data/models/ data/models/
 COPY scripts/start_backend.py scripts/start_backend.py
 COPY --from=web /build/frontend/dist frontend/dist

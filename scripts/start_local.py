@@ -58,6 +58,7 @@ def main():
     parser.add_argument("--port",type=int)
     parser.add_argument("--cache",type=Path,default=ROOT/".venv/hf-cache")
     parser.add_argument("--no-build",action="store_true")
+    parser.add_argument("--presentation",action="store_true",help="Provision the isolated presentation object and accounts")
     ai_mode=parser.add_mutually_exclusive_group()
     ai_mode.add_argument("--local-vision",action="store_true",help="Use the prepared local vision-language model on GPU")
     ai_mode.add_argument("--cloud-ai",action="store_true",help="Use AI Tunnel for photo review and maintenance advice")
@@ -167,6 +168,11 @@ def main():
     command("start","up","--detach","--no-build","--remove-orphans","--wait","--wait-timeout","180")
     account_env=[part for key in DEMO_KEYS for part in ("-e", key)]
     command("seed","exec","-T",*account_env,"app","python","-m","app.manage","seed-demo","--configure-accounts")
+    presentation=None
+    if args.presentation:
+        raw=command("presentation","exec","-T","-e","FIXRATE_DEMO_PASSWORD","app","python","-m","app.manage","seed-presentation")
+        presentation=json.loads(raw.strip().splitlines()[-1])
+        (STATE/"presentation.json").write_text(json.dumps(presentation,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     write_runtime_values(ENVFILE, values)
     if cloud_ai:
         readiness=command("models","exec","-T","app","python","-c",
@@ -190,6 +196,8 @@ def main():
     accounts=STATE/"accounts.txt"
     emails=[role+": "+values[key] for key,(role,_,_) in DEMO_ACCOUNTS.items()]
     emails.extend("fixrate-assignment-"+str(number)+"@example.test" for number in (1,2,3))
+    if presentation:
+        emails=[person["role"]+": "+person["email"]+" · "+person["name"] for person in presentation["accounts"]]+["", "Other existing accounts:"]+emails
     accounts.write_text(origin+"\n\n"+"\n".join(emails)+"\n\nPassword: "+values["FIXRATE_DEMO_PASSWORD"]+"\n",encoding="utf-8")
     state_path=STATE/"state.json"
     previous=json.loads(state_path.read_text(encoding="utf-8")) if state_path.is_file() else {}

@@ -93,6 +93,7 @@ def main():
     seed = sub.add_parser("seed-demo")
     seed.add_argument("--configure-accounts", action="store_true",
                       help="Apply FIXRATE_DEMO_* to existing demo accounts without resetting work")
+    sub.add_parser("seed-presentation")
     user = sub.add_parser("create-user")
     user.add_argument("--email", required=True)
     user.add_argument("--name", required=True)
@@ -112,6 +113,11 @@ def main():
             if args.configure_accounts:
                 changed = configure_demo_accounts(engine, password, os.environ)
                 print(f"Demo accounts configured: {changed} changed")
+        elif args.command == "seed-presentation":
+            from app.integration.presentation import seed_presentation
+            import json
+            password = os.environ.get("FIXRATE_DEMO_PASSWORD") or getpass.getpass("Presentation password (12+ chars): ")
+            print(json.dumps(seed_presentation(engine,password),ensure_ascii=False))
         else:
             password = hash_password(getpass.getpass("Password (12+ chars): "))
             with engine.begin() as conn:
