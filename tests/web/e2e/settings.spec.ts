@@ -11,6 +11,8 @@ test("web registration → role → shift/qualification/crew → equipment/servi
   const password=process.env.FIXRATE_TEST_PASSWORD!;
   const today=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Yekaterinburg",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
   const tomorrow=new Date(today+"T12:00:00Z");tomorrow.setUTCDate(tomorrow.getUTCDate()+1);
+  // The published next_workday policy must stay inside this fixture's valid_until.
+  while([0,6].includes(tomorrow.getUTCDay()))tomorrow.setUTCDate(tomorrow.getUTCDate()+1);
   const day=tomorrow.toISOString().slice(0,10);
   const errors:string[]=[];page.on("pageerror",error=>errors.push(error.message));
   async function login(email:string){

@@ -27,6 +27,13 @@ for (const role of roles) {
     await page.getByLabel("Пароль", {exact: true}).fill(process.env.FIXRATE_TEST_PASSWORD!);
     await page.getByRole("button", {name: "Войти", exact: true}).click();
     await expect(page).toHaveURL(new URL(destination, process.env.FIXRATE_BASE_URL!).href);
+    const businessMenus:Record<string,string[]>={
+      executive:["/dispatcher","/calendar","/equipment","/tasks","/comparisons","/reports"],
+      chief_engineer:["/dispatcher","/quality","/calendar","/equipment","/tasks","/comparisons","/reports","/settings/equipment","/settings/workforce"],
+      engineer:["/dispatcher","/quality","/calendar","/equipment","/tasks","/comparisons","/reports","/settings/equipment","/settings/workforce"],
+      executor:["/executor","/calendar","/equipment","/my-shifts"],
+    };
+    if(businessMenus[role])expect(await page.getByRole("navigation",{name:"Основная навигация"}).getByRole("link").evaluateAll(links=>links.map(link=>link.getAttribute("href")))).toEqual(businessMenus[role]);
     const routes = ["/dispatcher", "/equipment", `/equipment/${demoId("equipment-2")}`, "/calendar", "/tasks",
       `/tasks/${demoId("runtime-order")}`, "/comparisons", "/reports", "/quality", `/quality/${demoId("runtime-order")}`,
       "/executor", `/executor/tasks/${demoId("runtime-order")}`,"/settings/equipment","/settings/workforce","/my-shifts"];

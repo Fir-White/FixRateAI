@@ -35,9 +35,12 @@ def _guard(v,*roles):
 
 
 @contextmanager
-def _edit(v,workers=(),roles=('admin','dispatcher')):
+def _edit(v,workers=(),roles=('admin','dispatcher'),exact_roles=False):
     """Use the same global user → membership → metadata lock order as BE05."""
-    _guard(v,*roles)
+    if exact_roles:
+        if v.principal.role not in roles:raise HTTPException(403,'Оборудование и структуру изменяет главный инженер')
+    else:
+        _guard(v,*roles)
     with service_transaction(v.session):
         identifiers=set(workers)|{v.principal.user_id}
         for table in ('users','site_memberships'):
@@ -46,7 +49,8 @@ def _edit(v,workers=(),roles=('admin','dispatcher')):
         v.session.expire_all()
         actor=v.one('users',user_id=v.principal.user_id)
         member=v.one('site_memberships',user_id=v.principal.user_id)
-        if not actor.is_active or not member.is_active or not has_role(SQL_ROLES.get(member.role),roles):
+        permitted = SQL_ROLES.get(member.role) in roles if exact_roles else has_role(SQL_ROLES.get(member.role),roles)
+        if not actor.is_active or not member.is_active or not permitted:
             raise HTTPException(403,'Права пользователя изменились; обновите сессию')
         yield
 
@@ -74,7 +78,7 @@ def equipment_response(row):
 
 
 def save_equipment(v,data,identity=None):
-    with _edit(v):
+    with _edit(v,roles=('chief_engineer','admin','dispatcher'),exact_roles=True):
         # Serializes hierarchy changes and uniqueness checks for this site's catalog.
         v.session.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"),{'key':f'catalog:{v.principal.site_id}'})
         row=_equipment(v,identity,True) if identity else None
@@ -281,7 +285,7 @@ def register_routes(app,views,db):
 
     @app.post(PREFIX+'/management/systems',status_code=201)
     def system_create(command:NamedReference,v=Depends(views)):
-        with _edit(v):
+        with _edit(v,roles=('chief_engineer','admin','dispatcher'),exact_roles=True):
             row=v.repo.add('engineering_systems',site_id=v.principal.site_id,**command.model_dump())
             return dict(id=row.system_id,name=row.name,code=row.code)
 

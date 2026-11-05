@@ -222,3 +222,20 @@ def test_shared_operation_keeps_per_equipment_versions_and_typed_checklists(mana
         assert generated.status_code==200,generated.text
         saved=dispatch.get(PREFIX+f'/ui/calendar?year={day.year}&month={day.month}').json()
         assert {row['operationTitle'] for row in saved}=={'First equipment service','Second equipment service'}
+
+
+def test_engineer_reads_catalog_but_equipment_and_structure_changes_require_chief(managed):
+    engine,_,admin,login,ids=managed
+    _,address=join(managed,'engineer')
+    body=dict(system_id=str(ids['system']),equipment_type_id=str(ids['type']),asset_code='ROLE-'+ids['marker'],name='TEST role-owned equipment',commissioned_on=date.today().isoformat())
+    with closing(login(address)) as engineer:
+        assert engineer.post(PREFIX+'/equipment',json=body).status_code==403
+        assert engineer.post(PREFIX+'/management/systems',json=dict(code='DENIED',name='Denied structure')).status_code==403
+        created=admin.chief.post(PREFIX+'/equipment',json=body)
+        assert created.status_code==201,created.text
+        equipment_id=created.json()['equipment_id']
+        assert engineer.get(PREFIX+f'/equipment/{equipment_id}').status_code==200
+        denied=engineer.patch(PREFIX+f'/equipment/{equipment_id}',json=body|dict(expected_revision=1,name='Must remain unchanged'))
+        assert denied.status_code==403,denied.text
+        permitted=admin.chief.patch(PREFIX+f'/equipment/{equipment_id}',json=body|dict(expected_revision=1,name='Chief-approved change'))
+        assert permitted.status_code==200,permitted.text

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { AppRouter } from "@/app/router";
@@ -6,12 +6,12 @@ import { SessionProvider } from "@/shared/session/SessionContext";
 import type { Role } from "@/shared/types/domain";
 
 // Expected permissions come from the screen specification, independently of router guards.
-const roles: Role[] = ["admin", "dispatcher", "engineer", "executor"];
+const roles: Role[] = ["executive", "chief_engineer", "admin", "dispatcher", "engineer", "executor"];
 const access: Record<string, Role[]> = {
-  dispatcher: ["admin", "dispatcher","engineer"], equipment: roles,
-  calendar: ["dispatcher", "engineer", "executor"], tasks: ["dispatcher", "engineer"],
-  comparisons: ["dispatcher", "engineer"], reports: ["dispatcher", "engineer"], quality: ["engineer"], executor: ["executor"],
-  settings: ["admin","dispatcher","engineer"], "my-shifts": ["executor"],
+  dispatcher: ["executive", "chief_engineer", "admin", "dispatcher","engineer"], equipment: roles,
+  calendar: ["executive", "chief_engineer", "dispatcher", "engineer", "executor"], tasks: ["executive", "chief_engineer", "dispatcher", "engineer"],
+  comparisons: ["executive", "chief_engineer", "dispatcher", "engineer"], reports: ["executive", "chief_engineer", "dispatcher", "engineer"], quality: ["chief_engineer", "engineer"], executor: ["executor"],
+  settings: ["chief_engineer","admin","dispatcher","engineer"], "my-shifts": ["executor"],
 };
 const routes = [
   ["/dispatcher", "Панель диспетчера"],
@@ -48,4 +48,22 @@ describe("role access and links on every screen", () => {
       }
     },
   );
+});
+
+
+const businessMenus: [Role, string[]][] = [
+  ["executive", ["/dispatcher", "/calendar", "/equipment", "/tasks", "/comparisons", "/reports"]],
+  ["chief_engineer", ["/dispatcher", "/quality", "/calendar", "/equipment", "/tasks", "/comparisons", "/reports", "/settings/equipment", "/settings/workforce"]],
+  ["engineer", ["/dispatcher", "/quality", "/calendar", "/equipment", "/tasks", "/comparisons", "/reports", "/settings/equipment", "/settings/workforce"]],
+  ["executor", ["/executor", "/calendar", "/equipment", "/my-shifts"]],
+];
+
+describe("required business navigation, independently of direct route access", () => {
+  it.each(businessMenus)("%s sees the complete permitted menu", async (role, paths) => {
+    window.localStorage.setItem("fixrate.demo.role", role);
+    render(<SessionProvider><MemoryRouter initialEntries={[role === "executor" ? "/executor" : "/dispatcher"]}><AppRouter /></MemoryRouter></SessionProvider>);
+    const menu = await screen.findByRole("navigation", {name: "Основная навигация"});
+    const actual = within(menu).getAllByRole("link").map(link => link.getAttribute("href"));
+    expect(actual.sort()).toEqual([...paths].sort());
+  });
 });

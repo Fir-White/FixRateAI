@@ -132,13 +132,13 @@ def test_failed_assignment_is_audited_without_creating_assignments(runtime):
 
 def test_incident_execution_measurements_acts_acceptance_and_reopen_keep_history(managed):
     engine,app,admin,login_user,ids=managed
-    # The isolated TEST site uses a real IANA offset whose local time is midday.
+    # The isolated TEST site uses a real IANA offset with enough time remaining in the local day.
     # This lifecycle case must not turn into WINDOW_TOO_SHORT late at night;
     # expiry/short-window rejection has separate tests and remains unchanged.
     from zoneinfo import ZoneInfo
     day=date.today()
     offsets=[('Etc/GMT'+('+' if offset<0 else '-')+str(abs(offset))) for offset in range(-12,15)]
-    zone=next(name for name in offsets if datetime.now(ZoneInfo(name)).date()==day and 11<=datetime.now(ZoneInfo(name)).hour<=13)
+    zone=next(name for name in offsets if datetime.now(ZoneInfo(name)).date()==day and 6<=datetime.now(ZoneInfo(name)).hour<=18)
     with engine.begin() as c:
         c.execute(text('UPDATE sites SET timezone=:zone WHERE site_id=:site'),dict(zone=zone,site=ids['site']))
     eq=equipment(admin,ids)
