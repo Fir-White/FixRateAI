@@ -21,7 +21,6 @@ import { Sidebar } from "./Sidebar";
 import { SidebarAccount } from "./SidebarAccount";
 import { NAVIGATION_ITEMS } from "./navigation";
 import "./operations.css";
-import { CommandMenu } from "./CommandMenu";
 
 const ROLES: Role[] = ["executive","chief_engineer","dispatcher", "engineer", "executor", "admin"];
 
@@ -126,22 +125,27 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
               <div className="fr-breadcrumb"><span>Рабочее пространство</span><i>/</i><strong>{activeItem?.label ?? "Обзор"}</strong></div>
             </div>
 
-              <div className="fr-topbar-actions"><MaintenanceInbox/><CommandMenu items={items}/><span className="fr-site-label"><span className="fr-site-square"/>{profile.siteName}</span>
-              {DEMO_MODE && <span className="fr-demo-badge">DEMO</span>}
-              {DEMO_MODE && <Select
-                aria-label="Демонстрационная роль"
-                value={profile.role}
-                onChange={(event) =>
-                  handleRoleChange(event.target.value as Role)
-                }
-                className="fr-role-switch h-9 w-auto max-w-36 text-xs"
-              >
-                {ROLES.map((role) => (
-                  <option key={role} value={role}>
-                    {ROLE_LABELS[role]}
-                  </option>
-                ))}
-              </Select>}</div>
+              <div className="fr-topbar-actions"><MaintenanceInbox/>
+              {DEMO_MODE && (
+                <div className="fr-topbar-actions">
+                  <span className="fr-demo-badge">DEMO</span>
+                  <Select
+                    aria-label="Демонстрационная роль"
+                    value={profile.role}
+                    onChange={(event) =>
+                      handleRoleChange(event.target.value as Role)
+                    }
+                    className="fr-role-switch h-9 w-auto max-w-36 text-xs"
+                  >
+                    {ROLES.map((role) => (
+                      <option key={role} value={role}>
+                        {ROLE_LABELS[role]}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              )}
+              </div>
 
           </div>
         </header>
