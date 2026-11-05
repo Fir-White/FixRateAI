@@ -8,7 +8,7 @@ import type { Role } from "@/shared/types/domain";
 // Expected permissions come from the screen specification, independently of router guards.
 const roles: Role[] = ["admin", "dispatcher", "engineer", "executor"];
 const access: Record<string, Role[]> = {
-  dispatcher: ["admin", "dispatcher"], equipment: roles,
+  dispatcher: ["admin", "dispatcher","engineer"], equipment: roles,
   calendar: ["dispatcher", "engineer", "executor"], tasks: ["dispatcher", "engineer"],
   comparisons: ["dispatcher", "engineer"], reports: ["dispatcher", "engineer"], quality: ["engineer"], executor: ["executor"],
   settings: ["admin","dispatcher","engineer"], "my-shifts": ["executor"],

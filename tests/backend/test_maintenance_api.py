@@ -68,5 +68,5 @@ def test_create_models_reject_unknown_fields() -> None:
 
 
 def test_role_permissions_are_explicit_and_non_empty() -> None:
-    assert set(ROLE_PERMISSIONS) == {"admin", "dispatcher", "executor", "engineer"}
+    assert set(ROLE_PERMISSIONS) == {"executive","chief_engineer","admin", "dispatcher", "executor", "engineer"}
     assert all(permissions for permissions in ROLE_PERMISSIONS.values())

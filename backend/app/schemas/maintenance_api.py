@@ -195,6 +195,7 @@ class CalendarOccurrence(ApiModel):
     occurrence_id: UUID
     equipment_id: UUID
     operation_version_id: UUID
+    source_date: date | None = None
     occurrence_date: date
     maintenance_type: Literal["ТО1", "ТО2"]
     recurrence: Text
@@ -240,10 +241,10 @@ class MaintenanceJobTransition(ApiModel):
 class MaintenanceJobResponse(ApiModel):
     schema_version: Literal["maintenance-0.1"] = SCHEMA_VERSION
     job_id: UUID
-    schedule_entry_id: UUID
+    schedule_entry_id: UUID | None
     equipment_id: UUID
     maintenance_rule_id: UUID
-    planned_date: date
+    planned_date: date | None
     regulatory_deadline_at: AwareDatetime
     status: Literal["planned", "assigned", "in_progress", "submitted", "accepted", "rework"]
     revision: PositiveInt
@@ -286,13 +287,15 @@ class ExecutionListResponse(ApiModel):
 
 
 class RolePermissions(ApiModel):
-    role: Literal["admin", "dispatcher", "executor", "engineer"]
+    role: Literal["executive","chief_engineer","admin", "dispatcher", "executor", "engineer"]
     permissions: list[Text]
 
 
 ROLE_PERMISSIONS: dict[str, tuple[str, ...]] = {
     "admin": ("reference:read", "reference:write", "users:write"),
-    "dispatcher": ("equipment:read", "operation:write", "schedule:write", "task:assign"),
+    "executive": ("equipment:read","schedule:read","task:read","history:read","reports:read"),
+    "chief_engineer": ("equipment:write","operation:write","regulation:approve","schedule:approve","task:assign","task:reopen","execution:accept","exception:approve"),
+    "dispatcher": ("equipment:read", "schedule:write", "task:assign"),
     "executor": ("task:read_assigned", "execution:write", "photo:write"),
-    "engineer": ("equipment:read", "execution:read", "execution:accept", "forecast:read"),
+    "engineer": ("equipment:read", "schedule:write","task:assign","execution:read", "execution:accept", "forecast:read"),
 }

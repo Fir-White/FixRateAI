@@ -13,15 +13,18 @@ export function CalendarPatternEditor({value,onChange,disabled=false,rolling=fal
   const periods=["month","quarter","year","yearly_count"].includes(value.frequency);
   const [year,setYear]=useState(Number(value.anchor_date.slice(0,4))||2026);
   const [month,setMonth]=useState(Number(value.anchor_date.slice(5,7))||1);
-  const [preview,setPreview]=useState<{dates:string[];explanation:string}|null>(null);
+  const [preview,setPreview]=useState<{dates:string[];occurrences?:{source_date:string;date:string}[];explanation:string}|null>(null);
   const [busy,setBusy]=useState(false);const [error,setError]=useState('');const requestId=useRef(0);
   useEffect(()=>{requestId.current+=1;setPreview(null);setError('');setBusy(false);},[value,year,month]);
   useEffect(()=>()=>{requestId.current+=1;},[]);
   return <fieldset disabled={disabled} className="space-y-4 rounded-xl border border-line p-4">
     <legend className="px-2 font-semibold">Периодичность</legend>
+    {value.frequency==="quarter"&&<label>Правило квартала<Select value={value.quarter_policy??"calendar_edge"} onChange={e=>set({quarter_policy:e.target.value as CalendarPattern["quarter_policy"]})}><option value="rolling_months">+3 месяца от опорной даты</option><option value="calendar_edge">Граница календарного квартала</option></Select></label>}
+    {value.frequency==="yearly_count"&&<label>Начало годового цикла<Select value={value.annual_policy??"calendar_year"} onChange={e=>set({annual_policy:e.target.value as CalendarPattern["annual_policy"]})}><option value="from_anchor">От ввода оборудования</option><option value="calendar_year">От начала календарного года</option></Select></label>}
+    <label>Выходные<Select value={value.weekend_policy??"none"} onChange={e=>set({weekend_policy:e.target.value as CalendarPattern["weekend_policy"]})}><option value="none">Без переноса</option><option value="next_workday">На следующий рабочий день</option></Select></label>
     <div className="grid gap-4 sm:grid-cols-3">
       <label className="space-y-1 text-sm"><FieldCaption>Повторять по
-        </FieldCaption><Select aria-label="Повторять по" value={value.frequency} onChange={event=>onChange({...patternDefaults(value.anchor_date,event.target.value as CalendarPattern["frequency"]),excluded_dates:value.excluded_dates})}>
+        </FieldCaption><Select aria-label="Повторять по" value={value.frequency} onChange={event=>onChange({...patternDefaults(value.anchor_date,event.target.value as CalendarPattern["frequency"]),excluded_dates:value.excluded_dates,quarter_policy:value.quarter_policy,annual_policy:value.annual_policy,weekend_policy:value.weekend_policy})}>
           {frequencies.filter(([key])=>!rolling||["day","month","year"].includes(key)).map(([key,title])=><option key={key} value={key}>{title}</option>)}
         </Select>
       </label>
@@ -69,7 +72,7 @@ export function CalendarPatternEditor({value,onChange,disabled=false,rolling=fal
       }}>{busy?'Расчёт дат…':'Показать даты периодичности'}</Button>
     </div><p className="text-xs text-muted">Проверяется только календарное правило. Период действия оборудования, история и занятость учитываются при полном расчёте и подборе. Задания и назначения не создаются.</p>
       {error&&<p role="alert" className="text-sm text-amber-200">{error}</p>}
-      {preview&&<><p className="text-xs text-muted">{preview.explanation}</p><ul className="flex flex-wrap gap-2">{preview.dates.map(day=><li key={day} className="rounded-lg border border-line px-2 py-1 text-sm">{day}</li>)}</ul>{!preview.dates.length&&<p className="text-sm">В этом месяце дат нет.</p>}</>}
+      {preview&&<><p className="text-xs text-muted">{preview.explanation}</p><ul className="flex flex-wrap gap-2">{preview.dates.map((day,index)=><li key={`${day}:${index}`} className="rounded-lg border border-line px-2 py-1 text-sm">{preview.occurrences?.[index]?.source_date&&preview.occurrences[index].source_date!==day?preview.occurrences[index].source_date+" → ":""}{day}</li>)}</ul>{!preview.dates.length&&<p className="text-sm">В этом месяце дат нет.</p>}</>}
     </section>}
   </fieldset>;
 }

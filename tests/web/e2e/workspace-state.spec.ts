@@ -15,6 +15,7 @@ async function fixtures(context: BrowserContext) {
     }
     if (path.endsWith("/auth/session")) return route.fulfill(profile ? { json: { profile } } : { status: 401, json: { detail: "Нет сессии" } });
     if (path.endsWith("/auth/logout")) { profile = null; return route.fulfill({ status: 204 }); }
+    if (path.endsWith("/schedule-matrix")) return route.fulfill({ json: { rows: [] } });
     if (path.endsWith("/ui/tasks") && delay) await new Promise(resolve => setTimeout(resolve, delay));
     return route.fulfill({ json: path.endsWith("/ui/equipment") ? [equipment] : [] });
   });

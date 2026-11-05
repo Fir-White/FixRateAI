@@ -6,7 +6,7 @@ import { CalendarPage } from "@/pages/CalendarPage";
 import type { CalendarPreview, Role } from "@/shared/types/domain";
 
 const mocks = vi.hoisted(() => ({role: "dispatcher" as Role, list: vi.fn(), preview: vi.fn(), tasks: vi.fn()}));
-vi.mock("@/shared/api/request", () => ({DEMO_MODE: false}));
+vi.mock("@/shared/api/request", () => ({DEMO_MODE: false,request:vi.fn(async (url:string)=>url.includes("/schedule-matrix")?{rows:[],diagnostics:[]}:[])}));
 vi.mock("@/shared/session/SessionContext", () => ({useSession: () => ({profile: {role: mocks.role, timezone: "Asia/Yekaterinburg"}})}));
 vi.mock("@/shared/api/maintenance", () => ({maintenanceApi: {listCalendar: mocks.list, previewCalendar: mocks.preview, listTasks: mocks.tasks}}));
 

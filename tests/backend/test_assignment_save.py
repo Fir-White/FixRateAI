@@ -41,7 +41,7 @@ def jobs(runtime):
     finally:
         with engine.begin() as conn:
             for identity in identities:
-                for table, column in (("audit_events", "entity_id"), ("work_assignments", "work_order_id"),
+                for table, column in (("maintenance_notifications","work_order_id"),("audit_events", "entity_id"),("work_reports","work_order_id"), ("work_assignments", "work_order_id"),
                                       ("work_order_equipment", "work_order_id"), ("work_orders", "work_order_id")):
                     conn.execute(text(f"DELETE FROM {table} WHERE {column}=:id"), {"id": identity})
 
@@ -61,7 +61,7 @@ def snapshot(engine, task):
     with engine.connect() as conn:
         return dict(order=conn.scalar(text("SELECT to_jsonb(w) FROM work_orders w WHERE work_order_id=:id"), {"id": task}),
             assignments=conn.scalar(text("SELECT jsonb_agg(to_jsonb(a) ORDER BY work_assignment_id) FROM work_assignments a WHERE work_order_id=:id"), {"id": task}),
-            audit=conn.scalar(text("SELECT jsonb_agg(to_jsonb(a) ORDER BY audit_event_id) FROM audit_events a WHERE entity_id=:id"), {"id": task}))
+            audit=conn.scalar(text("SELECT jsonb_agg(to_jsonb(a) ORDER BY audit_event_id) FROM audit_events a WHERE entity_id=:id AND action<>'denied'"), {"id": task}))
 
 
 def test_assignment_saves_complete_team_times_qualification_facts_and_audit(jobs):
@@ -124,11 +124,11 @@ def test_assignment_cannot_replace_crew_after_work_started_or_in_wrong_state(job
             conn.execute(text("UPDATE work_orders SET status=:status WHERE work_order_id=:id"), {"id": task, "status": state})
         before = snapshot(engine, task)
         response = client.post(PREFIX+f"/tasks/{task}/assign", json=body)
-        assert response.status_code == 409, response.text
+        assert response.status_code == (403 if state in ("in_progress","rework") else 409), response.text
         assert snapshot(engine, task) == before
 
 
-@pytest.mark.parametrize("role", ["admin", "engineer", "executor"])
+@pytest.mark.parametrize("role", ["admin", "executor"])
 def test_assignment_roles_and_no_changes(jobs, role):
     engine, app, create = jobs
     task = create()
@@ -353,3 +353,25 @@ def test_assignment_requires_a_session(jobs):
         body = proposal(client, task)
     with closing(TestClient(app)) as anonymous:
         assert anonymous.post(PREFIX+f"/tasks/{task}/assign", json=body).status_code == 401
+
+
+def test_chief_handoff_keeps_the_original_attempt_and_releases_old_assignments(jobs):
+    """SQL prepares an in-progress fixture; reassignment itself uses the real authorized API."""
+    engine,app,create=jobs;task=create()
+    with closing(login(app,'engineer')) as engineer,closing(login(app,'chief_engineer')) as chief:
+        command=proposal(engineer,task)
+        assigned=engineer.post(PREFIX+f'/tasks/{task}/assign',json=command)
+        assert assigned.status_code==200,assigned.text
+        report=uuid4()
+        with engine.begin() as c:
+            c.execute(text("UPDATE work_orders SET status='in_progress',started_at=now() WHERE work_order_id=:id"),dict(id=task))
+            c.execute(text("INSERT INTO work_reports(work_report_id,site_id,work_order_id,submitted_by,comment) VALUES (:id,:site,:task,:author,'TEST preserved handoff draft')"),dict(id=report,site=demo_id('site'),task=task,author=demo_id('assignment-worker-1')))
+        denied=engineer.post(PREFIX+f'/tasks/{task}/assign',json=command|dict(expected_revision=2))
+        assert denied.status_code==403,denied.text
+        handoff=chief.post(PREFIX+f'/tasks/{task}/assign',json=command|dict(expected_revision=2,reason='TEST documented force majeure'))
+        assert handoff.status_code==200 and handoff.json()['task']['state']=='rework_required',handoff.text
+        with engine.connect() as c:
+            prior=c.execute(text('SELECT status,comment FROM work_reports WHERE work_report_id=:id'),dict(id=report)).one()
+            assert prior.status=='reviewed' and prior.comment=='TEST preserved handoff draft'
+            assert c.scalar(text("SELECT count(*) FROM work_assignments WHERE work_order_id=:id AND status='cancelled'"),dict(id=task))==2
+            assert c.scalar(text("SELECT count(*) FROM work_assignments WHERE work_order_id=:id AND status='assigned'"),dict(id=task))==2

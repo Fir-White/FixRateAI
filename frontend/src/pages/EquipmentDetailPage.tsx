@@ -1,3 +1,4 @@
+import { EquipmentOperations,IncidentWorkspace } from "@/features/analyst/AnalystPanels";
 import { Link, useParams } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
@@ -84,6 +85,7 @@ export function EquipmentDetailPage() {
         </span>
       </div>
 
+      <EquipmentOperations equipmentId={equipmentId}/><IncidentWorkspace equipmentId={equipmentId}/>
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-6">
           <Card>

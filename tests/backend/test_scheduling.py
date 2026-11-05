@@ -418,3 +418,37 @@ def test_operation_must_be_approved_and_an_empty_site_is_valid():
 def test_all_documented_rule_examples_validate():
     for rule in json.loads(EXAMPLES.read_text(encoding="utf-8"))["rules"].values():
         RecurrenceRule.model_validate_json(json.dumps(rule))
+
+
+def test_weekend_transfer_preserves_each_daily_obligation_and_month_end():
+    data=payload(kind='calendar_pattern',interval=None,calendar_unit=None,anchor_date=None,basis=None,
+        pattern=dict(frequency='day',anchor_date='2026-10-01',weekend_policy='next_workday'))
+    result=run(data);entries=[r.occurrence for r in result.bindings[0].occurrences]
+    assert len(entries)==31 and len({r.occurrence_id for r in entries})==31
+    assert {r.source_date for r in entries}=={date(2026,10,d) for d in range(1,32)}
+    monday=[r for r in entries if r.occurrence_date==date(2026,10,5)]
+    assert {r.source_date for r in monday}=={date(2026,10,3),date(2026,10,4),date(2026,10,5)}
+    assert all(r.earliest_date==r.mandatory_due_date==date(2026,10,5) for r in monday)
+    assert entries[-1].source_date==date(2026,10,31) and entries[-1].occurrence_date==date(2026,11,2)
+    assert run(data)==result
+
+
+def test_accepted_completion_weekend_transfer_keeps_source_date_and_effective_deadline():
+    data = payload(calendar_unit="month", interval=3, basis="after_accepted_completion", weekend_policy="next_workday")
+    data["bindings"][0]["accepted_events"] = [event("2026-07-31T12:00:00Z")]
+    result = run(data)
+    row = result.bindings[0]
+    assert row.next_due_date == date(2026, 11, 2)
+    assert len(row.occurrences) == 1
+    occurrence = row.occurrences[0].occurrence
+    assert occurrence.source_date == date(2026, 10, 31)
+    assert occurrence.occurrence_date == occurrence.mandatory_due_date == date(2026, 11, 2)
+    assert row.occurrences[0].deadline_passed is False
+
+
+def test_transfer_past_binding_validity_requires_input():
+    data = payload(calendar_unit="day", interval=1, weekend_policy="next_workday")
+    data["bindings"][0]["binding"]["effective_to"] = "2026-10-31"
+    result = run(data)
+    assert result.bindings[0].error_code == "TRANSFER_OUTSIDE_VALIDITY"
+    assert result.bindings[0].occurrences == []

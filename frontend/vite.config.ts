@@ -27,6 +27,8 @@ export default defineConfig(({ mode }) => ({
     },
   },
   test: {
+    // jsdom suites are memory-heavy; bounded workers keep cold-start assertions stable alongside Docker.
+    maxWorkers: 2,
     include: ["../tests/web/unit/**/*.{test,spec}.{ts,tsx}"],
     environment: "jsdom",
     env: { VITE_DEMO_MODE: "true" },

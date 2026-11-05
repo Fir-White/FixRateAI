@@ -43,7 +43,7 @@ from app.security.authorization import (
 )
 
 
-KNOWN_ROLES = frozenset({"admin", "dispatcher", "engineer", "executor"})
+KNOWN_ROLES = frozenset({"executive","chief_engineer","admin", "dispatcher", "engineer", "executor"})
 SCHEMA_VERSION = "maintenance-0.1"
 
 
@@ -72,19 +72,19 @@ class RoutePolicy:
 ROUTES: tuple[RoutePolicy, ...] = (
     RoutePolicy("GET", "/api/v1/maintenance/ui/tasks", KNOWN_ROLES, assigned_only_roles=frozenset({"executor"})),
     RoutePolicy("GET", "/api/v1/maintenance/ui/tasks/{task_id}", KNOWN_ROLES, assigned_only_roles=frozenset({"executor"})),
-    RoutePolicy("GET", "/api/v1/maintenance/ui/calendar", frozenset({"dispatcher","engineer","executor"})),
-    RoutePolicy("GET", "/api/v1/maintenance/ui/calendar/preview", frozenset({"dispatcher","engineer"})),
-    RoutePolicy("GET", "/api/v1/maintenance/ui/quality", frozenset({"engineer"})),
-    RoutePolicy("GET", "/api/v1/maintenance/equipment/{equipment_id}/service-configurations", frozenset({"admin","dispatcher","engineer"})),
-    RoutePolicy("POST", "/api/v1/maintenance/calendar/generate", frozenset({"dispatcher"}), mutation=True),
-    RoutePolicy("POST", "/api/v1/maintenance/tasks/{task_id}/assign", frozenset({"dispatcher"}), mutation=True),
+    RoutePolicy("GET", "/api/v1/maintenance/ui/calendar", frozenset({"executive","chief_engineer","dispatcher","engineer","executor"})),
+    RoutePolicy("GET", "/api/v1/maintenance/ui/calendar/preview", frozenset({"chief_engineer","dispatcher","engineer"})),
+    RoutePolicy("GET", "/api/v1/maintenance/ui/quality", frozenset({"chief_engineer","engineer"})),
+    RoutePolicy("GET", "/api/v1/maintenance/equipment/{equipment_id}/service-configurations", KNOWN_ROLES),
+    RoutePolicy("POST", "/api/v1/maintenance/calendar/generate", frozenset({"chief_engineer","engineer","dispatcher"}), mutation=True),
+    RoutePolicy("POST", "/api/v1/maintenance/tasks/{task_id}/assign", frozenset({"chief_engineer","engineer","dispatcher"}), mutation=True),
     RoutePolicy("POST", "/api/v1/maintenance/tasks/{task_id}/start", frozenset({"executor"}), mutation=True),
-    RoutePolicy("POST", "/api/v1/maintenance/tasks/{task_id}/review", frozenset({"engineer"}), mutation=True),
-    RoutePolicy("POST", "/api/v1/maintenance/tasks/{task_id}/cancel", frozenset({"dispatcher"}), mutation=True),
+    RoutePolicy("POST", "/api/v1/maintenance/tasks/{task_id}/review", frozenset({"chief_engineer","engineer"}), mutation=True),
+    RoutePolicy("POST", "/api/v1/maintenance/tasks/{task_id}/cancel", frozenset({"chief_engineer","engineer","dispatcher"}), mutation=True),
     RoutePolicy("PUT", "/api/v1/maintenance/tasks/{task_id}/report", frozenset({"executor"}), mutation=True),
     RoutePolicy("POST", "/api/v1/maintenance/tasks/{task_id}/submit", frozenset({"executor"}), mutation=True),
-    RoutePolicy("POST", "/api/v1/maintenance/equipment/{equipment_id}/service-configurations", frozenset({"admin","dispatcher"}), mutation=True),
-    RoutePolicy("PUT", "/api/v1/maintenance/equipment/{equipment_id}/service-configurations/{binding_id}", frozenset({"admin","dispatcher"}), mutation=True),
+    RoutePolicy("POST", "/api/v1/maintenance/equipment/{equipment_id}/service-configurations", frozenset({"admin","chief_engineer"}), mutation=True),
+    RoutePolicy("PUT", "/api/v1/maintenance/equipment/{equipment_id}/service-configurations/{binding_id}", frozenset({"admin","chief_engineer"}), mutation=True),
 )
 
 
@@ -200,10 +200,10 @@ def directory() -> PrincipalDirectory:
         [
             Principal(EXECUTOR_1, frozenset({"executor"}), frozenset({SITE_A})),
             Principal(EXECUTOR_2, frozenset({"executor"}), frozenset({SITE_A})),
-            Principal(ENGINEER, frozenset({"engineer"}), frozenset({SITE_A})),
+            Principal(ENGINEER, frozenset({"chief_engineer","engineer"}), frozenset({SITE_A})),
             Principal(ENGINEER_EXECUTOR, frozenset({"engineer", "executor"}),
                       frozenset({SITE_A})),
-            Principal(DISPATCHER, frozenset({"dispatcher"}), frozenset({SITE_A})),
+            Principal(DISPATCHER, frozenset({"chief_engineer","engineer","dispatcher"}), frozenset({SITE_A})),
             Principal(ADMIN, frozenset({"admin"}), frozenset({SITE_A})),
             Principal(OUTSIDER_SITE_B, frozenset({"executor"}), frozenset({SITE_B})),
             Principal(DISABLED_USER, frozenset({"executor"}), frozenset({SITE_A}),
@@ -335,10 +335,13 @@ def test_permission_matrix_keeps_duties_separated() -> None:
         assert "execution:accept" not in ROLE_PERMISSIONS[role]
 
     assert "task:assign" in ROLE_PERMISSIONS["dispatcher"]
-    for role in ("executor", "engineer", "admin"):
+    assert "task:assign" in ROLE_PERMISSIONS["engineer"]
+    assert "task:assign" in ROLE_PERMISSIONS["chief_engineer"]
+    for role in ("executor", "executive", "admin"):
         assert "task:assign" not in ROLE_PERMISSIONS[role]
 
-    assert "operation:write" in ROLE_PERMISSIONS["dispatcher"]
+    assert "operation:write" in ROLE_PERMISSIONS["chief_engineer"]
+    assert "operation:write" not in ROLE_PERMISSIONS["dispatcher"]
     assert "operation:write" not in ROLE_PERMISSIONS["engineer"]
 
 
@@ -390,13 +393,12 @@ def test_engineer_cannot_change_regulation() -> None:
         )
 
 
-def test_engineer_cannot_assign_or_cancel_tasks() -> None:
+def test_engineer_can_assign_and_cancel_pre_execution_tasks() -> None:
     for policy in (
         route("POST", "/api/v1/maintenance/tasks/{task_id}/assign"),
         route("POST", "/api/v1/maintenance/tasks/{task_id}/cancel"),
     ):
-        with pytest.raises(AuthorizationError):
-            require_any_role(["engineer"], policy.allowed_roles)
+        require_any_role(["engineer"], policy.allowed_roles)
 
 
 def test_dispatcher_cannot_review_or_read_quality_queue() -> None:

@@ -93,11 +93,10 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
         return forecast_task(v, task_id, command.expected_revision, app.state.forecaster,
                              timeout_seconds=app.state.settings.forecast_timeout_seconds)
 
-    @app.post("/api/v1/maintenance/tasks/{task_id}/photo-review")
-    def photo_review(task_id: UUID, command: MLCommand, v=Depends(views)):
+    def analyze_photo_review(task_id,command,v,automatic=False):
         from ml_service.app.cv.api import invoke_review
 
-        require_role(v.principal, "engineer")
+        if not automatic: require_role(v.principal, "engineer")
         order = v.task(task_id, lock=True)
         check_revision(order, command.expected_revision)
         reports = v.rows("work_reports", work_order_id=task_id)
@@ -143,6 +142,7 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
                 captured_at=p.captured_at.isoformat() if p.captured_at else None, uploaded_at=p.uploaded_at.isoformat(),
                 uploaded_by=str(p.uploaded_by), content_url=f"/api/v1/maintenance/photos/{p.evidence_file_id}/content"))
         answers = {str(a.checklist_template_id): a.response_value.get("answer") for a in v.rows("checklist_results", work_report_id=report.work_report_id)}
+        readings=[dict(parameter_code=r.parameter_code,phase=r.phase,value=str(r.numeric_value),unit=r.unit_code,measured_at=r.measured_at.isoformat()) for r in v.rows("work_readings",work_report_id=report.work_report_id)]
         provider = None
         expected_model = f"{ml_settings.clip_model_name}@{ml_settings.clip_revision}"
         prompt_version = ml_settings.prompt_set_version
@@ -172,8 +172,8 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
         request = dict(schema_version="maintenance-0.1", data_origin=op["data_origin"], execution_id=str(report.work_report_id),
             operation=op, photos=payload_photos, prompt_set_version=prompt_version, report=dict(
                 schema_version="maintenance-0.1", data_origin=op["data_origin"], execution_id=str(report.work_report_id),
-                task_id=str(task_id), attempt_number=report.revision_no, state="submitted", performed_at=order.completed_at.isoformat(),
-                submitted_at=report.submitted_at.isoformat(), submitted_by=str(report.submitted_by), narrative=report.comment or "Отчёт без комментария",
+                task_id=str(task_id), attempt_number=report.revision_no, state="submitted", performed_at=report.execution_context.get("performed_at") or report.submitted_at.isoformat(),
+                submitted_at=report.submitted_at.isoformat(), submitted_by=str(report.submitted_by), narrative=(report.comment or "Отчёт без комментария")+("\nПротокол исполнителя (не результат OCR): "+json.dumps(readings,ensure_ascii=False) if readings else ""),
                 answers=[dict(checklist_item_id=i["id"], status="done" if answers.get(i["id"]) == "done" else "not_done",
                     value=answers.get(i["id"]), unit=i["unit"], comment=None, completed_at=report.submitted_at.isoformat()) for i in report.checklist_snapshot],
                 photo_ids=[p["photo_id"] for p in payload_photos]))
@@ -189,6 +189,10 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
                         afterPhotoId=str(i.after_photo_id) if i.after_photo_id else None,
                         assessment=i.visual_assessment.model_dump() if i.visual_assessment else None) for i in result.item_results],
             limitations=result.limitations, errorCode=result.error_code)
+        from app.integration.photo_evidence import classify_evidence,compare_readings
+        ui["classification"]=classify_evidence(result,manual_evidence_required=bool(order.operation_snapshot.get("required_acts")) or any(i["required"] and i["visualVerifiability"]!="visible" for i in report.checklist_snapshot))
+        ui["readingComparison"]=compare_readings(readings,result)
+        if any(r["status"]=="mismatch" for r in ui["readingComparison"]): ui["classification"]="manual_review"
         predictor = version(v, "vision", predictor_family, result.model_ref or "unavailable", result.model_ref)
         v.repo.add("ai_quality_checks", ai_quality_check_id=result.ai_review_id, site_id=v.principal.site_id,
             work_order_id=task_id, work_report_id=report.work_report_id, predictor_version_id=predictor.predictor_version_id,
@@ -199,3 +203,40 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
                     task_id, result.ai_review_id, result.status, result.model_ref or "none",
                     logged_error_code(result.error_code), result.elapsed_ms)
         return ui
+
+    @app.post("/api/v1/maintenance/tasks/{task_id}/photo-review")
+    def photo_review(task_id: UUID,command:MLCommand,v=Depends(views)):
+        return analyze_photo_review(task_id,command,v)
+
+    def automatic_photo_review(task_id,revision,principal):
+        from .projections import Views
+        with app.state.factory() as session:
+            v=Views(session,app.state.models,principal)
+            try:
+                order=v.task(task_id,lock=True)
+                reports=v.rows('work_reports',work_order_id=task_id)
+                current=max(reports,key=lambda r:r.revision_no)
+                if current.submitted_by!=principal.user_id or v.rows("ai_quality_checks",work_report_id=current.work_report_id):return
+                analyze_photo_review(task_id,MLCommand(expected_revision=revision,comparability_confirmed=False),v,automatic=True)
+            except Exception as exc:
+                session.rollback()
+                logger.warning('automatic_photo_review_failed task=%s type=%s',task_id,type(exc).__name__)
+                # Unexpected pre-inference errors are persisted as failures, never a fake successful analysis.
+                try:
+                    order=v.task(task_id,lock=True)
+                    reports=v.rows('work_reports',work_order_id=task_id)
+                    current=max(reports,key=lambda r:r.revision_no)
+                    if current.submitted_by!=principal.user_id or order.status!='in_review':return
+                    from datetime import datetime,timezone
+                    from uuid import uuid4
+                    identity=uuid4()
+                    ui=dict(id=str(identity),executionId=str(current.work_report_id),status='failed',modelRef=None,
+                        promptSetVersion='automatic-photo-review-v2',createdAt=datetime.now(timezone.utc).isoformat(),
+                        items=[],limitations=['Автоматический анализ не завершился. Повторите проверку вручную; работа не принята.'],errorCode='AUTO_PHOTO_REVIEW_FAILED',classification='manual_review')
+                    predictor=version(v,'vision','automatic-photo-worker','failed-v2')
+                    v.repo.add('ai_quality_checks',ai_quality_check_id=identity,site_id=order.site_id,work_order_id=task_id,
+                        work_report_id=current.work_report_id,predictor_version_id=predictor.predictor_version_id,status='failed',assessment='inconclusive',findings={'ui':ui,'failure_code':'AUTO_PHOTO_REVIEW_FAILED'})
+                    session.commit()
+                except Exception:
+                    session.rollback();logger.error('automatic_photo_failure_persistence_unavailable task=%s',task_id)
+    app.state.automatic_photo_review=automatic_photo_review

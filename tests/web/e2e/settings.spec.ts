@@ -55,6 +55,7 @@ test("web registration → role → shift/qualification/crew → equipment/servi
   await page.getByLabel(workerName,{exact:true}).check();
   await page.getByRole("button",{name:"Сохранить бригаду",exact:true}).click();
   await expect(page.getByText("Бригада сохранена",{exact:true})).toBeVisible();
+  await logout();await login("fixrate-demo-chief_engineer@example.test");
   await page.goto("/settings/equipment");
   await page.getByLabel("Инвентарный номер",{exact:true}).fill(`SETTINGS-${marker}`);
   await page.getByLabel("Название оборудования",{exact:true}).fill(`Настройка — насос ${marker}`);
@@ -69,6 +70,11 @@ test("web registration → role → shift/qualification/crew → equipment/servi
   await page.getByLabel("Даты обслуживания: новая дата",{exact:true}).fill(day);
   await page.getByRole("button",{name:"Добавить дату",exact:true}).first().click();
   await page.getByLabel(skillName,{exact:true}).check();
+  await page.getByLabel("Исходная норма труда",{exact:true}).fill("1.000");
+  await page.getByLabel("Единица нормы",{exact:true}).selectOption("person_hour");
+  await page.getByLabel("Длительность работы, минут",{exact:true}).fill("60");
+  await page.getByLabel("Документ и раздел утверждённой методики",{exact:true}).fill("TEST ONLY — browser fixture methodology");
+  await page.getByLabel("Утвердить и опубликовать (главный инженер)",{exact:true}).check();
   const savedService=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/service-configurations'));
   await page.getByRole("button",{name:"Сохранить обслуживание",exact:true}).click();
   const serviceResponse=await savedService;

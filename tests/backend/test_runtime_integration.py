@@ -43,7 +43,7 @@ def runtime(tmp_path_factory):
 
 def login(app, role):
     client = TestClient(app)
-    emails = {"executor": "fixrate-demo-1@example.test", "engineer": "fixrate-demo-engineer@example.test",
+    emails = {"chief_engineer":"fixrate-demo-chief_engineer@example.test","executive":"fixrate-demo-executive@example.test","executor": "fixrate-demo-1@example.test", "engineer": "fixrate-demo-engineer@example.test",
               "dispatcher": "fixrate-demo-dispatcher@example.test", "admin": "fixrate-demo-admin@example.test"}
     result = client.post("/api/v1/auth/login", json={"email": emails[role], "password": os.environ["FIXRATE_TEST_PASSWORD"]})
     assert result.status_code == 200, result.text
@@ -463,7 +463,7 @@ def test_every_workflow_mutation_enforces_role_before_state(runtime, role):
             ("review", {"engineer"}, {"expected_revision": 1, "execution_id": str(uuid4()), "verdict": "accepted", "reason": "Role test"}),
             ("photo-review", {"engineer"}, {"expected_revision": 1}),
             ("forecast", {"dispatcher", "engineer"}, {"expected_revision": 1}),
-            ("cancel", {"dispatcher"}, {"expected_revision": 1,"reason":"Role test"}),
+            ("cancel", {"dispatcher", "engineer"}, {"expected_revision": 1,"reason":"Role test"}),
         ]
         for action, allowed, payload in commands:
             if role not in allowed:
@@ -506,7 +506,7 @@ def assignment_search(client, **overrides):
     return context, body
 
 
-@pytest.mark.parametrize("role,expected", [("admin", 403), ("executor", 403), ("engineer", 403), ("dispatcher", 200)])
+@pytest.mark.parametrize("role,expected", [("admin", 403), ("executor", 403), ("engineer", 200), ("dispatcher", 200)])
 def test_assignment_preview_role_matrix(runtime, role, expected):
     _, app = runtime
     with closing(login(app, role)) as client:

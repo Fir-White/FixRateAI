@@ -1,3 +1,6 @@
+import { AttemptHistory } from "@/features/analyst/AnalystPanels";
+import { ChiefActions,ActsPanel } from "@/features/analyst/AnalystPanels";
+import { canOperate } from "@/shared/lib/roles";
 import { FieldCaption } from "@/shared/ui/Form";
 import { useState } from "react";
 import { useSession } from "@/shared/session/SessionContext";
@@ -70,6 +73,7 @@ export function TaskDetailPage() {
         Очередь заданий
       </Link>
 
+      <AttemptHistory taskId={task.id}/><ChiefActions task={task} onSaved={()=>window.location.reload()}/><ActsPanel task={task} execution={query.data.execution} editable={false} onSaved={()=>window.location.reload()}/>
       <PageHeader
         eyebrow={task.code}
         title={task.title}
@@ -90,7 +94,7 @@ export function TaskDetailPage() {
                 Перейти к приёмке
               </Link>
             ) : null}
-            {(task.state === "draft" || task.state === "assigned") && profile?.role === "dispatcher" ? (
+            {(["draft","assigned","in_progress","rework_required"].includes(task.state)) && canOperate(profile?.role) ? (
               <Button disabled={DEMO_MODE||busy} title={DEMO_MODE ? "Нужно подключение к серверу" : undefined} onClick={() => setShowCrewSelection(true)}>
                 Подобрать бригаду
               </Button>
@@ -111,8 +115,8 @@ export function TaskDetailPage() {
         setBusy(true);setNotice("");try{await maintenanceApi.cancel(task.id,task.revision,cancelReason.trim());setShowCancellation(false);setShowCrewSelection(false);setRefreshToken(value=>value+1);}catch(failure){setNotice(failure instanceof Error?failure.message:"Отмена не выполнена");setRefreshToken(value=>value+1);}finally{setBusy(false);}
       }}>Подтвердить отмену задания</Button></Card>}
       {assignedTaskId === task.id && <Callout tone="success" title="Бригада назначена">Состав и время сохранены.</Callout>}
-      {showCrewSelection && profile?.role === "dispatcher" && !DEMO_MODE &&
-        (task.state === "draft" || task.state === "assigned") &&
+      {showCrewSelection && canOperate(profile?.role) && !DEMO_MODE &&
+        (["draft","assigned","in_progress","rework_required"].includes(task.state)) &&
         <CrewSelectionPanel key={task.id} taskId={task.id} onClose={() => setShowCrewSelection(false)} onAssigned={() => {
           setShowCrewSelection(false); setAssignedTaskId(task.id); setNotice(""); setRefreshToken(value => value + 1);
         }} onInvalidated={message => {setNotice(message); setRefreshToken(value => value + 1);}} />}

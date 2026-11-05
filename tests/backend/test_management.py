@@ -32,12 +32,18 @@ def managed(runtime):
         return client
     admin=login(email)
     try:
+        chief_id=uuid4();chief_email=f"chief-{marker}@example.test"
+        with engine.begin() as c:
+            c.execute(text("INSERT INTO users(user_id,full_name,email,password_hash) VALUES (:id,'Test chief',:email,:password)"),dict(id=chief_id,email=chief_email,password=password))
+            c.execute(text("INSERT INTO site_memberships(site_id,user_id,role) VALUES (:site,:id,'chief_engineer')"),dict(site=site,id=chief_id))
+        admin.chief=login(chief_email)
         yield engine,app,admin,login,dict(site=site,system=system,type=typ,marker=marker,user=user)
     finally:
+        if hasattr(admin,"chief"):admin.chief.close()
         admin.close()
         with engine.begin() as c:
             users=list(c.scalars(text('SELECT user_id FROM site_memberships WHERE site_id=:site UNION SELECT user_id FROM employment_applications WHERE site_id=:site'),dict(site=site)))
-            for table in ['planning_runs','evidence_files','checklist_results','work_readings','acceptance_reviews','ai_quality_checks','work_reports','work_assignments','work_order_equipment','work_orders','schedule_entries','schedule_plans','orchestration_decisions','forecast_runs','rule_equipment','rule_required_skills','maintenance_rules','checklist_templates','regulation_editions','regulation_documents','operation_templates','equipment','engineering_systems','crew_members','crews','availability_slots','employee_shift_rules','user_skills','employment_applications','site_join_codes','fixrate_sessions','audit_events','site_memberships']:
+            for table in ['maintenance_notifications','planning_runs','evidence_files','checklist_results','work_readings','acceptance_reviews','ai_quality_checks','work_reports','work_assignments','work_order_equipment','work_orders','schedule_entries','schedule_plans','incident_reports','orchestration_decisions','forecast_runs','rule_equipment','rule_required_skills','maintenance_rules','checklist_templates','regulation_editions','regulation_documents','operation_templates','equipment','engineering_systems','crew_members','crews','availability_slots','employee_shift_rules','user_skills','employment_applications','site_join_codes','fixrate_sessions','audit_events','site_memberships']:
                 c.execute(text(f'DELETE FROM {table} WHERE site_id=:site'),dict(site=site))
             c.execute(text('DELETE FROM sites WHERE site_id=:site'),dict(site=site))
             for identity in users: c.execute(text('DELETE FROM users WHERE user_id=:id'),dict(id=identity))
@@ -64,8 +70,8 @@ def equipment(admin,ids):
 
 def config(day,**values):
     return dict(code='WEB-SERVICE',title='Configured maintenance',instructions='Inspect configured pump',maintenance_type='ТО2',
-        pattern=dict(frequency='dates',anchor_date=day.isoformat(),dates=[day.isoformat()]),valid_from=day.isoformat(),crew_size=2,
-        norm_value='2.000',norm_unit='person_hour',duration_minutes=60,qualification_ids=[],checklist=[dict(text='Inspect pump')],allowed_lead_days=0) | values
+        pattern=dict(frequency='dates',anchor_date=day.isoformat(),dates=[day.isoformat()],weekend_policy='none'),valid_from=day.isoformat(),crew_size=2,
+        norm_value='2.000',norm_unit='person_hour',duration_minutes=60,qualification_ids=[],checklist=[dict(text='Inspect pump')],allowed_lead_days=0,enabled=True,methodology_ref='TEST ONLY: approved fixture methodology') | values
 
 
 def test_registration_waits_for_role_and_rejects_privilege_injection(managed):
@@ -126,7 +132,7 @@ def test_configured_calendar_shifts_proposal_confirmation_and_conflict_protectio
         assert response.status_code==201,response.text
     off=admin.post(PREFIX+f'/management/staff/{people[0][0]}/availability',json=dict(start_local=f'{day}T09:00',end_local=f'{day}T10:00',status='unavailable',reason='Time off'))
     assert off.status_code==201,off.text
-    configured=admin.post(PREFIX+f"/equipment/{eq['equipment_id']}/service-configurations",json=config(day,qualification_ids=[skill]))
+    configured=admin.chief.post(PREFIX+f"/equipment/{eq['equipment_id']}/service-configurations",json=config(day,qualification_ids=[skill]))
     assert configured.status_code==201,configured.text
     dispatcher,address=join(managed,'dispatcher')
     with closing(login(address)) as dispatch:
@@ -153,7 +159,7 @@ def test_configured_calendar_shifts_proposal_confirmation_and_conflict_protectio
         block=admin.post(PREFIX+f'/management/staff/{people[0][0]}/availability',json=dict(start_local=f'{day}T10:00',end_local=f'{day}T11:00',status='unavailable',reason='Conflicting absence'))
         assert block.status_code==409,block.text
         newer=config(day+timedelta(days=1),expected_revision=1,operation_id=configured.json()['operation_id'])
-        changed=admin.put(PREFIX+f"/equipment/{eq['equipment_id']}/service-configurations/{configured.json()['binding_id']}",json=newer)
+        changed=admin.chief.put(PREFIX+f"/equipment/{eq['equipment_id']}/service-configurations/{configured.json()['binding_id']}",json=newer)
         assert changed.status_code==200,changed.text
         persisted=dispatch.get(PREFIX+f"/ui/tasks/{row['taskId']}").json()['task']
         assert persisted['revision']==2 and len(persisted['assignees'])==2
@@ -197,11 +203,11 @@ def test_shared_operation_keeps_per_equipment_versions_and_typed_checklists(mana
     first=equipment(admin,ids)
     second=equipment(admin,dict(ids,marker=ids['marker']+'-2'))
     day=date.today()+timedelta(days=2)
-    first_config=admin.post(PREFIX+f"/equipment/{first['equipment_id']}/service-configurations",json=config(day,
+    first_config=admin.chief.post(PREFIX+f"/equipment/{first['equipment_id']}/service-configurations",json=config(day,
         title='First equipment service',checklist=[dict(text='Pressure',answer_kind='number',unit='bar',required=True,photo_required=True,visual_verifiability='partial')]))
     assert first_config.status_code==201,first_config.text
     op=first_config.json()['operation_id']
-    second_config=admin.post(PREFIX+f"/equipment/{second['equipment_id']}/service-configurations",json=config(day,
+    second_config=admin.chief.post(PREFIX+f"/equipment/{second['equipment_id']}/service-configurations",json=config(day,
         operation_id=op,title='Second equipment service',norm_value='3.250',checklist=[dict(text='Describe condition',answer_kind='text',required=False)]))
     assert second_config.status_code==201,second_config.text
     assert second_config.json()['operation_id']==op

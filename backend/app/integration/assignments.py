@@ -1,3 +1,4 @@
+from app.security.sessions import has_role
 """BE05 transaction: lock, revalidate the exact proposal, reserve and audit."""
 from datetime import datetime, timedelta, timezone
 import json
@@ -73,7 +74,7 @@ def _assignment_json(row, order):
 
 
 def cancel_task(v,task_id,revision,reason):
-    if v.principal.role!='dispatcher':
+    if not has_role(v.principal.role,('dispatcher',)):
         raise HTTPException(403,'Отмена задания доступна диспетчеру')
     with service_transaction(v.session):
         order=v.task(task_id,lock=True)
@@ -86,7 +87,7 @@ def cancel_task(v,task_id,revision,reason):
         lock_workers(v,{row.user_id for row in active},actor=True)
         actor=v.one('users',user_id=v.principal.user_id)
         member=v.one('site_memberships',user_id=v.principal.user_id)
-        if not actor.is_active or not member.is_active or member.role!='dispatcher':
+        if not actor.is_active or not member.is_active or not has_role(member.role,('dispatcher',)):
             raise HTTPException(403,'Права диспетчера изменились')
         previous=dict(status=order.status,revision=order.revision)
         now=datetime.now(timezone.utc)
@@ -105,7 +106,7 @@ def cancel_task(v,task_id,revision,reason):
 
 def save_assignment(v, task_id, command, crew_id=None):
     """Own the auth-started transaction; never return success before commit."""
-    if v.principal.role != "dispatcher":
+    if not has_role(v.principal.role,("dispatcher",)):
         raise HTTPException(403, "Действие недоступно для текущей роли")
     with service_transaction(v.session):
         order = v.task(task_id, lock=True)
@@ -127,11 +128,14 @@ def save_assignment(v, task_id, command, crew_id=None):
         _lock(v, "sites", read=True, site_id=v.principal.site_id)
         actor = v.one("users", user_id=v.principal.user_id)
         membership = v.one("site_memberships", user_id=v.principal.user_id)
-        if not actor.is_active or not membership.is_active or membership.role != "dispatcher" or not v.one("sites").is_active:
+        if not actor.is_active or not membership.is_active or not has_role(membership.role,("dispatcher",)) or not v.one("sites").is_active:
             raise HTTPException(403, "Доступ диспетчера отозван")
         _lock_context(v, order, ids, crew_id)
         # Reads after potentially waiting for locks must not reuse ORM identity-cache facts.
         v.session.expire_all()
+        handoff=order.status in ("in_progress","rework")
+        if handoff and v.principal.role!="chief_engineer":
+            raise HTTPException(403,"Переназначение начатой работы подтверждает главный инженер")
         context = _job(v, order)
         if context["status"] != "ready":
             raise HTTPException(409, f"{context['code']}: {context['explanation']}")
@@ -172,7 +176,11 @@ def save_assignment(v, task_id, command, crew_id=None):
             assigned.append(v.repo.add("work_assignments", site_id=order.site_id, work_order_id=task_id,
                 user_id=worker["worker_id"], crew_id=crew_id, assigned_by=v.principal.user_id, assigned_at=now,
                 start_at=begin, end_at=end, qualification_snapshot=facts, reason=command.reason.strip(), status="assigned"))
-        order.status, order.planned_start_at, order.planned_end_at = "assigned", begin, end
+        order.status, order.planned_start_at, order.planned_end_at = "rework" if handoff else "assigned", begin, end
+        if handoff:
+            for report in v.rows("work_reports",work_order_id=task_id):
+                if report.status=="draft": report.status="reviewed"
+            order.exception_context=dict(order.exception_context,handoff=dict(reason=command.reason,by=str(v.principal.user_id),at=now.isoformat()))
         order.revision += 1
         v.session.flush()
         assignments = [_assignment_json(row, order) for row in assigned]
@@ -180,5 +188,7 @@ def save_assignment(v, task_id, command, crew_id=None):
             entity_type="work_orders", entity_id=task_id, action="assign", before_snapshot=before,
             after_snapshot=dict(status=order.status, revision=order.revision, assignments=assignments,
                                 crew_id=str(crew_id) if crew_id else None, reason=command.reason.strip()))
+        from .analyst import notify_event
+        notify_event(v,order,"assigned",("executor","technician"))
         result = dict(**v.bundle(order), assignments=assignments)
     return result

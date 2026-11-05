@@ -1,3 +1,4 @@
+import { ServiceEvidenceSettings } from "@/features/analyst/AnalystPanels";
 import { ConnectionRequired } from "@/shared/ui/ConnectionRequired";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -28,7 +29,7 @@ function LiveServiceSettingsPage() {
   const [refresh,setRefresh]=useState(0);
   const [notice,setNotice]=useState("");
   const query=useApiQuery(()=>Promise.all([managementApi.catalog(),maintenanceApi.listEquipment()]),[refresh]);
-  const mayEdit=profile?.role==="admin"||profile?.role==="dispatcher";
+  const mayEdit=profile?.role==="admin"||profile?.role==="chief_engineer";
   const today=todayAt(profile?.timezone??"Asia/Yekaterinburg");
 
   if(query.status==="loading") return <LoadingState label="Загрузка настроек обслуживания"/>;
@@ -103,7 +104,7 @@ function ServiceList({equipmentId,catalog,today,mayEdit}: {equipmentId:string;ca
 
 function ServiceEditor({initial,today,catalog,systemId,onClose,onSave}: {initial:ServiceConfiguration|null;today:string;catalog:ManagementCatalog;systemId:string;onClose:()=>void;onSave:(value:ServiceConfiguration)=>Promise<void>}) {
   const [value,setValue]=useState<ServiceConfiguration>(initial ? {...initial,pattern:initial.pattern??patternDefaults(today),expected_revision:initial.revision} : {
-    code:"",title:"",instructions:"",maintenance_type:"ТО2",pattern:patternDefaults(today),valid_from:today,valid_until:null,crew_size:1,norm_value:"1.000",norm_unit:"person_hour",duration_minutes:60,qualification_ids:[],checklist:[newCheck()],allowed_lead_days:0,enabled:true,
+    code:"",title:"",instructions:"",maintenance_type:"ТО2",pattern:{...patternDefaults(today),quarter_policy:"rolling_months",annual_policy:"from_anchor",weekend_policy:"next_workday"},valid_from:today,valid_until:null,crew_size:1,norm_value:null,norm_unit:"unconfirmed",duration_minutes:null,qualification_ids:[],checklist:[newCheck()],allowed_lead_days:0,enabled:false,methodology_ref:"",measurement_requirements:[],required_acts:[],
   });
   const [busy,setBusy]=useState(false);const [error,setError]=useState("");
   const set=(part:Partial<ServiceConfiguration>)=>setValue({...value,...part});
@@ -124,18 +125,19 @@ function ServiceEditor({initial,today,catalog,systemId,onClose,onSave}: {initial
       <label className="space-y-1 text-sm"><FieldCaption>Сотрудников одновременно</FieldCaption><Input aria-label="Сотрудников одновременно" type="number" required min={1} max={100} value={value.crew_size} onChange={e=>set({crew_size:Number(e.target.value)})}/></label>
       <label className="space-y-1 text-sm"><FieldCaption>Действует с</FieldCaption><Input aria-label="Действует с" type="date" required value={value.valid_from} onChange={e=>set({valid_from:e.target.value})}/></label>
       <label className="space-y-1 text-sm"><FieldCaption>Действует по</FieldCaption><Input aria-label="Действует по" type="date" value={value.valid_until??""} onChange={e=>set({valid_until:e.target.value||null})}/></label>
-      <label className="space-y-1 text-sm"><FieldCaption>Исходная норма труда</FieldCaption><Input aria-label="Исходная норма труда" type="number" min={0} step="0.001" required value={value.norm_value??""} onChange={e=>set({norm_value:e.target.value})}/></label>
-      <label className="space-y-1 text-sm"><FieldCaption>Единица нормы</FieldCaption><Select aria-label="Единица нормы" required value={value.norm_unit==="unconfirmed"?"":value.norm_unit} onChange={e=>set({norm_unit:e.target.value as "person_hour"|"elapsed_hour"})}><option value="">Выберите единицу</option><option value="person_hour">Человеко-часы, всего на работу</option><option value="elapsed_hour">Часы работы всего состава</option></Select></label>
-      <label className="space-y-1 text-sm"><FieldCaption>Длительность работы, минут</FieldCaption><Input aria-label="Длительность работы, минут" type="number" min={1} max={46080} required value={value.duration_minutes??""} onChange={e=>set({duration_minutes:Number(e.target.value)})}/></label>
+      <label className="space-y-1 text-sm"><FieldCaption>Исходная норма труда</FieldCaption><Input aria-label="Исходная норма труда" type="number" min={0} step="0.001" required={value.enabled} value={value.norm_value??""} onChange={e=>set({norm_value:e.target.value||null})}/></label>
+      <label className="space-y-1 text-sm"><FieldCaption>Единица нормы</FieldCaption><Select aria-label="Единица нормы" required={value.enabled} value={value.norm_unit==="unconfirmed"?"":value.norm_unit} onChange={e=>set({norm_unit:(e.target.value||"unconfirmed") as "person_hour"|"elapsed_hour"|"unconfirmed"})}><option value="">Выберите единицу</option><option value="person_hour">Человеко-часы, всего на работу</option><option value="elapsed_hour">Часы работы всего состава</option></Select></label>
+      <label className="space-y-1 text-sm"><FieldCaption>Длительность работы, минут</FieldCaption><Input aria-label="Длительность работы, минут" type="number" min={1} max={46080} required={value.enabled} value={value.duration_minutes??""} onChange={e=>set({duration_minutes:e.target.value?Number(e.target.value):null})}/></label>
       <label className="space-y-1 text-sm"><FieldCaption>Разрешено раньше срока, дней</FieldCaption><Input aria-label="Разрешено раньше срока, дней" type="number" min={0} max={366} required value={value.allowed_lead_days} onChange={e=>set({allowed_lead_days:Number(e.target.value)})}/></label>
     </div><p className="text-xs text-muted">Норма труда и длительность задаются отдельно. Значение нормы не превращается автоматически в минуты.</p>
     <label className="block space-y-1 text-sm"><FieldCaption>Инструкция</FieldCaption><textarea aria-label="Инструкция" required className="w-full rounded-lg border border-line bg-canvas p-3" value={value.instructions} onChange={e=>set({instructions:e.target.value})}/></label>
-    <label className="block space-y-1 text-sm"><FieldCaption>Отсчёт обслуживания</FieldCaption><Select aria-label="Отсчёт обслуживания" value={value.basis??"fixed_calendar"} onChange={e=>set({basis:e.target.value as "fixed_calendar"|"after_accepted_completion",pattern:patternDefaults(value.pattern!.anchor_date,e.target.value==="after_accepted_completion" ? "month" : "week")})}><option value="fixed_calendar">Фиксированный календарь</option><option value="after_accepted_completion">От последнего принятого выполнения</option></Select></label>
+    <label className="block space-y-1 text-sm"><FieldCaption>Отсчёт обслуживания</FieldCaption><Select aria-label="Отсчёт обслуживания" value={value.basis??"fixed_calendar"} onChange={e=>set({basis:e.target.value as "fixed_calendar"|"after_accepted_completion",pattern:{...patternDefaults(value.pattern!.anchor_date,e.target.value==="after_accepted_completion" ? "month" : "week"),quarter_policy:"rolling_months",annual_policy:"from_anchor",weekend_policy:"next_workday"}})}><option value="fixed_calendar">Фиксированный календарь</option><option value="after_accepted_completion">От последнего принятого выполнения</option></Select></label>
     {value.basis==="after_accepted_completion"&&<p className="text-xs text-muted">Без истории опорная дата — первый срок. После приёмки следующий срок считается от даты выполнения. Будущие выполнения не предполагаются.</p>}
     <CalendarPatternEditor value={value.pattern!} rolling={value.basis==="after_accepted_completion"} onChange={pattern=>set({pattern})}/>
+    <ServiceEvidenceSettings value={value} onChange={set}/>
     <ChecklistEditor value={value.checklist} onChange={checklist=>set({checklist})}/>
     <fieldset className="space-y-2"><legend className="text-sm">Обязательные допуски каждого работника</legend>{catalog.skills.map(skill=><label key={skill.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={value.qualification_ids.includes(skill.id)} onChange={e=>set({qualification_ids:e.target.checked?[...value.qualification_ids,skill.id]:value.qualification_ids.filter(id=>id!==skill.id)})}/>{skill.name}</label>)}</fieldset>
-    <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={value.enabled} onChange={e=>set({enabled:e.target.checked})}/>Обслуживание включено</label>
+    <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={value.enabled} onChange={e=>set({enabled:e.target.checked})}/>Утвердить и опубликовать (главный инженер)</label>
     {error&&<div role="alert"><Callout tone="danger">{error}</Callout></div>}
     <div className="flex gap-3"><Button type="submit" disabled={busy}>{busy?"Сохранение…":"Сохранить обслуживание"}</Button><Button variant="ghost" type="button" disabled={busy} onClick={onClose}>Закрыть редактор</Button></div>
   </fieldset></form></Card>;

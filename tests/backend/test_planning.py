@@ -26,6 +26,7 @@ def planning(runtime):
         with engine.begin() as c:
             params={'id':RULE}
             for sql in [
+                'DELETE FROM maintenance_notifications WHERE work_order_id IN (SELECT work_order_id FROM work_orders WHERE maintenance_rule_id=:id)',
                 'DELETE FROM work_assignments WHERE work_order_id IN (SELECT work_order_id FROM work_orders WHERE maintenance_rule_id=:id)',
                 'DELETE FROM work_order_equipment WHERE work_order_id IN (SELECT work_order_id FROM work_orders WHERE maintenance_rule_id=:id)',
                 'DELETE FROM audit_events WHERE entity_id IN (SELECT work_order_id FROM work_orders WHERE maintenance_rule_id=:id)',
@@ -91,7 +92,7 @@ def test_generation_persists_both_forecasts_task_and_replays_without_duplicates(
         assert assigned.json()['task']['state']=='assigned'
 
 
-@pytest.mark.parametrize('role',['admin','engineer','executor'])
+@pytest.mark.parametrize('role',['admin','executor'])
 def test_generation_role_matrix(planning,role):
     engine,app,day=planning
     with closing(login(app,'dispatcher')) as client: request=body(client,day)

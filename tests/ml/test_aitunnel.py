@@ -37,6 +37,8 @@ def endpoint():
             try:
                 payload = state["payload"] or {"model": CONFIG.model, "choices": [{"finish_reason": "stop",
                     "message": {"content": json.dumps(OBSERVATION), "reasoning": "Do not persist this"}}]}
+                if state.get("payloads"):
+                    payload = state["payloads"].pop(0)
                 self.wfile.write(state["raw"] if state["raw"] is not None else json.dumps(payload).encode())
             except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
                 pass
@@ -183,3 +185,80 @@ def test_cloud_forecast_errors_are_controlled(synthetic_snapshot, change, code):
     if change == "hash": snapshot = snapshot.model_copy(update={"content_sha256": "0"*64})
     result = predict_cloud_maintenance(snapshot, config=CONFIG, client=ForecastFixtureClient(reply))
     assert result.status != "ok" and result.error_code == code and result.recommended_date is None
+
+
+def test_diagnostics_explain_truncation_without_response_content(endpoint):
+    state, config = endpoint
+    state["payload"] = {"model": config.model, "choices": [{"finish_reason": "length", "message": {"content": "private photo description"}}]}
+    client = AITunnelClient(config)
+    with pytest.raises(AITunnelFailure, match="AITUNNEL_INVALID_RESPONSE"):
+        client.chat([], ImageObservation, 800)
+    assert client.response_diagnostics[-1]["finish_reason"] == "length"
+    assert "private photo description" not in repr(client.response_diagnostics)
+    assert CONFIG.api_key not in repr(client.response_diagnostics)
+
+
+def test_diagnostics_report_field_types_without_input_values_or_unknown_keys(endpoint):
+    state, config = endpoint
+    state["payload"] = {"model": config.model, "choices": [{"finish_reason": "stop", "message": {"content": json.dumps({"description": [], "secret-patient-name": "private reading"})}}]}
+    client = AITunnelClient(config)
+    with pytest.raises(AITunnelFailure):
+        client.chat([], ImageObservation, 800)
+    record = client.response_diagnostics[-1]
+    assert record["stage"] == "schema" and record["validation_errors"]
+    assert "private reading" not in repr(record) and "secret-patient-name" not in repr(record)
+    assert any(error["location"] == ["description"] for error in record["validation_errors"])
+
+
+def test_vision_repairs_one_missing_field_using_a_new_validated_provider_response(endpoint):
+    state, config = endpoint
+    incomplete = {key: value for key, value in OBSERVATION.items() if key != "uncertain_features"}
+    def envelope(value):
+        return {"model": config.model, "choices": [{"finish_reason": "stop", "message": {"content": json.dumps(value)}}]}
+    state["payloads"] = [envelope(incomplete), envelope(OBSERVATION)]
+    client = AITunnelVisionClient(config)
+    result = client.chat([{"role": "user", "content": "Fixture image"}], ImageObservation, 800)
+    assert result.model_dump() == OBSERVATION
+    assert len(state["calls"]) == 2 and client.schema_repair_used
+    assert client.response_diagnostics[0]["repair_requested"] is True
+    assert client.response_diagnostics[1]["stage"] == "validated"
+
+
+def test_vision_missing_fields_still_fail_after_one_repair(endpoint):
+    from ml_service.app.cv.local_vision import ProviderFailure
+    state, config = endpoint
+    state["payload"] = {"model": config.model, "choices": [{"finish_reason": "stop", "message": {"content": "{}"}}]}
+    client = AITunnelVisionClient(config)
+    with pytest.raises(ProviderFailure, match="AITUNNEL_INVALID_RESPONSE"):
+        client.chat([], ImageObservation, 800)
+    assert len(state["calls"]) == 2
+
+
+def test_vision_http_failure_never_spends_a_schema_repair(endpoint):
+    from ml_service.app.cv.local_vision import ProviderFailure
+    state, config = endpoint
+    state["status"] = 429
+    client = AITunnelVisionClient(config)
+    with pytest.raises(ProviderFailure, match="AITUNNEL_RATE_LIMITED"):
+        client.chat([], ImageObservation, 800)
+    assert len(state["calls"]) == 1
+
+
+def test_provider_gets_one_system_message_with_original_instructions_and_schema(endpoint):
+    state, config = endpoint
+    AITunnelClient(config).chat([{"role": "system", "content": "Inspect only visible facts"},
+                               {"role": "user", "content": "Fixture"}], ImageObservation, 800)
+    messages = state["calls"][0][2]["messages"]
+    assert len([m for m in messages if m["role"] == "system"]) == 1
+    assert "Inspect only visible facts" in messages[0]["content"]
+    assert "uncertain_features" in messages[0]["content"]
+
+
+def test_vision_can_request_correct_property_names_without_mapping_or_inventing_values(endpoint):
+    state, config = endpoint
+    def envelope(value):
+        return {"model": config.model, "choices": [{"finish_reason": "stop", "message": {"content": json.dumps(value)}}]}
+    state["payloads"] = [envelope({"wrong_description_field": "fixture"}), envelope(OBSERVATION)]
+    client = AITunnelVisionClient(config)
+    assert client.chat([], ImageObservation, 800).model_dump() == OBSERVATION
+    assert len(state["calls"]) == 2

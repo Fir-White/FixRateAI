@@ -1,3 +1,5 @@
+import { ScheduleMatrix,PlanApproval } from "@/features/analyst/AnalystPanels";
+import { canOperate } from "@/shared/lib/roles";
 import {useEffect,useState} from "react";
 import {Link,useSearchParams} from "react-router-dom";
 import {maintenanceApi} from "@/shared/api/maintenance";
@@ -33,7 +35,7 @@ export function CalendarPage() {
  useEffect(()=>{if(isDateKey(supplied))setAnchor(supplied);},[supplied]);
  const [mode,setMode]=useState<"saved"|"preview">("saved"),[calculation,setCalculation]=useState(0);
  const [equipment,setEquipment]=useState(""),[selectedId,setSelectedId]=useState<string|null>(null);
- const year=+anchor.slice(0,4),month=+anchor.slice(5,7), mayPreview=profile?.role==="dispatcher"||profile?.role==="engineer";
+ const year=+anchor.slice(0,4),month=+anchor.slice(5,7), mayPreview=canOperate(profile?.role);
  const scope=`${anchor}:${actualView}:${compact}:${mode}:${calculation}`;
  const query=useApiQuery(async()=>{
   if(mode==="preview"){const preview=await maintenanceApi.previewCalendar(year,month);return {scope,preview,items:preview.items as CalendarOccurrence[]};}
@@ -63,10 +65,11 @@ export function CalendarPage() {
  {data&&<CalendarBoard items={items} year={year} month={month} anchor={anchor} today={today} view={actualView} onSelect={item=>setSelectedId(item.id)}/>}
  <div className="fr-calendar-legend"><span><i className="is-planned"/>Запланировано</span><span><i className="is-fulfilled"/>Выполнено</span><span><i className="is-overdue"/>Просрочено</span><span>Часовой пояс · {timezone}</span></div></Card>
  <div className="fr-calendar-disclaimer"><Icon name="quality" size={18}/><p>{mode==="preview"?"Предварительный расчёт не сохраняет график и не назначает сотрудников. Даты в прошлом требуют проверки.":"Календарная дата — не замена обязательному сроку наряда. Нажмите на работу, чтобы увидеть нормативную границу и детали."}{DEMO_MODE&&" DEMO: сохранённый пример октября 2026 года, расчёт через сервер недоступен."}</p>{mode==="preview"&&<Button variant="secondary" onClick={()=>setMode("saved")}>Сохранённый график</Button>}</div>
- {data?.preview&&profile?.role==="dispatcher"&&!DEMO_MODE&&<PlanningRunPanel key={`${scope}:${data.preview.generationToken}`} preview={data.preview} onRecalculate={()=>setCalculation(v=>v+1)}/>}
+ {!DEMO_MODE&&<><ScheduleMatrix year={year} month={month}/><PlanApproval year={year} month={month} onSaved={()=>setCalculation(v=>v+1)}/></>}
+ {data?.preview&&canOperate(profile?.role)&&!DEMO_MODE&&<PlanningRunPanel key={`${scope}:${data.preview.generationToken}`} preview={data.preview} onRecalculate={()=>setCalculation(v=>v+1)}/>}
  {data?.preview&&<PreviewDiagnostics preview={data.preview}/>}
  <Drawer open={!!selected} onClose={()=>setSelectedId(null)} title={selected?.operationTitle??"Работа"} footer={<>{taskPath&&<Link to={taskPath} className={buttonClassName("primary")}>Открыть наряд <Icon name="chevron" size={16}/></Link>}{selected?.equipmentId&&<Link to={`/equipment/${selected.equipmentId}`} className={buttonClassName("secondary")}>Оборудование</Link>}</>}>
- {selected&&<><p className="fr-drawer-equipment">{selected.equipmentName}</p><span className={`fr-calendar-status ${selected.isOverdue?"fr-danger":""}`}>{selected.isOverdue?"Просрочено · ":""}{OCCURRENCE_LABELS[selected.status]}</span><dl className="fr-detail-dates"><div><dt>Календарная дата</dt><dd>{isDateKey(selected.occurrenceDate)?formatDate(selected.occurrenceDate):"Требует уточнения"}</dd></div><div className="is-mandatory"><dt>Обязательный срок</dt><dd>{deadline?formatDate(deadline):tasksQuery.status==="error"?"Не удалось загрузить срок наряда":tasksQuery.status==="loading"?"Загрузка срока…":"Не передан в данных"}</dd></div><div><dt>Операция / вид ТО</dt><dd>{selected.operationCode} · {selected.maintenanceType??"Не указан"}</dd></div><div><dt>Наряд</dt><dd>{selectedTask?.code??(selected.taskId?"Связанный наряд":"Не создан")}</dd></div></dl>
+ {selected&&<><p className="fr-drawer-equipment">{selected.equipmentName}</p><span className={`fr-calendar-status ${selected.isOverdue?"fr-danger":""}`}>{selected.isOverdue?"Просрочено · ":""}{OCCURRENCE_LABELS[selected.status]}</span><dl className="fr-detail-dates"><div><dt>Исходная дата обязательства</dt><dd>{formatDate(selected.sourceDate??selected.occurrenceDate)}</dd></div><div><dt>Календарная дата выполнения</dt><dd>{isDateKey(selected.occurrenceDate)?formatDate(selected.occurrenceDate):"Требует уточнения"}</dd></div><div className="is-mandatory"><dt>Обязательный срок</dt><dd>{deadline?formatDate(deadline):tasksQuery.status==="error"?"Не удалось загрузить срок наряда":tasksQuery.status==="loading"?"Загрузка срока…":"Не передан в данных"}</dd></div><div><dt>Операция / вид ТО</dt><dd>{selected.operationCode} · {selected.maintenanceType??"Не указан"}</dd></div><div><dt>Наряд</dt><dd>{selectedTask?.code??(selected.taskId?"Связанный наряд":"Не создан")}</dd></div></dl>
  {selected.requiresInput&&<Callout tone="warning">Исходные данные требуют уточнения. Работа не считается подтверждённой только по наличию даты.</Callout>}
  {previewSelected&&<><p className="fr-detail-explanation">{previewSelected.explanation}</p><dl className="fr-detail-dates"><div><dt>Бригада</dt><dd>{previewSelected.crewSize} чел.</dd></div><div><dt>Длительность</dt><dd>{previewSelected.planningDurationMinutes===null?"Требует уточнения":`${previewSelected.planningDurationMinutes} мин.`}</dd></div><div><dt>Норма</dt><dd>{previewSelected.rawNormValue??"Не задана"} · {previewSelected.normUnit==="person_hour"?"чел.-ч":previewSelected.normUnit==="elapsed_hour"?"часы бригады":"Единица не подтверждена"}</dd></div></dl></>}
  <p className="fr-detail-explanation">AI-рекомендация не может перенести обязательный срок на более позднюю дату.</p></>}

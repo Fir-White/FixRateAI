@@ -67,6 +67,7 @@ def validate_catalog():
                 require(setting.visual_verifiability != "not_verifiable", "Photo point must describe visible evidence")
             counts[item["origin"]] += 1
         require(photo_items > 0, "Expected a photo evidence point for each documented operation")
+    require((ROOT / "backend/app/data/checklist_catalog.json").read_bytes()==(ROOT / "docs/analysis/checklists/catalog.json").read_bytes(),"Runtime catalog differs from source-derived catalog")
     require(sum(counts.values()) == 46, "Incomplete extraction inventory")
     return dict(profiles=len(profiles), items=sum(counts.values()), origins=dict(counts), dto="ChecklistSetting", status=catalog["status"])
 

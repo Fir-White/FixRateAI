@@ -42,10 +42,10 @@ def algorithmic_forecast(snapshot, binding, run_id):
             or binding.equipment != snapshot.equipment or binding.accepted_events != snapshot.accepted_events):
         return forecast_result(snapshot, run_id, "algorithmic", status="failed", error="BINDING_MISMATCH", explanation="Правило и снимок расходятся.")
     request = CalendarGenerationRequest(schema_version=snapshot.schema_version,
-        site=snapshot.site, query=dict(site_id=snapshot.site.site_id, year=due.year, month=due.month, include_cancelled=False),
+        site=snapshot.site, query=dict(site_id=snapshot.site.site_id, year=(snapshot.source_occurrence_date or due).year, month=(snapshot.source_occurrence_date or due).month, include_cancelled=False),
         as_of=snapshot.as_of, bindings=[binding])
     generated = generate_month(request).bindings[0]
-    occurrence = next((item for item in generated.occurrences if item.occurrence.mandatory_due_date == due), None)
+    occurrence = next((item for item in generated.occurrences if item.occurrence.mandatory_due_date == due and (snapshot.source_occurrence_date is None or item.occurrence.source_date==snapshot.source_occurrence_date)), None)
     if occurrence is None or generated.status not in ("ok", "manual_review"):
         return forecast_result(snapshot, run_id, "algorithmic", status="needs_input",
             error=generated.error_code or "OCCURRENCE_NOT_IN_RULE", explanation=generated.explanation, warnings=generated.warnings)

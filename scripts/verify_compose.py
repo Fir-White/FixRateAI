@@ -159,13 +159,13 @@ def main():
         before=command('counts_before','exec','-T','db','psql','-U','fixrate','-d','fixrate','-At','-c',counts_sql).strip()
         command('seed_repeat','exec','-T','-e','FIXRATE_DEMO_PASSWORD','app','python','-m','app.manage','seed-demo')
         after=command('counts_after','exec','-T','db','psql','-U','fixrate','-d','fixrate','-At','-c',counts_sql).strip()
-        assert before==after and before.split('|')[0]=='8'
+        assert before==after and before.split('|')[0]=='9'
         results.append(dict(check='seed_idempotence',passed=True,counts=before))
         prefix='/api/v1/maintenance'
         http('anonymous',plain,prefix+'/ui/equipment',401)
         executor=None; clients={}
         task=str(demo_id('runtime-order'))
-        for role,email in [('admin','fixrate-demo-admin@example.test'),('dispatcher','fixrate-demo-dispatcher@example.test'),
+        for role,email in [('executive','fixrate-demo-executive@example.test'),('chief_engineer','fixrate-demo-chief_engineer@example.test'),('admin','fixrate-demo-admin@example.test'),('dispatcher','fixrate-demo-dispatcher@example.test'),
                           ('engineer','fixrate-demo-engineer@example.test'),('executor','fixrate-demo-1@example.test')]:
             client=build_opener(HTTPCookieProcessor(CookieJar()))
             login=http(role+'_login',client,'/api/v1/auth/login',method='POST',body=dict(email=email,password=password))
@@ -270,14 +270,14 @@ def main():
             assert saved_error.strip()=='AITUNNEL_NOT_CONFIGURED'
             # The original runtime rule is intentionally a draft. Create a separate
             # explicitly configured rule through the public API, never by SQL edits.
-            admin,admin_csrf=clients['admin']; dispatcher,dispatcher_csrf=clients['dispatcher']
+            admin,admin_csrf=clients['chief_engineer']; dispatcher,dispatcher_csrf=clients['dispatcher']
             day=(datetime.now(timezone.utc)+timedelta(days=1)).date()
             configured=http('published_cloud_test_configuration',admin,
                 prefix+f"/equipment/{demo_id('equipment-2')}/service-configurations",expected=201,method='POST',csrf=admin_csrf,
                 body=dict(code='CLOUD-SMOKE',title='Explicit cloud fallback test',instructions='Synthetic API fixture, not a customer regulation',
                     maintenance_type='ТО2',pattern=dict(frequency='dates',anchor_date=str(day),dates=[str(day)]),valid_from=str(day),
                     crew_size=1,norm_value='1.000',norm_unit='person_hour',duration_minutes=60,qualification_ids=[],
-                    checklist=[dict(text='Synthetic fallback check')],allowed_lead_days=0))
+                    checklist=[dict(text='Synthetic fallback check')],allowed_lead_days=0,enabled=True,methodology_ref='TEST ONLY cloud failure fixture'))
             preview=http('published_cloud_test_preview',dispatcher,prefix+f'/ui/calendar/preview?year={day.year}&month={day.month}')
             generated=http('published_cloud_test_generation',dispatcher,prefix+'/calendar/generate',method='POST',csrf=dispatcher_csrf,
                 body=dict(year=day.year,month=day.month,preview_token=preview['generationToken'],idempotency_key=str(uuid4())))

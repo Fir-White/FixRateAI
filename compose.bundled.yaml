@@ -19,6 +19,7 @@ services:
       DATABASE_URL: postgresql+psycopg://fixrate:${POSTGRES_PASSWORD:?Set a unique URL-safe database password}@db:5432/fixrate
       PHOTO_STORAGE_ROOT: /app/var/photos
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      MAINTENANCE_SCHEDULER: ${MAINTENANCE_SCHEDULER:-true}
       HF_HOME: /app/model-cache
       HF_HUB_OFFLINE: "1"
       TRANSFORMERS_OFFLINE: "1"

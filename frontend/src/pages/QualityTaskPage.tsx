@@ -1,3 +1,5 @@
+import { AttemptHistory } from "@/features/analyst/AnalystPanels";
+import { ChiefActions,ActsPanel } from "@/features/analyst/AnalystPanels";
 import { DEMO_MODE } from "@/shared/api/request";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -77,7 +79,7 @@ export function QualityTaskPage() {
     if (DEMO_MODE) { setNotice("Деморежим: запрос не отправлен."); return; }
     if (!execution) return;
     setBusy(true); setNotice(null);
-    try { await maintenanceApi.review(task.id, task.revision, execution.id, verdict, reason); setRefresh(n => n+1); }
+    try { await maintenanceApi.review(task.id, task.revision, execution.id, verdict, reason,{reviewed_ai_result_id:review?.id,additional_evidence_refs:execution.acts?.filter(a=>a.verified).map(a=>a.id)??[]}); setRefresh(n => n+1); }
     catch (error) { setNotice(error instanceof Error ? error.message : "Ошибка API"); }
     finally { setBusy(false); }
   };
@@ -92,6 +94,7 @@ export function QualityTaskPage() {
         Контроль качества
       </Link>
 
+      <AttemptHistory taskId={task.id}/><ChiefActions task={task} onSaved={()=>setRefresh(n=>n+1)}/><ActsPanel task={task} execution={execution} editable={false} onSaved={()=>setRefresh(n=>n+1)}/>
       <PageHeader
         eyebrow={task.code}
         title={task.title}

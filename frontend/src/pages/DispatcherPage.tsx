@@ -1,3 +1,4 @@
+import { PerformanceOverview } from "@/features/analyst/AnalystPanels";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
@@ -29,7 +30,7 @@ export function DispatcherPage() {
   const overdue=tasks.filter(isTaskOverdue).length, unassigned=tasks.filter(isUnassigned).length, review=tasks.filter(t=>t.state==="submitted").length;
   const run=forecasts.status==="success"?[...forecasts.data].sort((a,b)=>b.createdAt.localeCompare(a.createdAt))[0]:null;
   const signals=[{value:overdue,label:"Просрочено",filter:"overdue",tone:"danger"},{value:unassigned,label:"Без исполнителя",filter:"unassigned",tone:"warning"},{value:review,label:"На проверке",filter:"submitted",tone:"accent"}];
-  return <div className="fr-overview">
+  return <div className="fr-overview"><PerformanceOverview/>
     <header className="fr-overview-heading"><div><p className="fr-eyebrow">Эксплуатация / обзор объекта</p><h1 aria-label="Панель диспетчера">Оперативный центр<span className="fr-title-dot">.</span></h1><p>Работы, обязательные сроки и решения на одной странице.</p></div>
       {canCalendar && <Link to={`/calendar?date=${selected}`} className={buttonClassName("primary")}><Icon name="calendar" size={17}/>Открыть график</Link>}
     </header>

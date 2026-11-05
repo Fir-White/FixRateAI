@@ -10,6 +10,7 @@ import time
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import Request, build_opener, ProxyHandler, HTTPRedirectHandler
+from pydantic import ValidationError
 
 DEFAULT_MODEL = "qwen3.7-flash"
 MAX_RESPONSE_BYTES = 1_048_576
@@ -69,8 +70,11 @@ class AITunnelClient:
         self.opener = build_opener(ProxyHandler({}), NoRedirect())
         self.deadline = time.monotonic() + config.timeout
         self.response_model = None
+        self.response_diagnostics = []
 
     def chat(self, messages, schema, tokens):
+        diagnostic = {"schema": schema.__name__, "max_tokens": tokens, "stage": "request"}
+        self.response_diagnostics.append(diagnostic)
         if not self.config.api_key:
             raise AITunnelFailure("AITUNNEL_NOT_CONFIGURED")
         remaining = self.deadline - time.monotonic()
@@ -85,10 +89,13 @@ class AITunnelClient:
                     {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + data}}
                     for data in message["images"]]]
             converted.append({"role": message["role"], "content": content})
-        converted.insert(0, {"role": "system", "content":
+        instructions = "\n\n".join(message["content"] for message in converted if message["role"] == "system")
+        converted = [message for message in converted if message["role"] != "system"]
+        converted.insert(0, {"role": "system", "content": instructions + "\n\n" +
             "Return exactly ONE JSON OBJECT matching this schema. Never return a JSON array or Markdown. "
+            "Use exactly the property names from the schema; never translate property names. "
             "Include every required field. Empty lists must be [], not null. "
-            "Respond in Russian for descriptive strings. JSON schema: " + json.dumps(schema.model_json_schema(), ensure_ascii=False)})
+            "Respond in Russian only for descriptive string VALUES. JSON schema: " + json.dumps(schema.model_json_schema(), ensure_ascii=False)})
         payload = {"model": self.config.model, "messages": converted, "stream": False,
                    "max_tokens": tokens, "include_reasoning": False,
                    "reasoning": {"effort": self.config.reasoning_effort},
@@ -100,15 +107,23 @@ class AITunnelClient:
         try:
             with self.opener.open(request, timeout=remaining) as response:
                 raw = response.read(MAX_RESPONSE_BYTES + 1)
+            diagnostic.update(stage="envelope", response_bytes=len(raw))
             if len(raw) > MAX_RESPONSE_BYTES:
                 raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE")
             envelope = json.loads(raw)
             choices = envelope["choices"]
+            diagnostic["stage"] = "choices"
+            if isinstance(choices, list) and len(choices) == 1 and isinstance(choices[0], dict):
+                reason = choices[0].get("finish_reason")
+                diagnostic["finish_reason"] = reason if reason in ("stop", "length", "content_filter", "tool_calls", "function_call") else "unknown"
             if not isinstance(choices, list) or len(choices) != 1 or choices[0].get("finish_reason") != "stop":
                 raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE")
+            diagnostic["stage"] = "message"
             message = choices[0]["message"]
             if message.get("refusal") or not isinstance(message.get("content"), str):
                 raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE")
+            diagnostic["content_characters"] = len(message["content"])
+            diagnostic["stage"] = "model"
             actual_model = envelope.get("model")
             if not isinstance(actual_model, str) or not actual_model or len(actual_model) > 200:
                 raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE")
@@ -116,10 +131,13 @@ class AITunnelClient:
                 raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE")
             if actual_model != self.config.model and not actual_model.startswith(self.config.model + "-"):
                 raise AITunnelFailure("AITUNNEL_MODEL_MISMATCH")
+            diagnostic["stage"] = "schema"
             result = schema.model_validate_json(message["content"])
+            diagnostic["stage"] = "validated"
             self.response_model = actual_model
             return result
-        except AITunnelFailure:
+        except AITunnelFailure as exc:
+            diagnostic["error_code"] = str(exc)
             raise
         except HTTPError as exc:
             code = {401: "AITUNNEL_AUTH_FAILED", 403: "AITUNNEL_AUTH_FAILED", 402: "AITUNNEL_QUOTA_EXCEEDED",
@@ -131,5 +149,14 @@ class AITunnelClient:
         except (URLError, OSError) as exc:
             code = "AITUNNEL_TIMEOUT" if isinstance(getattr(exc, "reason", None), TimeoutError) else "AITUNNEL_UNAVAILABLE"
             raise AITunnelFailure(code) from None
+        except ValidationError as exc:
+            fields = set(schema.model_fields)
+            diagnostic["validation_errors"] = [
+                {"type": issue["type"], "location": [part if isinstance(part, int) or part in fields else "unknown_field" for part in issue["loc"]]}
+                for issue in exc.errors(include_input=False, include_context=False, include_url=False)[:8]
+            ]
+            diagnostic["error_code"] = "AITUNNEL_INVALID_RESPONSE"
+            raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE") from None
         except (ValueError, TypeError, KeyError, IndexError, AttributeError):
+            diagnostic["error_code"] = "AITUNNEL_INVALID_RESPONSE"
             raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE") from None

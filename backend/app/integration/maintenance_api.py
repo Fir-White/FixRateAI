@@ -5,6 +5,7 @@ expose the versioned REST contract directly while keeping all date generation
 in the scheduling service.
 """
 from __future__ import annotations
+from app.security.sessions import has_role
 
 from datetime import date
 from uuid import UUID
@@ -22,7 +23,7 @@ class OperationUpdate(OperationCreate):
 
 
 def _guard(v, *roles: str) -> None:
-    if v.principal.role not in roles:
+    if not has_role(v.principal.role,roles):
         raise HTTPException(403, "Действие недоступно для текущей роли")
 
 
@@ -186,7 +187,7 @@ def _execution_payload(v, report, order, equipment_id: UUID) -> dict:
 def register_routes(app, views) -> None:
     @app.get(PREFIX + "/operations")
     def operations(v=Depends(views)):
-        _guard(v, "admin", "dispatcher", "engineer")
+        _guard(v, "executive", "admin", "dispatcher", "engineer")
         rows = []
         for operation in v.rows("operation_templates"):
             rules = sorted(
@@ -199,7 +200,7 @@ def register_routes(app, views) -> None:
 
     @app.get(PREFIX + "/operations/{operation_id}")
     def operation(operation_id: UUID, v=Depends(views)):
-        _guard(v, "admin", "dispatcher", "engineer")
+        _guard(v, "executive", "admin", "dispatcher", "engineer")
         return _operation_payload(v, *_operation(v, operation_id))
 
     @app.post(PREFIX + "/operations", status_code=201)
@@ -208,7 +209,7 @@ def register_routes(app, views) -> None:
         system_id: UUID = Query(..., description="Инженерная система операции"),
         v=Depends(views),
     ):
-        _guard(v, "admin", "dispatcher")
+        _guard(v, "chief_engineer")
         typ = next(
             (item for item in v.rows("maintenance_types") if item.name == command.maintenance_type),
             None,
@@ -242,7 +243,7 @@ def register_routes(app, views) -> None:
 
     @app.patch(PREFIX + "/operations/{operation_id}")
     def operation_update(operation_id: UUID, command: OperationUpdate, v=Depends(views)):
-        _guard(v, "admin", "dispatcher")
+        _guard(v, "chief_engineer")
         operation, rule = _operation(v, operation_id)
         current_revision = rule.rule_version if rule else 1
         if command.expected_revision != current_revision:
@@ -261,7 +262,7 @@ def register_routes(app, views) -> None:
         expected_revision: int = Query(..., gt=0),
         v=Depends(views),
     ):
-        _guard(v, "admin", "dispatcher")
+        _guard(v, "chief_engineer")
         operation, rule = _operation(v, operation_id)
         if expected_revision != (rule.rule_version if rule else 1):
             raise HTTPException(409, "REVISION_CONFLICT: данные операции изменились")
@@ -271,7 +272,7 @@ def register_routes(app, views) -> None:
 
     @app.get(PREFIX + "/regulations")
     def regulations(v=Depends(views)):
-        _guard(v, "admin", "dispatcher", "engineer")
+        _guard(v, "executive", "admin", "dispatcher", "engineer")
         result = []
         for edition in v.rows("regulation_editions"):
             document = v.one(
@@ -296,7 +297,7 @@ def register_routes(app, views) -> None:
 
     @app.get(PREFIX + "/tasks")
     def planned_tasks(status: str | None = None, v=Depends(views)):
-        _guard(v, "admin", "dispatcher", "engineer", "executor")
+        _guard(v, "executive", "admin", "dispatcher", "engineer", "executor")
         orders = v.repo.orders(
             v.principal.site_id,
             status=status,
@@ -306,7 +307,7 @@ def register_routes(app, views) -> None:
 
     @app.get(PREFIX + "/calendar")
     def calendar(year: int, month: int, v=Depends(views)):
-        _guard(v, "admin", "dispatcher", "engineer", "executor")
+        _guard(v, "executive", "admin", "dispatcher", "engineer", "executor")
         if not 2000 <= year <= 2100 or not 1 <= month <= 12:
             raise HTTPException(422, "Некорректный месяц")
         return _calendar_response(v, year, month)
@@ -318,7 +319,7 @@ def register_routes(app, views) -> None:
         offset: int = Query(0, ge=0),
         v=Depends(views),
     ):
-        _guard(v, "admin", "dispatcher", "engineer", "executor")
+        _guard(v, "executive", "admin", "dispatcher", "engineer", "executor")
         v.one("equipment", equipment_id=equipment_id)
         reports = []
         visible_order = False

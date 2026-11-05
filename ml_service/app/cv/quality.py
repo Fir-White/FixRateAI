@@ -71,10 +71,10 @@ class ImageQualityGuard:
                 # Direct C-level mean brightness without array allocation
                 mean_brightness = float(ImageStat.Stat(gray).mean[0])
 
-                # Downsample large images (>1280px) for Laplacian sharpness check to limit RAM and CPU spikes
+                # Downsample large images (>512px) for Laplacian sharpness check to limit RAM and CPU spikes
                 max_dim = max(width, height)
-                if max_dim > 1280:
-                    scale = 1280.0 / max_dim
+                if max_dim > 512:
+                    scale = 512.0 / max_dim
                     target_w = max(3, int(width * scale))
                     target_h = max(3, int(height * scale))
                     gray_sharp = gray.resize((target_w, target_h), Image.Resampling.BILINEAR)
@@ -101,6 +101,17 @@ class ImageQualityGuard:
                 mean_brightness=mean_brightness,
                 sha256=content_sha256,
             )
+
+        # Central ROI check catches local glare hidden by a plausible whole-frame mean.
+        # Threshold is a technical capture filter, not a probability of correct maintenance.
+        h,w=arr.shape
+        roi=arr[h//4:max(h//4+1,3*h//4),w//4:max(w//4+1,3*w//4)]
+        from scipy.ndimage import label
+        components,count=label(roi>=250)
+        areas=np.bincount(components.ravel())[1:]
+        glare_fraction=float(areas.max()/roi.size) if count else 0.0
+        if glare_fraction>0.02:
+            return ImageQualityResult(False,f"Блик в центральной области ({glare_fraction:.1%}); измените ракурс и переснимите",mean_brightness=mean_brightness,sha256=content_sha256)
 
         # 5. Sharpness check: 2D discrete Laplacian variance
         if arr.shape[0] >= 3 and arr.shape[1] >= 3:

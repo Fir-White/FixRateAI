@@ -1,3 +1,4 @@
+from app.security.sessions import has_role
 """ALG05/06: preview-confirmed, idempotent generation; no implicit assignment."""
 from datetime import date, datetime, time, timedelta, timezone
 from hashlib import sha256
@@ -21,6 +22,10 @@ SOURCE_TABLES = ("equipment", "maintenance_rules", "regulation_editions", "opera
 
 def digest(value):
     return sha256(json.dumps(value, sort_keys=True, default=_json_value, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
+
+
+def catalog_token(v):
+    return digest({name:sorted([{column.name:getattr(row,column.name) for column in v.models[name].__table__.columns} for row in v.rows(name)],key=digest) for name in SOURCE_TABLES})
 
 
 def source_token(v, year, month, now):
@@ -57,8 +62,8 @@ def _lock_sources(v):
             .execution_options(populate_existing=True)).all()
 
 
-def generate_tasks(v, year, month, key, token, forecaster, *, forecast_timeout_seconds=2):
-    if v.principal.role != "dispatcher":
+def generate_tasks(v, year, month, key, token, forecaster, *, forecast_timeout_seconds=2, forecast_provider=None, approved_plan=None):
+    if not has_role(v.principal.role,("dispatcher",)):
         raise HTTPException(403, "Сохранение плана доступно диспетчеру")
     request_hash = digest(dict(year=year, month=month, token=token))
     old = _stored(v, key, request_hash)
@@ -83,10 +88,10 @@ def generate_tasks(v, year, month, key, token, forecaster, *, forecast_timeout_s
             continue
         binding = v.one("rule_equipment", binding_id=UUID(row["bindingId"]))
         item = binding_input(v, binding, as_of=now)
-        snapshot = make_snapshot(v, item, date.fromisoformat(row["earliestDate"]), date.fromisoformat(row["mandatoryDueDate"]), as_of=now)
-        values = calculate(snapshot, item, forecaster, timeout_seconds=min(forecast_timeout_seconds, budget_end-timer.monotonic()))
+        snapshot = make_snapshot(v, item, date.fromisoformat(row["earliestDate"]), date.fromisoformat(row["mandatoryDueDate"]), as_of=now,source_day=date.fromisoformat(row.get("sourceDate",row["mandatoryDueDate"])))
+        values = calculate(snapshot, item, forecaster, timeout_seconds=min(forecast_timeout_seconds, budget_end-timer.monotonic()),provider=forecast_provider)
         prepared.append((row, binding.binding_id, item, snapshot, values))
-    lock_key = int.from_bytes(sha256(f"{site.site_id}:{year}:{month}".encode()).digest()[:8], "big", signed=True)
+    lock_key = int.from_bytes(sha256(f"{site.site_id}:planning".encode()).digest()[:8], "big", signed=True)
     with service_transaction(v.session):
         v.session.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": lock_key})
         v.session.expire_all()
@@ -98,16 +103,18 @@ def generate_tasks(v, year, month, key, token, forecaster, *, forecast_timeout_s
         actor = v.session.scalar(select(users).where(users.user_id == v.principal.user_id).with_for_update(read=True).execution_options(populate_existing=True))
         member = v.session.scalar(select(members).where(members.site_id == site.site_id, members.user_id == v.principal.user_id).with_for_update(read=True).execution_options(populate_existing=True))
         active_site = v.session.scalar(select(sites).where(sites.site_id == site.site_id).with_for_update(read=True).execution_options(populate_existing=True))
-        if not actor or not actor.is_active or not member or not member.is_active or member.role != "dispatcher" or not active_site or not active_site.is_active:
+        if not actor or not actor.is_active or not member or not member.is_active or not has_role(member.role,("dispatcher",)) or not active_site or not active_site.is_active:
             raise HTTPException(403, "Доступ диспетчера отозван")
         _lock_sources(v)
+        if approved_plan is not None and (approved_plan.status!="approved" or approved_plan.source_snapshot.get("approved_catalog_token")!=catalog_token(v)):
+            raise HTTPException(409,"PLAN_APPROVAL_STALE: требуется новое утверждение исходных версий")
         if source_token(v, year, month, datetime.now(timezone.utc)) != token:
             raise HTTPException(409, "STALE_PREVIEW: исходные данные изменились во время расчёта")
-        run_id, plan, results = uuid4(), None, []
+        run_id, plan, results = uuid4(), approved_plan, []
         for row, binding_id, item, snapshot, values in prepared:
             algorithmic, ai, decision = values
             due = date.fromisoformat(row["mandatoryDueDate"])
-            existing = [entry for entry in v.rows("schedule_entries", binding_id=binding_id) if entry.regulatory_deadline_on == due]
+            existing = [entry for entry in v.rows("schedule_entries", binding_id=binding_id) if (entry.source_date or entry.regulatory_deadline_on) == date.fromisoformat(row.get("sourceDate",row["mandatoryDueDate"]))]
             if len(existing) > 1:
                 raise HTTPException(409, "EXISTING_OCCURRENCE_CONFLICT: несколько сохранённых вхождений одного обязательства")
             if existing:
@@ -143,10 +150,12 @@ def generate_tasks(v, year, month, key, token, forecaster, *, forecast_timeout_s
                 entry = v.repo.add("schedule_entries", schedule_entry_id=occurrence_id, source_occurrence_id=occurrence_id,
                     site_id=site.site_id, system_id=binding_row.system_id, schedule_plan_id=plan.schedule_plan_id,
                     maintenance_rule_id=item.rule.rule_version_id, binding_id=binding_id, planned_date=decision.selected_date,
-                    earliest_date=snapshot.earliest_date, regulatory_deadline_on=due, regulatory_deadline_at=deadline_at,
+                    source_date=snapshot.source_occurrence_date,sequence_no=1+sum(e.planned_date==decision.selected_date for e in v.rows("schedule_entries",binding_id=binding_id)),earliest_date=snapshot.earliest_date, regulatory_deadline_on=due, regulatory_deadline_at=deadline_at,
                     orchestration_decision_id=saved_decision.orchestration_decision_id, rule_snapshot=json.loads(item.model_dump_json()))
                 op = item.operation
-                frozen = dict(data_origin=op.data_origin, code=op.code, title=op.title, maintenance_type=op.maintenance_type,
+                frozen = dict(instructions=op.instructions,methodology_ref=binding_row.rule.schedule_parameters.get("methodology_ref"),
+                    measurement_requirements=binding_row.rule.schedule_parameters.get("measurement_requirements",[]),required_acts=binding_row.rule.schedule_parameters.get("required_acts",[]),
+                    data_origin=op.data_origin, code=op.code, title=op.title, maintenance_type=op.maintenance_type,
                     operation_version=op.version, norm_unit=op.norm_unit, planning_duration_minutes=op.planning_duration_minutes, duration_basis=op.duration_basis,
                     qualification_ids=[str(skill) for skill in op.qualification_ids], label="Создано из подтверждённого расчёта календаря",
                     planning_run_id=str(run_id), checklist=[dict(id=str(check.checklist_item_id), text=check.text, answerKind=check.answer_kind,

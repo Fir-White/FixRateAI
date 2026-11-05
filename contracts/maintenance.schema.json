@@ -270,6 +270,33 @@
           "title": "Short Month",
           "type": "string"
         },
+        "quarter_policy": {
+          "default": "calendar_edge",
+          "enum": [
+            "calendar_edge",
+            "rolling_months"
+          ],
+          "title": "Quarter Policy",
+          "type": "string"
+        },
+        "annual_policy": {
+          "default": "calendar_year",
+          "enum": [
+            "calendar_year",
+            "from_anchor"
+          ],
+          "title": "Annual Policy",
+          "type": "string"
+        },
+        "weekend_policy": {
+          "default": "none",
+          "enum": [
+            "none",
+            "next_workday"
+          ],
+          "title": "Weekend Policy",
+          "type": "string"
+        },
         "count_per_year": {
           "anyOf": [
             {
@@ -1121,10 +1148,39 @@
             }
           ]
         },
+        "source_occurrence_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Occurrence Date"
+        },
         "feature_schema_version": {
           "minLength": 1,
           "title": "Feature Schema Version",
           "type": "string"
+        },
+        "diagnostic_readings": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Diagnostic Readings",
+          "type": "array"
+        },
+        "diagnostic_comments": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Diagnostic Comments",
+          "type": "array"
         }
       },
       "required": [
@@ -1846,6 +1902,19 @@
           "title": "Operation Version Id",
           "type": "string"
         },
+        "source_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Date"
+        },
         "occurrence_date": {
           "format": "date",
           "title": "Occurrence Date",
@@ -2088,6 +2157,15 @@
             }
           ],
           "default": null
+        },
+        "weekend_policy": {
+          "default": "none",
+          "enum": [
+            "none",
+            "next_workday"
+          ],
+          "title": "Weekend Policy",
+          "type": "string"
         }
       },
       "required": [
@@ -2613,6 +2691,25 @@
           "maxLength": 2000,
           "minLength": 1,
           "title": "Summary",
+          "type": "string"
+        },
+        "visible_readings": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "maxItems": 20,
+          "title": "Visible Readings",
+          "type": "array"
+        },
+        "evidence_class": {
+          "default": "manual_review",
+          "enum": [
+            "approved",
+            "manual_review",
+            "rejected"
+          ],
+          "title": "Evidence Class",
           "type": "string"
         }
       },

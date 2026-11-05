@@ -1,0 +1,66 @@
+{
+  "reviewed_on": "2026-11-05",
+  "source_manifest": "nastya-2026-11-04/source/tests/fixtures/evidence_manifest.json",
+  "scope": "Suitability of supplied visual evidence, not acceptance of maintenance",
+  "cases": {
+    "CASE-01": {
+      "allowed_classifications": [
+        "rejected"
+      ],
+      "reason": "Different instruments are visibly present; original same-instrument expectation contradicts files."
+    },
+    "CASE-02": {
+      "allowed_classifications": [
+        "manual_review",
+        "rejected"
+      ],
+      "reason": "Mandatory nonvisual evidence is absent; rejection is also valid when object identity or capture quality is disproved."
+    },
+    "CASE-03": {
+      "allowed_classifications": [
+        "manual_review",
+        "rejected"
+      ],
+      "reason": "Mandatory nonvisual evidence is absent; rejection is also valid when object identity or capture quality is disproved."
+    },
+    "CASE-04": {
+      "allowed_classifications": [
+        "manual_review",
+        "rejected"
+      ],
+      "reason": "Mandatory nonvisual evidence is absent; rejection is also valid when object identity or capture quality is disproved."
+    },
+    "CASE-05": {
+      "allowed_classifications": [
+        "manual_review",
+        "rejected"
+      ],
+      "reason": "Mandatory nonvisual evidence is absent; rejection is also valid when object identity or capture quality is disproved."
+    },
+    "CASE-06": {
+      "allowed_classifications": [
+        "manual_review",
+        "rejected"
+      ],
+      "reason": "Mandatory nonvisual evidence is absent; rejection is also valid when object identity or capture quality is disproved."
+    },
+    "CASE-NEG-01": {
+      "allowed_classifications": [
+        "rejected"
+      ],
+      "reason": "Invalid capture or different object must not be approved."
+    },
+    "CASE-NEG-02": {
+      "allowed_classifications": [
+        "rejected"
+      ],
+      "reason": "Invalid capture or different object must not be approved."
+    },
+    "CASE-NEG-03": {
+      "allowed_classifications": [
+        "rejected"
+      ],
+      "reason": "Invalid capture or different object must not be approved."
+    }
+  }
+}

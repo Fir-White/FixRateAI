@@ -13,6 +13,8 @@ import { request, DEMO_MODE } from "@/shared/api/request";
 const STORAGE_KEY = "fixrate.demo.role";
 
 const DEMO_PROFILES: Record<Role, SessionProfile> = {
+  executive:{userId:"demo-executive",name:"Руководитель",email:"executive@example.test",role:"executive",siteName:"Демонстрационный объект",timezone:"Asia/Yekaterinburg"},
+  chief_engineer:{userId:"demo-chief",name:"Главный инженер",email:"chief@example.test",role:"chief_engineer",siteName:"Демонстрационный объект",timezone:"Asia/Yekaterinburg"},
   admin: {
     userId: "u1000000-0000-4000-8000-000000000010",
     name: "Орлова М.С.",
@@ -60,7 +62,7 @@ const SessionContext = createContext<SessionContextValue | null>(null);
 
 function isRole(value: string | null): value is Role {
   return (
-    value === "admin" ||
+    value === "executive" || value === "chief_engineer" || value === "admin" ||
     value === "dispatcher" ||
     value === "engineer" ||
     value === "executor"

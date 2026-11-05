@@ -18,7 +18,7 @@ def test_forecast_safety_scenarios(name,provider,status,selected):
     before=snapshot.model_dump_json()
     a,b,d=compare_forecasts(snapshot,item,provider,timeout_seconds=0.005 if name=='timeout' else 1)
     assert snapshot.model_dump_json()==before
-    assert a.method=='algorithmic' and a.method_version=='calendar-rules-v2'
+    assert a.method=='algorithmic' and a.method_version=='calendar-rules-v3'
     assert a.result_id!=b.result_id and a.snapshot_sha256==b.snapshot_sha256==snapshot.content_sha256
     assert d.status==status and str(d.selected_date)==selected
     assert d.selected_date<=snapshot.mandatory_due_date

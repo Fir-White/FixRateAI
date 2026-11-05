@@ -1,3 +1,4 @@
+import { MaintenanceInbox } from "@/features/analyst/AnalystPanels";
 import { DEMO_MODE } from "@/shared/api/request";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -22,7 +23,7 @@ import { NAVIGATION_ITEMS } from "./navigation";
 import "./operations.css";
 import { CommandMenu } from "./CommandMenu";
 
-const ROLES: Role[] = ["dispatcher", "engineer", "executor", "admin"];
+const ROLES: Role[] = ["executive","chief_engineer","dispatcher", "engineer", "executor", "admin"];
 
 export function AppShell({ executor = false }: { executor?: boolean }) {
   const { profile, logout, switchRole } = useSession();
@@ -125,7 +126,7 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
               <div className="fr-breadcrumb"><span>Рабочее пространство</span><i>/</i><strong>{activeItem?.label ?? "Обзор"}</strong></div>
             </div>
 
-              <div className="fr-topbar-actions"><CommandMenu items={items}/><span className="fr-site-label"><span className="fr-site-square"/>{profile.siteName}</span>
+              <div className="fr-topbar-actions"><MaintenanceInbox/><CommandMenu items={items}/><span className="fr-site-label"><span className="fr-site-square"/>{profile.siteName}</span>
               {DEMO_MODE && <span className="fr-demo-badge">DEMO</span>}
               {DEMO_MODE && <Select
                 aria-label="Демонстрационная роль"

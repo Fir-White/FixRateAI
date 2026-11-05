@@ -15,7 +15,7 @@ def add_runtime_demo(repo, password_hash):
         return obj if obj else repo.add(table, **{pk: identity}, **values)
 
     site, system = demo_id("site"), demo_id("system")
-    for role, sql_role, key in (("dispatcher", "dispatcher", "dispatcher"),
+    for role, sql_role, key in (("executive","executive","executive"),("chief_engineer","chief_engineer","chief-engineer"),("dispatcher", "dispatcher", "dispatcher"),
                                ("admin", "admin", "admin"),
                                ("engineer", "engineer", "engineer"),
                                ("executor", "technician", "user-1")):
@@ -27,7 +27,8 @@ def add_runtime_demo(repo, password_hash):
             repo.add("site_memberships", site_id=site, user_id=user.user_id, role=sql_role)
     # Stable users imported by seed retain their original email addresses.
     now = datetime.now(timezone.utc)
-    day = now.date() + timedelta(days=1)
+    from zoneinfo import ZoneInfo
+    day = now.astimezone(ZoneInfo(repo.get("sites",site).timezone)).date()
     op = ensure("operation_templates", "operation_template_id", "runtime-operation", site_id=site, system_id=system,
         code="DEMO-1.4", title="DEMO — чистка учебного узла", maintenance_type_id=demo_id("to2"),
         description="Только синтетический сценарий интеграции, не норматив заказчика")
@@ -55,7 +56,7 @@ def add_runtime_demo(repo, password_hash):
         maintenance_rule_id=rule.maintenance_rule_id, schedule_entry_id=entry.schedule_entry_id,
         status="assigned", required_people_snapshot=1, norm_hours_snapshot=1,
         planned_start_at=now+timedelta(hours=1), regulatory_deadline_at=entry.regulatory_deadline_at,
-        operation_snapshot={"data_origin": "synthetic_demo", "title": op.title, "code": "1.4", "maintenance_type": "ТО2",
+        operation_snapshot={"data_origin": "synthetic_demo", "title": op.title, "code": "DEMO-1.4", "maintenance_type": "ТО2",
                             "label": "DEMO: синтетический сценарий, нормы и даты не подтверждены",
                             "checklist": [{"id": str(item.checklist_template_id), "text": item.prompt, "answerKind": "boolean",
                                 "unit": None, "required": True, "visualVerifiability": "visible", "photoRequired": True}]})

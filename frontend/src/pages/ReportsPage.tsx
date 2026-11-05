@@ -1,3 +1,4 @@
+import { PerformanceOverview } from "@/features/analyst/AnalystPanels";
 import { Link } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
@@ -49,7 +50,7 @@ export function ReportsPage() {
   const maxCount = Math.max(1, ...operations.map(item => item.count));
 
   return <div className="space-y-6 ops-reports">
-    <PageHeader eyebrow="История / обзор" title="Отчёты" description="Сводка по доступным заданиям текущего объекта. Показатели отражают их текущее состояние."
+    <PerformanceOverview/><PageHeader eyebrow="История / обзор" title="Отчёты" description="Сводка по доступным заданиям текущего объекта. Показатели отражают их текущее состояние."
       actions={<Button variant="secondary" disabled={query.status !== "success" || !tasks.length} onClick={() => exportTasks(tasks)}>Выгрузить задания CSV</Button>} />
     {query.status === "loading" && <LoadingState label="Загрузка отчётов" />}
     {query.status === "error" && <ErrorState description={query.error} />}

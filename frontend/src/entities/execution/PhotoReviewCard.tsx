@@ -21,6 +21,8 @@ export function PhotoReviewCard({review,formatDateTime}:{review:PhotoReview|null
       <Callout tone={uncertain||legacy?"warning":"neutral"} title={title}>
         {legacy?"Сохранённый результат получен прежней моделью CLIP, которая сравнивает сходство с текстовыми описаниями. Для разбора содержимого фотографий запустите новый анализ.":"Вывод модели помогает проверить отчёт. Приёмку и необходимые контрольные измерения выполняет инженер."}
       </Callout>
+      {review.classification&&<p className="mt-3 font-semibold">Доказательства: {review.classification==="approved"?"видимая часть подтверждена":review.classification==="rejected"?"фото отклонены — нужны другие снимки":"нужна ручная проверка"}. Окончательное решение принимает контролёр.</p>}
+      {!!review.readingComparison?.length&&<div className="mt-3 space-y-2"><h3>Сверка показаний с протоколом</h3>{review.readingComparison.map((r,i)=><p key={i}>{r.parameter_code} ({r.phase}): введено {r.value} {r.unit}; на фото {r.observed??"не читается"}; {r.status==="match"?"совпадает":r.status==="mismatch"?"расхождение — нужна проверка":"автоматическая сверка невозможна"}.</p>)}</div>}
       {(review.status==="unavailable"||review.status==="failed")&&<p className="mt-3 text-sm leading-6 text-ink-soft">{errorMessage}</p>}
       <div className="mt-5 space-y-5">{review.items.map(item=><article key={item.id} className="rounded-xl border border-line p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-semibold text-ink">Проверяемый пункт: {item.label}</h3><VerdictBadge verdict={item.verdict}/></div>

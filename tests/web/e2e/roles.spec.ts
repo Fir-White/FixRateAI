@@ -6,12 +6,12 @@ function demoId(key: string) {
   return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
 }
 
-const roles = ["admin", "dispatcher", "engineer", "executor"];
+const roles = ["executive","chief_engineer","admin", "dispatcher", "engineer", "executor"];
 const allowed: Record<string, string[]> = {
-  dispatcher: ["admin", "dispatcher"], equipment: roles,
-  calendar: ["dispatcher", "engineer", "executor"], tasks: ["dispatcher", "engineer"],
-  comparisons: ["dispatcher", "engineer"], reports: ["dispatcher", "engineer"], quality: ["engineer"], executor: ["executor"],
-  settings: ["admin","dispatcher","engineer"], "my-shifts": ["executor"],
+  dispatcher: ["executive","chief_engineer","engineer","admin", "dispatcher"], equipment: roles,
+  calendar: ["executive","chief_engineer","dispatcher", "engineer", "executor"], tasks: ["executive","chief_engineer","dispatcher", "engineer"],
+  comparisons: ["executive","chief_engineer","dispatcher", "engineer"], reports: ["executive","chief_engineer","dispatcher", "engineer"], quality: ["chief_engineer","engineer"], executor: ["executor"],
+  settings: ["chief_engineer","admin","dispatcher","engineer"], "my-shifts": ["executor"],
 };
 
 for (const role of roles) {
@@ -42,6 +42,11 @@ for (const role of roles) {
       await expect(page.getByRole("alert")).toHaveCount(0);
       const hrefs = await page.locator("a[href]").evaluateAll(links => links.map(link => link.getAttribute("href")!));
       for (const href of hrefs.filter(href => href.startsWith("/"))) {
+        if(href.startsWith("/api/v1/maintenance/export.xlsx?")){
+          const exported=await page.request.get(href);expect(exported.status()).toBe(200);
+          expect(exported.headers()["content-type"]).toContain("spreadsheetml.sheet");
+          expect((await exported.body()).subarray(0,2).toString()).toBe("PK");continue;
+        }
         if (href.startsWith("/api/")) {
           expect(href).toMatch(/^\/api\/v1\/maintenance\/photos\/[0-9a-f-]+$/);
           const photo = await page.request.get(href);

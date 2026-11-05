@@ -95,7 +95,7 @@ def test_identical_photos_do_not_call_model(canonical_photo_review_request):
 
 def test_hidden_work_does_not_call_model(canonical_photo_review_request):
     request=canonical_photo_review_request.model_copy(deep=True)
-    request.operation.code="1.5";client=FixtureClient()
+    request.operation.code="1.5";request.operation.checklist[0].visual_verifiability="not_verifiable";client=FixtureClient()
     result=invoke(request,client)
     assert result.status=="not_verifiable" and client.calls==0
 

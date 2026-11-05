@@ -81,7 +81,7 @@ def test_explicit_rotation_login_roles_sessions_idempotence_and_history(demo_acc
     settings = {"FIXRATE_DEMO_LOGIN": "custom-dispatcher@example.test"}
     with closing(TestClient(app)) as old, closing(TestClient(app)) as current:
         assert old.post('/api/v1/auth/login', json=dict(email='fixrate-demo-dispatcher@example.test', password=previous)).status_code == 200
-        assert configure_demo_accounts(engine, new, settings) == 7
+        assert configure_demo_accounts(engine, new, settings) == len(DEMO_ACCOUNTS)+3
         assert old.get('/api/v1/maintenance/ui/tasks').status_code == 401
         assert current.post('/api/v1/auth/login', json=dict(email='fixrate-demo-dispatcher@example.test', password=new)).status_code == 401
         assert current.post('/api/v1/auth/login', json=dict(email=settings['FIXRATE_DEMO_LOGIN'], password=previous)).status_code == 401

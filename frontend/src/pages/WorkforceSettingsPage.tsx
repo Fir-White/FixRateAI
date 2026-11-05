@@ -28,7 +28,7 @@ function LiveWorkforceSettingsPage() {
   const {profile}=useSession();const [refresh,setRefresh]=useState(0);const [selected,setSelected]=useWorkspaceState("workforce.employee", "", isShortString);
   const [busy,setBusy]=useState(false);const [error,setError]=useState("");const [notice,setNotice]=useState("");
   const query=useApiQuery(()=>managementApi.workforce(),[refresh]);
-  const admin=profile?.role==="admin";const mayEdit=admin||profile?.role==="dispatcher";
+  const admin=profile?.role==="admin";const mayEdit=admin||["chief_engineer","engineer","dispatcher"].includes(profile?.role??"");
   const today=todayAt(profile?.timezone??"Asia/Yekaterinburg");
   const run:Run=async(action,message)=>{if(busy)return false;setBusy(true);setError("");setNotice("");try{await action();setNotice(message);setRefresh(n=>n+1);return true;}catch(failure){setError(failure instanceof Error?failure.message:"Не удалось сохранить");return false;}finally{setBusy(false);}};
 

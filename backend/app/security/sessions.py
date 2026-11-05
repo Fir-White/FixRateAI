@@ -11,9 +11,19 @@ from uuid import UUID
 from fastapi import HTTPException, Request
 from sqlalchemy import text
 
-SQL_ROLES = {"executive": "admin", "chief_engineer": "engineer", "engineer": "engineer",
-             "technician": "executor", "admin": "admin", "dispatcher": "dispatcher", "executor": "executor"}
-API_ROLES = {role: role for role in ("admin", "dispatcher", "engineer", "executor")}
+SQL_ROLES = {role: role for role in ('executive','chief_engineer','engineer','admin','dispatcher','executor')}
+SQL_ROLES['technician'] = 'executor'
+API_ROLES = {role: role for role in SQL_ROLES if role != 'technician'}
+
+
+def has_role(role, roles):
+    """Business hierarchy; technical administration is a separate capability."""
+    effective = {role}
+    if role == 'chief_engineer': effective.update(('engineer','dispatcher'))
+    if role == 'engineer': effective.add('dispatcher')
+    return bool(effective.intersection(roles))
+
+
 COOKIE = "fixrate_session"
 
 
@@ -69,6 +79,8 @@ def authenticate(request: Request, session) -> Principal:
     """), {"token": digest(token)}).mappings().first()
     if not row or row["role"] not in SQL_ROLES:
         raise HTTPException(401, "Сессия истекла или доступ отозван")
+    if row["role"] == "executive" and request.method not in ("GET", "HEAD", "OPTIONS") and not (request.url.path=="/api/v1/auth/logout" or (request.url.path.startswith("/api/v1/maintenance/notifications/") and request.url.path.endswith("/read"))):
+        raise HTTPException(403, "Руководитель имеет доступ только для чтения")
     if request.method not in ("GET", "HEAD", "OPTIONS"):
         csrf = request.headers.get("x-csrf-token", "")
         if not csrf or not hmac.compare_digest(digest(csrf), row["csrf_hash"]):

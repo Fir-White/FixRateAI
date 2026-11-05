@@ -10,15 +10,15 @@ from app.maintenance_jobs import public_status
 
 
 def _job_payload(v, order):
-    entry = v.one("schedule_entries", schedule_entry_id=order.schedule_entry_id)
+    entry = v.one("schedule_entries", schedule_entry_id=order.schedule_entry_id) if order.schedule_entry_id else None
     link = v.one("work_order_equipment", work_order_id=order.work_order_id)
     return {
         "schema_version": "maintenance-0.1",
         "job_id": order.work_order_id,
-        "schedule_entry_id": entry.schedule_entry_id,
+        "schedule_entry_id": entry.schedule_entry_id if entry else None,
         "equipment_id": link.equipment_id,
         "maintenance_rule_id": order.maintenance_rule_id,
-        "planned_date": entry.planned_date,
+        "planned_date": entry.planned_date if entry else order.operation_snapshot.get("earliest_date"),
         "regulatory_deadline_at": order.regulatory_deadline_at,
         "status": public_status(order.status),
         "revision": order.revision,

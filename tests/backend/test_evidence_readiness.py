@@ -27,7 +27,7 @@ def job(runtime):
     finally:
         with engine.begin() as conn:
             keys=list(conn.scalars(text('SELECT storage_key FROM evidence_files WHERE work_order_id=:id'),dict(id=task)))
-            for table in ('evidence_files','checklist_results','acceptance_reviews','ai_quality_checks','work_reports','work_assignments','work_order_equipment'):
+            for table in ('maintenance_notifications','evidence_files','checklist_results','acceptance_reviews','ai_quality_checks','work_reports','work_assignments','work_order_equipment'):
                 conn.execute(text(f'DELETE FROM {table} WHERE work_order_id=:id'),dict(id=task))
             conn.execute(text('DELETE FROM audit_events WHERE entity_id=:id'),dict(id=task))
             conn.execute(text('DELETE FROM work_orders WHERE work_order_id=:id'),dict(id=task))

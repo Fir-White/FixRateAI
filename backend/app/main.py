@@ -1,5 +1,6 @@
 """Executable integrated API. Run from the repository: uvicorn app.main:app --app-dir backend."""
 from __future__ import annotations
+from app.security.sessions import has_role
 
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -12,7 +13,7 @@ import secrets
 from typing import Literal
 from uuid import UUID, uuid4
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -40,6 +41,7 @@ from app.schemas.maintenance_api import (
     MaintenanceJobTransition,
 )
 from app.schemas.management import CancelTask
+from app.integration.analyst import ReadingInput, ExecutionInput, validate_execution, validate_acceptance, notify_event
 from app.security.authorization import AuthorizationError, require_any_role
 from app.security.sessions import COOKIE, Principal, SQL_ROLES, authenticate, create_session, digest, verify_password
 from app.storage import safe_storage_path
@@ -74,6 +76,8 @@ class Revision(Command):
 class ReportEdit(Revision):
     narrative: str = Field(max_length=10000)
     answers: dict[UUID, str | None]
+    readings: list[ReadingInput] = Field(default_factory=list,max_length=200)
+    actual: ExecutionInput | None = None
 
 
 class AssignmentPreview(Revision):
@@ -107,11 +111,13 @@ class Review(Revision):
     reason: str = Field(min_length=1, max_length=10000)
     reviewed_ai_result_id: UUID | None = None
     additional_evidence_refs: list[str] = Field(default_factory=list)
+    late_reason: str | None = Field(default=None,max_length=2000)
 
 
 def require_role(principal: Principal, *roles):
     try:
-        require_any_role([principal.role], roles)
+        if not has_role(principal.role, roles):
+            raise AuthorizationError()
     except AuthorizationError:
         raise HTTPException(403, "Действие недоступно для текущей роли") from None
 
@@ -129,8 +135,8 @@ def create_app(engine=None):
         try:
             app.state.models = map_schema(app.state.engine)
             with app.state.engine.connect() as conn:
-                if not conn.scalar(text("SELECT to_regclass('public.employee_shift_rules')")):
-                    raise RuntimeError("Apply migrations through 008 before starting the API")
+                if not conn.scalar(text("SELECT to_regclass('public.maintenance_notifications')")):
+                    raise RuntimeError("Apply migrations through 009 before starting the API")
             app.state.factory = make_session_factory(app.state.engine)
             app.state.forecaster = None
             if runtime_settings.forecast_provider == "rf":
@@ -139,7 +145,16 @@ def create_app(engine=None):
                     app.state.forecaster = load_verified_forecaster()
                 except Exception as exc:
                     logger.error("RF artifact unavailable: %s", type(exc).__name__)
-            yield
+            import asyncio
+            from app.integration.scheduler import run as run_scheduler
+            scheduler=asyncio.create_task(run_scheduler(app)) if os.environ.get("MAINTENANCE_SCHEDULER","true").lower()=="true" and engine is None else None
+            try:
+                yield
+            finally:
+                if scheduler:
+                    scheduler.cancel()
+                    try: await scheduler
+                    except asyncio.CancelledError: pass
         finally:
             if hasattr(app.state, "models"):
                 app.state.models.registry.dispose()
@@ -186,6 +201,14 @@ def create_app(engine=None):
 
     @app.exception_handler(StarletteHTTPException)
     async def http_error(request,exc):
+        who=getattr(request.state,"principal",None)
+        if who and exc.status_code in (403,409,422) and request.url.path.endswith(("/assign","/assignment-preview")):
+            try:
+                with request.app.state.factory() as failed:
+                    failed.execute(text("INSERT INTO audit_events(site_id,actor_type,actor_user_id,entity_type,entity_id,action,after_snapshot) VALUES (:site,'user',:actor,'assignment',:entity,'denied',CAST(:details AS jsonb))"),dict(site=who.site_id,actor=who.user_id,entity=UUID(str(request.path_params.get("task_id",uuid4()))),details=__import__("json").dumps(dict(path=request.url.path,status=exc.status_code,reason=str(exc.detail)))))
+                    failed.commit()
+            except SQLAlchemyError:
+                logger.error("Assignment denial audit unavailable")
         return error_response(request,exc.status_code,str(exc.detail),headers=exc.headers)
 
     @app.exception_handler(RequestValidationError)
@@ -203,7 +226,9 @@ def create_app(engine=None):
                 raise
 
     def principal(request: Request, session=Depends(db)):
-        return authenticate(request, session)
+        who=authenticate(request, session)
+        request.state.principal=who
+        return who
 
     def views(request: Request, who=Depends(principal), session=Depends(db)):
         return Views(session, request.app.state.models, who)
@@ -287,7 +312,7 @@ def create_app(engine=None):
     @app.get("/api/v1/maintenance_jobs", response_model=list[MaintenanceJobResponse], operation_id="maintenance_jobs_list")
     @app.get(prefix + "/jobs", response_model=list[MaintenanceJobResponse])
     def maintenance_job_list(status: str | None = None, v=Depends(views)):
-        require_role(v.principal, "admin", "dispatcher", "engineer", "executor")
+        require_role(v.principal, "executive", "admin", "dispatcher", "engineer", "executor")
         if status is not None and status not in {
             "planned", "assigned", "in_progress", "submitted", "accepted", "rework",
         }:
@@ -319,7 +344,7 @@ def create_app(engine=None):
     @app.get("/api/v1/maintenance_jobs/{job_id}", response_model=MaintenanceJobResponse, operation_id="maintenance_jobs_read")
     @app.get(prefix + "/jobs/{job_id}", response_model=MaintenanceJobResponse)
     def maintenance_job_detail(job_id: UUID, v=Depends(views)):
-        require_role(v.principal, "admin", "dispatcher", "engineer", "executor")
+        require_role(v.principal, "executive", "admin", "dispatcher", "engineer", "executor")
         return _job_payload(v, v.task(job_id))
 
     @app.post("/api/v1/maintenance_jobs/{job_id}/transitions", response_model=MaintenanceJobResponse, operation_id="maintenance_jobs_transition_post")
@@ -329,7 +354,7 @@ def create_app(engine=None):
     def maintenance_job_transition(
         job_id: UUID, command: MaintenanceJobTransition, v=Depends(views)
     ):
-        require_role(v.principal, "admin", "dispatcher", "engineer", "executor")
+        require_role(v.principal, "executive", "admin", "dispatcher", "engineer", "executor")
         order = v.task(job_id, lock=True)
         check_revision(order, command.expected_revision)
         _job_payload(v, order)
@@ -363,7 +388,7 @@ def create_app(engine=None):
     @app.get("/api/v1/maintenance_jobs/{job_id}/history", response_model=list[MaintenanceJobHistoryItem], operation_id="maintenance_jobs_history")
     @app.get(prefix + "/jobs/{job_id}/history", response_model=list[MaintenanceJobHistoryItem])
     def maintenance_job_history(job_id: UUID, v=Depends(views)):
-        require_role(v.principal, "admin", "dispatcher", "engineer", "executor")
+        require_role(v.principal, "executive", "admin", "dispatcher", "engineer", "executor")
         return job_history(v, job_id)
 
     @app.get(prefix + "/ui/equipment")
@@ -397,7 +422,7 @@ def create_app(engine=None):
 
     @app.get(prefix + "/ui/calendar")
     def calendar(year: int, month: int, v=Depends(views)):
-        require_role(v.principal, "dispatcher", "engineer", "executor")
+        require_role(v.principal, "executive", "chief_engineer", "dispatcher", "engineer", "executor")
         if not 2000 <= year <= 2200 or not 1 <= month <= 12:
             raise HTTPException(422, "Некорректный месяц")
         return v.calendar(year, month)
@@ -446,12 +471,12 @@ def create_app(engine=None):
 
     @app.get(prefix + "/ui/comparisons")
     def comparisons(v=Depends(views)):
-        require_role(v.principal, "admin", "dispatcher", "engineer")
+        require_role(v.principal, "executive", "admin", "dispatcher", "engineer")
         return v.comparisons()
 
     @app.get(prefix + "/ui/comparisons/{run_id}")
     def comparison(run_id: UUID, v=Depends(views)):
-        require_role(v.principal, "admin", "dispatcher", "engineer")
+        require_role(v.principal, "executive", "admin", "dispatcher", "engineer")
         run = next((r for r in v.comparisons() if r["runId"] == str(run_id)), None)
         if run is None:
             raise HTTPException(404, "Запуск не найден")
@@ -475,6 +500,19 @@ def create_app(engine=None):
         checklist = order.operation_snapshot.get("checklist")
         if not checklist:
             raise HTTPException(422, "MISSING_CHECKLIST: сначала согласуйте чек-лист операции")
+        if order.schedule_entry_id:
+            entry=v.one("schedule_entries",schedule_entry_id=order.schedule_entry_id)
+            from zoneinfo import ZoneInfo
+            if datetime.now(ZoneInfo(v.principal.timezone)).date() < (entry.earliest_date or entry.regulatory_deadline_on):
+                raise HTTPException(409,"MAINTENANCE_WINDOW_NOT_OPEN: обязательство ещё нельзя выполнять")
+        if not order.schedule_entry_id and order.operation_snapshot.get("earliest_date"):
+            from datetime import date
+            from zoneinfo import ZoneInfo
+            if datetime.now(ZoneInfo(v.principal.timezone)).date()<date.fromisoformat(order.operation_snapshot["earliest_date"]):
+                raise HTTPException(409,"MAINTENANCE_WINDOW_NOT_OPEN: окно работы ещё не открыто")
+        if order.operation_snapshot.get("methodology_ref") and order.schedule_entry_id:
+            approved=v.one("schedule_plans",schedule_plan_id=entry.schedule_plan_id)
+            if approved.status!="approved": raise HTTPException(409,"PLAN_NOT_APPROVED: месячный план должен утвердить главный инженер")
         reports = v.rows("work_reports", work_order_id=task_id)
         v.repo.add("work_reports", site_id=v.principal.site_id, work_order_id=task_id,
                    revision_no=max((r.revision_no for r in reports), default=0)+1, submitted_by=v.principal.user_id,
@@ -522,6 +560,7 @@ def create_app(engine=None):
                 v.repo.add("checklist_results", site_id=v.principal.site_id, work_order_id=task_id,
                            work_report_id=report.work_report_id, checklist_template_id=identity,
                            question_snapshot=item["text"], response_value={"answer": answer})
+        validate_execution(v,order,report,payload)
         report.comment = payload.narrative
         order.revision += 1
         v.session.flush()
@@ -554,6 +593,10 @@ def create_app(engine=None):
             mime = validate_upload(data, file.filename, file.content_type)
         except Exception:
             raise HTTPException(422, "Недопустимое изображение") from None
+        if order.operation_snapshot.get("methodology_ref"):
+            from ml_service.app.cv.quality import ImageQualityGuard
+            quality=ImageQualityGuard().assess_bytes(data)
+            if not quality.is_acceptable:raise HTTPException(422,"PHOTO_QUALITY: "+str(quality.issue))
         links = v.rows("work_order_equipment", work_order_id=task_id)
         if len(links) != 1:
             raise HTTPException(422, "Фото API требует ровно одно оборудование в задании")
@@ -601,7 +644,7 @@ def create_app(engine=None):
         return FileResponse(path, media_type=photo.mime_type, headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
 
     @app.post(prefix + "/tasks/{task_id}/submit")
-    def submit(task_id: UUID, payload: Revision, v=Depends(views)):
+    def submit(task_id: UUID, payload: Revision, v=Depends(views), background_tasks:BackgroundTasks=None):
         order, report = editable(v, task_id, payload.expected_revision)
         answers = {str(a.checklist_template_id): a.response_value.get("answer")
                    for a in v.rows("checklist_results", work_report_id=report.work_report_id)}
@@ -614,11 +657,15 @@ def create_app(engine=None):
                 pairs = {(p.stage, p.view_key) for p in photos if str(p.checklist_item_id) == item["id"]}
                 if not any(("after", key) in pairs for stage, key in pairs if stage == "before"):
                     raise HTTPException(422, "Требуется пара фото до/после одного ракурса")
+        validate_execution(v,order,report,None,submitting=True)
         report.status, report.submitted_at = "submitted", datetime.now(timezone.utc)
-        order.status, order.completed_at = "in_review", report.submitted_at
+        order.status = "in_review"
+        notify_event(v,order,"submitted",("engineer","chief_engineer"))
         order.revision += 1
         v.session.flush()
         audit(v, order, "submit")
+        if background_tasks is not None and order.operation_snapshot.get("methodology_ref") and len(photos)>=2:
+            background_tasks.add_task(app.state.automatic_photo_review,task_id,order.revision,v.principal)
         result = v.bundle(order)
         v.session.commit()
         return result
@@ -637,15 +684,23 @@ def create_app(engine=None):
             raise HTTPException(403, "Нельзя принимать собственную работу")
         if not payload.reason.strip():
             raise HTTPException(422, "Укажите причину решения")
+        validate_acceptance(v,order,report,payload)
         if payload.reviewed_ai_result_id:
             v.one("ai_quality_checks", ai_quality_check_id=payload.reviewed_ai_result_id, work_report_id=report.work_report_id)
         v.repo.add("acceptance_reviews", site_id=v.principal.site_id, work_order_id=task_id,
                    work_report_id=report.work_report_id, reviewer_user_id=v.principal.user_id,
                    decision="accepted" if payload.verdict == "accepted" else "rework", comment=payload.reason.strip(),
                    decision_context={"reviewed_ai_result_id": str(payload.reviewed_ai_result_id) if payload.reviewed_ai_result_id else None,
-                                     "additional_evidence_refs": payload.additional_evidence_refs})
+                                     "additional_evidence_refs": payload.additional_evidence_refs,
+                                     "performed_at": report.execution_context.get("performed_at"),
+                                     "actual_person_hours": report.execution_context.get("person_hours"),
+                                     "late_reason": payload.late_reason,
+                                     "exception":order.exception_context})
         report.status = "reviewed"
         order.status = "completed" if payload.verdict == "accepted" else "rework"
+        if payload.verdict=="accepted":
+            order.completed_at=datetime.fromisoformat(report.execution_context["performed_at"]) if report.execution_context.get("performed_at") else report.submitted_at
+        notify_event(v,order,"accepted" if payload.verdict=="accepted" else "rework",("executor","technician"))
         order.revision += 1
         v.session.flush()
         audit(v, order, "review")
@@ -655,6 +710,10 @@ def create_app(engine=None):
 
     from app.integration.management import register_routes
     register_routes(app,views,db)
+    from app.integration.analyst import register_analyst_routes
+    register_analyst_routes(app,views,photo_path,editable)
+    from app.integration.incidents import register_incident_routes
+    register_incident_routes(app,views)
     from app.integration.maintenance_api import register_routes as register_maintenance_api_routes
     register_maintenance_api_routes(app, views)
     from app.integration.ml import register_ml_routes

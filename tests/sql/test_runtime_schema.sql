@@ -1,4 +1,4 @@
--- Runtime schema contract after ALL migrations 001-008, with or without the CLI ledger.
+-- Runtime schema contract after ALL migrations 001-009, with or without the CLI ledger.
 -- Run only in a disposable database. Every fixture is rolled back.
 \set ON_ERROR_STOP on
 BEGIN;
@@ -6,15 +6,15 @@ DO $$
 DECLARE missing text; amount integer;
 BEGIN
     SELECT string_agg(name,', ') INTO missing FROM unnest(ARRAY[
-        'fixrate_sessions','planning_runs','employee_shift_rules','site_join_codes','employment_applications'
+        'fixrate_sessions','planning_runs','employee_shift_rules','site_join_codes','employment_applications','maintenance_notifications'
     ]) name WHERE NOT EXISTS (
         SELECT 1 FROM pg_constraint c WHERE c.conrelid=to_regclass('public.'||name) AND c.contype='p');
     IF missing IS NOT NULL THEN RAISE EXCEPTION 'Missing runtime table/primary key: %',missing; END IF;
     SELECT count(*) INTO amount FROM pg_constraint c JOIN pg_namespace n ON n.oid=c.connamespace
         WHERE n.nspname='public' AND c.contype='p' AND c.conrelid<>coalesce(to_regclass('public.fixrate_schema_migrations'),0::oid);
-    IF amount<>40 THEN RAISE EXCEPTION 'Expected 40 application primary keys after 008, found %',amount; END IF;
+    IF amount<>41 THEN RAISE EXCEPTION 'Expected 41 application primary keys after 009, found %',amount; END IF;
     SELECT string_agg(expected.rel||'.'||expected.col,', ') INTO missing FROM (VALUES
-        ('equipment','revision'),('work_orders','revision'),('work_orders','planned_end_at'),
+        ('schedule_entries','source_date'),('work_orders','overdue_since_at'),('work_reports','execution_context'),('work_readings','phase'),('evidence_files','verification_context'),('equipment','revision'),('work_orders','revision'),('work_orders','planned_end_at'),
         ('work_reports','checklist_snapshot'),('acceptance_reviews','decision_context'),
         ('evidence_files','checklist_item_id'),('evidence_files','view_key'),('evidence_files','equipment_id'),
         ('work_assignments','start_at'),('work_assignments','end_at'),('work_assignments','qualification_snapshot'),
@@ -26,7 +26,7 @@ BEGIN
     IF missing IS NOT NULL THEN RAISE EXCEPTION 'Missing runtime columns: %',missing; END IF;
     SELECT string_agg(name,', ') INTO missing FROM unnest(ARRAY[
         'users_email_casefold','work_assignments_current_worker','work_assignments_worker_interval',
-        'schedule_entries_source_occurrence','employee_shift_rules_worker'
+        'schedule_entries_source_occurrence','schedule_entries_binding_source_date','employee_shift_rules_worker'
     ]) name WHERE to_regclass('public.'||name) IS NULL;
     IF missing IS NOT NULL THEN RAISE EXCEPTION 'Missing runtime indexes: %',missing; END IF;
 END $$;

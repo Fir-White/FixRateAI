@@ -32,12 +32,12 @@ def test_qa02_forbidden_service_edits_leave_database_unchanged(managed,role,meth
     eq=equipment(admin,ids)
     day=date.today()+timedelta(days=1)
     url=PREFIX+f"/equipment/{eq['equipment_id']}/service-configurations"
-    created=admin.post(url,json=config(day))
+    created=admin.chief.post(url,json=config(day))
     assert created.status_code==201,created.text
     _,address=join(managed,role)
     with closing(login(address)) as client:
         read=client.get(url)
-        assert read.status_code==(200 if role=='engineer' else 403)
+        assert read.status_code==(200 if role=='engineer' else 404)
         before=service_state(engine,ids['site'])
         target=url if method=='POST' else url+'/'+created.json()['binding_id']
         response=client.request(method,target,json=config(day,expected_revision=1,title='Forbidden change'))
