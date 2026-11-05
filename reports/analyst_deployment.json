@@ -1,0 +1,61 @@
+{
+  "source_revision": "961a1e30fd5fde015a3a67d96ba35c4c1b13027b",
+  "image": "fixrate-ai:analyst-conformance",
+  "database_ready": "ready",
+  "old_columns_preserved": true,
+  "counts": {
+    "acceptance_reviews": 249,
+    "ai_quality_checks": 4,
+    "evidence_files": 11,
+    "forecast_runs": 8,
+    "orchestration_decisions": 4,
+    "schedule_entries": 801,
+    "work_orders": 624,
+    "work_reports": 377
+  },
+  "photo_files_verified": 10,
+  "source_customer_operations": [
+    {
+      "code": "1.1",
+      "publication_status": "draft",
+      "data_origin": "customer"
+    },
+    {
+      "code": "1.2",
+      "publication_status": "draft",
+      "data_origin": "customer"
+    },
+    {
+      "code": "1.3",
+      "publication_status": "draft",
+      "data_origin": "customer"
+    },
+    {
+      "code": "1.4",
+      "publication_status": "draft",
+      "data_origin": "customer"
+    },
+    {
+      "code": "1.5",
+      "publication_status": "draft",
+      "data_origin": "customer"
+    },
+    {
+      "code": "1.6",
+      "publication_status": "draft",
+      "data_origin": "customer"
+    }
+  ],
+  "cloud_models": {
+    "vision": "aitunnel:qwen3.7-flash",
+    "forecast": "aitunnel:qwen3.7-flash"
+  },
+  "backup": "var\\backups\\before-analyst-20261105T175744Z",
+  "packaged_demo_file_verified": true,
+  "total_evidence_files_verified": 11,
+  "image_id": "sha256:ffc5bbb10054f2c255997b5f530443b1d7e4d861dc38c2cbd277e6c21114dc26",
+  "browser_role_count": 6,
+  "browser_page_checks": 17,
+  "normal_api_500s": 0,
+  "secrets_in_app_logs": false
+}

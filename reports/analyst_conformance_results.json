@@ -65,5 +65,13 @@
     "fail": 0,
     "skip": 0
   },
-  "customer_e2e": "BLOCKED: unapproved methodologies, norm units and ranges"
+  "customer_e2e": "BLOCKED: unapproved methodologies, norm units and ranges",
+  "deployment": {
+    "code_revision": "961a1e30fd5fde015a3a67d96ba35c4c1b13027b",
+    "image": "sha256:ffc5bbb10054f2c255997b5f530443b1d7e4d861dc38c2cbd277e6c21114dc26",
+    "browser_roles": 6,
+    "browser_page_checks": 17,
+    "old_business_columns_preserved": true,
+    "evidence_files_verified": 11
+  }
 }
