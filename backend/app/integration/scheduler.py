@@ -41,7 +41,7 @@ def tick(app):
             session.commit()
             for report in v.rows('work_reports',status='submitted'):
                 order=v.one('work_orders',work_order_id=report.work_order_id)
-                if order.status!='in_review' or not order.operation_snapshot.get('methodology_ref') or not report.submitted_at or now-report.submitted_at<timedelta(seconds=60):continue
+                if order.status!='in_review' or not report.execution_context.get('photo_analysis_requested_at') or not report.submitted_at or now-report.submitted_at<timedelta(seconds=60):continue
                 if v.rows('ai_quality_checks',work_report_id=report.work_report_id):continue
                 cls=v.models['work_orders']
                 available=session.scalar(select(cls).where(cls.work_order_id==order.work_order_id).with_for_update(skip_locked=True))

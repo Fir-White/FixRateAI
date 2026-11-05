@@ -95,6 +95,9 @@ def test_real_cv_adapter_with_missing_local_weights_returns_persisted_unavailabl
 def test_photo_review_batch_limit_rejected_before_model_and_database_write(job,monkeypatch,limit):
     engine,app,task,_=job
     bundle=submitted_pair(job,extra=True)
+    # Submission already runs AI; the rejected retry must not add another result.
+    with engine.connect() as conn:
+        prior_checks=conn.scalar(text('SELECT count(*) FROM ai_quality_checks WHERE work_order_id=:id'),dict(id=task))
     original=app.state.settings
     app.state.settings=replace(original,photo_review_max_files=2) if limit=='files' else replace(original,photo_review_max_bytes=1)
     calls=[]
@@ -108,7 +111,7 @@ def test_photo_review_batch_limit_rejected_before_model_and_database_write(job,m
         assert response.status_code==413 and response.json()['error']['code']=='PHOTO_REVIEW_LIMIT_EXCEEDED'
         assert not calls
         with engine.connect() as conn:
-            assert conn.scalar(text('SELECT count(*) FROM ai_quality_checks WHERE work_order_id=:id'),dict(id=task))==0
+            assert conn.scalar(text('SELECT count(*) FROM ai_quality_checks WHERE work_order_id=:id'),dict(id=task))==prior_checks
             assert conn.scalar(text('SELECT revision FROM work_orders WHERE work_order_id=:id'),dict(id=task))==bundle['task']['revision']
     finally:
         app.state.settings=original

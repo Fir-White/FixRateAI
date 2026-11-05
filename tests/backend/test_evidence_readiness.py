@@ -113,6 +113,8 @@ def test_corrupt_persisted_photo_is_rejected_before_calling_ai(job,monkeypatch):
     bundle=submit_pair(job)
     with engine.connect() as c:
         key=c.scalar(text('SELECT storage_key FROM evidence_files WHERE work_order_id=:id LIMIT 1'),dict(id=task))
+    with engine.connect() as c:
+        prior_checks=c.scalar(text('SELECT count(*) FROM ai_quality_checks WHERE work_order_id=:id'),dict(id=task))
     (app.state.settings.photo_storage_root/key).write_bytes(b'corrupt-stored-image')
     def forbidden(*args,**kwargs): pytest.fail('AI must not receive corrupt evidence')
     monkeypatch.setattr('ml_service.app.cv.api.review_photos',forbidden)
@@ -120,7 +122,7 @@ def test_corrupt_persisted_photo_is_rejected_before_calling_ai(job,monkeypatch):
         response=client.post(PREFIX+f'/tasks/{task}/photo-review',json=dict(expected_revision=bundle['task']['revision']))
     assert response.status_code==422 and response.json()['error']['code']=='PHOTO_CONTENT_INVALID'
     with engine.connect() as c:
-        assert c.scalar(text('SELECT count(*) FROM ai_quality_checks WHERE work_order_id=:id'),dict(id=task))==0
+        assert c.scalar(text('SELECT count(*) FROM ai_quality_checks WHERE work_order_id=:id'),dict(id=task))==prior_checks
 
 
 @pytest.mark.parametrize('failure,code',[('exception','PROVIDER_ERROR'),('timeout','TIMEOUT'),('invalid','INVALID_RESPONSE')])
@@ -142,7 +144,7 @@ def test_photo_provider_failures_are_persisted_without_accepting_work(job,monkey
         assert response.json()['status']=='failed' and response.json()['errorCode']==code
         assert response.json()['modelRef'] is None
         with engine.connect() as c:
-            result=c.execute(text('SELECT status,findings FROM ai_quality_checks WHERE work_order_id=:id'),dict(id=task)).one()
+            result=c.execute(text('SELECT status,findings FROM ai_quality_checks WHERE work_order_id=:id AND ai_quality_check_id=:check'),dict(id=task,check=UUID(response.json()['id']))).one()
             assert result.status=='failed' and result.findings['canonical']['error_code']==code
             assert result.findings['canonical']['item_results']==[]
             assert c.execute(text('SELECT status,revision FROM work_orders WHERE work_order_id=:id'),dict(id=task)).one()==('in_review',bundle['task']['revision'])

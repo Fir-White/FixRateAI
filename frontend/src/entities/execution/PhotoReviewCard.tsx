@@ -36,6 +36,6 @@ export function PhotoReviewCard({review,formatDateTime}:{review:PhotoReview|null
         </>:<p className="mt-3 text-sm leading-6 text-muted">{legacy?"Оценки CLIP не позволяют сделать подробное заключение о выполнении этого пункта.":item.note}</p>}
       </article>)}</div>
       <details className="mt-5 rounded-xl border border-line p-4"><summary className="cursor-pointer text-sm text-muted">Модель, версия и исходный результат</summary><p className="mt-3 break-all font-mono text-xs text-muted">{review.modelRef??"Модель не применялась"}</p><p className="mt-2 text-xs text-muted">{review.promptSetVersion} · {formatDateTime(review.createdAt)}</p>{review.errorCode&&<p className="mt-2 font-mono text-xs text-muted">{review.errorCode}</p>}{legacy&&review.items.map(item=><p key={item.id} className="mt-2 text-xs text-muted">{item.note}</p>)}<ul className="mt-3 list-disc space-y-1 pl-4 text-xs leading-5 text-muted">{review.limitations.map(text=><li key={text}>{text}</li>)}</ul></details>
-    </>:<EmptyState title="Фотоанализ ещё не выполнен" description="Отправьте отчёт с фотографиями до и после. Затем инженер сможет запустить проверку."/>}</div>
+    </>:<EmptyState title="Фотоанализ ещё не выполнен" description="Отправьте отчёт с фотографиями до и после. Анализ запустится автоматически после сдачи работы."/>}</div>
   </Card>;
 }

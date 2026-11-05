@@ -212,11 +212,14 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
         from .projections import Views
         with app.state.factory() as session:
             v=Views(session,app.state.models,principal)
+            report_id=None
             try:
                 order=v.task(task_id,lock=True)
                 reports=v.rows('work_reports',work_order_id=task_id)
                 current=max(reports,key=lambda r:r.revision_no)
-                if current.submitted_by!=principal.user_id or v.rows("ai_quality_checks",work_report_id=current.work_report_id):return
+                if (order.status!='in_review' or order.revision!=revision or current.status!='submitted'
+                        or current.submitted_by!=principal.user_id or v.rows("ai_quality_checks",work_report_id=current.work_report_id)):return
+                report_id=current.work_report_id
                 analyze_photo_review(task_id,MLCommand(expected_revision=revision,comparability_confirmed=False),v,automatic=True)
             except Exception as exc:
                 session.rollback()
@@ -226,7 +229,8 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
                     order=v.task(task_id,lock=True)
                     reports=v.rows('work_reports',work_order_id=task_id)
                     current=max(reports,key=lambda r:r.revision_no)
-                    if current.submitted_by!=principal.user_id or order.status!='in_review':return
+                    if (current.work_report_id!=report_id or current.submitted_by!=principal.user_id or order.status!='in_review'
+                            or v.rows('ai_quality_checks',work_report_id=current.work_report_id)):return
                     from datetime import datetime,timezone
                     from uuid import uuid4
                     identity=uuid4()

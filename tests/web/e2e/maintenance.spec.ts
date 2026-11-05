@@ -50,12 +50,13 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
   await engineer.goto(`/quality/${demoId("runtime-order")}`);
   await expect(engineer.locator(".evidence-photo img")).toHaveCount(2);
   await expect(engineer.getByText("Последние изменения перед сдачей", {exact: true})).toBeVisible();
-  const review = engineer.waitForResponse(r => r.url().endsWith("/photo-review"));
-  await engineer.getByRole("checkbox", {name: /Подтверждаю, что фото/}).check();
-  await engineer.getByRole("button", {name: "Анализировать фото"}).click();
-  const result = await review;
-  expect(result.status()).toBe(200);
-  expect((await result.json()).status).toBe("uncertain");
+  // No engineer POST or comparability confirmation: submission queues the analysis.
+  await expect.poll(async()=> (await (await engineer.request.get(`/api/v1/maintenance/ui/tasks/${demoId("runtime-order")}`)).json()).photoAnalysisStatus,{timeout:30000}).toBe("ready");
+  const automaticallyReviewed=await (await engineer.request.get(`/api/v1/maintenance/ui/tasks/${demoId("runtime-order")}`)).json();
+  expect(automaticallyReviewed.review.status).toBe("uncertain");
+  expect(automaticallyReviewed.review.id).toBeTruthy();
+  await expect(engineer.getByRole("checkbox", {name: /Подтверждаю, что фото/})).toHaveCount(0);
+  await expect(engineer.getByText("Разбор фотоотчёта",{exact:true})).toBeVisible();
   await engineer.getByLabel(/Причина решения/).fill("Одинаковые учебные фото проверены; это синтетический E2E сценарий.");
   await engineer.getByRole("button", {name: "Вернуть на доработку", exact: true}).click();
   const reject = engineer.waitForResponse(r => r.url().endsWith("/review") && r.request().method() === "POST");

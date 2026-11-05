@@ -32,7 +32,6 @@ export function QualityTaskPage() {
   const [refresh, setRefresh] = useState(0);
   const [busy, setBusy] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
   const [reason, setReason] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingDecision, setPendingDecision] = useState<
@@ -41,13 +40,13 @@ export function QualityTaskPage() {
   const query = useApiQuery(
     () => maintenanceApi.getQualityBundle(taskId),
     [taskId, refresh],
+    bundle => !DEMO_MODE && bundle.photoAnalysisStatus === "pending",
   );
   const executionId = query.data?.execution?.id;
   const decisionContext = useRef("");
   useEffect(() => {
     if (!executionId || decisionContext.current === `${taskId}:${executionId}`) return;
     decisionContext.current = `${taskId}:${executionId}`;
-    setConfirmed(false);
     setReason("");
     setPendingDecision(null);
     setNotice(null);
@@ -115,14 +114,14 @@ export function QualityTaskPage() {
         </span>
       </div>
 
-      {canAnalyze && <div className="space-y-3 rounded-xl border border-line p-4">
-        <label className="block text-sm"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /> Подтверждаю, что фото показывают тот же объект и сопоставимый ракурс</label>
-        <Button variant="secondary" disabled={busy || !confirmed} onClick={async () => {
+      {query.data.photoAnalysisStatus === "pending" && <Callout tone="neutral"><p role="status">Фотографии анализируются автоматически. Результат появится здесь без обновления страницы; запуск инженером не требуется.</p></Callout>}
+      {canAnalyze && query.data.photoAnalysisStatus !== "pending" && (!review || ["failed","unavailable"].includes(review.status)) && <div className="space-y-3 rounded-xl border border-line p-4">
+        <Button variant="secondary" disabled={busy} onClick={async () => {
           setBusy(true); setAnalyzing(true); setNotice(null);
-          try { await maintenanceApi.photoReview(task.id, task.revision, confirmed); setRefresh(n => n+1); }
+          try { await maintenanceApi.photoReview(task.id, task.revision, false); setRefresh(n => n+1); }
           catch (error) { setNotice(error instanceof Error ? error.message : "Ошибка анализа"); }
           finally { setBusy(false); setAnalyzing(false); }
-        }}>{analyzing?"Фотографии анализируются…":"Анализировать фото"}</Button>
+        }}>{analyzing?"Фотографии анализируются…":review?"Повторить анализ":"Анализировать фото"}</Button>
         {analyzing&&<p role="status" className="text-sm leading-6 text-muted">Модель сравнивает фотографии с заданием. Дождитесь результата; повторно нажимать кнопку не нужно.</p>}
       </div>}
       {DEMO_MODE && <Callout tone="neutral">DEMO · Фото и решения показаны из примера. Анализ и приёмка доступны только при подключении к API.</Callout>}
@@ -162,7 +161,7 @@ export function QualityTaskPage() {
             </div>
           </Card>
 
-          <PhotoReviewCard review={review} formatDateTime={formatDateTime}/>
+          {query.data.photoAnalysisStatus !== "pending" && <PhotoReviewCard review={review} formatDateTime={formatDateTime}/>}
         </div>
 
         <div className="space-y-6 quality-decision-rail">

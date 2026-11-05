@@ -23,3 +23,10 @@ def compare_readings(protocol,result):
             except (InvalidOperation,ValueError):pass
         compared.append(dict(**reading,observed=observed,status=status))
     return compared
+
+
+def has_photo_pair(photos):
+    """Only a same-item, same-equipment, same-view before/after pair is eligible."""
+    keys={(p.checklist_item_id,p.equipment_id,p.view_key,p.stage) for p in photos
+          if p.checklist_item_id and p.equipment_id and p.view_key and p.stage in ('before','after')}
+    return any((item,equipment,view,'after') in keys for item,equipment,view,stage in keys if stage=='before')

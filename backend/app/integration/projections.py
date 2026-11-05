@@ -194,8 +194,10 @@ class Views:
             if report.submitted_by != self.principal.user_id and not any(
                     a.user_id == self.principal.user_id for a in self.rows("work_assignments", work_order_id=order.work_order_id)):
                 actions.append("review")
+        analysis_status=("failed" if review.get("status") in ("failed","unavailable") else "ready") if review else (
+            "pending" if report and report.status=="submitted" and order.status=="in_review" and report.execution_context.get("photo_analysis_requested_at") else "not_requested")
         return dict(task=task, execution=self.report_view(report) if report else None, review=review,
-                    decision=decision_view, allowedActions=actions)
+                    decision=decision_view, allowedActions=actions, photoAnalysisStatus=analysis_status)
 
     def calendar(self, year, month):
         today = datetime.now(ZoneInfo(self.principal.timezone)).date()

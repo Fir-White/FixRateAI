@@ -8,6 +8,7 @@ export type ApiQuery<T> =
 export function useApiQuery<T>(
   loader: () => Promise<T>,
   dependencies: DependencyList,
+  pollWhile?: (data: T) => boolean,
 ): ApiQuery<T> {
   const [state, setState] = useState<ApiQuery<T>>({
     status: "loading",
@@ -19,10 +20,12 @@ export function useApiQuery<T>(
     let active = true;
     setState({ status: "loading", data: null, error: null });
 
-    loader()
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const load = () => loader()
       .then((data) => {
         if (active) {
           setState({ status: "success", data, error: null });
+          if (pollWhile?.(data)) timer = setTimeout(load, 3000);
         }
       })
       .catch((error: unknown) => {
@@ -38,8 +41,10 @@ export function useApiQuery<T>(
         }
       });
 
+    void load();
     return () => {
       active = false;
+      clearTimeout(timer);
     };
   }, dependencies);
 

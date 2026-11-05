@@ -352,7 +352,7 @@ def create_app(engine=None):
     @app.patch("/api/v1/maintenance_jobs/{job_id}", response_model=MaintenanceJobResponse, operation_id="maintenance_jobs_transition_patch")
     @app.patch(prefix + "/jobs/{job_id}", response_model=MaintenanceJobResponse)
     def maintenance_job_transition(
-        job_id: UUID, command: MaintenanceJobTransition, v=Depends(views)
+        job_id: UUID, command: MaintenanceJobTransition, v=Depends(views), background_tasks: BackgroundTasks = None
     ):
         require_role(v.principal, "executive", "admin", "dispatcher", "engineer", "executor")
         order = v.task(job_id, lock=True)
@@ -369,7 +369,7 @@ def create_app(engine=None):
         if command.status == "in_progress":
             start(job_id, revision, v)
         elif command.status == "submitted":
-            submit(job_id, revision, v)
+            submit(job_id, revision, v, background_tasks)
         else:
             require_role(v.principal, "engineer")
             report = max(v.rows("work_reports", work_order_id=job_id),
@@ -664,8 +664,12 @@ def create_app(engine=None):
         order.revision += 1
         v.session.flush()
         audit(v, order, "submit")
-        if background_tasks is not None and order.operation_snapshot.get("methodology_ref") and len(photos)>=2:
-            background_tasks.add_task(app.state.automatic_photo_review,task_id,order.revision,v.principal)
+        from app.integration.photo_evidence import has_photo_pair
+        if has_photo_pair(photos):
+            # Durable opt-in for this submission only; historical reports are not backfilled.
+            report.execution_context=dict(report.execution_context,photo_analysis_requested_at=report.submitted_at.isoformat())
+            if background_tasks is not None:
+                background_tasks.add_task(app.state.automatic_photo_review,task_id,order.revision,v.principal)
         result = v.bundle(order)
         v.session.commit()
         return result
