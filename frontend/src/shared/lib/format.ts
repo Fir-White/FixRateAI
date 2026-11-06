@@ -100,11 +100,11 @@ export function formatDurationMs(ms: number | null | undefined): string | null {
   if (rounded < 1000) {
     return `${rounded} мс`;
   }
-  const totalSeconds = rounded / 1000;
+  const totalSeconds = Math.round(rounded / 100) / 10;
   if (totalSeconds < 60) {
     return `${totalSeconds.toFixed(1)} сек`;
   }
   const minutes = Math.floor(totalSeconds / 60);
-  const seconds = (totalSeconds % 60).toFixed(1);
+  const seconds = (totalSeconds - minutes * 60).toFixed(1);
   return `${minutes} мин ${seconds} сек`;
 }
