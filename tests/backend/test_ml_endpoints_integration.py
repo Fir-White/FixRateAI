@@ -85,9 +85,12 @@ def test_real_cv_adapter_with_missing_local_weights_returns_persisted_unavailabl
     assert response.json()['status']=='unavailable' and response.json()['errorCode']=='MODEL_NOT_READY'
     assert response.json()['modelRef'] is None
     with engine.connect() as conn:
-        saved=conn.scalar(text('SELECT findings FROM ai_quality_checks WHERE work_report_id=:id'),dict(id=report))['canonical']
+        # Submission already stores an automatic review. Check the exact retry
+        # returned by this POST, not an arbitrary earlier review of the report.
+        saved=conn.scalar(text('SELECT findings FROM ai_quality_checks WHERE work_report_id=:id AND ai_quality_check_id=:review_id'),dict(id=report,review_id=UUID(response.json()['id'])))['canonical']
         assert conn.scalar(text('SELECT status FROM work_orders WHERE work_order_id=:id'),dict(id=task))=='in_review'
     canonical=PhotoReviewResult.model_validate_json(json.dumps(saved))
+    assert canonical.ai_review_id==UUID(response.json()['id'])
     assert canonical.status=='unavailable' and not canonical.item_results and canonical.model_ref is None
 
 
