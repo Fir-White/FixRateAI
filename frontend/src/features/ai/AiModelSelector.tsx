@@ -52,7 +52,7 @@ export function AiModelSelector({
     const provInfo = modelsData?.providers?.find((p) => p.id === prov);
     const defaultModel = provInfo?.models?.[0]?.id || "";
     updateSetting("provider", prov);
-    if (defaultModel && !settings.model) {
+    if (defaultModel) {
       updateSetting("model", defaultModel);
     }
     triggerSaved();

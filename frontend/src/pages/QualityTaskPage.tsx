@@ -14,7 +14,7 @@ import { Card, CardHeader } from "@/shared/ui/Card";
 import { ErrorState, LoadingState } from "@/shared/ui/States";
 import { Button, buttonClassName } from "@/shared/ui/Button";
 import { Icon } from "@/shared/ui/Icon";
-import { PhotoReviewCard } from "@/entities/execution/PhotoReviewCard";
+import { AnalysisTimerBadge, PhotoReviewCard } from "@/entities/execution/PhotoReviewCard";
 import { EvidenceComparison } from "@/entities/execution/EvidenceComparison";
 import { ChecklistSummary } from "@/entities/execution/ChecklistSummary";
 import { Callout } from "@/shared/ui/Callout";
@@ -34,6 +34,7 @@ export function QualityTaskPage() {
   const [refresh, setRefresh] = useState(0);
   const [busy, setBusy] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [lastMeasuredMs, setLastMeasuredMs] = useState<number | null>(null);
   const [reason, setReason] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingDecision, setPendingDecision] = useState<
@@ -116,24 +117,27 @@ export function QualityTaskPage() {
         </span>
       </div>
 
-      {query.data.photoAnalysisStatus === "pending" && <Callout tone="neutral"><p role="status">Фотографии анализируются автоматически. Результат появится здесь без обновления страницы; запуск инженером не требуется.</p></Callout>}
+      {query.data.photoAnalysisStatus === "pending" && <Callout tone="neutral"><div className="flex flex-wrap items-center justify-between gap-2"><p role="status">Фотографии анализируются автоматически. Результат появится здесь без обновления страницы; запуск инженером не требуется.</p><AnalysisTimerBadge active /></div></Callout>}
       {canAnalyze && query.data.photoAnalysisStatus !== "pending" && (!review || ["failed","unavailable"].includes(review.status)) && <div className="space-y-4 rounded-xl border border-line p-4">
         <AiModelSelector variant="compact" />
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="secondary" disabled={busy} onClick={async () => {
+            const startedAt = performance.now();
             setBusy(true); setAnalyzing(true); setNotice(null);
             try {
               const aiOpts = getStoredAiSettings();
-              await maintenanceApi.photoReview(task.id, task.revision, false, {
+              const res = await maintenanceApi.photoReview(task.id, task.revision, false, {
                 provider: aiOpts.provider,
                 model: aiOpts.model,
                 api_key: aiOpts.apiKey,
               });
+              setLastMeasuredMs(res.elapsedMs ?? Math.round(performance.now() - startedAt));
               setRefresh(n => n+1);
             }
             catch (error) { setNotice(error instanceof Error ? error.message : "Ошибка анализа"); }
             finally { setBusy(false); setAnalyzing(false); }
           }}>{analyzing?"Фотографии анализируются…":review?"Повторить анализ":"Анализировать фото"}</Button>
+          <AnalysisTimerBadge active={analyzing} />
           {analyzing&&<p role="status" className="text-sm leading-6 text-muted">Модель сравнивает фотографии с заданием. Дождитесь результата; повторно нажимать кнопку не нужно.</p>}
         </div>
       </div>}
@@ -174,7 +178,7 @@ export function QualityTaskPage() {
             </div>
           </Card>
 
-          {query.data.photoAnalysisStatus !== "pending" && <PhotoReviewCard review={review} formatDateTime={formatDateTime}/>}
+          {query.data.photoAnalysisStatus !== "pending" && <PhotoReviewCard review={review} formatDateTime={formatDateTime} fallbackElapsedMs={lastMeasuredMs}/>}
         </div>
 
         <div className="space-y-6 quality-decision-rail">

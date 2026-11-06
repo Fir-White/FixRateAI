@@ -75,15 +75,17 @@ export function useAiSettings(autoFetch = true) {
       const resp = await maintenanceApi.getAiModels();
       if (resp && Array.isArray(resp.providers)) {
         setModelsData(resp);
-        // If current model is not set, set smart defaults based on the provider
+        // If current model is not set or doesn't belong to the active provider, set smart default
         setSettingsState(curr => {
-          if (curr.model) return curr;
           const providerInfo = resp.providers.find(p => p.id === curr.provider);
           if (providerInfo && providerInfo.models.length > 0) {
-            const defaultModel = providerInfo.models[0].id;
-            const updated = { ...curr, model: defaultModel };
-            saveStoredAiSettings(updated);
-            return updated;
+            const existsInProvider = providerInfo.models.some(m => m.id === curr.model);
+            if (!curr.model || !existsInProvider) {
+              const defaultModel = providerInfo.models[0].id;
+              const updated = { ...curr, model: defaultModel };
+              saveStoredAiSettings(updated);
+              return updated;
+            }
           }
           return curr;
         });

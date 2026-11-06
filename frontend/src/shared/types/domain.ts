@@ -341,6 +341,7 @@ export interface PhotoReview {
   modelRef: string | null;
   promptSetVersion: string;
   errorCode?: string | null;
+  elapsedMs?: number | null;
   createdAt: string;
   items: PhotoReviewItem[];
   limitations: string[];

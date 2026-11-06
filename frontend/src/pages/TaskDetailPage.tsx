@@ -9,7 +9,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
 import { canOpenSection } from "@/shared/lib/roles";
-import { formatDate } from "@/shared/lib/format";
+import { formatDate, formatDurationMs } from "@/shared/lib/format";
 import { useSiteDateTime } from "@/shared/lib/useSiteDateTime";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Card, CardHeader } from "@/shared/ui/Card";
@@ -227,6 +227,11 @@ export function TaskDetailPage() {
                 <p className="mt-1 text-xs text-muted">
                   Prompt set {review.promptSetVersion}
                 </p>
+                {formatDurationMs(review.elapsedMs) ? (
+                  <p className="mt-1 text-xs text-muted">
+                    Время анализа: {formatDurationMs(review.elapsedMs)}
+                  </p>
+                ) : null}
                 {canOpenQuality && <Link
                   to={`/quality/${task.id}`}
                   className={buttonClassName("secondary", "sm", "mt-4 w-full")}

@@ -474,6 +474,7 @@ export const demoPhotoReviews: PhotoReview[] = [
     status: "uncertain",
     modelRef: "openai/clip-vit-base-patch32@demo-rev-3",
     promptSetVersion: "cleanup-prompts-1.2",
+    elapsedMs: 340,
     createdAt: "2026-10-30T14:06:00+05:00",
     items: [
       {
@@ -507,6 +508,7 @@ export const demoPhotoReviews: PhotoReview[] = [
     status: "uncertain",
     modelRef: "openai/clip-vit-base-patch32@demo-rev-3",
     promptSetVersion: "cleanup-prompts-1.2",
+    elapsedMs: 280,
     createdAt: "2026-10-30T10:41:00+05:00",
     items: [
       {
