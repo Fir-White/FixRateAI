@@ -1,5 +1,11 @@
 # Журнал реализации редизайна v2
 
+## Дизайн-итерация 07.11.2026: повторяющаяся стрелка select
+
+Дефект воспроизведён в `/comparisons`: `.ops-register-tools>select` задавал `background` shorthand, сбрасывая no-repeat,15px size и правую позицию из Form.css. В покое image становился none; при hover правило Form.css возвращало только SVG image, который повторялся по всей площади. Одно свойство в этом конкретном selector заменено на background-color; новые глобальные правила и изменения protected shell не вводились.
+
+Before/after computed styles и screenshot подтвердили repeat→no-repeat,auto→15px15px,0%0%→right/center для rest/hover/focus. Дополнительно102live состояния visible select проверены на1440/390 на7экранах (прогнозы, задания, календарь, оборудование, отчёты, обслуживание с редактором, сотрудники): image присутствует, no-repeat,size15px; errors0/API writes0. Ключевые screenshots лично просмотрены, production build passed. Артефакты `reports/redesign-v2/select-background-review/`; полный regression suite не повторялся.
+
 ## Дизайн-итерация 07.11.2026: крестик уведомления
 
 По прямому запросу владельца выполнено узкое исправление защищённых уведомлений: позиция `.inbox-item-delete` теперь центрируется относительно `.inbox-item-side` через left50%/translateX(-50%) вместо right-8px. Ранее центр SVG был на4CSSpx правее непрочитанного кружка; после исправления deltaX=0/deltaY=0 при hover и keyboard focus на1440/390. Размеры/высота/обработчик удаления не менялись. На touch сохраняется прежнее разделение: постоянно видимая кнопка и отдельный индикатор непрочитанного ниже, теперь на одной вертикальной оси.
