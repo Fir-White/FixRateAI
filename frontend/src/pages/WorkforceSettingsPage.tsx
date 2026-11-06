@@ -11,6 +11,8 @@ import { useSession } from "@/shared/session/SessionContext";
 import type { Role } from "@/shared/types/domain";
 import type { CrewRecord,ShiftRule,StaffMember,Workforce } from "@/shared/types/management";
 import { patternDefaults } from "@/shared/types/management";
+import { readCalendarPattern } from "@/shared/lib/calendarPattern";
+import { FormErrors, RuleSection, revealField, sectionErrors, type FieldError } from "@/features/settings/SectionForm";
 import { CalendarPatternEditor } from "@/features/settings/CalendarPatternEditor";
 import { Button } from "@/shared/ui/Button";
 import { FieldCaption, Input,Select  } from "@/shared/ui/Form";
@@ -27,6 +29,7 @@ export function WorkforceSettingsPage() {
 function LiveWorkforceSettingsPage() {
   const {profile}=useSession();const [refresh,setRefresh]=useState(0);const [selected,setSelected]=useWorkspaceState("workforce.employee", "", isShortString);
   const [busy,setBusy]=useState(false);const [error,setError]=useState("");const [notice,setNotice]=useState("");
+  const [area,setArea]=useState<"staff"|"crews"|"skills">("staff");
   const query=useApiQuery(()=>managementApi.workforce(),[refresh]);
   const admin=profile?.role==="admin";const mayEdit=admin||["chief_engineer","engineer","dispatcher"].includes(profile?.role??"");
   const today=todayAt(profile?.timezone??"Asia/Yekaterinburg");
@@ -38,11 +41,13 @@ function LiveWorkforceSettingsPage() {
   const member=data.staff.find(m=>m.user_id===selected);
   return <div className="space-y-6"><PageHeader title="Сотрудники и смены" eyebrow="Команда" description="Роль определяет доступ. Бригада определяет состав. Смены и исключения определяют, когда человек может работать."/>
     {error&&<div role="alert"><Callout tone="danger">{error}</Callout></div>}{notice&&<Callout tone="success">{notice}</Callout>}
+    <div className="fr-workspace-sections" aria-label="Раздел команды">{([["staff","Сотрудники"],["crews","Бригады"],["skills","Виды допусков"]] as const).map(([key,title])=><Button key={key} type="button" variant="secondary" aria-pressed={area===key} disabled={busy} onClick={()=>setArea(key)}>{title}</Button>)}</div>
+    <div hidden={area!=="staff"} className="space-y-5">
     {admin&&<Enrollment data={data} today={today} busy={busy} run={run}/>}
     <Card className="space-y-2 p-5"><label className="block space-y-1 text-sm"><FieldCaption>Сотрудник</FieldCaption><Select aria-label="Сотрудник" value={selected} onChange={e=>setSelected(e.target.value)}><option value="">Выберите сотрудника</option>{data.staff.map(person=><option key={person.user_id} value={person.user_id}>{person.full_name} · {ROLE_LABELS[person.role]}{person.is_active ? "" : " · доступ отключён"}</option>)}</Select></label><p className="text-xs text-muted">Часовой пояс объекта: {data.timezone}. Работа без постоянной бригады поддерживается.</p></Card>
     {member&&<Employee key={`${member.user_id}:${refresh}`} person={member} data={data} admin={admin} mayEdit={mayEdit} today={today} busy={busy} run={run}/>}
-    <CrewSettings key={`crews:${refresh}`} data={data} today={today} mayEdit={mayEdit} busy={busy} run={run}/>
-    {mayEdit&&<SkillCreate busy={busy} run={run}/>}
+    </div><div hidden={area!=="crews"}><CrewSettings key={`crews:${refresh}`} data={data} today={today} mayEdit={mayEdit} busy={busy} run={run}/></div>
+    <div hidden={area!=="skills"} className="space-y-4"><Card className="p-5"><h2>Виды допусков</h2>{data.skills.length ? <ul>{data.skills.map(skill=><li key={skill.id} className="border-b border-line py-3">{skill.name} · {skill.validity_required ? "Требуется срок действия" : "Без обязательного срока действия"}</li>)}</ul> : <p>Виды допусков ещё не заданы.</p>}</Card>{mayEdit&&<SkillCreate busy={busy} run={run}/>}</div>
   </div>;
 }
 
@@ -69,33 +74,38 @@ function Employee({person,data,admin,mayEdit,today,busy,run}: {person:StaffMembe
   const [from,setFrom]=useState(person.employed_from??"");const [until,setUntil]=useState(person.employed_until??"");
   const [shift,setShift]=useState<ShiftRule|null|undefined>();
   return <section aria-label="Настройки сотрудника" className="space-y-5"><Card><CardHeader title={person.full_name} description={person.email}/>
+    <p className="px-5 pb-4 text-sm">{ROLE_LABELS[person.role]} · {person.is_active ? "Доступ включён" : "Доступ отключён"} · {person.employed_from ? `Работает с ${formatDate(person.employed_from)}` : "Начало работы не указано"}{person.employed_until ? ` по ${formatDate(person.employed_until)}` : ""}</p><details className="px-5" open={admin||undefined}><summary className="cursor-pointer py-3">Роль и период работы{!admin&&" · только просмотр"}</summary>
     <form className="space-y-4 p-5" onSubmit={e=>{e.preventDefault();run(()=>managementApi.saveStaff(person.user_id,{expected_revision:person.revision,role,is_active:active,employed_from:from||null,employed_until:until||null}),"Роль и период работы сохранены");}}><fieldset disabled={busy||!admin} className="grid gap-4 sm:grid-cols-3"><label className="text-sm"><FieldCaption>Роль</FieldCaption><RoleSelect value={role} onChange={setRole}/></label><label className="text-sm"><FieldCaption>Работает с</FieldCaption><Input aria-label="Работает с" type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label><label className="text-sm"><FieldCaption>Работает по</FieldCaption><Input aria-label="Работает по" type="date" value={until} onChange={e=>setUntil(e.target.value)}/></label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={active} onChange={e=>setActive(e.target.checked)}/>Доступ к объекту включён</label></fieldset>{admin&&<Button type="submit" disabled={busy}>Сохранить роль и период работы</Button>}</form>
-  </Card>
+  </details></Card>
   {person.role==="executor"&&<>
     <Card className="space-y-3 p-5"><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-semibold">Регулярные смены</h3>{mayEdit&&<Button variant="secondary" disabled={busy} onClick={()=>setShift(null)}>Добавить смену</Button>}</div>
       {!person.shifts.length&&<p className="text-sm text-muted">Смен нет. Для назначения нужно задать смену или отдельный рабочий интервал.</p>}
       {person.shifts.map(row=><div key={row.shift_rule_id} className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3"><p>{row.label} · {row.starts_local.slice(0,5)}–{row.ends_local.slice(0,5)}<span className="block text-xs text-muted">{row.is_active ? "Действует" : "Отключена"} · с {formatDate(row.valid_from)}{row.valid_until ? ` по ${formatDate(row.valid_until)}` : ""} · {row.status==="available" ? "Рабочее время" : "Не работает"}</span></p>{mayEdit&&<Button variant="ghost" disabled={busy} onClick={()=>setShift(row)}>Изменить смену</Button>}</div>)}
     </Card>
     {shift!==undefined&&<ShiftEditor key={shift?.shift_rule_id??"new"} initial={shift} today={today} busy={busy} onClose={()=>setShift(undefined)} onSave={value=>run(()=>managementApi.saveShift(person.user_id,value),"Смена сохранена")}/>}
-    <Qualifications person={person} data={data} today={today} busy={busy} mayEdit={mayEdit} run={run}/>
-    <Exceptions person={person} today={today} busy={busy} mayEdit={mayEdit} timezone={data.timezone} run={run}/>
+    <RuleSection title="Отсутствия и отдельные интервалы" summary={`Записей: ${person.exceptions.length}`}><Exceptions person={person} today={today} busy={busy} mayEdit={mayEdit} timezone={data.timezone} run={run}/></RuleSection>
+    <RuleSection title="Квалификации и допуски" summary={`Записей: ${person.qualifications.length}`}><Qualifications person={person} data={data} today={today} busy={busy} mayEdit={mayEdit} run={run}/></RuleSection>
     <EmployeeCalendar person={person} today={today} timezone={data.timezone}/>
   </>}
   </section>;
 }
 
 function ShiftEditor({initial,today,busy,onSave,onClose}: {initial:ShiftRule|null;today:string;busy:boolean;onSave:(value:ShiftRule)=>Promise<boolean>;onClose:()=>void}) {
-  const [value,setValue]=useState<ShiftRule>(initial ? {...initial,expected_revision:initial.revision} : {label:"Дневная смена",pattern:patternDefaults(today),valid_from:today,valid_until:null,starts_local:"09:00",ends_local:"17:00",status:"available",is_active:true});
+  const [storedPattern] = useState(() => initial ? readCalendarPattern(initial.pattern) : null);
+  const [value,setValue]=useState<ShiftRule>(initial ? {...initial,pattern:storedPattern?.ok ? storedPattern.value : initial.pattern,expected_revision:initial.revision} : {label:"Дневная смена",pattern:patternDefaults(today),valid_from:today,valid_until:null,starts_local:"09:00",ends_local:"17:00",status:"available",is_active:true});
+  const [errors,setErrors]=useState<FieldError[]>([]);
   const set=(part:Partial<ShiftRule>)=>setValue({...value,...part});
-  return <Card><CardHeader title={initial ? "Изменить смену" : "Новая регулярная смена"}/><form className="space-y-4 p-5" onSubmit={async e=>{e.preventDefault();if(await onSave(value))onClose();}}><fieldset disabled={busy} className="space-y-4"><div className="grid gap-3 sm:grid-cols-2">
+  if (storedPattern && !storedPattern.ok) return <Card className="space-y-4 p-5"><h3 className="font-semibold">{initial?.label}</h3><div role="alert"><Callout tone="danger">{storedPattern.error}</Callout></div><Button type="button" variant="ghost" onClick={onClose}>Закрыть смену</Button></Card>;
+  return <Card><CardHeader title={initial ? "Изменить смену" : "Новая регулярная смена"}/><form noValidate className="space-y-4 p-5" onSubmit={async e=>{e.preventDefault();const invalid=sectionErrors(e.currentTarget);setErrors(invalid);if(invalid.length){revealField(invalid[0].field);return;}if(await onSave(value))onClose();}}><FormErrors errors={errors}/><fieldset disabled={busy} className="space-y-4"><div className="grid gap-3 sm:grid-cols-2">
     <label className="text-sm"><FieldCaption>Название смены</FieldCaption><Input aria-label="Название смены" required value={value.label} onChange={e=>set({label:e.target.value})}/></label>
     <label className="text-sm"><FieldCaption>Режим смены</FieldCaption><Select aria-label="Режим смены" value={value.status} onChange={e=>set({status:e.target.value as "available"|"unavailable"})}><option value="available">Рабочее время</option><option value="unavailable">Регулярно не работает</option></Select></label>
     <label className="text-sm"><FieldCaption>Начало смены</FieldCaption><Input aria-label="Начало смены" type="time" required value={value.starts_local} onChange={e=>set({starts_local:e.target.value})}/></label>
     <label className="text-sm"><FieldCaption>Конец смены</FieldCaption><Input aria-label="Конец смены" type="time" required value={value.ends_local} onChange={e=>set({ends_local:e.target.value})}/></label>
     <label className="text-sm"><FieldCaption>Смена действует с</FieldCaption><Input aria-label="Смена действует с" type="date" required value={value.valid_from} onChange={e=>set({valid_from:e.target.value})}/></label>
-    <label className="text-sm"><FieldCaption>Смена действует по</FieldCaption><Input aria-label="Смена действует по" type="date" value={value.valid_until??""} onChange={e=>set({valid_until:e.target.value||null})}/></label>
+    <label className="text-sm"><FieldCaption>Смена действует по</FieldCaption><Input aria-label="Смена действует по" type="date" min={value.valid_from} value={value.valid_until??""} onChange={e=>set({valid_until:e.target.value||null})}/></label>
   </div><p className="text-xs text-muted">Конец раньше начала означает ночную смену до следующего дня. Смены ограничиваются периодом работы сотрудника.</p>
-  <CalendarPatternEditor value={value.pattern} onChange={pattern=>set({pattern})}/>
+  <CalendarPatternEditor value={value.pattern} context="shift" onChange={pattern=>set({pattern})}/>
+  <p className="border-t border-line pt-4 text-sm">{value.status==="available" ? "Рабочее время" : "Регулярно не работает"}: {value.starts_local.slice(0,5)}–{value.ends_local.slice(0,5)} · с {formatDate(value.valid_from)}{value.valid_until ? ` по ${formatDate(value.valid_until)}` : ""}. Исключённых дат: {value.pattern.excluded_dates.length}. Это правило смены, а не подтверждённое назначение.</p>
   <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={value.is_active} onChange={e=>set({is_active:e.target.checked})}/>Смена включена</label>
   <div className="flex gap-3"><Button type="submit" disabled={busy}>Сохранить смену</Button><Button variant="ghost" type="button" disabled={busy} onClick={onClose}>Закрыть смену</Button></div></fieldset></form></Card>;
 }
