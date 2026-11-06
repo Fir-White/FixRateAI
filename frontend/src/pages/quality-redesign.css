@@ -1,5 +1,8 @@
 .fr-content-v2 .quality-detail-grid { grid-template-columns: minmax(0, 1fr); gap: 24px; }
 .fr-content-v2 .quality-decision-rail { position: static; min-width: 0; }
+.fr-content-v2 #review-decision { scroll-margin-top: 88px; }
+.fr-content-v2 .fr-decision-shortcut { display: inline-flex; align-items: center; min-height: 44px; color: var(--fr2-accent); text-decoration: underline; }
+@container work-content (min-width: 1040px) { .fr-content-v2 .fr-decision-shortcut { display: none; } }
 .fr-content-v2 .quality-detail-grid > div { min-width: 0; }
 .fr-content-v2 .fr-decision-facts { display: grid; gap: 8px; margin-block: 16px; color: var(--fr2-secondary); font-size: 13px; line-height: 20px; }
 .fr-content-v2 .fr-decision-facts a { color: var(--fr2-accent); text-decoration: underline; }

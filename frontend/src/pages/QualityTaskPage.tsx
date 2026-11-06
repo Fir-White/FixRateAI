@@ -132,6 +132,7 @@ export function QualityTaskPage() {
           ) : null}
 
       <p className="text-sm text-muted">{attemptStateSummary(task.state)}</p>
+      {canReview && <a className="fr-decision-shortcut" href="#review-decision">Перейти к основанию решения</a>}
       {query.data.photoAnalysisStatus === "pending" && <Callout tone="neutral"><p role="status">Фотографии анализируются автоматически. Результат появится здесь без обновления страницы; запуск инженером не требуется.</p></Callout>}
       {canAnalyze && query.data.photoAnalysisStatus !== "pending" && (!review || ["failed","unavailable"].includes(review.status)) && <div className="space-y-3 rounded-xl border border-line p-4">
         <Button variant="secondary" disabled={busy} onClick={async () => {
@@ -184,7 +185,7 @@ export function QualityTaskPage() {
           {query.data.photoAnalysisStatus !== "pending" && <PhotoReviewCard review={review} formatDateTime={formatDateTime}/>}
         </div>
 
-        <div className="space-y-6 quality-decision-rail">
+        <div id="review-decision" className="space-y-6 quality-decision-rail">
           {canReview&&<Card>
             <CardHeader title="Основание решения" />
             <div className="p-5 sm:p-6">

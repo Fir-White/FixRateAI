@@ -42,15 +42,18 @@ describe("role access and links on every screen", () => {
       render(<SessionProvider><MemoryRouter initialEntries={[path]}><AppRouter /></MemoryRouter></SessionProvider>);
       const allowed = access[path.split("/")[1]].includes(role);
       await screen.findByRole("heading", {name: allowed ? heading : "Раздел недоступен для текущей роли"});
-      await waitFor(() => expect(screen.queryByRole("status")).not.toBeInTheDocument());
-      for (const link of screen.getAllByRole("link")) {
+      await waitFor(() => expect(screen.queryByRole("status", {hidden: true})).not.toBeInTheDocument());
+      // Permission checks include every rendered link, even in collapsed regions.
+      // Avoid jsdom's expensive ancestor visibility walk for each calendar link;
+      // this also catches forbidden destinations accidentally hidden with CSS.
+      for (const link of screen.getAllByRole("link", {hidden: true})) {
         const href = link.getAttribute("href") ?? "";
         if (!href.startsWith("/")) continue;
         const section = new URL(href, "http://localhost").pathname.split("/")[1];
         if (section && section !== "login") expect(access[section], href).toContain(role);
       }
       if (allowed && role === "executor" && path === "/calendar") {
-        expect(screen.queryByRole("button", {name: "Рассчитать график"})).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", {name: "Рассчитать график", hidden: true})).not.toBeInTheDocument();
       }
     },
   );
