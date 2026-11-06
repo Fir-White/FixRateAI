@@ -1,9 +1,11 @@
 """Compare only protected pixels from deterministic live captures; no screenshot mutation."""
 import json
+import os
 from pathlib import Path
 from PIL import Image, ImageChops
 
 root = Path(__file__).resolve().parents[1] / 'reports/redesign-v2'
+phase = os.environ.get('FIXRATE_COMPARE_PHASE','after-foundation')
 results = []
 for role in ('executor', 'engineer', 'chief_engineer', 'director'):
     for state, width, box in (
@@ -18,12 +20,12 @@ for role in ('executor', 'engineer', 'chief_engineer', 'director'):
     ):
         filename = f'{role}-{state}-{width}-y0.png'
         before = Image.open(root/'before'/filename).convert('RGB')
-        after = Image.open(root/'after-foundation'/filename).convert('RGB')
+        after = Image.open(root/phase/filename).convert('RGB')
         if box:
             before,after = before.crop(box),after.crop(box)
         delta = ImageChops.difference(before,after)
         changed = sum(pixel != (0,0,0) for pixel in delta.getdata())
         results.append(dict(role=role,state=state,width=width,region=box or 'full viewport',file=filename,
                             status='passed' if changed==0 else 'failed',changedPixels=changed,totalPixels=before.width*before.height))
-(root/'protected-foundation.json').write_text(json.dumps(results,ensure_ascii=False,indent=2),encoding='utf-8')
+(root/f'protected-{phase}.json').write_text(json.dumps(results,ensure_ascii=False,indent=2),encoding='utf-8')
 print(json.dumps(results,ensure_ascii=False,indent=2))

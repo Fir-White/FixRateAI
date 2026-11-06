@@ -1,18 +1,21 @@
 import { chromium } from '../frontend/node_modules/playwright-core/index.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 const root = path.resolve(import.meta.dirname, '..');
 const base = process.env.FIXRATE_CAPTURE_URL || 'http://127.0.0.1:8000';
-const phase = process.env.FIXRATE_CAPTURE_PHASE || 'before';
+const phase = process.env.FIXRATE_CAPTURE_PHASE || `capture-${new Date().toISOString().replace(/[:.]/g,'-')}`;
 const output = path.join(root, 'reports/redesign-v2', phase);
 await fs.mkdir(output, { recursive: true });
-const accounts = await fs.readFile('D:/FixRate AI/FixRate_AI/var/compose-local/accounts.txt', 'utf8');
+const commonGit = path.resolve(root, execFileSync('git', ['rev-parse', '--git-common-dir'], {cwd:root,encoding:'utf8'}).trim());
+const accounts = await fs.readFile(process.env.FIXRATE_CAPTURE_ACCOUNTS || path.join(path.dirname(commonGit), 'var/compose-local/accounts.txt'), 'utf8');
 const password = accounts.match(/^Password:\s*(.+)$/m)?.[1]?.trim();
 if (!password) throw new Error('Local credentials unavailable');
-const manifest = process.env.FIXRATE_CAPTURE_ROLES ? JSON.parse(await fs.readFile(path.join(output,'manifest.json'),'utf8')) : [];
+const manifest = process.env.FIXRATE_CAPTURE_ROLES ? JSON.parse(await fs.readFile(path.join(output,'manifest.json'),'utf8').catch(error=>{if(error.code==='ENOENT')return '[]';throw error;})) : [];
+const sourceCommit = process.env.FIXRATE_CAPTURE_SHA;
+if (!sourceCommit) throw new Error('Set FIXRATE_CAPTURE_SHA to the actual source revision; append -dirty for an uncommitted preview.');
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
-const sourceCommit = process.env.FIXRATE_CAPTURE_SHA || '422eacf94aadf0fc75e29ef8b1ee110abce78bd2';
 async function capture(page, role, state, width, tiles = false) {
   const height = width === 1440 ? 900 : 844;
   const total = await page.evaluate(() => document.documentElement.scrollHeight);

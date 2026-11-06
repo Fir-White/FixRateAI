@@ -1,4 +1,5 @@
 import { test,expect } from "@playwright/test";
+import type {Workforce} from '../../../frontend/src/shared/types/management';
 
 test("web registration → role → shift/qualification/crew → equipment/service → confirmed work",async({page})=>{
   test.setTimeout(90000);
@@ -46,13 +47,46 @@ test("web registration → role → shift/qualification/crew → equipment/servi
   await page.getByRole("button",{name:"Сохранить смену",exact:true}).click();
   expect((await savedShift).request().postDataJSON().valid_until).toBe(day);
   await expect(page.getByText("Смена сохранена",{exact:true})).toBeVisible();
+  // C18: edit the persisted shift, preserving its identity and calendar semantics.
+  const workforceBefore:Workforce=await(await page.request.get('/api/v1/maintenance/management/workforce')).json();
+  const workerBefore=workforceBefore.staff.find(person=>person.full_name===workerName)!;
+  const shiftBefore=workerBefore.shifts[0];
+  expect(shiftBefore.shift_rule_id).toBeTruthy();
+  const calendarPath=`/api/v1/maintenance/management/staff/${workerBefore.user_id}/calendar?start=${today}&end=${day}`;
+  const calendarBefore=await(await page.request.get(calendarPath)).json();
+  expect(calendarBefore.intervals.length).toBeGreaterThan(0);
+  await page.getByRole('button',{name:'Изменить смену',exact:true}).click();
+  await expect(page.getByLabel('Название смены',{exact:true})).toHaveValue(shiftBefore.label);
+  const editedLabel=`Существующая смена ${marker}`;
+  await page.getByLabel('Название смены',{exact:true}).fill(editedLabel);
+  const edited=page.waitForResponse(reply=>reply.request().method()==='PUT'&&reply.url().endsWith(`/shifts/${shiftBefore.shift_rule_id}`));
+  await page.getByRole('button',{name:'Сохранить смену',exact:true}).click();
+  const editedResponse=await edited;
+  expect(editedResponse.status()).toBe(200);
+  expect(editedResponse.request().postDataJSON().expected_revision).toBe(shiftBefore.revision);
+  await page.reload();
+  await page.getByRole('button',{name:'Изменить смену',exact:true}).click();
+  await expect(page.getByLabel('Название смены',{exact:true})).toHaveValue(editedLabel);
+  const workforceAfter:Workforce=await(await page.request.get('/api/v1/maintenance/management/workforce')).json();
+  const workerAfter=workforceAfter.staff.find(person=>person.user_id===workerBefore.user_id)!;
+  expect(workerAfter.shifts.map(shift=>shift.shift_rule_id)).toEqual(workerBefore.shifts.map(shift=>shift.shift_rule_id));
+  expect(workerAfter.shifts[0].revision).toBe(shiftBefore.revision!+1);
+  expect(workerAfter.shifts[0].pattern).toEqual(shiftBefore.pattern);
+  const calendarAfter=await(await page.request.get(calendarPath)).json();
+  expect(calendarAfter.intervals).toEqual(calendarBefore.intervals);
+  expect(calendarAfter.diagnostics).toEqual(calendarBefore.diagnostics);
+  await page.getByRole('button',{name:'Закрыть смену',exact:true}).click();
+  await page.getByRole('button',{name:'Виды допусков',exact:true}).click();
   await page.getByText("Новый вид квалификации / допуска",{exact:true}).click();
   await page.getByLabel("Код допуска",{exact:true}).fill(`TEST-${marker}`);
   await page.getByLabel("Название допуска",{exact:true}).fill(skillName);
   await page.getByRole("button",{name:"Создать вид допуска",exact:true}).click();
+  await page.getByRole('button',{name:'Сотрудники',exact:true}).click();
+  await page.locator('summary').filter({hasText:'Квалификации и допуски'}).click();
   await page.getByLabel("Допуск",{exact:true}).selectOption({label:skillName});
   await page.getByRole("button",{name:"Сохранить допуск",exact:true}).click();
   await expect(page.getByText("Допуск сохранён",{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Бригады',exact:true}).click();
   await page.getByLabel("Название бригады",{exact:true}).fill(`Настройка — бригада ${marker}`);
   await page.getByLabel(workerName,{exact:true}).check();
   await page.getByRole("button",{name:"Сохранить бригаду",exact:true}).click();
@@ -65,12 +99,15 @@ test("web registration → role → shift/qualification/crew → equipment/servi
   await page.getByRole("button",{name:"Добавить обслуживание",exact:true}).click();
   await page.getByLabel("Код операции",{exact:true}).fill(`SETTING-OP-${marker}`);
   await page.getByLabel("Название обслуживания",{exact:true}).fill(title);
+  await page.locator('summary').filter({hasText:'Методика и доказательства'}).click();
   await page.getByLabel("Инструкция",{exact:true}).fill("Проверить насос по настроенному регламенту");
   await page.getByLabel("Действует по",{exact:true}).fill(day);
   await page.getByLabel("Повторять по",{exact:true}).selectOption("dates");
   await page.getByLabel("Даты обслуживания: новая дата",{exact:true}).fill(day);
   await page.getByRole("button",{name:"Добавить дату",exact:true}).first().click();
+  await page.locator('summary').filter({hasText:'Допуски работников'}).click();
   await page.getByLabel(skillName,{exact:true}).check();
+  await page.locator('summary').filter({hasText:'Трудоёмкость и состав'}).click();
   await page.getByLabel("Исходная норма труда",{exact:true}).fill("1.000");
   await page.getByLabel("Единица нормы",{exact:true}).selectOption("person_hour");
   await page.getByLabel("Длительность работы, минут",{exact:true}).fill("60");
@@ -125,6 +162,7 @@ test('shared web calendar previews ISO week 53, real quarters and constrained an
   await page.getByRole('button',{name:'Добавить смену',exact:true}).click();
   await page.getByLabel('Не раньше даты',{exact:true}).fill('2026-01-01');
   for(const label of ['Вт','Ср','Чт','Пт'])await page.getByRole('checkbox',{name:label,exact:true}).uncheck();
+  await page.locator('summary').filter({hasText:'Ограничения и исключения'}).click();
   await page.getByLabel('Чётность недели',{exact:true}).selectOption('odd');
   await page.getByLabel('Год предпросмотра',{exact:true}).fill('2026');
   await page.getByLabel('Месяц предпросмотра',{exact:true}).selectOption('12');
