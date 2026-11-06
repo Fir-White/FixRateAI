@@ -30,5 +30,5 @@
 .fr-content-v2 .fr-datetime-shortcuts { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 8px; }
 .fr-content-v2 .fr-datetime-shortcuts button { min-height: 44px; color: var(--fr2-accent); text-decoration: underline; text-underline-offset: 4px; font-size: 13px; cursor: pointer; }
 .fr-content-v2 .fr-datetime-error { color: var(--fr2-danger); font-size: 13px; margin-top: 4px; }
-.fr-content-v2 .fr-modal:has(.fr-datetime-picker) > div:last-child { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.fr-content-v2 .fr-modal:has(.fr-datetime-picker) > div:last-child:has(> button:nth-child(3)) > button:first-child { grid-column: 1 / -1; }
+.fr-content-v2 .fr-datetime-dialog > div:last-child { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fr-content-v2 .fr-datetime-dialog > div:last-child:has(> button:nth-child(3)) > button:first-child { grid-column: 1 / -1; }

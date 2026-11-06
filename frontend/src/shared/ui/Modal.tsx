@@ -16,6 +16,8 @@ export function Modal({
   footer,
   tone = "default",
   size = "default",
+  instant = false,
+  className = "",
 }: {
   open: boolean;
   title: string;
@@ -25,6 +27,8 @@ export function Modal({
   footer?: ReactNode;
   tone?: "default" | "danger";
   size?: "default" | "wide";
+  instant?: boolean;
+  className?: string;
 }) {
   const titleId = useId();
   const contentTheme = useContentTheme();
@@ -40,7 +44,7 @@ export function Modal({
   return createPortal(
     <div
       ref={scrollRef}
-      className={`${contentTheme ? "fr-content-v2" : ""} fixed inset-0 z-[80] flex items-end justify-center bg-black/75 p-0 backdrop-blur-sm sm:items-center sm:p-6`}
+      className={`${contentTheme ? "fr-content-v2" : ""} fixed inset-0 z-[80] flex items-end justify-center bg-black/75 p-0 ${instant ? "" : "backdrop-blur-sm"} sm:items-center sm:p-6`}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
@@ -53,7 +57,8 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
-        className={`fr-modal ${size === "wide" ? "fr-modal--wide" : ""} scroll-boundary max-h-[92dvh] w-full overflow-y-auto rounded-t-2xl border bg-surface shadow-2xl shadow-black/60 sm:max-w-lg sm:rounded-2xl ${
+        style={instant ? { animation: "none" } : undefined}
+        className={`fr-modal ${className} ${size === "wide" ? "fr-modal--wide" : ""} scroll-boundary max-h-[92dvh] w-full overflow-y-auto rounded-t-2xl border bg-surface shadow-2xl shadow-black/60 sm:max-w-lg sm:rounded-2xl ${
           tone === "danger" ? "border-rose-400/30" : "border-line-strong"
         }`}
       >
