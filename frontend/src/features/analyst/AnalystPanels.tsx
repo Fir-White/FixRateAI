@@ -13,7 +13,7 @@ import type { ServiceConfiguration,ChecklistSetting } from "@/shared/types/manag
 import type { MaintenanceTask,ExecutionReport,ActualExecution,Reading,Act } from "@/shared/types/domain";
 import { ReadOnlyValue } from "@/shared/ui/ContentTheme";
 import { useSiteDateTime } from "@/shared/lib/useSiteDateTime";
-import { unitLabel } from "@/shared/lib/presentation";
+import { unitLabel, viewLabel } from "@/shared/lib/presentation";
 const base="/api/v1/maintenance";
 const post=<T,>(url:string,body:unknown)=>request<T>(base+url,{method:"POST",body:JSON.stringify(body)});
 
@@ -110,7 +110,8 @@ function IncidentDraft({incident:r,equipmentId,refresh}:{incident:Incident;equip
 }
 
 export function AttemptHistory({taskId}:{taskId:string}){
+ const dateTime=useSiteDateTime();
  const [open,setOpen]=useState(false);
  const query=useApiQuery(()=>DEMO_MODE||!open?Promise.resolve([]):request<ExecutionReport[]>(base+`/tasks/${taskId}/attempts`),[taskId,open]);
- return <details onToggle={event=>setOpen(event.currentTarget.open)} className="rounded-xl border border-line p-4"><summary>История попыток и доказательств</summary>{open&&query.status==="success"&&query.data.map(r=><section key={r.id} className="space-y-2 border-t border-line py-3"><h3>Попытка {r.attemptNumber} · {r.submittedAt?"отправлена "+r.submittedAt:"черновик"}</h3><p>{r.narrative}</p><div className="flex flex-wrap gap-3">{r.photos.map(p=><a key={p.id} href={p.url??undefined} target="_blank" rel="noreferrer">{p.phase==="before"?"Фото до":"Фото после"} · {p.viewKey}</a>)}{r.acts?.map(a=><a key={a.id} href={a.url} target="_blank" rel="noreferrer">Акт {a.kind}</a>)}</div></section>)}{query.status==="error"&&<p role="alert">{query.error}</p>}</details>;
+ return <details onToggle={event=>setOpen(event.currentTarget.open)} className="rounded-xl border border-line p-4"><summary>История попыток и доказательств</summary>{open&&query.status==="success"&&query.data.map(r=><section key={r.id} className="space-y-2 border-t border-line py-3"><h3>Попытка {r.attemptNumber} · {r.submittedAt?"отправлена "+dateTime(r.submittedAt):"черновик"}</h3><p>{r.narrative}</p><div className="flex flex-wrap gap-3">{r.photos.map(p=><a key={p.id} href={p.url??undefined} target="_blank" rel="noreferrer">{p.phase==="before"?"Фото до":"Фото после"} · {viewLabel(p.viewKey)}</a>)}{r.acts?.map(a=><a key={a.id} href={a.url} target="_blank" rel="noreferrer">Акт {a.kind}</a>)}</div></section>)}{query.status==="error"&&<p role="alert">{query.error}</p>}</details>;
 }
