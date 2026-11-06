@@ -28,7 +28,7 @@
 | Screen reader, реальная экранная клавиатура ОС | blocked | В доступном headless Chromium нет поддержанного ручного окружения этих проверок; Tab/Enter/Escape не подменяют их |
 | Контраст выборки активного текста/полей/focus | passed | 30 состояний4anchors и2photo modal; checklist7.35:1, placeholder7.90:1, instruction border3.89:1 после исправлений. [Метод и evidence](CONTRACT_AUDIT.md) |
 | Полный аудит контраста всех hover/focus/disabled/overlay | blocked | Group opacity/image backgrounds и полный набор состояний не покрыты поддерживаемым вычислением; narrow sampling не является WCAG audit |
-| Исторические задания :8000 без equipment relation | blocked | Исправлен seed новых заданий; старые записи не изменялись. Назначение на них честно блокируется |
+| Исторические задания :8000 без equipment relation | passed | 07.11 по отдельному запросу владельца восстановлено117точных relations к5существующим единицам;4роли, assignment-context200, история38событий; подробности IMPLEMENTATION_LOG |
 | Реальный cloud AI / customer приёмка | blocked | Полный локальный Python/ML suite прошёл; реальные внешние модели и неутверждённые customer-нормативы не подменялись синтетикой. Browser E2E проверяет guardrails на явно тестовых данных |
 
 Ранний общий E2E: 30 passed / 1 failed — прежний тест пытался заполнить свёрнутую секцию. Исправлена последовательность пользовательских действий теста, обязательность полей не ослаблялась; повтор settings 2/2 passed. Ранний unit: 432 passed / 1 failed по 5s timeout обхода большой календарной DOM; оптимизированы selectors проверки прав, полный role-suite 112 passed. Это история обнаруженных дефектов, не результат финального gate.
