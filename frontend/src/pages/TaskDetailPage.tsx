@@ -1,4 +1,4 @@
-import { AttemptHistory } from "@/features/analyst/AnalystPanels";
+import { AttemptHistory, ExecutionProtocol } from "@/features/analyst/AnalystPanels";
 import { ChiefActions,ActsPanel } from "@/features/analyst/AnalystPanels";
 import { canOperate } from "@/shared/lib/roles";
 import { FieldCaption } from "@/shared/ui/Form";
@@ -16,7 +16,7 @@ import { Card, CardHeader } from "@/shared/ui/Card";
 import { ErrorState, LoadingState } from "@/shared/ui/States";
 import { Button, buttonClassName } from "@/shared/ui/Button";
 import { Icon } from "@/shared/ui/Icon";
-import { EvidenceGallery } from "@/entities/execution/EvidenceGallery";
+import { EvidenceComparison } from "@/entities/execution/EvidenceComparison";
 import { ChecklistSummary } from "@/entities/execution/ChecklistSummary";
 import { Callout } from "@/shared/ui/Callout";
 import { InfoItem, InfoList } from "@/shared/ui/InfoList";
@@ -73,11 +73,9 @@ export function TaskDetailPage() {
         Очередь заданий
       </Link>
 
-      <AttemptHistory taskId={task.id}/><ChiefActions task={task} onSaved={()=>window.location.reload()}/><ActsPanel task={task} execution={query.data.execution} editable={false} onSaved={()=>window.location.reload()}/>
       <PageHeader
-        eyebrow={task.code}
         title={task.title}
-        description={task.summary}
+        description={`${task.code} · ${task.summary}`}
         actions={
           <>
             {!DEMO_MODE && query.data.allowedActions?.includes("forecast") && <Button variant="secondary" disabled={busy} onClick={async () => {
@@ -95,7 +93,7 @@ export function TaskDetailPage() {
               </Link>
             ) : null}
             {(["draft","assigned","in_progress","rework_required"].includes(task.state)) && canOperate(profile?.role) ? (
-              <Button disabled={DEMO_MODE||busy} title={DEMO_MODE ? "Нужно подключение к серверу" : undefined} onClick={() => setShowCrewSelection(true)}>
+              <Button disabled={DEMO_MODE||busy||!task.equipmentId} aria-describedby={!task.equipmentId ? "assignment-blocker" : undefined} title={DEMO_MODE ? "Нужно подключение к серверу" : undefined} onClick={() => setShowCrewSelection(true)}>
                 Подобрать бригаду
               </Button>
             ) : null}
@@ -109,6 +107,10 @@ export function TaskDetailPage() {
         }
       />
 
+      {!task.equipmentId && canOperate(profile?.role) && ["draft","assigned","in_progress","rework_required"].includes(task.state) &&
+        <div id="assignment-blocker"><Callout tone="warning" title="Подбор бригады недоступен">
+          Задание не связано с оборудованием. Сначала уточните связь у ответственного за регламент.
+        </Callout></div>}
       {DEMO_MODE && <Callout tone="neutral">DEMO · Данные для просмотра. Назначение, расчёт и отмена требуют подключения к API.</Callout>}
       {notice && <div role="alert"><Callout tone="danger">{notice}</Callout></div>}
       {showCancellation&&query.data.allowedActions?.includes('cancel')&&<Card className="space-y-3 p-5"><h2 className="font-semibold">Отмена задания до начала выполнения</h2><p className="text-sm text-muted">Назначения освободятся. Задание и история сохранятся.</p><label className="block text-sm"><FieldCaption>Причина отмены</FieldCaption><textarea aria-label="Причина отмены" disabled={busy} className="mt-1 w-full rounded-lg border border-line bg-canvas p-3" value={cancelReason} onChange={e=>setCancelReason(e.target.value)}/></label><Button variant="secondary" disabled={busy||!cancelReason.trim()} onClick={async()=>{
@@ -117,7 +119,7 @@ export function TaskDetailPage() {
       {assignedTaskId === task.id && <Callout tone="success" title="Бригада назначена">Состав и время сохранены.</Callout>}
       {showCrewSelection && canOperate(profile?.role) && !DEMO_MODE &&
         (["draft","assigned","in_progress","rework_required"].includes(task.state)) &&
-        <CrewSelectionPanel key={task.id} taskId={task.id} onClose={() => setShowCrewSelection(false)} onAssigned={() => {
+        <CrewSelectionPanel key={task.id} taskId={task.id} taskTitle={task.title} equipmentName={task.equipmentName} onClose={() => setShowCrewSelection(false)} onAssigned={() => {
           setShowCrewSelection(false); setAssignedTaskId(task.id); setNotice(""); setRefreshToken(value => value + 1);
         }} onInvalidated={message => {setNotice(message); setRefreshToken(value => value + 1);}} />}
       <div className="flex flex-wrap items-center gap-2">
@@ -134,7 +136,12 @@ export function TaskDetailPage() {
         </Callout>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+      {decision && <Card><CardHeader title="Решение инженера"/><div className="p-5">
+        <EngineerDecisionBadge verdict={decision.verdict}/><p className="mt-3 whitespace-pre-wrap">{decision.reason}</p>
+        <p className="mt-2 text-sm text-muted">{decision.decidedBy} · {formatDateTime(decision.decidedAt)}</p>
+      </div></Card>}
+      <ChiefActions task={task} onSaved={()=>window.location.reload()}/>
+      <div className="fr-work-grid">
         <div className="space-y-6">
           <Card>
             <CardHeader title="Параметры задания" />
@@ -154,8 +161,8 @@ export function TaskDetailPage() {
               />
               <InfoItem label="Размер бригады" value={`${task.crewSize} чел.`} />
               <InfoItem
-                label="Нарушение срока"
-                value={task.deadlineBreached ? "Зафиксировано" : "Нет"}
+                label="Приёмка после срока"
+                value={task.deadlineBreached ? "Зафиксирована" : "Не зафиксирована"}
               />
             </InfoList>
           </Card>
@@ -165,9 +172,7 @@ export function TaskDetailPage() {
               <CardHeader
                 title={`Попытка №${execution.attemptNumber}`}
                 description={
-                  execution.state === "submitted"
-                    ? "Отправленный отчёт заморожен"
-                    : "Черновик отчёта исполнителя"
+                  execution.state === "draft" ? "Черновик отчёта исполнителя" : "Сохранённый результат попытки"
                 }
                 action={
                   canOpenQuality ? <Link
@@ -186,7 +191,9 @@ export function TaskDetailPage() {
                   <ChecklistSummary items={execution.checklist} />
                 </div>
                 <div className="mt-5">
-                  <EvidenceGallery photos={execution.photos} />
+                  <ExecutionProtocol task={task} execution={execution} disabled readOnly value={{actual:execution.actual?{started_at:execution.actual.started_at??"",performed_at:execution.actual.performed_at??"",person_hours:execution.actual.person_hours??""}:null,readings:execution.readings??[]}} onChange={()=>{}}/>
+                  <ActsPanel task={task} execution={execution} editable={false} onSaved={()=>window.location.reload()}/>
+                  <EvidenceComparison photos={execution.photos} checklist={execution.checklist}/>
                 </div>
               </div>
             </Card>
@@ -242,21 +249,6 @@ export function TaskDetailPage() {
             </Card>
           ) : null}
 
-          {decision ? (
-            <Card>
-              <CardHeader title="Решение инженера" />
-              <div className="p-5 sm:p-6">
-                <EngineerDecisionBadge verdict={decision.verdict} />
-                <p className="mt-3 text-sm leading-6 text-ink-soft">
-                  {decision.reason}
-                </p>
-                <p className="mt-2 text-xs text-muted">
-                  {decision.decidedBy} · {formatDateTime(decision.decidedAt)}
-                </p>
-              </div>
-            </Card>
-          ) : null}
-
           <Card>
             <CardHeader title="Переходы" />
             <div className="p-5 text-xs leading-5 text-muted sm:p-6">
@@ -282,6 +274,7 @@ export function TaskDetailPage() {
           </Card>
         </div>
       </div>
+      <AttemptHistory taskId={task.id}/>
     </div>
   );
 }

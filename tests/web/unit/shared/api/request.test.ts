@@ -6,6 +6,16 @@ afterEach(() => {
 });
 
 describe("production HTTP transport", () => {
+  it("invalidates cached reads after a successful write and after an authorization failure", async () => {
+    const {onApiQueryInvalidation}=await import("@/shared/lib/apiQueryCache");
+    const changed=vi.fn(),unsubscribe=onApiQueryInvalidation(changed);
+    vi.stubGlobal("fetch",vi.fn().mockResolvedValueOnce(new Response("[]")).mockResolvedValueOnce(new Response(null,{status:204})).mockResolvedValueOnce(new Response('{"detail":"Expired"}',{status:401})));
+    const {request}=await import("@/shared/api/request");
+    await request("/api/list");expect(changed).not.toHaveBeenCalled();
+    await request("/api/change",{method:"PATCH",body:"{}"});expect(changed).toHaveBeenCalledTimes(1);
+    await expect(request("/api/list")).rejects.toThrow("Expired");expect(changed).toHaveBeenCalledTimes(2);
+    unsubscribe();
+  });
   it("uses same-origin cookies and CSRF for real mutations", async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({saved: true}), {status: 200}));
     vi.stubGlobal("fetch", fetcher);

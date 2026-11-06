@@ -12,6 +12,7 @@ import { Callout } from "@/shared/ui/Callout";
 import { InfoItem, InfoList } from "@/shared/ui/InfoList";
 import { Icon } from "@/shared/ui/Icon";
 import { useSession } from "@/shared/session/SessionContext";
+import { Disclosure } from "@/shared/ui/Disclosure";
 import { canOpenSection } from "@/shared/lib/roles";
 import {
   EquipmentStateBadge,
@@ -27,6 +28,8 @@ export function EquipmentDetailPage() {
   const query = useApiQuery(
     () => maintenanceApi.getEquipment(equipmentId),
     [equipmentId],
+    undefined,
+    `equipment-detail:${equipmentId}`,
   );
 
   if (query.status === "loading") {
@@ -59,7 +62,6 @@ export function EquipmentDetailPage() {
       </Link>
 
       <PageHeader
-        eyebrow={equipment.inventoryCode}
         title={equipment.name}
         description={`${equipment.equipmentType} · ${equipment.location}`}
         actions={
@@ -85,8 +87,7 @@ export function EquipmentDetailPage() {
         </span>
       </div>
 
-      <EquipmentOperations equipmentId={equipmentId}/><IncidentWorkspace equipmentId={equipmentId}/>
-      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+      <div className="fr-work-grid">
         <div className="space-y-6">
           <Card>
             <CardHeader title="Паспорт оборудования" />
@@ -131,11 +132,11 @@ export function EquipmentDetailPage() {
                       </p>
                       <p className="mt-1 text-xs text-muted">
                         {event.taskCode} · проверил {event.engineer} ·{" "}
-                        {formatDateTime(event.performedAt)}
+                        Выполнено {formatDateTime(event.performedAt)}
                       </p>
                       <p className="mt-1 text-xs text-muted/60">
                         Принято {formatDateTime(event.acceptedAt)}
-                        {event.runtimeHours
+                        {event.runtimeHours !== null
                           ? ` · наработка ${event.runtimeHours} ч`
                           : ""}
                       </p>
@@ -152,21 +153,21 @@ export function EquipmentDetailPage() {
         </div>
 
         <div className="space-y-6">
-          <Card>
-            <CardHeader title="Действующий регламент" />
+          <EquipmentOperations equipmentId={equipmentId}/>
+          {equipment.activeOperation && <Card>
+            <CardHeader title="Операция в паспорте" description="Справочное поле паспорта; связанные версии обслуживания перечислены отдельно." />
             <div className="p-5 sm:p-6">
               <p className="text-xs font-semibold text-muted">
                 Текущая операция
               </p>
               <p className="mt-1 text-sm font-semibold text-ink">
-                {equipment.activeOperation ?? "Не назначена"}
+                {equipment.activeOperation ?? "В паспорте не указана"}
               </p>
-              <Callout tone="warning" className="mt-4 text-xs leading-5">
-                Нормы и периодичность ТО2 требуют подтверждения заказчика.
-                Система не подставляет недостающие даты.
+              <Callout tone="neutral" className="mt-4 text-xs leading-5">
+                Обязательства определяются связанными утверждёнными регламентами. Пустое поле паспорта не означает отсутствие этих регламентов.
               </Callout>
             </div>
-          </Card>
+          </Card>}
 
           <Card>
             <CardHeader title="Связи" />
@@ -190,6 +191,7 @@ export function EquipmentDetailPage() {
           </Card>
         </div>
       </div>
+      <Disclosure title="Дефекты и обращения по оборудованию"><IncidentWorkspace equipmentId={equipmentId}/></Disclosure>
     </div>
   );
 }

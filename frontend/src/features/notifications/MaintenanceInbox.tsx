@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { DEMO_MODE, request } from "@/shared/api/request";
 import { taskPathForRole } from "@/shared/lib/roles";
 import { useSession } from "@/shared/session/SessionContext";
+import { dateTimeFormatter } from "@/shared/lib/dateTimeFormatter";
 import { Icon, type IconName } from "@/shared/ui/Icon";
 import "./notifications.css";
 
@@ -31,9 +32,9 @@ function notificationTime(value: string, timezone: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   try {
-    return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: timezone }).format(date).replace(" г.", "");
+    return dateTimeFormatter("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: timezone }).format(date).replace(" г.", "");
   } catch {
-    return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(date).replace(" г.", "");
+    return dateTimeFormatter("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(date).replace(" г.", "");
   }
 }
 
@@ -48,6 +49,7 @@ export function MaintenanceInbox() {
   const busyRef = useRef(false);
   const [open, setOpen] = useState(false);
   const [present, setPresent] = useState(false);
+  const [panelMounted, setPanelMounted] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [items, setItems] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,16 +62,22 @@ export function MaintenanceInbox() {
     if (initial) setLoading(true);
     try {
       const data = DEMO_MODE ? [] : await request<Notification[]>(endpoint);
-      if (mounted.current && current === version.current) { setItems(data); setError(""); }
+      if (mounted.current && current === version.current) {
+        setItems(previous => previous.length === data.length && previous.every((item, index) => {
+          const next = data[index];
+          return item.id === next.id && item.message === next.message && item.taskId === next.taskId && item.createdAt === next.createdAt && item.readAt === next.readAt;
+        }) ? previous : data);
+        setError("");
+      }
     } catch {
       if (mounted.current && current === version.current) setError("Не удалось загрузить уведомления. Проверьте соединение и попробуйте снова.");
     } finally {
       if (mounted.current && current === version.current) setLoading(false);
     }
-  }, [profile?.userId]);
+  }, [profile?.userId, profile?.siteId]);
 
   useEffect(() => {
-    mounted.current = true; setItems([]); setError(""); setOpen(false); setConfirmClear(false); busyRef.current = false; setBusy(null);
+    mounted.current = true; setItems([]); setError(""); setOpen(false); setPresent(false); setPanelMounted(false); setConfirmClear(false); busyRef.current = false; setBusy(null);
     void load(true);
     const timer = window.setInterval(() => void load(), 30_000);
     return () => { mounted.current = false; version.current++; window.clearInterval(timer); };
@@ -92,7 +100,7 @@ export function MaintenanceInbox() {
     return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); };
   }, [open]);
 
-  const markRead = async (notifications: Notification[]) => {
+  const markRead = useCallback(async (notifications: Notification[]) => {
     if (busyRef.current || !notifications.length) return;
     busyRef.current = true; const current = ++version.current;
     setBusy(notifications.length === 1 ? notifications[0].id : "all"); setError("");
@@ -108,7 +116,7 @@ export function MaintenanceInbox() {
       }
     }
     if (mounted.current && current === version.current) { busyRef.current = false; setBusy(null); setLoading(false); }
-  };
+  }, []);
 
   const markAllRead = async () => {
     if (busyRef.current) return;
@@ -130,7 +138,7 @@ export function MaintenanceInbox() {
     }
   };
 
-  const deleteNotification = async (item: Notification) => {
+  const deleteNotification = useCallback(async (item: Notification) => {
     if (busyRef.current) return;
     busyRef.current = true; const current = ++version.current;
     setBusy(`delete:${item.id}`); setError("");
@@ -143,7 +151,7 @@ export function MaintenanceInbox() {
     } finally {
       if (mounted.current && current === version.current) { busyRef.current = false; setBusy(null); setLoading(false); }
     }
-  };
+  }, []);
 
   const clearNotifications = async () => {
     if (busyRef.current) return;
@@ -160,15 +168,16 @@ export function MaintenanceInbox() {
     }
   };
 
-  if (!profile) return null;
-  const unread = items.filter(n => !n.readAt);
-  const read = items.filter(n => n.readAt);
-  const renderGroup = (title: string, group: Notification[]) => group.length > 0 && <section className="inbox-group" aria-label={title}>
+  const unread = useMemo(() => items.filter(n => !n.readAt), [items]);
+  const read = useMemo(() => items.filter(n => n.readAt), [items]);
+  const role = profile?.role, timezone = profile?.timezone ?? "UTC";
+  const groups = useMemo(() => {
+    const renderGroup = (title: string, group: Notification[]) => group.length > 0 && <section className="inbox-group" aria-label={title}>
     <h3 className="inbox-group-title">{title}<span>{group.length}</span></h3>
     <ul>{group.map(item => {
       const type = presentation(item.message);
-      const path = item.taskId ? taskPathForRole(profile.role, item.taskId) : null;
-      const displayTime = notificationTime(item.createdAt, profile.timezone);
+      const path = item.taskId ? taskPathForRole(role, item.taskId) : null;
+      const displayTime = notificationTime(item.createdAt, timezone);
       return <li key={item.id} className={`inbox-item ${item.readAt ? "is-read" : "is-unread"}`}>
         <span className={`inbox-item-icon is-${type.tone}`}><Icon name={type.icon} size={17}/></span>
         <div className="inbox-item-body">
@@ -186,19 +195,23 @@ export function MaintenanceInbox() {
       </li>;
     })}</ul>
   </section>;
+    return <>{renderGroup("Новые", unread)}{renderGroup("Прочитанные", read)}</>;
+  }, [unread, read, busy, role, timezone, markRead, deleteNotification]);
+
+  if (!profile) return null;
 
   return <div className="inbox" ref={root}>
-    <button ref={trigger} type="button" className={`inbox-trigger${open ? " is-open" : ""}`} aria-label={loading || (error && !items.length) ? "Уведомления" : `Уведомления, непрочитанных: ${unread.length}`} aria-haspopup="dialog" aria-expanded={open} aria-controls={id} onClick={() => setOpen(value => !value)}>
+    <button ref={trigger} type="button" className={`inbox-trigger${open ? " is-open" : ""}`} aria-label={loading || (error && !items.length) ? "Уведомления" : `Уведомления, непрочитанных: ${unread.length}`} aria-haspopup="dialog" aria-expanded={open} aria-controls={id} onClick={() => { if (!open) { setPanelMounted(true); setPresent(true); } setOpen(value => !value); }}>
       <Icon name="bell" size={20}/>{unread.length > 0 && <span className="inbox-count" aria-hidden="true">{unread.length > 99 ? "99+" : unread.length}</span>}
       {error && !unread.length && <span className="inbox-error-dot" aria-hidden="true"/>}
       <span className="topbar-hint" aria-hidden="true">Уведомления</span>
     </button>
-    {present && <div id={id} className="inbox-panel" data-state={open ? "open" : "closing"} aria-hidden={!open || undefined} inert={!open} role="dialog" aria-label="Уведомления">
+    {panelMounted && <div id={id} className="inbox-panel" hidden={!present} data-state={open ? "open" : present ? "closing" : "closed"} aria-hidden={!open || undefined} inert={!open} role="dialog" aria-label="Уведомления">
       <header className="inbox-header"><div><h2>Уведомления</h2><p>{loading ? "Загрузка…" : error && !items.length ? "Нет связи" : unread.length ? `Непрочитанных: ${unread.length}` : "Всё просмотрено"}</p></div><button type="button" className="inbox-close" aria-label="Закрыть уведомления" onClick={() => { setOpen(false); trigger.current?.focus(); }}><Icon name="close" size={18}/></button></header>
       {error && <div className="inbox-error" role="alert"><span>{error}</span><button type="button" disabled={!!busy} onClick={() => void load(true)}>Повторить</button></div>}
-      {loading ? <div className="inbox-empty" role="status"><span className="inbox-empty-icon"><Icon name="bell" size={22}/></span><p>Загружаем уведомления…</p></div> : !items.length && !error ? <div className="inbox-empty"><span className="inbox-empty-icon"><Icon name="check" size={22}/></span><strong>Пока всё спокойно</strong><p>Здесь появятся события по вашим заданиям.</p></div> : <div className="inbox-list">{renderGroup("Новые", unread)}{renderGroup("Прочитанные", read)}</div>}
+      {loading ? <div className="inbox-empty" role="status"><span className="inbox-empty-icon"><Icon name="bell" size={22}/></span><p>Загружаем уведомления…</p></div> : !items.length && !error ? <div className="inbox-empty"><span className="inbox-empty-icon"><Icon name="check" size={22}/></span><strong>Уведомлений нет</strong><p>{profile.role === "executor" ? "Здесь появятся события по вашим заданиям." : "Здесь появится информация о новых событиях."}</p></div> : <div className="inbox-list">{groups}</div>}
       {items.length > 0 && <footer className="inbox-footer">
-        {confirmClear ? <><span>Удалить все уведомления?</span><div className="inbox-footer-actions"><button type="button" disabled={!!busy} onClick={() => setConfirmClear(false)}>Отмена</button><button type="button" className="inbox-clear" disabled={!!busy} onClick={() => void clearNotifications()}>{busy === "clear" ? "Удаляем…" : "Удалить"}</button></div></> : <><button type="button" className="inbox-clear" disabled={!!busy} onClick={() => setConfirmClear(true)}>Очистить уведомления</button><button type="button" disabled={!!busy} onClick={() => void markAllRead()}>{busy === "all" ? "Сохраняем…" : "Отметить все прочитанными"}</button></>}
+        {confirmClear ? <><span>Удалить все уведомления?</span><div className="inbox-footer-actions"><button type="button" disabled={!!busy} onClick={() => setConfirmClear(false)}>Отмена</button><button type="button" className="inbox-clear" disabled={!!busy} onClick={() => void clearNotifications()}>{busy === "clear" ? "Удаляем…" : "Удалить"}</button></div></> : <><button type="button" className="inbox-clear" disabled={!!busy} onClick={() => setConfirmClear(true)}>Удалить все уведомления</button><button type="button" disabled={!!busy} onClick={() => void markAllRead()}>{busy === "all" ? "Сохраняем…" : "Отметить все прочитанными"}</button></>}
       </footer>}
     </div>}
   </div>;

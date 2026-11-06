@@ -42,6 +42,7 @@ export function Callout({
 }) {
   return (
     <div
+      data-content-tone={tone}
       className={`rounded-xl border px-4 py-3.5 text-sm leading-6 ${TONE_CLASSES[tone]} ${className}`}
     >
       <div className="flex gap-3">

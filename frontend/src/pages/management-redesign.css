@@ -1,0 +1,46 @@
+.fr-content-v2 .fr-management-v2 .fr-overview-heading h1 { font-size: 28px; line-height: 34px; letter-spacing: -.025em; margin-top:0; }
+.fr-content-v2 .fr-management-v2 .fr-rail-section > h2:first-child { margin-top:0; }
+.fr-content-v2 .fr-management-v2 .fr-signal-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: var(--fr2-surface); border: 1px solid var(--fr2-line); border-radius: 16px; padding: 16px 0; margin-bottom: 8px; gap: 0; }
+.fr-content-v2 .fr-management-v2 .fr-signals { display: contents; }
+.fr-content-v2 .fr-management-v2 .fr-signal-total,
+.fr-content-v2 .fr-management-v2 .fr-signal { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 0 20px; border-radius: 0; }
+.fr-content-v2 .fr-management-v2 .fr-signal { border-left: 1px solid var(--fr2-line); }
+.fr-content-v2 .fr-management-v2 :is(.fr-signal, .fr-signal-total) { min-width: 0; overflow-wrap: anywhere; }
+.fr-content-v2 .fr-management-v2 :is(.fr-signal, .fr-signal-total) > span { max-width: 100%; }
+.fr-content-v2 .fr-management-v2 .fr-signal strong,
+.fr-content-v2 .fr-management-v2 .fr-signal-total strong { font-size: 30px; line-height: 36px; order: -1; }
+.fr-content-v2 .fr-management-v2 .fr-live-dot,
+.fr-content-v2 .fr-management-v2 .fr-signal > span[aria-hidden] { display: none; }
+.fr-content-v2 .fr-management-v2 .fr-signal span,
+.fr-content-v2 .fr-management-v2 .fr-signal-total > span:last-child { max-width: 100%; font-size: 13px; }
+.fr-content-v2 .fr-scope-note { color: var(--fr2-muted); font-size: 12px; margin-bottom: 24px; }
+.fr-content-v2 .fr-management-v2 .fr-week-picker { grid-template-columns: repeat(auto-fit, minmax(min(100%, 3em), 1fr)); }
+.fr-content-v2 .fr-management-v2 .fr-week-picker > button { min-width: 0; min-height: 44px; }
+.fr-content-v2 .fr-management-v2 .fr-week-picker :is(span, small) { max-width: 100%; overflow-wrap: anywhere; }
+.fr-content-v2 .fr-management-v2 .fr-week-workload { display:flex;gap:3px; }
+.fr-content-v2 .fr-management-v2 .fr-week-workload > span { white-space:nowrap;overflow-wrap:normal; }
+.fr-content-v2 .fr-management-v2 .fr-overview-grid { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+.fr-content-v2 .fr-management-v2 .fr-overview-work { display: flex; flex-direction: column; }
+.fr-content-v2 .fr-management-v2 .fr-attention { order: -1; margin-bottom: 24px; }
+.fr-content-v2 .fr-management-v2 .fr-decision-rail { display: block; padding: 0; border: 0; }
+.fr-content-v2 .fr-management-v2 .fr-rail-section { padding: 20px; background: var(--fr2-surface); border: 1px solid var(--fr2-line); border-radius: 16px; margin-bottom: 16px; }
+.fr-content-v2 .fr-overview-report > summary { cursor: pointer; padding: 16px 0; color: var(--fr2-secondary); }
+.fr-content-v2 .fr-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; border-top: 1px solid var(--fr2-line); }
+.fr-content-v2 .fr-pagination > div { display: flex; align-items: center; gap: 12px; }
+@container work-content (min-width: 1040px) {
+  .fr-content-v2 .fr-management-v2 .fr-overview-grid { grid-template-columns: minmax(0, 1fr) 336px; }
+}
+@container work-content (max-width: 680px) {
+  .fr-content-v2 .fr-management-v2 .fr-week-picker { grid-template-columns:repeat(7,minmax(0,1fr)); }
+  .fr-content-v2 .fr-management-v2 .fr-week-picker > button { align-items:center;padding-inline:2px; }
+  .fr-content-v2 .fr-management-v2 .fr-week-workload { display:grid;justify-items:center;gap:2px;margin-top:2px;line-height:1; }
+  .fr-content-v2 .fr-management-v2 .fr-week-workload-value { font-size:12px;line-height:15px;font-variant-numeric:tabular-nums; }
+  .fr-content-v2 .fr-management-v2 .fr-week-workload-label { font-size:9px;line-height:12px; }
+  .fr-content-v2 .fr-management-v2 .fr-overview-heading h1 { font-size: 24px; line-height: 32px; }
+  .fr-content-v2 .fr-management-v2 .fr-signal-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 16px; }
+  .fr-content-v2 .fr-management-v2 .fr-signal:nth-child(2) { border-left: 0; }
+  .fr-content-v2 .fr-management-v2 .fr-signal strong,
+  .fr-content-v2 .fr-management-v2 .fr-signal-total strong { font-size: 26px; line-height: 32px; }
+  .fr-content-v2 .fr-management-v2 .fr-signal,
+  .fr-content-v2 .fr-management-v2 .fr-signal-total { padding-inline: 16px; }
+}

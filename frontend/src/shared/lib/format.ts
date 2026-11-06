@@ -1,3 +1,5 @@
+import { dateTimeFormatter } from "./dateTimeFormatter";
+
 const DATE_FORMATTER = new Intl.DateTimeFormat("ru-RU", {
   day: "2-digit",
   month: "short",
@@ -29,7 +31,7 @@ export function formatDate(value: string | null): string {
 }
 
 export function todayAt(timeZone: string): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {timeZone, year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
+  const parts = dateTimeFormatter("en-CA", {timeZone, year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
   return ["year","month","day"].map(key=>parts.find(part=>part.type===key)!.value).join("-");
 }
 
@@ -44,7 +46,7 @@ export function formatDateTime(value: string | null, timeZone = "UTC"): string {
   if (!value) {
     return "—";
   }
-  return new Intl.DateTimeFormat("ru-RU",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",timeZone}).format(new Date(value));
+  return dateTimeFormatter("ru-RU",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",timeZone}).format(new Date(value));
 }
 
 export function formatMonth(year: number, month: number): string {

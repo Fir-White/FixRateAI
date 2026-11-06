@@ -1,7 +1,15 @@
 import {afterEach,expect,it,vi} from 'vitest';
 import {formatDate,formatDateTime,todayAt} from '@/shared/lib/format';
+import {dateTimeFormatter} from '@/shared/lib/dateTimeFormatter';
 
 afterEach(()=>vi.useRealTimers());
+
+it('reuses formatters without sharing different timezones or date options',()=>{
+ const utc=dateTimeFormatter('ru-RU',{timeZone:'UTC',hour:'2-digit',minute:'2-digit'});
+ expect(dateTimeFormatter('ru-RU',{minute:'2-digit',hour:'2-digit',timeZone:'UTC'})).toBe(utc);
+ expect(dateTimeFormatter('ru-RU',{timeZone:'Asia/Yekaterinburg',hour:'2-digit',minute:'2-digit'})).not.toBe(utc);
+ expect(dateTimeFormatter('ru-RU',{timeZone:'UTC',day:'2-digit'})).not.toBe(utc);
+});
 
 it('keeps calendar dates independent of offset and formats timestamps in the site zone',()=>{
   expect(formatDate('2026-11-02')).toContain('02');

@@ -59,7 +59,7 @@ export function ProfilePage() {
     catch (failure) { setLogoutError(failure instanceof Error ? failure.message : "Не удалось выйти"); setPending(null); }
   };
   return <div className="profile-page">
-    <PageHeader eyebrow="Учётная запись" title="Мой профиль" description="Управление личными данными, безопасностью и настройками" />
+    <PageHeader title="Мой профиль" description="Управление личными данными, безопасностью и настройками" />
     <div className="profile-grid">
       <Card className="profile-summary"><CardBody><div className="profile-avatar" aria-hidden="true">{initials}</div><h2>{profile.name}</h2><p className="profile-role">{ROLE_LABELS[profile.role]}</p><div className="profile-summary-site"><span>Рабочий объект</span><strong>{profile.siteName}</strong></div><div className="profile-summary-site"><span>Часовой пояс</span><strong>{profile.timezone}</strong></div></CardBody></Card>
       <div className="profile-content"><Card><CardHeader title="Учётная запись" description="Почта используется для входа в систему."/><CardBody>

@@ -1,12 +1,10 @@
 import type { ReactNode } from "react";
 
 export function PageHeader({
-  eyebrow,
   title,
   description,
   actions,
 }: {
-  eyebrow?: string;
   title: string;
   description?: string;
   actions?: ReactNode;
@@ -14,11 +12,6 @@ export function PageHeader({
   return (
     <header className="ops-page-header">
       <div className="min-w-0 max-w-3xl">
-        {eyebrow ? (
-          <p className="mb-2 text-[10px] font-semibold tracking-[0.2em] text-accent uppercase">
-            {eyebrow}
-          </p>
-        ) : null}
         <h1 className="fr-page-title">
           {title}
         </h1>

@@ -1,0 +1,25 @@
+.fr-content-v2 .fr-file-field { display:grid; gap:12px; min-width:0; }
+.fr-content-v2 .fr-file-target { position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-height:156px; padding:22px 14px; border:1px dashed var(--fr2-control); border-radius:12px; background:var(--fr2-bg); text-align:center; }
+.fr-content-v2 .fr-file-target > svg { color:var(--fr2-accent); }
+.fr-content-v2 .fr-file-target > strong { font-size:14px;font-weight:500; }
+.fr-content-v2 .fr-file-target > span { color:var(--fr2-secondary);font-size:12px; }
+.fr-content-v2 .fr-file-target > small { color:var(--fr2-muted);font-size:11px; }
+.fr-content-v2 .fr-file-target > input.fr-file-native { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+.fr-content-v2 .fr-file-target:hover:not([data-disabled]),.fr-content-v2 .fr-file-target.is-dragging { background:var(--fr2-accent-surface);border-color:var(--fr2-accent); }
+.fr-content-v2 .fr-file-target:focus-within { outline:2px solid var(--fr2-accent);outline-offset:2px; }
+.fr-content-v2 .fr-file-target:has(input:disabled) { opacity:.5; }
+.fr-content-v2 .fr-file-target > input:disabled { cursor:not-allowed; }
+.fr-content-v2 .fr-file-target .fr-file-touch { display:none; }
+.fr-content-v2 .fr-file-selection { display:flex;align-items:center;gap:12px;min-width:0;padding:12px;border:1px solid var(--fr2-line);border-radius:10px; }
+.fr-content-v2 .fr-file-selection > img { width:56px;height:56px;object-fit:contain;border-radius:6px;background:var(--fr2-bg);flex:none; }
+.fr-content-v2 .fr-file-selection > div { flex:1;min-width:0; }
+.fr-content-v2 .fr-file-selection p { display:grid;gap:4px; }
+.fr-content-v2 .fr-file-selection strong { font-size:12px;font-weight:500;overflow-wrap:anywhere; }
+.fr-content-v2 .fr-file-selection span { color:var(--fr2-muted);font-size:11px; }
+.fr-content-v2 .fr-file-selection > button { display:grid;place-items:center;min-width:40px;min-height:40px;flex:none;border-radius:8px;color:var(--fr2-muted);cursor:pointer; }
+.fr-content-v2 .fr-file-selection > button:hover { color:var(--fr2-text);background:var(--fr2-raised); }
+.fr-content-v2 .fr-file-error { color:var(--fr2-danger);font-size:12px;overflow-wrap:anywhere; }
+@media (pointer:coarse) {
+  .fr-content-v2 .fr-file-target .fr-file-desktop { display:none; }
+  .fr-content-v2 .fr-file-target .fr-file-touch { display:block; }
+}

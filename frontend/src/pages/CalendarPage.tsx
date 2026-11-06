@@ -1,3 +1,4 @@
+import { readQueries } from "@/shared/api/readQueries";
 import { ScheduleMatrix,PlanApproval } from "@/features/analyst/AnalystPanels";
 import { canOperate } from "@/shared/lib/roles";
 import {useEffect,useState} from "react";
@@ -6,6 +7,7 @@ import {maintenanceApi} from "@/shared/api/maintenance";
 import {DEMO_MODE} from "@/shared/api/request";
 import {useSession} from "@/shared/session/SessionContext";
 import {useApiQuery} from "@/shared/lib/useApiQuery";
+import {useApiQueryCache} from "@/shared/lib/ApiQueryProvider";
 import {useWorkspaceState} from "@/shared/lib/workspaceState";
 import {useMediaQuery} from "@/shared/lib/useMediaQuery";
 import {DEMO_DATE,dateLabel,isDateKey,shiftDay,weekFor} from "@/shared/lib/operations";
@@ -23,27 +25,30 @@ import {PlanningRunPanel} from "@/features/planning/PlanningRunPanel";
 import {CalendarBoard,OCCURRENCE_LABELS,type CalendarView} from "@/features/calendar/CalendarBoard";
 import type {CalendarOccurrence,CalendarPreview,CalendarPreviewOccurrence} from "@/shared/types/domain";
 import "@/features/calendar/calendar.css";
+import "@/features/calendar/calendar-v2.css";
 
 export function CalendarPage() {
+ const cache=useApiQueryCache();
  const {profile}=useSession();const [params]=useSearchParams();
  const timezone=profile?.timezone??"Asia/Yekaterinburg",today=DEMO_MODE?DEMO_DATE:todayAt(timezone);
  const supplied=params.get("date");const initial=isDateKey(supplied)?supplied:today;
  const [anchor,setAnchor]=useWorkspaceState("calendar.anchor",initial,isDateKey);
  const [view,setView]=useWorkspaceState<CalendarView>("calendar.view","month",(v):v is CalendarView=>["month","week","agenda"].includes(String(v)));
+ const [workspaceView,setWorkspaceView]=useState<"calendar"|"matrix">("calendar");
  const compact=useMediaQuery("(max-width: 767px)");const actualView=compact?"agenda":view;
- const weekPeriod=compact||actualView==="week";
+ const weekPeriod=workspaceView==="calendar"&&(compact||actualView==="week");
  useEffect(()=>{if(isDateKey(supplied))setAnchor(supplied);},[supplied]);
  const [mode,setMode]=useState<"saved"|"preview">("saved"),[calculation,setCalculation]=useState(0);
  const [equipment,setEquipment]=useState(""),[selectedId,setSelectedId]=useState<string|null>(null);
  const year=+anchor.slice(0,4),month=+anchor.slice(5,7), mayPreview=canOperate(profile?.role);
- const scope=`${anchor}:${actualView}:${compact}:${mode}:${calculation}`;
+ const scope=`${anchor}:${actualView}:${compact}:${workspaceView}:${mode}:${calculation}`;
  const query=useApiQuery(async()=>{
   if(mode==="preview"){const preview=await maintenanceApi.previewCalendar(year,month);return {scope,preview,items:preview.items as CalendarOccurrence[]};}
   const months=weekPeriod?[...new Set(weekFor(anchor).map(day=>day.slice(0,7)))]:[anchor.slice(0,7)];
-  const lists=await Promise.all(months.map(value=>maintenanceApi.listCalendar(+value.slice(0,4),+value.slice(5,7))));
+  const lists=await Promise.all(months.map(value=>{const query=readQueries.calendarMonth(+value.slice(0,4),+value.slice(5,7));return cache?cache.load(query.key,query.load):query.load();}));
   return {scope,preview:null,items:[...new Map(lists.flat().map(item=>[item.id,item])).values()]};
- },[scope]);
- const tasksQuery=useApiQuery(()=>maintenanceApi.listTasks(),[]);
+ },[scope],undefined,mode==="saved"?`calendar:${scope}`:undefined);
+ const tasksQuery=useApiQuery(readQueries.tasks.load,[],undefined,readQueries.tasks.key);
  const data=query.status==="success"&&query.data.scope===scope?query.data:null;
  const visibleWeek = weekFor(anchor);
  const items=(data?.items??[]).filter(item=>(!equipment||item.equipmentId===equipment) && (!isDateKey(item.occurrenceDate) || (compact ? item.occurrenceDate===anchor : !weekPeriod || visibleWeek.includes(item.occurrenceDate))));
@@ -56,17 +61,20 @@ export function CalendarPage() {
  const pending=query.status==="loading"||(query.status==="success"&&!data);
  const shift=(delta:number)=>{setSelectedId(null);if(weekPeriod){const next=shiftDay(anchor,delta*7);if(isDateKey(next))setAnchor(next);}else{const date=new Date(Date.UTC(year,month-1+delta,1));const next=date.toISOString().slice(0,10);if(isDateKey(next))setAnchor(next);}};
  const stats={overdue:items.filter(item=>item.isOverdue || ("deadlinePassed" in item && item.deadlinePassed)).length,fulfilled:items.filter(item=>item.status==="fulfilled").length,unknown:data?.preview?data.preview.diagnostics.filter(item=>item.status==="needs_input"||item.status==="manual_review").length:items.filter(item=>item.requiresInput).length};
- return <div className="space-y-6 fr-calendar-page"><PageHeader eyebrow="Планирование / обязательные сроки" title="График ТО и ППР" description="Регламент задаёт границы. План помогает организовать исполнение." actions={mayPreview?<Button disabled={pending||DEMO_MODE||year>2100} title={DEMO_MODE?"В DEMO расчёт недоступен: нужен API":undefined} onClick={()=>{setMode("preview");setCalculation(v=>v+1);setSelectedId(null);}}><Icon name="calendar" size={16}/>{mode==="preview"?"Пересчитать график":"Рассчитать график"}</Button>:undefined}/>
- <div className="fr-calendar-toolbar"><div className="fr-calendar-period"><IconButton label={weekPeriod?"Предыдущая неделя":"Предыдущий месяц"} onClick={()=>shift(-1)} disabled={year<=2000&&month===1}><Icon name="back" size={16}/></IconButton><h2>{weekPeriod?`${dateLabel(weekFor(anchor)[0],{day:"numeric",month:"short"})} — ${dateLabel(weekFor(anchor)[6],{day:"numeric",month:"short"})}`:formatMonth(year,month)}</h2><IconButton label={weekPeriod?"Следующая неделя":"Следующий месяц"} onClick={()=>shift(1)} disabled={year>=(mode==="preview"?2100:2200)&&month===12}><Icon name="chevron" size={16}/></IconButton><button className="fr-text-button" type="button" onClick={()=>{setAnchor(today);setSelectedId(null);}}>{DEMO_MODE?"Дата демо":"Сегодня"}</button></div>
- {!compact&&<div className="fr-segmented" aria-label="Вид календаря">{([['month','Месяц'],['week','Неделя'],['agenda','Список']] as const).map(([value,label])=><button key={value} type="button" aria-pressed={view===value} onClick={()=>{setView(value);setSelectedId(null);}}>{label}</button>)}</div>}</div>
- {compact&&<div className="fr-week-picker fr-calendar-mobile-days" aria-label="День календаря">{visibleWeek.map(day=><button type="button" key={day} aria-pressed={day===anchor} aria-label={dateLabel(day,{day:"numeric",month:"long"})} className={day===anchor?"is-selected":""} onClick={()=>{setAnchor(day);setSelectedId(null);}}><span>{dateLabel(day,{weekday:"short"})}</span><strong>{day.slice(8)}</strong></button>)}</div>}
- <Card className="fr-calendar-surface"><div className="fr-calendar-filterline"><Select aria-label="Оборудование календаря" value={equipment} onChange={e=>setEquipment(e.target.value)}><option value="">Всё оборудование</option>{options.map(([id,name])=><option key={id} value={id}>{name}</option>)}</Select><div className="fr-calendar-counters"><span><strong>{items.length}</strong> работ</span><span><i className="is-fulfilled"/>{stats.fulfilled} выполнено</span><span className={stats.overdue?"fr-danger":""}><i className="is-overdue"/>{stats.overdue} просрочено</span>{stats.unknown>0&&<span className="fr-warning">{stats.unknown} требуют уточнения</span>}</div></div>
+ return <div className="space-y-6 fr-calendar-page"><PageHeader title="График ТО и ППР" description="Регламент задаёт границы. План помогает организовать исполнение." actions={mayPreview?<Button disabled={pending||DEMO_MODE||year>2100} title={DEMO_MODE?"В DEMO расчёт недоступен: нужен API":undefined} onClick={()=>{setWorkspaceView("calendar");setMode("preview");setCalculation(v=>v+1);setSelectedId(null);}}><Icon name="calendar" size={16}/>{mode==="preview"?"Пересчитать график":"Рассчитать график"}</Button>:undefined}/>
+ {!DEMO_MODE&&<div className="fr-segmented" aria-label="Рабочее представление"><button type="button" aria-pressed={workspaceView==="calendar"} onClick={()=>setWorkspaceView("calendar")}>Календарь</button><button type="button" aria-pressed={workspaceView==="matrix"} onClick={()=>{setWorkspaceView("matrix");setMode("saved");setSelectedId(null);}}>Матрица обязательств</button></div>}
+ {mode==="preview"&&<Callout tone="warning"><strong>Предварительный расчёт · не сохранён</strong><p>Результаты ниже относятся к расчёту. График не сохранён, сотрудники не назначены.</p><Button variant="secondary" onClick={()=>setMode("saved")}>Сохранённый график</Button></Callout>}
+ {data?.preview&&canOperate(profile?.role)&&!DEMO_MODE&&<PlanningRunPanel key={`${scope}:${data.preview.generationToken}`} preview={data.preview} onRecalculate={()=>setCalculation(v=>v+1)}/>}
+ <div className="fr-calendar-toolbar"><div className="fr-calendar-period"><IconButton label={weekPeriod?"Предыдущая неделя":"Предыдущий месяц"} onClick={()=>shift(-1)} disabled={year<=2000&&month===1}><Icon name="back" size={16}/></IconButton><h2>{weekPeriod?`${dateLabel(weekFor(anchor)[0],{day:"numeric",month:"short"})} — ${dateLabel(weekFor(anchor)[6],{day:"numeric",month:"short"})}`:formatMonth(year,month)}</h2><IconButton label={weekPeriod?"Следующая неделя":"Следующий месяц"} onClick={()=>shift(1)} disabled={year>=(mode==="preview"?2100:2200)&&month===12}><Icon name="chevron" size={16}/></IconButton></div>
+ {!compact&&workspaceView==="calendar"&&<div className="fr-segmented" aria-label="Вид календаря">{([['month','Месяц'],['week','Неделя'],['agenda','Список']] as const).map(([value,label])=><button key={value} type="button" aria-pressed={view===value} onClick={()=>{setView(value);setSelectedId(null);}}>{label}</button>)}</div>}</div>
+ {compact&&workspaceView==="calendar"&&<div className="fr-week-picker fr-calendar-mobile-days" aria-label="День календаря">{visibleWeek.map(day=><button type="button" key={day} aria-pressed={day===anchor} aria-label={dateLabel(day,{day:"numeric",month:"long"})} className={day===anchor?"is-selected":""} onClick={()=>{setAnchor(day);setSelectedId(null);}}><span>{dateLabel(day,{weekday:"short"})}</span><strong>{day.slice(8)}</strong></button>)}</div>}
+ {workspaceView==="calendar"&&<><Card className="fr-calendar-surface"><div className="fr-calendar-filterline"><Select aria-label="Оборудование календаря" value={equipment} onChange={e=>setEquipment(e.target.value)}><option value="">Всё оборудование</option>{options.map(([id,name])=><option key={id} value={id}>{name}</option>)}</Select><div className="fr-calendar-counters"><span><strong>{items.length}</strong> работ</span><span><i className="is-fulfilled"/>{stats.fulfilled} выполнено</span><span className={stats.overdue?"fr-danger":""}><i className="is-overdue"/>{stats.overdue} просрочено</span>{stats.unknown>0&&<span className="fr-warning">{stats.unknown} требуют уточнения</span>}</div></div>
  {pending&&<LoadingState label={mode==="preview"?"Расчёт графика":"Загрузка календаря"}/>} {query.status==="error"&&<ErrorState description={query.error}/>}
  {data&&<CalendarBoard items={items} year={year} month={month} anchor={anchor} today={today} view={actualView} onSelect={item=>setSelectedId(item.id)}/>}
  <div className="fr-calendar-legend"><span><i className="is-planned"/>Запланировано</span><span><i className="is-fulfilled"/>Выполнено</span><span><i className="is-overdue"/>Просрочено</span><span>Часовой пояс · {timezone}</span></div></Card>
- <div className="fr-calendar-disclaimer"><Icon name="quality" size={18}/><p>{mode==="preview"?"Предварительный расчёт не сохраняет график и не назначает сотрудников. Даты в прошлом требуют проверки.":"Календарная дата — не замена обязательному сроку наряда. Нажмите на работу, чтобы увидеть нормативную границу и детали."}{DEMO_MODE&&" DEMO: сохранённый пример октября 2026 года, расчёт через сервер недоступен."}</p>{mode==="preview"&&<Button variant="secondary" onClick={()=>setMode("saved")}>Сохранённый график</Button>}</div>
- {!DEMO_MODE&&<><ScheduleMatrix year={year} month={month}/><PlanApproval year={year} month={month} onSaved={()=>setCalculation(v=>v+1)}/></>}
- {data?.preview&&canOperate(profile?.role)&&!DEMO_MODE&&<PlanningRunPanel key={`${scope}:${data.preview.generationToken}`} preview={data.preview} onRecalculate={()=>setCalculation(v=>v+1)}/>}
+ <div className="fr-calendar-disclaimer"><Icon name="quality" size={18}/><p>{mode==="preview"?"Даты расчёта в прошлом требуют проверки.":"Календарная дата — не замена обязательному сроку наряда. Нажмите на работу, чтобы увидеть нормативную границу и детали."}{DEMO_MODE&&" DEMO: сохранённый пример октября 2026 года, расчёт через сервер недоступен."}</p></div></>}
+ {!DEMO_MODE&&workspaceView==="matrix"&&<ScheduleMatrix year={year} month={month}/>}
+ {!DEMO_MODE&&mode==="saved"&&<PlanApproval year={year} month={month} onSaved={()=>setCalculation(v=>v+1)}/>}
  {data?.preview&&<PreviewDiagnostics preview={data.preview}/>}
  <Drawer open={!!selected} onClose={()=>setSelectedId(null)} title={selected?.operationTitle??"Работа"} footer={<>{taskPath&&<Link to={taskPath} className={buttonClassName("primary")}>Открыть наряд <Icon name="chevron" size={16}/></Link>}{selected?.equipmentId&&<Link to={`/equipment/${selected.equipmentId}`} className={buttonClassName("secondary")}>Оборудование</Link>}</>}>
  {selected&&<><p className="fr-drawer-equipment">{selected.equipmentName}</p><span className={`fr-calendar-status ${selected.isOverdue?"fr-danger":""}`}>{selected.isOverdue?"Просрочено · ":""}{OCCURRENCE_LABELS[selected.status]}</span><dl className="fr-detail-dates"><div><dt>Исходная дата обязательства</dt><dd>{formatDate(selected.sourceDate??selected.occurrenceDate)}</dd></div><div><dt>Календарная дата выполнения</dt><dd>{isDateKey(selected.occurrenceDate)?formatDate(selected.occurrenceDate):"Требует уточнения"}</dd></div><div className="is-mandatory"><dt>Обязательный срок</dt><dd>{deadline?formatDate(deadline):tasksQuery.status==="error"?"Не удалось загрузить срок наряда":tasksQuery.status==="loading"?"Загрузка срока…":"Не передан в данных"}</dd></div><div><dt>Операция / вид ТО</dt><dd>{selected.operationCode} · {selected.maintenanceType??"Не указан"}</dd></div><div><dt>Наряд</dt><dd>{selectedTask?.code??(selected.taskId?"Связанный наряд":"Не создан")}</dd></div></dl>

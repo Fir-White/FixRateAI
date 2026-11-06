@@ -115,6 +115,11 @@ def seed_presentation(engine,password,*,as_of=None,storage=None):
                     status=status,origin='scheduled' if entry else 'manual',required_people_snapshot=rule.required_people,norm_hours_snapshot=rule.norm_hours,norm_hours_basis_snapshot='total_person_hours',
                     operation_snapshot=snapshot,planned_start_at=begin,planned_end_at=finish,regulatory_deadline_at=deadline,created_by=identity('engineer'),
                     started_at=begin if status in ('completed','in_progress','rework') else None,completed_at=finish if status=='completed' else None)
+                # The chosen binding is the identity source, not the operation label.
+                # Existing orders returned above are deliberately not repaired here.
+                repo.add('work_order_equipment',site_id=site_id,system_id=system_id,
+                    work_order_id=order.work_order_id,equipment_id=eq.equipment_id,
+                    asset_snapshot={'data_origin':'synthetic_demo','profile':'presentation-v1'})
                 workers=['worker-2','worker-3'] if code=='1.4' else ['executor']
                 if status!='draft':
                     for role in workers:ensure('work_assignments','work_assignment_id',key+'-'+role,site_id=site_id,work_order_id=order.work_order_id,user_id=identity(role),assigned_by=identity('engineer'),status='finished' if status=='completed' else 'assigned')

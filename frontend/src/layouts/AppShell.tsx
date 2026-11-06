@@ -22,6 +22,7 @@ import { Sidebar } from "./Sidebar";
 import { useWorkspaceBack } from "./WorkspaceNavigation";
 import { NAVIGATION_ITEMS } from "./navigation";
 import "./operations.css";
+import { ContentTheme } from "@/shared/ui/ContentTheme";
 
 const ROLES: Role[] = ["director","chief_engineer","dispatcher", "engineer", "executor", "admin"];
 
@@ -141,7 +142,7 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
           tabIndex={-1}
           className={`ops-main mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-10 ${profile.role === "executor" ? "workspace-executor-main" : ""}`}
         >
-          <Outlet />
+          {location.pathname.replace(/\/+$/, "") === "/profile" ? <Outlet /> : <ContentTheme><Outlet /></ContentTheme>}
         </main>
 
       </div>

@@ -1,5 +1,5 @@
 import { AttemptHistory } from "@/features/analyst/AnalystPanels";
-import { ChiefActions,ActsPanel } from "@/features/analyst/AnalystPanels";
+import { ChiefActions,ActsPanel,ExecutionProtocol } from "@/features/analyst/AnalystPanels";
 import { AiModelSelector } from "@/features/ai/AiModelSelector";
 import { getStoredAiSettings } from "@/features/ai/aiSettings";
 import { DEMO_MODE } from "@/shared/api/request";
@@ -28,6 +28,9 @@ import {
   TaskStateBadge,
 } from "@/shared/ui/StatusBadge";
 
+import { attemptStateSummary } from "@/shared/lib/presentation";
+import "./quality-redesign.css";
+
 export function QualityTaskPage() {
   const formatDateTime=useSiteDateTime();
   const { taskId = "" } = useParams();
@@ -53,6 +56,7 @@ export function QualityTaskPage() {
     setReason("");
     setPendingDecision(null);
     setNotice(null);
+    setLastMeasuredMs(null);
   }, [taskId, executionId]);
 
   if (query.status === "loading") {
@@ -73,6 +77,7 @@ export function QualityTaskPage() {
   }
 
   const { task, execution, review, decision } = query.data;
+  const hasDocuments = !!task.requiredActs?.length || !!execution?.acts?.length;
   const canReview = !DEMO_MODE && !!query.data.allowedActions?.includes("review");
   const canAnalyze = !DEMO_MODE && !!query.data.allowedActions?.includes("photo_review");
 
@@ -96,11 +101,9 @@ export function QualityTaskPage() {
         Контроль качества
       </Link>
 
-      <AttemptHistory taskId={task.id}/><ChiefActions task={task} onSaved={()=>setRefresh(n=>n+1)}/><ActsPanel task={task} execution={execution} editable={false} onSaved={()=>setRefresh(n=>n+1)}/>
       <PageHeader
-        eyebrow={task.code}
         title={task.title}
-        description={`${task.equipmentName} · ${task.summary}`}
+        description={`${task.code} · ${task.equipmentName} · ${task.summary}`}
         actions={
           <Link to={`/tasks/${task.id}`} className={buttonClassName("secondary")}>
             Карточка задания
@@ -117,6 +120,20 @@ export function QualityTaskPage() {
         </span>
       </div>
 
+      {decision ? (
+        <Card>
+          <CardHeader title="Предыдущее решение" />
+          <div className="p-5 sm:p-6">
+            <EngineerDecisionBadge verdict={decision.verdict} />
+            <p className="mt-2 text-sm leading-6 text-ink-soft">{decision.reason}</p>
+            <p className="mt-2 text-xs text-muted">{decision.decidedBy} · {formatDateTime(decision.decidedAt)}</p>
+          </div>
+        </Card>
+      ) : null}
+
+      <p className="text-sm text-muted">{attemptStateSummary(task.state)}</p>
+      {canReview && <a className="fr-decision-shortcut" href="#review-decision">Перейти к основанию решения</a>}
+      {notice && !canReview && <div role="alert"><Callout tone="danger" className="text-xs">{notice}</Callout></div>}
       {query.data.photoAnalysisStatus === "pending" && <Callout tone="neutral"><div className="flex flex-wrap items-center justify-between gap-2"><p role="status">Фотографии анализируются автоматически. Результат появится здесь без обновления страницы; запуск инженером не требуется.</p><AnalysisTimerBadge active /></div></Callout>}
       {canAnalyze && query.data.photoAnalysisStatus !== "pending" && (!review || ["failed","unavailable"].includes(review.status)) && <div className="space-y-4 rounded-xl border border-line p-4">
         <AiModelSelector variant="compact" />
@@ -142,8 +159,10 @@ export function QualityTaskPage() {
         </div>
       </div>}
       {DEMO_MODE && <Callout tone="neutral">DEMO · Фото и решения показаны из примера. Анализ и приёмка доступны только при подключении к API.</Callout>}
-      <div className="quality-detail-grid">
+      <div className="quality-detail-grid fr-work-grid">
         <div className="space-y-6">
+          {hasDocuments && <div id="review-documents"><ActsPanel task={task} execution={execution} editable={false} onSaved={()=>setRefresh(n=>n+1)}/></div>}
+          {execution&&<ExecutionProtocol task={task} execution={execution} value={{actual:execution.actual?{started_at:execution.actual.started_at??"",performed_at:execution.actual.performed_at??"",person_hours:execution.actual.person_hours??""}:null,readings:execution.readings??[]}} onChange={()=>{}} disabled readOnly/>}
           <Card>
             <CardHeader
               title="Отчёт исполнителя"
@@ -181,8 +200,8 @@ export function QualityTaskPage() {
           {query.data.photoAnalysisStatus !== "pending" && <PhotoReviewCard review={review} formatDateTime={formatDateTime} fallbackElapsedMs={lastMeasuredMs}/>}
         </div>
 
-        <div className="space-y-6 quality-decision-rail">
-          <Card>
+        <div id="review-decision" className="space-y-6 quality-decision-rail">
+          {canReview&&<Card>
             <CardHeader title="Основание решения" />
             <div className="p-5 sm:p-6">
               <InfoList className="grid grid-cols-2 gap-4">
@@ -197,10 +216,11 @@ export function QualityTaskPage() {
                 неуверенного AI-результата она служит основанием ручной оценки.
               </p>
 
+              <div className="fr-decision-facts"><p>Фото этой попытки: {execution?.photos.length??0}.{hasDocuments && <> <a href="#review-documents">Документы и проверки</a></>}</p>{task.requiredActs?.map(kind=><p key={kind}>{kind}: {execution?.acts?.some(a=>a.kind===kind&&a.verified)?"проверен":execution?.acts?.some(a=>a.kind===kind)?"ожидает проверки":"не приложен"}</p>)}<p>AI не принимает работу. Скрытые операции и точность прибора требуют ручной проверки.</p>{review?.limitations.map(text=><p key={text}>{text}</p>)}</div>
               <FormField
                 label="Причина решения"
                 htmlFor="quality-reason"
-                hint="Основание сохраняется в EngineerDecision."
+                hint="Ваше основание будет сохранено вместе с решением."
                 required
                 className="mt-4"
               >
@@ -238,30 +258,17 @@ export function QualityTaskPage() {
                   Вернуть на доработку
                 </Button>
               </div>
-              {!DEMO_MODE && task.state === "submitted" && !canReview && <Callout tone="warning" className="mt-3 text-xs">Собственную работу должен проверить другой инженер.</Callout>}
             </div>
-          </Card>
-
-          {decision ? (
-            <Card>
-              <CardHeader title="Предыдущее решение" />
-              <div className="p-5 sm:p-6">
-                <EngineerDecisionBadge verdict={decision.verdict} />
-                <p className="mt-2 text-sm leading-6 text-ink-soft">
-                  {decision.reason}
-                </p>
-                <p className="mt-2 text-xs text-muted">
-                  {decision.decidedBy} · {formatDateTime(decision.decidedAt)}
-                </p>
-              </div>
-            </Card>
-          ) : null}
+          </Card>}
+          {!DEMO_MODE && task.state === "submitted" && !canReview && <Callout tone="warning" className="mt-3 text-xs">Собственную работу должен проверить другой инженер.</Callout>}
 
           <Callout tone="neutral" className="text-xs leading-5">
-            Приёмка, сохранение решения и аудит выполняются в одной транзакции. Принятая попытка появляется в истории оборудования.
+            Решение и доказательства этой попытки сохраняются в истории задания.
           </Callout>
         </div>
       </div>
+      <ChiefActions task={task} onSaved={()=>setRefresh(n=>n+1)}/>
+      <AttemptHistory taskId={task.id}/>
       <Modal
         open={pendingDecision !== null}
         title={
@@ -299,7 +306,7 @@ export function QualityTaskPage() {
       >
         <p className="text-sm leading-6 text-ink-soft">{reason}</p>
         <p className="mt-3 text-xs text-muted">
-          Проверьте фотографии и заключение AI перед подтверждением.
+          {task.title} · Попытка №{execution?.attemptNumber}. Проверьте фотографии, показания и заключение AI. Обязательные документы: {task.requiredActs?.join(", ")||"не предусмотрены регламентом"}.
         </p>
       </Modal>
 

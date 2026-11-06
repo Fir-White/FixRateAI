@@ -99,7 +99,7 @@ const VERDICT_TONES: Record<PhotoVerdict, BadgeTone> = {
 };
 
 export function TaskStateBadge({ state }: { state: TaskState }) {
-  return <Badge tone={TASK_TONES[state]}>{TASK_LABELS[state]}</Badge>;
+  return <Badge tone={TASK_TONES[state] ?? "neutral"}>{TASK_LABELS[state] ?? `Неизвестное состояние: ${state}`}</Badge>;
 }
 
 export function EquipmentStateBadge({ state }: { state: EquipmentState }) {

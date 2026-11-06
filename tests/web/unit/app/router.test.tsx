@@ -128,20 +128,15 @@ describe("app routes", () => {
   });
 
   it("keeps quality decisions unavailable in demo mode", async () => {
-    const user = userEvent.setup();
     renderAt(
       "/quality/b1000000-0000-4000-8000-000000000004",
       "engineer",
     );
 
     await screen.findByRole("heading", { name: "Очистка учебного узла" });
-    const accept = screen.getByRole("button", { name: "Принять работу" });
-    expect(accept).toBeDisabled();
-
-    const reason = screen.getByLabelText(/Причина решения/);
-    expect(reason).toHaveAccessibleDescription(/EngineerDecision/);
-    await user.type(reason, "Фотографии и чек-лист проверены.");
-    expect(accept).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Принять работу" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Вернуть на доработку" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Причина решения/)).not.toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -162,17 +157,17 @@ describe("app routes", () => {
   it("retains one background across sections and executor shell, then removes session UI on logout", async () => {
     const user = userEvent.setup();
     const view = renderAt("/dispatcher", "dispatcher");
-    await screen.findByRole("heading", { name: "Панель диспетчера" });
+    expect(await screen.findByLabelText("Панель диспетчера")).toBeVisible();
     const canvas = view.container.querySelector(".workspace-aurora canvas");
-    await user.click(screen.getByRole("link", { name: "Оборудование" }));
-    await screen.findByRole("heading", { name: "Оборудование" });
+    await user.click(screen.getByLabelText("Оборудование"));
+    expect(await screen.findByText("Оборудование", { selector: "h1" })).toBeVisible();
     expect(view.container.querySelector(".workspace-aurora canvas")).toBe(canvas);
     await user.selectOptions(screen.getByLabelText("Демонстрационная роль"), "executor");
-    await screen.findByRole("heading", { name: "Мои задания" });
+    expect(await screen.findByText("Мои задания", { selector: "h1" })).toBeVisible();
     expect(view.container.querySelector(".workspace-aurora canvas")).toBe(canvas);
     expect(view.container.querySelectorAll(".ops-sidebar")).toHaveLength(1);
     expect(screen.getAllByRole("navigation")).toHaveLength(1);
-    await user.click(screen.getByRole("link", { name: "Учётная запись" }));
+    await user.click(screen.getByLabelText("Учётная запись"));
     await screen.findByRole("heading", { name: "Мой профиль" });
     await user.click(screen.getByRole("button", { name: "Выйти из аккаунта" }));
     await screen.findByRole("heading", { name: "Выберите роль" });

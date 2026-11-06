@@ -1,4 +1,5 @@
 import type { MaintenanceTask, TaskState } from "@/shared/types/domain";
+import { dateTimeFormatter } from "./dateTimeFormatter";
 
 /** The shipped fixture snapshot is October 2026, not the user's live clock. */
 export const DEMO_DATE = "2026-10-30";
@@ -30,7 +31,7 @@ export function isDateKey(value: unknown): value is string {
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0,10)===value && +value.slice(0,4)>=2000 && +value.slice(0,4)<=2200;
 }
 export function dayAt(value: string, timezone: string): string {
-  const parts=new Intl.DateTimeFormat("en-CA",{timeZone:timezone,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(value));
+  const parts=dateTimeFormatter("en-CA",{timeZone:timezone,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(value));
   return ["year","month","day"].map(key=>parts.find(part=>part.type===key)!.value).join("-");
 }
 /** Planned date is displayed as a plan, never as a replacement for mandatoryDueDate. */
@@ -45,7 +46,7 @@ export function weekFor(date: string): string[] {
   const monday=shiftDay(date,-((day+6)%7)); return Array.from({length:7},(_,i)=>shiftDay(monday,i));
 }
 export function dateLabel(date: string, options: Intl.DateTimeFormatOptions): string {
-  return new Intl.DateTimeFormat("ru-RU",{...options,timeZone:"UTC"}).format(new Date(`${date}T12:00:00Z`));
+  return dateTimeFormatter("ru-RU",{...options,timeZone:"UTC"}).format(new Date(`${date}T12:00:00Z`));
 }
 export function taskPriority(task: MaintenanceTask): number {
   return isTaskOverdue(task)?0:task.state==="rework_required"?1:task.state==="in_progress"?2:isUnassigned(task)?3:task.state==="submitted"?4:5;

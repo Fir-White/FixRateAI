@@ -1,0 +1,29 @@
+.fr-content-v2 .executor-editor { max-width: none; }
+.fr-content-v2 .fr-attempt-layout { display: grid; gap: 24px; }
+.fr-content-v2 .fr-attempt-context { align-self: start; padding: 20px; border: 1px solid var(--fr2-line); border-radius: 16px; background: var(--fr2-surface); }
+.fr-content-v2 .fr-attempt-context h2 { font-size: 20px; line-height: 28px; margin-bottom: 12px; }
+.fr-content-v2 .fr-attempt-context p { color: var(--fr2-secondary); }
+.fr-content-v2 .fr-attempt-context .execution-deadline { display: grid; padding-inline: 0; margin-bottom: 0; border: 0; background: transparent; }
+.fr-content-v2 .fr-attempt-content { min-width: 0; }
+@container work-content (min-width: 1040px) {
+  .fr-content-v2 .fr-attempt-layout { grid-template-columns: minmax(0, 1fr) 336px; }
+  .fr-content-v2 .fr-attempt-context { grid-column: 2; grid-row: 1; }
+  .fr-content-v2 .fr-attempt-content { grid-column: 1; grid-row: 1; }
+}
+.fr-content-v2 .execution-section { background: var(--fr2-surface); border-color: var(--fr2-line); border-radius: 16px; padding: 20px; }
+.fr-content-v2 .execution-section h2 { font-size: 20px; line-height: 28px; }
+.fr-content-v2 .execution-check-item { border-color: var(--fr2-line); }
+.fr-content-v2 .execution-item-label { font-size: 14px; line-height: 21px; }
+.fr-content-v2 .execution-check-content { min-width: 0; }
+.fr-content-v2 .execution-check-content .fr-read-value { border: 0; padding-bottom: 0; }
+.fr-content-v2 .evidence-photo-stage img { object-fit: contain; }
+.fr-content-v2 .evidence-photo figcaption strong { overflow-wrap: anywhere; }
+@container work-content (max-width: 760px) {
+  .fr-content-v2 .execution-section { padding: 16px; }
+  .fr-content-v2 .execution-section h2 { font-size: 18px; line-height: 26px; }
+  .fr-content-v2 .execution-item-label { font-size: 15px; line-height: 22px; }
+  .fr-content-v2 .execution-check-item { padding-inline: 0; }
+  .fr-content-v2 .evidence-pair-grid { grid-template-columns: minmax(0, 1fr); }
+  .fr-content-v2 .execution-section-nav { flex-wrap: wrap; }
+  .fr-content-v2 .execution-submit-bar { position: static; flex-wrap: wrap; }
+}

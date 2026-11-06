@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CrewSelectionPanel } from "@/features/assignment/CrewSelectionPanel";
@@ -105,7 +105,9 @@ describe("crew selection", () => {
     mount();
     await user.click(await screen.findByRole("button", {name: "Найти бригаду"}));
     await waitFor(() => expect(mocks.preview).toHaveBeenCalledTimes(1));
-    await user.clear(screen.getByLabelText("Конец окна поиска"));
+    await user.click(screen.getByLabelText("Конец окна поиска"));
+    fireEvent.change(screen.getByLabelText("Дата", {exact:true}), {target:{value:"02112026"}});
+    await user.click(screen.getByRole("button", {name:"Применить"}));
     await act(async () => {resolve(result);});
     expect(screen.queryByText("Полный состав найден")).not.toBeInTheDocument();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
@@ -161,5 +163,25 @@ describe("crew selection", () => {
     await user.click(await screen.findByRole("button", {name: "Найти бригаду"}));
     await screen.findByRole("button", {name: "Подтвердить назначение"});
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("preserves the search window after a network failure and requires a fresh proposal", async () => {
+    mocks.assign.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    const user = userEvent.setup();
+    mount();
+    const start = await screen.findByLabelText("Начало окна поиска");
+    await user.click(start);
+    fireEvent.change(screen.getByLabelText("Дата", {exact:true}), {target:{value:"01112026"}});
+    fireEvent.change(screen.getByLabelText("Часы"), {target:{value:"10"}});
+    fireEvent.change(screen.getByLabelText("Минуты"), {target:{value:"00"}});
+    await user.click(screen.getByRole("button", {name:"Применить"}));
+    await user.click(screen.getByRole("button", {name: "Найти бригаду"}));
+    await user.click(await screen.findByRole("button", {name: "Подтвердить назначение"}));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Сохранение не подтверждено");
+    expect(screen.getByLabelText("Начало окна поиска")).toHaveTextContent("1 ноября 2026");
+    expect(screen.getByLabelText("Начало окна поиска")).toHaveTextContent("10:00");
+    expect(mocks.context).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", {name: "Подтвердить назначение"})).not.toBeInTheDocument();
+    expect(screen.queryByText("Бригада назначена")).not.toBeInTheDocument();
   });
 });

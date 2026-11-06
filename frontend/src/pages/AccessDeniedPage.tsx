@@ -24,8 +24,8 @@ export function AccessDeniedPage({ allowedRoles }: { allowedRoles: Role[] }) {
         </h1>
         <p className="mt-2 text-sm leading-6 text-muted">
           Разрешённые роли:{" "}
-          {allowedRoles.map((role) => ROLE_LABELS[role]).join(", ")}. Скрытие
-          навигации не заменяет серверную проверку прав.
+          {allowedRoles.map((role) => ROLE_LABELS[role]).join(", ")}. Продолжите работу
+          в доступном вам разделе.
         </p>
         <Link to={target} className={buttonClassName("primary", "md", "mt-6")}>
           Вернуться в рабочий раздел
