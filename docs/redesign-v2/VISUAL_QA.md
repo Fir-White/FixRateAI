@@ -1,5 +1,9 @@
 # Визуальные проверки
 
+## Правый край мобильной шапки, 07.11.2026
+
+**passed**:320/360/390 и native touch390×844 — профиль/уведомления у правого края, отступ14px вместо41px, размеры и действия сохранены; desktop768/1440 координаты совпали с исходными. Подсказка профиля остаётся в viewport. Уведомления и переход в профиль открыты; overflow/errors/content mutations0. `reports/redesign-v2/mobile-header-review/` содержит before/after JSON и screenshots, просмотрены before-390 и after-native-touch-390. Изменение protected shell выполнено по прямому запросу владельца.
+
 ## Формы, надзаголовки и выравнивание, 07.11.2026
 
 **passed**: live executor1440/1280/768/390/360/320 — форма дефекта и одинаковые края spotlight/очереди (delta left/right0px). Chief_engineer: обзор, сравнения, отчёты, настройки оборудования и сотрудников на1440/390. Labels0, overflow/errors/content mutations0. `reports/redesign-v2/form-polish-review/` содержит before/after формы, live-manifest.json, shared-manifest.json, executor-aligned-*.png, calendar-no-eyebrow.png, overview-clean-*.png, reference-form-*.png и skill-form-*.png. Touch390 снят последовательными viewport с перекрытием. Просмотрены desktop/mobile формы, очередь, календарь, справочник и допуски; без промежуточного состояния анимации меню. Отдельный functional incident E2E подтвердил исходный файл и readonly. **blocked**: физическая камера/системный picker/screen reader; общая ручная C16 приёмка не заявляется.

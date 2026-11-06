@@ -88,6 +88,10 @@
 
 .topbar-hint{position:absolute;z-index:80;top:calc(100% + 9px);left:50%;width:max-content;max-width:calc(100vw - 24px);padding:7px 10px;border:1px solid var(--color-line-strong);border-radius:7px;background:#1c2b27;color:var(--color-ink);font-size:11px;line-height:1.35;font-weight:500;white-space:nowrap;box-shadow:0 5px 20px rgb(0 0 0 / .2);pointer-events:none;opacity:0;visibility:hidden;transform:translate(-50%,-3px);transition:opacity .14s ease,transform .14s ease,visibility 0s linear .14s}html[data-focus-mode="keyboard"] .profile-trigger:focus-visible .topbar-hint,html[data-focus-mode="keyboard"] .inbox-trigger:focus-visible:not([aria-expanded="true"]) .topbar-hint,html[data-focus-mode="keyboard"] .ops-sidebar-toggle:focus-visible .topbar-hint,html[data-focus-mode="keyboard"] .workspace-sidebar-toggle:focus-visible .topbar-hint{opacity:1;visibility:visible;transform:translate(-50%,0);transition-delay:0s}@media(hover:hover){.profile-trigger:hover .topbar-hint,.inbox-trigger:hover:not([aria-expanded="true"]) .topbar-hint,.ops-sidebar-toggle:hover .topbar-hint,.workspace-sidebar-toggle:hover .topbar-hint{opacity:1;visibility:visible;transform:translate(-50%,0);transition-delay:0s}}@media(prefers-reduced-motion:reduce){.topbar-hint{transition:none}}
 
-@media(max-width:767px){.ops-topbar>div{padding-right:41px}}
+@media(max-width:767px){
+  .ops-topbar>div{padding-right:max(14px,env(safe-area-inset-right))}
+  .ops-topbar .profile-trigger .topbar-hint{left:auto;right:0;transform:translateY(-3px)}
+  .ops-topbar .profile-trigger:is(:hover,:focus-visible) .topbar-hint{transform:translateY(0)}
+}
 
 .workspace-sidebar-toggle{position:relative;display:grid;place-items:center;width:36px;height:36px;flex:none;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--color-muted);cursor:pointer}.workspace-sidebar-toggle:hover{background:var(--color-surface-raised);color:var(--color-ink)}.workspace-sidebar-toggle:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}@media(max-width:1023px){.workspace-sidebar-toggle{display:none}}
