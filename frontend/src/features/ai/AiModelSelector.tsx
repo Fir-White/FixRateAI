@@ -200,6 +200,7 @@ export function AiModelSelector({
               </div>
               <Input
                 type={showKey ? "text" : "password"}
+                aria-label="Персональный API-ключ"
                 placeholder={hasServerKey ? "Используется общий ключ сервера (можно переопределить)" : "sk-..."}
                 value={settings.apiKey}
                 onChange={(e) => handleKeyChange(e.target.value)}

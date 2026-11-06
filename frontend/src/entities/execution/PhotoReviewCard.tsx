@@ -31,7 +31,7 @@ export function AnalysisTimerBadge({ active }: { active: boolean }) {
   return (
     <Badge tone="info" className="font-mono tabular-nums">
       <Icon name="clock" size={13} />
-      <span>Время анализа: {seconds} сек</span>
+      <span>Ожидание результата: {seconds} сек</span>
     </Badge>
   );
 }

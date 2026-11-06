@@ -11,6 +11,7 @@ import type { Role, SessionProfile } from "@/shared/types/domain";
 
 import { request, DEMO_MODE, ApiError } from "@/shared/api/request";
 import { invalidateApiQueries } from "@/shared/lib/apiQueryCache";
+import { clearAiKey } from "@/shared/lib/aiCredentials";
 
 const STORAGE_KEY = "fixrate.demo.role";
 const SESSION_EVENT_KEY = "fixrate.session.changed.v1";
@@ -105,6 +106,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         const result = await request<{profile: SessionProfile}>("/api/v1/auth/session", {cache: "no-store"});
         if (!active || version !== authVersion.current) return;
         if (!initial && !sameSession(profileRef.current, result.profile)) {
+          clearAiKey();
           invalidateApiQueries();
           window.location.replace("/");
           return;
@@ -113,8 +115,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setProfile(result.profile);
       } catch (error) {
         if (!active || version !== authVersion.current) return;
-        if (initial) { profileRef.current = null; setProfile(null); }
+        if (initial) { if (error instanceof ApiError && error.status === 401) clearAiKey(); profileRef.current = null; setProfile(null); }
         else if (error instanceof ApiError && error.status === 401 && profileRef.current) {
+          clearAiKey();
           profileRef.current = null;
           setProfile(null);
           window.location.replace("/login");
@@ -135,12 +138,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const value = useMemo<SessionContextValue>(() => {
     const login = (nextRole: Role) => {
       if (!DEMO_MODE) return;
+      if (nextRole !== role) clearAiKey();
       window.localStorage.setItem(STORAGE_KEY, nextRole);
       setRole(nextRole);
     };
     const logout = async () => {
-      if (DEMO_MODE) { window.localStorage.removeItem(STORAGE_KEY); setRole(null); }
-      else { await request("/api/v1/auth/logout", {method: "POST"}); authVersion.current++; profileRef.current = null; setProfile(null); notifyOtherTabs(); }
+      if (DEMO_MODE) { clearAiKey(); window.localStorage.removeItem(STORAGE_KEY); setRole(null); }
+      else { await request("/api/v1/auth/logout", {method: "POST"}); clearAiKey(); authVersion.current++; profileRef.current = null; setProfile(null); notifyOtherTabs(); }
     };
     return {
       profile: DEMO_MODE ? (role ? DEMO_PROFILES[role] : null) : profile,
@@ -154,7 +158,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         const result = await request<{profile: SessionProfile}>("/api/v1/auth/login", {
           method: "POST", body: JSON.stringify({email, password, ...(siteId ? {site_id: siteId} : {})}),
         });
-        authVersion.current++; profileRef.current = result.profile; setProfile(result.profile); notifyOtherTabs();
+        clearAiKey(); authVersion.current++; profileRef.current = result.profile; setProfile(result.profile); notifyOtherTabs();
         return result.profile;
       },
     };

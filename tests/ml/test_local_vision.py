@@ -5,7 +5,7 @@ from threading import Thread
 
 import pytest
 
-from ml_service.app.cv.local_vision import (LocalVisionClient, LocalVisionConfig, ProviderFailure, review_local_photos)
+from ml_service.app.cv.local_vision import (LocalVisionClient, LocalVisionConfig, ProviderFailure, review_local_photos, scan_local_ollama_models)
 from ml_service.app.schemas import VisualAssessment
 from tests.ml.test_cv import make_test_jpeg
 
@@ -115,6 +115,28 @@ def test_cloud_tag_is_rejected(monkeypatch):
         LocalVisionConfig.from_environment()
 
 
+def test_discovery_pins_the_configured_model_not_the_first_installed_model(monkeypatch):
+    monkeypatch.setenv("OLLAMA_VISION_MODEL", "wanted:latest")
+    monkeypatch.delenv("OLLAMA_VISION_DIGEST", raising=False)
+    monkeypatch.setattr("ml_service.app.cv.local_vision.scan_local_ollama_models", lambda _: (True, [
+        {"name": "other:latest", "digest": "1" * 64},
+        {"name": "wanted:latest", "digest": "2" * 64},
+    ], None))
+    config = LocalVisionConfig.from_environment()
+    assert config.model == "wanted:latest"
+    assert config.digest == "sha256:" + "2" * 64
+
+
+def test_resolve_model_does_not_reuse_another_models_digest(monkeypatch):
+    monkeypatch.setenv("OLLAMA_VISION_MODEL", "other:latest")
+    monkeypatch.setenv("OLLAMA_VISION_DIGEST", "sha256:" + "1" * 64)
+    def unavailable(*_args):
+        raise ProviderFailure("LOCAL_VISION_UNAVAILABLE")
+    monkeypatch.setattr(LocalVisionClient, "request", unavailable)
+    with pytest.raises(ProviderFailure, match="LOCAL_VISION_UNAVAILABLE"):
+        LocalVisionConfig.resolve_model("wanted:latest")
+
+
 @pytest.fixture
 def server():
     class Handler(BaseHTTPRequestHandler):
@@ -130,6 +152,29 @@ def server():
     thread=Thread(target=http.serve_forever,daemon=True);thread.start()
     try:yield http,Handler
     finally:http.shutdown();http.server_close();thread.join()
+
+
+def test_selected_missing_model_is_not_silently_replaced(server):
+    http, handler = server
+    handler.payload = {"models": [{"name": "other:latest", "digest": "1" * 64}]}
+    with pytest.raises(ProviderFailure, match="MODEL_NOT_READY"):
+        LocalVisionConfig.resolve_model("qwen3.5:4b", f"http://127.0.0.1:{http.server_port}")
+
+
+def test_discovery_rejects_redirect_without_following_it(server, monkeypatch):
+    http, handler = server
+    hits = []
+    def redirect(self):
+        hits.append(self.path)
+        if self.path == "/api/tags":
+            self.send_response(302); self.send_header("Location", f"http://127.0.0.1:{http.server_port}/other"); self.end_headers()
+        else:
+            body = b'{"models": []}'
+            self.send_response(200); self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)
+    monkeypatch.setattr(handler, "do_GET", redirect)
+    ok, _, error = scan_local_ollama_models(f"http://127.0.0.1:{http.server_port}")
+    assert not ok and error == "LOCAL_VISION_REDIRECT_REJECTED"
+    assert hits == ["/api/tags"]
 
 
 def test_real_local_http_refuses_model_digest_change_and_ignores_proxy(server,monkeypatch):

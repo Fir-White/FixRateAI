@@ -37,7 +37,7 @@ export function QualityTaskPage() {
   const [refresh, setRefresh] = useState(0);
   const [busy, setBusy] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
-  const [lastMeasuredMs, setLastMeasuredMs] = useState<number | null>(null);
+  const [lastMeasured, setLastMeasured] = useState<{ reviewId: string; elapsedMs: number } | null>(null);
   const [reason, setReason] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingDecision, setPendingDecision] = useState<
@@ -56,7 +56,7 @@ export function QualityTaskPage() {
     setReason("");
     setPendingDecision(null);
     setNotice(null);
-    setLastMeasuredMs(null);
+    setLastMeasured(null);
   }, [taskId, executionId]);
 
   if (query.status === "loading") {
@@ -148,7 +148,7 @@ export function QualityTaskPage() {
                 model: aiOpts.model,
                 api_key: aiOpts.apiKey,
               });
-              setLastMeasuredMs(res.elapsedMs ?? Math.round(performance.now() - startedAt));
+              setLastMeasured({ reviewId: res.id, elapsedMs: res.elapsedMs ?? Math.round(performance.now() - startedAt) });
               setRefresh(n => n+1);
             }
             catch (error) { setNotice(error instanceof Error ? error.message : "Ошибка анализа"); }
@@ -197,7 +197,7 @@ export function QualityTaskPage() {
             </div>
           </Card>
 
-          {query.data.photoAnalysisStatus !== "pending" && <PhotoReviewCard review={review} formatDateTime={formatDateTime} fallbackElapsedMs={lastMeasuredMs}/>}
+          {query.data.photoAnalysisStatus !== "pending" && <PhotoReviewCard review={review} formatDateTime={formatDateTime} fallbackElapsedMs={lastMeasured && review?.id === lastMeasured.reviewId ? lastMeasured.elapsedMs : null}/>}
         </div>
 
         <div id="review-decision" className="space-y-6 quality-decision-rail">

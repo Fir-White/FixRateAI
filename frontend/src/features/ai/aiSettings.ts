@@ -4,8 +4,9 @@ import {
   type AiProvider,
   type AiModelsResponse,
 } from "@/shared/api/maintenance";
+import { AI_SETTINGS_STORAGE_KEY, readAiKey, writeAiKey } from "@/shared/lib/aiCredentials";
 
-export const AI_SETTINGS_STORAGE_KEY = "fixrate_ai_settings";
+export { AI_SETTINGS_STORAGE_KEY } from "@/shared/lib/aiCredentials";
 export const AI_SETTINGS_CHANGE_EVENT = "fixrate:ai-settings-changed";
 
 export interface AiSettings {
@@ -19,33 +20,41 @@ export const DEFAULT_AI_SETTINGS: AiSettings = {
   model: "",
   apiKey: "",
 };
+let memoryPreferences = { provider: DEFAULT_AI_SETTINGS.provider, model: DEFAULT_AI_SETTINGS.model };
 
 export function getStoredAiSettings(): AiSettings {
   try {
     const raw = typeof window !== "undefined" ? window.localStorage?.getItem(AI_SETTINGS_STORAGE_KEY) : null;
-    if (!raw) return DEFAULT_AI_SETTINGS;
+    if (!raw) return { ...DEFAULT_AI_SETTINGS, apiKey: readAiKey() };
     const parsed = JSON.parse(raw);
+    if (typeof parsed?.apiKey === "string") {
+      if (!readAiKey()) writeAiKey(parsed.apiKey);
+      delete parsed.apiKey;
+      window.localStorage.setItem(AI_SETTINGS_STORAGE_KEY, JSON.stringify(parsed));
+    }
     const validProviders: AiProvider[] = ["clip", "ollama", "aitunnel"];
     const provider: AiProvider = validProviders.includes(parsed?.provider) ? parsed.provider : "clip";
+    memoryPreferences = { provider, model: typeof parsed?.model === "string" ? parsed.model : "" };
     return {
-      provider,
-      model: typeof parsed?.model === "string" ? parsed.model : "",
-      apiKey: typeof parsed?.apiKey === "string" ? parsed.apiKey : "",
+      ...memoryPreferences,
+      apiKey: readAiKey(),
     };
   } catch {
-    return DEFAULT_AI_SETTINGS;
+    return { ...memoryPreferences, apiKey: readAiKey() };
   }
 }
 
 export function saveStoredAiSettings(settings: AiSettings): void {
+  memoryPreferences = { provider: settings.provider, model: settings.model };
+  writeAiKey(settings.apiKey);
   try {
     if (typeof window !== "undefined" && window.localStorage) {
-      window.localStorage.setItem(AI_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
-      window.dispatchEvent(new CustomEvent(AI_SETTINGS_CHANGE_EVENT, { detail: settings }));
+      window.localStorage.setItem(AI_SETTINGS_STORAGE_KEY, JSON.stringify({ provider: settings.provider, model: settings.model }));
     }
   } catch {
     // Ignore storage quota or disabled errors
   }
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(AI_SETTINGS_CHANGE_EVENT, { detail: settings }));
 }
 
 export function useAiSettings(autoFetch = true) {
