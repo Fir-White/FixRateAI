@@ -1,4 +1,4 @@
-import { PhotoReviewCard } from "@/entities/execution/PhotoReviewCard";
+import { AnalysisTimerBadge, PhotoReviewCard } from "@/entities/execution/PhotoReviewCard";
 import { AttemptHistory } from "@/features/analyst/AnalystPanels";
 import { ExecutionProtocol,ActsPanel } from "@/features/analyst/AnalystPanels";
 import type { ActualExecution,Reading } from "@/shared/types/domain";
@@ -70,7 +70,7 @@ function ExecutionEditor({bundle,reload}:{bundle:TaskBundle;reload:()=>void}){
  <section id="execution-comment" className="execution-section"><header><div><span className="ops-kicker">03 / Передача инженеру</span><h2>Комментарий к работе</h2></div></header><FormField label="Что выполнено и какие замечания остались" htmlFor="executor-narrative"><Textarea id="executor-narrative" rows={4} value={narrative} disabled={!editable||busy} onChange={e=>{setNarrative(e.target.value);setDirty(true);}} placeholder="Укажите обстоятельства, которые не видны на фотографиях"/></FormField></section>
  {editable&&<div className="execution-submit-bar"><div role="status"><strong>{busy?"Сохранение…":dirty?"Есть несохранённые изменения":"Текущие ответы сохранены"}</strong><span>Ответы сохраняются перед загрузкой фото и сдачей.</span></div><Button variant="secondary" disabled={busy||!dirty} onClick={()=>act(saveDraft)}>Сохранить</Button>{allowed("submit")&&<Button disabled={busy||filled<required.length||!photosReady} onClick={()=>setConfirmSubmit(true)}>Сдать работу<Icon name="chevron" size={16}/></Button>}</div>}
  {!editable&&execution.state==="submitted"&&<Callout tone="neutral">Отчёт отправлен. Изменения недоступны до решения инженера.</Callout>}
- {bundle.photoAnalysisStatus==="pending"&&<Callout tone="neutral"><p role="status">Фотографии анализируются автоматически. Результат появится без обновления страницы.</p></Callout>}
+ {bundle.photoAnalysisStatus==="pending"&&<Callout tone="neutral"><div className="flex flex-wrap items-center justify-between gap-2"><p role="status">Фотографии анализируются автоматически. Результат появится без обновления страницы.</p><AnalysisTimerBadge active/></div></Callout>}
  {bundle.review&&<PhotoReviewCard review={bundle.review} formatDateTime={dateTime}/>}
  </>}
  <Modal open={confirmSubmit} onClose={()=>setConfirmSubmit(false)} title="Передать отчёт инженеру?" description="Ответы будут сохранены. После сдачи эта попытка станет недоступной для редактирования." footer={<><Button variant="secondary" onClick={()=>setConfirmSubmit(false)}>Проверить ещё раз</Button><Button disabled={busy} onClick={()=>{setConfirmSubmit(false);void act(async()=>{const saved=await saveDraft();return maintenanceApi.submit(task.id,saved);});}}>Подтвердить сдачу</Button></>}><p className="text-sm text-ink-soft">Заполнено обязательных ответов: {filled} из {required.length}. Фотографий: {execution?.photos.length??0}. Полноту отчёта проверит сервер.</p></Modal>

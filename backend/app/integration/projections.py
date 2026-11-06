@@ -209,7 +209,14 @@ class Views:
                 executionId=str(decision.work_report_id), verdict="accepted" if decision.decision == "accepted" else "rejected",
                 reason=decision.comment or "", decidedAt=iso(decision.reviewed_at), decidedBy=reviewer.full_name)
         checks = self.rows("ai_quality_checks", work_report_id=report.work_report_id) if report else []
-        review = max(checks, key=lambda c: c.created_at).findings.get("ui") if checks else None
+        latest_check = max(checks, key=lambda c: c.created_at) if checks else None
+        review = None
+        if latest_check and latest_check.findings.get("ui"):
+            review = dict(latest_check.findings["ui"])
+            if review.get("elapsedMs") is None:
+                canonical_elapsed = (latest_check.findings.get("canonical") or {}).get("elapsed_ms")
+                if canonical_elapsed is not None:
+                    review["elapsedMs"] = canonical_elapsed
         actions = []
         if self.principal.role=="chief_engineer" and order.status=="completed": actions.append("reopen")
         role = self.principal.role

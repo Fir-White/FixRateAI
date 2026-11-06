@@ -274,6 +274,7 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
                                provider=provider, expected_model_ref=expected_model)
         ui = dict(id=str(result.ai_review_id), executionId=str(result.execution_id), status=result.status,
             modelRef=result.model_ref, promptSetVersion=result.prompt_set_version, createdAt=result.created_at.isoformat(),
+            elapsedMs=result.elapsed_ms,
             items=[dict(id=str(i.checklist_item_id), label=next(c["text"] for c in report.checklist_snapshot if c["id"] == str(i.checklist_item_id)),
                         verdict=i.verdict, note=i.observation,
                         beforePhotoId=str(i.before_photo_id) if i.before_photo_id else None,

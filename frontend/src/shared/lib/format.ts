@@ -91,3 +91,20 @@ export function pluralize(
   }
   return many;
 }
+
+export function formatDurationMs(ms: number | null | undefined): string | null {
+  if (ms === null || ms === undefined || !Number.isFinite(ms) || ms < 0) {
+    return null;
+  }
+  const rounded = Math.round(ms);
+  if (rounded < 1000) {
+    return `${rounded} мс`;
+  }
+  const totalSeconds = rounded / 1000;
+  if (totalSeconds < 60) {
+    return `${totalSeconds.toFixed(1)} сек`;
+  }
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = (totalSeconds % 60).toFixed(1);
+  return `${minutes} мин ${seconds} сек`;
+}
