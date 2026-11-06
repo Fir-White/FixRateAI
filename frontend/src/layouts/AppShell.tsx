@@ -1,4 +1,4 @@
-import { MaintenanceInbox } from "@/features/analyst/AnalystPanels";
+import { MaintenanceInbox } from "@/features/notifications/MaintenanceInbox";
 import { DEMO_MODE } from "@/shared/api/request";
 import { useEffect, useRef, useState } from "react";
 import {

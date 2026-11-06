@@ -21,9 +21,11 @@ export type IconName =
   | "plus"
   | "upload"
   | "menu"
-  | "close";
+  | "close"
+  | "bell";
 
 const PATHS: Record<IconName, ReactNode> = {
+  bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-2 7-2 9h16c0-2-2-2-2-9"/><path d="M10 20a2 2 0 0 0 4 0"/></>,
   dashboard: (
     <>
       <rect x="3" y="3" width="7" height="7" rx="1.5" />
