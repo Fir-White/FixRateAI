@@ -4,6 +4,8 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import os
+from typing import Literal
 from uuid import UUID
 
 from fastapi import Depends, HTTPException
@@ -32,6 +34,9 @@ class MLCommand(BaseModel):
     model_config = ConfigDict(extra="forbid")
     expected_revision: int = Field(gt=0)
     comparability_confirmed: bool = False
+    provider: Literal["clip", "ollama", "aitunnel"] | None = None
+    model: str | None = None
+    api_key: str | None = None
 
 
 PHOTO_REVIEW_TIMEOUT_SECONDS = 20.0
@@ -93,6 +98,73 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
         return forecast_task(v, task_id, command.expected_revision, app.state.forecaster,
                              timeout_seconds=app.state.settings.forecast_timeout_seconds)
 
+    @app.get("/api/v1/maintenance/ai/models")
+    def list_ai_models(v=Depends(views)):
+        from ml_service.app.cv.local_vision import scan_local_ollama_models
+        from ml_service.app.core.config import settings as ml_settings
+
+        ollama_ok, ollama_models, ollama_err = scan_local_ollama_models()
+        server_aitunnel_key = bool(os.environ.get("AITUNNEL_API_KEY") or os.environ.get("AI_TUNNEL_API_KEY"))
+
+        return {
+            "current_provider": app.state.settings.photo_review_provider,
+            "providers": [
+                {
+                    "id": "clip",
+                    "name": "Встроенный CLIP (CPU)",
+                    "description": "Локальная модель openai/clip-vit-base-patch32 на CPU. Быстрый регламентный анализ чистоты узлов без внешних зависимостей.",
+                    "available": True,
+                    "error": None,
+                    "models": [
+                        {
+                            "id": f"{ml_settings.clip_model_name}@{ml_settings.clip_revision}",
+                            "name": "CLIP ViT-B/32 (локально, CPU)",
+                            "description": "Базовый классификатор регламентного обслуживания"
+                        }
+                    ]
+                },
+                {
+                    "id": "ollama",
+                    "name": "Локальная Ollama (GPU/CPU)",
+                    "description": "Локальная служба Ollama (127.0.0.1:11434). Содержательный разбор фото и дефектов без отправки данных в интернет.",
+                    "available": ollama_ok,
+                    "error": ollama_err,
+                    "models": ollama_models if ollama_ok else [
+                        {
+                            "id": "qwen3.5:4b",
+                            "name": "qwen3.5:4b (рекомендуется)",
+                            "description": "Модель по умолчанию для локального разбора"
+                        }
+                    ]
+                },
+                {
+                    "id": "aitunnel",
+                    "name": "Облачный AI Tunnel",
+                    "description": "Облачные мультимодальные модели через api.aitunnel.ru с поддержкой поиска механических дефектов.",
+                    "available": True,
+                    "has_server_key": server_aitunnel_key,
+                    "error": None,
+                    "models": [
+                        {
+                            "id": "qwen3.7-flash",
+                            "name": "Qwen3.7 Flash",
+                            "description": "Быстрая и точная мультимодальная модель (рекомендуется)"
+                        },
+                        {
+                            "id": "Qwen/Qwen2.5-VL-72B-Instruct",
+                            "name": "Qwen2.5-VL 72B Instruct",
+                            "description": "Флагманская модель дефектоскопии высокой детализации"
+                        },
+                        {
+                            "id": "Qwen/Qwen2.5-VL-7B-Instruct",
+                            "name": "Qwen2.5-VL 7B Instruct",
+                            "description": "Сбалансированная модель средней мощности"
+                        }
+                    ]
+                }
+            ]
+        }
+
     def analyze_photo_review(task_id,command,v,automatic=False):
         from ml_service.app.cv.api import invoke_review
 
@@ -147,28 +219,47 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
         expected_model = f"{ml_settings.clip_model_name}@{ml_settings.clip_revision}"
         prompt_version = ml_settings.prompt_set_version
         predictor_family = "clip"
-        if limits.photo_review_provider == "ollama":
+        selected_provider = command.provider or limits.photo_review_provider
+        if selected_provider == "ollama":
             from ml_service.app.cv.local_vision import LocalVisionConfig, PROMPT_VERSION, review_local_photos
             try:
-                vision_config = LocalVisionConfig.from_environment()
+                if command.model:
+                    vision_config = LocalVisionConfig.resolve_model(command.model)
+                else:
+                    vision_config = LocalVisionConfig.from_environment()
             except ValueError:
                 raise HTTPException(503, "LOCAL_VISION_CONFIGURATION_INVALID") from None
+            except Exception as e:
+                raise HTTPException(422, f"LOCAL_VISION_MODEL_NOT_READY: {e}") from None
             prompt_version = PROMPT_VERSION
             expected_model = vision_config.model_ref
             predictor_family = "ollama"
             provider = lambda req, loader: review_local_photos(req, loader, config=vision_config,
                 comparability_confirmed=lambda b, a: command.comparability_confirmed)
-        elif limits.photo_review_provider == "aitunnel":
+        elif selected_provider == "aitunnel":
             from ml_service.app.cv.aitunnel import PROMPT_VERSION, review_cloud_photos
             from ml_service.app.providers.aitunnel import AITunnelConfig
             from dataclasses import replace
-            cloud_config = replace(AITunnelConfig.from_environment("vision"),
-                timeout=min(110, limits.photo_review_timeout_seconds))
+            env = dict(os.environ)
+            if command.api_key:
+                env["AITUNNEL_API_KEY"] = command.api_key
+            if command.model:
+                env["AITUNNEL_VISION_MODEL"] = command.model
+            try:
+                cloud_config = replace(AITunnelConfig.from_environment("vision", environment=env),
+                    timeout=min(110, limits.photo_review_timeout_seconds))
+            except ValueError as ve:
+                raise HTTPException(422, f"AITUNNEL_CONFIGURATION_INVALID: {ve}") from None
             prompt_version = PROMPT_VERSION
             expected_model = cloud_config.model_ref
             predictor_family = "aitunnel"
             provider = lambda req, loader: review_cloud_photos(req, loader, config=cloud_config,
                 comparability_confirmed=lambda b, a: command.comparability_confirmed)
+        else:
+            predictor_family = "clip"
+            expected_model = f"{ml_settings.clip_model_name}@{ml_settings.clip_revision}"
+            prompt_version = ml_settings.prompt_set_version
+            provider = None
         request = dict(schema_version="maintenance-0.1", data_origin=op["data_origin"], execution_id=str(report.work_report_id),
             operation=op, photos=payload_photos, prompt_set_version=prompt_version, report=dict(
                 schema_version="maintenance-0.1", data_origin=op["data_origin"], execution_id=str(report.work_report_id),

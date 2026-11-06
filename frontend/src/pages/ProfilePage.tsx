@@ -5,6 +5,8 @@ import { ROLE_LABELS } from "@/shared/lib/roles";
 import { useSession } from "@/shared/session/SessionContext";
 import { useAuthValidation } from "@/features/auth/useAuthValidation";
 import { AuthPasswordInput } from "@/features/auth/AuthPasswordInput";
+import { AiModelSelector } from "@/features/ai/AiModelSelector";
+import { getStoredAiSettings, AI_SETTINGS_CHANGE_EVENT } from "@/features/ai/aiSettings";
 import { Button } from "@/shared/ui/Button";
 import { Card, CardBody, CardHeader } from "@/shared/ui/Card";
 import { FormField, Input } from "@/shared/ui/Form";
@@ -12,11 +14,19 @@ import { Icon } from "@/shared/ui/Icon";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import "./profile.css";
 
+const AI_PROVIDER_LABELS: Record<string, string> = {
+  clip: "⚡ Встроенный CLIP (CPU)",
+  ollama: "🖥️ Локальная Ollama",
+  aitunnel: "☁️ Облачный AI Tunnel",
+};
+
 export function ProfilePage() {
   const { profile, updateEmail, logout } = useSession();
   const navigate = useNavigate();
   const [emailOpen, setEmailOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiSettings, setAiSettings] = useState(getStoredAiSettings);
   const [email, setEmail] = useState(profile?.email ?? "");
   const [emailPassword, setEmailPassword] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -31,6 +41,15 @@ export function ProfilePage() {
   const emailValidation = useAuthValidation("register", {email});
   const passwordValidation = useAuthValidation("register", {password, password_confirmation:confirmation});
   useEffect(() => { setEmail(profile?.email ?? ""); }, [profile?.userId]);
+  useEffect(() => {
+    const handleAiChange = () => setAiSettings(getStoredAiSettings());
+    window.addEventListener(AI_SETTINGS_CHANGE_EVENT, handleAiChange);
+    window.addEventListener("storage", handleAiChange);
+    return () => {
+      window.removeEventListener(AI_SETTINGS_CHANGE_EVENT, handleAiChange);
+      window.removeEventListener("storage", handleAiChange);
+    };
+  }, []);
   if (!profile) return null;
   const initials = profile.name.trim().split(/\s+/).slice(0,2).map(part => [...part][0] ?? "").join("").toLocaleUpperCase("ru-RU");
   const signOut = async () => {
@@ -75,6 +94,9 @@ export function ProfilePage() {
           {passwordError && <p className="profile-error" role="alert">{passwordError}</p>}
           <p className={`profile-requirement${password.length >= 12 ? " is-met" : ""}`}>От 12 до 64 символов</p><div className="profile-form-actions"><Button type="submit" disabled={!!pending || DEMO_MODE}>{pending === "password" ? "Сохраняем…" : "Сохранить пароль"}</Button><Button variant="ghost" disabled={!!pending} onClick={() => {setPasswordOpen(false);setCurrentPassword("");setPassword("");setConfirmation("");setPasswordError("");passwordValidation.reset();}}>Отмена</Button></div>
         </form>}
+      </CardBody></Card><Card><CardHeader title="Нейросети и анализ фото (AI / LLM)" description="Выбор модели для проверки фотоотчётов и детекции дефектов"/><CardBody>
+        <div className="profile-setting"><div><span>Активная модель</span><strong>{AI_PROVIDER_LABELS[aiSettings.provider] ?? aiSettings.provider}{aiSettings.model ? ` · ${aiSettings.model}` : ""}</strong></div><Button variant="secondary" aria-expanded={aiOpen} aria-controls="profile-ai-form" onClick={() => setAiOpen(!aiOpen)}>{aiOpen ? "Закрыть" : "Настроить"}</Button></div>
+        {aiOpen && <div id="profile-ai-form" className="profile-form"><AiModelSelector variant="card" autoFetch={aiOpen} /></div>}
       </CardBody></Card><Card><CardBody><div className="profile-session"><div><h2>Текущий сеанс</h2><p>Завершить работу на этом устройстве.</p></div><Button variant="danger" disabled={!!pending} onClick={() => void signOut()}><Icon name="logout" size={16}/>{pending === "logout" ? "Выходим…" : "Выйти из аккаунта"}</Button></div>{logoutError && <p className="profile-error" role="alert">{logoutError}</p>}</CardBody></Card></div>
     </div>
   </div>;

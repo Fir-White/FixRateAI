@@ -3,6 +3,37 @@ import type { Equipment, MaintenanceTask, CalendarOccurrence, CalendarPreview, C
 import { request, DEMO_MODE } from "./request";
 export type { EquipmentBundle, TaskBundle, ComparisonBundle } from "./maintenance.demo";
 
+export type AiProvider = "clip" | "ollama" | "aitunnel";
+
+export interface AiModelOption {
+  id: string;
+  name: string;
+  description?: string;
+  digest?: string;
+  size?: number;
+}
+
+export interface AiProviderInfo {
+  id: AiProvider;
+  name: string;
+  description: string;
+  available: boolean;
+  has_server_key?: boolean;
+  error?: string | null;
+  models: AiModelOption[];
+}
+
+export interface AiModelsResponse {
+  current_provider: string;
+  providers: AiProviderInfo[];
+}
+
+export interface PhotoReviewOptions {
+  provider?: string;
+  model?: string;
+  api_key?: string;
+}
+
 const base = "/api/v1/maintenance";
 const ui = `${base}/ui`;
 const id = encodeURIComponent;
@@ -50,7 +81,18 @@ export const maintenanceApi = {
   submit: (taskId: string, revision: number) => request<TaskBundle>(`${base}/tasks/${id(taskId)}/submit`, {method: "POST", body: JSON.stringify({expected_revision: revision})}),
   review: (taskId: string, revision: number, executionId: string, verdict: "accepted" | "rejected", reason: string, evidence?:{reviewed_ai_result_id?:string;additional_evidence_refs:string[]}) => request<TaskBundle>(`${base}/tasks/${id(taskId)}/review`, {method: "POST", body: JSON.stringify({expected_revision: revision, execution_id: executionId, verdict, reason,...evidence})}),
   forecast: (taskId: string, revision: number) => request<ComparisonBundle>(`${base}/tasks/${id(taskId)}/forecast`, {method: "POST", body: JSON.stringify({expected_revision: revision})}),
-  photoReview: (taskId: string, revision: number, confirmed: boolean) => request<PhotoReview>(`${base}/tasks/${id(taskId)}/photo-review`, {method: "POST", body: JSON.stringify({expected_revision: revision, comparability_confirmed: confirmed})}),
+  getAiModels: () => request<AiModelsResponse>(`${base}/ai/models`),
+  photoReview: (taskId: string, revision: number, confirmed: boolean, options?: PhotoReviewOptions) =>
+    request<PhotoReview>(`${base}/tasks/${id(taskId)}/photo-review`, {
+      method: "POST",
+      body: JSON.stringify({
+        expected_revision: revision,
+        comparability_confirmed: confirmed,
+        provider: options?.provider || undefined,
+        model: options?.model || undefined,
+        api_key: options?.api_key || undefined,
+      }),
+    }),
   upload: (taskId: string, revision: number, itemId: string, phase: string, viewKey: string, file: File) => {
     const form = new FormData();
     form.set("expected_revision", String(revision)); form.set("checklist_item_id", itemId);

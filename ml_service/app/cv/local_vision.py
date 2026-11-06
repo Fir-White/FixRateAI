@@ -92,6 +92,69 @@ class LocalVisionConfig:
     def model_ref(self):
         return "ollama:" + self.model + "@" + self.digest
 
+    @classmethod
+    def resolve_model(cls, model_name: str, base_url: str | None = None) -> LocalVisionConfig:
+        base = (base_url or os.environ.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434")).rstrip("/")
+        parsed = urlsplit(base)
+        if (parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost", "::1", "vision"}
+                or parsed.username or parsed.password or parsed.path not in ("", "/") or parsed.query or parsed.fragment):
+            raise ValueError("OLLAMA_BASE_URL must point to the local vision service")
+        if not re.fullmatch(r"[a-z0-9._/-]+(:[a-z0-9._-]+)?", model_name) or "cloud" in model_name:
+            raise ValueError("OLLAMA_VISION_MODEL must be an explicit local model tag")
+        env_model = os.environ.get("OLLAMA_VISION_MODEL", "")
+        env_digest = os.environ.get("OLLAMA_VISION_DIGEST", "")
+        if env_model == model_name and env_digest:
+            return cls(base, model_name, env_digest)
+        client = LocalVisionClient(cls(base, model_name, "sha256:" + "0" * 64))
+        try:
+            tags = client.request("/api/tags")
+        except ProviderFailure:
+            if env_digest:
+                return cls(base, model_name, env_digest)
+            raise
+        models = tags.get("models", [])
+        found = next((m for m in models if m.get("name") == model_name or m.get("name") == f"{model_name}:latest"), None)
+        if found is None:
+            if env_digest:
+                return cls(base, model_name, env_digest)
+            raise ProviderFailure("LOCAL_VISION_MODEL_NOT_READY")
+        raw_digest = str(found.get("digest", ""))
+        digest = raw_digest if raw_digest.startswith("sha256:") else f"sha256:{raw_digest}"
+        return cls(base, str(found.get("name", model_name)), digest)
+
+
+def scan_local_ollama_models(base_url: str | None = None) -> tuple[bool, list[dict], str | None]:
+    """Scan locally installed Ollama models without calling external endpoints."""
+    base = (base_url or os.environ.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434")).rstrip("/")
+    try:
+        parsed = urlsplit(base)
+        if (parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost", "::1", "vision"}
+                or parsed.username or parsed.password or parsed.path not in ("", "/") or parsed.query or parsed.fragment):
+            return False, [], "INVALID_OLLAMA_BASE_URL"
+        url = f"{base}/api/tags"
+        req = Request(url, headers={"User-Agent": "FixRateAI/0.1.0"})
+        opener = build_opener(ProxyHandler({}), HTTPRedirectHandler())
+        with opener.open(req, timeout=1.5) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+            models = []
+            for m in payload.get("models", []):
+                name = str(m.get("name", ""))
+                if name and "cloud" not in name:
+                    models.append({
+                        "id": name,
+                        "name": name,
+                        "digest": str(m.get("digest", "")),
+                        "size": int(m.get("size", 0)),
+                        "modified_at": m.get("modified_at"),
+                    })
+            return True, models, None
+    except HTTPError as e:
+        return False, [], f"HTTP_{e.code}"
+    except (URLError, OSError, TimeoutError):
+        return False, [], "OLLAMA_NOT_RUNNING"
+    except Exception:
+        return False, [], "OLLAMA_SCAN_FAILED"
+
 
 class ImageObservation(BaseModel):
     model_config = ConfigDict(extra="forbid")

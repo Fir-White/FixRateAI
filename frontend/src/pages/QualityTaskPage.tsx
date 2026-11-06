@@ -1,5 +1,7 @@
 import { AttemptHistory } from "@/features/analyst/AnalystPanels";
 import { ChiefActions,ActsPanel } from "@/features/analyst/AnalystPanels";
+import { AiModelSelector } from "@/features/ai/AiModelSelector";
+import { getStoredAiSettings } from "@/features/ai/aiSettings";
 import { DEMO_MODE } from "@/shared/api/request";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -115,14 +117,25 @@ export function QualityTaskPage() {
       </div>
 
       {query.data.photoAnalysisStatus === "pending" && <Callout tone="neutral"><p role="status">Фотографии анализируются автоматически. Результат появится здесь без обновления страницы; запуск инженером не требуется.</p></Callout>}
-      {canAnalyze && query.data.photoAnalysisStatus !== "pending" && (!review || ["failed","unavailable"].includes(review.status)) && <div className="space-y-3 rounded-xl border border-line p-4">
-        <Button variant="secondary" disabled={busy} onClick={async () => {
-          setBusy(true); setAnalyzing(true); setNotice(null);
-          try { await maintenanceApi.photoReview(task.id, task.revision, false); setRefresh(n => n+1); }
-          catch (error) { setNotice(error instanceof Error ? error.message : "Ошибка анализа"); }
-          finally { setBusy(false); setAnalyzing(false); }
-        }}>{analyzing?"Фотографии анализируются…":review?"Повторить анализ":"Анализировать фото"}</Button>
-        {analyzing&&<p role="status" className="text-sm leading-6 text-muted">Модель сравнивает фотографии с заданием. Дождитесь результата; повторно нажимать кнопку не нужно.</p>}
+      {canAnalyze && query.data.photoAnalysisStatus !== "pending" && (!review || ["failed","unavailable"].includes(review.status)) && <div className="space-y-4 rounded-xl border border-line p-4">
+        <AiModelSelector variant="compact" />
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="secondary" disabled={busy} onClick={async () => {
+            setBusy(true); setAnalyzing(true); setNotice(null);
+            try {
+              const aiOpts = getStoredAiSettings();
+              await maintenanceApi.photoReview(task.id, task.revision, false, {
+                provider: aiOpts.provider,
+                model: aiOpts.model,
+                api_key: aiOpts.apiKey,
+              });
+              setRefresh(n => n+1);
+            }
+            catch (error) { setNotice(error instanceof Error ? error.message : "Ошибка анализа"); }
+            finally { setBusy(false); setAnalyzing(false); }
+          }}>{analyzing?"Фотографии анализируются…":review?"Повторить анализ":"Анализировать фото"}</Button>
+          {analyzing&&<p role="status" className="text-sm leading-6 text-muted">Модель сравнивает фотографии с заданием. Дождитесь результата; повторно нажимать кнопку не нужно.</p>}
+        </div>
       </div>}
       {DEMO_MODE && <Callout tone="neutral">DEMO · Фото и решения показаны из примера. Анализ и приёмка доступны только при подключении к API.</Callout>}
       <div className="quality-detail-grid">
