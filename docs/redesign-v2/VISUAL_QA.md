@@ -1,5 +1,9 @@
 # Визуальные проверки
 
+## Пустые и дублирующие панели, 07.11.2026
+
+**passed**: календарь chief_engineer/engineer/director/executor1440/390 и touch390×844 — нет пассивного списка версий, матрица доступна. Отчёты chief1440/390 — диаграмма занимает освободившуюся ширину, CSV доступен. Паспорт без activeOperation и попытка без актов не содержат пустых карточек; существующие документы приёмки доступны. Overflow0/browser errors0/content mutations0 в проверенных сценариях. Baseline `dee246f`; `reports/redesign-v2/redundant-panels/` содержит манифесты и before/after. Просмотрены финальные footer календаря1440/390, touch390 и отчёты1440/390; снимки загрузки пересняты после запросов.
+
 ## Подсказки авторизации, 07.11.2026
 
 **passed**: live `/login`1440×900 и touch390×844 — подсказка скрывается сразу при focus, подпись поля остаётся; пустые value подтверждены в DOM. Login/register1440/390 проверены Playwright, включая ошибки пустой формы и сохранение значения пароля при смене видимости. `reports/redesign-v2/auth-placeholder/` — before/after; `auth-placeholder-green/` — состояния login/register. Desktop email и mobile password открыты и просмотрены. Исходный commit `8ccf194`; записей в live API и browser errors0. Проверка внешнего менеджера паролей не заявляется.

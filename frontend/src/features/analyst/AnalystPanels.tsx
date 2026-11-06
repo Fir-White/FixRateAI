@@ -64,9 +64,10 @@ export function ExecutionProtocol({task,execution,value,onChange,disabled,readOn
 export function ActsPanel({task,execution,editable,onSaved,disabled=false,onBusyChange}:{task:MaintenanceTask;execution:ExecutionReport|null;editable:boolean;onSaved:()=>void;disabled?:boolean;onBusyChange?:(busy:boolean)=>void}){
  const {profile}=useSession();const [kind,setKind]=useState(task.requiredActs?.[0]??"");const [file,setFile]=useState<File|null>(null);const [notice,setNotice]=useState("");const [busy,setBusy]=useState(false);const [reason,setReason]=useState("");
  const act=async(work:()=>Promise<unknown>)=>{if(busy||disabled)return;setBusy(true);onBusyChange?.(true);setNotice("");try{await work();onSaved();}catch(e){setNotice(e instanceof Error?e.message:"Ошибка");}finally{setBusy(false);onBusyChange?.(false);}};
- return <section className="execution-section space-y-3"><h2>Акты и инструментальные проверки</h2><p>Обязательные документы: {task.requiredActs?.join(", ")||"не заданы регламентом"}. Фотография не подтверждает скрытые работы и точность прибора.</p>{execution?.acts?.map((a:Act)=><div key={a.id}><a href={a.url} target="_blank" rel="noreferrer">Открыть скан: {a.kind}</a><span> · {a.verified?"Проверен контролёром":"Ожидает проверки"}</span>{!a.verified&&task.state==="submitted"&&["engineer","chief_engineer"].includes(profile?.role??"")&&<Button disabled={busy||!reason.trim()} onClick={()=>act(()=>post(`/tasks/${task.id}/acts/${a.id}/verify`,{expected_revision:task.revision,reason}))}>Подтвердить проверку документа</Button>}</div>)}
+ if(!task.requiredActs?.length&&!execution?.acts?.length)return null;
+ return <section className="execution-section space-y-3"><h2>Акты и инструментальные проверки</h2>{!!task.requiredActs?.length&&<p>Обязательные документы: {task.requiredActs.join(", ")}. Фотография не подтверждает скрытые работы и точность прибора.</p>}{execution?.acts?.map((a:Act)=><div key={a.id}><a href={a.url} target="_blank" rel="noreferrer">Открыть скан: {a.kind}</a><span> · {a.verified?"Проверен контролёром":"Ожидает проверки"}</span>{!a.verified&&task.state==="submitted"&&["engineer","chief_engineer"].includes(profile?.role??"")&&<Button disabled={busy||!reason.trim()} onClick={()=>act(()=>post(`/tasks/${task.id}/acts/${a.id}/verify`,{expected_revision:task.revision,reason}))}>Подтвердить проверку документа</Button>}</div>)}
  {editable&&!!task.requiredActs?.length&&<fieldset disabled={busy||disabled} className="space-y-2"><label>Вид документа<Select value={kind} onChange={e=>setKind(e.target.value)}>{task.requiredActs.map(k=><option key={k}>{k}</option>)}</Select></label><Input aria-label="Скан документа" type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>setFile(e.target.files?.[0]??null)}/><Button disabled={!file||!kind} onClick={()=>act(async()=>{const body=new FormData();body.append("expected_revision",String(task.revision));body.append("kind",kind);body.append("file",file!);await request(base+`/tasks/${task.id}/acts`,{method:"POST",body});})}>Загрузить скан</Button></fieldset>}
- {task.state==="submitted"&&["engineer","chief_engineer"].includes(profile?.role??"")&&<label>Основание проверки документа<Input value={reason} onChange={e=>setReason(e.target.value)}/></label>}{notice&&<p role="alert">{notice}</p>}</section>;
+ {task.state==="submitted"&&execution?.acts?.some(a=>!a.verified)&&["engineer","chief_engineer"].includes(profile?.role??"")&&<label>Основание проверки документа<Input value={reason} onChange={e=>setReason(e.target.value)}/></label>}{notice&&<p role="alert">{notice}</p>}</section>;
 }
 
 export function ChiefActions({task,onSaved}:{task:MaintenanceTask;onSaved:()=>void}){
@@ -80,8 +81,28 @@ export function ChiefActions({task,onSaved}:{task:MaintenanceTask;onSaved:()=>vo
 export { PerformanceOverview } from "./PerformanceOverview";
 
 export function PlanApproval({year,month,onSaved}:{year:number;month:number;onSaved:()=>void}){
- const {profile}=useSession();const query=useApiQuery(()=>request<{id:string;revision:number;status:string}[]>(base+`/plans?year=${year}&month=${month}`),[year,month]);const [reason,setReason]=useState("");const [notice,setNotice]=useState("");
- return <Card className="space-y-3 p-4"><h2>Версии месячного плана</h2>{query.status==="loading"&&<p>Загрузка версий…</p>}{query.status==="error"&&<p role="alert">{query.error}</p>}{query.status==="success"&&!query.data.length&&<p>Сохранённых версий за этот месяц нет.</p>}{query.status==="success"&&query.data.map(p=><div key={p.id}>Версия {p.revision}: {({draft:"Черновик",approved:"Утверждён",superseded:"Заменён",archived:"Архив"} as Record<string,string>)[p.status]??p.status}{p.status==="draft"&&profile?.role==="chief_engineer"&&<Button disabled={!reason.trim()} onClick={async()=>{try{await post(`/plans/${p.id}/approve`,{expected_revision:p.revision,reason});onSaved();}catch(e){setNotice(e instanceof Error?e.message:"Ошибка");}}}>Утвердить</Button>}</div>)}{profile?.role==="chief_engineer"&&query.status==="success"&&query.data.some(p=>p.status==="draft")&&<label>Основание утверждения<Input value={reason} onChange={e=>setReason(e.target.value)}/></label>}{notice&&<p role="alert">{notice}</p>}</Card>;
+ const {profile}=useSession();
+ return profile?.role==="chief_engineer"?<DraftPlanApproval year={year} month={month} onSaved={onSaved}/>:null;
+}
+
+function DraftPlanApproval({year,month,onSaved}:{year:number;month:number;onSaved:()=>void}){
+ const [refresh,setRefresh]=useState(0);
+ const query=useApiQuery(()=>request<{id:string;revision:number;status:string}[]>(base+`/plans?year=${year}&month=${month}`),[year,month,refresh]);
+ const [reason,setReason]=useState("");const [notice,setNotice]=useState("");const [busy,setBusy]=useState(false);
+ if(query.status==="loading")return null;
+ if(query.status==="error")return <p role="alert">Не удалось загрузить планы для утверждения: {query.error}</p>;
+ const drafts=query.data.filter(plan=>plan.status==="draft");
+ if(!drafts.length)return null;
+ return <Card className="space-y-3 p-4"><h2>Утверждение плана</h2>
+  <FormField label="Основание утверждения" htmlFor="plan-approval-reason"><Input id="plan-approval-reason" value={reason} disabled={busy} onChange={event=>setReason(event.target.value)}/></FormField>
+  {drafts.map(plan=><div key={plan.id} className="flex flex-wrap items-center justify-between gap-3"><span>Черновик · версия {plan.revision}</span><Button disabled={busy||!reason.trim()} onClick={async()=>{
+   setBusy(true);setNotice("");
+   try{await post(`/plans/${plan.id}/approve`,{expected_revision:plan.revision,reason});setReason("");setRefresh(value=>value+1);onSaved();}
+   catch(error){setNotice(error instanceof Error?error.message:"Ошибка");}
+   finally{setBusy(false);}
+  }}>Утвердить</Button></div>)}
+  {notice&&<p role="alert">{notice}</p>}
+ </Card>;
 }
 
 interface MatrixRow {bindingId:string;system:string;complex:string|null;equipment:string;equipmentId:string;code:string;title:string;frequency:string;crewSize:number;normValue:string|null;normUnit:string;published:boolean;dates:string[];transfers?:Record<string,string>;}

@@ -152,7 +152,7 @@ export function EquipmentDetailPage() {
 
         <div className="space-y-6">
           <EquipmentOperations equipmentId={equipmentId}/>
-          <Card>
+          {equipment.activeOperation && <Card>
             <CardHeader title="Операция в паспорте" description="Справочное поле паспорта; связанные версии обслуживания перечислены отдельно." />
             <div className="p-5 sm:p-6">
               <p className="text-xs font-semibold text-muted">
@@ -165,7 +165,7 @@ export function EquipmentDetailPage() {
                 Обязательства определяются связанными утверждёнными регламентами. Пустое поле паспорта не означает отсутствие этих регламентов.
               </Callout>
             </div>
-          </Card>
+          </Card>}
 
           <Card>
             <CardHeader title="Связи" />

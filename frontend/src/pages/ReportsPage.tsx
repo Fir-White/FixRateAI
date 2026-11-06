@@ -56,12 +56,9 @@ export function ReportsPage() {
     {query.status === "error" && <ErrorState description={query.error} />}
     {query.status === "success" && <>
       <div className="ops-report-metrics">{metrics.map(item => <Link to={`/tasks?status=${item.filter}`} className="ops-report-metric" key={item.label}><p>{item.label}</p><strong>{String(item.value).padStart(2, "0")}</strong></Link>)}</div>
-      <div className="ops-report-split">
-        <Card className="p-5 sm:p-6"><h2 className="ops-report-title">Задания по операциям</h2><p className="ops-report-caption">Количество доступных заданий, включая завершённые и отменённые.</p>
-          {operations.length ? <ul className="ops-report-bars">{operations.map(item => <li key={`${item.code}:${item.title}`}><div><span>{item.code || "—"} · {item.title}</span><strong>{item.count}</strong></div><div className="ops-report-track"><span style={{ width: `${item.count / maxCount * 100}%` }} /></div></li>)}</ul> : <p className="ops-empty">Пока нет заданий для сводки.</p>}
-        </Card>
-        <Card className="p-5 sm:p-6"><h2 className="ops-report-title">Срез заданий</h2><p className="ops-report-caption">CSV содержит только доступные текущему пользователю задания и их текущее состояние. Это не отдельный журнал аудита.</p><p className="mt-5 text-xs leading-6 text-muted">Выгрузка доступна сверху страницы. Формат CSV открывается в Excel; значения защищены от интерпретации как формулы.</p></Card>
-      </div>
+      <Card className="p-5 sm:p-6"><h2 className="ops-report-title">Задания по операциям</h2><p className="ops-report-caption">Количество доступных заданий, включая завершённые и отменённые.</p>
+        {operations.length ? <ul className="ops-report-bars">{operations.map(item => <li key={`${item.code}:${item.title}`}><div><span>{item.code || "—"} · {item.title}</span><strong>{item.count}</strong></div><div className="ops-report-track"><span style={{ width: `${item.count / maxCount * 100}%` }} /></div></li>)}</ul> : <p className="ops-empty">Пока нет заданий для сводки.</p>}
+      </Card>
       <section aria-label="Показатели объектов и XLSX"><p className="text-sm text-muted mb-3">Показатели ниже охватывают доступные объекты. Выбранный месяц применяется только к XLSX; CSV выше содержит текущий срез заданий.</p><PerformanceOverview/></section>
       <Card className="overflow-hidden"><div className="border-b border-line px-5 py-4 sm:px-6"><h2 className="ops-report-title">Задания объекта</h2><p className="ops-report-caption">Показаны первые {Math.min(10,tasks.length)} из {tasks.length}. Полный поиск и все записи — в реестре.</p><Link className="fr-text-link" to="/tasks?status=all">Открыть все задания →</Link></div>{tasks.length ? <TaskTable items={tasks.slice(0,10)} /> : <p className="ops-empty">Заданий пока нет.</p>}</Card>
     </>}

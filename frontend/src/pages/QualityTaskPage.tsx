@@ -73,6 +73,7 @@ export function QualityTaskPage() {
   }
 
   const { task, execution, review, decision } = query.data;
+  const hasDocuments = !!task.requiredActs?.length || !!execution?.acts?.length;
   const canReview = !DEMO_MODE && !!query.data.allowedActions?.includes("review");
   const canAnalyze = !DEMO_MODE && !!query.data.allowedActions?.includes("photo_review");
 
@@ -145,7 +146,7 @@ export function QualityTaskPage() {
       {DEMO_MODE && <Callout tone="neutral">DEMO · Фото и решения показаны из примера. Анализ и приёмка доступны только при подключении к API.</Callout>}
       <div className="quality-detail-grid fr-work-grid">
         <div className="space-y-6">
-          <div id="review-documents"><ActsPanel task={task} execution={execution} editable={false} onSaved={()=>setRefresh(n=>n+1)}/></div>
+          {hasDocuments && <div id="review-documents"><ActsPanel task={task} execution={execution} editable={false} onSaved={()=>setRefresh(n=>n+1)}/></div>}
           {execution&&<ExecutionProtocol task={task} execution={execution} value={{actual:execution.actual?{started_at:execution.actual.started_at??"",performed_at:execution.actual.performed_at??"",person_hours:execution.actual.person_hours??""}:null,readings:execution.readings??[]}} onChange={()=>{}} disabled readOnly/>}
           <Card>
             <CardHeader
@@ -200,7 +201,7 @@ export function QualityTaskPage() {
                 неуверенного AI-результата она служит основанием ручной оценки.
               </p>
 
-              <div className="fr-decision-facts"><p>Фото этой попытки: {execution?.photos.length??0}. <a href="#review-documents">Документы и проверки</a></p>{task.requiredActs?.map(kind=><p key={kind}>{kind}: {execution?.acts?.some(a=>a.kind===kind&&a.verified)?"проверен":execution?.acts?.some(a=>a.kind===kind)?"ожидает проверки":"не приложен"}</p>)}<p>AI не принимает работу. Скрытые операции и точность прибора требуют ручной проверки.</p>{review?.limitations.map(text=><p key={text}>{text}</p>)}</div>
+              <div className="fr-decision-facts"><p>Фото этой попытки: {execution?.photos.length??0}.{hasDocuments && <> <a href="#review-documents">Документы и проверки</a></>}</p>{task.requiredActs?.map(kind=><p key={kind}>{kind}: {execution?.acts?.some(a=>a.kind===kind&&a.verified)?"проверен":execution?.acts?.some(a=>a.kind===kind)?"ожидает проверки":"не приложен"}</p>)}<p>AI не принимает работу. Скрытые операции и точность прибора требуют ручной проверки.</p>{review?.limitations.map(text=><p key={text}>{text}</p>)}</div>
               <FormField
                 label="Причина решения"
                 htmlFor="quality-reason"

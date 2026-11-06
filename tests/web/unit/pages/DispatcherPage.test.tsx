@@ -40,7 +40,7 @@ describe("dispatcher overview", () => {
     expect(within(day).getByRole("link", {name: /task-1/})).toHaveAttribute("href", "/tasks/task-1");
     expect(within(day).getByRole("link", {name: /task-2/})).toHaveAttribute("href", "/tasks/task-2");
     expect(within(day).queryByText("next-week")).not.toBeInTheDocument();
-    expect(screen.getByText("Пока нет результатов")).toBeInTheDocument();
+    expect(screen.queryByText("Пока нет результатов")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Открыть график" })).toHaveAttribute("href", "/calendar?date=2026-10-30");
     expect(within(day).getByRole("link", {name: "Наряды дня →"})).toHaveAttribute("href", "/tasks?date=2026-10-30");
     await userEvent.setup().click(screen.getByRole("button", {name: "31 октября, нарядов: 0"}));

@@ -12,6 +12,12 @@ const task = { ...demoTasks[0], state: "submitted" as const, requiredActs: ["П�
 const execution: ExecutionReport = { id: "attempt-1", taskId: task.id, attemptNumber: 1, state: "submitted", narrative: "", checklist: [], photos: [], submittedAt: "2026-11-06T12:00:00Z", acts: [{ id: "act-1", kind: "Протокол измерений", verified: false, url: "/media/act-1" }] };
 beforeEach(() => { session.role = "executor"; });
 
+it("keeps an uploaded document accessible even when the task has no required acts", () => {
+  render(<ActsPanel task={{ ...task, requiredActs: [] }} execution={execution} editable={false} onSaved={vi.fn()} />);
+  expect(screen.getByRole("link", { name: /Открыть скан/ })).toHaveAttribute("href", "/media/act-1");
+  expect(screen.queryByText(/не заданы регламентом/)).not.toBeInTheDocument();
+});
+
 it.each(["executor", "director"] as const)("%s can open a document but cannot edit the engineer's verification", role => {
   session.role = role;
   render(<ActsPanel task={task} execution={execution} editable={false} onSaved={vi.fn()} />);
