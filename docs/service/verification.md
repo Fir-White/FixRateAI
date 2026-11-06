@@ -1,5 +1,11 @@
 # Проверки и доказательства
 
+## 07.11.2026: последующие изменения frontend-redesign-v2
+
+Последний полный frontend unit-прогон до оптимизации шторки: **484 passed**, checkpoint `001ed1a`. Затем прошли 15 целевых unit для уведомлений и форматирования дат, production build/TypeScript, browser controls и mobile touch. Основной сценарий исполнения → фото → возврат → новая попытка → приёмка и проверки шести ролей прошли на изолированной PostgreSQL/API: **7 E2E passed**. В текущем улучшении уведомлений изменяющие запросы проверялись mock-ответами, пользовательские уведомления не изменялись. Повторный переход по семи разделам занял 17–59 мс в конкретном прогоне; первое чтение зависит от API.
+
+Промежуточные failures и условия повторения сохранены в [журнале](../redesign-v2/IMPLEMENTATION_LOG.md). Артефакты исключены из Git и хранятся в `reports/redesign-v2`; credentials/backup — в `var`. Прежний полный прогон 727 backend/ML не повторялся после последних UI-изменений. Ручные gate C14–C16 остаются blocked: подробный [итог](../redesign-v2/FINAL_REPORT.md), [регрессия](../redesign-v2/REGRESSION.md), [визуальная проверка](../redesign-v2/VISUAL_QA.md).
+
 ## 06.11.2026: frontend-redesign-v2
 
 Изолированная ветка от `frontend_polished` проверяется отдельно от прежней интеграции. Выполнены 727 backend/ML-тестов, 433 UI unit, 31 desktop E2E и отдельный mobile390 flow, live visual checks и exact protected32/32. Итоговые результаты повторных UI/E2E запусков и обязательные оставшиеся ограничения приведены в [REGRESSION](../redesign-v2/REGRESSION.md); соответствие C00–C19 и решение о поставке — в [FINAL_REPORT](../redesign-v2/FINAL_REPORT.md). Screenshots и логи находятся в `reports/redesign-v2`; исходная презентационная БД не использовалась для тестовых мутаций. Полная доступность не подтверждается одним geometry sweep.
