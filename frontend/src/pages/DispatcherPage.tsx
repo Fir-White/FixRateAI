@@ -1,7 +1,7 @@
+import { readQueries } from "@/shared/api/readQueries";
 import { PerformanceOverview } from "@/features/analyst/AnalystPanels";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { maintenanceApi } from "@/shared/api/maintenance";
 import { DEMO_MODE } from "@/shared/api/request";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
 import { todayAt, formatShortDate, pluralize } from "@/shared/lib/format";
@@ -20,8 +20,8 @@ export function DispatcherPage() {
   const today=DEMO_MODE?DEMO_DATE:todayAt(timezone);
   const [selected,setSelected]=useState(today);
   const canTasks=canOpenSection(profile?.role,"tasks"), canCalendar=canOpenSection(profile?.role,"calendar"), canCompare=canOpenSection(profile?.role,"comparisons");
-  const query=useApiQuery(()=>maintenanceApi.listTasks(),[]);
-  const forecasts=useApiQuery(()=>canCompare?maintenanceApi.listComparisons():Promise.resolve([]),[canCompare]);
+  const query=useApiQuery(readQueries.tasks.load,[],undefined,readQueries.tasks.key);
+  const forecasts=useApiQuery(()=>canCompare?readQueries.comparisons.load():Promise.resolve([]),[canCompare],undefined,canCompare?readQueries.comparisons.key:undefined);
   if(query.status==="loading")return <LoadingState label="Загрузка оперативного центра"/>;
   if(query.status==="error")return <ErrorState description={query.error}/>;
   const tasks=query.data, open=tasks.filter(isOpenTask);

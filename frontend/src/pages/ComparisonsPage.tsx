@@ -1,5 +1,5 @@
+import { readQueries } from "@/shared/api/readQueries";
 import { Link, useSearchParams } from "react-router-dom";
-import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
 import { formatDate } from "@/shared/lib/format";
 import { exceedsDeadline, forecastUnavailableLabel } from "@/shared/lib/forecastPresentation";
@@ -11,7 +11,7 @@ import { DecisionStatusBadge, ForecastStatusBadge } from "@/shared/ui/StatusBadg
 import type { ForecastResult } from "@/shared/types/domain";
 
 export function ComparisonsPage() {
-  const query = useApiQuery(() => maintenanceApi.listComparisons(), []);
+  const query = useApiQuery(readQueries.comparisons.load, [], undefined, readQueries.comparisons.key);
   const [params, setParams] = useSearchParams();
   const search = params.get("q") ?? "";
   const equipment = params.get("equipment") ?? "";

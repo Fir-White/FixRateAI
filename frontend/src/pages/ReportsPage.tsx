@@ -1,6 +1,6 @@
+import { readQueries } from "@/shared/api/readQueries";
 import { PerformanceOverview } from "@/features/analyst/AnalystPanels";
 import { Link } from "react-router-dom";
-import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
 import type { MaintenanceTask } from "@/shared/types/domain";
 import { PageHeader } from "@/shared/ui/PageHeader";
@@ -31,7 +31,7 @@ function exportTasks(tasks: MaintenanceTask[]) {
 }
 
 export function ReportsPage() {
-  const query = useApiQuery(() => maintenanceApi.listTasks(), []);
+  const query = useApiQuery(readQueries.tasks.load, [], undefined, readQueries.tasks.key);
   const tasks = query.status === "success" ? query.data : [];
   const metrics = [
     { label: "Всего заданий", value: tasks.length, filter: "all" },

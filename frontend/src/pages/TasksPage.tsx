@@ -1,6 +1,6 @@
+import { readQueries } from "@/shared/api/readQueries";
 import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
 import { useWorkspaceState } from "@/shared/lib/workspaceState";
 import { PageHeader } from "@/shared/ui/PageHeader";
@@ -19,7 +19,7 @@ import "./management-redesign.css";
 
 export function TasksPage() {
   const {profile}=useSession();
-  const query=useApiQuery(()=>maintenanceApi.listTasks(),[]);
+  const query=useApiQuery(readQueries.tasks.load,[],undefined,readQueries.tasks.key);
   const [params,setParams]=useSearchParams();
   const [savedFilter,setSavedFilter]=useWorkspaceState<TaskFilter>("tasks.filter","all",isTaskFilter);
   const status=params.get("status"); const filter=isTaskFilter(status)?status:savedFilter;

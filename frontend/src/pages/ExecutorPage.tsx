@@ -1,3 +1,4 @@
+import { readQueries } from "@/shared/api/readQueries";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { maintenanceApi } from "@/shared/api/maintenance";
@@ -18,7 +19,7 @@ const ACTIVE:TaskState[]=["assigned","in_progress","rework_required"];
 const ORDER:Record<TaskState,number>={in_progress:0,rework_required:1,assigned:2,submitted:3,accepted:4,draft:5,cancelled:6};
 export function ExecutorPage(){
  const {profile}=useSession(); const id=profile?.userId??"";
- const query=useApiQuery(()=>maintenanceApi.listExecutorTasks(id),[id]);
+ const query=useApiQuery(()=>maintenanceApi.listExecutorTasks(id),[id],undefined,readQueries.tasks.key);
  const [params,setParams]=useSearchParams(); const equipment=params.get("equipment");
  const filter=params.get("queue")??"active";
  const setFilter=(value:string)=>setParams(previous=>{const next=new URLSearchParams(previous);next.set("queue",value);return next;});

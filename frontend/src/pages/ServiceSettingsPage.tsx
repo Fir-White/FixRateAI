@@ -1,10 +1,10 @@
+import { readQueries } from "@/shared/api/readQueries";
 import { Disclosure } from "@/shared/ui/Disclosure";
 import { ServiceEvidenceSettings } from "@/features/analyst/AnalystPanels";
 import { ConnectionRequired } from "@/shared/ui/ConnectionRequired";
 import { useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { managementApi } from "@/shared/api/management";
-import { maintenanceApi } from "@/shared/api/maintenance";
 import { DEMO_MODE } from "@/shared/api/request";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
 import { formatDate, todayAt } from "@/shared/lib/format";
@@ -31,7 +31,7 @@ function LiveServiceSettingsPage() {
   const selected=params.get("equipment")??"";
   const [refresh,setRefresh]=useState(0);
   const [notice,setNotice]=useState("");
-  const query=useApiQuery(()=>Promise.all([managementApi.catalog(),maintenanceApi.listEquipment()]),[refresh]);
+  const query=useApiQuery(readQueries.serviceIndex.load,[refresh],undefined,readQueries.serviceIndex.key);
   const mayEdit=profile?.role==="admin"||profile?.role==="chief_engineer";
   const today=todayAt(profile?.timezone??"Asia/Yekaterinburg");
 
@@ -55,7 +55,7 @@ function LiveServiceSettingsPage() {
 }
 
 function EquipmentSettings({equipmentId,catalog,mayEdit,onSaved}: {equipmentId:string;catalog:ManagementCatalog;mayEdit:boolean;onSaved:(key:string)=>void}) {
-  const query=useApiQuery(()=>equipmentId ? managementApi.getEquipment(equipmentId) : Promise.resolve(null),[equipmentId]);
+  const query=useApiQuery(()=>equipmentId ? managementApi.getEquipment(equipmentId) : Promise.resolve(null),[equipmentId],undefined,equipmentId?undefined:"new-equipment-form");
   if(query.status==="loading") return <LoadingState label="Загрузка оборудования"/>;
   if(query.status==="error") return <ErrorState description={query.error}/>;
   return <EquipmentEditor key={query.data?.revision??"new"} initial={query.data} catalog={catalog} mayEdit={mayEdit} onSaved={onSaved}/>;

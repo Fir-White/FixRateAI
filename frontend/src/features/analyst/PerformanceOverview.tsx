@@ -31,6 +31,8 @@ export function PerformanceOverview() {
   const query = useApiQuery(
     () => DEMO_MODE ? Promise.resolve([]) : request<SiteSummary[]>(`${base}/overview`),
     [],
+    undefined,
+    DEMO_MODE ? undefined : "overview",
   );
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
 

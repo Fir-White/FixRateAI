@@ -28,6 +28,8 @@ export function EquipmentDetailPage() {
   const query = useApiQuery(
     () => maintenanceApi.getEquipment(equipmentId),
     [equipmentId],
+    undefined,
+    `equipment-detail:${equipmentId}`,
   );
 
   if (query.status === "loading") {

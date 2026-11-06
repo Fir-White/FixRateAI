@@ -39,7 +39,7 @@ export function EmployeeCalendar({ person, today, timezone, personal = false, ta
   const [refresh, setRefresh] = useState(0);
   const [error, setError] = useState("");
   const [customPeriod, setCustomPeriod] = useState(false);
-  const query = useApiQuery(() => managementApi.workerCalendar(person.user_id, period.start, period.end), [person.user_id, period.start, period.end, refresh]);
+  const query = useApiQuery(() => managementApi.workerCalendar(person.user_id, period.start, period.end), [person.user_id, period.start, period.end, refresh], undefined, personal ? `personal-shifts:${person.user_id}:${period.start}:${period.end}` : undefined);
   const formatter = useMemo(() => ({
     time: new Intl.DateTimeFormat("ru-RU", { timeZone: timezone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }),
     day: new Intl.DateTimeFormat("ru-RU", { timeZone: timezone, day: "numeric", month: "long" }),

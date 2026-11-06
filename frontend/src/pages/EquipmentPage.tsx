@@ -1,7 +1,7 @@
+import { readQueries } from "@/shared/api/readQueries";
 import { useMemo } from "react";
 import { isShortString, useWorkspaceState } from "@/shared/lib/workspaceState";
 import { Link } from "react-router-dom";
-import { maintenanceApi } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Card } from "@/shared/ui/Card";
@@ -17,7 +17,7 @@ type StateFilter = "all" | EquipmentState;
 
 export function EquipmentPage() {
   const { profile } = useSession();
-  const query = useApiQuery(() => maintenanceApi.listEquipment(), []);
+  const query = useApiQuery(readQueries.equipment.load, [], undefined, readQueries.equipment.key);
   const [search, setSearch] = useWorkspaceState("equipment.search", "", isShortString);
   const [stateFilter, setStateFilter] = useWorkspaceState<StateFilter>("equipment.filter", "all", (value): value is StateFilter => typeof value === "string" && ["all", "active", "out_of_service", "retired"].includes(value));
 

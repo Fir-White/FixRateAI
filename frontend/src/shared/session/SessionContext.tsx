@@ -10,6 +10,7 @@ import {
 import type { Role, SessionProfile } from "@/shared/types/domain";
 
 import { request, DEMO_MODE, ApiError } from "@/shared/api/request";
+import { invalidateApiQueries } from "@/shared/lib/apiQueryCache";
 
 const STORAGE_KEY = "fixrate.demo.role";
 const SESSION_EVENT_KEY = "fixrate.session.changed.v1";
@@ -104,6 +105,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         const result = await request<{profile: SessionProfile}>("/api/v1/auth/session", {cache: "no-store"});
         if (!active || version !== authVersion.current) return;
         if (!initial && !sameSession(profileRef.current, result.profile)) {
+          invalidateApiQueries();
           window.location.replace("/");
           return;
         }

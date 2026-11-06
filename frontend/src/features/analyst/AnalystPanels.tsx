@@ -37,7 +37,7 @@ export function ServiceEvidenceSettings({value,onChange}:{value:ServiceConfigura
 
 export function EquipmentOperations({equipmentId}:{equipmentId:string}){
  const {profile}=useSession();
- const query=useApiQuery(()=>DEMO_MODE?Promise.resolve([]):managementApi.services(equipmentId),[equipmentId]);
+ const query=useApiQuery(()=>DEMO_MODE?Promise.resolve([]):managementApi.services(equipmentId),[equipmentId],undefined,`equipment-operations:${equipmentId}`);
  return <Card className="space-y-3 p-5"><h2 className="font-semibold">Связанные регламентные операции</h2>{query.status==="error"?<p role="alert">{query.error}</p>:query.status==="success"?query.data.length?query.data.map(r=><div key={r.binding_id} className="border-t border-line pt-3"><strong>{r.code} · {r.title}</strong><p>{r.maintenance_type} · {r.source_text} · {r.crew_size} чел.</p><p>Норма: {r.norm_value??"не задана"} · {unitLabel(r.norm_unit)} · {r.duration_minutes??"не задано"} мин.</p><p>{r.enabled?"Утверждено":"Черновик: планирование заблокировано"}</p></div>):<p>Операции ещё не привязаны.</p>:<p>Загрузка операций…</p>}{["chief_engineer","admin"].includes(profile?.role??"")&&<Link to={"/settings/equipment?equipment="+encodeURIComponent(equipmentId)}>Настроить связь с существующей операцией</Link>}</Card>;
 }
 
@@ -107,7 +107,7 @@ function DraftPlanApproval({year,month,onSaved}:{year:number;month:number;onSave
 
 interface MatrixRow {bindingId:string;system:string;complex:string|null;equipment:string;equipmentId:string;code:string;title:string;frequency:string;crewSize:number;normValue:string|null;normUnit:string;published:boolean;dates:string[];transfers?:Record<string,string>;}
 export function ScheduleMatrix({year,month}:{year:number;month:number}){
- const query=useApiQuery(()=>request<{rows:MatrixRow[]}>(base+`/schedule-matrix?year=${year}&month=${month}`),[year,month]);const [search,setSearch]=useState("");const days=Array.from({length:new Date(year,month,0).getDate()},(_,i)=>i+1);
+ const query=useApiQuery(()=>request<{rows:MatrixRow[]}>(base+`/schedule-matrix?year=${year}&month=${month}`),[year,month],undefined,`schedule-matrix:${year}:${month}`);const [search,setSearch]=useState("");const days=Array.from({length:new Date(year,month,0).getDate()},(_,i)=>i+1);
  const compact=useMediaQuery("(max-width: 767px)");const [fullMatrix,setFullMatrix]=useState(false);const scroll=useRef<HTMLDivElement>(null);
  const rows=query.status==="success" ? query.data.rows.filter(r=>JSON.stringify([r.system,r.complex,r.code,r.title,r.equipment]).toLowerCase().includes(search.toLowerCase())) : [];
  const metadata=(r:MatrixRow)=><><small>{r.system} → {r.complex??"комплекс не указан"}</small><p>{r.code} · {r.title}</p><Link to={"/equipment/"+r.equipmentId}>{r.equipment}</Link><p className="text-sm text-muted">{r.frequency} · {r.crewSize} чел. · {r.normValue??"Норма не задана"} {unitLabel(r.normUnit)}</p>{!r.published&&<p className="text-amber-200">Черновик — нужны нормативы</p>}</>;

@@ -1,3 +1,4 @@
+import { readQueries } from "@/shared/api/readQueries";
 import { ScheduleMatrix,PlanApproval } from "@/features/analyst/AnalystPanels";
 import { canOperate } from "@/shared/lib/roles";
 import {useEffect,useState} from "react";
@@ -6,6 +7,7 @@ import {maintenanceApi} from "@/shared/api/maintenance";
 import {DEMO_MODE} from "@/shared/api/request";
 import {useSession} from "@/shared/session/SessionContext";
 import {useApiQuery} from "@/shared/lib/useApiQuery";
+import {useApiQueryCache} from "@/shared/lib/ApiQueryProvider";
 import {useWorkspaceState} from "@/shared/lib/workspaceState";
 import {useMediaQuery} from "@/shared/lib/useMediaQuery";
 import {DEMO_DATE,dateLabel,isDateKey,shiftDay,weekFor} from "@/shared/lib/operations";
@@ -26,6 +28,7 @@ import "@/features/calendar/calendar.css";
 import "@/features/calendar/calendar-v2.css";
 
 export function CalendarPage() {
+ const cache=useApiQueryCache();
  const {profile}=useSession();const [params]=useSearchParams();
  const timezone=profile?.timezone??"Asia/Yekaterinburg",today=DEMO_MODE?DEMO_DATE:todayAt(timezone);
  const supplied=params.get("date");const initial=isDateKey(supplied)?supplied:today;
@@ -42,10 +45,10 @@ export function CalendarPage() {
  const query=useApiQuery(async()=>{
   if(mode==="preview"){const preview=await maintenanceApi.previewCalendar(year,month);return {scope,preview,items:preview.items as CalendarOccurrence[]};}
   const months=weekPeriod?[...new Set(weekFor(anchor).map(day=>day.slice(0,7)))]:[anchor.slice(0,7)];
-  const lists=await Promise.all(months.map(value=>maintenanceApi.listCalendar(+value.slice(0,4),+value.slice(5,7))));
+  const lists=await Promise.all(months.map(value=>{const query=readQueries.calendarMonth(+value.slice(0,4),+value.slice(5,7));return cache?cache.load(query.key,query.load):query.load();}));
   return {scope,preview:null,items:[...new Map(lists.flat().map(item=>[item.id,item])).values()]};
- },[scope]);
- const tasksQuery=useApiQuery(()=>maintenanceApi.listTasks(),[]);
+ },[scope],undefined,mode==="saved"?`calendar:${scope}`:undefined);
+ const tasksQuery=useApiQuery(readQueries.tasks.load,[],undefined,readQueries.tasks.key);
  const data=query.status==="success"&&query.data.scope===scope?query.data:null;
  const visibleWeek = weekFor(anchor);
  const items=(data?.items??[]).filter(item=>(!equipment||item.equipmentId===equipment) && (!isDateKey(item.occurrenceDate) || (compact ? item.occurrenceDate===anchor : !weekPeriod || visibleWeek.includes(item.occurrenceDate))));
