@@ -1,5 +1,11 @@
 # Визуальные проверки
 
+## Общий календарь и мои смены, 07.11.2026
+
+**passed**: live executor `/my-shifts` на1440/1280/768/390/360/320 и mobile/touch390×844. Смена содержит локальные часы, длительность, день недели, доступность и реальные задания с оборудованием/статусами. Произвольный диапазон раскрывается отдельно; нет внутреннего обрезанного списка. `reports/redesign-v2/calendar-shifts-review/manifest.json`, `shifts-1440.png`, `shifts-with-tasks.png`, `shifts-touch-390.png`, `date-picker-mobile.png`. Overflow0/errors0/content mutations0. Сравнение — с приложенным пользователем исходным экраном; отдельный pre-change live baseline для этой итерации не снимался.
+
+**passed**: общий month/time/date picker в отчётах, редакторе смен и обслуживания, chief_engineer1440/390. `calendar-system-review/manifest.json`, `month-390.png`, `time-390.png` и desktop версии; custom36 за6состояний, native inputs0, overflow/errors/writes0. Снимки открыты и просмотрены. Нативная клавиатура мобильной ОС и screen reader — **blocked**, устройства/средства недоступны. Readonly смены отдельно проверены настоящим mobile E2E. Прежний общий C16 gate остаётся ограниченным.
+
 ## Фотоотчёт исполнителя, 07.11.2026
 
 **passed**: реальные QA состояния empty/uploaded/error/retry; 1440/1280/768/390/360/320, overflow 0/browser errors 0. До: `reports/redesign-v2/photo-upload-review/before-desktop.png`, после: `empty-1440.png`, `empty-390.png`, `uploaded-1440.png`, `upload-error.png`; метаданные — `baseline.json` и `manifest.json`. Просмотрены обе формы, счётчик регламентных фото, очередь и ошибка. После загрузки drop-зона компактная; оригиналы доступны через прежний просмотрщик.

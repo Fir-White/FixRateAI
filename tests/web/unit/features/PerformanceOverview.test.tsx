@@ -41,7 +41,10 @@ it("applies the selected month only to the existing XLSX URLs without refetching
   vi.mocked(request).mockResolvedValue([site]);
   render(<PerformanceOverview />);
   await screen.findByText(site.siteName);
-  fireEvent.change(screen.getByLabelText("Месяц экспорта"), { target: { value: "2027-02" } });
+  fireEvent.click(screen.getByLabelText("Месяц экспорта"));
+  fireEvent.change(screen.getByLabelText("Год календаря"), { target: { value: "2027" } });
+  fireEvent.click(screen.getByRole("button", { name: "февраль" }));
+  fireEvent.click(screen.getByRole("button", { name: "Применить" }));
   expect(screen.getByRole("link", { name: "Скачать месячный график XLSX" })).toHaveAttribute("href", "/api/v1/maintenance/export.xlsx?year=2027&month=2&kind=schedule");
   expect(screen.getByRole("link", { name: "Скачать задания XLSX" })).toHaveAttribute("href", "/api/v1/maintenance/export.xlsx?year=2027&month=2&kind=orders");
   expect(request).toHaveBeenCalledTimes(1);

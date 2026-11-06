@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { createHash } from "node:crypto";
 import path from "node:path";
+import { pickCalendar } from "./calendar-input";
 
 function demoId(key: string) {
   const hex = createHash("md5").update(`fixrate-demo-${key}`).digest("hex");
@@ -48,8 +49,8 @@ test("dispatcher selects a complete crew from real availability and load without
     });
     await page.screenshot({path: path.join(process.env.FIXRATE_E2E_OUTPUT, "assignment-preview.png"), fullPage: true, animations: "disabled"});
   }
-  const start = await panel.getByLabel("Начало окна поиска", {exact: true}).inputValue();
-  await panel.getByLabel("Конец окна поиска", {exact: true}).fill(`${start.slice(0, 10)}T09:30`);
+  const start = (await panel.getByLabel("Начало окна поиска", {exact: true}).getAttribute("data-value"))!;
+  await pickCalendar(page,panel.getByLabel("Конец окна поиска", {exact: true}),`${start.slice(0, 10)}T09:30`);
   const short = await find();
   expect(short.status).toBe("unavailable");
   expect(short.selectedWorkers).toEqual([]);

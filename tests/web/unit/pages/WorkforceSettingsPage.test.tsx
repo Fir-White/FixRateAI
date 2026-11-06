@@ -39,7 +39,7 @@ it("opens, edits and reopens a sparse existing shift, preserving ID, revision, e
   const user = await openExisting();
   expect(save).not.toHaveBeenCalled();
   expect(screen.getByLabelText("Пн")).not.toBeChecked();
-  expect(screen.getByLabelText("Начало смены")).toHaveValue("22:00");
+  expect(screen.getByLabelText("Начало смены")).toHaveTextContent("22:00");
   expect(screen.getByLabelText("Роль сотрудника")).toBeDisabled();
   await user.clear(screen.getByLabelText("Название смены"));
   await user.type(screen.getByLabelText("Название смены"), "Обновлённая смена");

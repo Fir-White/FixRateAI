@@ -30,5 +30,21 @@
 .fr-content-v2 .fr-datetime-shortcuts { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 8px; }
 .fr-content-v2 .fr-datetime-shortcuts button { min-height: 44px; color: var(--fr2-accent); text-decoration: underline; text-underline-offset: 4px; font-size: 13px; cursor: pointer; }
 .fr-content-v2 .fr-datetime-error { color: var(--fr2-danger); font-size: 13px; margin-top: 4px; }
+.fr-content-v2 .fr-datetime-entry--single { grid-template-columns: minmax(0,1fr); }
+.fr-content-v2 .fr-datetime-picker > .fr-datetime-entry--single:first-child { margin-top:0;padding-top:0;border-top:0; }
+.fr-content-v2 .fr-time-unit-label { display:block;margin-bottom:6px;color:var(--fr2-muted);font-size:12px; }
+.fr-content-v2 .fr-datetime-entry fieldset > div > span[aria-hidden] { align-self:end;padding-bottom:13px; }
+.fr-content-v2 .fr-date-grid button:disabled { opacity: .3; cursor: not-allowed; }
+.fr-content-v2 .fr-datetime-entry .fr-calendar-time-seconds { grid-template-columns: minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr); }
+.fr-content-v2 .fr-calendar-input { display: block; min-width: 0; width: 100%; position: relative; }
+.fr-content-v2 .fr-calendar-input .fr-datetime-trigger { min-height: 44px; padding: 10px 12px; font-size: 14px; }
+.fr-content-v2 .fr-calendar-input .fr-datetime-trigger > span:first-of-type { text-transform: none; }
+.fr-content-v2 .fr-calendar-input .fr-datetime-time { font-size: 12px; padding-left: 8px; }
+.fr-content-v2 .fr-calendar-year { display: grid; gap: 4px; color: var(--fr2-muted); font-size: 12px; text-align: center; }
+.fr-content-v2 .fr-calendar-year input { width: 96px; min-height: 44px; padding: 8px; border: 1px solid var(--fr2-control); border-radius: 10px; color: var(--fr2-text); background: var(--fr2-bg); text-align: center; font-size: 18px; }
+.fr-content-v2 .fr-calendar-months { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+.fr-content-v2 .fr-calendar-months button { min-width: 0; min-height: 48px; padding: 10px 4px; border: 1px solid var(--fr2-line-strong); border-radius: 10px; font-size: 13px; text-transform: capitalize; cursor: pointer; }
+.fr-content-v2 .fr-calendar-months button[aria-pressed="true"] { background: var(--fr2-accent); color: var(--fr2-on-accent); }
+.fr-content-v2 .fr-calendar-months button:disabled { opacity: .35; cursor: not-allowed; }
 .fr-content-v2 .fr-datetime-dialog > div:last-child { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .fr-content-v2 .fr-datetime-dialog > div:last-child:has(> button:nth-child(3)) > button:first-child { grid-column: 1 / -1; }

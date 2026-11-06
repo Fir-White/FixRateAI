@@ -8,6 +8,10 @@
 
 **passed**: 70 целевых unit (7 новых), production build, TypeScript приложения и тестов. Очередь, matching item/view, метаданные регламента, ограничения файлов, повтор без дублирования, черновик и revision последующего документа проверены. **passed**: отдельный QA drop → искусственная503 → retry, ровно2сохранённых фото, черновик и сдача. **passed**: полный desktop и mobile390/touch E2E от начала до возврата, новой попытки и приёмки; директор readonly, оригиналы и обе попытки доступны. Детали/первичные исправленные failures и логи — в [журнале](IMPLEMENTATION_LOG.md). Backend и контракты не менялись; полный727-тестовый Python suite не повторялся. **blocked**: физическая камера/системный mobile picker и прежняя полная ручная C16 приёмка.
 
+## Общий календарь и смены, 07.11.2026
+
+**passed**:462/462 unit последовательно; после финальных мелких изменений26целевых unit, production build и TS всех тестов. **passed**:32уникальных desktop E2E в совокупности (первый полный30/31, settings на fresh QA2/2, новый personal1/1), отдельный personal mobile1/1. Логи/первичные failures и их причины — в [журнале](IMPLEMENTATION_LOG.md). Роли, исходные API, date-only и site-local datetime, min/max/required, disabled ancestry, hidden-section validation, сохранение существующей смены, периодичности, назначение, фото и readonly сохранены. Backend/SQL не менялись; API мутации только в disposable QA. **blocked**: прежние ручные проверки C16.
+
 ## Проверки и границы
 
 | Проверка | Статус | Доказательство и границы |

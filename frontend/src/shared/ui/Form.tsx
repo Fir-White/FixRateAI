@@ -1,6 +1,7 @@
 import { cloneElement, isValidElement, useId } from "react";
 import { useFeedbackMotion } from "@/shared/motion/useFeedbackMotion";
 import "./Form.css";
+import { CalendarInput } from "./CalendarInput";
 import type {
   ComponentPropsWithoutRef,
   InputHTMLAttributes,
@@ -91,6 +92,9 @@ export function Input({
 }: InputHTMLAttributes<HTMLInputElement> & {
   leadingIcon?: ReactNode;
 }) {
+  if (["date", "datetime-local", "month", "time"].includes(props.type ?? "")) {
+    return <CalendarInput {...props} className={className} />;
+  }
   const input = (
     <input
       className={`${CONTROL_CLASSES} h-10 px-3 ${leadingIcon ? "pl-10" : ""} ${className}`}

@@ -1,5 +1,6 @@
 import { test,expect } from "@playwright/test";
 import type {Workforce} from '../../../frontend/src/shared/types/management';
+import { pickCalendar } from "./calendar-input";
 
 test("web registration → role → shift/qualification/crew → equipment/service → confirmed work",async({page})=>{
   test.setTimeout(90000);
@@ -41,7 +42,7 @@ test("web registration → role → shift/qualification/crew → equipment/servi
   await page.getByRole("button",{name:"Выдать роль",exact:true}).click();
   await page.getByLabel("Сотрудник",{exact:true}).selectOption({label:`${workerName} · Исполнитель`});
   await page.getByRole("button",{name:"Добавить смену",exact:true}).click();
-  await page.getByLabel("Смена действует по",{exact:true}).fill(day);
+  await pickCalendar(page,page.getByLabel("Смена действует по",{exact:true}),day);
   await page.getByLabel("Повторять по",{exact:true}).selectOption("day");
   const savedShift=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/shifts'));
   await page.getByRole("button",{name:"Сохранить смену",exact:true}).click();
@@ -101,9 +102,9 @@ test("web registration → role → shift/qualification/crew → equipment/servi
   await page.getByLabel("Название обслуживания",{exact:true}).fill(title);
   await page.locator('summary').filter({hasText:'Методика и доказательства'}).click();
   await page.getByLabel("Инструкция",{exact:true}).fill("Проверить насос по настроенному регламенту");
-  await page.getByLabel("Действует по",{exact:true}).fill(day);
+  await pickCalendar(page,page.getByLabel("Действует по",{exact:true}),day);
   await page.getByLabel("Повторять по",{exact:true}).selectOption("dates");
-  await page.getByLabel("Даты обслуживания: новая дата",{exact:true}).fill(day);
+  await pickCalendar(page,page.getByLabel("Даты обслуживания: новая дата",{exact:true}),day);
   await page.getByRole("button",{name:"Добавить дату",exact:true}).first().click();
   await page.locator('summary').filter({hasText:'Допуски работников'}).click();
   await page.getByLabel(skillName,{exact:true}).check();
@@ -147,7 +148,8 @@ test("web registration → role → shift/qualification/crew → equipment/servi
   await page.reload();await expect(page.getByText("Назначено",{exact:true})).toBeVisible();await expect(page.getByText(workerName,{exact:true})).toBeVisible();
   await logout();await login(workerEmail);await page.goto("/my-shifts");
   await expect(page.getByRole("heading",{name:"Мои смены",exact:true})).toBeVisible();
-  await expect(page.getByText(/Смена \/ рабочий интервал/)).toBeVisible();
+  await expect(page.getByRole("heading",{name:/09:00.*17:00/}).first()).toBeVisible();
+  await expect(page.getByText(/^8 ч/).first()).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -160,7 +162,7 @@ test('shared web calendar previews ISO week 53, real quarters and constrained an
   await page.goto('/settings/workforce');
   await page.getByLabel('Сотрудник',{exact:true}).selectOption({label:'DEMO — работник планирования 3 · Исполнитель'});
   await page.getByRole('button',{name:'Добавить смену',exact:true}).click();
-  await page.getByLabel('Не раньше даты',{exact:true}).fill('2026-01-01');
+  await pickCalendar(page,page.getByLabel('Не раньше даты',{exact:true}),'2026-01-01');
   for(const label of ['Вт','Ср','Чт','Пт'])await page.getByRole('checkbox',{name:label,exact:true}).uncheck();
   await page.locator('summary').filter({hasText:'Ограничения и исключения'}).click();
   await page.getByLabel('Чётность недели',{exact:true}).selectOption('odd');

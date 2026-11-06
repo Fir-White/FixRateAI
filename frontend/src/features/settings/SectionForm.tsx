@@ -7,7 +7,7 @@ export type FieldError = { field: HTMLInputElement | HTMLSelectElement | HTMLTex
 export function sectionErrors(form: HTMLFormElement): FieldError[] {
   return Array.from(form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input,select,textarea"))
     .filter(field => !field.matches(":disabled") && !field.validity.valid)
-    .map(field => ({ field, label: field.getAttribute("aria-label") || field.labels?.[0]?.textContent?.trim() || "Поле формы", message: field.validationMessage }));
+    .map(field => ({ field, label: field.getAttribute("data-field-label") || field.getAttribute("aria-label") || field.labels?.[0]?.textContent?.trim() || "Поле формы", message: field.validationMessage }));
 }
 
 export function revealField(field: HTMLElement) {
@@ -16,8 +16,9 @@ export function revealField(field: HTMLElement) {
     if (parent instanceof HTMLDetailsElement) parent.open = true;
     parent = parent.parentElement;
   }
-  field.focus();
-  field.scrollIntoView?.({ block: "center", behavior: "auto" });
+  const control = field.closest("[data-calendar-input]")?.querySelector("button") ?? field;
+  control.focus();
+  control.scrollIntoView?.({ block: "center", behavior: "auto" });
 }
 
 export function FormErrors({ errors }: { errors: FieldError[] }) {
