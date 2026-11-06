@@ -85,8 +85,7 @@ export function EquipmentDetailPage() {
         </span>
       </div>
 
-      <EquipmentOperations equipmentId={equipmentId}/><IncidentWorkspace equipmentId={equipmentId}/>
-      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+      <div className="fr-work-grid">
         <div className="space-y-6">
           <Card>
             <CardHeader title="Паспорт оборудования" />
@@ -131,11 +130,11 @@ export function EquipmentDetailPage() {
                       </p>
                       <p className="mt-1 text-xs text-muted">
                         {event.taskCode} · проверил {event.engineer} ·{" "}
-                        {formatDateTime(event.performedAt)}
+                        Выполнено {formatDateTime(event.performedAt)}
                       </p>
                       <p className="mt-1 text-xs text-muted/60">
                         Принято {formatDateTime(event.acceptedAt)}
-                        {event.runtimeHours
+                        {event.runtimeHours !== null
                           ? ` · наработка ${event.runtimeHours} ч`
                           : ""}
                       </p>
@@ -152,18 +151,18 @@ export function EquipmentDetailPage() {
         </div>
 
         <div className="space-y-6">
+          <EquipmentOperations equipmentId={equipmentId}/>
           <Card>
-            <CardHeader title="Действующий регламент" />
+            <CardHeader title="Операция в паспорте" description="Справочное поле паспорта; связанные версии обслуживания перечислены отдельно." />
             <div className="p-5 sm:p-6">
               <p className="text-xs font-semibold text-muted">
                 Текущая операция
               </p>
               <p className="mt-1 text-sm font-semibold text-ink">
-                {equipment.activeOperation ?? "Не назначена"}
+                {equipment.activeOperation ?? "В паспорте не указана"}
               </p>
-              <Callout tone="warning" className="mt-4 text-xs leading-5">
-                Нормы и периодичность ТО2 требуют подтверждения заказчика.
-                Система не подставляет недостающие даты.
+              <Callout tone="neutral" className="mt-4 text-xs leading-5">
+                Обязательства определяются связанными утверждёнными регламентами. Пустое поле паспорта не означает отсутствие этих регламентов.
               </Callout>
             </div>
           </Card>
@@ -190,6 +189,7 @@ export function EquipmentDetailPage() {
           </Card>
         </div>
       </div>
+      <details><summary className="cursor-pointer py-4">Дефекты и обращения по оборудованию</summary><IncidentWorkspace equipmentId={equipmentId}/></details>
     </div>
   );
 }

@@ -50,7 +50,7 @@ export function ReportsPage() {
   const maxCount = Math.max(1, ...operations.map(item => item.count));
 
   return <div className="space-y-6 ops-reports">
-    <PerformanceOverview/><PageHeader eyebrow="История / обзор" title="Отчёты" description="Сводка по доступным заданиям текущего объекта. Показатели отражают их текущее состояние."
+    <PageHeader eyebrow="История / обзор" title="Отчёты" description="Сводка по доступным заданиям текущего объекта. Показатели отражают их текущее состояние."
       actions={<Button variant="secondary" disabled={query.status !== "success" || !tasks.length} onClick={() => exportTasks(tasks)}>Выгрузить задания CSV</Button>} />
     {query.status === "loading" && <LoadingState label="Загрузка отчётов" />}
     {query.status === "error" && <ErrorState description={query.error} />}
@@ -62,7 +62,8 @@ export function ReportsPage() {
         </Card>
         <Card className="p-5 sm:p-6"><p className="ops-kicker">Экспорт / данные</p><h2 className="ops-report-title mt-3">Срез заданий</h2><p className="ops-report-caption">CSV содержит только доступные текущему пользователю задания и их текущее состояние. Это не отдельный журнал аудита.</p><p className="mt-5 text-xs leading-6 text-muted">Выгрузка доступна сверху страницы. Формат CSV открывается в Excel; значения защищены от интерпретации как формулы.</p></Card>
       </div>
-      <Card className="overflow-hidden"><div className="border-b border-line px-5 py-4 sm:px-6"><h2 className="ops-report-title">Задания объекта</h2><p className="ops-report-caption">Откройте карточку для подробностей и доступных действий.</p></div>{tasks.length ? <TaskTable items={tasks} /> : <p className="ops-empty">Заданий пока нет.</p>}</Card>
+      <section aria-label="Показатели объектов и XLSX"><p className="text-sm text-muted mb-3">Показатели ниже охватывают доступные объекты. Выбранный месяц применяется только к XLSX; CSV выше содержит текущий срез заданий.</p><PerformanceOverview/></section>
+      <Card className="overflow-hidden"><div className="border-b border-line px-5 py-4 sm:px-6"><h2 className="ops-report-title">Задания объекта</h2><p className="ops-report-caption">Показаны первые {Math.min(10,tasks.length)} из {tasks.length}. Полный поиск и все записи — в реестре.</p><Link className="fr-text-link" to="/tasks?status=all">Открыть все задания →</Link></div>{tasks.length ? <TaskTable items={tasks.slice(0,10)} /> : <p className="ops-empty">Заданий пока нет.</p>}</Card>
     </>}
   </div>;
 }

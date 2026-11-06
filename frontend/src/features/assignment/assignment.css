@@ -1,0 +1,17 @@
+.fr-content-v2 .fr-assignment { min-width: 0; }
+.fr-content-v2 .fr-assignment input:not([type="checkbox"]),
+.fr-content-v2 .fr-assignment select { border-color: var(--fr2-control); border-radius: 10px; min-height: 40px; }
+.fr-content-v2 .fr-assignment td { overflow-wrap: anywhere; }
+.fr-content-v2 .fr-assignment-summary { padding: 16px; border-top: 1px solid var(--fr2-line); }
+.fr-content-v2 .fr-assignment-summary p { margin-bottom: 8px; }
+@container work-content (max-width: 680px) {
+  .fr-content-v2 .fr-assignment table,
+  .fr-content-v2 .fr-assignment tbody,
+  .fr-content-v2 .fr-assignment tr { display: block; width: 100%; }
+  .fr-content-v2 .fr-assignment thead { display: none; }
+  .fr-content-v2 .fr-assignment td { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; min-width: 0; padding: 8px 16px; }
+  .fr-content-v2 .fr-assignment td::before { content: attr(data-label); color: var(--fr2-muted); font-size: 13px; }
+  .fr-content-v2 .fr-assignment tr { padding-block: 8px; }
+  .fr-content-v2 .fr-assignment input:not([type="checkbox"]),
+  .fr-content-v2 .fr-assignment select { min-height: 44px; }
+}

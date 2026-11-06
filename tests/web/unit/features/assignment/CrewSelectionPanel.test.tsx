@@ -162,4 +162,20 @@ describe("crew selection", () => {
     await screen.findByRole("button", {name: "Подтвердить назначение"});
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
+
+  it("preserves the search window after a network failure and requires a fresh proposal", async () => {
+    mocks.assign.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    const user = userEvent.setup();
+    mount();
+    const start = await screen.findByLabelText("Начало окна поиска");
+    await user.clear(start);
+    await user.type(start, "2026-11-01T10:00");
+    await user.click(screen.getByRole("button", {name: "Найти бригаду"}));
+    await user.click(await screen.findByRole("button", {name: "Подтвердить назначение"}));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Сохранение не подтверждено");
+    expect(screen.getByLabelText("Начало окна поиска")).toHaveValue("2026-11-01T10:00");
+    expect(mocks.context).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", {name: "Подтвердить назначение"})).not.toBeInTheDocument();
+    expect(screen.queryByText("Бригада назначена")).not.toBeInTheDocument();
+  });
 });

@@ -60,6 +60,25 @@ UI capability-источник — [roles.ts](../../frontend/src/shared/lib/role
 
 ## Проверки и границы
 
+### Контрольный срез C06/C07/C09/C11/C19 и backend C16
+
+Реализованы контекст назначения и подтверждение выбранного состава/интервала, сохранение ввода при неопределённом сетевом результате, явный equipment blocker, ролевой обзор с исключениями перед журналом, read-only протокол директора и история внизу. Реестр получил локальную пагинацию по 25 строк с поиском по всей загруженной выборке; отчёт показывает первые 10 записей со ссылкой на полный реестр, экспорт сохраняет прежний набор. Паспорт отделяет справочную операцию от связанных версий обслуживания. C19 меняет пояснения доступа и анонимную ссылку 404; геометрия и логотип auth сохранены.
+
+| Проверка | Статус | Результат |
+|---|---|---|
+| TypeScript после интеграции | passed | Без ошибок |
+| Targeted frontend role/navigation, dispatcher, task detail, assignment | passed | 127 tests, 106.56s |
+| Пагинация, поиск вне текущей страницы, директор | passed | Отдельный новый тест: 1 passed |
+| Изолированный backend C16 subset | passed | 258 tests, 58.91s; scheduling, roles_contracts, runtime_integration, analyst_workflows, presentation_equipment; один third-party deprecation warning |
+| Реальный read-only результат/отчёт/паспорт | passed | Before :8000 / after :5174; 1440/1280/768/390/360/320; document overflow отсутствует, browser errors 0 |
+| Login/register/404 | passed | Before/after 390/360/320; overflow отсутствует, browser errors 0; просмотрены login320, register360 bottom, 404320 |
+| Успешное назначение на существующем live seed | blocked | Исторические связи отсутствуют; стенд не исправлялся ради проверки |
+| Полный браузерный C16 gate | blocked | Этот протокол подтверждает только перечисленный subset; итог объединяется с ролевым E2E владельца C16 |
+
+Backend прогон использовал Python 3.12 container, отдельную tmpfs PostgreSQL18, fresh migrations 001–010, изолированную сеть и read-only source mount. После результата временная БД и сеть удалены. Рабочая БД не использовалась. Команда pytest включала `tests/backend/test_presentation_equipment.py tests/backend/test_scheduling.py tests/backend/test_roles_contracts.py tests/backend/test_runtime_integration.py tests/backend/test_analyst_workflows.py`; лог: `reports/redesign-v2/c16-backend.log`.
+
+Снимки и manifests находятся в `reports/redesign-v2/owned-pages`, `common`, `c07-c11`. Для результата просмотрены desktop top и mobile top/middle/bottom; для отчёта desktop/mobile top и mobile middle/bottom; для паспорта mobile top/bottom; для director overview desktop top/bottom. Новые region captures меньше 16384px, без склейки. Старые промежуточные PNG, отсутствующие в актуальном manifest, не являются доказательством последнего состояния. Проверка геометрии ширин автоматическая; не все снимки всех ширин просмотрены вручную. Наличие seed-значения «Не указано» сохранено честно. Auth регистрация не отправлялась и новые пользователи не создавались.
+
 | Проверка | Статус | Результат |
 |---|---|---|
 | UUID source trace пяти C17 records | passed | Точное совпадение uuid5, без поиска по названию |

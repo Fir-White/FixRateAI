@@ -93,8 +93,8 @@ export function EquipmentPage() {
       ) : null}
       {query.status === "success" && items.length === 0 ? (
         <EmptyState
-          title="Оборудование не найдено"
-          description="Измените поисковый запрос или фильтр состояния."
+          title={query.data.length?"Оборудование не найдено":"Нет доступного оборудования"}
+          description={query.data.length?"Измените поисковый запрос или фильтр состояния.":"В текущем объекте или ваших назначениях нет доступных связей с оборудованием."}
         />
       ) : null}
       {query.status === "success" && items.length > 0 ? (

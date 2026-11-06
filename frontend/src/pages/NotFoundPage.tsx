@@ -22,7 +22,7 @@ export function NotFoundPage() {
           Проверьте адрес или вернитесь к рабочему разделу.
         </p>
         <Link to={target} className={buttonClassName("primary", "md", "mt-6")}>
-          На главную
+          {profile ? "На главную" : "Войти"}
         </Link>
       </div>
     </div>
