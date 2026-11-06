@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   sync:
-    if: github.repository == 'krangras/FixRateAI'
+    if: github.repository == 'Fir-White/FixRateAI'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
