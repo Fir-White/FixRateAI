@@ -1,0 +1,12 @@
+.fr-content-v2 .quality-detail-grid { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+.fr-content-v2 .quality-decision-rail { position: static; min-width: 0; }
+.fr-content-v2 .quality-detail-grid > div { min-width: 0; }
+.fr-content-v2 .fr-decision-facts { display: grid; gap: 8px; margin-block: 16px; color: var(--fr2-secondary); font-size: 13px; line-height: 20px; }
+.fr-content-v2 .fr-decision-facts a { color: var(--fr2-accent); text-decoration: underline; }
+.fr-content-v2 .fr-ai-details > summary { color: var(--fr2-accent); cursor: pointer; padding-block: 12px; }
+.fr-content-v2 .fr-ai-details article { border: 0; border-top: 1px solid var(--fr2-line); border-radius: 0; padding-inline: 0; }
+.fr-content-v2 .fr-quality-principle { padding: 12px 16px; border-left: 2px solid var(--fr2-accent); color: var(--fr2-secondary); }
+.fr-content-v2 .fr-quality-principle summary { cursor: pointer; color: var(--fr2-text); }
+@container work-content (min-width: 1040px) {
+  .fr-content-v2 .quality-detail-grid { grid-template-columns: minmax(0, 1fr) 336px; }
+}

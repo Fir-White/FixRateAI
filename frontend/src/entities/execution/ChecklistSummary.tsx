@@ -24,7 +24,7 @@ export function ChecklistSummary({
   mode?: "task" | "quality";
 }) {
   return (
-    <div className="space-y-2">
+    <div className="fr-checklist-result space-y-2">
       {items.map((item) => (
         <ChecklistRow key={item.id} item={item} mode={mode} />
       ))}

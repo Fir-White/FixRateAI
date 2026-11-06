@@ -28,6 +28,7 @@ export function Badge({
 }) {
   return (
     <span
+      data-content-tone={tone}
       className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-semibold whitespace-nowrap ${TONE_CLASSES[tone]} ${className}`}
     >
       {children}

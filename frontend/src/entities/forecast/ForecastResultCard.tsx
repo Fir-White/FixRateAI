@@ -17,11 +17,12 @@ export function ForecastResultCard({ result, accent }: { result: ForecastResult;
     </div>
     {late && <Callout tone="warning">Дата позже обязательного срока. Она показана как исходный результат метода, а не как допустимый перенос ТО.</Callout>}
     <p className="forecast-explanation">{result.explanation || "Объяснение не передано источником."}</p>
-    <dl className="forecast-meta"><div><dt>Неопределённость</dt><dd>{result.uncertaintyNote || "Не оценена источником"}</dd></div>
+    <dl className="forecast-meta"><div><dt>Неопределённость</dt><dd>{result.uncertaintyNote || "Не оценена источником"}</dd></div></dl>
+    {result.warnings.length > 0 && <Callout tone="warning" title="Ограничения метода"><ul>{[...new Set(result.warnings)].map(w => <li key={w}>{w}</li>)}</ul></Callout>}
+    <details className="mt-4"><summary>Метод, версия и диагностика</summary><dl className="forecast-meta">
       <div><dt>Метод / версия</dt><dd>{result.methodVersion}</dd></div>
       <div><dt>Модель</dt><dd>{result.modelRef || "Модель не указана"}</dd></div>
       <div><dt>Время расчёта</dt><dd>{result.elapsedMs} мс</dd></div></dl>
-    {result.errorCode && <p className="forecast-error">Код: {result.errorCode}</p>}
-    {result.warnings.length > 0 && <Callout tone="warning" title="Ограничения метода"><ul>{result.warnings.map(w => <li key={w}>{w}</li>)}</ul></Callout>}
+    {result.errorCode && <p className="forecast-error">Код: {result.errorCode}</p>}</details>
   </section>;
 }

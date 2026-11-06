@@ -37,6 +37,11 @@
 .fr-content-v2 :where(a, button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--fr2-accent); outline-offset: 2px; }
 .fr-content-v2 .text-muted { color: var(--fr2-muted); }
 .fr-content-v2 .text-ink-soft { color: var(--fr2-secondary); }
+.fr-content-v2 [data-content-tone="warning"] { color: var(--fr2-warning); background: var(--fr2-raised); border-color: var(--fr2-line-strong); }
+.fr-content-v2 [data-content-tone="danger"] { color: var(--fr2-danger); background: var(--fr2-critical-surface); }
+.fr-content-v2 [data-content-tone="success"] { color: var(--fr2-accent); background: var(--fr2-accent-surface); }
+.fr-content-v2 [data-content-tone="info"] { color: var(--fr2-info); background: var(--fr2-raised); }
+.fr-content-v2 span[data-content-tone] { white-space: normal; border-radius: 8px; font-size: 12px; line-height: 18px; }
 .fr-content-v2 .fr-read-value { display: grid; gap: 6px; padding-block: 12px; border-bottom: 1px solid var(--fr2-line); overflow-wrap: anywhere; }
 .fr-content-v2 .fr-read-value > span { color: var(--fr2-muted); font-size: 12px; }
 .fr-content-v2 .fr-read-value > div { white-space: pre-wrap; color: var(--fr2-text); }

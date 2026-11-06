@@ -2,8 +2,10 @@ import type { TaskState } from "@/shared/types/domain";
 
 /** Presentation only: never infer completion, deadlines or units from other fields. */
 export function unitLabel(unit: string | null | undefined): string {
-  return unit === "person_hour" ? "чел.-ч" : unit || "Единица не указана";
+  return unit === "person_hour" ? "чел.-ч" : unit === "elapsed_hour" ? "часы бригады" : unit === "unconfirmed" ? "Единица не подтверждена" : unit || "Единица не указана";
 }
+
+export const viewLabel = (value: string) => value === "front" ? "Спереди" : value || "Не указан";
 
 export function attemptStateSummary(state: TaskState): string {
   switch (state) {
