@@ -1,5 +1,9 @@
 # Журнал реализации редизайна v2
 
+## Дизайн-итерация 07.11.2026: счётчики нарядов в мобильной неделе
+
+По запросу владельца в DispatcherPage количество и склонение «наряд / наряда / нарядов» разделены на два элемента. На узком content число находится над словом; ноль отображается как0нарядов с той же геометрией. Management CSS удерживает7дней в одной строке, поэтому подписи не сдвигают даты. Фильтрация, счётчик и выбор дня не менялись. **passed**: build/TypeScript,2DispatcherPage unit, live chief_engineer1440/768/390/360/320. На телефоне Y дат и слов совпадают, числа выше подписей, слова помещаются в ячейки, overflow/errors/content mutations0. `reports/redesign-v2/week-workload-review/manifest.json`, week-390.png и week-320.png открыты и просмотрены. Исходный commit `e659fb4`.
+
 ## Дизайн-итерация 07.11.2026: кнопка «Сегодня» в графике
 
 По запросу владельца из панели CalendarPage удалена кнопка «Сегодня» (в DEMO — «Дата демо»). Остались период и две стрелки; начальная дата, подсветка текущего дня и другие календари не менялись. **passed**: build/TypeScript,5CalendarPage unit; live executor :5174 на1440/390 — кнопки нет, переход назад/вперёд работает, overflow/errors/content mutations0. `reports/redesign-v2/calendar-today-removal/manifest.json`, toolbar-1440.png и toolbar-390.png; mobile PNG открыт и просмотрен. Начальный commit `10e219b`.
