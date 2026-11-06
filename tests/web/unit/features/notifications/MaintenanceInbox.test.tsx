@@ -44,7 +44,7 @@ describe("notifications", () => {
   it("keeps the bell visible for an empty list and closes on outside click", async () => {
     api.mockResolvedValue([]);const user = userEvent.setup();setup();
     await user.click(await screen.findByRole("button", { name: "Уведомления, непрочитанных: 0" }));
-    expect(screen.getByText("Пока всё спокойно")).toBeInTheDocument();fireEvent.pointerDown(document.body);
+    expect(screen.getByText("Уведомлений нет")).toBeInTheDocument();fireEvent.pointerDown(document.body);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
   it("surfaces loading errors and retries", async () => {
@@ -75,16 +75,16 @@ describe("notifications", () => {
   });
   it("clears all only after confirmation and keeps the list if the request fails", async () => {
     const user=userEvent.setup();setup();await user.click(await screen.findByRole("button",{name:"Уведомления, непрочитанных: 2"}));
-    await user.click(screen.getByRole("button",{name:"Очистить уведомления"}));
+    await user.click(screen.getByRole("button",{name:"Удалить все уведомления"}));
     expect(screen.getByText("Удалить все уведомления?")).toBeInTheDocument();
     await user.click(screen.getByRole("button",{name:"Отмена"}));expect(api).toHaveBeenCalledTimes(1);
-    await user.click(screen.getByRole("button",{name:"Очистить уведомления"}));
+    await user.click(screen.getByRole("button",{name:"Удалить все уведомления"}));
     api.mockRejectedValueOnce(new Error("network"));await user.click(screen.getByRole("button",{name:"Удалить"}));
     expect(await screen.findByRole("alert")).toHaveTextContent("Не удалось очистить");
     expect(screen.getByRole("button",{name:"Уведомления, непрочитанных: 2"})).toBeInTheDocument();
-    await user.click(screen.getByRole("button",{name:"Очистить уведомления"}));
+    await user.click(screen.getByRole("button",{name:"Удалить все уведомления"}));
     api.mockResolvedValueOnce({cleared:true,count:125});await user.click(screen.getByRole("button",{name:"Удалить"}));
-    expect(await screen.findByText("Пока всё спокойно")).toBeInTheDocument();
+    expect(await screen.findByText("Уведомлений нет")).toBeInTheDocument();
     expect(api).toHaveBeenLastCalledWith("/api/v1/maintenance/notifications/clear",expect.objectContaining({method:"POST"}));
   });
   it("deletes only the selected notification after acknowledgement and preserves it on failure", async () => {
