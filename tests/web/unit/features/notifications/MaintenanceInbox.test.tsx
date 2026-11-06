@@ -19,6 +19,24 @@ beforeEach(() => { role = "engineer"; api.mockReset(); api.mockResolvedValue(mes
 afterEach(() => { vi.useRealTimers(); });
 
 describe("notifications", () => {
+  it("reuses the list on reopen while closed controls remain hidden and inert", async () => {
+    const user=userEvent.setup();setup();
+    const trigger=await screen.findByRole("button",{name:"Уведомления, непрочитанных: 2"});
+    await user.click(trigger);
+    const panel=screen.getByRole("dialog",{name:"Уведомления"});
+    const row=within(panel).getByText("Фотоотчёт ожидает приёмки");
+    await user.click(within(panel).getByRole("button",{name:"Закрыть уведомления"}));
+    expect(panel).toHaveAttribute("inert");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await waitFor(()=>expect(panel).toHaveAttribute("hidden"));
+    expect(row.isConnected).toBe(true);
+    await user.click(trigger);
+    expect(screen.getByRole("dialog")).toBe(panel);
+    expect(screen.getByText("Фотоотчёт ожидает приёмки")).toBe(row);
+    expect(panel).not.toHaveAttribute("inert");
+    expect(panel).not.toHaveAttribute("hidden");
+    expect(api).toHaveBeenCalledTimes(1);
+  });
   it("groups unread and read events, formats time and closes with Escape", async () => {
     const user = userEvent.setup(); setup();
     const trigger = await screen.findByRole("button", { name: "Уведомления, непрочитанных: 2" });

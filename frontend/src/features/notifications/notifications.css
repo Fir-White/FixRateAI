@@ -6,6 +6,9 @@
 .inbox-error-dot{position:absolute;right:3px;top:3px;width:7px;height:7px;border-radius:50%;background:var(--color-danger)}
 .inbox-panel{position:absolute;z-index:60;right:0;top:calc(100% + 1px);width:min(400px,calc(100vw - 28px));max-height:min(650px,calc(100vh - 88px));display:flex;flex-direction:column;overflow:hidden;border:1px solid #344542;border-radius:18px;background:#141d1d;color:var(--color-ink);box-shadow:0 24px 80px #0009,0 3px 14px #0005}
 .inbox-panel{transform-origin:top right;animation:inbox-appear 160ms cubic-bezier(.2,.8,.2,1) both}.inbox-panel[data-state="closing"]{animation:inbox-disappear 140ms ease-in both;pointer-events:none}
+.inbox-panel{will-change:transform,opacity}
+/* Keep the closed panel's layout ready; aria-hidden and inert guard its controls. */
+.inbox-panel[hidden]{display:flex;visibility:hidden;pointer-events:none;animation:none}
 @keyframes inbox-disappear{from{opacity:1;transform:translateY(0) scale(1)}to{opacity:0;transform:translateY(-6px) scale(.985)}}
 @keyframes inbox-appear{from{opacity:0;transform:translateY(-6px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 .inbox-header{display:flex;justify-content:space-between;gap:16px;padding:22px 22px 19px;border-bottom:1px solid var(--color-line)}
