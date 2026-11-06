@@ -68,6 +68,8 @@
   transition: background-color var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard);
 }
 .auth-form .auth-input::placeholder { color: #80959d; opacity: 1; }
+/* The persistent label identifies the field; keep the hint away from its caret. */
+.auth-form .auth-input:focus::placeholder { opacity: 0; }
 .auth-form .auth-input:hover:not(:disabled) { border-color: #5a7982; background-color: #0e1b22; }
 .auth-form .auth-input:focus { border-color: #8aa4ac; outline: none; box-shadow: none; }
 .auth-form .auth-input:focus-visible { border-width: 2px; padding-inline: 14px; outline: none; box-shadow: none; }

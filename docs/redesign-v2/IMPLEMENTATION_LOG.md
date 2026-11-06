@@ -1,5 +1,13 @@
 # Журнал реализации редизайна v2
 
+## Исправление 07.11.2026: подсказки в полях авторизации
+
+Baseline `8ccf194`: на live `/login` фокус оставлял placeholder под курсором; у email и password фактические value/defaultValue были пустыми. Попадание подсказки в данные не воспроизведено. В LoginPage.css добавлено локальное скрытие placeholder при focus для всех auth-input входа и регистрации; подписи остаются видимыми, пустое поле снова показывает подсказку после blur. Значения, autocomplete, валидация и API не менялись; введённые строки не сравниваются с текстом подсказок и не удаляются.
+
+**passed**: build/TypeScript; два новых Playwright-сценария на1440/390 (все поля login/register, первый символ, очистка/blur, пустые FormData, блокировка пустой отправки, переключение пароля и точный JSON отправки); четыре существующих сценария клавиатуры, первого click/touch и pending. Новые проверки до исправления — **failed** на видимой подсказке при focus, после — **passed**. API в E2E замокан; это проверка UI/transport payload, а не серверной аутентификации или внешнего менеджера паролей.
+
+Live Chrome :5174, desktop1440×900 и touch390×844: screenshots в `reports/redesign-v2/auth-placeholder/` (`before-*`, `after-*`), состояния ошибок/регистрации в `auth-placeholder-green/`; desktop email и mobile password открыты и просмотрены. Browser errors0, записей в API0 при read-only визуальной проверке. Системное автозаполнение конкретного менеджера паролей отдельно не воспроизводилось.
+
 ## Дизайн-итерация 07.11.2026: лишние ссылки в шапках
 
 По запросу владельца удалены три header shortcut: «Календарь ТО» в EquipmentPage, «Мои смены» в ExecutorPage и «Мои задания» в PersonalShiftsPage. Убраны ненужные импорты и пустой контейнер actions; действие «Добавить» для admin/dispatcher сохранено. Sidebar, маршруты, ролевые права и контекстные ссылки на задания оборудования не менялись. **passed**: build/TypeScript, live executor на1440/390 по всем3маршрутам: header-кнопок нет, все4пункта меню доступны в DOM, overflow/errors/content mutations0. `reports/redesign-v2/header-shortcuts-removal/manifest.json` и screenshots; executor-390.png открыт и просмотрен. Исходный commit `6a01e79`.

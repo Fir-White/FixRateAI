@@ -27,6 +27,57 @@ test.beforeEach(async ({ page, context }) => {
   await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
 });
 
+for (const width of [1440, 390]) {
+  test(`auth hints stay separate from entered values at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const submissions: unknown[] = [];
+    await page.route("**/api/v1/auth/login", route => {
+      submissions.push(route.request().postDataJSON());
+      return route.fulfill({ status: 401, json: { detail: "Неверный email или пароль" } });
+    });
+    for (const path of ["/login", "/register"]) {
+      await page.goto(path);
+      const fields = page.locator(".auth-form input[placeholder]");
+      await expect(fields.first()).toBeVisible();
+      for (const field of await fields.all()) {
+        await expect(field).toHaveValue("");
+        await field.focus();
+        await expect(field).toBeFocused();
+        expect(await field.evaluate(input => getComputedStyle(input, "::placeholder").opacity)).toBe("0");
+        await page.keyboard.insertText("a");
+        await expect(field).toHaveValue("a");
+        await field.fill("");
+        await field.blur();
+        expect(await field.evaluate(input => getComputedStyle(input, "::placeholder").opacity)).toBe("1");
+      }
+      const password = page.getByLabel("Пароль", { exact: true });
+      await page.getByRole("button", { name: "Показать пароль", exact: true }).click();
+      await expect(password).toHaveAttribute("type", "text");
+      await expect(password).toHaveValue("");
+      await page.getByRole("button", { name: "Скрыть пароль", exact: true }).click();
+      expect(await page.locator(".auth-form").evaluate(form => [...new FormData(form as HTMLFormElement).values()])).toEqual(path === "/login" ? ["", ""] : ["", "", "", "", ""]);
+      await page.locator(".auth-submit").click();
+      await expect(page.getByLabel("Email", { exact: true })).toHaveAttribute("aria-invalid", "true");
+      await expect(password).toHaveAttribute("aria-invalid", "true");
+      await password.focus();
+      await page.screenshot({ path: testInfo.outputPath(`${path.slice(1)}-empty-focused-${width}.png`), animations: "disabled" });
+    }
+    expect(submissions).toEqual([]);
+    await page.goto("/login");
+    const email = page.getByLabel("Email", { exact: true });
+    const password = page.getByLabel("Пароль", { exact: true });
+    await email.fill("qa@example.test");
+    await password.fill("actual-secret-123");
+    await page.getByRole("button", { name: "Показать пароль", exact: true }).click();
+    await expect(password).toHaveValue("actual-secret-123");
+    await page.getByRole("button", { name: "Скрыть пароль", exact: true }).click();
+    await password.press("Enter");
+    await expect(page.getByRole("alert")).toContainText("Неверный email или пароль");
+    expect(submissions).toEqual([{ email: "qa@example.test", password: "actual-secret-123" }]);
+  });
+}
+
 test("responsive open light scene and original small auth brand", async ({ page }, testInfo) => {
   for (const [width, height] of [[1920,1080],[1440,900],[1366,768],[1024,768],[768,1024],[390,844],[375,812]]) {
     await page.setViewportSize({width,height});

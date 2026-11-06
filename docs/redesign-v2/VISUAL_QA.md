@@ -1,5 +1,9 @@
 # Визуальные проверки
 
+## Подсказки авторизации, 07.11.2026
+
+**passed**: live `/login`1440×900 и touch390×844 — подсказка скрывается сразу при focus, подпись поля остаётся; пустые value подтверждены в DOM. Login/register1440/390 проверены Playwright, включая ошибки пустой формы и сохранение значения пароля при смене видимости. `reports/redesign-v2/auth-placeholder/` — before/after; `auth-placeholder-green/` — состояния login/register. Desktop email и mobile password открыты и просмотрены. Исходный commit `8ccf194`; записей в live API и browser errors0. Проверка внешнего менеджера паролей не заявляется.
+
 ## Правый край мобильной шапки, 07.11.2026
 
 **passed**:320/360/390 и native touch390×844 — профиль/уведомления у правого края, отступ14px вместо41px, размеры и действия сохранены; desktop768/1440 координаты совпали с исходными. Подсказка профиля остаётся в viewport. Уведомления и переход в профиль открыты; overflow/errors/content mutations0. `reports/redesign-v2/mobile-header-review/` содержит before/after JSON и screenshots, просмотрены before-390 и after-native-touch-390. Изменение protected shell выполнено по прямому запросу владельца.
