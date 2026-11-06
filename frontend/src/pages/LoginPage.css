@@ -146,9 +146,8 @@
 .auth-page--registration .auth-register { margin-top: 20px; }
 .auth-success { margin-top: 24px; padding: 14px 16px; border: 1px solid rgb(116 228 212 / 0.35); border-radius: 9px; background: rgb(116 228 212 / 0.07); color: #c6ede5; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
 
-@media (min-width: 821px) {
-  .auth-aurora { position: sticky; top: 0; height: 100svh; min-height: 0; align-self: start; }
-}
+/* Keep the desktop artwork and its copy together while the form scrolls. */
+.auth-visual { position: sticky; top: 0; height: 100svh; min-width: 0; align-self: start; }
 
 @media (min-width: 821px) and (max-height: 800px) {
   .auth-page--registration .auth-panel__body { padding-block: 12px 14px; }
@@ -201,6 +200,7 @@
   .auth-page .auth-register { margin-top: var(--auth-secondary-gap); }
   .auth-footer { margin-top: auto; }
   .auth-register a { display: inline-flex; min-height: 44px; align-items: center; }
+  .auth-visual { position: static; height: auto; }
   .auth-aurora, .auth-page--registration .auth-aurora {
     position: fixed;
     inset: 0;

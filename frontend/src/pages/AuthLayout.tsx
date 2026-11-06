@@ -40,8 +40,10 @@ export function AuthLayout() {
         </div>
       </section>
 
-      <AuroraScene onReducedMotionChange={setReducedMotion} />
-      <AuthHeroCopy reducedMotion={reducedMotion} />
+      <div className="auth-visual">
+        <AuroraScene onReducedMotionChange={setReducedMotion} />
+        <AuthHeroCopy reducedMotion={reducedMotion} />
+      </div>
 
     </main>
     </AuthMotionContext.Provider>
