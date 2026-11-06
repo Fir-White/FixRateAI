@@ -187,7 +187,7 @@ def _execution_payload(v, report, order, equipment_id: UUID) -> dict:
 def register_routes(app, views) -> None:
     @app.get(PREFIX + "/operations")
     def operations(v=Depends(views)):
-        _guard(v, "executive", "admin", "dispatcher", "engineer")
+        _guard(v, "director", "admin", "dispatcher", "engineer")
         rows = []
         for operation in v.rows("operation_templates"):
             rules = sorted(
@@ -200,7 +200,7 @@ def register_routes(app, views) -> None:
 
     @app.get(PREFIX + "/operations/{operation_id}")
     def operation(operation_id: UUID, v=Depends(views)):
-        _guard(v, "executive", "admin", "dispatcher", "engineer")
+        _guard(v, "director", "admin", "dispatcher", "engineer")
         return _operation_payload(v, *_operation(v, operation_id))
 
     @app.post(PREFIX + "/operations", status_code=201)
@@ -272,7 +272,7 @@ def register_routes(app, views) -> None:
 
     @app.get(PREFIX + "/regulations")
     def regulations(v=Depends(views)):
-        _guard(v, "executive", "admin", "dispatcher", "engineer")
+        _guard(v, "director", "admin", "dispatcher", "engineer")
         result = []
         for edition in v.rows("regulation_editions"):
             document = v.one(
@@ -297,7 +297,7 @@ def register_routes(app, views) -> None:
 
     @app.get(PREFIX + "/tasks")
     def planned_tasks(status: str | None = None, v=Depends(views)):
-        _guard(v, "executive", "admin", "dispatcher", "engineer", "executor")
+        _guard(v, "director", "admin", "dispatcher", "engineer", "executor")
         orders = v.repo.orders(
             v.principal.site_id,
             status=status,
@@ -307,7 +307,7 @@ def register_routes(app, views) -> None:
 
     @app.get(PREFIX + "/calendar")
     def calendar(year: int, month: int, v=Depends(views)):
-        _guard(v, "executive", "admin", "dispatcher", "engineer", "executor")
+        _guard(v, "director", "admin", "dispatcher", "engineer", "executor")
         if not 2000 <= year <= 2100 or not 1 <= month <= 12:
             raise HTTPException(422, "Некорректный месяц")
         return _calendar_response(v, year, month)
@@ -319,7 +319,7 @@ def register_routes(app, views) -> None:
         offset: int = Query(0, ge=0),
         v=Depends(views),
     ):
-        _guard(v, "executive", "admin", "dispatcher", "engineer", "executor")
+        _guard(v, "director", "admin", "dispatcher", "engineer", "executor")
         v.one("equipment", equipment_id=equipment_id)
         reports = []
         visible_order = False

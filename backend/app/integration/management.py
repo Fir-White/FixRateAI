@@ -267,7 +267,7 @@ def save_service(v,equipment_id,data,binding_id=None):
 def register_routes(app,views,db):
     @app.post(PREFIX+'/management/calendar-pattern/preview')
     def pattern_preview(command:PatternPreview,v=Depends(views)):
-        _guard(v,'executive','admin','dispatcher','engineer')
+        _guard(v,'director','admin','dispatcher','engineer')
         try:
             pairs=occurrence_pairs(command.pattern,date(command.year,command.month,1),date(command.year,command.month,monthrange(command.year,command.month)[1]))
             days=[day for _,day in pairs]
@@ -277,7 +277,7 @@ def register_routes(app,views,db):
 
     @app.get(PREFIX+'/management/catalog')
     def catalog(v=Depends(views)):
-        _guard(v,'executive','admin','dispatcher','engineer')
+        _guard(v,'director','admin','dispatcher','engineer')
         return dict(systems=[dict(id=r.system_id,code=r.code,name=r.name) for r in v.rows('engineering_systems') if r.is_active],
             equipment_types=[dict(id=r.equipment_type_id,code=r.code,name=r.name) for r in v.rows('equipment_types')],
             operations=[dict(id=r.operation_template_id,system_id=r.system_id,code=r.code,title=r.title,instructions=r.description or r.title,
@@ -328,7 +328,7 @@ def register_routes(app,views,db):
 
     @app.get(PREFIX+'/equipment/{equipment_id}/service-configurations')
     def configs(equipment_id:UUID,v=Depends(views)):
-        _guard(v,'executive','admin','dispatcher','engineer','executor')
+        _guard(v,'director','admin','dispatcher','engineer','executor')
         if v.principal.role=='executor' and equipment_id not in v.visible_equipment_ids():raise HTTPException(404,'Оборудование не найдено')
         return service_configurations(v,equipment_id)
 
@@ -384,7 +384,7 @@ def _validate_bookings(v,user_ids):
 
 
 def workforce_view(v):
-    _guard(v,'executive','admin','dispatcher','engineer')
+    _guard(v,'director','admin','dispatcher','engineer')
     staff=[]
     for member in v.rows('site_memberships'):
         user=v.one('users',user_id=member.user_id)
@@ -461,7 +461,7 @@ def register_workforce_routes(app,views,db):
 
     @app.get(PREFIX+'/users/roles')
     def roles(v=Depends(views)):
-        return [dict(role=role,label=label) for role,label in [('executive','Руководитель: просмотр и SLA'),('chief_engineer','Главный инженер: нормативы, планы и исключения'),('admin','Администратор: сотрудники, роли, справочники'),
+        return [dict(role=role,label=label) for role,label in [('director','Руководитель: просмотр и SLA'),('chief_engineer','Главный инженер: нормативы, планы и исключения'),('admin','Администратор: сотрудники, роли, справочники'),
             ('dispatcher','Диспетчер: обслуживание, смены, предложения и подтверждение назначений'),
             ('engineer','Инженер: прогнозы и приёмка'),('executor','Исполнитель: только назначенные работы')]]
 
@@ -555,7 +555,7 @@ def register_workforce_routes(app,views,db):
 
     @app.get(PREFIX+'/management/staff/{user_id}/calendar')
     def employee_calendar(user_id:UUID,start:date,end:date,v=Depends(views)):
-        if user_id!=v.principal.user_id: _guard(v,'executive','admin','dispatcher','engineer')
+        if user_id!=v.principal.user_id: _guard(v,'director','admin','dispatcher','engineer')
         if end<start or end-start>timedelta(days=366) or start.year<2000 or end.year>2100: raise HTTPException(422,'Диапазон календаря до 366 дней, 2000–2100 годы')
         intervals,issues=worker_intervals(v,v.one('site_memberships',user_id=user_id),start,end)
         tz=ZoneInfo(v.principal.timezone)

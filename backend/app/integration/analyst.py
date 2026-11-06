@@ -272,12 +272,12 @@ def register_analyst_routes(app,views,photo_path,editable):
 
     @app.get(PREFIX+'/overview')
     def overview(v=Depends(views)):
-        if v.principal.role not in ('executive','chief_engineer','engineer','dispatcher','admin'):raise HTTPException(403,'Нет доступа к сводке')
+        if v.principal.role not in ('director','chief_engineer','engineer','dispatcher','admin'):raise HTTPException(403,'Нет доступа к сводке')
         from .projections import Views
         sites=[v.one('sites',site_id=v.principal.site_id)]
-        if v.principal.role=='executive':
+        if v.principal.role=='director':
             members=v.models['site_memberships'];sitecls=v.models['sites']
-            sites=v.session.scalars(select(sitecls).join(members,members.site_id==sitecls.site_id).where(members.user_id==v.principal.user_id,members.role=='executive',members.is_active,sitecls.is_active)).all()
+            sites=v.session.scalars(select(sitecls).join(members,members.site_id==sitecls.site_id).where(members.user_id==v.principal.user_id,members.role=='director',members.is_active,sitecls.is_active)).all()
         result=[]
         for site in sites:
             scoped=Views(v.session,v.models,Principal(v.principal.user_id,site.site_id,v.principal.role,v.principal.name,v.principal.email,site.name,site.timezone))
@@ -299,7 +299,7 @@ def register_analyst_routes(app,views,photo_path,editable):
 
     @app.get(PREFIX+'/export.xlsx')
     def export(year:int,month:int,kind:Literal['schedule','orders']='schedule',v=Depends(views)):
-        if v.principal.role not in ('executive','chief_engineer','engineer','dispatcher','admin'):raise HTTPException(403,'Нет права экспорта')
+        if v.principal.role not in ('director','chief_engineer','engineer','dispatcher','admin'):raise HTTPException(403,'Нет права экспорта')
         from calendar import monthrange
         if not 2000<=year<=2100 or not 1<=month<=12:raise HTTPException(422,'Некорректный месяц')
         if kind=='orders':

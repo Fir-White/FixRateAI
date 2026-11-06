@@ -3,13 +3,18 @@ import { createHash } from "node:crypto";
 
 const PASSWORD = "local-test-password";
 async function mockLocalApi(context: BrowserContext) {
+  let signedIn = false;
+  const profile = { userId: "local-qa", name: "QA", email: "qa@example.test", role: "dispatcher", siteName: "QA", timezone: "UTC" };
   await context.route("**/*", route => {
     const url = new URL(route.request().url());
     if (url.origin !== new URL(process.env.FIXRATE_BASE_URL!).origin) return route.abort();
     if (!url.pathname.startsWith("/api/")) return route.continue();
     if (url.pathname === "/api/v1/auth/login" && route.request().postDataJSON()?.password === PASSWORD) {
-      return route.fulfill({ json: { profile: { userId: "local-qa", name: "QA", email: "qa@example.test", role: "dispatcher", siteName: "QA", timezone: "UTC" } } });
+      signedIn = true;
+      return route.fulfill({ json: { profile } });
     }
+    if (signedIn && url.pathname === "/api/v1/auth/session") return route.fulfill({ json: {profile} });
+    if (signedIn && route.request().method() === "GET" && url.pathname.startsWith("/api/v1/maintenance/")) return route.fulfill({json: []});
     return route.fulfill({ status: 401, json: { detail: "Неверный email или пароль" } });
   });
 }
@@ -179,8 +184,8 @@ test("keyboard access, errors, pending state, password visibility and login retu
   await email.fill("fixrate-demo-dispatcher@example.test");
   await password.fill(PASSWORD);
   await password.press("Enter");
-  await expect(page).toHaveURL(new URL("/equipment?source=login#list", process.env.FIXRATE_BASE_URL!).href);
-  await expect(page.getByRole("heading", { name: "Оборудование", exact: true })).toBeVisible();
+  await expect(page).toHaveURL(new URL("/dispatcher", process.env.FIXRATE_BASE_URL!).href);
+  await expect(page.getByRole("heading", { name: "Панель диспетчера", exact: true })).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -358,10 +363,10 @@ test("confirmed phone login from a scrolled form reveals and focuses its safe ap
     expect(await page.evaluate(()=>window.scrollY)).toBeGreaterThan(0);
     const box=await page.locator(".auth-submit").boundingBox();
     await page.touchscreen.tap(box!.x+box!.width/2,box!.y+box!.height/2);
-    await expect(page).toHaveURL(new URL("/equipment?source=short-auth#overview",process.env.FIXRATE_BASE_URL!).href);
+    await expect(page).toHaveURL(new URL("/dispatcher",process.env.FIXRATE_BASE_URL!).href);
     await expect(page.locator("#main-content")).toBeFocused();
     expect(await page.evaluate(()=>window.scrollY)).toBe(0);
-    const heading=page.getByRole("heading",{name:"Оборудование",exact:true});
+    const heading=page.getByRole("heading",{name:"Панель диспетчера",exact:true});
     await expect(heading).toBeVisible();
     await expect.poll(()=>heading.evaluate(element=>{const box=element.getBoundingClientRect();return box.top>=0&&box.bottom<=window.innerHeight;})).toBe(true);
   } finally {await context.close();}

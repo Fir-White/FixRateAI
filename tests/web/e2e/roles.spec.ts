@@ -6,11 +6,12 @@ function demoId(key: string) {
   return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
 }
 
-const roles = ["executive","chief_engineer","admin", "dispatcher", "engineer", "executor"];
+const roles = ["director","chief_engineer","admin", "dispatcher", "engineer", "executor"];
 const allowed: Record<string, string[]> = {
-  dispatcher: ["executive","chief_engineer","engineer","admin", "dispatcher"], equipment: roles,
-  calendar: ["executive","chief_engineer","dispatcher", "engineer", "executor"], tasks: ["executive","chief_engineer","dispatcher", "engineer"],
-  comparisons: ["executive","chief_engineer","dispatcher", "engineer"], reports: ["executive","chief_engineer","dispatcher", "engineer"], quality: ["chief_engineer","engineer"], executor: ["executor"],
+  director:["director"], "chief-engineer":["chief_engineer"], engineer:["engineer"], admin:["admin"], profile:roles,
+  dispatcher: ["director","chief_engineer","engineer","admin", "dispatcher"], equipment: roles,
+  calendar: ["director","chief_engineer","dispatcher", "engineer", "executor"], tasks: ["director","chief_engineer","dispatcher", "engineer"],
+  comparisons: ["director","chief_engineer","dispatcher", "engineer"], reports: ["director","chief_engineer","dispatcher", "engineer"], quality: ["chief_engineer","engineer"], executor: ["executor"],
   settings: ["chief_engineer","admin","dispatcher","engineer"], "my-shifts": ["executor"],
 };
 
@@ -22,19 +23,20 @@ for (const role of roles) {
     const destination = `/equipment/${demoId("equipment-2")}?tab=passport#details`;
     await page.goto(destination);
     await expect(page).toHaveURL(/\/login$/);
-    const account = role === "executor" ? "1" : role;
+    const account = role === "executor" ? "1" : role === "director" ? "executive" : role;
+    const homes:Record<string,string>={director:"/director",chief_engineer:"/chief-engineer",engineer:"/engineer",executor:"/executor",admin:"/admin",dispatcher:"/dispatcher"};
     await page.getByLabel("Email", {exact: true}).fill(`fixrate-demo-${account}@example.test`);
     await page.getByLabel("Пароль", {exact: true}).fill(process.env.FIXRATE_TEST_PASSWORD!);
     await page.getByRole("button", {name: "Войти", exact: true}).click();
-    await expect(page).toHaveURL(new URL(destination, process.env.FIXRATE_BASE_URL!).href);
+    await expect(page).toHaveURL(new URL(homes[role], process.env.FIXRATE_BASE_URL!).href);
     const businessMenus:Record<string,string[]>={
-      executive:["/dispatcher","/calendar","/equipment","/tasks","/comparisons","/reports"],
-      chief_engineer:["/dispatcher","/quality","/calendar","/equipment","/tasks","/comparisons","/reports","/settings/equipment","/settings/workforce"],
-      engineer:["/dispatcher","/quality","/calendar","/equipment","/tasks","/comparisons","/reports","/settings/equipment","/settings/workforce"],
+      director:["/director","/calendar","/equipment","/tasks","/comparisons","/reports"],
+      chief_engineer:["/chief-engineer","/quality","/calendar","/equipment","/tasks","/comparisons","/reports","/settings/equipment","/settings/workforce"],
+      engineer:["/dispatcher","/engineer","/calendar","/equipment","/tasks","/comparisons","/reports","/settings/equipment","/settings/workforce"],
       executor:["/executor","/calendar","/equipment","/my-shifts"],
     };
     if(businessMenus[role])expect(await page.getByRole("navigation",{name:"Основная навигация"}).getByRole("link").evaluateAll(links=>links.map(link=>link.getAttribute("href")))).toEqual(businessMenus[role]);
-    const routes = ["/dispatcher", "/equipment", `/equipment/${demoId("equipment-2")}`, "/calendar", "/tasks",
+    const routes = ["/director","/chief-engineer","/engineer","/admin","/profile","/dispatcher", "/equipment", `/equipment/${demoId("equipment-2")}`, "/calendar", "/tasks",
       `/tasks/${demoId("runtime-order")}`, "/comparisons", "/reports", "/quality", `/quality/${demoId("runtime-order")}`,
       "/executor", `/executor/tasks/${demoId("runtime-order")}`,"/settings/equipment","/settings/workforce","/my-shifts"];
     for (const route of routes) {
@@ -78,8 +80,7 @@ for (const role of roles) {
         await expect(page.getByRole("heading", {name: "DEMO — чистка учебного узла"})).toBeVisible();
       }
     }
-    await page.goto(role === "executor" ? "/executor" : role === "engineer" ? "/quality" : "/dispatcher");
-    await page.locator(".workspace-account-trigger").click();
+    await page.goto("/profile");
     await page.getByRole("button", {name: "Выйти из аккаунта", exact: true}).click();
     await expect(page).toHaveURL(/\/login$/);
     await page.reload();

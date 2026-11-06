@@ -147,8 +147,8 @@ it.each(["before press","before release"])("ignores inherited fieldset disableme
 });
 
 it.each([
-  ["executor", "/executor"], ["engineer", "/quality"], ["chief_engineer", "/dispatcher"],
-  ["executive", "/dispatcher"], ["dispatcher", "/dispatcher"], ["admin", "/dispatcher"],
+  ["executor", "/executor"], ["engineer", "/engineer"], ["chief_engineer", "/chief-engineer"],
+  ["director", "/director"], ["dispatcher", "/dispatcher"], ["admin", "/admin"],
 ])("opens the %s home after login even if a previous user left a protected route", async (role, home) => {
   signIn.mockResolvedValueOnce({ role });
   render(<MemoryRouter initialEntries={[{ pathname: "/login", state: { from: "/tasks?previous=user#details" } }]}><LoginPage /><Location /></MemoryRouter>);

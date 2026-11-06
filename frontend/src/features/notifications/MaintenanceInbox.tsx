@@ -181,7 +181,7 @@ export function MaintenanceInbox() {
         </div>
         <div className="inbox-item-side">
           {!item.readAt && <span className="inbox-unread-dot" aria-label="Непрочитанное"/>}
-          <button type="button" className="inbox-item-delete" disabled={!!busy} aria-label={`Удалить уведомление: ${item.message}`} title="Удалить уведомление" onClick={() => void deleteNotification(item)}><Icon name="trash" size={16}/></button>
+          <button type="button" className="inbox-item-delete" disabled={!!busy} aria-label={`Удалить уведомление: ${item.message}`} onClick={() => void deleteNotification(item)}><Icon name="close" size={14}/></button>
         </div>
       </li>;
     })}</ul>
@@ -194,7 +194,7 @@ export function MaintenanceInbox() {
       <span className="topbar-hint" aria-hidden="true">Уведомления</span>
     </button>
     {present && <div id={id} className="inbox-panel" data-state={open ? "open" : "closing"} aria-hidden={!open || undefined} inert={!open} role="dialog" aria-label="Уведомления">
-      <header className="inbox-header"><div><span className="inbox-eyebrow">РАБОЧЕЕ ПРОСТРАНСТВО</span><h2>Уведомления</h2><p>{loading ? "Загрузка…" : error && !items.length ? "Нет связи" : unread.length ? `Непрочитанных: ${unread.length}` : "Всё просмотрено"}</p></div><button type="button" className="inbox-close" aria-label="Закрыть уведомления" onClick={() => { setOpen(false); trigger.current?.focus(); }}><Icon name="close" size={18}/></button></header>
+      <header className="inbox-header"><div><h2>Уведомления</h2><p>{loading ? "Загрузка…" : error && !items.length ? "Нет связи" : unread.length ? `Непрочитанных: ${unread.length}` : "Всё просмотрено"}</p></div><button type="button" className="inbox-close" aria-label="Закрыть уведомления" onClick={() => { setOpen(false); trigger.current?.focus(); }}><Icon name="close" size={18}/></button></header>
       {error && <div className="inbox-error" role="alert"><span>{error}</span><button type="button" disabled={!!busy} onClick={() => void load(true)}>Повторить</button></div>}
       {loading ? <div className="inbox-empty" role="status"><span className="inbox-empty-icon"><Icon name="bell" size={22}/></span><p>Загружаем уведомления…</p></div> : !items.length && !error ? <div className="inbox-empty"><span className="inbox-empty-icon"><Icon name="check" size={22}/></span><strong>Пока всё спокойно</strong><p>Здесь появятся события по вашим заданиям.</p></div> : <div className="inbox-list">{renderGroup("Новые", unread)}{renderGroup("Прочитанные", read)}</div>}
       {items.length > 0 && <footer className="inbox-footer">

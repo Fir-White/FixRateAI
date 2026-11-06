@@ -21,7 +21,7 @@ from .calendar import _binding_payload,preview_calendar
 
 ROOT=Path(__file__).resolve().parents[3]
 ACCOUNTS=[
- ('executive','Андрей Смирнов','director@fixrate.local'),
+ ('director','Андрей Смирнов','director@fixrate.local'),
  ('chief_engineer','Сергей Волков','chief@fixrate.local'),
  ('engineer','Мария Орлова','engineer@fixrate.local'),
  ('executor','Алексей Морозов','technician@fixrate.local'),
@@ -29,7 +29,7 @@ ACCOUNTS=[
  ('worker-3','Павел Белов','belov@fixrate.local'),
 ]
 
-def identity(key):return uuid5(NAMESPACE_URL,'fixrate:presentation:v1:'+key)
+def identity(key):return uuid5(NAMESPACE_URL,'fixrate:presentation:v1:'+('executive' if key == 'director' else key))
 def safe(value):return json.loads(json.dumps(value,default=str,ensure_ascii=False))
 
 def seed_presentation(engine,password,*,as_of=None,storage=None):
@@ -37,7 +37,7 @@ def seed_presentation(engine,password,*,as_of=None,storage=None):
     anchor=day.replace(year=day.year-3,day=min(day.day,monthrange(day.year-3,day.month)[1]))
     storage=Path(storage or os.environ.get('PHOTO_STORAGE_ROOT','var/photos'))
     models=map_schema(engine);site_id=identity('site');system_id=identity('system')
-    accounts=[dict(role=role if role in ('executive','chief_engineer','engineer') else 'executor',name=name,email=email,user_id=str(identity(role))) for role,name,email in ACCOUNTS]
+    accounts=[dict(role=role if role in ('director','chief_engineer','engineer') else 'executor',name=name,email=email,user_id=str(identity(role))) for role,name,email in ACCOUNTS]
     lock=engine.connect();lock.execute(text('SELECT pg_advisory_lock(6813061126)'));lock.commit()
     try:
         with Session(engine) as session:
@@ -51,7 +51,7 @@ def seed_presentation(engine,password,*,as_of=None,storage=None):
             for role,name,email in ACCOUNTS:
                 user=ensure('users','user_id',role,full_name=name,email=email,password_hash=password_hash)
                 if not repo.get('site_memberships',(site_id,user.user_id)):
-                    repo.add('site_memberships',site_id=site_id,user_id=user.user_id,role=role if role in ('executive','chief_engineer','engineer') else 'technician',employed_from=anchor)
+                    repo.add('site_memberships',site_id=site_id,user_id=user.user_id,role=role if role in ('director','chief_engineer','engineer') else 'technician',employed_from=anchor)
             skill=ensure('skills','skill_id','skill',code='HEAT-SERVICE',name='Обслуживание тепловых установок')
             crew=ensure('crews','crew_id','crew',site_id=site_id,name='Бригада теплового пункта')
             for role in ('executor','worker-2','worker-3'):

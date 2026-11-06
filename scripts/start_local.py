@@ -197,7 +197,11 @@ def main():
     emails=[role+": "+values[key] for key,(role,_,_) in DEMO_ACCOUNTS.items()]
     emails.extend("fixrate-assignment-"+str(number)+"@example.test" for number in (1,2,3))
     if presentation:
-        emails=[person["role"]+": "+person["email"]+" · "+person["name"] for person in presentation["accounts"]]+["", "Other existing accounts:"]+emails
+        presentation_roles = {"director", "chief_engineer", "engineer", "executor"}
+        emails = [person["role"]+": "+person["email"]+" · "+person["name"]
+                  for person in presentation["accounts"]
+                  if person["role"] in presentation_roles and person["email"] in {
+                      "director@fixrate.local", "chief@fixrate.local", "engineer@fixrate.local", "technician@fixrate.local"}]
     accounts.write_text(origin+"\n\n"+"\n".join(emails)+"\n\nPassword: "+values["FIXRATE_DEMO_PASSWORD"]+"\n",encoding="utf-8")
     state_path=STATE/"state.json"
     previous=json.loads(state_path.read_text(encoding="utf-8")) if state_path.is_file() else {}

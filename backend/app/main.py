@@ -312,7 +312,7 @@ def create_app(engine=None):
     @app.get("/api/v1/maintenance_jobs", response_model=list[MaintenanceJobResponse], operation_id="maintenance_jobs_list")
     @app.get(prefix + "/jobs", response_model=list[MaintenanceJobResponse])
     def maintenance_job_list(status: str | None = None, v=Depends(views)):
-        require_role(v.principal, "executive", "admin", "dispatcher", "engineer", "executor")
+        require_role(v.principal, "director", "admin", "dispatcher", "engineer", "executor")
         if status is not None and status not in {
             "planned", "assigned", "in_progress", "submitted", "accepted", "rework",
         }:
@@ -344,7 +344,7 @@ def create_app(engine=None):
     @app.get("/api/v1/maintenance_jobs/{job_id}", response_model=MaintenanceJobResponse, operation_id="maintenance_jobs_read")
     @app.get(prefix + "/jobs/{job_id}", response_model=MaintenanceJobResponse)
     def maintenance_job_detail(job_id: UUID, v=Depends(views)):
-        require_role(v.principal, "executive", "admin", "dispatcher", "engineer", "executor")
+        require_role(v.principal, "director", "admin", "dispatcher", "engineer", "executor")
         return _job_payload(v, v.task(job_id))
 
     @app.post("/api/v1/maintenance_jobs/{job_id}/transitions", response_model=MaintenanceJobResponse, operation_id="maintenance_jobs_transition_post")
@@ -354,7 +354,7 @@ def create_app(engine=None):
     def maintenance_job_transition(
         job_id: UUID, command: MaintenanceJobTransition, v=Depends(views), background_tasks: BackgroundTasks = None
     ):
-        require_role(v.principal, "executive", "admin", "dispatcher", "engineer", "executor")
+        require_role(v.principal, "director", "admin", "dispatcher", "engineer", "executor")
         order = v.task(job_id, lock=True)
         check_revision(order, command.expected_revision)
         _job_payload(v, order)
@@ -388,7 +388,7 @@ def create_app(engine=None):
     @app.get("/api/v1/maintenance_jobs/{job_id}/history", response_model=list[MaintenanceJobHistoryItem], operation_id="maintenance_jobs_history")
     @app.get(prefix + "/jobs/{job_id}/history", response_model=list[MaintenanceJobHistoryItem])
     def maintenance_job_history(job_id: UUID, v=Depends(views)):
-        require_role(v.principal, "executive", "admin", "dispatcher", "engineer", "executor")
+        require_role(v.principal, "director", "admin", "dispatcher", "engineer", "executor")
         return job_history(v, job_id)
 
     @app.get(prefix + "/ui/equipment")
@@ -415,7 +415,7 @@ def create_app(engine=None):
 
     @app.get(prefix + "/ui/calendar")
     def calendar(year: int, month: int, v=Depends(views)):
-        require_role(v.principal, "executive", "chief_engineer", "dispatcher", "engineer", "executor")
+        require_role(v.principal, "director", "chief_engineer", "dispatcher", "engineer", "executor")
         if not 2000 <= year <= 2200 or not 1 <= month <= 12:
             raise HTTPException(422, "Некорректный месяц")
         return v.calendar(year, month)
@@ -464,12 +464,12 @@ def create_app(engine=None):
 
     @app.get(prefix + "/ui/comparisons")
     def comparisons(v=Depends(views)):
-        require_role(v.principal, "executive", "admin", "dispatcher", "engineer")
+        require_role(v.principal, "director", "admin", "dispatcher", "engineer")
         return v.comparisons()
 
     @app.get(prefix + "/ui/comparisons/{run_id}")
     def comparison(run_id: UUID, v=Depends(views)):
-        require_role(v.principal, "executive", "admin", "dispatcher", "engineer")
+        require_role(v.principal, "director", "admin", "dispatcher", "engineer")
         run = next((r for r in v.comparisons() if r["runId"] == str(run_id)), None)
         if run is None:
             raise HTTPException(404, "Запуск не найден")

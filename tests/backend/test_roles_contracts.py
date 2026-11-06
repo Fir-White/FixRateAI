@@ -43,7 +43,7 @@ from app.security.authorization import (
 )
 
 
-KNOWN_ROLES = frozenset({"executive","chief_engineer","admin", "dispatcher", "engineer", "executor"})
+KNOWN_ROLES = frozenset({"director","chief_engineer","admin", "dispatcher", "engineer", "executor"})
 SCHEMA_VERSION = "maintenance-0.1"
 
 
@@ -72,7 +72,7 @@ class RoutePolicy:
 ROUTES: tuple[RoutePolicy, ...] = (
     RoutePolicy("GET", "/api/v1/maintenance/ui/tasks", KNOWN_ROLES, assigned_only_roles=frozenset({"executor"})),
     RoutePolicy("GET", "/api/v1/maintenance/ui/tasks/{task_id}", KNOWN_ROLES, assigned_only_roles=frozenset({"executor"})),
-    RoutePolicy("GET", "/api/v1/maintenance/ui/calendar", frozenset({"executive","chief_engineer","dispatcher","engineer","executor"})),
+    RoutePolicy("GET", "/api/v1/maintenance/ui/calendar", frozenset({"director","chief_engineer","dispatcher","engineer","executor"})),
     RoutePolicy("GET", "/api/v1/maintenance/ui/calendar/preview", frozenset({"chief_engineer","dispatcher","engineer"})),
     RoutePolicy("GET", "/api/v1/maintenance/ui/quality", frozenset({"chief_engineer","engineer"})),
     RoutePolicy("GET", "/api/v1/maintenance/equipment/{equipment_id}/service-configurations", KNOWN_ROLES),
@@ -337,7 +337,7 @@ def test_permission_matrix_keeps_duties_separated() -> None:
     assert "task:assign" in ROLE_PERMISSIONS["dispatcher"]
     assert "task:assign" in ROLE_PERMISSIONS["engineer"]
     assert "task:assign" in ROLE_PERMISSIONS["chief_engineer"]
-    for role in ("executor", "executive", "admin"):
+    for role in ("executor", "director", "admin"):
         assert "task:assign" not in ROLE_PERMISSIONS[role]
 
     assert "operation:write" in ROLE_PERMISSIONS["chief_engineer"]

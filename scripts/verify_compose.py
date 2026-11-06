@@ -165,7 +165,7 @@ def main():
         http('anonymous',plain,prefix+'/ui/equipment',401)
         executor=None; clients={}
         task=str(demo_id('runtime-order'))
-        for role,email in [('executive','fixrate-demo-executive@example.test'),('chief_engineer','fixrate-demo-chief_engineer@example.test'),('admin','fixrate-demo-admin@example.test'),('dispatcher','fixrate-demo-dispatcher@example.test'),
+        for role,email in [('director','fixrate-demo-executive@example.test'),('chief_engineer','fixrate-demo-chief_engineer@example.test'),('admin','fixrate-demo-admin@example.test'),('dispatcher','fixrate-demo-dispatcher@example.test'),
                           ('engineer','fixrate-demo-engineer@example.test'),('executor','fixrate-demo-1@example.test')]:
             client=build_opener(HTTPCookieProcessor(CookieJar()))
             login=http(role+'_login',client,'/api/v1/auth/login',method='POST',body=dict(email=email,password=password))

@@ -10,6 +10,7 @@ export type IconName =
   | "report"
   | "quality"
   | "executor"
+  | "workforce"
   | "logout"
   | "chevron"
   | "alert"
@@ -50,8 +51,9 @@ const PATHS: Record<IconName, ReactNode> = {
   ),
   service: (
     <>
-      <path d="M10 3.5h4l.5 2.1c.5.2 1 .4 1.4.7l1.9-1.1 2.8 2.8-1.1 1.9c.3.4.5.9.7 1.4l2.1.5v4l-2.1.5c-.2.5-.4 1-.7 1.4l1.1 1.9-2.8 2.8-1.9-1.1c-.4.3-.9.5-1.4.7L14 22h-4l-.5-2.1c-.5-.2-1-.4-1.4-.7l-1.9 1.1-2.8-2.8 1.1-1.9c-.3-.4-.5-.9-.7-1.4L1.7 14v-4l2.1-.5c.2-.5.4-1 .7-1.4L3.4 6.2l2.8-2.8 1.9 1.1c.4-.3.9-.5 1.4-.7Z" transform="translate(0 0.5) scale(.96)" />
-      <circle cx="12" cy="12" r="3" />
+      <path d="M13 21H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M7 2v4M17 2v4M3 9h18" />
+      <circle cx="18" cy="18" r="2.25" />
+      <path d="M18 14.25v1.5M18 20.25v1.5M14.25 18h1.5M20.25 18h1.5M15.35 15.35l1.05 1.05M19.6 19.6l1.05 1.05M20.65 15.35l-1.05 1.05M16.4 19.6l-1.05 1.05" />
     </>
   ),
   tasks: (
@@ -69,7 +71,8 @@ const PATHS: Record<IconName, ReactNode> = {
   ),
   report: (
     <>
-      <path d="M4 20h16M6 17V9M12 17V4M18 17v-6" />
+      <path d="M6 2.75h8l4.75 4.75V20a1.75 1.75 0 0 1-1.75 1.75H6A1.75 1.75 0 0 1 4.25 20V4.5A1.75 1.75 0 0 1 6 2.75Z" />
+      <path d="M14 2.75V7.5h4.75M8 18v-3M11.5 18v-5M15 18v-7" />
     </>
   ),
   quality: (
@@ -82,6 +85,12 @@ const PATHS: Record<IconName, ReactNode> = {
     <>
       <circle cx="12" cy="8" r="3.5" />
       <path d="M5 21c0-4 3.1-6.5 7-6.5s7 2.5 7 6.5" />
+    </>
+  ),
+  workforce: (
+    <>
+      <circle cx="9" cy="8" r="3.25" />
+      <path d="M2.75 21v-1.1a6.25 6.25 0 0 1 12.5 0V21M16 5.1a3.25 3.25 0 0 1 0 6.3M17.5 14.1a5.5 5.5 0 0 1 3.75 5.2V21" />
     </>
   ),
   logout: (

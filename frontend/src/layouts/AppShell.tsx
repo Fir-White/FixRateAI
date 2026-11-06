@@ -23,7 +23,7 @@ import { useWorkspaceBack } from "./WorkspaceNavigation";
 import { NAVIGATION_ITEMS } from "./navigation";
 import "./operations.css";
 
-const ROLES: Role[] = ["executive","chief_engineer","dispatcher", "engineer", "executor", "admin"];
+const ROLES: Role[] = ["director","chief_engineer","dispatcher", "engineer", "executor", "admin"];
 
 export function AppShell({ executor = false }: { executor?: boolean }) {
   const { profile, switchRole } = useSession();
@@ -64,7 +64,11 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
     return null;
   }
 
-  const items = NAVIGATION_ITEMS.filter(item => item.roles.includes(profile.role));
+  const items = NAVIGATION_ITEMS.filter(item => item.roles.includes(profile.role)).map(item => {
+    if (item.to === "/dispatcher" && ["director", "chief_engineer", "admin"].includes(profile.role)) return { ...item, to: homePathForRole(profile.role) };
+    if (item.to === "/quality" && profile.role === "engineer") return { ...item, to: homePathForRole(profile.role) };
+    return item;
+  });
   const handleRoleChange = (role: Role) => {
     switchRole(role);
     navigate(homePathForRole(role));

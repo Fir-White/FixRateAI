@@ -46,15 +46,12 @@ test("account preserves session after failed logout and clears the previous user
   await page.getByRole("link", { name: "Оборудование", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Оборудование", exact: true })).toBeVisible();
   expect(await page.locator(".workspace-aurora canvas").evaluate((element, original) => element === original, canvas)).toBe(true);
-  await page.locator(".workspace-account-trigger").click();
-  await page.getByRole("button", { name: "Мой профиль", exact: true }).click();
-  await expect(page.getByRole("dialog", { name: "Мой профиль" })).toContainText("dispatcher@workspace.test");
-  await page.keyboard.press("Escape");
-  await expect(page.locator(".workspace-account-trigger")).toBeFocused();
-  await page.keyboard.press("Enter");
+  await page.getByRole("link", {name: "Учётная запись", exact: true}).click();
+  await expect(page.getByRole("heading", {name: "Мой профиль"})).toBeVisible();
+  await expect(page.locator(".profile-page")).toContainText("dispatcher@workspace.test");
   await page.getByRole("button", { name: "Выйти из аккаунта", exact: true }).click();
   await expect(page.getByRole("alert")).toHaveText("Сервис временно недоступен");
-  await expect(page.locator(".workspace-account-trigger")).toContainText("Диспетчер QA");
+  await expect(page.locator(".profile-page")).toContainText("Диспетчер QA");
   await expect(page.getByRole("button", { name: "Выйти из аккаунта", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "Выйти из аккаунта", exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
@@ -62,15 +59,14 @@ test("account preserves session after failed logout and clears the previous user
   await page.goto("/equipment");
   await expect(page).toHaveURL(/\/login$/);
   await signIn(page, "engineer@workspace.test");
-  await expect(page.locator(".workspace-account-trigger")).toContainText("Инженер QA");
-  await page.locator(".workspace-account-trigger").click();
-  await page.getByRole("button", { name: "Мой профиль", exact: true }).click();
-  await expect(page.getByRole("dialog", { name: "Мой профиль" })).toContainText("engineer@workspace.test");
+  await page.getByRole("link", {name: "Учётная запись", exact: true}).click();
+  await expect(page.locator(".profile-page")).toContainText("Инженер QA");
+  await expect(page.locator(".profile-page")).toContainText("engineer@workspace.test");
   await expect(page.locator("body")).not.toContainText("dispatcher@workspace.test");
   expect(headers).toEqual(["workspace-qa", "workspace-qa"]);
 });
 
-test("one mobile sidebar contains the account and preserves the reduced-motion background", async ({ page, context }) => {
+test("one mobile sidebar and the top-bar profile preserve the reduced-motion background", async ({ page, context }) => {
   test.skip(!process.env.FIXRATE_BASE_URL, "Requires the running local application");
   await sessionFixture(context);
   await page.setViewportSize({ width: 390, height: 844 });
@@ -79,9 +75,6 @@ test("one mobile sidebar contains the account and preserves the reduced-motion b
   await expect(page.locator(".workspace-aurora canvas")).toHaveAttribute("data-state", "paused");
   await expect(page.locator(".ops-sidebar, .ops-sidebar-nav, .workspace-aurora canvas")).toHaveCount(3);
   await page.getByRole("button", { name: "Открыть меню", exact: true }).click();
-  await page.locator(".workspace-account-trigger").click();
-  await expect(page.getByRole("dialog", { name: "Меню аккаунта", exact: true })).toBeVisible();
-  await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog", { name: "Мобильная навигация" })).toBeVisible();
   await page.getByRole("link", { name: "Оборудование", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);

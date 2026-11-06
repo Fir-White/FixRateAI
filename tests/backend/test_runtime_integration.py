@@ -43,7 +43,7 @@ def runtime(tmp_path_factory):
 
 def login(app, role):
     client = TestClient(app)
-    emails = {"chief_engineer":"fixrate-demo-chief_engineer@example.test","executive":"fixrate-demo-executive@example.test","executor": "fixrate-demo-1@example.test", "engineer": "fixrate-demo-engineer@example.test",
+    emails = {"chief_engineer":"fixrate-demo-chief_engineer@example.test","director":"fixrate-demo-executive@example.test","executor": "fixrate-demo-1@example.test", "engineer": "fixrate-demo-engineer@example.test",
               "dispatcher": "fixrate-demo-dispatcher@example.test", "admin": "fixrate-demo-admin@example.test"}
     result = client.post("/api/v1/auth/login", json={"email": emails[role], "password": os.environ["FIXRATE_TEST_PASSWORD"]})
     assert result.status_code == 200, result.text
@@ -702,7 +702,7 @@ def test_task_list_projection_batch_matches_original_and_reduces_queries(runtime
         account=c.execute(text("""SELECT u.user_id,u.full_name,u.email,m.site_id,s.name,s.timezone
             FROM users u JOIN site_memberships m ON m.user_id=u.user_id JOIN sites s ON s.site_id=m.site_id
             WHERE u.email='fixrate-demo-executive@example.test' LIMIT 1""")).mappings().one()
-    principal=Principal(account['user_id'],account['site_id'],'executive',account['full_name'],account['email'],account['name'],account['timezone'])
+    principal=Principal(account['user_id'],account['site_id'],'director',account['full_name'],account['email'],account['name'],account['timezone'])
     counts=[]; values=[]
     for batch in (False,True):
         statements=[]

@@ -15,7 +15,7 @@
 | 03 | Права главного инженера | Реализовано; ПО проверено | Публикация только chief; `test_real_norms_need_separate_chief_approval_and_templates_have_46_items` |
 | 04 | Планирование и назначение инженером | Реализовано; ПО проверено | Реальный API назначения; `test_chief_handoff_keeps_the_original_attempt_and_releases_old_assignments` |
 | 05 | Утверждение регламента и плана | Реализовано; ПО проверено | Версии/каталог; `test_background_calendar_uses_approved_catalog_and_is_restart_idempotent` |
-| 06 | Обзор объектов руководителем | Реализовано; ПО проверено | Фильтр членства executive; `test_executive_readonly_and_cross_site_overview_requires_membership` |
+| 06 | Обзор объектов руководителем | Реализовано; ПО проверено | Фильтр членства director; `test_executive_readonly_and_cross_site_overview_requires_membership` |
 | 07 | Месячная матрица 1–31 | Реализовано; ПО проверено | 31 исходный день и переход месяца; `test_persisted_weekend_transfers_keep_all_source_dates_and_replay_without_duplicates` |
 | 08 | Иерархия системы и оборудования | Реализовано; ПО проверено | API schedule-matrix и CalendarPage; браузерные settings/workspace-state |
 | 09 | Связанные операции карточки | Реализовано; ПО проверено | Настройки M:N и EquipmentOperations; `tests/backend/test_management.py` |

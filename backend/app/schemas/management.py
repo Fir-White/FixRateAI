@@ -120,7 +120,7 @@ class Registration(Input):
 
 
 class EmploymentEdit(Revision):
-    role: Literal["executive","chief_engineer","admin","dispatcher","engineer","executor"]
+    role: Literal["director","chief_engineer","admin","dispatcher","engineer","executor"]
     is_active: bool
     employed_from: date | None = None
     employed_until: date | None = None

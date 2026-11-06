@@ -3,7 +3,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
 import { ProfilePage } from "@/pages/ProfilePage";
 const mocks=vi.hoisted(()=>({updateEmail:vi.fn(),logout:vi.fn(),request:vi.fn()}));
-vi.mock("@/shared/session/SessionContext",()=>({useSession:()=>({profile:{userId:"1",name:"Андрей Смирнов",email:"user@example.test",role:"executive",siteName:"Объект",timezone:"Asia/Yekaterinburg"},updateEmail:mocks.updateEmail,logout:mocks.logout})}));
+vi.mock("@/shared/session/SessionContext",()=>({useSession:()=>({profile:{userId:"1",name:"Андрей Смирнов",email:"user@example.test",role:"director",siteName:"Объект",timezone:"Asia/Yekaterinburg"},updateEmail:mocks.updateEmail,logout:mocks.logout})}));
 vi.mock("@/shared/api/request",()=>({DEMO_MODE:false,request:mocks.request}));
 beforeEach(()=>{mocks.updateEmail.mockReset();mocks.logout.mockReset();mocks.request.mockReset();});
 it("keeps the name read-only and changes email with the current password",async()=>{

@@ -6,7 +6,7 @@ import re
 
 # Stable IDs preserve assignments, reports and the role of each demo account.
 DEMO_ACCOUNTS = {
-    "FIXRATE_DEMO_EXECUTIVE_EMAIL": ("executive","executive","fixrate-demo-executive@example.test"),
+    "FIXRATE_DEMO_EXECUTIVE_EMAIL": ("director","executive","fixrate-demo-executive@example.test"),
     "FIXRATE_DEMO_CHIEF_EMAIL": ("chief_engineer","chief-engineer","fixrate-demo-chief_engineer@example.test"),
     "FIXRATE_DEMO_LOGIN": ("dispatcher", "dispatcher", "fixrate-demo-dispatcher@example.test"),
     "FIXRATE_DEMO_ADMIN_EMAIL": ("admin", "admin", "fixrate-demo-admin@example.test"),

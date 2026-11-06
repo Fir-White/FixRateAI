@@ -21,6 +21,6 @@ export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
   { to: "/comparisons", label: "Прогнозы", icon: "forecast", roles: SECTION_ROLES.comparisons },
   { to: "/reports", label: "Отчёты", icon: "report", roles: SECTION_ROLES.reports },
   { to: "/settings/equipment", label: "Настройка обслуживания", icon: "service", roles: SECTION_ROLES.service_settings },
-  { to: "/settings/workforce", label: "Сотрудники и смены", icon: "executor", roles: SECTION_ROLES.workforce_settings },
+  { to: "/settings/workforce", label: "Сотрудники и смены", icon: "workforce", roles: SECTION_ROLES.workforce_settings },
   { to: "/my-shifts", label: "Мои смены", icon: "clock", roles: SECTION_ROLES.executor },
 ];

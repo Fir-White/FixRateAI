@@ -19,6 +19,14 @@ function renderAt(path: string, role: string) {
 }
 
 describe("app routes", () => {
+  it("redirects the legacy executive URL to the director home", async () => {
+    window.localStorage.setItem("fixrate.demo.role", "director");
+    function LocationProbe() { const location = useLocation(); return <output data-testid="director-path">{location.pathname}</output>; }
+    render(<SessionProvider><MemoryRouter initialEntries={["/executive"]}><AppRouter /><LocationProbe /></MemoryRouter></SessionProvider>);
+    await waitFor(() => expect(screen.getByTestId("director-path")).toHaveTextContent("/director"));
+    expect(await screen.findByRole("heading", {name: "Панель диспетчера"})).toBeInTheDocument();
+  });
+
   it("opens the dispatcher panel and navigates to equipment", async () => {
     const user = userEvent.setup();
     renderAt("/dispatcher", "dispatcher");
@@ -38,7 +46,7 @@ describe("app routes", () => {
     expect(await screen.findByText("Тепловой пункт №1")).toBeInTheDocument();
   });
 
-  it.each([["executive", "Панель диспетчера"], ["executor", "Мои задания"], ["engineer", "Контроль качества и приёмка"]])("returns %s to their home when no workspace history exists", async (role, heading) => {
+  it.each([["director", "Панель диспетчера"], ["executor", "Мои задания"], ["engineer", "Контроль качества и приёмка"]])("returns %s to their home when no workspace history exists", async (role, heading) => {
     const user=userEvent.setup();window.localStorage.setItem("fixrate.demo.role",role);
     render(<SessionProvider><MemoryRouter initialEntries={["/equipment", "/profile"]} initialIndex={1}><AppRouter /></MemoryRouter></SessionProvider>);
     await screen.findByRole("heading",{name:"Мой профиль"});
