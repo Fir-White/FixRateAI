@@ -38,7 +38,7 @@ export function TasksPage() {
   const page=Number.isSafeInteger(requestedPage)?Math.min(pageCount,Math.max(1,requestedPage)):1;
   const visible=ordered.slice((page-1)*25,page*25);
   return <div className="space-y-6 fr-task-page">
-    <PageHeader eyebrow={profile?.role==="director"?"Контроль / результаты работ":"Исполнение / диспетчеризация"} title="Наряды и назначения" description={profile?.role==="director"?"Просматривайте обязательные сроки, результаты работ и решения инженера.":"Назначайте бригады, следите за выполнением и обязательными сроками."}
+    <PageHeader title="Наряды и назначения" description={profile?.role==="director"?"Просматривайте обязательные сроки, результаты работ и решения инженера.":"Назначайте бригады, следите за выполнением и обязательными сроками."}
       actions={<><Link to="/calendar" className={buttonClassName("secondary")}><Icon name="calendar" size={16}/>Календарь</Link>{canOpenSection(profile?.role,"quality")&&<Link to="/quality" className={buttonClassName("primary")}>Открыть приёмку</Link>}</>}/>
     <Card className="fr-register">
       <div className="fr-register-tabs" aria-label="Фильтр нарядов">{primaryFilters.map(item=><FilterChip key={item.value} active={filter===item.value} onClick={()=>changeFilter(item.value)}>{item.label}<span className="fr-tab-count">{all.filter(task=>matchesTaskFilter(task,item.value)).length}</span></FilterChip>)}</div>

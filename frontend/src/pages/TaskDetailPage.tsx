@@ -74,9 +74,8 @@ export function TaskDetailPage() {
       </Link>
 
       <PageHeader
-        eyebrow={task.code}
         title={task.title}
-        description={task.summary}
+        description={`${task.code} · ${task.summary}`}
         actions={
           <>
             {!DEMO_MODE && query.data.allowedActions?.includes("forecast") && <Button variant="secondary" disabled={busy} onClick={async () => {

@@ -9,7 +9,9 @@ import { useSession } from "@/shared/session/SessionContext";
 import { Button } from "@/shared/ui/Button";
 import { Icon } from "@/shared/ui/Icon";
 import { Card } from "@/shared/ui/Card";
-import { Input,Select,Textarea } from "@/shared/ui/Form";
+import { FormField,Input,Select,Textarea } from "@/shared/ui/Form";
+import { Disclosure } from "@/shared/ui/Disclosure";
+import "./incident-workspace.css";
 import type { ServiceConfiguration,ChecklistSetting } from "@/shared/types/management";
 import type { MaintenanceTask,ExecutionReport,ActualExecution,Reading,Act } from "@/shared/types/domain";
 import { ReadOnlyValue } from "@/shared/ui/ContentTheme";
@@ -46,7 +48,7 @@ export function ExecutionProtocol({task,execution,value,onChange,disabled,readOn
  const local=(s:string)=>s?new Date(new Date(s).getTime()-new Date(s).getTimezoneOffset()*60000).toISOString().slice(0,16):"";
  const reqs=task.measurementRequirements??[];
  return <section className="execution-section fr-execution-protocol">
-  <div className="fr-protocol-heading"><span className="fr-protocol-kicker">Выполнение работы</span><h2>Инструкция и фактическое выполнение</h2></div>
+  <div className="fr-protocol-heading"><h2>Инструкция и фактическое выполнение</h2></div>
   {task.sourceDate&&<p className="fr-protocol-obligation">Обязательство за {formatDate(task.sourceDate)}<span aria-hidden="true"> · </span>Допустимый срок: {formatDate(task.mandatoryDueDate)}</p>}
   <p className="fr-protocol-instruction whitespace-pre-wrap">{task.instructions||"Инструкция отсутствует — уточните регламент у инженера."}</p>
   <dl className="fr-protocol-facts"><div><dt>Состав бригады</dt><dd>{task.crewSize} чел.</dd></div><div><dt>Норматив</dt><dd>{task.normHours??"Не задан"} <span>{unitLabel(task.normUnit)}</span></dd></div><div><dt>Плановая длительность</dt><dd>{task.durationMinutes??"Не задана"} <span>{task.durationMinutes!=null?"мин.":""}</span></dd></div></dl>
@@ -63,7 +65,7 @@ export function ActsPanel({task,execution,editable,onSaved,disabled=false,onBusy
  const {profile}=useSession();const [kind,setKind]=useState(task.requiredActs?.[0]??"");const [file,setFile]=useState<File|null>(null);const [notice,setNotice]=useState("");const [busy,setBusy]=useState(false);const [reason,setReason]=useState("");
  const act=async(work:()=>Promise<unknown>)=>{if(busy||disabled)return;setBusy(true);onBusyChange?.(true);setNotice("");try{await work();onSaved();}catch(e){setNotice(e instanceof Error?e.message:"Ошибка");}finally{setBusy(false);onBusyChange?.(false);}};
  return <section className="execution-section space-y-3"><h2>Акты и инструментальные проверки</h2><p>Обязательные документы: {task.requiredActs?.join(", ")||"не заданы регламентом"}. Фотография не подтверждает скрытые работы и точность прибора.</p>{execution?.acts?.map((a:Act)=><div key={a.id}><a href={a.url} target="_blank" rel="noreferrer">Открыть скан: {a.kind}</a><span> · {a.verified?"Проверен контролёром":"Ожидает проверки"}</span>{!a.verified&&task.state==="submitted"&&["engineer","chief_engineer"].includes(profile?.role??"")&&<Button disabled={busy||!reason.trim()} onClick={()=>act(()=>post(`/tasks/${task.id}/acts/${a.id}/verify`,{expected_revision:task.revision,reason}))}>Подтвердить проверку документа</Button>}</div>)}
- {editable&&!!task.requiredActs?.length&&<fieldset disabled={busy||disabled} className="space-y-2"><label>Вид документа<Select value={kind} onChange={e=>setKind(e.target.value)}>{task.requiredActs.map(k=><option key={k}>{k}</option>)}</Select></label><Input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>setFile(e.target.files?.[0]??null)}/><Button disabled={!file||!kind} onClick={()=>act(async()=>{const body=new FormData();body.append("expected_revision",String(task.revision));body.append("kind",kind);body.append("file",file!);await request(base+`/tasks/${task.id}/acts`,{method:"POST",body});})}>Загрузить скан</Button></fieldset>}
+ {editable&&!!task.requiredActs?.length&&<fieldset disabled={busy||disabled} className="space-y-2"><label>Вид документа<Select value={kind} onChange={e=>setKind(e.target.value)}>{task.requiredActs.map(k=><option key={k}>{k}</option>)}</Select></label><Input aria-label="Скан документа" type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>setFile(e.target.files?.[0]??null)}/><Button disabled={!file||!kind} onClick={()=>act(async()=>{const body=new FormData();body.append("expected_revision",String(task.revision));body.append("kind",kind);body.append("file",file!);await request(base+`/tasks/${task.id}/acts`,{method:"POST",body});})}>Загрузить скан</Button></fieldset>}
  {task.state==="submitted"&&["engineer","chief_engineer"].includes(profile?.role??"")&&<label>Основание проверки документа<Input value={reason} onChange={e=>setReason(e.target.value)}/></label>}{notice&&<p role="alert">{notice}</p>}</section>;
 }
 
@@ -103,21 +105,55 @@ export function ForecastConfirmation({run}:{run:import("@/shared/types/domain").
 }
 
 interface Incident {id:string;equipmentId:string;description:string;status:string;attachmentUrl:string|null;analysis?:{status:string;observed_problem?:string;explanation?:string;suggested_binding_id?:string|null;missing_data?:string[];error_code?:string};selection?:{binding_id:string;reason:string};}
-export function IncidentWorkspace({equipmentId}:{equipmentId:string}){
- const {profile}=useSession();const [refresh,setRefresh]=useState(0);const [description,setDescription]=useState("");const [file,setFile]=useState<File|null>(null);const [notice,setNotice]=useState("");const [busy,setBusy]=useState(false);
+export function IncidentWorkspace({equipmentId}:{equipmentId:string}) {
+ const {profile}=useSession();
+ const [refresh,setRefresh]=useState(0);
+ const [description,setDescription]=useState("");
+ const [file,setFile]=useState<File|null>(null);
+ const [fileKey,setFileKey]=useState(0);
+ const [notice,setNotice]=useState("");
+ const [created,setCreated]=useState(false);
+ const [busy,setBusy]=useState(false);
  const query=useApiQuery(()=>DEMO_MODE?Promise.resolve([]):request<Incident[]>(base+"/incidents"),[equipmentId,refresh]);
- const act=async(work:()=>Promise<unknown>)=>{setBusy(true);setNotice("");try{await work();setRefresh(n=>n+1);}catch(e){setNotice(e instanceof Error?e.message:"Ошибка");}finally{setBusy(false);}};
- return <Card className="space-y-4 p-5"><h2>Обращение по состоянию оборудования</h2>{!DEMO_MODE&&["engineer","chief_engineer","dispatcher","executor"].includes(profile?.role??"")&&<form className="space-y-3" onSubmit={e=>{e.preventDefault();void act(async()=>{const body=new FormData();body.append("equipment_id",equipmentId);body.append("description",description);if(file)body.append("file",file);await request(base+"/incidents",{method:"POST",body});setDescription("");setFile(null);});}}><label>Что обнаружено<Textarea required maxLength={10000} value={description} onChange={e=>setDescription(e.target.value)}/></label><label>Фото дефекта (если есть)<Input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>setFile(e.target.files?.[0]??null)}/></label><Button disabled={busy||!description.trim()}>Создать обращение</Button></form>}{notice&&<p role="alert">{notice}</p>}{query.status==="success"&&query.data.filter(r=>r.equipmentId===equipmentId).map(r=><IncidentDraft key={r.id+refresh} incident={r} equipmentId={equipmentId} refresh={()=>setRefresh(n=>n+1)}/>)}</Card>;
+ const mayCreate=!DEMO_MODE&&["engineer","chief_engineer","dispatcher","executor"].includes(profile?.role??"");
+ const records=query.status==="success"?query.data.filter(row=>row.equipmentId===equipmentId):[];
+ return <div className="fr-incident-workspace">
+  {mayCreate&&<form className="fr-incident-form" onSubmit={async event=>{
+   event.preventDefault();if(busy||!description.trim())return;
+   setBusy(true);setNotice("");setCreated(false);
+   try{const body=new FormData();body.append("equipment_id",equipmentId);body.append("description",description);if(file)body.append("file",file);
+    await request(base+"/incidents",{method:"POST",body});setDescription("");setFile(null);setFileKey(value=>value+1);setCreated(true);setRefresh(value=>value+1);
+   }catch(error){setNotice(error instanceof Error?error.message:"Не удалось создать обращение");}
+   finally{setBusy(false);}
+  }}>
+   <header><h2>Новое обращение</h2><p>Опишите неисправность. Фотография поможет уточнить, что произошло.</p></header>
+   <fieldset disabled={busy} className="fr-incident-fields">
+    <FormField label="Что обнаружено" htmlFor={`incident-description-${equipmentId}`} required><Textarea id={`incident-description-${equipmentId}`} required maxLength={10000} rows={5} value={description} onChange={event=>setDescription(event.target.value)} placeholder="Что произошло, где находится дефект и как он проявляется"/></FormField>
+    <FormField label="Фото дефекта" htmlFor={`incident-photo-${equipmentId}`} hint="Необязательно"><Input key={fileKey} id={`incident-photo-${equipmentId}`} aria-label="Фото дефекта" type="file" accept="image/jpeg,image/png,image/webp" onChange={event=>setFile(event.target.files?.[0]??null)}/></FormField>
+   </fieldset>
+   {notice&&<p className="fr-incident-error" role="alert">{notice}</p>}
+   {created&&<p className="fr-incident-success" role="status">Обращение создано.</p>}
+   <footer><Button type="submit" disabled={busy||!description.trim()}><Icon name="plus" size={17}/>{busy?"Создаём обращение…":"Создать обращение"}</Button></footer>
+  </form>}
+  <section className="fr-incident-records" aria-label="Сохранённые обращения">
+   <header><h2>Обращения</h2>{query.status==="success"&&<span>{records.length}</span>}</header>
+   {query.status==="loading"&&<p className="fr-incident-empty" role="status">Загружаем обращения…</p>}
+   {query.status==="error"&&<p className="fr-incident-error" role="alert">Не удалось загрузить обращения: {query.error}</p>}
+   {query.status==="success"&&!records.length&&<p className="fr-incident-empty">По этому оборудованию обращений пока нет.</p>}
+   {records.map(row=><IncidentDraft key={row.id+refresh} incident={row} equipmentId={equipmentId} refresh={()=>setRefresh(value=>value+1)}/>)}
+  </section>
+ </div>;
 }
+
 function IncidentDraft({incident:r,equipmentId,refresh}:{incident:Incident;equipmentId:string;refresh:()=>void}){
- const {profile}=useSession();const configs=useApiQuery(()=>DEMO_MODE?Promise.resolve([]):managementApi.services(equipmentId),[equipmentId]);const [binding,setBinding]=useState(r.analysis?.suggested_binding_id??"");const [reason,setReason]=useState(r.analysis?.explanation??"");const [day,setDay]=useState("");const [busy,setBusy]=useState(false);const [notice,setNotice]=useState("");
+ const {profile}=useSession();const configs=useApiQuery(()=>DEMO_MODE||!["engineer","chief_engineer","dispatcher"].includes(profile?.role??"")?Promise.resolve([]):managementApi.services(equipmentId),[equipmentId,profile?.role]);const [binding,setBinding]=useState(r.analysis?.suggested_binding_id??"");const [reason,setReason]=useState(r.analysis?.explanation??"");const [day,setDay]=useState("");const [busy,setBusy]=useState(false);const [notice,setNotice]=useState("");
  const submit=async(url:string,body:unknown)=>{setBusy(true);try{await post(url,body);refresh();}catch(e){setNotice(e instanceof Error?e.message:"Ошибка");}finally{setBusy(false);}};
- return <article className="space-y-3 border-t border-line pt-4"><p>{r.description}</p>{r.attachmentUrl&&<a href={r.attachmentUrl} target="_blank" rel="noreferrer">Открыть исходный снимок</a>}<p>Состояние: {r.status}</p>{r.analysis&&<div><p>{r.analysis.observed_problem}</p><p>{r.analysis.explanation||r.analysis.error_code}</p><ul>{r.analysis.missing_data?.map(s=><li key={s}>{s}</li>)}</ul><p className="text-sm text-muted">AI-черновик требует проверки. Процент уверенности не измерен.</p></div>}{r.status==="new"&&["engineer","chief_engineer","dispatcher"].includes(profile?.role??"")&&<><Button disabled={busy} onClick={()=>submit(`/incidents/${r.id}/analyze`,{})}>Проанализировать фото и описание</Button><label>Проверенная связь с существующей операцией<Select value={binding} onChange={e=>setBinding(e.target.value)}><option value="">Выбрать вручную или уточнить AI-предложение</option>{configs.status==="success"&&configs.data.map(s=><option key={s.binding_id} value={s.binding_id}>{s.code} · {s.title} · {s.enabled?"утверждено":"черновик"}</option>)}</Select></label><label>Дата внеплановой работы<Input type="date" value={day} onChange={e=>setDay(e.target.value)}/></label><label>Проверенное основание<Textarea value={reason} onChange={e=>setReason(e.target.value)}/></label>{profile?.role==="chief_engineer"&&<Button disabled={busy||!binding||!day||!reason.trim()} onClick={()=>submit(`/incidents/${r.id}/create-task`,{binding_id:binding,planned_date:day,reason})}>Утвердить внеплановое задание</Button>}</>}{notice&&<p role="alert">{notice}</p>}</article>;
+ return <article className="space-y-3 border-t border-line pt-4"><p>{r.description}</p>{r.attachmentUrl&&<a href={r.attachmentUrl} target="_blank" rel="noreferrer">Открыть исходный снимок</a>}<p className="text-sm text-muted">Состояние: {({new:"Новое",triaged:"Создано задание",closed:"Закрыто"} as Record<string,string>)[r.status]??r.status}</p>{r.analysis&&<div><p>{r.analysis.observed_problem}</p><p>{r.analysis.explanation||r.analysis.error_code}</p><ul>{r.analysis.missing_data?.map(s=><li key={s}>{s}</li>)}</ul><p className="text-sm text-muted">AI-черновик требует проверки. Процент уверенности не измерен.</p></div>}{r.status==="new"&&["engineer","chief_engineer","dispatcher"].includes(profile?.role??"")&&<><Button disabled={busy} onClick={()=>submit(`/incidents/${r.id}/analyze`,{})}>Проанализировать фото и описание</Button><label>Проверенная связь с существующей операцией<Select value={binding} onChange={e=>setBinding(e.target.value)}><option value="">Выбрать вручную или уточнить AI-предложение</option>{configs.status==="success"&&configs.data.map(s=><option key={s.binding_id} value={s.binding_id}>{s.code} · {s.title} · {s.enabled?"утверждено":"черновик"}</option>)}</Select></label><label>Дата внеплановой работы<Input type="date" value={day} onChange={e=>setDay(e.target.value)}/></label><label>Проверенное основание<Textarea value={reason} onChange={e=>setReason(e.target.value)}/></label>{profile?.role==="chief_engineer"&&<Button disabled={busy||!binding||!day||!reason.trim()} onClick={()=>submit(`/incidents/${r.id}/create-task`,{binding_id:binding,planned_date:day,reason})}>Утвердить внеплановое задание</Button>}</>}{notice&&<p role="alert">{notice}</p>}</article>;
 }
 
 export function AttemptHistory({taskId}:{taskId:string}){
  const dateTime=useSiteDateTime();
  const [open,setOpen]=useState(false);
  const query=useApiQuery(()=>DEMO_MODE||!open?Promise.resolve([]):request<ExecutionReport[]>(base+`/tasks/${taskId}/attempts`),[taskId,open]);
- return <details onToggle={event=>setOpen(event.currentTarget.open)} className="rounded-xl border border-line p-4"><summary>История попыток и доказательств</summary>{open&&query.status==="success"&&query.data.map(r=><section key={r.id} className="space-y-2 border-t border-line py-3"><h3>Попытка {r.attemptNumber} · {r.submittedAt?"отправлена "+dateTime(r.submittedAt):"черновик"}</h3><p>{r.narrative}</p><div className="flex flex-wrap gap-3">{r.photos.map(p=><a key={p.id} href={p.url??undefined} target="_blank" rel="noreferrer">{p.phase==="before"?"Фото до":"Фото после"} · {viewLabel(p.viewKey)}</a>)}{r.acts?.map(a=><a key={a.id} href={a.url} target="_blank" rel="noreferrer">Акт {a.kind}</a>)}</div></section>)}{query.status==="error"&&<p role="alert">{query.error}</p>}</details>;
+ return <Disclosure title="История попыток и доказательств" onToggle={event=>setOpen(event.currentTarget.open)}>{open&&query.status==="success"&&query.data.map(r=><section key={r.id} className="space-y-2 border-t border-line py-3"><h3>Попытка {r.attemptNumber} · {r.submittedAt?"отправлена "+dateTime(r.submittedAt):"черновик"}</h3><p>{r.narrative}</p><div className="flex flex-wrap gap-3">{r.photos.map(p=><a key={p.id} href={p.url??undefined} target="_blank" rel="noreferrer">{p.phase==="before"?"Фото до":"Фото после"} · {viewLabel(p.viewKey)}</a>)}{r.acts?.map(a=><a key={a.id} href={a.url} target="_blank" rel="noreferrer">Акт {a.kind}</a>)}</div></section>)}{query.status==="error"&&<p role="alert">{query.error}</p>}</Disclosure>;
 }

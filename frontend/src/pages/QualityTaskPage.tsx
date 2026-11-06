@@ -97,9 +97,8 @@ export function QualityTaskPage() {
       </Link>
 
       <PageHeader
-        eyebrow={task.code}
         title={task.title}
-        description={`${task.equipmentName} · ${task.summary}`}
+        description={`${task.code} · ${task.equipmentName} · ${task.summary}`}
         actions={
           <Link to={`/tasks/${task.id}`} className={buttonClassName("secondary")}>
             Карточка задания

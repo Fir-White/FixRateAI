@@ -8,7 +8,7 @@ export function ForecastResultCard({ result, accent }: { result: ForecastResult;
   const hasDate = result.status === "ok" && !!result.recommendedDate;
   const late = exceedsDeadline(result.recommendedDate, result.mandatoryDueDate);
   return <section className={`forecast-method forecast-method--${accent}`}>
-    <header><div><span className="ops-kicker">{accent === "algorithmic" ? "01 / Правила и регламент" : "02 / Экспериментальный метод"}</span>
+    <header><div>
       <h2>{accent === "algorithmic" ? "Алгоритмический расчёт" : "AI-прогноз"}</h2></div><ForecastStatusBadge status={result.status} /></header>
     <div className={`forecast-date ${!hasDate ? "forecast-date--empty" : ""}`}>
       <span>Исходная рекомендация</span>

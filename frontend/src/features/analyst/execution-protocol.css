@@ -1,5 +1,4 @@
 .fr-content-v2 .fr-execution-protocol { container: execution-protocol / inline-size; }
-.fr-content-v2 .fr-protocol-kicker { display: block; margin-bottom: 8px; color: var(--fr2-accent); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
 .fr-content-v2 .fr-protocol-obligation { margin-top: 12px; color: var(--fr2-muted); font-size: 13px; }
 .fr-content-v2 .fr-protocol-instruction { margin-top: 20px; max-width: 80ch; line-height: 1.65; }
 .fr-content-v2 .fr-protocol-facts { display: flex; flex-wrap: wrap; gap: 16px 36px; margin-top: 24px; padding-block: 18px; border-block: 1px solid var(--fr2-line); }

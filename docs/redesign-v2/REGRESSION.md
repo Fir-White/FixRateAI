@@ -12,6 +12,10 @@
 
 **passed**:462/462 unit последовательно; после финальных мелких изменений26целевых unit, production build и TS всех тестов. **passed**:32уникальных desktop E2E в совокупности (первый полный30/31, settings на fresh QA2/2, новый personal1/1), отдельный personal mobile1/1. Логи/первичные failures и их причины — в [журнале](IMPLEMENTATION_LOG.md). Роли, исходные API, date-only и site-local datetime, min/max/required, disabled ancestry, hidden-section validation, сохранение существующей смены, периодичности, назначение, фото и readonly сохранены. Backend/SQL не менялись; API мутации только в disposable QA. **blocked**: прежние ручные проверки C16.
 
+## Формы и надзаголовки, 07.11.2026
+
+**passed**:32целевых unit, build/TS; действительный submit обращения с фото, совпадение SHA256 оригинала, сохранность после reload, readonly директора. **passed**: прежний полный фото/возврат/вторая попытка/приёмка после изменения Disclosure истории. Выравнивание и отсутствие декоративных labels проверены live на desktop/mobile. Первый reload E2E исправлен с учётом восстановления native details open, логи сохранены. [Журнал](IMPLEMENTATION_LOG.md). Backend/SQL/API не менялись; данные стенда не переписывались. **blocked**: прежний ручной gate C16.
+
 ## Проверки и границы
 
 | Проверка | Статус | Доказательство и границы |

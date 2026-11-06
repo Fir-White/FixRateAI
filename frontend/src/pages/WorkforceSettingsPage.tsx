@@ -1,3 +1,4 @@
+import { Disclosure } from "@/shared/ui/Disclosure";
 import { ConnectionRequired } from "@/shared/ui/ConnectionRequired";
 import { useState } from "react";
 import { EmployeeCalendar } from "@/features/workforce/EmployeeCalendar";
@@ -39,7 +40,7 @@ function LiveWorkforceSettingsPage() {
   if(query.status==="error")return <ErrorState description={query.error}/>;
   const data=query.data;
   const member=data.staff.find(m=>m.user_id===selected);
-  return <div className="space-y-6"><PageHeader title="Сотрудники и смены" eyebrow="Команда" description="Роль определяет доступ. Бригада определяет состав. Смены и исключения определяют, когда человек может работать."/>
+  return <div className="space-y-6"><PageHeader title="Сотрудники и смены" description="Роль определяет доступ. Бригада определяет состав. Смены и исключения определяют, когда человек может работать."/>
     {error&&<div role="alert"><Callout tone="danger">{error}</Callout></div>}{notice&&<Callout tone="success">{notice}</Callout>}
     <div className="fr-workspace-sections" aria-label="Раздел команды">{([["staff","Сотрудники"],["crews","Бригады"],["skills","Виды допусков"]] as const).map(([key,title])=><Button key={key} type="button" variant="secondary" aria-pressed={area===key} disabled={busy} onClick={()=>setArea(key)}>{title}</Button>)}</div>
     <div hidden={area!=="staff"} className="space-y-5">
@@ -143,5 +144,5 @@ function CrewSettings({data,today,mayEdit,busy,run}: {data:Workforce;today:strin
 
 function SkillCreate({busy,run}: {busy:boolean;run:Run}) {
   const [code,setCode]=useState("");const [name,setName]=useState("");const [expiry,setExpiry]=useState(false);
-  return <details className="rounded-xl border border-line p-4"><summary className="cursor-pointer font-semibold">Новый вид квалификации / допуска</summary><form className="mt-4 space-y-3" onSubmit={e=>{e.preventDefault();run(()=>managementApi.createReference("skills",{code,name,validity_required:expiry}),"Вид допуска добавлен");}}><fieldset disabled={busy} className="grid gap-3 sm:grid-cols-2"><label className="text-sm"><FieldCaption>Код допуска</FieldCaption><Input aria-label="Код допуска" required value={code} onChange={e=>setCode(e.target.value)}/></label><label className="text-sm"><FieldCaption>Название допуска</FieldCaption><Input aria-label="Название допуска" required value={name} onChange={e=>setName(e.target.value)}/></label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={expiry} onChange={e=>setExpiry(e.target.checked)}/>Обязателен срок действия</label></fieldset><Button type="submit" variant="secondary" disabled={busy}>Создать вид допуска</Button></form></details>;
+  return <Disclosure title="Новый вид квалификации / допуска"><form className="mt-4 space-y-3" onSubmit={e=>{e.preventDefault();run(()=>managementApi.createReference("skills",{code,name,validity_required:expiry}),"Вид допуска добавлен");}}><fieldset disabled={busy} className="grid gap-3 sm:grid-cols-2"><label className="text-sm"><FieldCaption>Код допуска</FieldCaption><Input aria-label="Код допуска" required value={code} onChange={e=>setCode(e.target.value)}/></label><label className="text-sm"><FieldCaption>Название допуска</FieldCaption><Input aria-label="Название допуска" required value={name} onChange={e=>setName(e.target.value)}/></label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={expiry} onChange={e=>setExpiry(e.target.checked)}/>Обязателен срок действия</label></fieldset><Button type="submit" variant="secondary" disabled={busy}>Создать вид допуска</Button></form></Disclosure>;
 }

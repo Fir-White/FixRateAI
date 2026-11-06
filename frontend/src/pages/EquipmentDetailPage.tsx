@@ -12,6 +12,7 @@ import { Callout } from "@/shared/ui/Callout";
 import { InfoItem, InfoList } from "@/shared/ui/InfoList";
 import { Icon } from "@/shared/ui/Icon";
 import { useSession } from "@/shared/session/SessionContext";
+import { Disclosure } from "@/shared/ui/Disclosure";
 import { canOpenSection } from "@/shared/lib/roles";
 import {
   EquipmentStateBadge,
@@ -59,7 +60,6 @@ export function EquipmentDetailPage() {
       </Link>
 
       <PageHeader
-        eyebrow={equipment.inventoryCode}
         title={equipment.name}
         description={`${equipment.equipmentType} · ${equipment.location}`}
         actions={
@@ -189,7 +189,7 @@ export function EquipmentDetailPage() {
           </Card>
         </div>
       </div>
-      <details><summary className="cursor-pointer py-4">Дефекты и обращения по оборудованию</summary><IncidentWorkspace equipmentId={equipmentId}/></details>
+      <Disclosure title="Дефекты и обращения по оборудованию"><IncidentWorkspace equipmentId={equipmentId}/></Disclosure>
     </div>
   );
 }

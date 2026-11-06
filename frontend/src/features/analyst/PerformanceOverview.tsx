@@ -38,7 +38,7 @@ export function PerformanceOverview() {
     <Card className="fr-property-overview" role="region" aria-labelledby={headingId}>
       <img className="fr-property-scene" src={residentialScene} alt="" aria-hidden="true" loading="lazy" decoding="async" />
       <div className="fr-property-content">
-        <h2 id={headingId} className="fr-property-eyebrow">Показатели доступных объектов</h2>
+        <h2 id={headingId} className="fr-property-heading">Показатели доступных объектов</h2>
         {query.status === "loading" && <p role="status" className="fr-property-state">Загрузка показателей…</p>}
         {query.status === "error" && <p role="alert" className="fr-property-state">{query.error}</p>}
         {query.status === "success" && !query.data.length && <p className="fr-property-state">Нет доступных объектов с показателями.</p>}

@@ -1,5 +1,9 @@
 # Визуальные проверки
 
+## Формы, надзаголовки и выравнивание, 07.11.2026
+
+**passed**: live executor1440/1280/768/390/360/320 — форма дефекта и одинаковые края spotlight/очереди (delta left/right0px). Chief_engineer: обзор, сравнения, отчёты, настройки оборудования и сотрудников на1440/390. Labels0, overflow/errors/content mutations0. `reports/redesign-v2/form-polish-review/` содержит before/after формы, live-manifest.json, shared-manifest.json, executor-aligned-*.png, calendar-no-eyebrow.png, overview-clean-*.png, reference-form-*.png и skill-form-*.png. Touch390 снят последовательными viewport с перекрытием. Просмотрены desktop/mobile формы, очередь, календарь, справочник и допуски; без промежуточного состояния анимации меню. Отдельный functional incident E2E подтвердил исходный файл и readonly. **blocked**: физическая камера/системный picker/screen reader; общая ручная C16 приёмка не заявляется.
+
 ## Общий календарь и мои смены, 07.11.2026
 
 **passed**: live executor `/my-shifts` на1440/1280/768/390/360/320 и mobile/touch390×844. Смена содержит локальные часы, длительность, день недели, доступность и реальные задания с оборудованием/статусами. Произвольный диапазон раскрывается отдельно; нет внутреннего обрезанного списка. `reports/redesign-v2/calendar-shifts-review/manifest.json`, `shifts-1440.png`, `shifts-with-tasks.png`, `shifts-touch-390.png`, `date-picker-mobile.png`. Overflow0/errors0/content mutations0. Сравнение — с приложенным пользователем исходным экраном; отдельный pre-change live baseline для этой итерации не снимался.

@@ -1,3 +1,4 @@
+import { Disclosure } from "@/shared/ui/Disclosure";
 import { ServiceEvidenceSettings } from "@/features/analyst/AnalystPanels";
 import { ConnectionRequired } from "@/shared/ui/ConnectionRequired";
 import { useRef, useState } from "react";
@@ -38,7 +39,7 @@ function LiveServiceSettingsPage() {
   if(query.status==="error") return <ErrorState description={query.error}/>;
   const [catalog,equipment]=query.data;
   return <div className="space-y-6">
-    <PageHeader title="Настройка обслуживания" eyebrow="Оборудование и периодичность" description="Календарь строится из этих правил. Создание заданий и назначение работников требуют отдельных действий." actions={canOpenSection(profile?.role,"calendar")&&<Link to="/calendar" className={buttonClassName("secondary")}>Открыть календарь</Link>}/>
+    <PageHeader title="Настройка обслуживания" description="Календарь строится из этих правил. Создание заданий и назначение работников требуют отдельных действий." actions={canOpenSection(profile?.role,"calendar")&&<Link to="/calendar" className={buttonClassName("secondary")}>Открыть календарь</Link>}/>
     {notice&&<Callout tone="success">{notice}</Callout>}
     <Card className="space-y-3 p-5"><label className="block space-y-1 text-sm"><FieldCaption>Оборудование для настройки
       </FieldCaption><Select aria-label="Оборудование для настройки" value={selected} onChange={event=>{setNotice("");setParams(event.target.value ? {equipment:event.target.value} : {});}}>
@@ -180,8 +181,8 @@ function ChecklistEditor({value,onChange}:{value:ChecklistSetting[];onChange:(va
 
 function ReferenceForms({catalog,mayCreateTypes,onSaved}: {catalog:ManagementCatalog;mayCreateTypes:boolean;onSaved:()=>void}) {
   const [kind,setKind]=useState<"systems"|"equipment-types">("systems");const [code,setCode]=useState("");const [name,setName]=useState("");const [busy,setBusy]=useState(false);const [error,setError]=useState("");
-  return <details className="rounded-xl border border-line p-4"><summary className="cursor-pointer font-semibold">Добавить систему или тип оборудования</summary><form className="mt-4 space-y-3" onSubmit={async event=>{event.preventDefault();if(busy)return;setBusy(true);setError("");try{await managementApi.createReference(kind,{code,name});onSaved();}catch(failure){setError(failure instanceof Error?failure.message:"Ошибка справочника");}finally{setBusy(false);}}}>
+  return <Disclosure title="Добавить систему или тип оборудования"><form className="mt-4 space-y-3" onSubmit={async event=>{event.preventDefault();if(busy)return;setBusy(true);setError("");try{await managementApi.createReference(kind,{code,name});onSaved();}catch(failure){setError(failure instanceof Error?failure.message:"Ошибка справочника");}finally{setBusy(false);}}}>
     <fieldset disabled={busy} className="grid gap-3 sm:grid-cols-3"><label className="text-sm"><FieldCaption>Справочник</FieldCaption><Select aria-label="Справочник" value={kind} onChange={e=>setKind(e.target.value as "systems"|"equipment-types")}><option value="systems">Инженерная система</option>{mayCreateTypes&&<option value="equipment-types">Тип оборудования</option>}</Select></label><label className="text-sm"><FieldCaption>Код справочника</FieldCaption><Input aria-label="Код справочника" required value={code} onChange={e=>setCode(e.target.value)}/></label><label className="text-sm"><FieldCaption>Название справочника</FieldCaption><Input aria-label="Название справочника" required value={name} onChange={e=>setName(e.target.value)}/></label></fieldset>
     {!catalog.systems.length&&<p className="text-sm text-amber-200">Сначала добавьте инженерную систему.</p>}{error&&<div role="alert">{error}</div>}<Button type="submit" variant="secondary" disabled={busy}>Добавить в справочник</Button>
-  </form></details>;
+  </form></Disclosure>;
 }

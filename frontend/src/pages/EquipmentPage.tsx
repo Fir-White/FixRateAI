@@ -43,7 +43,6 @@ export function EquipmentPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        eyebrow="Реестр"
         title="Оборудование"
         description="Паспорт, регламенты и принятая история — в одном месте. Только оборудование доступного объекта."
         actions={

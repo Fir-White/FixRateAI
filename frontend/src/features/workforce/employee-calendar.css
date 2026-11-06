@@ -1,7 +1,6 @@
 .fr-content-v2 .fr-shift-calendar { container: shift-calendar / inline-size; overflow: hidden; }
 .fr-content-v2 .fr-shift-header { display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:24px; }
-.fr-content-v2 .fr-shift-kicker { color:var(--fr2-muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase; }
-.fr-content-v2 .fr-shift-header h2,.fr-content-v2 .fr-shift-header h3 { font-size:22px;line-height:1.4;font-weight:600;margin-top:5px; }
+.fr-content-v2 .fr-shift-header h2,.fr-content-v2 .fr-shift-header h3 { font-size:22px;line-height:1.4;font-weight:600; }
 .fr-content-v2 .fr-shift-timezone { display:inline-flex;align-items:center;gap:7px;color:var(--fr2-muted);font-size:12px; }
 .fr-content-v2 .fr-shift-toolbar { padding:0 24px 24px;display:grid;gap:20px;border-bottom:1px solid var(--fr2-line); }
 .fr-content-v2 .fr-shift-range-toggle { justify-self:start; }
@@ -58,3 +57,5 @@
   .fr-content-v2 .fr-shift-jobs a > span:nth-child(2) { flex-basis:calc(100% - 64px); }
   .fr-content-v2 .fr-shift-jobs a > svg { margin-left:auto; }
 }
+
+.fr-content-v2 .fr-shift-year { font-size:14px;font-weight:400;color:var(--fr2-muted);white-space:nowrap; }
