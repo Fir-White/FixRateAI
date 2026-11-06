@@ -15,11 +15,12 @@ def add_runtime_demo(repo, password_hash):
         return obj if obj else repo.add(table, **{pk: identity}, **values)
 
     site, system = demo_id("site"), demo_id("system")
-    for role, sql_role, key in (("executive","executive","executive"),("chief_engineer","chief_engineer","chief-engineer"),("dispatcher", "dispatcher", "dispatcher"),
+    for role, sql_role, key in (("director","director","executive"),("chief_engineer","chief_engineer","chief-engineer"),("dispatcher", "dispatcher", "dispatcher"),
                                ("admin", "admin", "admin"),
                                ("engineer", "engineer", "engineer"),
                                ("executor", "technician", "user-1")):
-        user = ensure("users", "user_id", key, full_name=f"DEMO {role}", email=f"fixrate-demo-{role}@example.test")
+        email_role = "executive" if role == "director" else role
+        user = ensure("users", "user_id", key, full_name=f"DEMO {role}", email=f"fixrate-demo-{email_role}@example.test")
         # A rerun never replaces an existing password or resets workflow history.
         if not user.password_hash:
             user.password_hash = password_hash

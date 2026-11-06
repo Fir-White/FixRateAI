@@ -22,11 +22,12 @@ from tests.backend.test_runtime_integration import runtime,PREFIX,login,TASK
 def pattern(**kwargs):return CalendarPattern.model_validate_json(json.dumps(kwargs))
 
 def test_four_business_roles_are_not_collapsed_into_administrator():
-    assert SQL_ROLES['executive']=='executive'
+    assert SQL_ROLES['director']=='director'
+    assert SQL_ROLES['executive']=='director'
     assert SQL_ROLES['chief_engineer']=='chief_engineer'
     assert has_role('engineer',('dispatcher',))
     assert has_role('chief_engineer',('engineer',))
-    assert not has_role('executive',('admin','dispatcher','engineer','executor'))
+    assert not has_role('director',('admin','dispatcher','engineer','executor'))
     assert not has_role('admin',('chief_engineer',))
 
 
@@ -77,12 +78,12 @@ def test_real_norms_need_separate_chief_approval_and_templates_have_46_items(man
 
 def test_executive_readonly_and_cross_site_overview_requires_membership(managed):
     engine,_,admin,login_user,ids=managed
-    user,address=join(managed,'executive')
-    with closing(login_user(address)) as executive:
-        assert executive.get(PREFIX+'/ui/equipment').status_code==200
-        assert executive.get(PREFIX+'/overview').status_code==200
-        assert executive.post(PREFIX+'/management/systems',json=dict(code='DENIED',name='DENIED')).status_code==403
-        assert executive.get(PREFIX+'/overview').json()[0]['siteId']==str(ids['site'])
+    user,address=join(managed,'director')
+    with closing(login_user(address)) as director:
+        assert director.get(PREFIX+'/ui/equipment').status_code==200
+        assert director.get(PREFIX+'/overview').status_code==200
+        assert director.post(PREFIX+'/management/systems',json=dict(code='DENIED',name='DENIED')).status_code==403
+        assert director.get(PREFIX+'/overview').json()[0]['siteId']==str(ids['site'])
 
 
 def test_incident_ai_unavailable_keeps_editable_draft_and_unknown_norms_block_task(managed):
@@ -261,7 +262,7 @@ def test_overdue_events_are_durable_and_late_acceptance_requires_chief(job):
     with engine.connect() as c:
         assert c.scalar(text('SELECT overdue_since_at FROM work_orders WHERE work_order_id=:id'),dict(id=task))==deadline
         assert c.scalar(text("SELECT count(*) FROM audit_events WHERE entity_id=:id AND action='overdue'"),dict(id=task))==1
-        assert c.scalar(text("SELECT count(*) FROM maintenance_notifications n JOIN site_memberships m ON m.site_id=n.site_id AND m.user_id=n.user_id WHERE n.work_order_id=:id AND m.role='executive'"),dict(id=task))==1
+        assert c.scalar(text("SELECT count(*) FROM maintenance_notifications n JOIN site_memberships m ON m.site_id=n.site_id AND m.user_id=n.user_id WHERE n.work_order_id=:id AND m.role='director'"),dict(id=task))==1
     with closing(login(app,'engineer')) as engineer,closing(login(app,'chief_engineer')) as chief:
         body=dict(expected_revision=1,execution_id=str(report),verdict='accepted',reason='TEST late acceptance')
         blocked=engineer.post(PREFIX+f'/tasks/{task}/review',json=body)
@@ -271,14 +272,14 @@ def test_overdue_events_are_durable_and_late_acceptance_requires_chief(job):
         accepted=engineer.post(PREFIX+f'/tasks/{task}/review',json=body|dict(expected_revision=authorized.json()['task']['revision']))
         assert accepted.status_code==200 and accepted.json()['task']['deadlineBreached'],accepted.text
         with engine.connect() as c:assert c.scalar(text('SELECT regulatory_deadline_at FROM work_orders WHERE work_order_id=:id'),dict(id=task))==deadline
-    with closing(login(app,'executive')) as executive,closing(login(app,'engineer')) as engineer:
-        own=executive.get(PREFIX+'/notifications')
+    with closing(login(app,'director')) as director,closing(login(app,'engineer')) as engineer:
+        own=director.get(PREFIX+'/notifications')
         assert own.status_code==200,own.text
         event=next(row for row in own.json() if row['taskId']==str(task))
-        assert executive.post(PREFIX+f"/notifications/{event['id']}/read").status_code==200
-        assert executive.post(PREFIX+f"/notifications/{event['id']}/read").status_code==200
+        assert director.post(PREFIX+f"/notifications/{event['id']}/read").status_code==200
+        assert director.post(PREFIX+f"/notifications/{event['id']}/read").status_code==200
         assert engineer.post(PREFIX+f"/notifications/{event['id']}/read").status_code==404
-        assert next(row for row in executive.get(PREFIX+'/notifications').json() if row['id']==event['id'])['readAt']
+        assert next(row for row in director.get(PREFIX+'/notifications').json() if row['id']==event['id'])['readAt']
 
 
 def test_contract_stub_early_ai_requires_chief_and_keeps_original_obligation(managed,monkeypatch):
@@ -355,3 +356,95 @@ def test_late_execution_requires_chief_and_preserves_original_deadline(job):
         row=c.execute(text('SELECT regulatory_deadline_at,overdue_since_at,exception_context FROM work_orders WHERE work_order_id=:id'),dict(id=task)).one()
         assert row.regulatory_deadline_at==row.overdue_since_at==deadline
         assert row.exception_context['late_execution']['reason']==body['reason']
+
+
+def test_bulk_read_all_notifications_is_scoped_idempotent_and_not_limited_to_page(managed):
+    engine,app,admin,login_user,ids=managed
+    user,address=join(managed,'director')
+    with engine.begin() as c:
+        c.execute(text("""INSERT INTO maintenance_notifications(site_id,user_id,event_key,message)
+            SELECT :site,:user,'bulk-fixture-'||g,'TEST notification' FROM generate_series(1,125) g"""),dict(site=ids['site'],user=user))
+        c.execute(text("""INSERT INTO maintenance_notifications(site_id,user_id,event_key,message)
+            VALUES (:site,:user,'bulk-other-user','TEST other user')"""),dict(site=ids['site'],user=ids['user']))
+    with closing(login_user(address)) as director:
+        assert len(director.get(PREFIX+'/notifications').json())==100
+        response=director.post(PREFIX+'/notifications/read-all')
+        assert response.status_code==200, response.text
+        assert response.json()=={'read':True,'count':125}
+        assert director.post(PREFIX+'/notifications/read-all').json()=={'read':True,'count':0}
+        director.headers.pop('X-CSRF-Token')
+        assert director.post(PREFIX+'/notifications/read-all').status_code==403
+    with engine.connect() as c:
+        assert c.scalar(text('SELECT count(*) FROM maintenance_notifications WHERE site_id=:site AND user_id=:user AND read_at IS NULL'),dict(site=ids['site'],user=user))==0
+        assert c.scalar(text("SELECT count(*) FROM maintenance_notifications WHERE site_id=:site AND user_id=:user AND read_at IS NULL"),dict(site=ids['site'],user=ids['user']))==1
+
+
+def test_clear_all_notifications_is_scoped_idempotent_and_not_limited_to_page(managed):
+    engine,app,admin,login_user,ids=managed
+    user,address=join(managed,'director')
+    with engine.begin() as c:
+        c.execute(text("""INSERT INTO maintenance_notifications(site_id,user_id,event_key,message)
+            SELECT :site,:user,'clear-fixture-'||g,'TEST notification' FROM generate_series(1,125) g"""),dict(site=ids['site'],user=user))
+        c.execute(text("""INSERT INTO maintenance_notifications(site_id,user_id,event_key,message)
+            VALUES (:site,:user,'clear-other-user','TEST other user')"""),dict(site=ids['site'],user=ids['user']))
+    with closing(login_user(address)) as director:
+        assert len(director.get(PREFIX+'/notifications').json())==100
+        response=director.post(PREFIX+'/notifications/clear')
+        assert response.status_code==200, response.text
+        assert response.json()=={'cleared':True,'count':125}
+        assert director.post(PREFIX+'/notifications/clear').json()=={'cleared':True,'count':0}
+        director.headers.pop('X-CSRF-Token')
+        assert director.post(PREFIX+'/notifications/clear').status_code==403
+    with engine.connect() as c:
+        assert c.scalar(text('SELECT count(*) FROM maintenance_notifications WHERE site_id=:site AND user_id=:user'),dict(site=ids['site'],user=user))==0
+        assert c.scalar(text('SELECT count(*) FROM maintenance_notifications WHERE site_id=:site AND user_id=:user'),dict(site=ids['site'],user=ids['user']))==1
+
+
+def test_delete_notification_restricts_owner_and_requires_csrf(managed):
+    engine,app,admin,login_user,ids=managed
+    user,address=join(managed,'director')
+    with engine.begin() as c:
+        identity=c.scalar(text("""INSERT INTO maintenance_notifications(site_id,user_id,event_key,message)
+            VALUES (:site,:user,'delete-single-fixture','TEST notification') RETURNING notification_id"""),dict(site=ids['site'],user=user))
+    with closing(login_user(address)) as director:
+        assert admin.post(PREFIX+f'/notifications/{identity}/delete').status_code==404
+        director.headers.pop('X-CSRF-Token')
+        assert director.post(PREFIX+f'/notifications/{identity}/delete').status_code==403
+        with closing(login_user(address)) as authenticated:
+            result=authenticated.post(PREFIX+f'/notifications/{identity}/delete')
+            assert result.status_code==200 and result.json()=={'deleted':True}
+            assert authenticated.post(PREFIX+f'/notifications/{identity}/delete').status_code==404
+    with engine.connect() as c:
+        assert c.scalar(text('SELECT count(*) FROM maintenance_notifications WHERE notification_id=:id'),dict(id=identity))==0
+
+
+def test_account_email_and_password_change_are_verified_and_scoped(managed):
+    import os
+    from fastapi.testclient import TestClient
+    engine,app,admin,login_user,ids=managed
+    user,address=join(managed,'director')
+    old=os.environ['FIXRATE_TEST_PASSWORD']; new='New-password-for-test-123'
+    with closing(login_user(address)) as director, closing(login_user(address)) as other_session:
+        assert director.patch(PREFIX+'/users/me',json={'name':'Changed'}).status_code in (404,405)
+        assert director.patch(PREFIX+'/users/me/email',json={'email':'bad','current_password':old}).status_code==422
+        assert director.patch(PREFIX+'/users/me/email',json={'email':'new@example.test','current_password':'wrong'}).status_code==400
+        other_email=admin.get('/api/v1/auth/session').json()['profile']['email']
+        assert director.patch(PREFIX+'/users/me/email',json={'email':other_email,'current_password':old}).status_code==409
+        changed=director.patch(PREFIX+'/users/me/email',json={'email':'new-'+ids['marker']+'@example.test','current_password':old})
+        assert changed.status_code==200,changed.text
+        assert director.get('/api/v1/auth/session').json()['profile']['email']==changed.json()['email']
+        endpoint=PREFIX+'/users/me/password'
+        assert director.post(endpoint,json={'current_password':'wrong','new_password':new,'password_confirmation':new}).status_code==400
+        assert director.post(endpoint,json={'current_password':old,'new_password':new,'password_confirmation':'different'}).status_code==422
+        assert director.post(endpoint,json={'current_password':old,'new_password':'short','password_confirmation':'short'}).status_code==422
+        updated=director.post(endpoint,json={'current_password':old,'new_password':new,'password_confirmation':new})
+        assert updated.status_code==200,updated.text
+        assert director.get('/api/v1/auth/session').status_code==200
+        assert other_session.get('/api/v1/auth/session').status_code==401
+        director.headers.pop('X-CSRF-Token')
+        assert director.patch(PREFIX+'/users/me/email',json={'email':'another@example.test','current_password':new}).status_code==403
+        with TestClient(app) as fresh:
+            assert fresh.post('/api/v1/auth/login',json={'email':changed.json()['email'],'password':old}).status_code==401
+            assert fresh.post('/api/v1/auth/login',json={'email':changed.json()['email'],'password':new}).status_code==200
+    with engine.connect() as c:
+        assert c.scalar(text('SELECT full_name FROM users WHERE user_id=:id'),dict(id=ids['user']))=='Managed admin'

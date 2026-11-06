@@ -14,13 +14,13 @@ export interface NavigationItem {
 export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
   { to: "/dispatcher", label: "Обзор", icon: "dashboard", roles: SECTION_ROLES.dispatcher },
   { to: "/quality", label: "Контроль качества", icon: "quality", roles: SECTION_ROLES.quality },
-  { to: "/executor", label: "Мои задания", icon: "executor", roles: SECTION_ROLES.executor, end: true },
+  { to: "/executor", label: "Мои задания", icon: "tasks", roles: SECTION_ROLES.executor, end: true },
   { to: "/calendar", label: "Календарь ТО", icon: "calendar", roles: SECTION_ROLES.calendar },
   { to: "/equipment", label: "Оборудование", icon: "equipment", roles: SECTION_ROLES.equipment },
   { to: "/tasks", label: "Задания", icon: "tasks", roles: SECTION_ROLES.tasks },
   { to: "/comparisons", label: "Прогнозы", icon: "forecast", roles: SECTION_ROLES.comparisons },
   { to: "/reports", label: "Отчёты", icon: "report", roles: SECTION_ROLES.reports },
-  { to: "/settings/equipment", label: "Настройка обслуживания", icon: "calendar", roles: SECTION_ROLES.service_settings },
-  { to: "/settings/workforce", label: "Сотрудники и смены", icon: "executor", roles: SECTION_ROLES.workforce_settings },
-  { to: "/my-shifts", label: "Мои смены", icon: "calendar", roles: SECTION_ROLES.executor },
+  { to: "/settings/equipment", label: "Настройка обслуживания", icon: "service", roles: SECTION_ROLES.service_settings },
+  { to: "/settings/workforce", label: "Сотрудники и смены", icon: "workforce", roles: SECTION_ROLES.workforce_settings },
+  { to: "/my-shifts", label: "Мои смены", icon: "clock", roles: SECTION_ROLES.executor },
 ];

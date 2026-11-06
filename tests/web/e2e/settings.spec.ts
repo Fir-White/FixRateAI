@@ -20,7 +20,7 @@ test("web registration → role → shift/qualification/crew → equipment/servi
     await page.getByLabel("Пароль",{exact:true}).fill(password);await page.getByRole("button",{name:"Войти",exact:true}).click();
     await expect(page).not.toHaveURL(/\/login$/);
   }
-  async function logout(){await page.locator(".workspace-account-trigger").click();await page.getByRole("button",{name:"Выйти из аккаунта",exact:true}).click();await expect(page).toHaveURL(/\/login$/);}
+  async function logout(){await page.goto("/profile");await page.getByRole("button",{name:"Выйти из аккаунта",exact:true}).click();await expect(page).toHaveURL(/\/login$/);}
   await login("fixrate-demo-admin@example.test");
   await page.goto("/settings/workforce");
   const createCode=page.getByRole("button",{name:"Создать код регистрации",exact:true});

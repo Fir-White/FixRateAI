@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { RequireRole, RequireSession } from "@/app/guards";
 import { LoadingState } from "@/shared/ui/States";
 import { AppShell } from "@/layouts/AppShell";
@@ -24,6 +24,7 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 import { ServiceSettingsPage } from "@/pages/ServiceSettingsPage";
 import { WorkforceSettingsPage } from "@/pages/WorkforceSettingsPage";
 import { RegistrationPage } from "@/pages/RegistrationPage";
+import { ProfilePage } from "@/pages/ProfilePage";
 import { PersonalShiftsPage } from "@/pages/PersonalShiftsPage";
 import { SECTION_ROLES } from "@/shared/lib/roles";
 
@@ -42,6 +43,12 @@ export function AppRouter() {
         <Route path="/" element={<HomeRedirect />} />
 
         <Route element={<AppShell />}>
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/director" element={<RequireRole roles={["director"]}><DispatcherPage /></RequireRole>} />
+          <Route path="/executive" element={<Navigate to="/director" replace />} />
+          <Route path="/chief-engineer" element={<RequireRole roles={["chief_engineer"]}><DispatcherPage /></RequireRole>} />
+          <Route path="/engineer" element={<RequireRole roles={["engineer"]}><QualityPage /></RequireRole>} />
+          <Route path="/admin" element={<RequireRole roles={["admin"]}><DispatcherPage /></RequireRole>} />
           <Route
             path="/dispatcher"
             element={

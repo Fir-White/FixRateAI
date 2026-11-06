@@ -1,7 +1,7 @@
 .auth-hero-copy {
   position: absolute;
   z-index: 1;
-  inset: 0 0 auto 460px;
+  inset: 0;
   display: flex;
   align-items: center;
   height: 100svh;
@@ -51,7 +51,6 @@
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
-@media (max-width: 1199px) { .auth-hero-copy { left: 420px; } }
 @media (max-width: 1000px) {
   .auth-hero-copy { padding-inline: 40px; }
   .auth-hero-copy h2 { font-size: clamp(2rem, 3.6vw, 2.25rem); }

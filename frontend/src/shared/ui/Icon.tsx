@@ -4,11 +4,13 @@ export type IconName =
   | "dashboard"
   | "equipment"
   | "calendar"
+  | "service"
   | "tasks"
   | "forecast"
   | "report"
   | "quality"
   | "executor"
+  | "workforce"
   | "logout"
   | "chevron"
   | "alert"
@@ -21,9 +23,15 @@ export type IconName =
   | "plus"
   | "upload"
   | "menu"
-  | "close";
+  | "sidebar"
+  | "close"
+  | "bell"
+  | "trash";
 
 const PATHS: Record<IconName, ReactNode> = {
+  sidebar: <><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></>,
+  trash: <><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5"/></>,
+  bell: <><path d="M5 17.5h14l-1.2-1.7a4 4 0 0 1-.8-2.4V10a5 5 0 0 0-10 0v3.4a4 4 0 0 1-.8 2.4L5 17.5Z"/><path d="M10 20a2.2 2.2 0 0 0 4 0M12 3v2"/></>,
   dashboard: (
     <>
       <rect x="3" y="3" width="7" height="7" rx="1.5" />
@@ -33,17 +41,19 @@ const PATHS: Record<IconName, ReactNode> = {
     </>
   ),
   equipment: (
-    <>
-      <path d="M4 7h16v12H4z" />
-      <path d="M8 7V4h8v3" />
-      <path d="M8 12h8" />
-      <path d="M8 16h5" />
-    </>
+    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.1-3.1a6 6 0 0 1-8.3 7.9l-7.2 7.2a2.1 2.1 0 0 1-3-3l7.2-7.2a6 6 0 0 1 7.9-8.3Z" />
   ),
   calendar: (
     <>
       <rect x="3" y="5" width="18" height="16" rx="2" />
-      <path d="M8 3v4M16 3v4M3 10h18" />
+      <path d="M8 3v4M16 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" />
+    </>
+  ),
+  service: (
+    <>
+      <path d="M13 21H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6M7 2v4M17 2v4M3 9h18" />
+      <circle cx="18" cy="18" r="2.25" />
+      <path d="M18 14.25v1.5M18 20.25v1.5M14.25 18h1.5M20.25 18h1.5M15.35 15.35l1.05 1.05M19.6 19.6l1.05 1.05M20.65 15.35l-1.05 1.05M16.4 19.6l-1.05 1.05" />
     </>
   ),
   tasks: (
@@ -61,7 +71,8 @@ const PATHS: Record<IconName, ReactNode> = {
   ),
   report: (
     <>
-      <path d="M4 20h16M6 17V9M12 17V4M18 17v-6" />
+      <path d="M6 2.75h8l4.75 4.75V20a1.75 1.75 0 0 1-1.75 1.75H6A1.75 1.75 0 0 1 4.25 20V4.5A1.75 1.75 0 0 1 6 2.75Z" />
+      <path d="M14 2.75V7.5h4.75M8 18v-3M11.5 18v-5M15 18v-7" />
     </>
   ),
   quality: (
@@ -74,6 +85,12 @@ const PATHS: Record<IconName, ReactNode> = {
     <>
       <circle cx="12" cy="8" r="3.5" />
       <path d="M5 21c0-4 3.1-6.5 7-6.5s7 2.5 7 6.5" />
+    </>
+  ),
+  workforce: (
+    <>
+      <circle cx="9" cy="8" r="3.25" />
+      <path d="M2.75 21v-1.1a6.25 6.25 0 0 1 12.5 0V21M16 5.1a3.25 3.25 0 0 1 0 6.3M17.5 14.1a5.5 5.5 0 0 1 3.75 5.2V21" />
     </>
   ),
   logout: (

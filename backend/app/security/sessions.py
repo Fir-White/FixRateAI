@@ -11,9 +11,11 @@ from uuid import UUID
 from fastapi import HTTPException, Request
 from sqlalchemy import text
 
-SQL_ROLES = {role: role for role in ('executive','chief_engineer','engineer','admin','dispatcher','executor')}
+SQL_ROLES = {role: role for role in ('director','chief_engineer','engineer','admin','dispatcher','executor')}
 SQL_ROLES['technician'] = 'executor'
-API_ROLES = {role: role for role in SQL_ROLES if role != 'technician'}
+# Compatibility for previously provisioned data until migration 010 is applied.
+SQL_ROLES['executive'] = 'director'
+API_ROLES = {role: role for role in SQL_ROLES if role not in ('technician', 'executive')}
 
 
 def has_role(role, roles):
@@ -79,7 +81,7 @@ def authenticate(request: Request, session) -> Principal:
     """), {"token": digest(token)}).mappings().first()
     if not row or row["role"] not in SQL_ROLES:
         raise HTTPException(401, "Сессия истекла или доступ отозван")
-    if row["role"] == "executive" and request.method not in ("GET", "HEAD", "OPTIONS") and not (request.url.path=="/api/v1/auth/logout" or (request.url.path.startswith("/api/v1/maintenance/notifications/") and request.url.path.endswith("/read"))):
+    if SQL_ROLES[row["role"]] == "director" and request.method not in ("GET", "HEAD", "OPTIONS") and not (((request.method == "PATCH" and request.url.path == "/api/v1/maintenance/users/me/email") or (request.method == "POST" and request.url.path == "/api/v1/maintenance/users/me/password")) or request.url.path in ("/api/v1/auth/logout", "/api/v1/maintenance/notifications/read-all", "/api/v1/maintenance/notifications/clear") or (request.url.path.startswith("/api/v1/maintenance/notifications/") and request.url.path.endswith(("/read", "/delete")))):
         raise HTTPException(403, "Руководитель имеет доступ только для чтения")
     if request.method not in ("GET", "HEAD", "OPTIONS"):
         csrf = request.headers.get("x-csrf-token", "")

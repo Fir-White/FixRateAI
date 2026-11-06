@@ -59,6 +59,7 @@ export function useAuthValidation(mode: AuthMode, values: AuthValues) {
   }
   return {
     errors,
+    reset: () => { setRevealed({}); setServerErrors({}); },
     state: (field: AuthField) => errors[field] ? "invalid" : revealed[field] ? "valid" : undefined,
     blur: (field: AuthField, event: FocusEvent<HTMLInputElement>) => {
       const candidate = event.relatedTarget instanceof Element ? event.relatedTarget.closest("a[href], button") : null;

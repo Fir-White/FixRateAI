@@ -41,7 +41,7 @@ test("reload retains sidebar width, page scroll, month and filters without leaki
   await page.emulateMedia({ reducedMotion: "reduce" });
   await login(page);
   for (const expanded of [false, true]) {
-    await page.locator(".ops-sidebar-toggle").click();
+    await page.locator(".ops-sidebar-brand-control").click();
     await page.evaluate(() => scrollTo(0, 300));
     await expect.poll(() => page.evaluate(() => scrollY)).toBe(300);
     await page.reload();
@@ -59,7 +59,7 @@ test("reload retains sidebar width, page scroll, month and filters without leaki
   const month = await page.getByRole("button", { name: "Следующий месяц" }).evaluate(element => element.previousElementSibling!.textContent);
   await page.reload();
   await expect.poll(() => page.getByRole("button", { name: "Следующий месяц" }).evaluate(element => element.previousElementSibling!.textContent)).toBe(month);
-  await page.locator(".workspace-account-trigger").click();
+  await page.goto("/profile");
   await page.getByRole("button", { name: "Выйти из аккаунта", exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
   await login(page, "other@workspace.test");

@@ -37,7 +37,7 @@ def tick(app):
                 if order.status not in ('completed','cancelled') and order.regulatory_deadline_at and order.regulatory_deadline_at<now and order.overdue_since_at is None:
                     order.overdue_since_at=order.regulatory_deadline_at
                     audit(v,order,'overdue',dict(overdue_since=order.overdue_since_at),actor_type='system')
-                    notify_event(v,order,'overdue',('executive','engineer','chief_engineer','dispatcher','technician','executor'))
+                    notify_event(v,order,'overdue',('director','engineer','chief_engineer','dispatcher','technician','executor'))
             session.commit()
             for report in v.rows('work_reports',status='submitted'):
                 order=v.one('work_orders',work_order_id=report.work_order_id)

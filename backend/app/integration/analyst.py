@@ -12,7 +12,7 @@ import json
 from fastapi import Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import Response
 from pydantic import BaseModel, ConfigDict, Field, AwareDatetime, model_validator
-from sqlalchemy import select, text, delete
+from sqlalchemy import select, text, delete, update
 from sqlalchemy.dialects.postgresql import insert
 from app.security.sessions import Principal, has_role
 
@@ -164,6 +164,32 @@ def register_analyst_routes(app,views,photo_path,editable):
         return [dict(id=str(n.notification_id),message=n.message,taskId=str(n.work_order_id) if n.work_order_id else None,
                      createdAt=n.created_at,readAt=n.read_at) for n in sorted(v.rows('maintenance_notifications',user_id=v.principal.user_id),key=lambda n:n.created_at,reverse=True)[:100]]
 
+    @app.post(PREFIX+'/notifications/read-all')
+    def read_all_notifications(v=Depends(views)):
+        notifications = v.models['maintenance_notifications']
+        result = v.session.execute(update(notifications).where(
+            notifications.site_id == v.principal.site_id,
+            notifications.user_id == v.principal.user_id,
+            notifications.read_at.is_(None),
+        ).values(read_at=datetime.now(timezone.utc)))
+        v.session.commit()
+        return {'read': True, 'count': result.rowcount}
+
+    @app.post(PREFIX+'/notifications/clear')
+    def clear_notifications(v=Depends(views)):
+        notifications = v.models['maintenance_notifications']
+        result = v.session.execute(delete(notifications).where(
+            notifications.site_id == v.principal.site_id,
+            notifications.user_id == v.principal.user_id,
+        ))
+        v.session.commit()
+        return {'cleared': True, 'count': result.rowcount}
+
+    @app.post(PREFIX+'/notifications/{identity}/delete')
+    def delete_notification(identity:UUID,v=Depends(views)):
+        row=v.one('maintenance_notifications',notification_id=identity,user_id=v.principal.user_id)
+        v.session.delete(row);v.session.commit();return {'deleted':True}
+
     @app.post(PREFIX+'/notifications/{identity}/read')
     def read_notification(identity:UUID,v=Depends(views)):
         row=v.one('maintenance_notifications',notification_id=identity,user_id=v.principal.user_id)
@@ -246,12 +272,12 @@ def register_analyst_routes(app,views,photo_path,editable):
 
     @app.get(PREFIX+'/overview')
     def overview(v=Depends(views)):
-        if v.principal.role not in ('executive','chief_engineer','engineer','dispatcher','admin'):raise HTTPException(403,'Нет доступа к сводке')
+        if v.principal.role not in ('director','chief_engineer','engineer','dispatcher','admin'):raise HTTPException(403,'Нет доступа к сводке')
         from .projections import Views
         sites=[v.one('sites',site_id=v.principal.site_id)]
-        if v.principal.role=='executive':
+        if v.principal.role=='director':
             members=v.models['site_memberships'];sitecls=v.models['sites']
-            sites=v.session.scalars(select(sitecls).join(members,members.site_id==sitecls.site_id).where(members.user_id==v.principal.user_id,members.role=='executive',members.is_active,sitecls.is_active)).all()
+            sites=v.session.scalars(select(sitecls).join(members,members.site_id==sitecls.site_id).where(members.user_id==v.principal.user_id,members.role=='director',members.is_active,sitecls.is_active)).all()
         result=[]
         for site in sites:
             scoped=Views(v.session,v.models,Principal(v.principal.user_id,site.site_id,v.principal.role,v.principal.name,v.principal.email,site.name,site.timezone))
@@ -273,7 +299,7 @@ def register_analyst_routes(app,views,photo_path,editable):
 
     @app.get(PREFIX+'/export.xlsx')
     def export(year:int,month:int,kind:Literal['schedule','orders']='schedule',v=Depends(views)):
-        if v.principal.role not in ('executive','chief_engineer','engineer','dispatcher','admin'):raise HTTPException(403,'Нет права экспорта')
+        if v.principal.role not in ('director','chief_engineer','engineer','dispatcher','admin'):raise HTTPException(403,'Нет права экспорта')
         from calendar import monthrange
         if not 2000<=year<=2100 or not 1<=month<=12:raise HTTPException(422,'Некорректный месяц')
         if kind=='orders':

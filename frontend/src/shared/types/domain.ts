@@ -1,9 +1,10 @@
-export type Role = "executive" | "chief_engineer" | "admin" | "dispatcher" | "engineer" | "executor";
+export type Role = "director" | "chief_engineer" | "admin" | "dispatcher" | "engineer" | "executor";
 
 export type DataOrigin = "customer" | "synthetic_demo" | null;
 
 export interface SessionProfile {
   userId: string;
+  siteId?: string;
   name: string;
   email: string;
   role: Role;

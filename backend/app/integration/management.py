@@ -14,13 +14,14 @@ from pydantic import ValidationError
 
 from fastapi import Depends, HTTPException, Request, Response
 from sqlalchemy import select, text, delete
+from sqlalchemy.exc import IntegrityError
 
 from app.db.session import service_transaction
 from app.schemas.maintenance import CalendarPattern
 from app.schemas.management import (ApplicationDecision,AvailabilityInput,CrewInput,CrewEdit,
     EmploymentEdit,EquipmentCreate,EquipmentEdit,NamedReference,QualificationInput,
-    Registration,ServiceConfiguration,ShiftInput,ShiftEdit,SkillInput,Revision,PatternPreview)
-from app.security.sessions import SQL_ROLES,hash_password
+    Registration,ServiceConfiguration,ShiftInput,ShiftEdit,SkillInput,Revision,PatternPreview,AccountEmailUpdate,AccountPasswordUpdate)
+from app.security.sessions import SQL_ROLES,hash_password,verify_password,COOKIE,digest
 from app.scheduling.recurrence import pattern_description,occurrence_dates,occurrence_pairs
 from app.scheduling.shifts import expand_shift,employment_availability
 from .assignments import _lock
@@ -266,7 +267,7 @@ def save_service(v,equipment_id,data,binding_id=None):
 def register_routes(app,views,db):
     @app.post(PREFIX+'/management/calendar-pattern/preview')
     def pattern_preview(command:PatternPreview,v=Depends(views)):
-        _guard(v,'executive','admin','dispatcher','engineer')
+        _guard(v,'director','admin','dispatcher','engineer')
         try:
             pairs=occurrence_pairs(command.pattern,date(command.year,command.month,1),date(command.year,command.month,monthrange(command.year,command.month)[1]))
             days=[day for _,day in pairs]
@@ -276,7 +277,7 @@ def register_routes(app,views,db):
 
     @app.get(PREFIX+'/management/catalog')
     def catalog(v=Depends(views)):
-        _guard(v,'executive','admin','dispatcher','engineer')
+        _guard(v,'director','admin','dispatcher','engineer')
         return dict(systems=[dict(id=r.system_id,code=r.code,name=r.name) for r in v.rows('engineering_systems') if r.is_active],
             equipment_types=[dict(id=r.equipment_type_id,code=r.code,name=r.name) for r in v.rows('equipment_types')],
             operations=[dict(id=r.operation_template_id,system_id=r.system_id,code=r.code,title=r.title,instructions=r.description or r.title,
@@ -327,7 +328,7 @@ def register_routes(app,views,db):
 
     @app.get(PREFIX+'/equipment/{equipment_id}/service-configurations')
     def configs(equipment_id:UUID,v=Depends(views)):
-        _guard(v,'executive','admin','dispatcher','engineer','executor')
+        _guard(v,'director','admin','dispatcher','engineer','executor')
         if v.principal.role=='executor' and equipment_id not in v.visible_equipment_ids():raise HTTPException(404,'Оборудование не найдено')
         return service_configurations(v,equipment_id)
 
@@ -383,7 +384,7 @@ def _validate_bookings(v,user_ids):
 
 
 def workforce_view(v):
-    _guard(v,'executive','admin','dispatcher','engineer')
+    _guard(v,'director','admin','dispatcher','engineer')
     staff=[]
     for member in v.rows('site_memberships'):
         user=v.one('users',user_id=member.user_id)
@@ -426,6 +427,33 @@ def register_workforce_routes(app,views,db):
     def me(v=Depends(views)):
         return v.principal.profile()
 
+    def own_user_for_update(v):
+        cls=v.models['users']
+        return v.session.scalar(select(cls).where(cls.user_id==v.principal.user_id).with_for_update())
+
+    @app.patch(PREFIX+'/users/me/email')
+    def update_email(command:AccountEmailUpdate,v=Depends(views)):
+        user=own_user_for_update(v)
+        if not user or not verify_password(command.current_password,user.password_hash):
+            raise HTTPException(400,'Неверный текущий пароль')
+        user.email=command.email.lower()
+        try: v.session.commit()
+        except IntegrityError:
+            v.session.rollback()
+            raise HTTPException(409,'Этот email уже зарегистрирован')
+        return dict(v.principal.profile(),email=user.email)
+
+    @app.post(PREFIX+'/users/me/password')
+    def update_password(command:AccountPasswordUpdate,request:Request,v=Depends(views)):
+        user=own_user_for_update(v)
+        if not user or not verify_password(command.current_password,user.password_hash):
+            raise HTTPException(400,'Неверный текущий пароль')
+        user.password_hash=hash_password(command.new_password)
+        v.session.execute(text('DELETE FROM fixrate_sessions WHERE user_id=:user AND token_hash<>:token'),
+            dict(user=v.principal.user_id,token=digest(request.cookies.get(COOKIE,''))))
+        v.session.commit()
+        return {'updated':True}
+
     @app.get(PREFIX+'/users')
     def users(v=Depends(views)):
         _guard(v,'admin')
@@ -433,7 +461,7 @@ def register_workforce_routes(app,views,db):
 
     @app.get(PREFIX+'/users/roles')
     def roles(v=Depends(views)):
-        return [dict(role=role,label=label) for role,label in [('executive','Руководитель: просмотр и SLA'),('chief_engineer','Главный инженер: нормативы, планы и исключения'),('admin','Администратор: сотрудники, роли, справочники'),
+        return [dict(role=role,label=label) for role,label in [('director','Руководитель: просмотр и SLA'),('chief_engineer','Главный инженер: нормативы, планы и исключения'),('admin','Администратор: сотрудники, роли, справочники'),
             ('dispatcher','Диспетчер: обслуживание, смены, предложения и подтверждение назначений'),
             ('engineer','Инженер: прогнозы и приёмка'),('executor','Исполнитель: только назначенные работы')]]
 
@@ -527,7 +555,7 @@ def register_workforce_routes(app,views,db):
 
     @app.get(PREFIX+'/management/staff/{user_id}/calendar')
     def employee_calendar(user_id:UUID,start:date,end:date,v=Depends(views)):
-        if user_id!=v.principal.user_id: _guard(v,'executive','admin','dispatcher','engineer')
+        if user_id!=v.principal.user_id: _guard(v,'director','admin','dispatcher','engineer')
         if end<start or end-start>timedelta(days=366) or start.year<2000 or end.year>2100: raise HTTPException(422,'Диапазон календаря до 366 дней, 2000–2100 годы')
         intervals,issues=worker_intervals(v,v.one('site_memberships',user_id=user_id),start,end)
         tz=ZoneInfo(v.principal.timezone)

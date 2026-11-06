@@ -6,14 +6,20 @@ import { SessionProvider } from "@/shared/session/SessionContext";
 import type { Role } from "@/shared/types/domain";
 
 // Expected permissions come from the screen specification, independently of router guards.
-const roles: Role[] = ["executive", "chief_engineer", "admin", "dispatcher", "engineer", "executor"];
+const roles: Role[] = ["director", "chief_engineer", "admin", "dispatcher", "engineer", "executor"];
 const access: Record<string, Role[]> = {
-  dispatcher: ["executive", "chief_engineer", "admin", "dispatcher","engineer"], equipment: roles,
-  calendar: ["executive", "chief_engineer", "dispatcher", "engineer", "executor"], tasks: ["executive", "chief_engineer", "dispatcher", "engineer"],
-  comparisons: ["executive", "chief_engineer", "dispatcher", "engineer"], reports: ["executive", "chief_engineer", "dispatcher", "engineer"], quality: ["chief_engineer", "engineer"], executor: ["executor"],
-  settings: ["chief_engineer","admin","dispatcher","engineer"], "my-shifts": ["executor"],
+  director:["director"], "chief-engineer":["chief_engineer"], engineer:["engineer"], admin:["admin"],
+  dispatcher: ["director", "chief_engineer", "admin", "dispatcher","engineer"], equipment: roles,
+  calendar: ["director", "chief_engineer", "dispatcher", "engineer", "executor"], tasks: ["director", "chief_engineer", "dispatcher", "engineer"],
+  comparisons: ["director", "chief_engineer", "dispatcher", "engineer"], reports: ["director", "chief_engineer", "dispatcher", "engineer"], quality: ["chief_engineer", "engineer"], executor: ["executor"],
+  settings: ["chief_engineer","admin","dispatcher","engineer"], "my-shifts": ["executor"], profile: roles,
 };
 const routes = [
+  ["/profile", "Мой профиль"],
+  ["/director", "Панель диспетчера"],
+  ["/chief-engineer", "Панель диспетчера"],
+  ["/engineer", "Контроль качества и приёмка"],
+  ["/admin", "Панель диспетчера"],
   ["/dispatcher", "Панель диспетчера"],
   ["/equipment", "Оборудование"],
   ["/equipment/e1000000-0000-4000-8000-000000000001", "Тепловой пункт №1"],
@@ -52,9 +58,9 @@ describe("role access and links on every screen", () => {
 
 
 const businessMenus: [Role, string[]][] = [
-  ["executive", ["/dispatcher", "/calendar", "/equipment", "/tasks", "/comparisons", "/reports"]],
-  ["chief_engineer", ["/dispatcher", "/quality", "/calendar", "/equipment", "/tasks", "/comparisons", "/reports", "/settings/equipment", "/settings/workforce"]],
-  ["engineer", ["/dispatcher", "/quality", "/calendar", "/equipment", "/tasks", "/comparisons", "/reports", "/settings/equipment", "/settings/workforce"]],
+  ["director", ["/director", "/calendar", "/equipment", "/tasks", "/comparisons", "/reports"]],
+  ["chief_engineer", ["/chief-engineer", "/quality", "/calendar", "/equipment", "/tasks", "/comparisons", "/reports", "/settings/equipment", "/settings/workforce"]],
+  ["engineer", ["/dispatcher", "/engineer", "/calendar", "/equipment", "/tasks", "/comparisons", "/reports", "/settings/equipment", "/settings/workforce"]],
   ["executor", ["/executor", "/calendar", "/equipment", "/my-shifts"]],
 ];
 

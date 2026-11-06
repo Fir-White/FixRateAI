@@ -1,4 +1,4 @@
-import { useEffect,useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { request,DEMO_MODE } from "@/shared/api/request";
 import { managementApi } from "@/shared/api/management";
@@ -57,12 +57,6 @@ export function ChiefActions({task,onSaved}:{task:MaintenanceTask;onSaved:()=>vo
  return <Card className="space-y-3 p-5"><h2>Решение главного инженера</h2><label>Причина и основание<Textarea value={reason} onChange={e=>setReason(e.target.value)}/></label>{openLate&&<><label>Разрешить выполнение до (время устройства)<Input type="datetime-local" value={until} onChange={e=>setUntil(e.target.value)}/></label><p>Обязательный срок и нарушение SLA сохраняются. Назначение бригады и поздняя приёмка проверяются отдельно.</p></>}<Button disabled={busy||!reason.trim()||(openLate&&!until)} onClick={async()=>{setBusy(true);try{await post(`/tasks/${task.id}/${openLate?"late-execution":task.state==="accepted"?"reopen":"late-authorization"}`,{expected_revision:task.revision,reason,...(openLate?{until:new Date(until).toISOString()}:{})});onSaved();}catch(e){setNotice(e instanceof Error?e.message:"Ошибка");}finally{setBusy(false);}}}>{openLate?"Разрешить выполнение с сохранением просрочки":task.state==="accepted"?"Открыть новую попытку с сохранением истории":"Разрешить позднюю приёмку"}</Button>{notice&&<p role="alert">{notice}</p>}</Card>;
 }
 
-export function MaintenanceInbox(){
- const {profile}=useSession();const [refresh,setRefresh]=useState(0);const query=useApiQuery(()=>DEMO_MODE?Promise.resolve([]):request<{id:string;message:string;taskId:string|null;readAt:string|null}[]>(base+"/notifications"),[profile?.userId,refresh]);
- useEffect(()=>{if(DEMO_MODE)return;const timer=window.setInterval(()=>setRefresh(v=>v+1),30000);return()=>window.clearInterval(timer);},[]);
- if(!profile||DEMO_MODE||query.status!=="success"||!query.data.length)return null;
- return <details className="relative rounded-lg border border-line px-2 py-1 text-sm"><summary aria-label="Уведомления"><span className="hidden sm:inline">Уведомления · </span><span className="sm:hidden" aria-hidden="true">🔔 </span>{query.data.filter(n=>!n.readAt).length}</summary><ul className="fixed right-3 top-16 z-50 max-h-[60vh] w-80 max-w-[calc(100vw-24px)] space-y-3 overflow-auto rounded-xl border border-line bg-surface p-4 shadow-xl">{query.data.map(n=><li key={n.id}><p>{n.message}</p>{n.taskId&&<Link to={(profile.role==="executor"?"/executor/tasks/":"/tasks/")+n.taskId}>Открыть задание</Link>}{!n.readAt&&<Button variant="ghost" onClick={async()=>{await post(`/notifications/${n.id}/read`,{});setRefresh(v=>v+1);}}>Прочитано</Button>}</li>)}</ul></details>;
-}
 
 interface SiteSummary {siteId:string;siteName:string;jobs:number;accepted:number;slaOnTime:number;slaEligible:number;plannedNormPersonHours:string|null;confirmedNormJobs:number;actualPersonHours:string|null;actualReports:number;loadPersonMinutes:Record<string,number>;overdue:number;}
 export function PerformanceOverview(){

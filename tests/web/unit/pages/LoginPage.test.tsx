@@ -146,11 +146,14 @@ it.each(["before press","before release"])("ignores inherited fieldset disableme
   expect(screen.getByLabelText("Пароль")).toHaveAccessibleDescription("Введите пароль");
 });
 
-it.each(["/equipment?source=login#list", "//external.test", "/login?retry=1", "/login/?retry=1"])("preserves the existing safe redirect rule for %s", async from => {
-  signIn.mockResolvedValueOnce({ role: "dispatcher" });
-  render(<MemoryRouter initialEntries={[{ pathname: "/login", state: { from } }]}><LoginPage /><Location /></MemoryRouter>);
+it.each([
+  ["executor", "/executor"], ["engineer", "/engineer"], ["chief_engineer", "/chief-engineer"],
+  ["director", "/director"], ["dispatcher", "/dispatcher"], ["admin", "/admin"],
+])("opens the %s home after login even if a previous user left a protected route", async (role, home) => {
+  signIn.mockResolvedValueOnce({ role });
+  render(<MemoryRouter initialEntries={[{ pathname: "/login", state: { from: "/tasks?previous=user#details" } }]}><LoginPage /><Location /></MemoryRouter>);
   fireEvent.change(screen.getByLabelText("Email"), { target: { value: "person@example.test" } });
-  fireEvent.change(screen.getByLabelText("Пароль"), { target: { value: "password" } });
+  fireEvent.change(screen.getByLabelText("\u041f\u0430\u0440\u043e\u043b\u044c"), { target: { value: "password" } });
   fireEvent.submit(screen.getByRole("form"));
-  await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(from === "/equipment?source=login#list" ? from : "/dispatcher"));
+  await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent(home));
 });

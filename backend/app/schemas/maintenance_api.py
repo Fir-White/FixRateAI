@@ -287,13 +287,13 @@ class ExecutionListResponse(ApiModel):
 
 
 class RolePermissions(ApiModel):
-    role: Literal["executive","chief_engineer","admin", "dispatcher", "executor", "engineer"]
+    role: Literal["director","chief_engineer","admin", "dispatcher", "executor", "engineer"]
     permissions: list[Text]
 
 
 ROLE_PERMISSIONS: dict[str, tuple[str, ...]] = {
     "admin": ("reference:read", "reference:write", "users:write"),
-    "executive": ("equipment:read","schedule:read","task:read","history:read","reports:read"),
+    "director": ("equipment:read","schedule:read","task:read","history:read","reports:read"),
     "chief_engineer": ("equipment:write","operation:write","regulation:approve","schedule:approve","task:assign","task:reopen","execution:accept","exception:approve"),
     "dispatcher": ("equipment:read", "schedule:write", "task:assign"),
     "executor": ("task:read_assigned", "execution:write", "photo:write"),

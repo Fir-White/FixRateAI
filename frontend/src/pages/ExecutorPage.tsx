@@ -22,7 +22,7 @@ export function ExecutorPage(){
  const active=all.filter(t=>ACTIVE.includes(t.state));const review=all.filter(t=>t.state==="submitted");
  const items=filter==="active"?active:filter==="submitted"?review:all;
  const spotlight=filter==="active"?items.find(t=>t.state==="in_progress")??items[0]:undefined;
- return <div className="space-y-6 executor-workspace"><PageHeader eyebrow={`${profile?.name??"Исполнитель"} / Рабочее пространство`} title="Мои задания" description="Только назначенные вам работы. Приоритет — текущая работа и обязательные сроки." actions={<Link to="/my-shifts" className={buttonClassName("secondary","sm")}><Icon name="calendar" size={16}/>Мои смены</Link>}/>
+ return <div className="space-y-6 executor-workspace"><PageHeader title="Мои задания" description="Только назначенные вам работы. Приоритет — текущая работа и обязательные сроки." actions={<Link to="/my-shifts" className={buttonClassName("secondary","sm")}><Icon name="clock" size={16}/>Мои смены</Link>}/>
  {query.status==="loading"&&<LoadingState label="Загрузка назначенных заданий"/>}{query.status==="error"&&<ErrorState description={query.error}/>}
  {query.status==="success"&&<><div className="executor-tabs">{([['active','В работе',active.length],['submitted','На проверке',review.length],['all','Все',all.length]] as const).map(([value,label,count])=><button key={value} aria-pressed={filter===value} onClick={()=>setFilter(value)}>{label}<strong>{count}</strong></button>)}</div>
  {equipment&&<div className="ops-active-filters"><span>Показаны задания выбранного оборудования</span><button onClick={()=>setParams({})}>Сбросить ×</button></div>}
