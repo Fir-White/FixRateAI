@@ -14,13 +14,14 @@ from pydantic import ValidationError
 
 from fastapi import Depends, HTTPException, Request, Response
 from sqlalchemy import select, text, delete
+from sqlalchemy.exc import IntegrityError
 
 from app.db.session import service_transaction
 from app.schemas.maintenance import CalendarPattern
 from app.schemas.management import (ApplicationDecision,AvailabilityInput,CrewInput,CrewEdit,
     EmploymentEdit,EquipmentCreate,EquipmentEdit,NamedReference,QualificationInput,
-    Registration,ServiceConfiguration,ShiftInput,ShiftEdit,SkillInput,Revision,PatternPreview)
-from app.security.sessions import SQL_ROLES,hash_password
+    Registration,ServiceConfiguration,ShiftInput,ShiftEdit,SkillInput,Revision,PatternPreview,AccountEmailUpdate,AccountPasswordUpdate)
+from app.security.sessions import SQL_ROLES,hash_password,verify_password,COOKIE,digest
 from app.scheduling.recurrence import pattern_description,occurrence_dates,occurrence_pairs
 from app.scheduling.shifts import expand_shift,employment_availability
 from .assignments import _lock
@@ -425,6 +426,33 @@ def register_workforce_routes(app,views,db):
     @app.get(PREFIX+'/users/me')
     def me(v=Depends(views)):
         return v.principal.profile()
+
+    def own_user_for_update(v):
+        cls=v.models['users']
+        return v.session.scalar(select(cls).where(cls.user_id==v.principal.user_id).with_for_update())
+
+    @app.patch(PREFIX+'/users/me/email')
+    def update_email(command:AccountEmailUpdate,v=Depends(views)):
+        user=own_user_for_update(v)
+        if not user or not verify_password(command.current_password,user.password_hash):
+            raise HTTPException(400,'Неверный текущий пароль')
+        user.email=command.email.lower()
+        try: v.session.commit()
+        except IntegrityError:
+            v.session.rollback()
+            raise HTTPException(409,'Этот email уже зарегистрирован')
+        return dict(v.principal.profile(),email=user.email)
+
+    @app.post(PREFIX+'/users/me/password')
+    def update_password(command:AccountPasswordUpdate,request:Request,v=Depends(views)):
+        user=own_user_for_update(v)
+        if not user or not verify_password(command.current_password,user.password_hash):
+            raise HTTPException(400,'Неверный текущий пароль')
+        user.password_hash=hash_password(command.new_password)
+        v.session.execute(text('DELETE FROM fixrate_sessions WHERE user_id=:user AND token_hash<>:token'),
+            dict(user=v.principal.user_id,token=digest(request.cookies.get(COOKIE,''))))
+        v.session.commit()
+        return {'updated':True}
 
     @app.get(PREFIX+'/users')
     def users(v=Depends(views)):

@@ -1,0 +1,4 @@
+/* Text-entry controls keep their normal editing focus; action outlines follow Tab. */
+html[data-focus-mode="pointer"] :is(button, a, [role="button"], [tabindex]):not(input):not(textarea):not(select):focus-visible {
+  outline: none !important;
+}

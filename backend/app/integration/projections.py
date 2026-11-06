@@ -22,8 +22,15 @@ class Views:
     def __init__(self, session, models, principal):
         self.session, self.models, self.principal = session, models, principal
         self.repo = MaintenanceRepository(session, models)
+        self._task_rows = {}
+        self._task_refs = []
 
     def rows(self, table, **filters):
+        if len(filters) == 1:
+            key, value = next(iter(filters.items()))
+            index = self._task_rows.get((table, key))
+            if index is not None:
+                return index.get(value, [])
         cls = self.models[table]
         query = select(cls)
         if hasattr(cls, "site_id"):
@@ -107,6 +114,34 @@ class Views:
             typ = self.session.get(self.models["maintenance_types"], rule.operation.maintenance_type_id)
             kind = typ.name if typ.name in ("ТО1", "ТО2") else None
         return rule, title, code, kind
+
+    def prepare_task_views(self, orders):
+        # Only use this request-local index for read-only list projections.
+        # The caller has already selected the orders visible to the principal.
+        order_ids = [order.work_order_id for order in orders]
+        if not order_ids:
+            return
+        def index(table, key, ids):
+            cls = self.models[table]
+            query = select(cls).where(cls.site_id == self.principal.site_id, getattr(cls, key).in_(ids))
+            groups = {}
+            for row in self.session.scalars(query).all():
+                groups.setdefault(getattr(row, key), []).append(row)
+            self._task_rows[(table, key)] = groups
+            return [row for group in groups.values() for row in group]
+        links = index("work_order_equipment", "work_order_id", order_ids)
+        assignments = index("work_assignments", "work_order_id", order_ids)
+        index("work_reports", "work_order_id", order_ids)
+        index("acceptance_reviews", "work_order_id", order_ids)
+        equipment_ids = {link.equipment_id for link in links}
+        entry_ids = {order.schedule_entry_id for order in orders if order.schedule_entry_id}
+        user_ids = {assignment.user_id for assignment in assignments}
+        index("equipment", "equipment_id", equipment_ids)
+        index("schedule_entries", "schedule_entry_id", entry_ids)
+        skills = index("user_skills", "user_id", user_ids)
+        for table, key, ids in (("users", "user_id", user_ids), ("skills", "skill_id", {skill.skill_id for skill in skills})):
+            cls = self.models[table]
+            self._task_refs.extend(self.session.scalars(select(cls).where(getattr(cls, key).in_(ids))).all())
 
     def task_view(self, order):
         tz = ZoneInfo(self.principal.timezone)
@@ -202,17 +237,19 @@ class Views:
     def calendar(self, year, month):
         today = datetime.now(ZoneInfo(self.principal.timezone)).date()
         items = []
+        orders_by_entry = {}
+        for order in self.rows("work_orders"):
+            orders_by_entry.setdefault(order.schedule_entry_id, []).append(order)
+        visible_orders = None
+        if self.principal.role == "executor":
+            visible_orders = {assignment.work_order_id for assignment in self.rows("work_assignments", user_id=self.principal.user_id)
+                              if assignment.status not in ("cancelled", "declined")}
         for entry in self.rows("schedule_entries"):
             if (entry.planned_date.year, entry.planned_date.month) != (year, month) and (entry.source_date is None or (entry.source_date.year,entry.source_date.month)!=(year,month)):
                 continue
-            orders = self.rows("work_orders", schedule_entry_id=entry.schedule_entry_id)
-            if self.principal.role == "executor":
-                if not orders:
-                    continue
-                try:
-                    self.task(orders[0].work_order_id)
-                except HTTPException:
-                    continue
+            orders = orders_by_entry.get(entry.schedule_entry_id, [])
+            if visible_orders is not None and (not orders or orders[0].work_order_id not in visible_orders):
+                continue
             rule = entry.rule
             operation_snapshot = entry.rule_snapshot.get('operation', {})
             binding = entry.binding

@@ -30,6 +30,17 @@ describe("notifications", () => {
     expect(panel.querySelector("time")).toHaveTextContent("17:00");
     await user.keyboard("{Escape}"); expect(screen.queryByRole("dialog")).not.toBeInTheDocument(); expect(trigger).toHaveFocus();
   });
+  it("closes accessibly and remains open after a quick reopen", async () => {
+    const user=userEvent.setup();setup();
+    const trigger=await screen.findByRole("button",{name:"Уведомления, непрочитанных: 2"});
+    await user.click(trigger);expect(screen.getByRole("dialog")).toBeInTheDocument();
+    fireEvent.click(trigger);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(document.querySelector('.inbox-panel[data-state="closing"]')).toHaveAttribute("inert");
+    fireEvent.click(trigger);
+    await new Promise(resolve=>setTimeout(resolve,180));
+    expect(screen.getByRole("dialog")).toHaveAttribute("data-state","open");
+  });
   it("keeps the bell visible for an empty list and closes on outside click", async () => {
     api.mockResolvedValue([]);const user = userEvent.setup();setup();
     await user.click(await screen.findByRole("button", { name: "Уведомления, непрочитанных: 0" }));
@@ -43,15 +54,50 @@ describe("notifications", () => {
     api.mockResolvedValueOnce(messages);await user.click(screen.getByRole("button",{name:"Повторить"}));
     expect(await screen.findByText("Фотоотчёт ожидает приёмки")).toBeInTheDocument();expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
-  it("marks only acknowledged events and reports a partial failure", async () => {
-    const user=userEvent.setup();setup();await user.click(await screen.findByRole("button",{name:"Уведомления, непрочитанных: 2"}));
-    api.mockResolvedValueOnce({read:true}).mockRejectedValueOnce(new Error("network"));
-    await user.click(screen.getByRole("button",{name:"Прочитать показанные"}));
+  it("marks all immediately with one request and restores unread status on failure", async () => {
+    const user=userEvent.setup(); setup(); await user.click(await screen.findByRole("button",{name:"Уведомления, непрочитанных: 2"}));
+    let reject!: (error: Error) => void;
+    api.mockReturnValueOnce(new Promise((_resolve, fail) => { reject=fail; }));
+    await user.click(screen.getByRole("button",{name:"Отметить все прочитанными"}));
+    expect(screen.getByRole("button",{name:"Уведомления, непрочитанных: 0"})).toBeInTheDocument();
+    expect(api).toHaveBeenCalledWith("/api/v1/maintenance/notifications/read-all",expect.objectContaining({method:"POST"}));
+    expect(api).toHaveBeenCalledTimes(2);
+    await act(async () => reject(new Error("network")));
     expect(await screen.findByRole("alert")).toHaveTextContent("Не удалось отметить");
+    expect(screen.getByRole("button",{name:"Уведомления, непрочитанных: 2"})).toBeInTheDocument();
+  });
+  it("keeps all events read after server acknowledgement", async () => {
+    const user=userEvent.setup(); setup(); await user.click(await screen.findByRole("button",{name:"Уведомления, непрочитанных: 2"}));
+    api.mockResolvedValueOnce({read:true,count:120});
+    await user.click(screen.getByRole("button",{name:"Отметить все прочитанными"}));
+    await waitFor(() => expect(screen.getByRole("button",{name:"Уведомления, непрочитанных: 0"})).toBeInTheDocument());
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+  it("clears all only after confirmation and keeps the list if the request fails", async () => {
+    const user=userEvent.setup();setup();await user.click(await screen.findByRole("button",{name:"Уведомления, непрочитанных: 2"}));
+    await user.click(screen.getByRole("button",{name:"Очистить уведомления"}));
+    expect(screen.getByText("Удалить все уведомления?")).toBeInTheDocument();
+    await user.click(screen.getByRole("button",{name:"Отмена"}));expect(api).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole("button",{name:"Очистить уведомления"}));
+    api.mockRejectedValueOnce(new Error("network"));await user.click(screen.getByRole("button",{name:"Удалить"}));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Не удалось очистить");
+    expect(screen.getByRole("button",{name:"Уведомления, непрочитанных: 2"})).toBeInTheDocument();
+    await user.click(screen.getByRole("button",{name:"Очистить уведомления"}));
+    api.mockResolvedValueOnce({cleared:true,count:125});await user.click(screen.getByRole("button",{name:"Удалить"}));
+    expect(await screen.findByText("Пока всё спокойно")).toBeInTheDocument();
+    expect(api).toHaveBeenLastCalledWith("/api/v1/maintenance/notifications/clear",expect.objectContaining({method:"POST"}));
+  });
+  it("deletes only the selected notification after acknowledgement and preserves it on failure", async () => {
+    const user=userEvent.setup();setup();await user.click(await screen.findByRole("button",{name:"Уведомления, непрочитанных: 2"}));
+    const button=screen.getByRole("button",{name:"Удалить уведомление: Просрочено ТО"});
+    api.mockRejectedValueOnce(new Error("network"));await user.click(button);
+    expect(await screen.findByRole("alert")).toHaveTextContent("Не удалось удалить");
+    expect(screen.getByText("Просрочено ТО")).toBeInTheDocument();
+    api.mockResolvedValueOnce({deleted:true});await user.click(button);
+    await waitFor(()=>expect(screen.queryByText("Просрочено ТО")).not.toBeInTheDocument());
+    expect(screen.getByText("Фотоотчёт ожидает приёмки")).toBeInTheDocument();
     expect(screen.getByRole("button",{name:"Уведомления, непрочитанных: 1"})).toBeInTheDocument();
-    expect(within(screen.getByRole("region",{name:"Новые"})).getByText("Просрочено ТО")).toBeInTheDocument();
-    expect(api).toHaveBeenCalledWith("/api/v1/maintenance/notifications/1/read",expect.objectContaining({method:"POST"}));
-    expect(api).toHaveBeenCalledWith("/api/v1/maintenance/notifications/2/read",expect.objectContaining({method:"POST"}));
+    expect(api).toHaveBeenLastCalledWith("/api/v1/maintenance/notifications/2/delete",expect.objectContaining({method:"POST"}));
   });
   it("does not mark a notification read without a positive server acknowledgement", async () => {
     const user=userEvent.setup();setup();await user.click(await screen.findByRole("button",{name:"Уведомления, непрочитанных: 2"}));

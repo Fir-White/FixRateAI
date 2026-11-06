@@ -11,16 +11,15 @@ import "./Sidebar.css";
 
 interface SidebarProps {
   items: readonly NavigationItem[];
-  homePath: string;
   expanded: boolean;
   mobile: boolean;
   open: boolean;
-  onToggle: () => void;
   onClose: () => void;
+  onToggle: () => void;
   footer?: ReactNode;
 }
 
-export function Sidebar({ items, homePath, expanded, mobile, open, onToggle, onClose, footer }: SidebarProps) {
+export function Sidebar({ items, expanded, mobile, open, onClose, onToggle, footer }: SidebarProps) {
   const location = useLocation();
   const dialogRef = useDialogFocus<HTMLElement>(mobile && open, onClose);
   const tooltipId = useId();
@@ -66,6 +65,8 @@ export function Sidebar({ items, homePath, expanded, mobile, open, onToggle, onC
     if (mobile) onClose();
   };
 
+
+
   return <>
     {mobile && open && <button type="button" className="ops-sidebar-backdrop" aria-label="Закрыть меню" tabIndex={-1} onClick={onClose} />}
     <aside
@@ -82,21 +83,17 @@ export function Sidebar({ items, homePath, expanded, mobile, open, onToggle, onC
       inert={hidden}
     >
       <div className="ops-sidebar-header">
-        <NavLink to={homePath} className="ops-sidebar-brand" aria-label="FixRate AI — главная" onClick={event => navigateOnce(event, homePath)}>
-          <span className="ops-sidebar-brand-mark"><img src={brandMark} alt="" /></span>
-          <span className="ops-sidebar-label ops-sidebar-brand-name"><img src={brandWordmark} alt="" width="157" height="24" /></span>
-        </NavLink>
-        <button
-          type="button"
-          className="ops-sidebar-toggle"
-          aria-label={mobile ? "Закрыть меню" : expanded ? "Свернуть меню" : "Развернуть меню"}
-          aria-expanded={mobile ? open : expanded}
-          aria-controls="application-sidebar"
-          onClick={mobile ? onClose : onToggle}
-        >
-          <span className="ops-sidebar-icon"><Icon name={mobile ? "close" : "chevron"} size={18} className={!mobile && expanded ? "ops-sidebar-collapse-icon" : undefined} /></span>
-          <span className="ops-sidebar-label">{mobile ? "Закрыть меню" : "Свернуть меню"}</span>
-        </button>
+        <div className="ops-sidebar-brand">
+          {mobile ? <span className="ops-sidebar-brand-mark"><img src={brandMark} alt="FixRate AI" /></span> :
+            <button type="button" className="ops-sidebar-brand-control" aria-label={expanded ? "Свернуть меню" : "Развернуть меню"} aria-expanded={expanded} aria-controls="application-sidebar" onClick={onToggle}>
+              <span className="ops-sidebar-brand-mark"><img src={brandMark} alt="" /><span className="ops-sidebar-brand-action"><Icon name="sidebar" size={20} /></span></span>
+            </button>}
+          <span className="ops-sidebar-label ops-sidebar-brand-name"><img src={brandWordmark} alt="FixRate AI" width="157" height="24" /></span>
+        </div>
+        {mobile && <button type="button" className="ops-sidebar-toggle" aria-label="Закрыть меню" aria-expanded={open} aria-controls="application-sidebar" onClick={onClose}>
+          <span className="ops-sidebar-icon"><Icon name="close" size={18} /></span>
+          <span className="topbar-hint" aria-hidden="true">Закрыть меню</span>
+        </button>}
       </div>
 
       <nav aria-label="Основная навигация" className="ops-sidebar-nav scroll-boundary" data-scroll-key="sidebar" onScroll={() => setTooltip(null)}>
@@ -117,7 +114,7 @@ export function Sidebar({ items, homePath, expanded, mobile, open, onToggle, onC
               onKeyDown={event => { if (event.key === "Escape") setTooltip(null); }}
               onClick={event => navigateOnce(event, item.to)}
             >
-              <span className="ops-sidebar-icon"><Icon name={item.icon} size={18} /></span>
+              <span className="ops-sidebar-icon"><Icon name={item.icon} size={20} /></span>
               <span className="ops-sidebar-label">{item.label}</span>
             </NavLink>
           </li>)}

@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppRouter } from "@/app/router";
 import { SessionProvider } from "@/shared/session/SessionContext";
@@ -36,6 +36,54 @@ describe("app routes", () => {
       await screen.findByRole("heading", { name: "Оборудование" }),
     ).toBeInTheDocument();
     expect(await screen.findByText("Тепловой пункт №1")).toBeInTheDocument();
+  });
+
+  it.each([["executive", "Панель диспетчера"], ["executor", "Мои задания"], ["engineer", "Контроль качества и приёмка"]])("returns %s to their home when no workspace history exists", async (role, heading) => {
+    const user=userEvent.setup();window.localStorage.setItem("fixrate.demo.role",role);
+    render(<SessionProvider><MemoryRouter initialEntries={["/equipment", "/profile"]} initialIndex={1}><AppRouter /></MemoryRouter></SessionProvider>);
+    await screen.findByRole("heading",{name:"Мой профиль"});
+    await user.click(screen.getByRole("button",{name:"Назад"}));
+    expect(await screen.findByRole("heading",{name:heading})).toBeInTheDocument();
+    expect(screen.queryByRole("button",{name:"Назад"})).not.toBeInTheDocument();
+  });
+
+  it("returns through previously visited sections without looping", async () => {
+    const user=userEvent.setup();renderAt("/executor", "executor");
+    await screen.findByRole("heading",{name:"Мои задания"});
+    await user.click(screen.getByRole("link",{name:"Оборудование"}));
+    await screen.findByRole("heading",{name:"Оборудование"});
+    await user.click(screen.getByRole("link",{name:"Учётная запись"}));
+    await screen.findByRole("heading",{name:"Мой профиль"});
+    await user.click(screen.getByRole("button",{name:"Назад"}));
+    await screen.findByRole("heading",{name:"Оборудование"});
+    await user.click(screen.getByRole("button",{name:"Назад"}));
+    await screen.findByRole("heading",{name:"Мои задания"});
+    expect(screen.queryByRole("button",{name:"Назад"})).not.toBeInTheDocument();
+  });
+
+  it("restores search and hash from the previous workspace page", async () => {
+    const user=userEvent.setup();window.localStorage.setItem("fixrate.demo.role","executor");
+    function LocationProbe(){const location=useLocation();return <output data-testid="route-location">{location.pathname+location.search+location.hash}</output>;}
+    render(<SessionProvider><MemoryRouter initialEntries={["/equipment?filter=active#list"]}><AppRouter /><LocationProbe /></MemoryRouter></SessionProvider>);
+    await screen.findByRole("heading",{name:"Оборудование"});
+    await user.click(screen.getByRole("link",{name:"Учётная запись"}));
+    await screen.findByRole("heading",{name:"Мой профиль"});
+    await user.click(screen.getByRole("button",{name:"Назад"}));
+    await waitFor(()=>expect(screen.getByTestId("route-location")).toHaveTextContent("/equipment?filter=active#list"));
+  });
+
+  it("switches sidebar width using the logo", async () => {
+    const user=userEvent.setup();const view=renderAt("/dispatcher", "dispatcher");
+    await screen.findByRole("heading",{name:"Панель диспетчера"});
+    const side=view.container.querySelector(".ops-sidebar")!;
+    const toggle=view.container.querySelector<HTMLButtonElement>(".ops-sidebar-brand-control")!;
+    expect(toggle.closest("aside")).toBe(side);
+    const before=side.getAttribute("data-expanded");
+    await user.click(toggle);
+    expect(side.getAttribute("data-expanded")).not.toBe(before);
+    expect(toggle.getAttribute("aria-expanded")).toBe(side.getAttribute("data-expanded"));
+    await user.click(toggle);
+    expect(side.getAttribute("data-expanded")).toBe(before);
   });
 
   it("blocks a route outside the current role", async () => {
@@ -116,11 +164,12 @@ describe("app routes", () => {
     expect(view.container.querySelector(".workspace-aurora canvas")).toBe(canvas);
     expect(view.container.querySelectorAll(".ops-sidebar")).toHaveLength(1);
     expect(screen.getAllByRole("navigation")).toHaveLength(1);
-    await user.click(screen.getByRole("button", { name: /Меню аккаунта:/ }));
+    await user.click(screen.getByRole("link", { name: "Учётная запись" }));
+    await screen.findByRole("heading", { name: "Мой профиль" });
     await user.click(screen.getByRole("button", { name: "Выйти из аккаунта" }));
     await screen.findByRole("heading", { name: "Выберите роль" });
     expect(view.container.querySelector(".workspace-root")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Меню аккаунта:/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Учётная запись" })).not.toBeInTheDocument();
     expect(window.localStorage.getItem("fixrate.demo.role")).toBeNull();
   });
 });

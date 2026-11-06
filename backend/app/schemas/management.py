@@ -19,6 +19,30 @@ class Input(BaseModel):
         return CalendarPattern.model_validate_json(json.dumps(value)) if isinstance(value,dict) else value
 
 
+class AccountEmailUpdate(Input):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=False)
+    email: str = Field(min_length=3, max_length=320, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+    current_password: str = Field(min_length=1, max_length=1024)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def trim_email(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
+
+class AccountPasswordUpdate(Input):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=False)
+    current_password: str = Field(min_length=1, max_length=1024)
+    new_password: str = Field(min_length=12, max_length=128)
+    password_confirmation: str = Field(min_length=1, max_length=128)
+
+    @model_validator(mode="after")
+    def confirm_password(self):
+        if self.new_password != self.password_confirmation:
+            raise ValueError("Passwords do not match")
+        return self
+
+
 class Revision(Input):
     expected_revision: int = Field(gt=0)
 

@@ -11,9 +11,10 @@ const access: Record<string, Role[]> = {
   dispatcher: ["executive", "chief_engineer", "admin", "dispatcher","engineer"], equipment: roles,
   calendar: ["executive", "chief_engineer", "dispatcher", "engineer", "executor"], tasks: ["executive", "chief_engineer", "dispatcher", "engineer"],
   comparisons: ["executive", "chief_engineer", "dispatcher", "engineer"], reports: ["executive", "chief_engineer", "dispatcher", "engineer"], quality: ["chief_engineer", "engineer"], executor: ["executor"],
-  settings: ["chief_engineer","admin","dispatcher","engineer"], "my-shifts": ["executor"],
+  settings: ["chief_engineer","admin","dispatcher","engineer"], "my-shifts": ["executor"], profile: roles,
 };
 const routes = [
+  ["/profile", "Мой профиль"],
   ["/dispatcher", "Панель диспетчера"],
   ["/equipment", "Оборудование"],
   ["/equipment/e1000000-0000-4000-8000-000000000001", "Тепловой пункт №1"],

@@ -42,12 +42,8 @@ export function LoginPage() {
   const active = !motion || /^\/login\/?$/.test(location.pathname);
   const activeRoute = useRef(active);
   activeRoute.current = active;
-  const from = location.state?.from;
-  const destination = (role: Role) =>
-    typeof from === "string" && from.startsWith("/") && !from.startsWith("//") && !/^\/login\/?$/.test(from.split(/[?#]/)[0])
-      ? from : homePathForRole(role);
 
-  if (profile && !pending && !confirmedNavigation.current && active) return <Navigate to={destination(profile.role)} replace />;
+  if (profile && !pending && !confirmedNavigation.current && active) return <Navigate to={homePathForRole(profile.role)} replace />;
 
   return (
     <>
@@ -62,7 +58,7 @@ export function LoginPage() {
         {ROLES.map(role => (
           <Button key={role} variant="secondary" className="auth-demo__role" onClick={() => {
             login(role);
-            navigate(destination(role), { replace: true });
+            navigate(homePathForRole(role), { replace: true });
           }}>
             <span><strong>{ROLE_LABELS[role]}</strong><span>{ROLE_DESCRIPTIONS[role]}</span></span>
             <Icon name="chevron" size={17} />
@@ -82,7 +78,7 @@ export function LoginPage() {
             const user = await signIn(email.trim(), password, siteId.trim());
             if (!alive.current || !activeRoute.current) return;
             confirmedNavigation.current = true;
-            const proceed = () => navigate(destination(user.role), { replace: true, state: AUTH_ENTRY_STATE });
+            const proceed = () => navigate(homePathForRole(user.role), { replace: true, state: AUTH_ENTRY_STATE });
             if (motion) { if (!await motion.leaveAfterSuccess(proceed)) confirmedNavigation.current = false; }
             else proceed();
           } catch (failure) {

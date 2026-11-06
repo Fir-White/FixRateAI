@@ -4,6 +4,7 @@ export type IconName =
   | "dashboard"
   | "equipment"
   | "calendar"
+  | "service"
   | "tasks"
   | "forecast"
   | "report"
@@ -21,11 +22,15 @@ export type IconName =
   | "plus"
   | "upload"
   | "menu"
+  | "sidebar"
   | "close"
-  | "bell";
+  | "bell"
+  | "trash";
 
 const PATHS: Record<IconName, ReactNode> = {
-  bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-2 7-2 9h16c0-2-2-2-2-9"/><path d="M10 20a2 2 0 0 0 4 0"/></>,
+  sidebar: <><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></>,
+  trash: <><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5"/></>,
+  bell: <><path d="M5 17.5h14l-1.2-1.7a4 4 0 0 1-.8-2.4V10a5 5 0 0 0-10 0v3.4a4 4 0 0 1-.8 2.4L5 17.5Z"/><path d="M10 20a2.2 2.2 0 0 0 4 0M12 3v2"/></>,
   dashboard: (
     <>
       <rect x="3" y="3" width="7" height="7" rx="1.5" />
@@ -35,17 +40,18 @@ const PATHS: Record<IconName, ReactNode> = {
     </>
   ),
   equipment: (
-    <>
-      <path d="M4 7h16v12H4z" />
-      <path d="M8 7V4h8v3" />
-      <path d="M8 12h8" />
-      <path d="M8 16h5" />
-    </>
+    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.1-3.1a6 6 0 0 1-8.3 7.9l-7.2 7.2a2.1 2.1 0 0 1-3-3l7.2-7.2a6 6 0 0 1 7.9-8.3Z" />
   ),
   calendar: (
     <>
       <rect x="3" y="5" width="18" height="16" rx="2" />
-      <path d="M8 3v4M16 3v4M3 10h18" />
+      <path d="M8 3v4M16 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" />
+    </>
+  ),
+  service: (
+    <>
+      <path d="M10 3.5h4l.5 2.1c.5.2 1 .4 1.4.7l1.9-1.1 2.8 2.8-1.1 1.9c.3.4.5.9.7 1.4l2.1.5v4l-2.1.5c-.2.5-.4 1-.7 1.4l1.1 1.9-2.8 2.8-1.9-1.1c-.4.3-.9.5-1.4.7L14 22h-4l-.5-2.1c-.5-.2-1-.4-1.4-.7l-1.9 1.1-2.8-2.8 1.1-1.9c-.3-.4-.5-.9-.7-1.4L1.7 14v-4l2.1-.5c.2-.5.4-1 .7-1.4L3.4 6.2l2.8-2.8 1.9 1.1c.4-.3.9-.5 1.4-.7Z" transform="translate(0 0.5) scale(.96)" />
+      <circle cx="12" cy="12" r="3" />
     </>
   ),
   tasks: (

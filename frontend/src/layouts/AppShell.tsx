@@ -3,6 +3,7 @@ import { DEMO_MODE } from "@/shared/api/request";
 import { useEffect, useRef, useState } from "react";
 import {
   Outlet,
+  NavLink,
   useLocation,
   useNavigationType,
   useNavigate,
@@ -18,15 +19,16 @@ import { useScrollBoundary } from "@/shared/lib/useScrollBoundary";
 import { isBoolean, useWorkspaceState } from "@/shared/lib/workspaceState";
 import { isAuthEntryNavigation } from "@/shared/motion/authEntry";
 import { Sidebar } from "./Sidebar";
-import { SidebarAccount } from "./SidebarAccount";
+import { useWorkspaceBack } from "./WorkspaceNavigation";
 import { NAVIGATION_ITEMS } from "./navigation";
 import "./operations.css";
 
 const ROLES: Role[] = ["executive","chief_engineer","dispatcher", "engineer", "executor", "admin"];
 
 export function AppShell({ executor = false }: { executor?: boolean }) {
-  const { profile, logout, switchRole } = useSession();
+  const { profile, switchRole } = useSession();
   const navigate = useNavigate();
+  const workspaceBack = useWorkspaceBack();
   const location = useLocation();
   const navigationType = useNavigationType();
   const contentRef = useRef<HTMLElement>(null);
@@ -35,8 +37,6 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
   usePageEntry(contentRef, location.key, isAuthEntryNavigation(location.state, navigationType));
   const [menuOpen, setMenuOpen] = useWorkspaceState("sidebar.mobile-open", false, isBoolean);
   const previousPath = useRef(location.pathname);
-  const [logoutError, setLogoutError] = useState("");
-  const [logoutPending, setLogoutPending] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useWorkspaceState("sidebar.expanded", true, isBoolean);
   const [isMobile, setIsMobile] = useState(() => window.matchMedia?.("(max-width: 1023px)")?.matches ?? false);
   const mobileOpen = isMobile && menuOpen;
@@ -65,31 +65,14 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
   }
 
   const items = NAVIGATION_ITEMS.filter(item => item.roles.includes(profile.role));
-  const activeItem = items
-    .filter(
-      (item) =>
-        location.pathname === item.to ||
-        location.pathname.startsWith(`${item.to}/`),
-    )
-    .sort((left, right) => right.to.length - left.to.length)[0];
-
   const handleRoleChange = (role: Role) => {
     switchRole(role);
     navigate(homePathForRole(role));
   };
 
-  const handleLogout = async () => {
-    if (logoutPending) return;
-    setLogoutError("");
-    setLogoutPending(true);
-    try { await logout(); navigate("/login"); }
-    catch (error) { setLogoutError(error instanceof Error ? error.message : "Не удалось выйти"); }
-    finally { setLogoutPending(false); }
-  };
 
   return (
     <div className="ops-shell app-backdrop min-h-screen text-ink" data-sidebar-expanded={sidebarExpanded}>
-      {logoutError && <p role="alert" className="fixed top-2 left-1/2 z-[70] rounded-xl bg-surface p-4 text-rose-200">{logoutError}</p>}
       <a
         href={executor ? "#executor-content" : "#main-content"}
         className="sr-only z-[60] rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-canvas focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
@@ -99,13 +82,11 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
 
       <Sidebar
         items={items}
-        homePath={homePathForRole(profile.role)}
         expanded={sidebarExpanded}
         mobile={isMobile}
         open={mobileOpen}
-        onToggle={() => setSidebarExpanded(value => !value)}
         onClose={() => setMenuOpen(false)}
-        footer={<SidebarAccount key={profile.userId} profile={profile} pending={logoutPending} onLogout={handleLogout} />}
+        onToggle={() => setSidebarExpanded(value => !value)}
       />
 
       <div className="ops-stage" inert={mobileOpen} aria-hidden={mobileOpen || undefined}>
@@ -122,10 +103,10 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
               >
                 <Icon name="menu" size={20} />
               </IconButton>
-              <div className="fr-breadcrumb"><span>Рабочее пространство</span><i>/</i><strong>{activeItem?.label ?? "Обзор"}</strong></div>
+              {location.pathname.replace(/\/+$/, "") !== homePathForRole(profile.role) && <button type="button" className="workspace-back" onClick={workspaceBack}><Icon name="back" size={17}/>Назад</button>}
             </div>
 
-              <div className="fr-topbar-actions"><MaintenanceInbox/>
+              <div className="fr-topbar-actions"><MaintenanceInbox/><NavLink to="/profile" className="profile-trigger" aria-label="Учётная запись"><Icon name="user" size={20}/><span className="topbar-hint" aria-hidden="true">Учётная запись</span></NavLink>
               {DEMO_MODE && (
                 <div className="fr-topbar-actions">
                   <span className="fr-demo-badge">DEMO</span>
@@ -154,7 +135,7 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
           ref={contentRef}
           id={executor ? "executor-content" : "main-content"}
           tabIndex={-1}
-          className={`ops-main mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-10 ${executor ? "workspace-executor-main" : ""}`}
+          className={`ops-main mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-10 ${profile.role === "executor" ? "workspace-executor-main" : ""}`}
         >
           <Outlet />
         </main>

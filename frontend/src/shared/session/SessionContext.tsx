@@ -55,6 +55,7 @@ interface SessionContextValue {
   logout: () => Promise<void>;
   switchRole: (role: Role) => void;
   loading: boolean;
+  updateEmail: (email: string, currentPassword: string) => Promise<void>;
   signIn: (email: string, password: string, siteId?: string) => Promise<SessionProfile>;
 }
 
@@ -103,6 +104,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return {
       profile: DEMO_MODE ? (role ? DEMO_PROFILES[role] : null) : profile,
       loading, login, logout, switchRole: login,
+      updateEmail: async (email: string, currentPassword: string) => {
+        if (DEMO_MODE) throw new Error("Изменение профиля недоступно в этом режиме");
+        const updated = await request<SessionProfile>("/api/v1/maintenance/users/me/email", {method: "PATCH", body: JSON.stringify({email, current_password: currentPassword})});
+        setProfile(updated);
+      },
       signIn: async (email, password, siteId) => {
         const result = await request<{profile: SessionProfile}>("/api/v1/auth/login", {
           method: "POST", body: JSON.stringify({email, password, ...(siteId ? {site_id: siteId} : {})}),

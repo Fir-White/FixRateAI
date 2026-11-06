@@ -690,3 +690,32 @@ def test_assignment_preview_never_invents_missing_task_facts(runtime, patch, cod
     finally:
         with engine.begin() as conn:
             conn.execute(text("UPDATE work_orders SET operation_snapshot=CAST(:snapshot AS jsonb) WHERE work_order_id=:id"), {"id": ASSIGNMENT_TASK, "snapshot": json.dumps(original)})
+
+
+def test_task_list_projection_batch_matches_original_and_reduces_queries(runtime):
+    from sqlalchemy import event
+    from app.integration.projections import Views
+    from app.security.sessions import Principal
+    from sqlalchemy.orm import Session
+    engine,app=runtime
+    with engine.connect() as c:
+        account=c.execute(text("""SELECT u.user_id,u.full_name,u.email,m.site_id,s.name,s.timezone
+            FROM users u JOIN site_memberships m ON m.user_id=u.user_id JOIN sites s ON s.site_id=m.site_id
+            WHERE u.email='fixrate-demo-executive@example.test' LIMIT 1""")).mappings().one()
+    principal=Principal(account['user_id'],account['site_id'],'executive',account['full_name'],account['email'],account['name'],account['timezone'])
+    counts=[]; values=[]
+    for batch in (False,True):
+        statements=[]
+        def track(_conn,_cursor,statement,_parameters,_context,_executemany): statements.append(statement)
+        with Session(engine) as session:
+            views=Views(session,app.state.models,principal)
+            orders=views.repo.orders(principal.site_id)
+            assert len(orders)>=2
+            event.listen(engine,'before_cursor_execute',track)
+            try:
+                if batch: views.prepare_task_views(orders)
+                values.append([views.task_view(order) for order in orders])
+            finally: event.remove(engine,'before_cursor_execute',track)
+            counts.append(len(statements))
+    assert values[0]==values[1]
+    assert counts[1]<counts[0],counts

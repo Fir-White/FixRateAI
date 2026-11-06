@@ -405,16 +405,9 @@ def create_app(engine=None):
     @app.get(prefix + "/ui/tasks")
     def task_list(v=Depends(views)):
         orders = v.repo.orders(v.principal.site_id, user_id=v.principal.user_id if v.principal.role == "executor" else None)
-        visible = []
-        for order in orders:
-            try:
-                v.task(order.work_order_id)
-            except HTTPException as exc:
-                if exc.status_code == 404:
-                    continue
-                raise
-            visible.append(v.task_view(order))
-        return visible
+        # orders() already limits executor results to active assignments at this site.
+        v.prepare_task_views(orders)
+        return [v.task_view(order) for order in orders]
 
     @app.get(prefix + "/ui/tasks/{task_id}")
     def task_detail(task_id: UUID, v=Depends(views)):

@@ -12,7 +12,7 @@ import json
 from fastapi import Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import Response
 from pydantic import BaseModel, ConfigDict, Field, AwareDatetime, model_validator
-from sqlalchemy import select, text, delete
+from sqlalchemy import select, text, delete, update
 from sqlalchemy.dialects.postgresql import insert
 from app.security.sessions import Principal, has_role
 
@@ -163,6 +163,32 @@ def register_analyst_routes(app,views,photo_path,editable):
     def inbox(v=Depends(views)):
         return [dict(id=str(n.notification_id),message=n.message,taskId=str(n.work_order_id) if n.work_order_id else None,
                      createdAt=n.created_at,readAt=n.read_at) for n in sorted(v.rows('maintenance_notifications',user_id=v.principal.user_id),key=lambda n:n.created_at,reverse=True)[:100]]
+
+    @app.post(PREFIX+'/notifications/read-all')
+    def read_all_notifications(v=Depends(views)):
+        notifications = v.models['maintenance_notifications']
+        result = v.session.execute(update(notifications).where(
+            notifications.site_id == v.principal.site_id,
+            notifications.user_id == v.principal.user_id,
+            notifications.read_at.is_(None),
+        ).values(read_at=datetime.now(timezone.utc)))
+        v.session.commit()
+        return {'read': True, 'count': result.rowcount}
+
+    @app.post(PREFIX+'/notifications/clear')
+    def clear_notifications(v=Depends(views)):
+        notifications = v.models['maintenance_notifications']
+        result = v.session.execute(delete(notifications).where(
+            notifications.site_id == v.principal.site_id,
+            notifications.user_id == v.principal.user_id,
+        ))
+        v.session.commit()
+        return {'cleared': True, 'count': result.rowcount}
+
+    @app.post(PREFIX+'/notifications/{identity}/delete')
+    def delete_notification(identity:UUID,v=Depends(views)):
+        row=v.one('maintenance_notifications',notification_id=identity,user_id=v.principal.user_id)
+        v.session.delete(row);v.session.commit();return {'deleted':True}
 
     @app.post(PREFIX+'/notifications/{identity}/read')
     def read_notification(identity:UUID,v=Depends(views)):

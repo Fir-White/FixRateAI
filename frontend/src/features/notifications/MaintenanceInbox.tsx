@@ -47,6 +47,8 @@ export function MaintenanceInbox() {
   const mounted = useRef(false);
   const busyRef = useRef(false);
   const [open, setOpen] = useState(false);
+  const [present, setPresent] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
   const [items, setItems] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -67,12 +69,21 @@ export function MaintenanceInbox() {
   }, [profile?.userId]);
 
   useEffect(() => {
-    mounted.current = true; setItems([]); setError(""); setOpen(false); busyRef.current = false; setBusy(null);
+    mounted.current = true; setItems([]); setError(""); setOpen(false); setConfirmClear(false); busyRef.current = false; setBusy(null);
     void load(true);
     const timer = window.setInterval(() => void load(), 30_000);
     return () => { mounted.current = false; version.current++; window.clearInterval(timer); };
   }, [load]);
-  useEffect(() => { setOpen(false); }, [pathname]);
+  useEffect(() => {
+    if (open) { setPresent(true); return; }
+    if (!present) return;
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) { setPresent(false); return; }
+    const timer = window.setTimeout(() => setPresent(false), 140);
+    return () => window.clearTimeout(timer);
+  }, [open, present]);
+  useEffect(() => { setOpen(false); setConfirmClear(false); }, [pathname]);
+  useEffect(() => { if (!open) setConfirmClear(false); }, [open]);
   useEffect(() => {
     if (!open) return;
     function outside(event: PointerEvent) { if (!root.current?.contains(event.target as Node)) setOpen(false); }
@@ -99,6 +110,56 @@ export function MaintenanceInbox() {
     if (mounted.current && current === version.current) { busyRef.current = false; setBusy(null); setLoading(false); }
   };
 
+  const markAllRead = async () => {
+    if (busyRef.current) return;
+    busyRef.current = true; const current = ++version.current;
+    const unreadIds = new Set(items.filter(item => !item.readAt).map(item => item.id));
+    const readAt = new Date().toISOString();
+    setBusy("all"); setError("");
+    setItems(previous => previous.map(item => unreadIds.has(item.id) ? { ...item, readAt } : item));
+    try {
+      const result = await request<{ read: boolean }>(`${endpoint}/read-all`, { method: "POST", body: "{}" });
+      if (result.read !== true) throw new Error("Read acknowledgement missing");
+    } catch {
+      if (mounted.current && current === version.current) {
+        setItems(previous => previous.map(item => unreadIds.has(item.id) ? { ...item, readAt: null } : item));
+        setError("Не удалось отметить уведомления прочитанными. Попробуйте ещё раз.");
+      }
+    } finally {
+      if (mounted.current && current === version.current) { busyRef.current = false; setBusy(null); setLoading(false); }
+    }
+  };
+
+  const deleteNotification = async (item: Notification) => {
+    if (busyRef.current) return;
+    busyRef.current = true; const current = ++version.current;
+    setBusy(`delete:${item.id}`); setError("");
+    try {
+      const result = await request<{ deleted: boolean }>(`${endpoint}/${encodeURIComponent(item.id)}/delete`, { method: "POST", body: "{}" });
+      if (result.deleted !== true) throw new Error("Delete acknowledgement missing");
+      if (mounted.current && current === version.current) setItems(previous => previous.filter(notification => notification.id !== item.id));
+    } catch {
+      if (mounted.current && current === version.current) setError("Не удалось удалить уведомление. Попробуйте ещё раз.");
+    } finally {
+      if (mounted.current && current === version.current) { busyRef.current = false; setBusy(null); setLoading(false); }
+    }
+  };
+
+  const clearNotifications = async () => {
+    if (busyRef.current) return;
+    busyRef.current = true; const current = ++version.current;
+    setBusy("clear"); setError("");
+    try {
+      const result = await request<{ cleared: boolean }>(`${endpoint}/clear`, { method: "POST", body: "{}" });
+      if (result.cleared !== true) throw new Error("Clear acknowledgement missing");
+      if (mounted.current && current === version.current) { setItems([]); setConfirmClear(false); }
+    } catch {
+      if (mounted.current && current === version.current) { setConfirmClear(false); setError("Не удалось очистить уведомления. Попробуйте ещё раз."); }
+    } finally {
+      if (mounted.current && current === version.current) { busyRef.current = false; setBusy(null); setLoading(false); }
+    }
+  };
+
   if (!profile) return null;
   const unread = items.filter(n => !n.readAt);
   const read = items.filter(n => n.readAt);
@@ -118,7 +179,10 @@ export function MaintenanceInbox() {
             {!item.readAt && <button type="button" disabled={!!busy} onClick={() => void markRead([item])}>{busy === item.id ? "Сохраняем…" : "Отметить прочитанным"}</button>}
           </div>
         </div>
-        {!item.readAt && <span className="inbox-unread-dot" aria-label="Непрочитанное"/>}
+        <div className="inbox-item-side">
+          {!item.readAt && <span className="inbox-unread-dot" aria-label="Непрочитанное"/>}
+          <button type="button" className="inbox-item-delete" disabled={!!busy} aria-label={`Удалить уведомление: ${item.message}`} title="Удалить уведомление" onClick={() => void deleteNotification(item)}><Icon name="trash" size={16}/></button>
+        </div>
       </li>;
     })}</ul>
   </section>;
@@ -127,12 +191,15 @@ export function MaintenanceInbox() {
     <button ref={trigger} type="button" className={`inbox-trigger${open ? " is-open" : ""}`} aria-label={loading || (error && !items.length) ? "Уведомления" : `Уведомления, непрочитанных: ${unread.length}`} aria-haspopup="dialog" aria-expanded={open} aria-controls={id} onClick={() => setOpen(value => !value)}>
       <Icon name="bell" size={20}/>{unread.length > 0 && <span className="inbox-count" aria-hidden="true">{unread.length > 99 ? "99+" : unread.length}</span>}
       {error && !unread.length && <span className="inbox-error-dot" aria-hidden="true"/>}
+      <span className="topbar-hint" aria-hidden="true">Уведомления</span>
     </button>
-    {open && <div id={id} className="inbox-panel" role="dialog" aria-label="Уведомления">
+    {present && <div id={id} className="inbox-panel" data-state={open ? "open" : "closing"} aria-hidden={!open || undefined} inert={!open} role="dialog" aria-label="Уведомления">
       <header className="inbox-header"><div><span className="inbox-eyebrow">РАБОЧЕЕ ПРОСТРАНСТВО</span><h2>Уведомления</h2><p>{loading ? "Загрузка…" : error && !items.length ? "Нет связи" : unread.length ? `Непрочитанных: ${unread.length}` : "Всё просмотрено"}</p></div><button type="button" className="inbox-close" aria-label="Закрыть уведомления" onClick={() => { setOpen(false); trigger.current?.focus(); }}><Icon name="close" size={18}/></button></header>
       {error && <div className="inbox-error" role="alert"><span>{error}</span><button type="button" disabled={!!busy} onClick={() => void load(true)}>Повторить</button></div>}
       {loading ? <div className="inbox-empty" role="status"><span className="inbox-empty-icon"><Icon name="bell" size={22}/></span><p>Загружаем уведомления…</p></div> : !items.length && !error ? <div className="inbox-empty"><span className="inbox-empty-icon"><Icon name="check" size={22}/></span><strong>Пока всё спокойно</strong><p>Здесь появятся события по вашим заданиям.</p></div> : <div className="inbox-list">{renderGroup("Новые", unread)}{renderGroup("Прочитанные", read)}</div>}
-      {unread.length > 0 && <footer className="inbox-footer"><span>Показано: {items.length}</span><button type="button" disabled={!!busy} onClick={() => void markRead(unread)}>{busy === "all" ? "Сохраняем…" : "Прочитать показанные"}</button></footer>}
+      {items.length > 0 && <footer className="inbox-footer">
+        {confirmClear ? <><span>Удалить все уведомления?</span><div className="inbox-footer-actions"><button type="button" disabled={!!busy} onClick={() => setConfirmClear(false)}>Отмена</button><button type="button" className="inbox-clear" disabled={!!busy} onClick={() => void clearNotifications()}>{busy === "clear" ? "Удаляем…" : "Удалить"}</button></div></> : <><button type="button" className="inbox-clear" disabled={!!busy} onClick={() => setConfirmClear(true)}>Очистить уведомления</button><button type="button" disabled={!!busy} onClick={() => void markAllRead()}>{busy === "all" ? "Сохраняем…" : "Отметить все прочитанными"}</button></>}
+      </footer>}
     </div>}
   </div>;
 }

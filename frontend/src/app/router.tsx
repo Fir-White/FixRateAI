@@ -24,6 +24,7 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 import { ServiceSettingsPage } from "@/pages/ServiceSettingsPage";
 import { WorkforceSettingsPage } from "@/pages/WorkforceSettingsPage";
 import { RegistrationPage } from "@/pages/RegistrationPage";
+import { ProfilePage } from "@/pages/ProfilePage";
 import { PersonalShiftsPage } from "@/pages/PersonalShiftsPage";
 import { SECTION_ROLES } from "@/shared/lib/roles";
 
@@ -42,6 +43,7 @@ export function AppRouter() {
         <Route path="/" element={<HomeRedirect />} />
 
         <Route element={<AppShell />}>
+          <Route path="/profile" element={<ProfilePage />} />
           <Route
             path="/dispatcher"
             element={
