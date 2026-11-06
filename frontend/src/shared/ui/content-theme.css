@@ -31,6 +31,7 @@
 .fr-content-v2 .ui-card-header h2 { font-size: 20px; line-height: 28px; }
 .fr-content-v2 .ui-control { border-color: var(--fr2-control); border-radius: 10px; color: var(--fr2-text); background-color: var(--fr2-bg); }
 .fr-content-v2 .ui-control:focus { border-color: var(--fr2-accent); }
+.fr-content-v2 .ui-control::placeholder { color: var(--fr2-muted); opacity: 1; }
 .fr-content-v2 .motion-button { min-height: 40px; height: auto; padding-block: 10px; border-radius: 10px; white-space: normal; }
 .fr-content-v2 .motion-button.bg-accent { background: var(--fr2-accent); color: var(--fr2-on-accent); }
 .fr-content-v2 .motion-button.bg-accent:hover { background: var(--fr2-accent-hover); }

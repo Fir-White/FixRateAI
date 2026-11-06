@@ -15,7 +15,7 @@
 .fr-content-v2 .fr-calendar-pattern { min-width: 0; border: 0; padding: 0; }
 .fr-content-v2 .fr-calendar-advanced > summary { min-height: 44px; cursor: pointer; padding-block: 12px; color: var(--fr2-secondary); }
 .fr-content-v2 .fr-calendar-pattern label:has(input[type="checkbox"]) { min-height: 44px; }
-.fr-content-v2 .fr-rule-fields textarea { min-height: 96px; resize: vertical; }
+.fr-content-v2 .fr-rule-fields textarea { min-height: 96px; resize: vertical; border-color: var(--fr2-control); border-radius: 10px; }
 .fr-content-v2 .fr-rule-fields label { min-width: 0; }
 .fr-content-v2 .fr-section-error-count { display: block; color: var(--fr2-danger); font-size: 13px; }
 .fr-content-v2 .fr-form-errors { padding: 16px; border: 1px solid var(--fr2-danger); border-radius: 12px; margin-bottom: 16px; }
