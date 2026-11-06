@@ -5,6 +5,7 @@ import { IconButton } from "@/shared/ui/Button";
 import { Icon } from "@/shared/ui/Icon";
 import { useDialogFocus } from "@/shared/lib/useDialogFocus";
 import { useScrollBoundary } from "@/shared/lib/useScrollBoundary";
+import { useContentTheme } from "./ContentTheme";
 
 export function Modal({
   open,
@@ -26,6 +27,7 @@ export function Modal({
   size?: "default" | "wide";
 }) {
   const titleId = useId();
+  const contentTheme = useContentTheme();
   const descriptionId = useId();
   const dialogRef = useDialogFocus<HTMLDivElement>(open, onClose);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -38,7 +40,7 @@ export function Modal({
   return createPortal(
     <div
       ref={scrollRef}
-      className="fixed inset-0 z-[80] flex items-end justify-center bg-black/75 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+      className={`${contentTheme ? "fr-content-v2" : ""} fixed inset-0 z-[80] flex items-end justify-center bg-black/75 p-0 backdrop-blur-sm sm:items-center sm:p-6`}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onClose();
