@@ -12,7 +12,6 @@ import { Icon } from "@/shared/ui/Icon";
 import { EquipmentTable } from "@/entities/equipment/EquipmentTable";
 import type { EquipmentState } from "@/shared/types/domain";
 import { useSession } from "@/shared/session/SessionContext";
-import { canOpenSection } from "@/shared/lib/roles";
 
 type StateFilter = "all" | EquipmentState;
 
@@ -45,17 +44,10 @@ export function EquipmentPage() {
       <PageHeader
         title="Оборудование"
         description="Паспорт, регламенты и принятая история — в одном месте. Только оборудование доступного объекта."
-        actions={
-          <>
-            {(profile?.role === "admin" || profile?.role === "dispatcher") && <Link className={buttonClassName("secondary")} to="/settings/equipment">
-              <Icon name="plus" size={18} />
-              Добавить
-            </Link>}
-            {canOpenSection(profile?.role, "calendar") && <Link to="/calendar" className={buttonClassName("primary")}>
-              Календарь ТО
-            </Link>}
-          </>
-        }
+        actions={(profile?.role === "admin" || profile?.role === "dispatcher") ? <Link className={buttonClassName("secondary")} to="/settings/equipment">
+          <Icon name="plus" size={18} />
+          Добавить
+        </Link> : undefined}
       />
 
       <div className="equipment-toolbar">

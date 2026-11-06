@@ -1,5 +1,9 @@
 # Журнал реализации редизайна v2
 
+## Дизайн-итерация 07.11.2026: лишние ссылки в шапках
+
+По запросу владельца удалены три header shortcut: «Календарь ТО» в EquipmentPage, «Мои смены» в ExecutorPage и «Мои задания» в PersonalShiftsPage. Убраны ненужные импорты и пустой контейнер actions; действие «Добавить» для admin/dispatcher сохранено. Sidebar, маршруты, ролевые права и контекстные ссылки на задания оборудования не менялись. **passed**: build/TypeScript, live executor на1440/390 по всем3маршрутам: header-кнопок нет, все4пункта меню доступны в DOM, overflow/errors/content mutations0. `reports/redesign-v2/header-shortcuts-removal/manifest.json` и screenshots; executor-390.png открыт и просмотрен. Исходный commit `6a01e79`.
+
 ## Дизайн-итерация 07.11.2026: счётчики нарядов в мобильной неделе
 
 По запросу владельца в DispatcherPage количество и склонение «наряд / наряда / нарядов» разделены на два элемента. На узком content число находится над словом; ноль отображается как0нарядов с той же геометрией. Management CSS удерживает7дней в одной строке, поэтому подписи не сдвигают даты. Фильтрация, счётчик и выбор дня не менялись. **passed**: build/TypeScript,2DispatcherPage unit, live chief_engineer1440/768/390/360/320. На телефоне Y дат и слов совпадают, числа выше подписей, слова помещаются в ячейки, overflow/errors/content mutations0. `reports/redesign-v2/week-workload-review/manifest.json`, week-390.png и week-320.png открыты и просмотрены. Исходный commit `e659fb4`.
