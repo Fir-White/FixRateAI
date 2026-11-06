@@ -40,10 +40,8 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
   // Upload must preserve the currently edited checklist and narrative without a manual save.
   const photo = path.resolve(test.info().project.testDir, "../../../data/demo/demo-photo.png");
   for (const phase of ["before", "after"]) {
-    await executor.getByRole("combobox", {name: /Этап/}).selectOption(phase);
-    await executor.getByLabel("Файл фото").setInputFiles(photo);
     const reply = executor.waitForResponse(r => r.url().endsWith("/photos") && r.request().method() === "POST");
-    await executor.getByRole("button", {name: "Загрузить фото"}).click();
+    await executor.getByLabel(new RegExp(`^Фото ${phase === "before" ? "до" : "после"}: `)).setInputFiles(photo);
     expect((await reply).status()).toBe(200);
     await expect(executor.locator(".evidence-photo img")).toHaveCount(phase === "before" ? 1 : 2);
     await expect(executor.getByLabel("Что выполнено и какие замечания остались")).toHaveValue("Проверка полного процесса в браузере");
@@ -87,10 +85,8 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
   await expect(executor.getByText("Попытка №2", {exact: true})).toBeVisible();
   await executor.getByRole("checkbox", {name: /Поверхность очищена/}).check();
   for (const phase of ["before", "after"]) {
-    await executor.getByRole("combobox", {name: /Этап/}).selectOption(phase);
-    await executor.getByLabel("Файл фото").setInputFiles(photo);
     const uploaded = executor.waitForResponse(r => r.url().endsWith("/photos") && r.request().method() === "POST");
-    await executor.getByRole("button", {name: "Загрузить фото"}).click();
+    await executor.getByLabel(new RegExp(`^Фото ${phase === "before" ? "до" : "после"}: `)).setInputFiles(photo);
     expect((await uploaded).status()).toBe(200);
     await expect(executor.locator(".evidence-photo img")).toHaveCount(phase === "before" ? 1 : 2);
   }
@@ -116,6 +112,9 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
   await expect(forecastDetails.first()).toBeVisible();
   for(const details of await forecastDetails.all())await details.click();
   await expect(engineer.getByText("rf-days-v1", {exact: true})).toBeVisible();
+  // Raw decision diagnostics are intentionally collapsed in the comparison UI.
+  await expect(engineer.getByText("RULE_INPUT_REQUIRED", {exact: false}).first()).not.toBeVisible();
+  await engineer.getByText("Обоснование решения", {exact: true}).click();
   await expect(engineer.getByText("RULE_INPUT_REQUIRED", {exact: false}).first()).toBeVisible();
   if (process.env.FIXRATE_E2E_OUTPUT) await engineer.screenshot({path: path.join(process.env.FIXRATE_E2E_OUTPUT, "comparison.png"), fullPage: true});
   const directorContext=await browser.newContext(contextOptions);

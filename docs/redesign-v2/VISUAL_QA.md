@@ -1,5 +1,11 @@
 # Визуальные проверки
 
+## Фотоотчёт исполнителя, 07.11.2026
+
+**passed**: реальные QA состояния empty/uploaded/error/retry; 1440/1280/768/390/360/320, overflow 0/browser errors 0. До: `reports/redesign-v2/photo-upload-review/before-desktop.png`, после: `empty-1440.png`, `empty-390.png`, `uploaded-1440.png`, `upload-error.png`; метаданные — `baseline.json` и `manifest.json`. Просмотрены обе формы, счётчик регламентных фото, очередь и ошибка. После загрузки drop-зона компактная; оригиналы доступны через прежний просмотрщик.
+
+**passed**: существующий рабочий стенд :5174, роль executor, те же 6 ширин + mobile/touch390×844, без мутаций. Нужный пункт выбран автоматически из photoRequired snapshot (пункт 04 текущего задания, а не первый в списке). `reports/redesign-v2/photo-upload-live/manifest.json`; `executor-1440.png`, `executor-390-touch.png`, `executor-390-touch-bottom.png`. Native mobile снят последовательными viewport capture с перекрытием и координатами scrollY, чтобы fixed shell не искажал длинный element capture. Полный мобильный workflow подтверждён в `photo-upload-e2e-mobile/`. Физическая камера/системный picker: **blocked**, нет устройства; полная C16 приёмка не объявляется.
+
 ## Панель показателей, 07.11.2026
 
 **passed**: live director на `/director` и `/reports`, 1440/1280/768/390/360/320. Монохромный фон загружен на всех ширинах, текст и экспорт помещаются, document overflow 0; browser errors/mutations 0. Просмотрены desktop, tablet, mobile390 и mobile320. До/после и координаты проверки: `reports/redesign-v2/property-overview-review/manifest.json`, `before-desktop.png`, `director-1440.png`, `director-768.png`, `director-390.png`, `reports-320.png`. На мобильном фоне сильнее затемнение и показатели расположены строками. Иллюстрация не является фотографией реального ЖК. Проверка не заменяет полную C15/C16 приёмку.
