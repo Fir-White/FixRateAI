@@ -75,11 +75,7 @@ export function ChiefActions({task,onSaved}:{task:MaintenanceTask;onSaved:()=>vo
 }
 
 
-interface SiteSummary {siteId:string;siteName:string;jobs:number;accepted:number;slaOnTime:number;slaEligible:number;plannedNormPersonHours:string|null;confirmedNormJobs:number;actualPersonHours:string|null;actualReports:number;loadPersonMinutes:Record<string,number>;overdue:number;}
-export function PerformanceOverview(){
- const query=useApiQuery(()=>DEMO_MODE?Promise.resolve([]):request<SiteSummary[]>(base+"/overview"),[]);const [month,setMonth]=useState(new Date().toISOString().slice(0,7));
- return <Card className="space-y-4 p-5"><h2>Показатели доступных объектов</h2>{query.status==="success"&&query.data.map(s=><div className="space-y-1 border-t border-line pt-3" key={s.siteId}><h3>{s.siteName}</h3><p>Заданий: {s.jobs}. Приёмок: {s.accepted}. Незакрытых просрочек: {s.overdue}.</p><p>SLA по времени приёмки: {s.slaEligible?`${s.slaOnTime} / ${s.slaEligible}`:"нет подтверждённых данных"}. Фактические трудозатраты: {s.actualPersonHours??"нет данных"} чел.-ч ({s.actualReports} отчётов). Плановая норма: {s.plannedNormPersonHours??"не подтверждена"} чел.-ч ({s.confirmedNormJobs??0} заданий с подтверждённой единицей).</p><p>Пиковая плановая загрузка: {Object.entries(s.loadPersonMinutes).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([day,minutes])=>`${day}: ${(minutes/60).toFixed(2)} чел.-ч`).join("; ")||"нет назначений с подтверждённой длительностью"}.</p></div>)}{query.status==="error"&&<p role="alert">{query.error}</p>}<label>Месяц экспорта<Input type="month" value={month} onChange={e=>setMonth(e.target.value)}/></label>{month&&!DEMO_MODE&&<div className="flex flex-wrap gap-4">{["schedule","orders"].map(kind=><a key={kind} href={base+`/export.xlsx?year=${+month.slice(0,4)}&month=${+month.slice(5)}&kind=${kind}`}>{kind==="schedule"?"Скачать месячный график XLSX":"Скачать задания XLSX"}</a>)}</div>}</Card>;
-}
+export { PerformanceOverview } from "./PerformanceOverview";
 
 export function PlanApproval({year,month,onSaved}:{year:number;month:number;onSaved:()=>void}){
  const {profile}=useSession();const query=useApiQuery(()=>request<{id:string;revision:number;status:string}[]>(base+`/plans?year=${year}&month=${month}`),[year,month]);const [reason,setReason]=useState("");const [notice,setNotice]=useState("");

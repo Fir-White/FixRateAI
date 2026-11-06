@@ -1,5 +1,23 @@
 # Журнал реализации редизайна v2
 
+## Дизайн-итерация 07.11.2026: панель показателей с фоном ЖК
+
+По запросу владельца панель PerformanceOverview получила декоративный монохромный вид жилого комплекса. Основные показатели разделены на три колонки, SLA и трудозатраты — на отдельную строку, экспорт — на нижнюю полосу. На узком доступном пространстве блоки перестраиваются в строки. Изображение приглушено ради читаемости; это сгенерированная архитектурная иллюстрация, а не документальная фотография конкретного объекта.
+
+Файлы: `frontend/src/features/analyst/PerformanceOverview.tsx`, `performance-overview.css`, реэкспорт в `AnalystPanels.tsx`, `frontend/src/assets/residential-overview-v1.webp`, `tests/web/unit/features/PerformanceOverview.test.tsx`. Стиль ограничен `.fr-content-v2 .fr-property-*`. Protected shell и API не изменены. Серверные KPI, числитель/знаменатель SLA, подтверждённые единицы и отчёты сохранены. Пиковая нагрузка использует прежние три максимальных значения person-minutes / 60. Месяц по-прежнему применяется только к двум существующим XLSX URL; показатели объектов при его смене не пересчитываются.
+
+Проверки: **passed** — TypeScript/production build; 4 новых теста KPI/нулей/отсутствия данных/ошибки/месяца экспорта и 2 существующих ScheduleMatrix/PlanApproval. **passed** — live Chromium, роль director, `/director` (раскрытая панель) и `/reports`, viewport 1440/1280/768/390/360/320, 12 screenshots: фон загружен, page overflow 0, browser errors 0, mutations 0. Проверено изменение месяца на 2027-02 и точные XLSX URL. Ключевые desktop/tablet/mobile снимки открыты и просмотрены. Полная ролевая регрессия C16 не повторялась; прежние ограничения приёмки сохраняются.
+
+Артефакты: `reports/redesign-v2/property-overview-review/before-desktop.png`, `before.json` (исходный commit `f511972`), `manifest.json`, `director-1440.png`, `director-768.png`, `director-390.png`, `reports-320.png` и остальные ширины. Все screenshots получены из работающего приложения с локальным API. XLSX-файлы не скачивались заново: проверены ссылки и месяц; серверный экспорт не менялся.
+
+### Происхождение фонового изображения
+
+Режим: встроенный imagegen, новая генерация (generate), без reference images. Сохранённый asset: `frontend/src/assets/residential-overview-v1.webp`, 154294 bytes. Исходный PNG сохранён в каталоге generated_images; WebP — только перекодирование для доставки, без изменения композиции. Изображение загружается lazy, без анимации и blur.
+
+Промпт:
+
+> Use case: photorealistic-natural. Asset type: wide decorative background for a restrained dark B2B residential property operations dashboard. Primary request: a minimalist, photorealistic black-and-white architectural view of a contemporary residential apartment complex in Russia, with several clean mid-rise buildings and a few slender pine trees. Composition: panoramic landscape, architecture concentrated toward the right half and middle distance, broad quiet dark negative space on the left for interface content. Architectural photography, straight verticals, fine facade and window detail, calm overcast light and subtle atmospheric depth. Palette: true monochrome only, charcoal black and soft silver grey, subdued contrast, no bright white sky. Elegant, understated, realistic materials; no decorative effects. Entire image is a background asset, no UI, no lettering, no logos, no watermarks, no people, no cars. Wide 2:1 composition.
+
 ## Дизайн-итерация 07.11.2026: техническое обоснование прогноза
 
 По просьбе владельца raw `AI_UNAVAILABLE: INSUFFICIENT_HISTORY…` убран из краткой карточки сравнения. В подробном результате исходные reasons доступны в закрытом по умолчанию «Обоснование решения». Статусы методов, объяснение недоступности AI, выбранная дата и предупреждение нарушения обязательного срока сохранены; API/исходные причины не менялись. TypeScript passed; live summary и раскрытие диагностики проверены, screenshot просмотрен, errors0/writes0. Артефакты `reports/redesign-v2/forecast-copy-review/`.

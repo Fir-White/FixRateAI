@@ -1,5 +1,9 @@
 # Визуальные проверки
 
+## Панель показателей, 07.11.2026
+
+**passed**: live director на `/director` и `/reports`, 1440/1280/768/390/360/320. Монохромный фон загружен на всех ширинах, текст и экспорт помещаются, document overflow 0; browser errors/mutations 0. Просмотрены desktop, tablet, mobile390 и mobile320. До/после и координаты проверки: `reports/redesign-v2/property-overview-review/manifest.json`, `before-desktop.png`, `director-1440.png`, `director-768.png`, `director-390.png`, `reports-320.png`. На мобильном фоне сильнее затемнение и показатели расположены строками. Иллюстрация не является фотографией реального ЖК. Проверка не заменяет полную C15/C16 приёмку.
+
 ## До изменений, 06.11.2026
 
 Источник — настоящие сессии локального приложения, исходный код `422eacf94aadf0fc75e29ef8b1ee110abce78bd2`; снимки: `reports/redesign-v2/before/manifest.json`. Файлы запусков не добавляются в Git. PNG архива Phase II не подменяют эти снимки.
