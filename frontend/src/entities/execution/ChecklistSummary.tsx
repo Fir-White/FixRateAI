@@ -54,7 +54,7 @@ function ChecklistRow({
     <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line px-3 py-2.5">
       <div>
         <p className="text-sm text-ink">{item.text}</p>
-        <p className="mt-0.5 text-xs text-muted/70">{note}</p>
+        <p className="mt-0.5 text-xs text-muted">{note}</p>
       </div>
       <span className="text-sm font-semibold text-ink-soft">
         {formatChecklistAnswer(item)}
