@@ -81,3 +81,58 @@ test("one mobile sidebar and the top-bar profile preserve the reduced-motion bac
   await expect(page.locator(".ops-stage")).not.toHaveAttribute("inert");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
+
+for (const width of [1440, 390]) {
+  test(`document scrolling and sidebar leave the full-width background unchanged at ${width}px`, async ({page, context}) => {
+    test.skip(!process.env.FIXRATE_BASE_URL, "Requires the running local application");
+    await sessionFixture(context);
+    await page.setViewportSize({width, height: 900});
+    await page.emulateMedia({reducedMotion: "reduce"});
+    await signIn(page, "dispatcher@workspace.test");
+    const canvas = page.locator(".workspace-aurora canvas");
+    await expect(canvas).toHaveAttribute("data-state", "paused");
+    // Force a scrolling document, including the mobile case with a normally short overview.
+    await page.locator(".workspace-root").evaluate(root => {
+      const spacer = document.createElement("div");
+      spacer.style.height = "2000px";
+      root.append(spacer);
+    });
+    const geometry = () => canvas.evaluate(element => {
+      const bounds = element.getBoundingClientRect();
+      const canvas = element as HTMLCanvasElement;
+      return {left: bounds.left, top: bounds.top, width: bounds.width, height: bounds.height,
+        rasterWidth: canvas.width, rasterHeight: canvas.height, pixels: canvas.toDataURL()};
+    });
+    await expect.poll(() => canvas.evaluate(element => element.getBoundingClientRect().width)).toBe(width);
+    expect(await page.evaluate(() => getComputedStyle(document.documentElement).scrollbarWidth)).toBe("none");
+    expect(await page.evaluate(() => document.documentElement.clientWidth)).toBe(width);
+    const before = await geometry();
+    if (width >= 1024) {
+      await page.getByRole("button", {name: "Свернуть меню", exact: true}).click();
+      await expect(page.getByRole("button", {name: "Развернуть меню", exact: true})).toBeVisible();
+      expect(await geometry()).toEqual(before);
+      await page.getByRole("button", {name: "Развернуть меню", exact: true}).click();
+    } else {
+      await page.getByRole("button", {name: "Открыть меню", exact: true}).click();
+      await expect(page.getByRole("dialog", {name: "Мобильная навигация"})).toBeVisible();
+      expect(await page.evaluate(() => document.body.style.overflow)).toBe("hidden");
+      expect(await geometry()).toEqual(before);
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("dialog", {name: "Мобильная навигация"})).toHaveCount(0);
+    }
+    expect(await geometry()).toEqual(before);
+    await page.mouse.move(width - 40, 700);
+    await page.mouse.wheel(0, 500);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    await page.evaluate(() => {
+      (document.activeElement as HTMLElement | null)?.blur();
+      window.scrollTo(0, 0);
+    });
+    await page.keyboard.press("Control+End");
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    await context.route("**/api/v1/auth/session", route => route.fulfill({status: 401, json: {detail: "Нет сессии"}}));
+    await page.goto("/login");
+    await expect(page.locator(".workspace-root")).toHaveCount(0);
+    expect(await page.evaluate(() => getComputedStyle(document.documentElement).scrollbarGutter)).toBe("stable");
+  });
+}
