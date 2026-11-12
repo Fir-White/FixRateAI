@@ -73,3 +73,9 @@ Desktop.ini
 
 # Local verification bundles are artifacts, not repository sources.
 reports*.zip
+
+# Local drafts and customer bootstrap materials; keep outside published source.
+/.gitattributes
+/FixRateAI_Iteration_Intelligent_Planning_Spec.md
+/docs/service/customer-start.md
+/start-fixrate.bat
