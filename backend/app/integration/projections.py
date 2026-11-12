@@ -112,7 +112,7 @@ class Views:
         kind = snapshot.get("maintenance_type")
         if not kind and rule and rule.operation.maintenance_type_id:
             typ = self.session.get(self.models["maintenance_types"], rule.operation.maintenance_type_id)
-            kind = typ.name if typ.name in ("ТО1", "ТО2") else None
+            kind = typ.name if typ.name in ("ТО1", "ТО2", "ТО3") else None
         return rule, title, code, kind
 
     def prepare_task_views(self, orders):
@@ -264,7 +264,7 @@ class Views:
             kind = None
             if rule.operation.maintenance_type_id:
                 typ = self.session.get(self.models["maintenance_types"], rule.operation.maintenance_type_id)
-                kind = typ.name if typ.name in ("ТО1", "ТО2") else None
+                kind = typ.name if typ.name in ("ТО1", "ТО2", "ТО3") else None
             done = bool(orders and orders[0].status == "completed")
             cancelled = entry.status != "planned" or bool(orders and orders[0].status == "cancelled")
             items.append(dict(id=str(entry.schedule_entry_id), occurrenceDate=iso(entry.planned_date),sourceDate=iso(entry.source_date or entry.regulatory_deadline_on),

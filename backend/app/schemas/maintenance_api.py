@@ -60,7 +60,7 @@ class OperationCreate(SourceRef):
     operation_id: UUID | None = None
     code: Text
     title: Text
-    maintenance_type: Literal["ТО1", "ТО2"]
+    maintenance_type: Literal["ТО1", "ТО2", "ТО3"]
     instructions: Text
     crew_size: PositiveInt
     raw_norm_value: Hours | None
@@ -197,7 +197,7 @@ class CalendarOccurrence(ApiModel):
     operation_version_id: UUID
     source_date: date | None = None
     occurrence_date: date
-    maintenance_type: Literal["ТО1", "ТО2"]
+    maintenance_type: Literal["ТО1", "ТО2", "ТО3"]
     recurrence: Text
     crew_size: PositiveInt
     raw_norm_value: Hours | None

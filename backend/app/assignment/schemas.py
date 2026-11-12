@@ -44,6 +44,7 @@ class Worker(Value):
     can_execute: bool
     booking_data_complete: bool = True
     workload_data_complete: bool = True
+    availability_data_complete: bool = True
     qualifications: list[Qualification] = Field(default_factory=list)
     availability: list[Availability] = Field(default_factory=list)
     bookings: list[Booking] = Field(default_factory=list)

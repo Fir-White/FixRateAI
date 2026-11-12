@@ -24,7 +24,7 @@ export const patternDefaults = (day: string, frequency: CalendarPattern["frequen
 });
 export interface Reference { id: string; code: string; name: string; validity_required?: boolean }
 export interface ManagementCatalog { systems: Reference[]; equipment_types: Reference[]; skills: Reference[];
-  operations: {id:string;system_id:string;code:string;title:string;instructions:string;maintenance_type:"ТО1"|"ТО2"}[];
+  operations: {id:string;system_id:string;code:string;title:string;instructions:string;maintenance_type:"ТО1"|"ТО2"|"ТО3"}[];
 }
 export interface EquipmentRecord {
   equipment_id: string; site_id: string; system_id: string; equipment_type_id: string | null;
@@ -37,7 +37,7 @@ export type EquipmentInput = Omit<EquipmentRecord, "equipment_id" | "site_id" | 
 };
 export interface ServiceConfiguration {
   binding_id?: string; operation_id?: string; revision?: number; rule_version?: number; expected_revision?: number;
-  code: string; title: string; instructions: string; maintenance_type: "ТО1" | "ТО2";
+  code: string; title: string; instructions: string; maintenance_type: "ТО1" | "ТО2" | "ТО3";
   pattern: CalendarPattern | null; valid_from: string; valid_until: string | null; crew_size: number;
   basis?: "fixed_calendar" | "after_accepted_completion";
   norm_value: string | null; norm_unit: "person_hour" | "elapsed_hour" | "unconfirmed";

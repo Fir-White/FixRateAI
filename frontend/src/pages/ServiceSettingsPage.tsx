@@ -129,7 +129,7 @@ function ServiceEditor({initial,today,catalog,systemId,onClose,onSave}: {initial
     <div className="grid gap-4 sm:grid-cols-2">
       <label className="space-y-1 text-sm"><FieldCaption>Код операции</FieldCaption><Input aria-label="Код операции" required readOnly={!!initial||!!value.operation_id} value={value.code} onChange={e=>set({code:e.target.value})}/></label>
       <label className="space-y-1 text-sm"><FieldCaption>Название обслуживания</FieldCaption><Input aria-label="Название обслуживания" required value={value.title} onChange={e=>set({title:e.target.value})}/></label>
-      <label className="space-y-1 text-sm"><FieldCaption>Вид ТО</FieldCaption><Select aria-label="Вид ТО" value={value.maintenance_type} onChange={e=>set({maintenance_type:e.target.value as "ТО1"|"ТО2"})}><option>ТО1</option><option>ТО2</option></Select></label>
+      <label className="space-y-1 text-sm"><FieldCaption>Вид ТО</FieldCaption><Select aria-label="Вид ТО" value={value.maintenance_type} onChange={e=>set({maintenance_type:e.target.value as "ТО1"|"ТО2"|"ТО3"})}><option>ТО1</option><option>ТО2</option><option>ТО3</option></Select></label>
       <label className="space-y-1 text-sm"><FieldCaption>Действует с</FieldCaption><Input aria-label="Действует с" type="date" required value={value.valid_from} onChange={e=>set({valid_from:e.target.value})}/></label>
       <label className="space-y-1 text-sm"><FieldCaption>Действует по</FieldCaption><Input aria-label="Действует по" type="date" value={value.valid_until??""} onChange={e=>set({valid_until:e.target.value||null})}/></label>
     </div></RuleSection>

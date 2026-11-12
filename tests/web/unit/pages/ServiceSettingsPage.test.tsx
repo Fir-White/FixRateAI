@@ -29,6 +29,18 @@ async function open() {
   return user;
 }
 
+it("supports a saved TO3 service without replacing its recurrence", async () => {
+  service.maintenance_type = "ТО3";
+  service.pattern = patternDefaults("2026-11-06", "quarter");
+  const save = vi.spyOn(managementApi, "saveService").mockResolvedValue(service);
+  const user = await open();
+  expect(screen.getByLabelText("Вид ТО")).toHaveValue("ТО3");
+  await user.click(screen.getByRole("button", {name: "Сохранить обслуживание"}));
+  await waitFor(() => expect(save).toHaveBeenCalledWith("eq", expect.objectContaining({
+    maintenance_type: "ТО3", pattern: expect.objectContaining({frequency: "quarter"}),
+  }), "rule"));
+});
+
 it.each<CalendarPattern["frequency"]>(["day", "week", "month", "quarter", "year", "yearly_count", "dates"])("preserves the complete %s payload when saving one changed field", async frequency => {
   service.pattern = { ...patternDefaults("2026-11-06", frequency), excluded_dates: ["2026-11-15"], ...(frequency === "dates" ? { dates: ["2026-11-10"] } : {}) };
   const original = structuredClone(service);

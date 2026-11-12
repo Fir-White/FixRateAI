@@ -4,6 +4,7 @@ from app.security.sessions import has_role
 
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from decimal import Decimal
 import hashlib
 import logging
 import os
@@ -13,7 +14,7 @@ import secrets
 from typing import Literal
 from uuid import UUID, uuid4
 
-from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Query, Request, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -41,6 +42,7 @@ from app.schemas.maintenance_api import (
     MaintenanceJobTransition,
 )
 from app.schemas.management import CancelTask
+from app.schemas.planning import WorkloadResponse
 from app.integration.analyst import ReadingInput, ExecutionInput, validate_execution, validate_acceptance, notify_event
 from app.security.authorization import AuthorizationError, require_any_role
 from app.security.sessions import COOKIE, Principal, SQL_ROLES, authenticate, create_session, digest, verify_password
@@ -453,6 +455,16 @@ def create_app(engine=None):
             raise HTTPException(422, "Расчёт поддерживает месяцы с 2000 по 2100 год")
         response.headers["Cache-Control"] = "private, no-store"
         return preview_calendar(v, year, month)
+
+    @app.get(prefix + '/planning/workload', response_model=WorkloadResponse)
+    def planning_workload(response: Response, year: int = Query(ge=2000, le=2100),
+                          month: int = Query(ge=1, le=12),
+                          capacity_hours_per_24h: Decimal = Query(default=Decimal('24'), gt=0, le=24, decimal_places=3, allow_inf_nan=False),
+                          v=Depends(views)):
+        from app.integration.workload import workload_preview
+        require_role(v.principal, 'director', 'admin', 'dispatcher', 'engineer')
+        response.headers['Cache-Control'] = 'private, no-store'
+        return workload_preview(v, year, month, capacity_hours_per_24h)
 
     @app.post(prefix + "/calendar/generate")
     def calendar_generate(command: GenerateCalendar, response: Response, v=Depends(views)):

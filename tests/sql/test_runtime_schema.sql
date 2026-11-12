@@ -99,7 +99,7 @@ BEGIN
         ('empty shift label',format('UPDATE employee_shift_rules SET label=%L WHERE shift_rule_id=%L',' ',shift),'23514'),
         ('non-object shift calendar',format('UPDATE employee_shift_rules SET calendar_pattern=%L WHERE shift_rule_id=%L','[]',shift),'23514'),
         ('reversed shift validity',format('UPDATE employee_shift_rules SET valid_until=%L WHERE shift_rule_id=%L','2025-12-31',shift),'23514'),
-        ('zero-length shift',format('UPDATE employee_shift_rules SET ends_local=starts_local WHERE shift_rule_id=%L',shift),'23514'),
+        ('unsupported 24:00 clock',format('UPDATE employee_shift_rules SET ends_local=%L WHERE shift_rule_id=%L','24:00',shift),'23514'),
         ('invalid shift status',format('UPDATE employee_shift_rules SET status=%L WHERE shift_rule_id=%L','broken',shift),'23514'),
         ('cross-site shift worker',format('UPDATE employee_shift_rules SET user_id=%L WHERE shift_rule_id=%L',outsider,shift),'23503'),
         ('duplicate join code',format('INSERT INTO site_join_codes(site_id,code) VALUES (%L,%L)',other_site,key::text),'23505'),
@@ -109,6 +109,9 @@ BEGIN
     ) cases(label,statement,expected) LOOP
         PERFORM pg_temp.expect_sqlstate(scenario.label,scenario.statement,scenario.expected);
     END LOOP;
+    UPDATE employee_shift_rules SET ends_local=starts_local WHERE shift_rule_id=shift;
+    IF NOT (SELECT starts_local=ends_local FROM employee_shift_rules WHERE shift_rule_id=shift)
+        THEN RAISE EXCEPTION 'Full-day shift was not preserved'; END IF;
     -- Reassignment creates a new row; it must never delete the previous assignment.
     UPDATE work_assignments SET status='cancelled',released_at=now() WHERE work_assignment_id=assignment;
     INSERT INTO work_assignments(site_id,work_order_id,user_id,assigned_by) VALUES (s,wo,u,u);

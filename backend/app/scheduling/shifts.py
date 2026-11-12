@@ -33,7 +33,7 @@ def expand_shift(rule, start: date, end: date, timezone_name: str):
     except ValueError as exc:
         return [dict(start_at=datetime.combine(start,time.min,tz),end_at=datetime.combine(end+timedelta(days=1),time.min,tz),status='unavailable')],[dict(date=str(start),code='CALENDAR_PATTERN_UNSATISFIABLE',explanation=str(exc))]
     for day in days:
-        finish_day=day+timedelta(days=1) if get('ends_local')<get('starts_local') else day
+        finish_day=day+timedelta(days=1) if get('ends_local')<=get('starts_local') else day
         # valid_until bounds the full shift, not merely the date it started.
         limit=datetime.combine(get('valid_until')+timedelta(days=1),time.min,tz) if get('valid_until') else None
         try:

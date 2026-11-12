@@ -23,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "backend"), str(ROOT)]
 
 from app.schemas.maintenance import CONTRACTS
+from app.schemas.planning import WorkloadRequest, WorkloadResponse
 
 DOCS = ROOT / "docs"
 DIAGRAMS = DOCS / "assets/architecture"
@@ -215,6 +216,12 @@ def main():
     if args.write_schema:
         schema_path.write_text(json.dumps(schema, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
     require(json.loads(schema_path.read_text(encoding="utf-8")) == schema, "schema export differs; use --write-schema")
+    _, planning_schema = models_json_schema([(WorkloadRequest, 'validation'), (WorkloadResponse, 'validation')])
+    planning_path = ROOT / 'contracts/planning.schema.json'
+    if args.write_schema:
+        planning_path.write_text(json.dumps(planning_schema, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    require(json.loads(planning_path.read_text(encoding='utf-8')) == planning_schema,
+            'planning schema export differs; use --write-schema')
     examples = json.loads((ROOT/"contracts/examples/maintenance.json").read_text(encoding="utf-8"))["examples"]
     parsed = validate_models(examples)
     comparisons = check_relations(parsed, examples)

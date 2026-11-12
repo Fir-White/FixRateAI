@@ -1355,7 +1355,8 @@
         "maintenance_type": {
           "enum": [
             "ТО1",
-            "ТО2"
+            "ТО2",
+            "ТО3"
           ],
           "title": "Maintenance Type",
           "type": "string"

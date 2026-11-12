@@ -161,8 +161,14 @@ def assignment_context(v, order):
 
 
 def _workers(v, order, start, end, now, worker_ids=None):
+    return workers_for_period(v, order.site_id, start, end, now,
+                              excluded_task_id=order.work_order_id, worker_ids=worker_ids)
+
+
+def workers_for_period(v, site_id, start, end, now, *, excluded_task_id=None, worker_ids=None):
+    """Copy resource facts for calculations without requiring a persisted task."""
     from app.scheduling.shifts import expand_shift, employment_availability
-    tz = ZoneInfo(v.one("sites", site_id=order.site_id).timezone)
+    tz = ZoneInfo(v.one("sites", site_id=site_id).timezone)
     day_start = datetime.combine(start.astimezone(tz).date(), time.min, tz)
     day_end = datetime.combine(end.astimezone(tz).date() + timedelta(days=1), time.min, tz)
     result = []
@@ -177,8 +183,11 @@ def _workers(v, order, start, end, now, worker_ids=None):
             booking_data_complete=True, workload_data_complete=True, qualifications=[],
             availability=[dict(start_at=slot.starts_at, end_at=slot.ends_at, status=slot.status)
                           for slot in v.rows("availability_slots", user_id=user.user_id) if getattr(slot,'is_active',True)], bookings=[])
+        worker['availability_data_complete'] = bool(worker['availability'])
         if "employee_shift_rules" in v.models.classes:
             for shift in v.rows("employee_shift_rules", user_id=user.user_id):
+                if shift.is_active:
+                    worker['availability_data_complete'] = True
                 intervals, _ = expand_shift(shift, day_start.date(), day_end.date(), str(tz))
                 worker["availability"].extend(intervals)
         worker["availability"] = employment_availability(worker["availability"],
@@ -191,7 +200,7 @@ def _workers(v, order, start, end, now, worker_ids=None):
         # facts cross the site boundary; foreign tasks/clients are never returned.
         assignment_model = v.models["work_assignments"]
         for assignment in v.session.scalars(select(assignment_model).where(assignment_model.user_id == user.user_id)):
-            if assignment.work_order_id == order.work_order_id or assignment.status in ("cancelled", "declined"):
+            if assignment.work_order_id == excluded_task_id or assignment.status in ("cancelled", "declined"):
                 continue
             other = v.session.get(v.models["work_orders"], assignment.work_order_id)
             if other.status == "cancelled":

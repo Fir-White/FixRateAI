@@ -106,7 +106,7 @@ class OperationVersion(Contract):
     version: PositiveInt
     code: Text
     title: Text
-    maintenance_type: Literal["ТО1", "ТО2"]
+    maintenance_type: Literal["ТО1", "ТО2", "ТО3"]
     instructions: Text
     crew_size: PositiveInt
     raw_norm_value: Hours | None
