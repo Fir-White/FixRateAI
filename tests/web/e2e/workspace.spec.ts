@@ -133,6 +133,6 @@ for (const width of [1440, 390]) {
     await context.route("**/api/v1/auth/session", route => route.fulfill({status: 401, json: {detail: "Нет сессии"}}));
     await page.goto("/login");
     await expect(page.locator(".workspace-root")).toHaveCount(0);
-    expect(await page.evaluate(() => getComputedStyle(document.documentElement).scrollbarGutter)).toBe("stable");
+    expect(await page.evaluate(() => getComputedStyle(document.documentElement).scrollbarGutter)).toBe("auto");
   });
 }

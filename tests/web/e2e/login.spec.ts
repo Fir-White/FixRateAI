@@ -432,10 +432,10 @@ test("classic root scrollbar preserves auth geometry across route overflow and e
   const geometry=async()=>{
     const value=await page.evaluate(()=>{
       const x=(selector:string)=>{const box=document.querySelector(selector)!.getBoundingClientRect();return{x:box.x,width:box.width};};
-      return{clientWidth:document.documentElement.clientWidth,layout:{rootWidth:document.documentElement.getBoundingClientRect().width,panel:x(".auth-panel"),scene:x(".auth-aurora"),brand:x(".auth-brand")}};
+      return{clientWidth:document.documentElement.clientWidth,rootWidth:document.documentElement.getBoundingClientRect().width,layout:{panel:x(".auth-panel"),scene:x(".auth-aurora"),brand:x(".auth-brand")}};
     });
     measurements.push(value);
-    expect(value.clientWidth).toBeGreaterThanOrEqual(value.layout.rootWidth);
+    expect(value.clientWidth).toBeGreaterThanOrEqual(value.rootWidth);
     expect(value.clientWidth).toBeLessThanOrEqual(1366);
     return value.layout;
   };
@@ -446,7 +446,7 @@ test("classic root scrollbar preserves auth geometry across route overflow and e
     expect(await page.evaluate(()=>window.innerWidth-document.documentElement.clientWidth)).toBeGreaterThan(0);
     await page.evaluate(()=>document.getElementById("classic-scrollbar-probe")!.remove());
     const short=await geometry();
-    expect(short.rootWidth).toBeLessThan(1366);
+    expect(await page.evaluate(()=>document.documentElement.clientWidth)).toBe(1366);
     await page.getByRole("link",{name:"Регистрация",exact:true}).click();
     await expect(page.getByRole("heading",{name:"Регистрация",exact:true})).toBeFocused();
     await expect(page.locator(".auth-page")).toHaveAttribute("data-transition","idle");
@@ -468,7 +468,8 @@ test("classic root scrollbar preserves auth geometry across route overflow and e
     await page.getByRole("button",{name:"Войти",exact:true}).click();
     await expect(page.getByRole("alert")).toHaveCount(3);
     expect(await geometry()).toEqual(short);
-    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
+    await page.evaluate(()=>window.scrollTo(100,0));
+    expect(await page.evaluate(()=>scrollX)).toBe(0);
     await test.info().attach("classic-root-scrollbar-measurements",{body:JSON.stringify(measurements,null,2),contentType:"application/json"});
   } finally{await browser.close();}
 });
@@ -497,6 +498,6 @@ test("editorial hero stays secondary, reveals once across auth navigation and re
   for(const [width,height] of [[768,1024],[390,844],[844,390]]){
     await page.setViewportSize({width,height});
     await expect(hero).toBeHidden();
-    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   }
 });

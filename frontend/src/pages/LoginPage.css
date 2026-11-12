@@ -1,3 +1,8 @@
+/* Let the document scrollbar appear only when needed. The auth stage uses the
+   full viewport width so its artwork never resizes when that scrollbar appears. */
+html:has(.auth-page) { scrollbar-gutter: auto; overflow-x: clip; }
+body:has(.auth-page) { overflow-x: clip; }
+
 .auth-page {
   --auth-accent: #74e4d4;
   --auth-text: #ecf3f3;
@@ -10,6 +15,7 @@
   position: relative;
   isolation: isolate;
   grid-template-columns: 460px minmax(0, 1fr);
+  width: 100vw;
   min-height: 100svh;
   background: var(--aurora-background);
   color: var(--auth-text);
@@ -207,6 +213,7 @@
     position: fixed;
     inset: 0;
     z-index: 0;
+    width: 100vw;
     height: 100vh;
     height: 100lvh;
     min-height: 0;
