@@ -6,7 +6,7 @@ const base = "/api/v1/maintenance";
 const id = encodeURIComponent;
 const send = <T>(url: string, method: string, body: unknown) => request<T>(base + url, {method, body: JSON.stringify(body)});
 export const managementApi = {
-  previewPattern:(pattern:CalendarPattern,year:number,month:number)=>send<{dates:string[];explanation:string;timezone:string}>("/management/calendar-pattern/preview","POST",{pattern,year,month}),
+  previewPattern:(pattern:CalendarPattern,year:number,month:number)=>send<{dates:string[];occurrences?:{source_date:string;date:string}[];explanation:string;timezone:string}>("/management/calendar-pattern/preview","POST",{pattern,year,month}),
   catalog: () => request<ManagementCatalog>(base + "/management/catalog"),
   equipment: () => request<{items: EquipmentRecord[]; total: number}>(base + "/equipment?limit=100"),
   getEquipment: (key: string) => request<EquipmentRecord>(`${base}/equipment/${id(key)}`),

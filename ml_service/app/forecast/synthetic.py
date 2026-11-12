@@ -27,6 +27,18 @@ DEMO_NAMESPACE = uuid5(NAMESPACE_DNS, "fixrate.ai.synthetic_demo")
 def compute_snapshot_hash(snapshot_dict: dict) -> str:
     """Calculate canonical SHA-256 hash of a snapshot payload without content_sha256."""
     payload = {k: v for k, v in snapshot_dict.items() if k != "content_sha256"}
+    for key in ("diagnostic_readings","diagnostic_comments","source_occurrence_date"):
+        if not payload.get(key):payload.pop(key,None)
+    if isinstance(payload.get("rule"), dict):
+        payload["rule"] = dict(payload["rule"])
+        if payload["rule"].get("weekend_policy") == "none":
+            payload["rule"].pop("weekend_policy", None)
+    if isinstance(payload.get("rule",{}).get("pattern"),dict):
+        payload["rule"]=dict(payload["rule"])
+        pattern=dict(payload["rule"]["pattern"])
+        for key,default in (("quarter_policy","calendar_edge"),("annual_policy","calendar_year"),("weekend_policy","none")):
+            if pattern.get(key)==default:pattern.pop(key,None)
+        payload["rule"]["pattern"]=pattern
     canonical_json = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical_json.encode("utf-8")).hexdigest()
 

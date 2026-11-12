@@ -3,6 +3,37 @@ import type { Equipment, MaintenanceTask, CalendarOccurrence, CalendarPreview, C
 import { request, DEMO_MODE } from "./request";
 export type { EquipmentBundle, TaskBundle, ComparisonBundle } from "./maintenance.demo";
 
+export type AiProvider = "clip" | "ollama" | "aitunnel";
+
+export interface AiModelOption {
+  id: string;
+  name: string;
+  description?: string;
+  digest?: string;
+  size?: number;
+}
+
+export interface AiProviderInfo {
+  id: AiProvider;
+  name: string;
+  description: string;
+  available: boolean;
+  has_server_key?: boolean;
+  error?: string | null;
+  models: AiModelOption[];
+}
+
+export interface AiModelsResponse {
+  current_provider: string;
+  providers: AiProviderInfo[];
+}
+
+export interface PhotoReviewOptions {
+  provider?: string;
+  model?: string;
+  api_key?: string;
+}
+
 const base = "/api/v1/maintenance";
 const ui = `${base}/ui`;
 const id = encodeURIComponent;
@@ -46,11 +77,22 @@ export const maintenanceApi = {
     request<TaskBundle>(`${base}/tasks/${id(taskId)}/assign`, {method: "POST", body: JSON.stringify({...command, crew_id: crewId})}),
   start: (taskId: string, revision: number) => request<TaskBundle>(`${base}/tasks/${id(taskId)}/start`, {method: "POST", body: JSON.stringify({expected_revision: revision})}),
   cancel: (taskId:string,revision:number,reason:string) => request<TaskBundle>(`${base}/tasks/${id(taskId)}/cancel`,{method:"POST",body:JSON.stringify({expected_revision:revision,reason})}),
-  saveReport: (taskId: string, revision: number, narrative: string, answers: Record<string, string | null>) => request<TaskBundle>(`${base}/tasks/${id(taskId)}/report`, {method: "PUT", body: JSON.stringify({expected_revision: revision, narrative, answers})}),
+  saveReport: (taskId: string, revision: number, narrative: string, answers: Record<string, string | null>, protocol?:{actual:import("@/shared/types/domain").ActualExecution|null;readings:import("@/shared/types/domain").Reading[]}) => request<TaskBundle>(`${base}/tasks/${id(taskId)}/report`, {method: "PUT", body: JSON.stringify({expected_revision: revision, narrative, answers,...(protocol?{actual:protocol.actual?Object.fromEntries(Object.entries(protocol.actual).map(([k,v])=>[k,v||null])):null,readings:protocol.readings.filter(r=>r.value!==""&&r.measured_at!=="")}:{} )})}),
   submit: (taskId: string, revision: number) => request<TaskBundle>(`${base}/tasks/${id(taskId)}/submit`, {method: "POST", body: JSON.stringify({expected_revision: revision})}),
-  review: (taskId: string, revision: number, executionId: string, verdict: "accepted" | "rejected", reason: string) => request<TaskBundle>(`${base}/tasks/${id(taskId)}/review`, {method: "POST", body: JSON.stringify({expected_revision: revision, execution_id: executionId, verdict, reason})}),
+  review: (taskId: string, revision: number, executionId: string, verdict: "accepted" | "rejected", reason: string, evidence?:{reviewed_ai_result_id?:string;additional_evidence_refs:string[]}) => request<TaskBundle>(`${base}/tasks/${id(taskId)}/review`, {method: "POST", body: JSON.stringify({expected_revision: revision, execution_id: executionId, verdict, reason,...evidence})}),
   forecast: (taskId: string, revision: number) => request<ComparisonBundle>(`${base}/tasks/${id(taskId)}/forecast`, {method: "POST", body: JSON.stringify({expected_revision: revision})}),
-  photoReview: (taskId: string, revision: number, confirmed: boolean) => request<PhotoReview>(`${base}/tasks/${id(taskId)}/photo-review`, {method: "POST", body: JSON.stringify({expected_revision: revision, comparability_confirmed: confirmed})}),
+  getAiModels: () => request<AiModelsResponse>(`${base}/ai/models`),
+  photoReview: (taskId: string, revision: number, confirmed: boolean, options?: PhotoReviewOptions) =>
+    request<PhotoReview>(`${base}/tasks/${id(taskId)}/photo-review`, {
+      method: "POST",
+      body: JSON.stringify({
+        expected_revision: revision,
+        comparability_confirmed: confirmed,
+        provider: options?.provider || undefined,
+        model: options?.model || undefined,
+        api_key: options?.api_key || undefined,
+      }),
+    }),
   upload: (taskId: string, revision: number, itemId: string, phase: string, viewKey: string, file: File) => {
     const form = new FormData();
     form.set("expected_revision", String(revision)); form.set("checklist_item_id", itemId);

@@ -1,0 +1,6 @@
+# syntax=docker/dockerfile:1
+ARG BASE_IMAGE=fixrate-ai:local
+FROM ${BASE_IMAGE}
+COPY --from=clip_weights --chown=fixrate:fixrate / /app/model-cache/
+ENV HF_HOME=/app/model-cache HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
+LABEL org.fixrate.models="rf-and-clip-bundled"

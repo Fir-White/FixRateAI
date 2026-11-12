@@ -1,0 +1,88 @@
+{
+  "date": "2026-11-05",
+  "scope": "analyst conformance; not customer acceptance",
+  "software_items_verified": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35
+  ],
+  "blocked_items": [
+    36,
+    37
+  ],
+  "regression": {
+    "run": "verify-20261105-231334-9adba336",
+    "checks": 29,
+    "python_passed": 713,
+    "ui_passed": 301,
+    "browser_passed": 31,
+    "npm_vulnerabilities": 0
+  },
+  "compose": {
+    "run": "compose-20261105-231641-f9b63626",
+    "checks": 92,
+    "real_tools": [
+      "cloud maintenance forecast",
+      "cloud photo review"
+    ],
+    "source_revision": "1de2a6a+analyst-preview"
+  },
+  "an06": {
+    "run": "20261105T175820Z",
+    "pass": 9,
+    "fail": 0,
+    "skip": 0
+  },
+  "customer_e2e": "BLOCKED: unapproved methodologies, norm units and ranges",
+  "deployment": {
+    "code_revision": "961a1e30fd5fde015a3a67d96ba35c4c1b13027b",
+    "image": "sha256:ffc5bbb10054f2c255997b5f530443b1d7e4d861dc38c2cbd277e6c21114dc26",
+    "browser_roles": 6,
+    "browser_page_checks": 17,
+    "old_business_columns_preserved": true,
+    "evidence_files_verified": 11
+  },
+  "role_menu_regression_20261106": {
+    "run": "verify-20261106-003609-577607ae",
+    "stages_passed": 29,
+    "python_passed": 714,
+    "ui_passed": 331,
+    "browser_passed": 31,
+    "npm_vulnerabilities": 0,
+    "source_revision": "7feb2fb57e4b9bdc4d25fe286cb5ceb4ac6f144e",
+    "previous_direct_url_checks_did_not_confirm_complete_menus": true,
+    "customer_e2e": "BLOCKED"
+  }
+}

@@ -43,6 +43,15 @@ def load_default_forecaster() -> RandomForestForecaster | None:
     return None
 
 
+def warmup_forecaster(forecaster: RandomForestForecaster | None = None) -> bool:
+    """Explicit warmup hook pre-loading artifact and priming CPU execution paths."""
+    model = forecaster or get_active_forecaster() or load_default_forecaster()
+    if model and model.is_fitted:
+        model.warmup()
+        return True
+    return False
+
+
 def predict_maintenance_ai(
     snapshot: ForecastSnapshot,
     forecaster: RandomForestForecaster | None = None,

@@ -1,0 +1,31 @@
+{
+  "date": "2026-11-06",
+  "health": {
+    "status": "ok",
+    "database": "ready"
+  },
+  "ui_http": 200,
+  "models": {
+    "forecast_provider": "aitunnel",
+    "photo_provider": "aitunnel",
+    "vision_model": "qwen3.7-flash",
+    "forecast_model": "qwen3.7-flash",
+    "key_configured": true,
+    "rf_loaded": true,
+    "source_revision": "961a1e30fd5fde015a3a67d96ba35c4c1b13027b",
+    "cloud_catalog_http": 200,
+    "configured_models_listed": true
+  },
+  "ml_api_paths": [
+    "/api/v1/maintenance/ui/comparisons",
+    "/api/v1/maintenance/ui/comparisons/{run_id}",
+    "/api/v1/maintenance/tasks/{task_id}/photos",
+    "/api/v1/maintenance/photos/{photo_id}/content",
+    "/api/v1/maintenance/photos/{photo_id}",
+    "/api/v1/maintenance/comparisons/{run_id}/confirm",
+    "/api/v1/maintenance/incidents/{identity}/photo",
+    "/api/v1/maintenance/incidents/{identity}/analyze",
+    "/api/v1/maintenance/tasks/{task_id}/forecast",
+    "/api/v1/maintenance/tasks/{task_id}/photo-review"
+  ]
+}

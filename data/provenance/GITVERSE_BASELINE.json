@@ -1,0 +1,25 @@
+{
+  "captured_at": "2026-11-04",
+  "source": "https://gitverse.ru/firewhite/FixRate_AI",
+  "branches": {
+    "archive/legacy-ai-estimator": "c530bb869896160c231db2ce516c62cffbe329ae",
+    "dev": "7676d6a79f6a964a90488d9e74be3535b0f8b30a",
+    "docs/tests-p0": "f3730e86e5794d45c5fb154b194ce75a9ff9c522",
+    "feat/ml-forecasting-photo-review": "2b8488f71ec295c94cb4874cbe9f8b324c3b0e41",
+    "feature/frontend-kran": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+    "feature/frontend-next": "3e95724b86bb33f6083ae20c92c6ff9f98bc7849",
+    "front/mvidy": "226f3266a29cd43121ddca2c707cdcf5d71d375c",
+    "kran_dev": "c31570eaf970d6c6d3398995b58cf7173e89d183",
+    "main": "d94f528df8c0e0f69c344ebd8c79a99bfbe5c1f2",
+    "new_backend": "c559d27046d5028f83ed4f67dda4e8418618303d",
+    "qa/roles-contracts": "00b0dcafb55ccf30514e0dca413897ae01f61f37",
+    "qa/schedule-forecast-tests": "70e0db629829a8a6b448839e197577e70688d897"
+  },
+  "tags": {},
+  "local_updates": [
+    "dev",
+    "feature/frontend-next",
+    "kran_dev"
+  ],
+  "note": "Original GitVerse heads before the first migration; tips may advance with preserved local work. Additional migration/archive aliases and local backup tags are not part of this baseline."
+}

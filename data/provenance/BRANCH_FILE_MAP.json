@@ -1,0 +1,3016 @@
+[
+  {
+    "branch": "kran_dev",
+    "source_sha": "c31570eaf970d6c6d3398995b58cf7173e89d183",
+    "comparison_base": "43d90608cbabf290668de2ef4d4608bc0ae6e7f0",
+    "files": [
+      {
+        "source_path": "backend/README.md",
+        "dev_path": "docs/service/backend.md",
+        "source_blob": "9664a094a60b8b80222bd2c1388767b343f7d602",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/__init__.py",
+        "dev_path": "backend/app/db/__init__.py",
+        "source_blob": "679761c4e1f76ebf64fefd8934d18e8c1fd1cb64",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/dto.py",
+        "dev_path": "backend/app/db/dto.py",
+        "source_blob": "626ee20a765d642cf2a7905d5710dcf1ec3cc64f",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/models.py",
+        "dev_path": "backend/app/db/models.py",
+        "source_blob": "333d19e47d5916b9284529b7d1af5b4dbc19ab74",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/repository.py",
+        "dev_path": "backend/app/db/repository.py",
+        "source_blob": "bb4cb50225c3ad17264eb78a1b07b8d81068ab6d",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/service.py",
+        "dev_path": "backend/app/db/service.py",
+        "source_blob": "2028d00303e8908297dd0e484fb4347aad595ce4",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/session.py",
+        "dev_path": "backend/app/db/session.py",
+        "source_blob": "52e24c617b46845581a24c7be40f2931e3f43a6f",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/requirements.txt",
+        "dev_path": "requirements.txt",
+        "source_blob": "7f8b7ab88b19f9628a95e0ceae00379d453d37f6",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_dto_mapping.py",
+        "dev_path": "tests/backend/test_dto_mapping.py",
+        "source_blob": "d95fb2046a8fb2755e53d54f16e5e0b78a66ca56",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_mapping_configuration.py",
+        "dev_path": "tests/backend/test_mapping_configuration.py",
+        "source_blob": "49454f3f38c1a1de83fb58c150bd5ffd0f75f3ef",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_persistence.py",
+        "dev_path": "tests/backend/test_persistence.py",
+        "source_blob": "8becf36980dd3d70cc82db9e271d2ecf486cf18e",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_transactions.py",
+        "dev_path": "tests/backend/test_transactions.py",
+        "source_blob": "6587b4e250f9fb4a383c9af29f57592f5fdde2ff",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/README.md",
+        "dev_path": "docs/service/database.md",
+        "source_blob": "ddffde157c28c0bb36b3fdd44e74719e56dcceea",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/demo/README.md",
+        "dev_path": "docs/service/database.md",
+        "source_blob": "5f7ed02d026bf527b9b3a3173badd58b0a2216de",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/demo/demo-photo.png",
+        "dev_path": "data/demo/demo-photo.png",
+        "source_blob": "194767d5ecfe3394fb6ad743b9271d695bbfd1e3",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/migrations/004_tl03_safe_constraints.sql",
+        "dev_path": "database/migrations/004_tl03_safe_constraints.sql",
+        "source_blob": "023c8b52de811641a3c196011bcb94bdfd2c3a75",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/seeds/001_customer_schedule_demo.sql",
+        "dev_path": "database/seeds/001_customer_schedule_demo.sql",
+        "source_blob": "6648516c7099f2e652a87ac3ba1549c2f4077b0d",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/tests/003_history.sql",
+        "dev_path": "tests/sql/003_history.sql",
+        "source_blob": "4470d24f594d18674f89269181d827c6623b15aa",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/tests/004_tl03_constraints.sql",
+        "dev_path": "tests/sql/004_tl03_constraints.sql",
+        "source_blob": "939dee3da91a024e02f6067020ce49112be3e6b9",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/tests/005_demo_seed.sql",
+        "dev_path": "tests/sql/005_demo_seed.sql",
+        "source_blob": "d56b53a6878de53828a2a65c4b36adcc9cc4ab33",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/architecture/dto_db_mapping.md",
+        "dev_path": "docs/service/database.md",
+        "source_blob": "cdb6e98ee4c10e64c98b289b3c441cfe5c793425",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/database/README.md",
+        "dev_path": "docs/service/database.md",
+        "source_blob": "5bad7c9662541f27ea4f71ac0a73d2f7e5f31d8c",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/database/orm_ddl_validation.md",
+        "dev_path": "docs/service/verification.md",
+        "source_blob": "83ba19fb3b5067ec37e6552109c11136afaa4e87",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/database/specification.md",
+        "dev_path": "docs/service/database.md",
+        "source_blob": "83545a0810ba67b07ea3d73f66df6171fe9f0229",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/database/tl03_target.md",
+        "dev_path": "docs/service/database.md",
+        "source_blob": "8649f5cba07f99fe57ad6e8acb46ac5679b09b50",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "new_file",
+        "dev_path": null,
+        "source_blob": "2e65efe2a145dda7ee51d1741299f848e5bf752e",
+        "disposition": "excluded_nonfunctional_placeholder"
+      }
+    ]
+  },
+  {
+    "branch": "new_backend",
+    "source_sha": "c559d27046d5028f83ed4f67dda4e8418618303d",
+    "comparison_base": "16b79affc155d75b76f585dcdfa4e5acc1781cfb",
+    "files": [
+      {
+        "source_path": ".gitignore",
+        "dev_path": ".gitignore",
+        "source_blob": "a5b19ade08704e1e8693b9bb04ac65a48611f702",
+        "disposition": "equivalent_private_environment_exclusions_retained"
+      },
+      {
+        "source_path": "backend/DEVELOPMENT.md",
+        "dev_path": "docs/service/development.md",
+        "source_blob": "dec3868f9cdb24896e557725e7c354e20678a77a",
+        "disposition": "documentation_reconciled_with_current_runtime"
+      },
+      {
+        "source_path": "backend/FX26-BE02-IMPLEMENTATION.md",
+        "dev_path": "docs/service/development.md",
+        "source_blob": "eae9d92e66d22e00b004ae7d7154bc59bc6e60dd",
+        "disposition": "documentation_reconciled_with_current_runtime"
+      },
+      {
+        "source_path": "backend/README.md",
+        "dev_path": "docs/service/development.md",
+        "source_blob": "4500a3c017f64769c082ab36f445d948bcfcff01",
+        "disposition": "documentation_reconciled_with_current_runtime"
+      },
+      {
+        "source_path": "backend/app/__init__.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "aafdea82062f56edd325456a472089302a3307ea",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/api/__init__.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "48f7373ee6233452cc303dc7355dbfaf3e116560",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/api/v1/__init__.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "d7509d621bff740fa4d7d28ff9eba5a2071fc5c1",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/api/v1/auth.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "3c7d4f026b6aa093032a3cd8a694468ea6e1744c",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/api/v1/equipment.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "e6b15d2b170d00db2662e9a842d1a11aceb54750",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/api/v1/users.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "ce6795b3e7510878b6bac1815551650e912b23dd",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/core/__init__.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "8be575e2b0cfeb8e436af6e9adee995b32a6266c",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/core/config.py",
+        "dev_path": ".env.example",
+        "source_blob": "d1c0717d3f7abeef7c05f7bf754e26e3083942c5",
+        "disposition": "single_existing_configuration_retained"
+      },
+      {
+        "source_path": "backend/app/core/database.py",
+        "dev_path": "backend/app/db/models.py",
+        "source_blob": "cc90cdfbd205f6a1df5aed7d29288a3ba3e65637",
+        "disposition": "adapted_to_reflected_shared_schema_and_migration_008"
+      },
+      {
+        "source_path": "backend/app/core/security.py",
+        "dev_path": "backend/app/security/sessions.py",
+        "source_blob": "49f129eb88f0f2ae1cf09116b31e38c87812b302",
+        "disposition": "adapted_to_opaque_sessions_password_hashing_csrf_no_uuid_cookie"
+      },
+      {
+        "source_path": "backend/app/main.py",
+        "dev_path": "backend/app/main.py",
+        "source_blob": "29422870114607cddc645e7f5feab2c10ec73825",
+        "disposition": "routes_registered_in_single_existing_application"
+      },
+      {
+        "source_path": "backend/app/models/__init__.py",
+        "dev_path": "backend/app/db/models.py",
+        "source_blob": "667b0303f0ddfcc90b3b1141eaced15da66a7521",
+        "disposition": "adapted_to_reflected_shared_schema_and_migration_008"
+      },
+      {
+        "source_path": "backend/app/models/base.py",
+        "dev_path": "backend/app/db/models.py",
+        "source_blob": "757111641d8f1ded0c39fc6e4a624a9068a14f75",
+        "disposition": "adapted_to_reflected_shared_schema_and_migration_008"
+      },
+      {
+        "source_path": "backend/app/models/equipment.py",
+        "dev_path": "backend/app/db/models.py",
+        "source_blob": "e615b3ee890303f9aadc03f8cdd3212e6abc5483",
+        "disposition": "adapted_to_reflected_shared_schema_and_migration_008"
+      },
+      {
+        "source_path": "backend/app/models/session.py",
+        "dev_path": "backend/app/db/models.py",
+        "source_blob": "174a157094ef7aac163838eb28ad4c253bd920cc",
+        "disposition": "adapted_to_reflected_shared_schema_and_migration_008"
+      },
+      {
+        "source_path": "backend/app/models/users.py",
+        "dev_path": "backend/app/db/models.py",
+        "source_blob": "03c7e54fe2f8b9e8c8a62530da8d096f6c492538",
+        "disposition": "adapted_to_reflected_shared_schema_and_migration_008"
+      },
+      {
+        "source_path": "backend/app/repositories/__init__.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "dff42ea01572474b5abbfc48583b140c9629a033",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/repositories/equipment_repository.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "4288755aa8a6b462a91b2469a03f964bc144269e",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/repositories/session_repository.py",
+        "dev_path": "backend/app/security/sessions.py",
+        "source_blob": "2caa27ae32690ee72c334eaa29678441327961f8",
+        "disposition": "adapted_to_opaque_sessions_password_hashing_csrf_no_uuid_cookie"
+      },
+      {
+        "source_path": "backend/app/repositories/user_repository.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "aea581a0332e5cbfa521f816415fe6b862ae7fcc",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/schemas/__init__.py",
+        "dev_path": "backend/app/schemas/management.py",
+        "source_blob": "2dc097cf9ee70fa07ea02fa66d1b306518366ea9",
+        "disposition": "adapted_strict_site_scoped_revision_commands"
+      },
+      {
+        "source_path": "backend/app/schemas/common.py",
+        "dev_path": "backend/app/schemas/management.py",
+        "source_blob": "507609dd0a796cc76147faedd770344f904ac04d",
+        "disposition": "adapted_strict_site_scoped_revision_commands"
+      },
+      {
+        "source_path": "backend/app/schemas/equipment.py",
+        "dev_path": "backend/app/schemas/management.py",
+        "source_blob": "179614a74cc77db3c3a4c690cc61f14f9b60de7d",
+        "disposition": "adapted_strict_site_scoped_revision_commands"
+      },
+      {
+        "source_path": "backend/app/schemas/users.py",
+        "dev_path": "backend/app/schemas/management.py",
+        "source_blob": "aeacfec00e81cb4e3288aa3f764c6bf62f8234cb",
+        "disposition": "adapted_strict_site_scoped_revision_commands"
+      },
+      {
+        "source_path": "backend/app/services/__init__.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "d2ae020d3719d63ede421a7b0dc5098161079219",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/services/auth_service.py",
+        "dev_path": "backend/app/security/sessions.py",
+        "source_blob": "0d407959be9c392d8e3799842ca02eb8ef83ccfc",
+        "disposition": "adapted_to_opaque_sessions_password_hashing_csrf_no_uuid_cookie"
+      },
+      {
+        "source_path": "backend/app/services/equipment_service.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "4bac066be6e43785861263eb5d37e3c78a1261bf",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/app/services/rbac_service.py",
+        "dev_path": "backend/app/integration/management.py",
+        "source_blob": "5d894320bf2b1eef3d9843f7df54fa122895d8fe",
+        "disposition": "behavior_adapted_with_site_role_csrf_and_revision_checks"
+      },
+      {
+        "source_path": "backend/docs/dto_db_alignment.md",
+        "dev_path": "docs/service/development.md",
+        "source_blob": "74f9601a3cfae017ef0001c87b9cb0baaefbf7a5",
+        "disposition": "documentation_reconciled_with_current_runtime"
+      },
+      {
+        "source_path": "backend/pyproject.toml",
+        "dev_path": "requirements.txt",
+        "source_blob": "1f352c96319c266c5ce7a8e61be0542c23cc860c",
+        "disposition": "shared_locked_dependencies_retained_no_parallel_async_stack"
+      },
+      {
+        "source_path": "backend/requirements.txt",
+        "dev_path": "requirements.txt",
+        "source_blob": "4bc22ccb607c93eb7d71f288402f757d9ad90d1e",
+        "disposition": "shared_locked_dependencies_retained_no_parallel_async_stack"
+      },
+      {
+        "source_path": "backend/scripts/init_db.py",
+        "dev_path": "backend/app/manage.py",
+        "source_blob": "5bf38b8bb09c1898354e6195e3d999c88a787e9c",
+        "disposition": "create_all_excluded_single_sql_migrator_retained"
+      },
+      {
+        "source_path": "backend/tests/conftest.py",
+        "dev_path": "tests/backend/test_management.py",
+        "source_blob": "8618c3ab8f8d8c12e27e0517297ca2cd8a231375",
+        "disposition": "adapted_real_database_http_coverage_with_test_runtime_integration"
+      },
+      {
+        "source_path": "backend/tests/test_auth.py",
+        "dev_path": "tests/backend/test_management.py",
+        "source_blob": "7d75083eab6d5b9669c657797776824a00443e9e",
+        "disposition": "adapted_real_database_http_coverage_with_test_runtime_integration"
+      },
+      {
+        "source_path": "backend/tests/test_equipment_api.py",
+        "dev_path": "tests/backend/test_management.py",
+        "source_blob": "fa71a4fc3801c4ccc802e97de729d1629694f08c",
+        "disposition": "adapted_real_database_http_coverage_with_test_runtime_integration"
+      },
+      {
+        "source_path": "backend/tests/test_rbac.py",
+        "dev_path": "tests/backend/test_management.py",
+        "source_blob": "9499f542f5e05dfdb4dae7f4611e17e80705968e",
+        "disposition": "adapted_real_database_http_coverage_with_test_runtime_integration"
+      },
+      {
+        "source_path": "database/migrations/004_sessions.sql",
+        "dev_path": "database/migrations/005_runtime_integration.sql",
+        "source_blob": "06a370c51b065eb5cf38f4e9a1899fdd9f56f53c",
+        "disposition": "duplicate_session_schema_excluded_existing_opaque_session_retained"
+      },
+      {
+        "source_path": "db/tests/scenario_results.json",
+        "dev_path": "docs/service/verification.md",
+        "source_blob": "c86516d4a68b6ad277124dcaa8b7120b4dbf28e0",
+        "disposition": "source_record_not_used_as_proof_real_tests_rerun"
+      }
+    ],
+    "previous_accounted_files": [
+      {
+        "source_path": "backend/app/security/__init__.py",
+        "dev_path": "backend/app/security/__init__.py",
+        "source_blob": "e6d8f36e677be008e94fb47e75f70b195e6e2065",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/security/authorization.py",
+        "dev_path": "backend/app/security/authorization.py",
+        "source_blob": "37fc3488859c0c168dd44775d6d1a8f9cda284d7",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/pytest.ini",
+        "dev_path": "pytest.ini",
+        "source_blob": "03f586d41650da9718d8c6bdc6ada4a068cb96a8",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_authorization.py",
+        "dev_path": "tests/backend/test_authorization.py",
+        "source_blob": "c97e2ac9ebd9164e4bf22257a32b42fa3b1ac5bb",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_maintenance_api.py",
+        "dev_path": "tests/backend/test_maintenance_api.py",
+        "source_blob": "0a03af3263294caad2991ccfc2409e02ee62ec0a",
+        "disposition": "equivalent_base_test_retained"
+      }
+    ]
+  },
+  {
+    "branch": "front/mvidy",
+    "source_sha": "226f3266a29cd43121ddca2c707cdcf5d71d375c",
+    "comparison_base": "d94f528df8c0e0f69c344ebd8c79a99bfbe5c1f2",
+    "files": [
+      {
+        "source_path": ".gitignore",
+        "dev_path": ".gitignore",
+        "source_blob": "95f5c8abe93de1131e4a2c88ba57c8427e776a57",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "README.md",
+        "dev_path": "docs/INDEX.md",
+        "source_blob": "5c26be035e2d3effc68540292d252be8a1d8ef28",
+        "disposition": "content_reconciled_into_final_README_and_system_docs"
+      },
+      {
+        "source_path": "docs/ui/screen-map.md",
+        "dev_path": "docs/service/web.md",
+        "source_blob": "0421397bc53fc9829cc8c5e7ea945fd6d931c4cb",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/ui/ui-kit.md",
+        "dev_path": "docs/service/web.md",
+        "source_blob": "78ed448f46213e127541ae38029fe8f7eb7e81d5",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/README.md",
+        "dev_path": "docs/service/web.md",
+        "source_blob": "122bc4d5ea52994af661e905ce0e928e8aeb7ef7",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/index.html",
+        "dev_path": "frontend/index.html",
+        "source_blob": "20db9ab612a1a4959e87bd4b5b7a42467e784c93",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/package-lock.json",
+        "dev_path": "frontend/package-lock.json",
+        "source_blob": "d445184e2cc13c30737749a2df5c37341761dd94",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/package.json",
+        "dev_path": "frontend/package.json",
+        "source_blob": "2730c4989fc81cec0ab63a091ac141a6d4d17c4b",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/app/App.tsx",
+        "dev_path": "frontend/src/app/App.tsx",
+        "source_blob": "cfd3f501dfa3c14140c5816212fe11126d144086",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/app/guards.tsx",
+        "dev_path": "frontend/src/app/guards.tsx",
+        "source_blob": "5dda02b40ad40ee3f96c2b4ae85809d13ee45d6f",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/app/router.test.tsx",
+        "dev_path": "tests/web/unit/app/router.test.tsx",
+        "source_blob": "b0bdc83cf61d76e8e45827038531dc40cdf0660f",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/app/router.tsx",
+        "dev_path": "frontend/src/app/router.tsx",
+        "source_blob": "0d587016ebf43dd2c9b664b5ff606a701e5012d8",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/entities/equipment/EquipmentTable.tsx",
+        "dev_path": "frontend/src/entities/equipment/EquipmentTable.tsx",
+        "source_blob": "d592816816bd9bf7140b3d35cb814a4f68c81b15",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/entities/execution/ChecklistSummary.tsx",
+        "dev_path": "frontend/src/entities/execution/ChecklistSummary.tsx",
+        "source_blob": "ecedf7288f8db11c43c3c99c736de3576138e89d",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/entities/execution/EvidenceGallery.tsx",
+        "dev_path": "frontend/src/entities/execution/EvidenceGallery.tsx",
+        "source_blob": "b26a8bac78d6f3d0ddf904eb9c9439c014fd85c3",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/entities/forecast/ForecastResultCard.tsx",
+        "dev_path": "frontend/src/entities/forecast/ForecastResultCard.tsx",
+        "source_blob": "028eb83cf011aee528e757b9501594c4b5657e64",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/entities/task/TaskTable.tsx",
+        "dev_path": "frontend/src/entities/task/TaskTable.tsx",
+        "source_blob": "8c88e03c89d523aa7e55a450cd093c42969cfa96",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/index.css",
+        "dev_path": "frontend/src/index.css",
+        "source_blob": "dcdb7774bc23d771ba068d4e21235d45dc08e511",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/layouts/AppShell.tsx",
+        "dev_path": "frontend/src/layouts/AppShell.tsx",
+        "source_blob": "0b5b9ee9b90f7540cc6546d735d27c0f27d4c387",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/layouts/ExecutorLayout.tsx",
+        "dev_path": "frontend/src/layouts/ExecutorLayout.tsx",
+        "source_blob": "f4a52d1f2aa9f2d4981adf4c4a475d3e3da93339",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/main.tsx",
+        "dev_path": "frontend/src/main.tsx",
+        "source_blob": "2c61a6dd081d5b17d5804155b22fd4d522e35ffb",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/AccessDeniedPage.tsx",
+        "dev_path": "frontend/src/pages/AccessDeniedPage.tsx",
+        "source_blob": "4fe16cc0beb59d9e2f25d2f96e3ec5ff602de780",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/CalendarPage.tsx",
+        "dev_path": "frontend/src/pages/CalendarPage.tsx",
+        "source_blob": "8e589915a562203099e3baf24ca61c7b882625c2",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/ComparisonDetailPage.tsx",
+        "dev_path": "frontend/src/pages/ComparisonDetailPage.tsx",
+        "source_blob": "4ebec2bd591587070bd20a38f79bda56fd11e8f2",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/ComparisonsPage.tsx",
+        "dev_path": "frontend/src/pages/ComparisonsPage.tsx",
+        "source_blob": "21cf4f4bab5cac4a8540e8a378f8fa557a86382f",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/DispatcherPage.tsx",
+        "dev_path": "frontend/src/pages/DispatcherPage.tsx",
+        "source_blob": "6f9d7b058d24f45aeeb61478a832cc4ada6c3059",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/EquipmentDetailPage.tsx",
+        "dev_path": "frontend/src/pages/EquipmentDetailPage.tsx",
+        "source_blob": "f3f8f1f4562978a79b252e09f7df9690e5e3e894",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/EquipmentPage.tsx",
+        "dev_path": "frontend/src/pages/EquipmentPage.tsx",
+        "source_blob": "9153711a1642389924eb0a5bbf4a2b5581598742",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/ExecutorPage.tsx",
+        "dev_path": "frontend/src/pages/ExecutorPage.tsx",
+        "source_blob": "a19bb3fc5ae0059896927eba4ea39ab90e5925d2",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/ExecutorTaskPage.tsx",
+        "dev_path": "frontend/src/pages/ExecutorTaskPage.tsx",
+        "source_blob": "f79cb15ff8b2aed269ad8729c2be9e5329f340c0",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/HomeRedirect.tsx",
+        "dev_path": "frontend/src/pages/HomeRedirect.tsx",
+        "source_blob": "54abfd2bd538aeb72a9315c34765c4be1c52e403",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/LoginPage.tsx",
+        "dev_path": "frontend/src/pages/LoginPage.tsx",
+        "source_blob": "d7ec7395d28957f0740526e8c4020757651c56b1",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/NotFoundPage.tsx",
+        "dev_path": "frontend/src/pages/NotFoundPage.tsx",
+        "source_blob": "ff12b33ba385f3b453de5c4b59842bd60c4ac156",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/QualityPage.tsx",
+        "dev_path": "frontend/src/pages/QualityPage.tsx",
+        "source_blob": "6c189f9630fe87555e9a7593a9cf417a06389945",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/QualityTaskPage.tsx",
+        "dev_path": "frontend/src/pages/QualityTaskPage.tsx",
+        "source_blob": "e8ee972a695b6ecd62a0eeca33273e35b8a794d8",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/TaskDetailPage.tsx",
+        "dev_path": "frontend/src/pages/TaskDetailPage.tsx",
+        "source_blob": "20d7f2a3bb1d83d0cb08f1242434972798ba83ae",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/pages/TasksPage.tsx",
+        "dev_path": "frontend/src/pages/TasksPage.tsx",
+        "source_blob": "c0a5d57d621f13fdb93adca2154208a085eca97e",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/api/maintenance.ts",
+        "dev_path": "frontend/src/shared/api/maintenance.ts",
+        "source_blob": "052f277f04c9c700f226c694c7aad239068760dc",
+        "disposition": "split_production_transport_and_maintenance.demo.ts"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/format.ts",
+        "dev_path": "frontend/src/shared/lib/format.ts",
+        "source_blob": "745527eed29bb68d1df14463a8a7bc71f6993b1f",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/roles.ts",
+        "dev_path": "frontend/src/shared/lib/roles.ts",
+        "source_blob": "baa8c886ff5f17f6d621bdb89bc62ab731cb4f50",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/useApiQuery.ts",
+        "dev_path": "frontend/src/shared/lib/useApiQuery.ts",
+        "source_blob": "3b978bd0ea236cd658083e9a65a988e035d12bd5",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/useDialogFocus.ts",
+        "dev_path": "frontend/src/shared/lib/useDialogFocus.ts",
+        "source_blob": "5e17868faa35eca2ed5316b203181d4d6d206ea2",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/mocks/data.ts",
+        "dev_path": "frontend/src/shared/mocks/data.ts",
+        "source_blob": "fff46b3fa8791fb475c09c2721c537fb47e899b8",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/session/SessionContext.tsx",
+        "dev_path": "frontend/src/shared/session/SessionContext.tsx",
+        "source_blob": "007eccf3bd4f9a91d1d8af4e4df93cb25973e8f7",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/types/domain.ts",
+        "dev_path": "frontend/src/shared/types/domain.ts",
+        "source_blob": "ac9976f6f1c93169d8e390466423fc060a5f5543",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Badge.tsx",
+        "dev_path": "frontend/src/shared/ui/Badge.tsx",
+        "source_blob": "1032c3d99f54e6e50931e3daa9c22da66cfa3278",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Brand.tsx",
+        "dev_path": "frontend/src/shared/ui/Brand.tsx",
+        "source_blob": "1c379b8f49fd2ab75f169ad75d757d834df0f443",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Button.tsx",
+        "dev_path": "frontend/src/shared/ui/Button.tsx",
+        "source_blob": "0c9a76a78f1a83e4f926e62484b281f17775d23a",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Callout.tsx",
+        "dev_path": "frontend/src/shared/ui/Callout.tsx",
+        "source_blob": "d5f24c76dbf9ef84c932dbf95ecf88cb32400b0c",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Card.tsx",
+        "dev_path": "frontend/src/shared/ui/Card.tsx",
+        "source_blob": "6e4e40302871a6da671e5bb04e0c41001ac4a891",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/FilterChip.tsx",
+        "dev_path": "frontend/src/shared/ui/FilterChip.tsx",
+        "source_blob": "ea761319ca726603a329bbaf0b737f2c11c2c930",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Form.tsx",
+        "dev_path": "frontend/src/shared/ui/Form.tsx",
+        "source_blob": "ceb26018ed5755b5d509ffa0e793396029b69352",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Icon.tsx",
+        "dev_path": "frontend/src/shared/ui/Icon.tsx",
+        "source_blob": "7eb2dd99b6161dfb935feb5da854d2fbebd5d0df",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/InfoList.tsx",
+        "dev_path": "frontend/src/shared/ui/InfoList.tsx",
+        "source_blob": "d8671b63082899a5a1daef009521543177ae301a",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Modal.test.tsx",
+        "dev_path": "tests/web/unit/shared/ui/Modal.test.tsx",
+        "source_blob": "5fff1fb2352518e369488d3aeb13079374165358",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Modal.tsx",
+        "dev_path": "frontend/src/shared/ui/Modal.tsx",
+        "source_blob": "742ab443e36317fc7691c38855eb5318cf62d087",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/PageHeader.tsx",
+        "dev_path": "frontend/src/shared/ui/PageHeader.tsx",
+        "source_blob": "bb4e86ce416cb662c7224dfb7628aa0284d3db02",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/States.tsx",
+        "dev_path": "frontend/src/shared/ui/States.tsx",
+        "source_blob": "5196ce7eddaa12b6b00206b8f4356b544437961b",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/StatusBadge.tsx",
+        "dev_path": "frontend/src/shared/ui/StatusBadge.tsx",
+        "source_blob": "e282390aae0f45610c0b854ac92cf7656a42545e",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Table.tsx",
+        "dev_path": "frontend/src/shared/ui/Table.tsx",
+        "source_blob": "27073ddf96ff42bb1c311437148e5defd3682762",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/test/setup.ts",
+        "dev_path": "tests/web/setup.ts",
+        "source_blob": "27627da04938032bcde97ab5b16d99ee7201f4d6",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/src/widgets/StatCard.tsx",
+        "dev_path": "frontend/src/widgets/StatCard.tsx",
+        "source_blob": "023a23d95e071da70092d2c33c285e28328ec63e",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/tsconfig.app.json",
+        "dev_path": "frontend/tsconfig.app.json",
+        "source_blob": "83e83219ff883de62ff2456e5792173b43ae80ea",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/tsconfig.json",
+        "dev_path": "frontend/tsconfig.json",
+        "source_blob": "1ffef600d959ec9e396d5a260bd3f5b927b2cef8",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/tsconfig.node.json",
+        "dev_path": "frontend/tsconfig.node.json",
+        "source_blob": "81ca97b3acd7d0eec8e9c3ea399e893078456c73",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "frontend/vite.config.ts",
+        "dev_path": "frontend/vite.config.ts",
+        "source_blob": "d6c346e27b17a5ba80b673f73157b860f78c0e8a",
+        "disposition": "retained_or_adapted"
+      }
+    ]
+  },
+  {
+    "branch": "feat/ml-forecasting-photo-review",
+    "source_sha": "2b8488f71ec295c94cb4874cbe9f8b324c3b0e41",
+    "comparison_base": "d94f528df8c0e0f69c344ebd8c79a99bfbe5c1f2",
+    "files": [
+      {
+        "source_path": "docs/ml/clip_default_experiment.json",
+        "dev_path": "reports/ml/archive/clip_default_experiment.json",
+        "source_blob": "a8716e888bca664e15f0e0c5790d58956409163e",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/ml/clip_experiment.json",
+        "dev_path": "reports/ml/archive/clip_experiment.json",
+        "source_blob": "e00e17edfe0a8b541b9beee38a114ddddf941b80",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/ml/clip_service_experiment.json",
+        "dev_path": "reports/ml/archive/clip_service_experiment.json",
+        "source_blob": "3037cbbf310b4ce427489d79b85392e112a5beae",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/ml/data_contract.md",
+        "dev_path": "docs/service/ml.md",
+        "source_blob": "2604063693e231f55c63d80ae1b435e9724c5acb",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/ml/forecast_examples.json",
+        "dev_path": "contracts/examples/condition_forecast.json",
+        "source_blob": "79d48df36aef8b4f8396a8ba9c62daf0e450c5e5",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/ml/inspection_capabilities.md",
+        "dev_path": "docs/service/ml.md",
+        "source_blob": "3c4700f2cc852b25e113f3a30215eb7ce9d7c657",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/ml/integration_validation.md",
+        "dev_path": "docs/service/verification.md",
+        "source_blob": "c4638861eded5f50198cfeef1c95cd2be58c4385",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/ml/mr_draft.md",
+        "dev_path": "docs/service/development.md",
+        "source_blob": "83f65b64b4d04f9c1e2d83f6dbeb727538141cbe",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/ARCHITECTURE.md",
+        "dev_path": "docs/service/ml.md",
+        "source_blob": "0ee92ffd6935ba557203dbf712da779f24aa7cfe",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/DECISIONS.md",
+        "dev_path": "docs/decisions/INDEX.md",
+        "source_blob": "69f76bd76f54f71e6e208b1c0dedecebb0fc274b",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/PROGRESS.md",
+        "dev_path": "docs/service/ml.md",
+        "source_blob": "5c033651c2e84eaa433fed3684562b827e4afd00",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/app/core/config.py",
+        "dev_path": "ml_service/app/core/config.py",
+        "source_blob": "0f929a92163c1315158a3723964499a747509f78",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/app/cv/api.py",
+        "dev_path": "ml_service/app/cv/api.py",
+        "source_blob": "0ea6272c824aa90fa5b02e04307873190d2ad754",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/app/cv/classifier.py",
+        "dev_path": "ml_service/app/cv/classifier.py",
+        "source_blob": "b1f11232f57ab7be917a2690fe8140de9582b3f4",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/app/cv/service.py",
+        "dev_path": "ml_service/app/cv/service.py",
+        "source_blob": "33c2a105c542b5a43f17891045204b992788bf92",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/app/forecast/api.py",
+        "dev_path": "ml_service/app/forecast/api.py",
+        "source_blob": "f8f319b90122f7cfe3f22445ec4b786fd64ae2df",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/app/forecast/backend_adapter.py",
+        "dev_path": "ml_service/app/forecast/backend_adapter.py",
+        "source_blob": "3e92ca6237a40381acf826664115fd585fb608da",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/app/forecast/client.py",
+        "dev_path": "ml_service/app/forecast/client.py",
+        "source_blob": "de2c18a1a57eaf494c5ad81f90d9ef7bcb492e1e",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/app/forecast/condition.py",
+        "dev_path": "ml_service/app/forecast/condition.py",
+        "source_blob": "bc75b4289e0e73e8bea32de24c8876d5d17953f0",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/inspect_pairs.py",
+        "dev_path": "ml_service/inspect_pairs.py",
+        "source_blob": "803c9243a30721558927464691b3e3b59dcbca76",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/requirements-cv.txt",
+        "dev_path": "requirements.txt",
+        "source_blob": "ddc2cd4e00045c19d9e76da7c122386762a83f31",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/requirements.txt",
+        "dev_path": "requirements.txt",
+        "source_blob": "5f1c436a5a7a469099232ebafb745e236c414694",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/tests/test_backend_adapter.py",
+        "dev_path": "tests/ml/test_backend_adapter.py",
+        "source_blob": "f29ffa7211c528922fb1a44599869a0b5aaed69d",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/tests/test_condition_contract.py",
+        "dev_path": "tests/ml/test_condition_contract.py",
+        "source_blob": "350fe75477c7e6536bafd02fd42a7d2e74d2109e",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/tests/test_cv.py",
+        "dev_path": "tests/ml/test_cv.py",
+        "source_blob": "e75e5d12693421b0f28386044ba849c1d655c9c4",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/tests/test_forecast.py",
+        "dev_path": "tests/ml/test_forecast.py",
+        "source_blob": "04c9a388e4a553e4405eef5e81516909440f0dd4",
+        "disposition": "retained_or_adapted"
+      }
+    ]
+  },
+  {
+    "branch": "qa/roles-contracts",
+    "source_sha": "00b0dcafb55ccf30514e0dca413897ae01f61f37",
+    "comparison_base": "bb300ec542ddfb538890eaa517368099fa4ee180",
+    "files": [
+      {
+        "source_path": "backend/app/security/__init__.py",
+        "dev_path": "backend/app/security/__init__.py",
+        "source_blob": "e6d8f36e677be008e94fb47e75f70b195e6e2065",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/security/authorization.py",
+        "dev_path": "backend/app/security/authorization.py",
+        "source_blob": "37fc3488859c0c168dd44775d6d1a8f9cda284d7",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/pytest.ini",
+        "dev_path": "pytest.ini",
+        "source_blob": "03f586d41650da9718d8c6bdc6ada4a068cb96a8",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/ROLES_CONTRACTS_PROTOCOL.md",
+        "dev_path": "docs/service/verification.md",
+        "source_blob": "4cff3cd1ddbb65e721e383fde3d1330248cb7bef",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_authorization.py",
+        "dev_path": "tests/backend/test_authorization.py",
+        "source_blob": "c97e2ac9ebd9164e4bf22257a32b42fa3b1ac5bb",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_maintenance_api.py",
+        "dev_path": "tests/backend/test_maintenance_api.py",
+        "source_blob": "0a03af3263294caad2991ccfc2409e02ee62ec0a",
+        "disposition": "equivalent_base_test_retained"
+      },
+      {
+        "source_path": "backend/tests/test_roles_contracts.py",
+        "dev_path": "tests/backend/test_roles_contracts.py",
+        "source_blob": "a239e867769a0383f0262de87870469769d26ee8",
+        "disposition": "retained_or_adapted"
+      }
+    ]
+  },
+  {
+    "branch": "docs/tests-p0",
+    "source_sha": "f3730e86e5794d45c5fb154b194ce75a9ff9c522",
+    "comparison_base": "43d90608cbabf290668de2ef4d4608bc0ae6e7f0",
+    "files": [
+      {
+        "source_path": "README.md",
+        "dev_path": "docs/INDEX.md",
+        "source_blob": "d4f8d55065606c6cbb81c33a1d5cdb62798c6e1c",
+        "disposition": "content_reconciled_into_final_README_and_system_docs"
+      },
+      {
+        "source_path": "backend/README.md",
+        "dev_path": "docs/service/backend.md",
+        "source_blob": "9664a094a60b8b80222bd2c1388767b343f7d602",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/__init__.py",
+        "dev_path": "backend/app/db/__init__.py",
+        "source_blob": "679761c4e1f76ebf64fefd8934d18e8c1fd1cb64",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/dto.py",
+        "dev_path": "backend/app/db/dto.py",
+        "source_blob": "626ee20a765d642cf2a7905d5710dcf1ec3cc64f",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/models.py",
+        "dev_path": "backend/app/db/models.py",
+        "source_blob": "333d19e47d5916b9284529b7d1af5b4dbc19ab74",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/repository.py",
+        "dev_path": "backend/app/db/repository.py",
+        "source_blob": "bb4cb50225c3ad17264eb78a1b07b8d81068ab6d",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/service.py",
+        "dev_path": "backend/app/db/service.py",
+        "source_blob": "2028d00303e8908297dd0e484fb4347aad595ce4",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/session.py",
+        "dev_path": "backend/app/db/session.py",
+        "source_blob": "52e24c617b46845581a24c7be40f2931e3f43a6f",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/security/__init__.py",
+        "dev_path": "backend/app/security/__init__.py",
+        "source_blob": "e6d8f36e677be008e94fb47e75f70b195e6e2065",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/security/authorization.py",
+        "dev_path": "backend/app/security/authorization.py",
+        "source_blob": "37fc3488859c0c168dd44775d6d1a8f9cda284d7",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/pytest.ini",
+        "dev_path": "pytest.ini",
+        "source_blob": "03f586d41650da9718d8c6bdc6ada4a068cb96a8",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/requirements.txt",
+        "dev_path": "requirements.txt",
+        "source_blob": "7f8b7ab88b19f9628a95e0ceae00379d453d37f6",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/ROLES_CONTRACTS_PROTOCOL.md",
+        "dev_path": "docs/service/verification.md",
+        "source_blob": "bfec5cbdb6cf8d23ce18bdcea5f1cdeb2b6fd47b",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_authorization.py",
+        "dev_path": "tests/backend/test_authorization.py",
+        "source_blob": "c97e2ac9ebd9164e4bf22257a32b42fa3b1ac5bb",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_dto_mapping.py",
+        "dev_path": "tests/backend/test_dto_mapping.py",
+        "source_blob": "d95fb2046a8fb2755e53d54f16e5e0b78a66ca56",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_maintenance_api.py",
+        "dev_path": "tests/backend/test_maintenance_api.py",
+        "source_blob": "601e64fe4c60d6b4d4187d341b3b32e8e8973e48",
+        "disposition": "equivalent_base_test_retained"
+      },
+      {
+        "source_path": "backend/tests/test_mapping_configuration.py",
+        "dev_path": "tests/backend/test_mapping_configuration.py",
+        "source_blob": "49454f3f38c1a1de83fb58c150bd5ffd0f75f3ef",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_persistence.py",
+        "dev_path": "tests/backend/test_persistence.py",
+        "source_blob": "8becf36980dd3d70cc82db9e271d2ecf486cf18e",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_roles_contracts.py",
+        "dev_path": "tests/backend/test_roles_contracts.py",
+        "source_blob": "a239e867769a0383f0262de87870469769d26ee8",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/tests/test_transactions.py",
+        "dev_path": "tests/backend/test_transactions.py",
+        "source_blob": "6587b4e250f9fb4a383c9af29f57592f5fdde2ff",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/README.md",
+        "dev_path": "docs/service/database.md",
+        "source_blob": "ddffde157c28c0bb36b3fdd44e74719e56dcceea",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/migrations/004_tl03_safe_constraints.sql",
+        "dev_path": "database/migrations/004_tl03_safe_constraints.sql",
+        "source_blob": "023c8b52de811641a3c196011bcb94bdfd2c3a75",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/tests/003_history.sql",
+        "dev_path": "tests/sql/003_history.sql",
+        "source_blob": "4470d24f594d18674f89269181d827c6623b15aa",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "database/tests/004_tl03_constraints.sql",
+        "dev_path": "tests/sql/004_tl03_constraints.sql",
+        "source_blob": "939dee3da91a024e02f6067020ce49112be3e6b9",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "db/tests/README.md",
+        "dev_path": "docs/service/verification.md",
+        "source_blob": "d51601cae0de64e10e1c80ddef6009217f582e03",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "db/tests/run_2026-10-30.log",
+        "dev_path": "docs/service/verification.md",
+        "source_blob": "edf600db424e06a16374293bb7499ee30b1612c3",
+        "disposition": "sql_qa_result_summarized"
+      },
+      {
+        "source_path": "db/tests/run_schema_test.ps1",
+        "dev_path": "scripts/verify_schema.ps1",
+        "source_blob": "e7d0abe2a4300244701d5b3e611b5e77cf22f01c",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "db/tests/test_maintenance_schema.sql",
+        "dev_path": "tests/sql/test_maintenance_schema.sql",
+        "source_blob": "198e602e6d56bec9871e29d9d88192e5f594b9ba",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/architecture/dto_db_mapping.md",
+        "dev_path": "docs/service/database.md",
+        "source_blob": "cdb6e98ee4c10e64c98b289b3c441cfe5c793425",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/database/README.md",
+        "dev_path": "docs/service/database.md",
+        "source_blob": "5bad7c9662541f27ea4f71ac0a73d2f7e5f31d8c",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/database/orm_ddl_validation.md",
+        "dev_path": "docs/service/verification.md",
+        "source_blob": "83ba19fb3b5067ec37e6552109c11136afaa4e87",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/database/specification.md",
+        "dev_path": "docs/service/database.md",
+        "source_blob": "83545a0810ba67b07ea3d73f66df6171fe9f0229",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/database/tl03_target.md",
+        "dev_path": "docs/service/database.md",
+        "source_blob": "8649f5cba07f99fe57ad6e8acb46ac5679b09b50",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "new_file",
+        "dev_path": null,
+        "source_blob": "2e65efe2a145dda7ee51d1741299f848e5bf752e",
+        "disposition": "excluded_nonfunctional_placeholder"
+      },
+      {
+        "source_path": "tests/README.md",
+        "dev_path": "docs/service/verification.md",
+        "source_blob": "e0626f4ac56e23e7adc2d33d56b65c69daef3172",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "tests/p0_scenarios.md",
+        "dev_path": "docs/service/verification.md",
+        "source_blob": "30065381bddc2ae03288d4e99fdfbe1b25a2d2b2",
+        "disposition": "retained_or_adapted"
+      }
+    ]
+  },
+  {
+    "branch": "feature/frontend-kran",
+    "source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+    "comparison_base": "720a8dd9c3d4e4e8051485e8f438a8b40c3cb631",
+    "frontend_change_base": "306f7fa98f2e33fa16b8e76fa0af1b520d3bb7d0",
+    "files": [
+      {
+        "source_path": ".gitignore",
+        "dev_path": ".gitignore",
+        "source_blob": "87b83ef89193fcc52b0fcae72c74c5b430d42d7d",
+        "source_change": "M",
+        "disposition": "adapted_local_tooling_rules",
+        "reason": "Four local-tool directories ignored; AGENTS.md and documentation ignore rules excluded.",
+        "accounted_at_source_sha": "29484582c649ecd94771204466be39fc14b13f16"
+      },
+      {
+        "source_path": "AGENTS.md",
+        "dev_path": "AGENTS.md",
+        "source_blob": null,
+        "source_change": "D",
+        "disposition": "retained_dev_instructions",
+        "reason": "Source deletion excluded; tracked canonical project instructions remain in dev.",
+        "accounted_at_source_sha": "29484582c649ecd94771204466be39fc14b13f16"
+      },
+      {
+        "source_path": "README.md",
+        "dev_path": "README.md",
+        "source_blob": "984c68466775593abf25ac0a5bfc04fd187ff305",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "disposition": "adapted_to_canonical_dev_documentation"
+      },
+      {
+        "source_path": "docs/PLAN.md",
+        "dev_path": "docs/PLAN.md",
+        "source_blob": "be04d79b073db4ed1b981255cdcfbcd8e83dd1f4",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "disposition": "adapted_to_canonical_dev_documentation"
+      },
+      {
+        "source_path": "docs/assets/login/login-desktop.png",
+        "dev_path": null,
+        "source_blob": "3e310ec3b07cb7700a4f14c4d69d6224e13a645d",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "disposition": "excluded_unreferenced_source_screenshot"
+      },
+      {
+        "source_path": "docs/assets/login/login-mobile.png",
+        "dev_path": null,
+        "source_blob": "9a5fd91ed9c5bf4ab9732b991c5aea0633b26dba",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "disposition": "excluded_unreferenced_source_screenshot"
+      },
+      {
+        "source_path": "docs/database/orm_ddl_validation.md",
+        "dev_path": "docs/service/database.md",
+        "source_blob": "83ba19fb3b5067ec37e6552109c11136afaa4e87",
+        "source_change": "A",
+        "disposition": "already_accounted_canonical_documentation",
+        "reason": "Inherited kran_dev document; existing unified documentation retained instead of restoring old Markdown.",
+        "accounted_at_source_sha": "29484582c649ecd94771204466be39fc14b13f16"
+      },
+      {
+        "source_path": "docs/database/tl03_target.md",
+        "dev_path": "docs/service/database.md",
+        "source_blob": "8649f5cba07f99fe57ad6e8acb46ac5679b09b50",
+        "source_change": "A",
+        "disposition": "already_accounted_canonical_documentation",
+        "reason": "Inherited kran_dev document; existing unified documentation retained instead of restoring old Markdown.",
+        "accounted_at_source_sha": "29484582c649ecd94771204466be39fc14b13f16"
+      },
+      {
+        "source_path": "docs/decisions/2026-11-02--mobile-aurora-canvas.md",
+        "dev_path": "docs/decisions/2026-11-02--mobile-aurora-canvas.md",
+        "source_blob": "af28f004f1395ab11ee033aead4f42e58e55aa4e",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "disposition": "adapted_to_canonical_dev_documentation"
+      },
+      {
+        "source_path": "docs/decisions/INDEX.md",
+        "dev_path": "docs/decisions/INDEX.md",
+        "source_blob": "6b84fa0678f085cbb6c8bb874a1b970c66771707",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "disposition": "adapted_to_canonical_dev_documentation"
+      },
+      {
+        "source_path": "docs/service/INDEX.md",
+        "dev_path": "docs/service/INDEX.md",
+        "source_blob": "48b9e6e22c02de415aa2eab9be79c0f9c3397b4b",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "disposition": "adapted_to_canonical_dev_documentation"
+      },
+      {
+        "source_path": "docs/service/verification.md",
+        "dev_path": "docs/service/verification.md",
+        "source_blob": "0dcdb79d376d7cd03d3c601d7d4d31ef83289617",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "disposition": "adapted_to_canonical_dev_documentation"
+      },
+      {
+        "source_path": "docs/service/web.md",
+        "dev_path": "docs/service/web.md",
+        "source_blob": "a3bc8b06b39d4ef087531cd196c2ed0ff6e3dc92",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "disposition": "adapted_to_canonical_dev_documentation"
+      },
+      {
+        "source_path": "docs/ui/motion-system.md",
+        "dev_path": "docs/service/web-motion.md",
+        "source_blob": "5e9f23bb86e31ba90c205f6c35438ec473906a2b",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "disposition": "adapted_to_canonical_dev_documentation"
+      },
+      {
+        "source_path": "frontend/e2e/login.spec.ts",
+        "dev_path": "tests/web/e2e/login.spec.ts",
+        "source_blob": "bff8765c9f9c2afcc9803231176b083b329303ae",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/e2e/roles.spec.ts",
+        "dev_path": "tests/web/e2e/roles.spec.ts",
+        "source_blob": "8070d916570edeb9bac5123e59ccf5d475c4ce6d",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/e2e/settings.spec.ts",
+        "dev_path": "tests/web/e2e/settings.spec.ts",
+        "source_blob": "37d194810eb7622c0a83f05e9752b9ce0afbb71d",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/index.html",
+        "dev_path": "frontend/index.html",
+        "source_blob": "cc7f0148e7dbdfe18967a8474b1c4ff38ce84c5b",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/app/router.tsx",
+        "dev_path": "frontend/src/app/router.tsx",
+        "source_blob": "0fa028fd7bdd9a21d78f8f9c559a0195aba1be5c",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/assets/favicon.svg",
+        "dev_path": null,
+        "disposition": "excluded_unused_favicon_export",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "source_blob": "ad403799986affb8c8fb771d9cd8dd1fa3c2fd9f"
+      },
+      {
+        "source_path": "frontend/src/assets/favicons-visible/favicon-active-16.png",
+        "dev_path": "frontend/src/assets/favicons-visible/favicon-active-16.png",
+        "source_blob": "3fcaaa924d2782fe6bb487fc735cfb6e0eecb01b",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/assets/favicons-visible/favicon-active-32.png",
+        "dev_path": "frontend/src/assets/favicons-visible/favicon-active-32.png",
+        "source_blob": "fef21b7d694d4429eb01237bc005777131725558",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/assets/favicons-visible/favicon-active.ico",
+        "dev_path": "frontend/src/assets/favicons-visible/favicon-active.ico",
+        "source_blob": "51ebd1dd0cfaff62a4171adc4a35e8122df12166",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/assets/favicons/favicon-active-16.png",
+        "dev_path": null,
+        "disposition": "excluded_unused_favicon_export",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "source_blob": "097024c5f71e384cf5a13d99b9b58332118c186d"
+      },
+      {
+        "source_path": "frontend/src/assets/favicons/favicon-active-32.png",
+        "dev_path": null,
+        "disposition": "excluded_unused_favicon_export",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "source_blob": "465da0fa4b4537be762a47ba33742862ad136c26"
+      },
+      {
+        "source_path": "frontend/src/assets/favicons/favicon-active.ico",
+        "dev_path": null,
+        "disposition": "excluded_unused_favicon_export",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+        "source_blob": "9ba1ff948168dbe0eddc2c8fb824e5320f81d1c0"
+      },
+      {
+        "source_path": "frontend/src/assets/fixrate-mark.svg",
+        "dev_path": "frontend/src/assets/fixrate-mark.svg",
+        "source_blob": "2b3a6dcff5bbd29deef3397c9bcc3d47fc790cd5",
+        "source_change": "A",
+        "disposition": "retained_exact_source_blob",
+        "accounted_at_source_sha": "29484582c649ecd94771204466be39fc14b13f16"
+      },
+      {
+        "source_path": "frontend/src/assets/fixrate-wordmark.svg",
+        "dev_path": "frontend/src/assets/fixrate-wordmark.svg",
+        "source_blob": "2b97e881bfa50f22ce0ac200cb305bb36837ff30",
+        "source_change": "A",
+        "disposition": "retained_exact_source_blob",
+        "accounted_at_source_sha": "29484582c649ecd94771204466be39fc14b13f16"
+      },
+      {
+        "source_path": "frontend/src/features/assignment/CrewSelectionPanel.tsx",
+        "dev_path": "frontend/src/features/assignment/CrewSelectionPanel.tsx",
+        "source_blob": "d2f62726d349d6dc1cb17a5468883d7880e15be0",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuroraScene.tsx",
+        "dev_path": "frontend/src/features/auth/AuroraScene.tsx",
+        "source_blob": "9d813e95726b9429c95059f7d234959037375d13",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthFormError.tsx",
+        "dev_path": "frontend/src/features/auth/AuthFormError.tsx",
+        "source_blob": "97fb4f150f10b16f056491664930683e6abcb28a",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthHeroCopy.css",
+        "dev_path": "frontend/src/features/auth/AuthHeroCopy.css",
+        "source_blob": "c00e43735ccb3f44406e3ef684e96b356cff1ef6",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthHeroCopy.tsx",
+        "dev_path": "frontend/src/features/auth/AuthHeroCopy.tsx",
+        "source_blob": "13fc5200b12f393ef562440700d125d8984809ec",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthMotion.test.tsx",
+        "dev_path": "tests/web/unit/features/auth/AuthMotion.test.tsx",
+        "source_blob": "00d8b3a01db2072bdd1a5c10d17f174f0c4d1879",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthMotionContext.ts",
+        "dev_path": "frontend/src/features/auth/AuthMotionContext.ts",
+        "source_blob": "09d9b3721a63cad01d4ff86b2868de7628aa4129",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthPasswordInput.tsx",
+        "dev_path": "frontend/src/features/auth/AuthPasswordInput.tsx",
+        "source_blob": "994ba69e2ae597947ba20c7c44474ac44bce1c7f",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/authGesture.ts",
+        "dev_path": "frontend/src/features/auth/authGesture.ts",
+        "source_blob": "b25e967c412ca7bda4444b7a7fba99deda8b1ad4",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/authValidation.test.ts",
+        "dev_path": "tests/web/unit/features/auth/authValidation.test.ts",
+        "source_blob": "fb488a5d471e2f8afaa7c19cd6b2b0d51aec7c1a",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/authValidation.ts",
+        "dev_path": "frontend/src/features/auth/authValidation.ts",
+        "source_blob": "8103d43fb19950b312ed8dbef8ef0f18a5e57ef8",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/canvasRenderer.test.ts",
+        "dev_path": "tests/web/unit/features/auth/canvasRenderer.test.ts",
+        "source_blob": "b1de4e04ca78e5907ca4bbbb9f4d4d7421f4ea98",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/canvasRenderer.ts",
+        "dev_path": "frontend/src/features/auth/canvasRenderer.ts",
+        "source_blob": "de820880193473d32e6ed3c2a9a3b7e1b184c600",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/fixtures/desktop-ribbon-paths.json",
+        "dev_path": "tests/fixtures/web/desktop-ribbon-paths.json",
+        "source_blob": "c0a18b98ad195aff1bc9d176ecd970ad05adf43b",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/mobileCanvasRenderer.test.ts",
+        "dev_path": "tests/web/unit/features/auth/mobileCanvasRenderer.test.ts",
+        "source_blob": "8046915ad198dab7a703b465e2724a01f9327963",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/mobileCanvasRenderer.ts",
+        "dev_path": "frontend/src/features/auth/mobileCanvasRenderer.ts",
+        "source_blob": "b6af2a332aceb47816e4a6cef33dc25bad01d74f",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/ribbonGeometry.test.ts",
+        "dev_path": "tests/web/unit/features/auth/ribbonGeometry.test.ts",
+        "source_blob": "c2db25e0f7461deac0198d1eacc6d0d40bfac752",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/ribbonGeometry.ts",
+        "dev_path": "frontend/src/features/auth/ribbonGeometry.ts",
+        "source_blob": "d5c0c914614fc84f78b6def804290861f767adc0",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useAuroraMotion.test.tsx",
+        "dev_path": "tests/web/unit/features/auth/useAuroraMotion.test.tsx",
+        "source_blob": "4cde70b2a7a94ef995b6a0599c5af729db25f475",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useAuroraMotion.ts",
+        "dev_path": "frontend/src/features/auth/useAuroraMotion.ts",
+        "source_blob": "ea6ea030c240b8a807b4f368f25f6817d178a3ad",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useAuthTransition.ts",
+        "dev_path": "frontend/src/features/auth/useAuthTransition.ts",
+        "source_blob": "d53cbceb27ef4df4ef3c4cee7bf4af9425068aa3",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useAuthValidation.ts",
+        "dev_path": "frontend/src/features/auth/useAuthValidation.ts",
+        "source_blob": "da058a6183025f41dc4a2755fb623a3d937f70d5",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useInitialReveal.ts",
+        "dev_path": "frontend/src/features/auth/useInitialReveal.ts",
+        "source_blob": "6d4a129daa618b93916a2030e371c195c2b5e0b9",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useMobileAuthViewport.test.tsx",
+        "dev_path": "tests/web/unit/features/auth/useMobileAuthViewport.test.tsx",
+        "source_blob": "74300e0b0cc5e7c1cae1a27c1152a9870c2090a2",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useMobileAuthViewport.ts",
+        "dev_path": "frontend/src/features/auth/useMobileAuthViewport.ts",
+        "source_blob": "84753611e67e5135dfeab21b872e33d9010050ab",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/features/settings/CalendarPatternEditor.tsx",
+        "dev_path": "frontend/src/features/settings/CalendarPatternEditor.tsx",
+        "source_blob": "68c2f07a6862d218c3aaa224a2cf2e744d9da9dc",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/index.css",
+        "dev_path": "frontend/src/index.css",
+        "source_blob": "51f5c6ae1c8537dd6e4c8038ec33bb97bf93e85b",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/layouts/AppShell.tsx",
+        "dev_path": "frontend/src/layouts/AppShell.tsx",
+        "source_blob": "eaa41275885210bbc66429b8416808c06cd62e85",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/layouts/ExecutorLayout.tsx",
+        "dev_path": "frontend/src/layouts/ExecutorLayout.tsx",
+        "source_blob": "19d5611b4fa9976935c65d4e132743016b5e694c",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/pages/AuthLayout.tsx",
+        "dev_path": "frontend/src/pages/AuthLayout.tsx",
+        "source_blob": "d7ce7feb2ec27ed93a4d6887fbccb98d040a8c5f",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/pages/ExecutorTaskPage.tsx",
+        "dev_path": "frontend/src/pages/ExecutorTaskPage.tsx",
+        "source_blob": "5545ef3ef5d57b281f111ed6c69f46f6cb71ff60",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/pages/HomeRedirect.tsx",
+        "dev_path": "frontend/src/pages/HomeRedirect.tsx",
+        "source_blob": "6c7facdbad91dc5e4408820c8f29a1ab0b7f0059",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/pages/LoginPage.css",
+        "dev_path": "frontend/src/pages/LoginPage.css",
+        "source_blob": "6a196e7ec0edf66dc99df8585fa3bdf9c9ba3329",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/pages/LoginPage.test.tsx",
+        "dev_path": "tests/web/unit/pages/LoginPage.test.tsx",
+        "source_blob": "3d3812dc2fb92bf00df65999aff47de61e674fce",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/pages/LoginPage.tsx",
+        "dev_path": "frontend/src/pages/LoginPage.tsx",
+        "source_blob": "3abb88ec1b186c97a82d9f96f336463725f5236d",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/pages/RegistrationPage.test.tsx",
+        "dev_path": "tests/web/unit/pages/RegistrationPage.test.tsx",
+        "source_blob": "f14d46b49a258bfcd2c8e1dea08d1e3a20cb7197",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/pages/RegistrationPage.tsx",
+        "dev_path": "frontend/src/pages/RegistrationPage.tsx",
+        "source_blob": "ab62ec8ca707c22e1ee3b21464428ebdb96164c4",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/pages/ServiceSettingsPage.tsx",
+        "dev_path": "frontend/src/pages/ServiceSettingsPage.tsx",
+        "source_blob": "ea0a6a7384d6c26b742bcb615aa011ef736aad99",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/pages/TaskDetailPage.tsx",
+        "dev_path": "frontend/src/pages/TaskDetailPage.tsx",
+        "source_blob": "4d0c84a7bb0ba1102756af813e0e3e8b015fc930",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/pages/WorkforceSettingsPage.tsx",
+        "dev_path": "frontend/src/pages/WorkforceSettingsPage.tsx",
+        "source_blob": "f12e4de1a9efc686479190d56282b62cbf204857",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/api/request.test.ts",
+        "dev_path": "tests/web/unit/shared/api/request.test.ts",
+        "source_blob": "8120d07b7260d940ef856edc8d2503a34e7a9e51",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/api/request.ts",
+        "dev_path": "frontend/src/shared/api/request.ts",
+        "source_blob": "b579ea6a39f6ac7da16ca6fb7a7e9d010fe90177",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/animate.ts",
+        "dev_path": "frontend/src/shared/motion/animate.ts",
+        "source_blob": "73c51fef78af7dedc8e8d60da40f1950f5c62c75",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/authEntry.ts",
+        "dev_path": "frontend/src/shared/motion/authEntry.ts",
+        "source_blob": "07459656c64709bd90e094c57bd5b223acff4852",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/feedbackMotion.ts",
+        "dev_path": "frontend/src/shared/motion/feedbackMotion.ts",
+        "source_blob": "c07cebede587897e7ce164483c66be10a4f4c600",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/motion.css",
+        "dev_path": "frontend/src/shared/motion/motion.css",
+        "source_blob": "f383f32277d42d1ccede0cbbd5fc8394a6797f42",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/useFeedbackMotion.ts",
+        "dev_path": "frontend/src/shared/motion/useFeedbackMotion.ts",
+        "source_blob": "739cbd6737e346a77f99f14c75104234254baa94",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/usePageEntry.ts",
+        "dev_path": "frontend/src/shared/motion/usePageEntry.ts",
+        "source_blob": "6d9141767ffec3d97711433ddc1cc43ee50acdcf",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Button.tsx",
+        "dev_path": "frontend/src/shared/ui/Button.tsx",
+        "source_blob": "7b494d3e512f0164250c2126b95c8fa83300cf7d",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Form.css",
+        "dev_path": "frontend/src/shared/ui/Form.css",
+        "source_blob": "04e402ac575696c8d516851c5a2d9ae353980afe",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Form.test.tsx",
+        "dev_path": "tests/web/unit/shared/ui/Form.test.tsx",
+        "source_blob": "0bc4f3b90122d0e3c251226c9242c79ab3792edc",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Form.tsx",
+        "dev_path": "frontend/src/shared/ui/Form.tsx",
+        "source_blob": "3b8e91260ef61fbaa88358fd2dfd3ee180fb1597",
+        "disposition": "retained",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Modal.test.tsx",
+        "dev_path": "tests/web/unit/shared/ui/Modal.test.tsx",
+        "source_blob": "648adc1077d1adb2ef45ac7375320271932ed71c",
+        "disposition": "test_relocated_imports_adapted",
+        "accounted_at_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d"
+      },
+      {
+        "source_path": "images/image.png",
+        "dev_path": "docs/assets/login/image.png",
+        "source_blob": "b52f1b82f6608ecf4c3a01d0fa664b70354dd115",
+        "source_change": "A",
+        "disposition": "retained_exact_source_blob",
+        "accounted_at_source_sha": "29484582c649ecd94771204466be39fc14b13f16"
+      },
+      {
+        "source_path": "images/login-aurora-flow-2026-11-01.png",
+        "dev_path": "docs/assets/login/login-aurora-flow-2026-11-01.png",
+        "source_blob": "00dec6484bc5601130c54293db44f17bb0a0580a",
+        "source_change": "A",
+        "disposition": "retained_exact_source_blob",
+        "accounted_at_source_sha": "29484582c649ecd94771204466be39fc14b13f16"
+      },
+      {
+        "source_path": "new_file",
+        "dev_path": null,
+        "source_blob": "2e65efe2a145dda7ee51d1741299f848e5bf752e",
+        "source_change": "A",
+        "disposition": "excluded_nonfunctional_placeholder",
+        "accounted_at_source_sha": "29484582c649ecd94771204466be39fc14b13f16"
+      }
+    ],
+    "dev_adaptations": [
+      {
+        "dev_path": "tests/web/e2e/settings.spec.ts",
+        "reason": "Password confirmation supplied for the updated registration form."
+      },
+      {
+        "dev_path": "docs/service/web-motion.md",
+        "reason": "Motion reference and test links adapted to the current service documentation structure."
+      }
+    ],
+    "previous_accounted_sha": "29484582c649ecd94771204466be39fc14b13f16",
+    "incremental_comparison_base": "29484582c649ecd94771204466be39fc14b13f16"
+  },
+  {
+    "branch": "backend",
+    "source_sha": "89d819d5b3fc448101d61a3c134292b9bf56c8c2",
+    "comparison_base": "6a09f3b446f3215112569784ff796a8e10bf99f5",
+    "files": [
+      {
+        "source_path": ".dockerignore",
+        "dev_path": ".dockerignore",
+        "source_blob": "e613386a0d91fb83b8adf6b354f27ae088c4027d",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": ".env.example",
+        "dev_path": ".env.example",
+        "source_blob": "40e4c5c03daa3f85fcb3a012d129234f591e60e6",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "Dockerfile",
+        "dev_path": "Dockerfile",
+        "source_blob": "20ae30999e341b3b642e66a7bb520a61f4eee697",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "README.md",
+        "dev_path": "README.md",
+        "source_blob": "ecf3ec5a3cd4d6d7b4fe8cdffe23250d4b475349",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/README.md",
+        "dev_path": "docs/service/runtime.md",
+        "source_blob": "aab78614acbeb0b0de2b354d6cda0ffbf0699b9a",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/db/repository.py",
+        "dev_path": "backend/app/db/repository.py",
+        "source_blob": "f279eb457820fa40ea1414d805bca7cd4f7e7a0f",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "backend/app/integration/assignments.py",
+        "dev_path": "backend/app/integration/assignments.py",
+        "source_blob": "fcc3ccb9bf5ab3b9affebd9e847906cd8d18694a",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/integration/forecasting.py",
+        "dev_path": "backend/app/integration/forecasting.py",
+        "source_blob": "b012eb7513b35dd04227e27bd4c9a1f6929888b8",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "backend/app/integration/maintenance_api.py",
+        "dev_path": "backend/app/integration/maintenance_api.py",
+        "source_blob": "dfb3e6622615d79d15a05517071a1213a85cdfc9",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "backend/app/integration/maintenance_jobs.py",
+        "dev_path": "backend/app/integration/maintenance_jobs.py",
+        "source_blob": "2fd50f768d7833b24b73210119a5a3f92f1664b8",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/integration/ml.py",
+        "dev_path": "backend/app/integration/ml.py",
+        "source_blob": "3d8a60447d5835fd281597c0b09f33eb34dafdc9",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "backend/app/main.py",
+        "dev_path": "backend/app/main.py",
+        "source_blob": "95cb80a4922b9b485f83a943e4539222242340d3",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "backend/app/maintenance_jobs.py",
+        "dev_path": "backend/app/maintenance_jobs.py",
+        "source_blob": "6bbd405861565931a743a4e5d871a38e82c67496",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "backend/app/schemas/maintenance_api.py",
+        "dev_path": "backend/app/schemas/maintenance_api.py",
+        "source_blob": "4fc41534c04f88705ac39109da0d0508d952243d",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "backend/app/storage.py",
+        "dev_path": "backend/app/storage.py",
+        "source_blob": "4aea715411f5244156df4c6a9ac0b593746d3e45",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "compose.yaml",
+        "dev_path": "compose.yaml",
+        "source_blob": "ce88c0dd7b1df8aee9a77fa37450ea806f6864bb",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "docs/service/backend.md",
+        "dev_path": "docs/service/backend.md",
+        "source_blob": "4ac34f0302afbcd2af8a220066a514f132f379a3",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/service/ml.md",
+        "dev_path": "docs/service/ml.md",
+        "source_blob": "d71d2491a425e654a4e40d658388b021c2e64126",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/service/runtime.md",
+        "dev_path": "docs/service/runtime.md",
+        "source_blob": "24538d9cae737602cb7f79ab348bfcd6ec533682",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "docs/service/verification-log.md",
+        "dev_path": "docs/service/verification.md",
+        "source_blob": "a1e929534accb6e632b39e13d0dc2494bf42eb98",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "tests/backend/test_api_hardening.py",
+        "dev_path": "tests/backend/test_api_hardening.py",
+        "source_blob": "6311a79076aaaa61b758745880ac7708dee5e3ed",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "tests/backend/test_maintenance_jobs.py",
+        "dev_path": "tests/backend/test_maintenance_jobs.py",
+        "source_blob": "de6c0db960159ee7131aee6524b4c6ac96f6337b",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "tests/backend/test_orchestration.py",
+        "dev_path": "tests/backend/test_orchestration.py",
+        "source_blob": "e11cc9cd1df5ad58a3bebe8dc424bfd81a3146a6",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "tests/backend/test_storage.py",
+        "dev_path": "tests/backend/test_storage.py",
+        "source_blob": "9d71500b7abb9c476747d12cd23773f26a58492f",
+        "disposition": "retained_or_adapted"
+      }
+    ]
+  },
+  {
+    "branch": "feat/ml-demo-cases-eval",
+    "source_sha": "95e695df491e12833c7bf8bc5df2a5f8e856928d",
+    "comparison_base": "73cd49a112b0721174d84cc05f4000cb03779350",
+    "files": [
+      {
+        "source_path": "docs/service/ml.md",
+        "dev_path": "docs/service/ml.md",
+        "source_blob": "74e347a3ecd28753bd364cf5adf7d43f259eb952",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "ml_service/app/cv/classifier.py",
+        "dev_path": "ml_service/app/cv/classifier.py",
+        "source_blob": "01aed32e6ff7f68d473e2eddf77a11e07440d7be",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "ml_service/app/cv/quality.py",
+        "dev_path": "ml_service/app/cv/quality.py",
+        "source_blob": "798826d4b7a12a25ee9fb81d1db6c0c824742db6",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "ml_service/app/forecast/client.py",
+        "dev_path": "ml_service/app/forecast/client.py",
+        "source_blob": "42772a3d3eab4fd7c2ae38471e1af23b84d906cb",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "ml_service/app/forecast/features.py",
+        "dev_path": "ml_service/app/forecast/features.py",
+        "source_blob": "208636b2d4bae76c0f0400319e08a82bd3138a1e",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "ml_service/app/forecast/model.py",
+        "dev_path": "ml_service/app/forecast/model.py",
+        "source_blob": "029f11ae9ec78f483fe3449665cf2b55ad7bf82a",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "scripts/inspect_my_photos.py",
+        "dev_path": "scripts/inspect_my_photos.py",
+        "source_blob": "d3d572e36f7509d8600edacfef89927ff036fce9",
+        "disposition": "retained_or_adapted"
+      },
+      {
+        "source_path": "tests/ml/test_cv.py",
+        "dev_path": "tests/ml/test_cv.py",
+        "source_blob": "0eb35a28697e383404d283ce1d1f7ce0c9201a49",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "tests/ml/test_forecast.py",
+        "dev_path": "tests/ml/test_forecast.py",
+        "source_blob": "f281f9236dec654b852460f9b1927b1912bd469f",
+        "disposition": "retained_exact_source_blob"
+      }
+    ]
+  },
+  {
+    "branch": "feature/frontend-next",
+    "source_sha": "8d6935c4d013ac1875757cccccaed78013dc4a7c",
+    "comparison_base": "6a09f3b446f3215112569784ff796a8e10bf99f5",
+    "files": [
+      {
+        "source_path": ".gitignore",
+        "dev_path": ".gitignore",
+        "source_blob": "203782989d03315c2797c8c07297e2bfeb04baf3",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "README.md",
+        "dev_path": "README.md",
+        "source_blob": "81a632d78d0ed7b8a7bdf0e17d391413b1259832",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "data/provenance/BRANCH_FILE_MAP.json",
+        "dev_path": "data/provenance/BRANCH_FILE_MAP.json",
+        "source_blob": "fc458e70c1f39de3109b0237e5387624116903be",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "data/provenance/BRANCH_SOURCES.json",
+        "dev_path": "data/provenance/BRANCH_SOURCES.json",
+        "source_blob": "37f70a941b73e49c0e2afe1296e8eed23535153e",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "data/provenance/FRONTEND_REDESIGN.json",
+        "dev_path": "data/provenance/FRONTEND_REDESIGN.json",
+        "source_blob": "bd15f938e59660bcf3b366abcb6c1271b872ed32",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "docs/ARCHITECTURE.md",
+        "dev_path": "docs/ARCHITECTURE.md",
+        "source_blob": "34423fb381a2bbcaa8e727b88764885527d72b3f",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "docs/PLAN.md",
+        "dev_path": "docs/PLAN.md",
+        "source_blob": "36394cf470d4700a7990cb3de8adee1b8a52664e",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "docs/decisions/2026-11-02--mobile-aurora-canvas.md",
+        "dev_path": "docs/decisions/2026-11-02--mobile-aurora-canvas.md",
+        "source_blob": "5c700a6f0ea082c548f895d89a25045358a202fc",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "docs/decisions/INDEX.md",
+        "dev_path": "docs/decisions/INDEX.md",
+        "source_blob": "48336e3ef65b2e2147796771a2e1d8bc545ba44c",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "docs/service/INDEX.md",
+        "dev_path": "docs/service/INDEX.md",
+        "source_blob": "16f78494a379ab8345800e33d5d2daaf4750b87e",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "docs/service/development.md",
+        "dev_path": "docs/service/development.md",
+        "source_blob": "fac0e8f479a6334ae7450cbc921965ff2d2b6e10",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "docs/service/runtime.md",
+        "dev_path": "docs/service/runtime.md",
+        "source_blob": "b341d049e5d6f1bbbbd6fdea3ff77b4addfa3475",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "docs/service/verification.md",
+        "dev_path": "docs/service/verification.md",
+        "source_blob": "dddc0b58ad15d855c21ffc6612e1e26bf4422f24",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "docs/service/web-motion.md",
+        "dev_path": "docs/service/web-motion.md",
+        "source_blob": "a75c77653500c1c3864f7f29a8c2ac5101b59134",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "docs/service/web.md",
+        "dev_path": "docs/service/web.md",
+        "source_blob": "f1a9c76ec691ffcdf476329dedde4e83222ad127",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "frontend/index.html",
+        "dev_path": "frontend/index.html",
+        "source_blob": "bd91a0e18729360de6614a505406c830f016daa4",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/app/router.tsx",
+        "dev_path": "frontend/src/app/router.tsx",
+        "source_blob": "1f22a0c76167a7586fee5d0bed18dee384a98271",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/assets/favicons-visible/favicon-aurora-16.png",
+        "dev_path": "frontend/src/assets/favicons-visible/favicon-aurora-16.png",
+        "source_blob": "cbedd4b51fa83ec5dc60a57206f20671fb08a0a9",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/assets/favicons-visible/favicon-aurora-32.png",
+        "dev_path": "frontend/src/assets/favicons-visible/favicon-aurora-32.png",
+        "source_blob": "b368fe5b8981866a85a2aea9db57ca325a106460",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/assets/favicons-visible/favicon-aurora.ico",
+        "dev_path": "frontend/src/assets/favicons-visible/favicon-aurora.ico",
+        "source_blob": "6bd69410d91af6e641033d5185f7e7bf828a7f40",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/assets/favicons-visible/favicon-aurora.svg",
+        "dev_path": "frontend/src/assets/favicons-visible/favicon-aurora.svg",
+        "source_blob": "89123a1de32d5af4dd3d59e8003dc5d7832824ba",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/entities/equipment/EquipmentTable.tsx",
+        "dev_path": "frontend/src/entities/equipment/EquipmentTable.tsx",
+        "source_blob": "01ef8d322ab4a5aafbfd1906494b8c899ee9ac2f",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/entities/execution/EvidenceComparison.tsx",
+        "dev_path": "frontend/src/entities/execution/EvidenceComparison.tsx",
+        "source_blob": "5d68e938e71eab18b11d9cc8027b0e8a3667f078",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/entities/execution/EvidenceGallery.tsx",
+        "dev_path": "frontend/src/entities/execution/EvidenceGallery.tsx",
+        "source_blob": "9f982caa0456028f018e4cdf64298f9fb1bb423e",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/entities/forecast/ForecastResultCard.tsx",
+        "dev_path": "frontend/src/entities/forecast/ForecastResultCard.tsx",
+        "source_blob": "0f8ca4daa55385e55eecce58abf7c87309d5c0ca",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/entities/task/TaskLine.tsx",
+        "dev_path": "frontend/src/entities/task/TaskLine.tsx",
+        "source_blob": "579c12f3b8e75e162267962f2db4b121c396b361",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/entities/task/TaskTable.tsx",
+        "dev_path": "frontend/src/entities/task/TaskTable.tsx",
+        "source_blob": "b67d1a2e98fbe56eba0bf1819187a51213925545",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/assignment/CrewSelectionPanel.tsx",
+        "dev_path": "frontend/src/features/assignment/CrewSelectionPanel.tsx",
+        "source_blob": "d2f62726d349d6dc1cb17a5468883d7880e15be0",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuroraScene.tsx",
+        "dev_path": "frontend/src/features/auth/AuroraScene.tsx",
+        "source_blob": "9d813e95726b9429c95059f7d234959037375d13",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthFormError.tsx",
+        "dev_path": "frontend/src/features/auth/AuthFormError.tsx",
+        "source_blob": "97fb4f150f10b16f056491664930683e6abcb28a",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthHeroCopy.css",
+        "dev_path": "frontend/src/features/auth/AuthHeroCopy.css",
+        "source_blob": "c00e43735ccb3f44406e3ef684e96b356cff1ef6",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthHeroCopy.tsx",
+        "dev_path": "frontend/src/features/auth/AuthHeroCopy.tsx",
+        "source_blob": "13fc5200b12f393ef562440700d125d8984809ec",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthMotionContext.ts",
+        "dev_path": "frontend/src/features/auth/AuthMotionContext.ts",
+        "source_blob": "09d9b3721a63cad01d4ff86b2868de7628aa4129",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/auth/AuthPasswordInput.tsx",
+        "dev_path": "frontend/src/features/auth/AuthPasswordInput.tsx",
+        "source_blob": "994ba69e2ae597947ba20c7c44474ac44bce1c7f",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/auth/authGesture.ts",
+        "dev_path": "frontend/src/features/auth/authGesture.ts",
+        "source_blob": "b25e967c412ca7bda4444b7a7fba99deda8b1ad4",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/auth/authValidation.ts",
+        "dev_path": "frontend/src/features/auth/authValidation.ts",
+        "source_blob": "8103d43fb19950b312ed8dbef8ef0f18a5e57ef8",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/auth/canvasRenderer.ts",
+        "dev_path": "frontend/src/features/auth/canvasRenderer.ts",
+        "source_blob": "de820880193473d32e6ed3c2a9a3b7e1b184c600",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/auth/mobileCanvasRenderer.ts",
+        "dev_path": "frontend/src/features/auth/mobileCanvasRenderer.ts",
+        "source_blob": "b6af2a332aceb47816e4a6cef33dc25bad01d74f",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/auth/ribbonGeometry.ts",
+        "dev_path": "frontend/src/features/auth/ribbonGeometry.ts",
+        "source_blob": "d5c0c914614fc84f78b6def804290861f767adc0",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useAuroraMotion.ts",
+        "dev_path": "frontend/src/features/auth/useAuroraMotion.ts",
+        "source_blob": "ea6ea030c240b8a807b4f368f25f6817d178a3ad",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useAuthTransition.ts",
+        "dev_path": "frontend/src/features/auth/useAuthTransition.ts",
+        "source_blob": "d53cbceb27ef4df4ef3c4cee7bf4af9425068aa3",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useAuthValidation.ts",
+        "dev_path": "frontend/src/features/auth/useAuthValidation.ts",
+        "source_blob": "da058a6183025f41dc4a2755fb623a3d937f70d5",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useInitialReveal.ts",
+        "dev_path": "frontend/src/features/auth/useInitialReveal.ts",
+        "source_blob": "6d4a129daa618b93916a2030e371c195c2b5e0b9",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/auth/useMobileAuthViewport.ts",
+        "dev_path": "frontend/src/features/auth/useMobileAuthViewport.ts",
+        "source_blob": "84753611e67e5135dfeab21b872e33d9010050ab",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/calendar/CalendarBoard.tsx",
+        "dev_path": "frontend/src/features/calendar/CalendarBoard.tsx",
+        "source_blob": "6cdda22d248863dd59648279da95d84eb7ea7607",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/calendar/calendar.css",
+        "dev_path": "frontend/src/features/calendar/calendar.css",
+        "source_blob": "520956e9b987dc02fe60e63b4c2cc5afeae06c3b",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/features/settings/CalendarPatternEditor.tsx",
+        "dev_path": "frontend/src/features/settings/CalendarPatternEditor.tsx",
+        "source_blob": "68c2f07a6862d218c3aaa224a2cf2e744d9da9dc",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/index.css",
+        "dev_path": "frontend/src/index.css",
+        "source_blob": "08e357b7ad160f8cbda95f036f80db82a1c1f39f",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/AppShell.tsx",
+        "dev_path": "frontend/src/layouts/AppShell.tsx",
+        "source_blob": "c8296054f08298f004baddcdebfb0e5918a82756",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/CommandMenu.tsx",
+        "dev_path": "frontend/src/layouts/CommandMenu.tsx",
+        "source_blob": "946e4359ac1b02fb8c71e2a4eac002ab7f0694b3",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/ExecutorLayout.tsx",
+        "dev_path": "frontend/src/layouts/ExecutorLayout.tsx",
+        "source_blob": "039af4f5aa5024831ed4b3bebd233a628298dac6",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/Sidebar.css",
+        "dev_path": "frontend/src/layouts/Sidebar.css",
+        "source_blob": "47a77d3ce19e21102f6bed5ad50942bef0634d6b",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/Sidebar.tsx",
+        "dev_path": "frontend/src/layouts/Sidebar.tsx",
+        "source_blob": "c9982b59ca115a3a4c2dae6226150cfb0750d457",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/SidebarAccount.tsx",
+        "dev_path": "frontend/src/layouts/SidebarAccount.tsx",
+        "source_blob": "8aeb3ad30674aa0b89ab10abf65428049b654ce9",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/WorkspaceAuroraBackground.tsx",
+        "dev_path": "frontend/src/layouts/WorkspaceAuroraBackground.tsx",
+        "source_blob": "0ab9e5144b30d9dc35ee9fb76d247c05dfc3b2e9",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/WorkspaceLayout.tsx",
+        "dev_path": "frontend/src/layouts/WorkspaceLayout.tsx",
+        "source_blob": "b60229d43164b967876706b4cc5119623727a1dd",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/navigation.ts",
+        "dev_path": "frontend/src/layouts/navigation.ts",
+        "source_blob": "9fcff3b32ca5c4ead61783240b5a76b34ba09a1c",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/operations.css",
+        "dev_path": "frontend/src/layouts/operations.css",
+        "source_blob": "f2764530b26bb248da0876d926657b6bf9698dbe",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/workspace.css",
+        "dev_path": "frontend/src/layouts/workspace.css",
+        "source_blob": "d455db83180adcab1f8fc48135f9aea5982def20",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/workspaceAuroraInteraction.ts",
+        "dev_path": "frontend/src/layouts/workspaceAuroraInteraction.ts",
+        "source_blob": "3bda6f4af5fb877ad2921451b2f779daba0d0ad1",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/layouts/workspaceAuroraRenderer.ts",
+        "dev_path": "frontend/src/layouts/workspaceAuroraRenderer.ts",
+        "source_blob": "3af4624cf56b61aa9658577191da2aef21f7cdff",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/AuthLayout.tsx",
+        "dev_path": "frontend/src/pages/AuthLayout.tsx",
+        "source_blob": "d7ce7feb2ec27ed93a4d6887fbccb98d040a8c5f",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/CalendarPage.tsx",
+        "dev_path": "frontend/src/pages/CalendarPage.tsx",
+        "source_blob": "38afd1aba3ae1dfc0a42fabd49db3fa57e99696c",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/ComparisonDetailPage.tsx",
+        "dev_path": "frontend/src/pages/ComparisonDetailPage.tsx",
+        "source_blob": "79539e9d7771498dea6fcb31a170183feeffccb5",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/ComparisonsPage.tsx",
+        "dev_path": "frontend/src/pages/ComparisonsPage.tsx",
+        "source_blob": "24376ad84928a6edeccdc50da46d93aa6d3bce0e",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/DispatcherPage.tsx",
+        "dev_path": "frontend/src/pages/DispatcherPage.tsx",
+        "source_blob": "8ef35017b00c6ab7b6758820456860dd5538ccd9",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/EquipmentDetailPage.tsx",
+        "dev_path": "frontend/src/pages/EquipmentDetailPage.tsx",
+        "source_blob": "fb2bfc398aeebddba4c03c93f206a11477b35480",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/EquipmentPage.tsx",
+        "dev_path": "frontend/src/pages/EquipmentPage.tsx",
+        "source_blob": "36a690b232634a2c7be5a3e97921d1125da28c6f",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/ExecutorPage.tsx",
+        "dev_path": "frontend/src/pages/ExecutorPage.tsx",
+        "source_blob": "23073a5cc7086bd3522908304f2bec25843f4fca",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/ExecutorTaskPage.tsx",
+        "dev_path": "frontend/src/pages/ExecutorTaskPage.tsx",
+        "source_blob": "75516e00042ccdd536d861daac8321e0e8498889",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/HomeRedirect.tsx",
+        "dev_path": "frontend/src/pages/HomeRedirect.tsx",
+        "source_blob": "6c7facdbad91dc5e4408820c8f29a1ab0b7f0059",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/LoginPage.css",
+        "dev_path": "frontend/src/pages/LoginPage.css",
+        "source_blob": "6a196e7ec0edf66dc99df8585fa3bdf9c9ba3329",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/LoginPage.tsx",
+        "dev_path": "frontend/src/pages/LoginPage.tsx",
+        "source_blob": "3abb88ec1b186c97a82d9f96f336463725f5236d",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/QualityPage.tsx",
+        "dev_path": "frontend/src/pages/QualityPage.tsx",
+        "source_blob": "7308ce83e6f3743b103f117c2b628e6c59c20749",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/QualityTaskPage.tsx",
+        "dev_path": "frontend/src/pages/QualityTaskPage.tsx",
+        "source_blob": "5137851ed0176249f0e6845fb77980d63dba6ff9",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/RegistrationPage.tsx",
+        "dev_path": "frontend/src/pages/RegistrationPage.tsx",
+        "source_blob": "ab62ec8ca707c22e1ee3b21464428ebdb96164c4",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/ReportsPage.tsx",
+        "dev_path": "frontend/src/pages/ReportsPage.tsx",
+        "source_blob": "73457818b43be76062941056d399a73553a2db6a",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/ServiceSettingsPage.tsx",
+        "dev_path": "frontend/src/pages/ServiceSettingsPage.tsx",
+        "source_blob": "86a1ceaed2bf752262e4d20932c4b5305040eaba",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/TaskDetailPage.tsx",
+        "dev_path": "frontend/src/pages/TaskDetailPage.tsx",
+        "source_blob": "dc303040f5322795b0a898b03f2e8cb09eb63856",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/TasksPage.tsx",
+        "dev_path": "frontend/src/pages/TasksPage.tsx",
+        "source_blob": "4860d05c032f87bfcb5617bfeb585fac7cfed1ce",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/pages/WorkforceSettingsPage.tsx",
+        "dev_path": "frontend/src/pages/WorkforceSettingsPage.tsx",
+        "source_blob": "1ff8a0ce445393b8fd4ec63b985290675fc54887",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/api/request.ts",
+        "dev_path": "frontend/src/shared/api/request.ts",
+        "source_blob": "b579ea6a39f6ac7da16ca6fb7a7e9d010fe90177",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/evidence.ts",
+        "dev_path": "frontend/src/shared/lib/evidence.ts",
+        "source_blob": "fa9d65667ef9d62749bcc8845c67526290ab97ab",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/exportCsv.ts",
+        "dev_path": "frontend/src/shared/lib/exportCsv.ts",
+        "source_blob": "652613f508fdc1d762763f9d1278146b0c43bbd1",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/forecastPresentation.ts",
+        "dev_path": "frontend/src/shared/lib/forecastPresentation.ts",
+        "source_blob": "3f702a0d610c9faba4b586853d3fb9db36cc25ed",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/operations.ts",
+        "dev_path": "frontend/src/shared/lib/operations.ts",
+        "source_blob": "9b8db565d9a912dcfd298696a52cfd28d57bcb71",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/roles.ts",
+        "dev_path": "frontend/src/shared/lib/roles.ts",
+        "source_blob": "6cbf6df671950be926558e5464ed6f60d603a624",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/useDialogFocus.ts",
+        "dev_path": "frontend/src/shared/lib/useDialogFocus.ts",
+        "source_blob": "e07bbb1499bee1bceb52be946714a7a2acd7cdb1",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/useMediaQuery.ts",
+        "dev_path": "frontend/src/shared/lib/useMediaQuery.ts",
+        "source_blob": "9ef37c103b62cecd1c4868db1c96bf5c65c12ef8",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/useScrollBoundary.ts",
+        "dev_path": "frontend/src/shared/lib/useScrollBoundary.ts",
+        "source_blob": "b3b1e7b0ece79009384493977a95ba46dd6e37bf",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/useWorkspaceView.ts",
+        "dev_path": "frontend/src/shared/lib/useWorkspaceView.ts",
+        "source_blob": "4912a06095079d7c31ea228d0e01f283b3764bae",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/lib/workspaceState.tsx",
+        "dev_path": "frontend/src/shared/lib/workspaceState.tsx",
+        "source_blob": "2785230dd384bfee6e8eb9a59ecce73f12eef970",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/animate.ts",
+        "dev_path": "frontend/src/shared/motion/animate.ts",
+        "source_blob": "73c51fef78af7dedc8e8d60da40f1950f5c62c75",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/authEntry.ts",
+        "dev_path": "frontend/src/shared/motion/authEntry.ts",
+        "source_blob": "07459656c64709bd90e094c57bd5b223acff4852",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/feedbackMotion.ts",
+        "dev_path": "frontend/src/shared/motion/feedbackMotion.ts",
+        "source_blob": "c07cebede587897e7ce164483c66be10a4f4c600",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/motion.css",
+        "dev_path": "frontend/src/shared/motion/motion.css",
+        "source_blob": "f383f32277d42d1ccede0cbbd5fc8394a6797f42",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/useFeedbackMotion.ts",
+        "dev_path": "frontend/src/shared/motion/useFeedbackMotion.ts",
+        "source_blob": "739cbd6737e346a77f99f14c75104234254baa94",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/motion/usePageEntry.ts",
+        "dev_path": "frontend/src/shared/motion/usePageEntry.ts",
+        "source_blob": "6d9141767ffec3d97711433ddc1cc43ee50acdcf",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Brand.tsx",
+        "dev_path": "frontend/src/shared/ui/Brand.tsx",
+        "source_blob": "e13939f0cd02abd1f69645aa4a926aa18f34afb7",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Button.tsx",
+        "dev_path": "frontend/src/shared/ui/Button.tsx",
+        "source_blob": "07316aef64309e16eec83aecfbe687c5d401ba10",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Card.tsx",
+        "dev_path": "frontend/src/shared/ui/Card.tsx",
+        "source_blob": "40ca3678d745426bfe00e30c05777b2906966b80",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/ConnectionRequired.tsx",
+        "dev_path": "frontend/src/shared/ui/ConnectionRequired.tsx",
+        "source_blob": "32d5d42c2db7acf09187ed03e3996e2ab4e5e9b4",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Drawer.tsx",
+        "dev_path": "frontend/src/shared/ui/Drawer.tsx",
+        "source_blob": "6919a9e81454186da3874e3baa089be05ff2bd35",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/FilterChip.tsx",
+        "dev_path": "frontend/src/shared/ui/FilterChip.tsx",
+        "source_blob": "fdcba195541c15c846edc5c56602d2c5b2081fa9",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Form.css",
+        "dev_path": "frontend/src/shared/ui/Form.css",
+        "source_blob": "04e402ac575696c8d516851c5a2d9ae353980afe",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Form.tsx",
+        "dev_path": "frontend/src/shared/ui/Form.tsx",
+        "source_blob": "f14ea750cb992c020e18ea2948e2e62656128ef2",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Icon.tsx",
+        "dev_path": "frontend/src/shared/ui/Icon.tsx",
+        "source_blob": "11221379aad0ab2692b758df82338a0672bbcb4a",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Modal.tsx",
+        "dev_path": "frontend/src/shared/ui/Modal.tsx",
+        "source_blob": "70c871a2cdc8ff95412bf5afaf795a1b9ecdb219",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/PageHeader.tsx",
+        "dev_path": "frontend/src/shared/ui/PageHeader.tsx",
+        "source_blob": "86f2dd4d852c1f86a545e38d0906caf299d9afdf",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/States.tsx",
+        "dev_path": "frontend/src/shared/ui/States.tsx",
+        "source_blob": "41632555590ec9e0f8836f8b8a7c2b36e99fe57e",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/StatusBadge.tsx",
+        "dev_path": "frontend/src/shared/ui/StatusBadge.tsx",
+        "source_blob": "aa80422470aff1048f6da2d857d100e87d3ec7a1",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "frontend/src/shared/ui/Table.tsx",
+        "dev_path": "frontend/src/shared/ui/Table.tsx",
+        "source_blob": "65ceb057aadae1efbceb53de9316f7aeed076d4b",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "scripts/verify_web.py",
+        "dev_path": "scripts/verify_web.py",
+        "source_blob": "5473bd34e754d6a57c9d716a101659bfbe31d8c1",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/fixtures/web/desktop-ribbon-paths.json",
+        "dev_path": "tests/fixtures/web/desktop-ribbon-paths.json",
+        "source_blob": "c0a18b98ad195aff1bc9d176ecd970ad05adf43b",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/e2e/login.spec.ts",
+        "dev_path": "tests/web/e2e/login.spec.ts",
+        "source_blob": "8f502a1d9a200927f7c6121232beb0e137d3578a",
+        "disposition": "adapted_preserving_current_dev"
+      },
+      {
+        "source_path": "tests/web/e2e/maintenance.spec.ts",
+        "dev_path": "tests/web/e2e/maintenance.spec.ts",
+        "source_blob": "a285ea47f1366d337febb41aab2f689dd9d36467",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/e2e/planning.spec.ts",
+        "dev_path": "tests/web/e2e/planning.spec.ts",
+        "source_blob": "04d81023bbdf9d0297a4ba11fee232e89bbd417e",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/e2e/roles.spec.ts",
+        "dev_path": "tests/web/e2e/roles.spec.ts",
+        "source_blob": "4a9086f5c49601b93912580e9aaa0b3208905a16",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/e2e/settings.spec.ts",
+        "dev_path": "tests/web/e2e/settings.spec.ts",
+        "source_blob": "8d358bc59e0626a7be90fe3763baf4dc217ccf3c",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/e2e/workspace-state.spec.ts",
+        "dev_path": "tests/web/e2e/workspace-state.spec.ts",
+        "source_blob": "4e1b4496109653ba6c7168a788223585a537b6ca",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/e2e/workspace.spec.ts",
+        "dev_path": "tests/web/e2e/workspace.spec.ts",
+        "source_blob": "c2caec49b8715d68c0b4b495cf71ee216efb41a9",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/setup.ts",
+        "dev_path": "tests/web/setup.ts",
+        "source_blob": "8c322eb7ab504fd80c3929a17efbf48a9fc16d38",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/app/role-navigation.test.tsx",
+        "dev_path": "tests/web/unit/app/role-navigation.test.tsx",
+        "source_blob": "e380529a4c00b643cebd82d61681d9836c780d80",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/app/router.test.tsx",
+        "dev_path": "tests/web/unit/app/router.test.tsx",
+        "source_blob": "daa22323118527ae32a9610c51202ca0791cd3b9",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/features/auth/AuthMotion.test.tsx",
+        "dev_path": "tests/web/unit/features/auth/AuthMotion.test.tsx",
+        "source_blob": "00d8b3a01db2072bdd1a5c10d17f174f0c4d1879",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/features/auth/authValidation.test.ts",
+        "dev_path": "tests/web/unit/features/auth/authValidation.test.ts",
+        "source_blob": "d7b9c819a30ab26b54e2eafeaced2694d6e8154c",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/features/auth/canvasRenderer.test.ts",
+        "dev_path": "tests/web/unit/features/auth/canvasRenderer.test.ts",
+        "source_blob": "94a70c4e7a2e2169273c19e354afbce12d403420",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/features/auth/mobileCanvasRenderer.test.ts",
+        "dev_path": "tests/web/unit/features/auth/mobileCanvasRenderer.test.ts",
+        "source_blob": "ae44d6a53af7e674f35fb56a5a35cda048acba81",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/features/auth/ribbonGeometry.test.ts",
+        "dev_path": "tests/web/unit/features/auth/ribbonGeometry.test.ts",
+        "source_blob": "61ccd5d9c8cd11c2afbfa4d92dd5eb174472a239",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/features/auth/useAuroraMotion.test.tsx",
+        "dev_path": "tests/web/unit/features/auth/useAuroraMotion.test.tsx",
+        "source_blob": "ed7ba448287e3a9c5330858f383a0453e33cc617",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/features/auth/useMobileAuthViewport.test.tsx",
+        "dev_path": "tests/web/unit/features/auth/useMobileAuthViewport.test.tsx",
+        "source_blob": "5f0836fcc32c3866b112a2dcac2b6fae98981a3b",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/layouts/Sidebar.test.tsx",
+        "dev_path": "tests/web/unit/layouts/Sidebar.test.tsx",
+        "source_blob": "aadac6c7d1be6cb0aed007d22b236acce9a1ab80",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/layouts/SidebarAccount.test.tsx",
+        "dev_path": "tests/web/unit/layouts/SidebarAccount.test.tsx",
+        "source_blob": "5dcd22996a36a28936fb02603f073bf03fb49ec8",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/layouts/WorkspaceAuroraBackground.test.tsx",
+        "dev_path": "tests/web/unit/layouts/WorkspaceAuroraBackground.test.tsx",
+        "source_blob": "d320461927411b2c1da8e4e502ee3d1bf438373b",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/layouts/workspaceAuroraInteraction.test.ts",
+        "dev_path": "tests/web/unit/layouts/workspaceAuroraInteraction.test.ts",
+        "source_blob": "0725d5f8b04d1ac1fdb4728f9f82090721ab88a8",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/pages/CalendarPage.test.tsx",
+        "dev_path": "tests/web/unit/pages/CalendarPage.test.tsx",
+        "source_blob": "40010b5c0bbb72ef463f837030ee35152c2b5aee",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/pages/DispatcherPage.test.tsx",
+        "dev_path": "tests/web/unit/pages/DispatcherPage.test.tsx",
+        "source_blob": "dde235944f8e9b12035ec6b7ecda1cb674fe352a",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/pages/LoginPage.test.tsx",
+        "dev_path": "tests/web/unit/pages/LoginPage.test.tsx",
+        "source_blob": "f44596977b7ee630cdf64f7ca184d98c2961c647",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/pages/RegistrationPage.test.tsx",
+        "dev_path": "tests/web/unit/pages/RegistrationPage.test.tsx",
+        "source_blob": "a4eaf6c7211cc98e238317db63c1e6e10c4aff0e",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/pages/ReportsPage.test.tsx",
+        "dev_path": "tests/web/unit/pages/ReportsPage.test.tsx",
+        "source_blob": "26ec1c9b0e64598ac6c9fe36329275e835724874",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/shared/api/request.test.ts",
+        "dev_path": "tests/web/unit/shared/api/request.test.ts",
+        "source_blob": "279969b710214555a08c0017b3eb4011afb06f98",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/shared/lib/redesign-domain.test.ts",
+        "dev_path": "tests/web/unit/shared/lib/redesign-domain.test.ts",
+        "source_blob": "3931884de5e52426995a33ffc527ad233fd83aaf",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/shared/ui/Form.test.tsx",
+        "dev_path": "tests/web/unit/shared/ui/Form.test.tsx",
+        "source_blob": "53402f23e22a6a4e2afb5beb21c043b56bae76ad",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/shared/ui/Modal.test.tsx",
+        "dev_path": "tests/web/unit/shared/ui/Modal.test.tsx",
+        "source_blob": "648adc1077d1adb2ef45ac7375320271932ed71c",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/shared/useScrollBoundary.test.tsx",
+        "dev_path": "tests/web/unit/shared/useScrollBoundary.test.tsx",
+        "source_blob": "cb99a0cad3132d49cb2082b22a0cc04bd17a0ea6",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/shared/useWorkspaceView.test.tsx",
+        "dev_path": "tests/web/unit/shared/useWorkspaceView.test.tsx",
+        "source_blob": "f6c69d9e8fef0cae8542154cbea7c9903aae7c05",
+        "disposition": "merged_exact"
+      },
+      {
+        "source_path": "tests/web/unit/shared/workspaceState.test.tsx",
+        "dev_path": "tests/web/unit/shared/workspaceState.test.tsx",
+        "source_blob": "2ae8355737618b66ea4628aece4a8a16a267cf8b",
+        "disposition": "merged_exact"
+      }
+    ]
+  }
+]

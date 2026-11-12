@@ -8,7 +8,7 @@ import type {
   TaskState,
 } from "@/shared/types/domain";
 
-const TASK_LABELS: Record<TaskState, string> = {
+export const TASK_LABELS: Record<TaskState, string> = {
   draft: "Черновик",
   assigned: "Назначено",
   in_progress: "В работе",
@@ -21,7 +21,7 @@ const TASK_LABELS: Record<TaskState, string> = {
 const TASK_TONES: Record<TaskState, BadgeTone> = {
   draft: "neutral",
   assigned: "info",
-  in_progress: "violet",
+  in_progress: "info",
   submitted: "warning",
   rework_required: "danger",
   accepted: "success",
@@ -56,7 +56,7 @@ const FORECAST_TONES: Record<ForecastStatus, BadgeTone> = {
 
 const DECISION_LABELS: Record<OrchestrationDecision["status"], string> = {
   selected: "Дата выбрана",
-  fallback: "Fallback",
+  fallback: "Резервный метод",
   needs_input: "Нужны данные",
   manual_review: "Ручной разбор",
 };
@@ -69,7 +69,7 @@ const DECISION_TONES: Record<OrchestrationDecision["status"], BadgeTone> = {
 };
 
 const REVIEW_LABELS: Record<PhotoReviewStatus, string> = {
-  completed: "Анализ выполнен",
+  completed: "Сравнение выполнено",
   uncertain: "Неуверенный результат",
   not_verifiable: "Не проверяется по фото",
   unavailable: "AI недоступен",
@@ -77,7 +77,7 @@ const REVIEW_LABELS: Record<PhotoReviewStatus, string> = {
 };
 
 const REVIEW_TONES: Record<PhotoReviewStatus, BadgeTone> = {
-  completed: "success",
+  completed: "info",
   uncertain: "warning",
   not_verifiable: "info",
   unavailable: "danger",
@@ -86,7 +86,7 @@ const REVIEW_TONES: Record<PhotoReviewStatus, BadgeTone> = {
 
 const VERDICT_LABELS: Record<PhotoVerdict, string> = {
   visible_change: "Видимое изменение",
-  no_visible_change: "Без видимого изменения",
+  no_visible_change: "Изменения не подтверждены",
   uncertain: "Неуверенно",
   not_verifiable: "Не проверяется",
 };
@@ -99,7 +99,7 @@ const VERDICT_TONES: Record<PhotoVerdict, BadgeTone> = {
 };
 
 export function TaskStateBadge({ state }: { state: TaskState }) {
-  return <Badge tone={TASK_TONES[state]}>{TASK_LABELS[state]}</Badge>;
+  return <Badge tone={TASK_TONES[state] ?? "neutral"}>{TASK_LABELS[state] ?? `Неизвестное состояние: ${state}`}</Badge>;
 }
 
 export function EquipmentStateBadge({ state }: { state: EquipmentState }) {
@@ -142,15 +142,7 @@ export function OverdueBadge() {
   return <Badge tone="danger">Просрочено</Badge>;
 }
 
-export function OriginBadge({
-  origin,
-}: {
-  origin: "customer" | "synthetic_demo" | null;
-}) {
-  if (!origin) return <Badge tone="neutral">Источник не указан</Badge>;
-  return origin === "customer" ? (
-    <Badge tone="info">Данные заказчика</Badge>
-  ) : (
-    <Badge tone="violet">synthetic_demo</Badge>
-  );
+// Provenance remains in API/storage; it is not a badge in the working interface.
+export function OriginBadge(_props: { origin: "customer" | "synthetic_demo" | null }) {
+  return null;
 }

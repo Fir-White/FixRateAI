@@ -1,6 +1,6 @@
 """Explicitly prepare pinned CLIP weights; API requests themselves stay offline.
 
-Run only in an environment with ml_service/requirements-cv.txt installed.
+Run in an environment installed from the root requirements.txt.
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ def main():
     from ml_service.app.cv.classifier import CLIPZeroShotClassifier
     classifier = CLIPZeroShotClassifier()
     if not classifier.is_torch_active:
-        raise RuntimeError("CLIP is not ready: install the optional stack and prepare the pinned local cache")
+        raise RuntimeError("CLIP is not ready: install root requirements.txt and prepare the pinned local cache")
     print(json.dumps({"status": "ready", "model_ref": classifier.model_ref,
                       "note": "Readiness only; real HTTP inference is checked with FIXRATE_REQUIRE_CLIP=1 scripts/verify.py"},
                      ensure_ascii=False))

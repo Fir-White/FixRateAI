@@ -13,10 +13,10 @@ from .schemas import (
     BindingGenerationResult, CalendarGenerationRequest, CalendarGenerationResult,
     GeneratedOccurrence, SchedulingBinding,
 )
-from .recurrence import occurrence_dates, pattern_description
+from .recurrence import occurrence_pairs, pattern_description, shifted_date
 
-METHOD_VERSION = "calendar-rules-v2"
-# Stable occurrence identity: binding + rule version + local due date, independent of query order.
+METHOD_VERSION = "calendar-rules-v3"
+# Stable identity uses the original obligation date, before weekend transfer.
 OCCURRENCE_NAMESPACE = UUID("e12253b2-143e-5a55-a4c4-875fdb3a7a3f")
 
 
@@ -62,6 +62,7 @@ def _generate_binding(item: SchedulingBinding, start: date, end: date,
     warnings = ["SYNTHETIC_DATA"] if synthetic else []
     is_assumption = synthetic or bool(item.assumptions)
     next_due = None
+    pairs = None
 
     def result(status, code, explanation, occurrences=None):
         entries = occurrences or []
@@ -95,8 +96,8 @@ def _generate_binding(item: SchedulingBinding, start: date, end: date,
         return result("needs_input", "OPERATION_UNAPPROVED", "Версия операции не утверждена.")
     if not rule.confirmed:
         return result("needs_input", "RULE_UNCONFIRMED", "Периодичность не определяет даты без подтверждённых параметров правила.")
-    daily = rule.kind == "calendar_interval" and rule.calendar_unit == "day" and rule.interval == 1
-    if daily and (rule.basis != "fixed_calendar" or rule.allowed_lead_days != 0):
+    daily = (rule.kind == "calendar_interval" and rule.calendar_unit == "day" and rule.interval == 1) or (rule.kind == "calendar_pattern" and rule.pattern.frequency=="day" and rule.pattern.interval==1)
+    if daily and ((rule.kind=="calendar_interval" and rule.basis != "fixed_calendar") or rule.allowed_lead_days != 0):
         return result("needs_input", "INVALID_DAILY_RULE", "Ежедневное ТО требует fixed_calendar и нулевого раннего допуска.")
     if op.norm_unit == "unconfirmed":
         warnings.append("NORM_UNIT_UNCONFIRMED")
@@ -114,7 +115,8 @@ def _generate_binding(item: SchedulingBinding, start: date, end: date,
     status, code = "ok", None
     if rule.kind == "calendar_pattern":
         try:
-            dates = occurrence_dates(rule.pattern, active_start, active_end)
+            pairs = occurrence_pairs(rule.pattern, active_start, active_end)
+            dates = [day for _,day in pairs]
         except ValueError as exc:
             return result('needs_input','CALENDAR_PATTERN_UNSATISFIABLE',str(exc))
         explanation = pattern_description(rule.pattern)
@@ -126,7 +128,7 @@ def _generate_binding(item: SchedulingBinding, start: date, end: date,
         explanation = "Явные даты подтверждённого годового правила; равномерный шаг не выводится из частоты."
     elif rule.basis == "fixed_calendar":
         dates = _fixed_dates(rule, active_start, active_end)
-        explanation = f"Фиксированный календарь от {rule.anchor_date}: шаг {rule.interval} {rule.calendar_unit}; выходные не переносятся."
+        explanation = f"Фиксированный календарь от {rule.anchor_date}: шаг {rule.interval} {rule.calendar_unit}; политика выходных: {rule.weekend_policy}."
     else:
         if history:
             last = max(history, key=lambda e: (e.performed_at.astimezone(timezone.utc), e.service_event_id.int))
@@ -143,7 +145,10 @@ def _generate_binding(item: SchedulingBinding, start: date, end: date,
         if next_due < activation:
             return result("needs_input", "DUE_BEFORE_ACTIVATION", "Первый срок раньше начала обслуживания; требуется уточнить опорные данные.")
         # A second rolling occurrence would assume a future completion that has not happened.
-        dates = [next_due] if active_start <= next_due <= active_end else []
+        source_due = next_due
+        next_due = shifted_date(rule, source_due)
+        pairs = [(source_due, next_due)] if active_start <= source_due <= active_end else []
+        dates = [effective for _, effective in pairs]
         warnings.append("ROLLING_NEXT_OCCURRENCE_ONLY")
         if next_due < today:
             status, code = "manual_review", "OVERDUE_REQUIRES_REVIEW"
@@ -153,17 +158,22 @@ def _generate_binding(item: SchedulingBinding, start: date, end: date,
     hours = _person_hours(item)
     person_minutes = op.planning_duration_minutes * op.crew_size if op.planning_duration_minutes is not None else None
     entries = []
-    for day in dates:
+    if pairs is None:
+        pairs = [(day, shifted_date(rule, day)) for day in dates]
+    for source_day,day in pairs:
+        if binding.effective_to is not None and day > binding.effective_to:
+            return result("needs_input", "TRANSFER_OUTSIDE_VALIDITY",
+                          "Перенос выходит за срок действия привязки. Уточните регламент; задание не создаётся.")
         lead = min(rule.allowed_lead_days, (day - date.min).days)
         occurrence = PlanOccurrence(
-            occurrence_id=uuid5(OCCURRENCE_NAMESPACE, f"{binding.binding_id}:{rule.rule_version_id}:{day.isoformat()}"),
+            occurrence_id=uuid5(OCCURRENCE_NAMESPACE, f"{binding.binding_id}:{rule.rule_version_id}:{source_day.isoformat()}"),
             binding_id=binding.binding_id, rule_version_id=rule.rule_version_id,
-            operation_version_id=op.operation_version_id, occurrence_date=day,
+            operation_version_id=op.operation_version_id, source_date=source_day,occurrence_date=day,
             earliest_date=max(activation, day - timedelta(days=lead)), mandatory_due_date=day,
             runtime_due_at_hours=None, status="draft", revision=1, task_id=None,
         )
         entries.append(GeneratedOccurrence(
-            occurrence=occurrence, explanation=f"{day.isoformat()}: {explanation}",
+            occurrence=occurrence, explanation=f"Обязательство за {source_day.isoformat()}, выполнение {day.isoformat()}: {explanation}",
             deadline_passed=day < today, is_assumption=is_assumption,
             required_person_hours=hours, planning_person_minutes=person_minutes,
         ))
@@ -190,7 +200,7 @@ def generate_month(request: CalendarGenerationRequest) -> CalendarGenerationResu
             occurrence = entry.occurrence
             calendar_items.append(CalendarOccurrence(
                 occurrence_id=occurrence.occurrence_id, equipment_id=item.equipment.equipment_id,
-                operation_version_id=op.operation_version_id, occurrence_date=occurrence.occurrence_date,
+                operation_version_id=op.operation_version_id,source_date=occurrence.source_date, occurrence_date=occurrence.occurrence_date,
                 maintenance_type=op.maintenance_type, recurrence=item.rule.source_text,
                 crew_size=op.crew_size, raw_norm_value=op.raw_norm_value, norm_unit=op.norm_unit,
                 planning_duration_minutes=op.planning_duration_minutes,

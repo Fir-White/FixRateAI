@@ -1,0 +1,61 @@
+.fr-content-v2 .fr-photo-upload { container: photo-upload / inline-size; }
+.fr-content-v2 .fr-photo-requirements { display: flex; align-items: start; justify-content: space-between; gap: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--fr2-line); }
+.fr-content-v2 .fr-photo-requirements strong { font-size: 14px; font-weight: 500; }
+.fr-content-v2 .fr-photo-requirements p { color: var(--fr2-muted); font-size: 12px; margin-top: 6px; max-width: 520px; }
+.fr-content-v2 .fr-photo-requirements > span { flex-shrink: 0; text-align: right; color: var(--fr2-accent); font-size: 24px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.fr-content-v2 .fr-photo-requirements small { display: block; color: var(--fr2-muted); font-size: 11px; margin-top: 5px; }
+.fr-content-v2 .fr-photo-item { padding-block: 22px; border-bottom: 1px solid var(--fr2-line); min-width: 0; }
+.fr-content-v2 .fr-photo-item > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 12px; margin-bottom: 16px; }
+.fr-content-v2 .fr-photo-item-number { color: var(--fr2-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.fr-content-v2 .fr-photo-item h3 { flex: 1 1 220px; font-size: 14px; line-height: 1.5; font-weight: 600; overflow-wrap: anywhere; }
+.fr-content-v2 .fr-photo-item-requirement, .fr-content-v2 .fr-photo-item-complete { font-size: 11px; color: var(--fr2-muted); }
+.fr-content-v2 .fr-photo-item-complete { color: var(--fr2-accent); }
+.fr-content-v2 .fr-photo-pair-inputs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.fr-content-v2 .fr-photo-phase { display: grid; align-content: start; gap: 10px; min-width: 0; }
+.fr-content-v2 .fr-photo-phase-heading { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 6px; font-size: 11px; color: var(--fr2-muted); }
+.fr-content-v2 .fr-photo-phase-heading > span + span { display: inline-flex; align-items: center; gap: 4px; color: var(--fr2-accent); }
+.fr-content-v2 .fr-photo-drop { border: 1px dashed var(--fr2-control); border-radius: 12px; background-color: var(--fr2-bg); overflow: hidden; }
+.fr-content-v2 .fr-photo-drop > button { display: flex; width: 100%; min-height: 174px; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 24px 12px; cursor: pointer; text-align: center; color: var(--fr2-text); border-radius: 11px; }
+.fr-content-v2 .fr-photo-drop > button:disabled { cursor: not-allowed; opacity: .55; }
+.fr-content-v2 .fr-photo-drop > button:focus-visible { outline-offset: -4px; }
+.fr-content-v2 .fr-photo-drop svg { color: var(--fr2-accent); }
+.fr-content-v2 .fr-photo-drop strong { font-size: 14px; font-weight: 500; }
+.fr-content-v2 .fr-photo-drop span { font-size: 12px; color: var(--fr2-secondary); }
+.fr-content-v2 .fr-photo-drop small { font-size: 11px; color: var(--fr2-muted); }
+.fr-content-v2 .fr-photo-drop.is-compact > button { min-height: 92px; padding-block: 16px; gap: 6px; }
+.fr-content-v2 .fr-photo-drop.is-compact svg, .fr-content-v2 .fr-photo-drop.is-compact small { display: none; }
+.fr-content-v2 .fr-photo-drop:hover:not([data-disabled]), .fr-content-v2 .fr-photo-drop.is-dragging { border-color: var(--fr2-accent); background-color: var(--fr2-accent-surface); }
+.fr-content-v2 .fr-photo-drop-mobile { display: none; }
+.fr-content-v2 .fr-photo-view + .fr-photo-view { margin-top: 20px; }
+.fr-content-v2 .fr-photo-view-label { color: var(--fr2-secondary); font-size: 12px; margin-bottom: 10px; overflow-wrap: anywhere; }
+.fr-content-v2 .fr-photo-extra { margin-top: 14px; color: var(--fr2-muted); font-size: 12px; }
+.fr-content-v2 .fr-photo-extra summary, .fr-content-v2 .fr-photo-optional > summary { cursor: pointer; padding-block: 8px; }
+.fr-content-v2 .fr-photo-extra label { display: grid; gap: 6px; max-width: 320px; margin-top: 8px; }
+.fr-content-v2 .fr-photo-extra p { margin-block: 10px; }
+.fr-content-v2 .fr-photo-optional { margin-top: 12px; font-size: 13px; }
+.fr-content-v2 .fr-photo-optional > summary { color: var(--fr2-secondary); }
+.fr-content-v2 .fr-photo-errors { margin-top: 12px; color: var(--fr2-danger); font-size: 13px; overflow-wrap: anywhere; }
+.fr-content-v2 .fr-photo-upload-status { color: var(--fr2-secondary); font-size: 12px; margin-top: 12px; overflow-wrap: anywhere; }
+.fr-content-v2 .fr-photo-upload-status:empty { display: none; }
+.fr-content-v2 .fr-photo-queued { display: flex; align-items: start; gap: 12px; min-width: 0; padding: 12px; border: 1px solid var(--fr2-line-strong); border-radius: 10px; }
+.fr-content-v2 .fr-photo-local-preview { width: 48px; height: 56px; flex-shrink: 0; object-fit: contain; border-radius: 6px; background-color: var(--fr2-bg); }
+.fr-content-v2 .fr-photo-queued > div { min-width: 0; }
+.fr-content-v2 .fr-photo-queued strong { display: block; font-size: 12px; font-weight: 500; overflow-wrap: anywhere; }
+.fr-content-v2 .fr-photo-queued span { display: block; font-size: 12px; color: var(--fr2-muted); margin-top: 3px; }
+.fr-content-v2 .fr-photo-queued p { font-size: 12px; color: var(--fr2-danger); overflow-wrap: anywhere; margin-top: 6px; }
+.fr-content-v2 .fr-photo-queue-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.fr-content-v2 .fr-photo-phase .evidence-photo { margin: 0; }
+.fr-content-v2 .fr-photo-phase .evidence-photo-stage img { max-height: 240px; }
+@container photo-upload (max-width: 540px) {
+  .fr-content-v2 .fr-photo-pair-inputs { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .fr-content-v2 .fr-photo-requirements { flex-wrap: wrap; gap: 12px; }
+  .fr-content-v2 .fr-photo-requirements > span { text-align: left; font-size: 22px; }
+  .fr-content-v2 .fr-photo-requirements small { display: inline; margin-left: 8px; }
+  .fr-content-v2 .fr-photo-drop > button { min-height: 150px; }
+  .fr-content-v2 .fr-photo-drop.is-compact > button { min-height: 92px; }
+  .fr-content-v2 .fr-photo-item h3 { flex-basis: calc(100% - 40px); }
+}
+@media (pointer: coarse) {
+  .fr-content-v2 .fr-photo-drop .fr-photo-drop-desktop { display: none; }
+  .fr-content-v2 .fr-photo-drop .fr-photo-drop-mobile { display: block; }
+}

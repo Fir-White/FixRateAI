@@ -1,0 +1,76 @@
+name: Sync GitHub and GitVerse
+
+on:
+  push:
+    branches: ['**']
+    tags: ['**']
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gitverse-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'Fir-White/FixRateAI'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Load synchronization code from the integration branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: dev
+          persist-credentials: false
+          sparse-checkout: scripts/sync_git_hosts.py
+          sparse-checkout-cone-mode: false
+      - name: Synchronize branches and tags in both directions
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITVERSE_USERNAME: ${{ secrets.GITVERSE_USERNAME }}
+          GITVERSE_TOKEN: ${{ secrets.GITVERSE_TOKEN }}
+          GH_MIRROR_SSH_KEY: ${{ secrets.GH_MIRROR_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$GITVERSE_USERNAME" || { echo 'Missing GITVERSE_USERNAME secret'; exit 1; }
+          test -n "$GITVERSE_TOKEN" || { echo 'Missing GITVERSE_TOKEN secret'; exit 1; }
+          test -n "$GH_MIRROR_SSH_KEY" || { echo 'Missing GH_MIRROR_SSH_KEY secret'; exit 1; }
+          export GIT_TERMINAL_PROMPT=0
+          umask 077
+          credentials="$(mktemp -d "$RUNNER_TEMP/git-sync-auth.XXXXXX")"
+          trap 'rm -rf -- "$credentials"' EXIT
+          printf '%s\n' "$GH_MIRROR_SSH_KEY" > "$credentials/key"
+          unset GH_MIRROR_SSH_KEY
+          gh api meta --jq '.ssh_keys[] | "github.com " + .' > "$credentials/known_hosts"
+          export GIT_SSH_COMMAND="ssh -i $credentials/key -o IdentitiesOnly=yes -o BatchMode=yes -o UserKnownHostsFile=$credentials/known_hosts -o StrictHostKeyChecking=yes"
+          export GIT_ASKPASS="$credentials/askpass.sh"
+          cat > "$GIT_ASKPASS" <<'ASKPASS'
+          #!/usr/bin/env bash
+          case "$1" in
+            *sername*) printf '%s\n' "$GITVERSE_USERNAME" ;;
+            *assword*) printf '%s\n' "$GITVERSE_TOKEN" ;;
+            *) exit 1 ;;
+          esac
+          ASKPASS
+          chmod 700 "$GIT_ASKPASS"
+          git config --global credential.https://gitverse.ru.helper ''
+          report="$RUNNER_TEMP/git-sync-report.json"
+          if python3 scripts/sync_git_hosts.py \
+              --github "git@github.com:${GITHUB_REPOSITORY}.git" \
+              --gitverse 'https://gitverse.ru/firewhite/FixRate_AI' \
+              --report "$report"; then
+            result=0
+          else
+            result=$?
+          fi
+          if test -f "$report"; then
+            printf '### GitHub / GitVerse synchronization\n\n```json\n' >> "$GITHUB_STEP_SUMMARY"
+            cat "$report" >> "$GITHUB_STEP_SUMMARY"
+            printf '\n```\n' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$result"

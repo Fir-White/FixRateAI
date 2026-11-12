@@ -1,9 +1,10 @@
-export type Role = "admin" | "dispatcher" | "engineer" | "executor";
+export type Role = "director" | "chief_engineer" | "admin" | "dispatcher" | "engineer" | "executor";
 
 export type DataOrigin = "customer" | "synthetic_demo" | null;
 
 export interface SessionProfile {
   userId: string;
+  siteId?: string;
   name: string;
   email: string;
   role: Role;
@@ -70,6 +71,7 @@ export interface MaintenanceTask {
   isOverdue: boolean;
   deadlineBreached: boolean;
   mandatoryDueDate: string | null;
+  sourceDate?:string|null;
   scheduledStart: string | null;
   scheduledEnd: string | null;
   crewSize: number;
@@ -78,11 +80,13 @@ export interface MaintenanceTask {
   revision: number;
   dataOrigin: DataOrigin;
   summary: string;
+  instructions?:string|null;normHours?:string;normUnit?:string;durationMinutes?:number|null;overdueSince?:string|null;requiredActs?:string[];measurementRequirements?:import("./management").MeasurementRequirement[];
 }
 
 export interface CalendarOccurrence {
   id: string;
   occurrenceDate: string;
+  sourceDate?:string|null;
   equipmentId: string | null;
   equipmentName: string;
   operationCode: string;
@@ -238,6 +242,8 @@ export interface ExecutionReport {
   checklist: ChecklistItem[];
   photos: EvidencePhoto[];
   submittedAt: string | null;
+  actual?:{started_at?:string;performed_at?:string;person_hours?:string};
+  readings?:Reading[];acts?:Act[];
 }
 
 export type ForecastStatus = "ok" | "needs_input" | "unavailable" | "failed";
@@ -250,6 +256,7 @@ export interface ForecastResult {
   status: ForecastStatus;
   recommendedDate: string | null;
   mandatoryDueDate: string | null;
+  sourceDate?:string|null;
   overdue: boolean;
   uncertaintyKind: "deterministic" | "tree_dispersion" | "unknown";
   uncertaintyNote: string;
@@ -275,6 +282,7 @@ export interface ComparisonRun {
   horizonEnd: string;
   earliestDate: string | null;
   mandatoryDueDate: string | null;
+  sourceDate?:string|null;
   equipmentId: string | null;
   equipmentName: string;
   operationTitle: string;
@@ -298,19 +306,42 @@ export type PhotoVerdict =
   | "uncertain"
   | "not_verifiable";
 
+export interface VisualAssessment {
+  subject_matches_task: "yes" | "no" | "uncertain";
+  same_subject: "yes" | "no" | "uncertain";
+  comparable: "yes" | "no" | "uncertain";
+  before_description: string;
+  after_description: string;
+  visible_changes: string[];
+  concerns: string[];
+  recommended_actions: string[];
+  cannot_confirm: string[];
+  conclusion: "visible_improvement" | "no_clear_improvement" | "insufficient_evidence";
+  summary: string;
+  visible_readings?:{phase?:string;label?:string;value?:string|null;unit?:string|null;readable?:boolean}[];
+  evidence_class?:"approved"|"manual_review"|"rejected";
+}
+
 export interface PhotoReviewItem {
   id: string;
   label: string;
   verdict: PhotoVerdict;
   note: string;
+  beforePhotoId?: string | null;
+  afterPhotoId?: string | null;
+  assessment?: VisualAssessment | null;
 }
 
 export interface PhotoReview {
+  classification?:"approved"|"manual_review"|"rejected";
+  readingComparison?:{parameter_code:string;phase:string;value:string;unit:string;observed:string|null;status:string}[];
   id: string;
   executionId: string;
   status: PhotoReviewStatus;
   modelRef: string | null;
   promptSetVersion: string;
+  errorCode?: string | null;
+  elapsedMs?: number | null;
   createdAt: string;
   items: PhotoReviewItem[];
   limitations: string[];
@@ -325,3 +356,7 @@ export interface EngineerDecision {
   decidedAt: string;
   decidedBy: string;
 }
+
+export interface Reading {equipment_id:string;parameter_code:string;value:string;unit:string;measured_at:string;phase:"before"|"after";}
+export interface ActualExecution {started_at:string;performed_at:string;person_hours:string;}
+export interface Act {id:string;kind:string;verified:boolean;url:string;}

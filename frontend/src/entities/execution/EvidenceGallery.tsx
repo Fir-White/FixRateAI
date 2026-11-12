@@ -1,60 +1,25 @@
+import { useEffect, useState } from "react";
 import type { EvidencePhoto } from "@/shared/types/domain";
 import { useSiteDateTime } from "@/shared/lib/useSiteDateTime";
 import { Badge } from "@/shared/ui/Badge";
-import { Card } from "@/shared/ui/Card";
 import { Icon } from "@/shared/ui/Icon";
-
-const PHASE_LABELS = {
-  before: "До",
-  after: "После",
-  issue: "Замечание",
-  other: "Приложение",
-} as const;
-
-export function EvidenceGallery({
-  photos,
-  emptyText = "Фотографии к этой попытке отсутствуют",
-}: {
-  photos: EvidencePhoto[];
-  emptyText?: string;
-}) {
+import { Modal } from "@/shared/ui/Modal";
+import { Button } from "@/shared/ui/Button";
+import { viewLabel } from "@/shared/lib/presentation";
+const PHASE_LABELS = { before: "До", after: "После", issue: "Замечание", other: "Приложение" } as const;
+export function EvidencePhotoView({photo,label}:{photo:EvidencePhoto;label?:string}) {
   const formatDateTime=useSiteDateTime();
-  if (!photos.length) {
-    return (
-      <div className="rounded-xl border border-dashed border-line-strong p-6 text-center text-sm text-muted">
-        {emptyText}
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {photos.map((photo) => (
-        <Card key={photo.id} className="overflow-hidden">
-          <div className="flex h-32 items-center justify-center photo-placeholder text-muted">
-            {photo.url ? <a href={photo.url} target="_blank" rel="noreferrer"><img src={photo.url} alt={photo.label} className="h-32 w-full object-contain" /></a> : <Icon name="camera" size={30} />}
-          </div>
-          <div className="p-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge tone={photo.phase === "after" ? "success" : "info"}>
-                {PHASE_LABELS[photo.phase]}
-              </Badge>
-              {photo.status === "rejected" ? (
-                <Badge tone="danger">Отклонено</Badge>
-              ) : null}
-            </div>
-            <p className="mt-2 text-sm font-semibold text-ink">
-              {photo.label}
-            </p>
-            <p className="mt-1 font-mono text-[11px] text-muted">
-              {photo.viewKey}
-            </p>
-            <p className="mt-1 text-xs text-muted">
-              {formatDateTime(photo.capturedAt)}
-            </p>
-          </div>
-        </Card>
-      ))}
-    </div>
-  );
+  const displayLabel=label??PHASE_LABELS[photo.phase];
+  const [failed,setFailed]=useState(false);
+  const [expanded,setExpanded]=useState(false);
+  useEffect(()=>{setFailed(false);setExpanded(false);},[photo.id,photo.url]);
+  const usable=!!photo.url && !failed;
+  return <figure className="evidence-photo"><div className="evidence-photo-stage">
+    {usable ? <button type="button" onClick={()=>setExpanded(true)} aria-label={`Увеличить фото: ${displayLabel}`}><img src={photo.url} alt={displayLabel} onError={()=>setFailed(true)} loading="lazy"/><span className="evidence-enlarge">Открыть фото ↗</span></button>
+      : <div className="evidence-unavailable"><Icon name="camera" size={27}/><span>{failed?"Не удалось загрузить фото":photo.status==="processing"?"Фотография обрабатывается":"Изображение недоступно"}</span><small>{failed?"Возможно, истёк доступ или файл недоступен.":"Метаданные сохранены. Изображение не подменяется иллюстрацией."}</small>{failed&&<Button variant="ghost" size="sm" onClick={()=>setFailed(false)}>Повторить загрузку</Button>}</div>}
+  </div><figcaption><div><Badge tone={photo.phase==="after"?"success":"neutral"}>{PHASE_LABELS[photo.phase]}</Badge>{photo.status==="rejected"&&<Badge tone="danger">Отклонено</Badge>}{photo.status==="processing"&&<Badge tone="warning">Обработка</Badge>}</div><strong>{displayLabel}</strong><details><summary>Реквизиты фотографии</summary><small>{photo.label} · {photo.id}</small></details><small>Ракурс: {viewLabel(photo.viewKey)} · {photo.capturedAt ? `Снято ${formatDateTime(photo.capturedAt)}` : `Загружено ${formatDateTime(photo.uploadedAt)}`}</small></figcaption>
+  <Modal size="wide" open={expanded} onClose={()=>setExpanded(false)} title={displayLabel} description={`${PHASE_LABELS[photo.phase]} · ракурс ${viewLabel(photo.viewKey)}`}><img src={photo.url} alt={displayLabel} className="evidence-full" onError={()=>{setFailed(true);setExpanded(false);}}/></Modal></figure>;
+}
+export function EvidenceGallery({photos,emptyText="Фотографии к этой попытке отсутствуют"}:{photos:EvidencePhoto[];emptyText?:string}) {
+  return photos.length ? <div className="evidence-gallery">{photos.map(photo=><EvidencePhotoView key={photo.id} photo={photo}/>)}</div> : <div className="evidence-empty"><Icon name="camera" size={24}/><p>{emptyText}</p></div>;
 }

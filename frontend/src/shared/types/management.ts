@@ -10,6 +10,9 @@ export interface CalendarPattern {
   months: number[];
   period_edge: "start" | "end";
   short_month: "last_day" | "skip";
+  quarter_policy?: "calendar_edge" | "rolling_months";
+  annual_policy?: "calendar_year" | "from_anchor";
+  weekend_policy?: "none" | "next_workday";
   count_per_year: number | null;
   dates: string[];
   excluded_dates: string[];
@@ -37,11 +40,13 @@ export interface ServiceConfiguration {
   code: string; title: string; instructions: string; maintenance_type: "ТО1" | "ТО2";
   pattern: CalendarPattern | null; valid_from: string; valid_until: string | null; crew_size: number;
   basis?: "fixed_calendar" | "after_accepted_completion";
-  norm_value: string; norm_unit: "person_hour" | "elapsed_hour" | "unconfirmed";
+  norm_value: string | null; norm_unit: "person_hour" | "elapsed_hour" | "unconfirmed";
   duration_minutes: number | null; qualification_ids: string[]; checklist: ChecklistSetting[]; allowed_lead_days: number;
   enabled: boolean; source_text?: string;
+  methodology_ref?:string|null; measurement_requirements?:MeasurementRequirement[]; required_acts?:string[];
 }
 export interface ChecklistSetting {
+  source_item_key?:string|null;source_refs?:string[];
   text:string;answer_kind:"boolean"|"number"|"text";unit:string|null;required:boolean;
   visual_verifiability:"visible"|"partial"|"not_verifiable";photo_required:boolean;
 }
@@ -63,3 +68,5 @@ export interface Workforce {
   staff: StaffMember[]; crews: CrewRecord[]; skills: Reference[]; timezone: string;
   applications: {application_id: string; user_id: string; full_name: string; email: string; revision: number}[];
 }
+
+export interface MeasurementRequirement {parameter_code:string;unit:string;required:boolean;phases:("before"|"after")[];minimum?:string|null;maximum?:string|null;}

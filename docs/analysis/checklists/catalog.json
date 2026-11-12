@@ -1,0 +1,1049 @@
+{
+  "schema_version": "analyst-checklists-1",
+  "status": "draft_for_review",
+  "created_on": "2026-11-04",
+  "source_archive_sha256": "d391201e1607ac46e1cdba7ad9b34d17436b72a98642574f8f8ff7d20161ebd9",
+  "notice": "Редакторские черновики на основе материалов аналитика. Не технологические инструкции и не утверждённые нормативы. Перед использованием согласовать применимость пунктов и обязательность для конкретного оборудования.",
+  "origin_labels": {
+    "source_requirement": "Требование явно описано в исходнике; формулировка адаптирована для формы.",
+    "derived_field": "Поле выведено из описанного требования; такого готового пункта у аналитика нет.",
+    "proposed_field": "Дополнение для полноты учёта, требует отдельного согласования."
+  },
+  "sources": {
+    "an06": {
+      "path": "docs/analysis/nastya-2026-11-04/source/docs/domain/inspection_criteria.md",
+      "sha256": "c704204e6e91dca55c1057ef2abf2ef767f5bcfccc0770d60fec093c613fb565"
+    },
+    "an07": {
+      "path": "docs/analysis/nastya-2026-11-04/source/docs/acceptance/demo_acceptance.md",
+      "sha256": "f25468f6b47335a572fa3be180209cdfd6bb00d50a6a7e0c81ad48d8091107f6"
+    },
+    "regulations": {
+      "path": "docs/analysis/nastya-2026-11-04/source/docs/domain/pilot_regulations.md",
+      "sha256": "ecea5639a5c05173ba9b9870ff4b7d477fc6d579976f4070757b39b7c0ec1cfa"
+    },
+    "flows": {
+      "path": "docs/analysis/nastya-2026-11-04/source/docs/domain/user_flows.md",
+      "sha256": "47b1acbb69b563798fca9239ef2f0ab90f1c2a7390563d4b8cc046f4cb4cce72"
+    }
+  },
+  "profiles": [
+    {
+      "operation_code": "1.1",
+      "title": "Контроль параметров показаний приборов (давление, температура)",
+      "maintenance_type": "ТО1",
+      "status": "draft_for_review",
+      "required_workers_from_source": 1,
+      "source_refs": [
+        {
+          "source_id": "regulations",
+          "line_start": 7,
+          "line_end": 7
+        }
+      ],
+      "items": [
+        {
+          "item_key": "instrument",
+          "origin": "derived_field",
+          "source_refs": [
+            {
+              "source_id": "an07",
+              "line_start": 24,
+              "line_end": 24
+            }
+          ],
+          "setting": {
+            "text": "Приборы, с которых сняты показания: идентификатор или маркировка",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "pressure_before",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an07",
+              "line_start": 50,
+              "line_end": 50
+            }
+          ],
+          "setting": {
+            "text": "Давление до выполнения операции, если измерение предусмотрено для этого оборудования",
+            "answer_kind": "number",
+            "unit": null,
+            "required": false,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "pressure_after",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an07",
+              "line_start": 50,
+              "line_end": 50
+            }
+          ],
+          "setting": {
+            "text": "Давление после выполнения операции, если измерение предусмотрено для этого оборудования",
+            "answer_kind": "number",
+            "unit": null,
+            "required": false,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "pressure_unit",
+          "origin": "derived_field",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 17,
+              "line_end": 17
+            }
+          ],
+          "setting": {
+            "text": "Единица показания давления",
+            "answer_kind": "text",
+            "unit": null,
+            "required": false,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "temperature",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "regulations",
+              "line_start": 7,
+              "line_end": 7
+            }
+          ],
+          "setting": {
+            "text": "Фактическое показание температуры, если оно предусмотрено для этого оборудования",
+            "answer_kind": "number",
+            "unit": null,
+            "required": false,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "temperature_unit",
+          "origin": "derived_field",
+          "source_refs": [
+            {
+              "source_id": "regulations",
+              "line_start": 7,
+              "line_end": 7
+            }
+          ],
+          "setting": {
+            "text": "Единица показания температуры",
+            "answer_kind": "text",
+            "unit": null,
+            "required": false,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "readable_photos",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 17,
+              "line_end": 17
+            }
+          ],
+          "setting": {
+            "text": "Шкала прибора и положение стрелки различимы на фото до и после",
+            "answer_kind": "boolean",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "visible",
+            "photo_required": true
+          }
+        },
+        {
+          "item_key": "protocol",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an07",
+              "line_start": 50,
+              "line_end": 50
+            }
+          ],
+          "setting": {
+            "text": "Проверенные параметры и запись результатов в протоколе",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "remarks",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "flows",
+              "line_start": 59,
+              "line_end": 68
+            }
+          ],
+          "setting": {
+            "text": "Замечания, отклонения или причина невозможности снять отдельное показание",
+            "answer_kind": "text",
+            "unit": null,
+            "required": false,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        }
+      ],
+      "engineer_review": [
+        "Сверить прибор, введённые показания и протокол. Фото не доказывает выполнение контроля.",
+        "Оценку «в норме» делать только по допустимому диапазону, заданному для конкретного оборудования."
+      ],
+      "open_questions": [
+        "Уточнить, какие параметры обязательны для каждого оборудования: давление, температура либо оба.",
+        "Согласовать единицы, диапазоны и состав протокола. Не переносить 1.15/3.2 бар из демо в качестве нормы."
+      ]
+    },
+    {
+      "operation_code": "1.2",
+      "title": "Протоколирование показаний счетчиков (согласно инструкции)",
+      "maintenance_type": "ТО1",
+      "status": "draft_for_review",
+      "required_workers_from_source": 1,
+      "source_refs": [
+        {
+          "source_id": "regulations",
+          "line_start": 8,
+          "line_end": 8
+        }
+      ],
+      "items": [
+        {
+          "item_key": "counter",
+          "origin": "derived_field",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 17,
+              "line_end": 17
+            }
+          ],
+          "setting": {
+            "text": "Идентификатор счётчика и его привязка к объекту или участку учёта",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "display",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 17,
+              "line_end": 17
+            }
+          ],
+          "setting": {
+            "text": "Дисплей счётчика и показание различимы на фото после снятия показаний",
+            "answer_kind": "boolean",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "visible",
+            "photo_required": true
+          }
+        },
+        {
+          "item_key": "reading",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an07",
+              "line_start": 28,
+              "line_end": 28
+            }
+          ],
+          "setting": {
+            "text": "Фактическое показание счётчика",
+            "answer_kind": "number",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "unit",
+          "origin": "derived_field",
+          "source_refs": [
+            {
+              "source_id": "an07",
+              "line_start": 28,
+              "line_end": 28
+            }
+          ],
+          "setting": {
+            "text": "Единица показания счётчика",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "measured_at",
+          "origin": "proposed_field",
+          "source_refs": [
+            {
+              "source_id": "an07",
+              "line_start": 28,
+              "line_end": 28
+            }
+          ],
+          "setting": {
+            "text": "Дата и время снятия показания",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "protocol",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 50,
+              "line_end": 50
+            }
+          ],
+          "setting": {
+            "text": "Запись показания в протоколе сверена с конкретным счётчиком",
+            "answer_kind": "boolean",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "remarks",
+          "origin": "derived_field",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 50,
+              "line_end": 50
+            }
+          ],
+          "setting": {
+            "text": "Замечания к дисплею, идентификации или протоколу",
+            "answer_kind": "text",
+            "unit": null,
+            "required": false,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        }
+      ],
+      "engineer_review": [
+        "Сверить идентификатор, единицу и число с протоколом. Активный дисплей не доказывает правильность записи."
+      ],
+      "open_questions": [
+        "Нужна инструкция конкретного счётчика: параметры, тарифы и единицы.",
+        "Для группы счётчиков согласовать отдельные записи по каждому прибору; один общий ввод числа их не заменяет."
+      ]
+    },
+    {
+      "operation_code": "1.3",
+      "title": "Проверка функционирования управляющего модуля",
+      "maintenance_type": "ТО1",
+      "status": "draft_for_review",
+      "required_workers_from_source": 1,
+      "source_refs": [
+        {
+          "source_id": "regulations",
+          "line_start": 9,
+          "line_end": 9
+        }
+      ],
+      "items": [
+        {
+          "item_key": "module",
+          "origin": "derived_field",
+          "source_refs": [
+            {
+              "source_id": "an07",
+              "line_start": 30,
+              "line_end": 30
+            }
+          ],
+          "setting": {
+            "text": "Идентификатор управляющего модуля или щита",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "indication_before",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 18,
+              "line_end": 18
+            }
+          ],
+          "setting": {
+            "text": "Фактическое состояние индикации до проверки",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "partial",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "indication_after",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 18,
+              "line_end": 18
+            }
+          ],
+          "setting": {
+            "text": "Фактическое состояние индикации после проверки",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "partial",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "panel_photos",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 18,
+              "line_end": 18
+            }
+          ],
+          "setting": {
+            "text": "Панель и индикаторы различимы на фото до и после",
+            "answer_kind": "boolean",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "visible",
+            "photo_required": true
+          }
+        },
+        {
+          "item_key": "functional_result",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 23,
+              "line_end": 25
+            }
+          ],
+          "setting": {
+            "text": "Результат функциональной проверки по утверждённой инструкции",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "functional_record",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 51,
+              "line_end": 51
+            }
+          ],
+          "setting": {
+            "text": "Результаты проверки и обнаруженные отклонения зафиксированы в чек-листе",
+            "answer_kind": "boolean",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "remarks",
+          "origin": "derived_field",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 18,
+              "line_end": 18
+            }
+          ],
+          "setting": {
+            "text": "Замечания к индикации или функционированию",
+            "answer_kind": "text",
+            "unit": null,
+            "required": false,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        }
+      ],
+      "engineer_review": [
+        "Проверить результат функционального контроля по инструкции и чек-листу.",
+        "Красные/зелёные лампы подтверждают только видимую индикацию, а не исправность внутренних цепей."
+      ],
+      "open_questions": [
+        "Нужны утверждённые пункты функционального контроля для конкретного модуля.",
+        "Уточнить допустимые состояния индикации. Цвета из CASE-03 не являются универсальным нормативом."
+      ]
+    },
+    {
+      "operation_code": "1.4",
+      "title": "Чистка всех узлов и агрегатов системы",
+      "maintenance_type": "ТО2",
+      "status": "draft_for_review",
+      "required_workers_from_source": 2,
+      "source_refs": [
+        {
+          "source_id": "regulations",
+          "line_start": 10,
+          "line_end": 10
+        }
+      ],
+      "items": [
+        {
+          "item_key": "crew",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "regulations",
+              "line_start": 10,
+              "line_end": 10
+            }
+          ],
+          "setting": {
+            "text": "Состав фактически работавшей бригады: два работника",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "scope",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 26,
+              "line_end": 26
+            }
+          ],
+          "setting": {
+            "text": "Перечень фактически обслуженных узлов и агрегатов",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "condition_before",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 19,
+              "line_end": 19
+            }
+          ],
+          "setting": {
+            "text": "Видимое состояние обслуженной детали до очистки",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "partial",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "condition_after",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 19,
+              "line_end": 19
+            }
+          ],
+          "setting": {
+            "text": "Видимое состояние обслуженной детали после очистки",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "partial",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "detail_photos",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 52,
+              "line_end": 52
+            }
+          ],
+          "setting": {
+            "text": "Состояние обслуженной детали зафиксировано на фото до и после",
+            "answer_kind": "boolean",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "visible",
+            "photo_required": true
+          }
+        },
+        {
+          "item_key": "assembly_control",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 26,
+              "line_end": 26
+            }
+          ],
+          "setting": {
+            "text": "Результат ручного контроля сборки и герметичности по акту",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "manual_act",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 26,
+              "line_end": 26
+            }
+          ],
+          "setting": {
+            "text": "Номер, ссылка или реквизиты акта ручной приёмки",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "remarks",
+          "origin": "derived_field",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 26,
+              "line_end": 26
+            }
+          ],
+          "setting": {
+            "text": "Неохваченные участки, замечания или оставшиеся дефекты",
+            "answer_kind": "text",
+            "unit": null,
+            "required": false,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        }
+      ],
+      "engineer_review": [
+        "Подтвердить состав бригады, фактический объём работ и акт ручной приёмки.",
+        "Фото одной сетки фильтра не подтверждает очистку всех узлов и герметичность после сборки."
+      ],
+      "open_questions": [
+        "Заказчик должен определить перечень «всех узлов», технологическую инструкцию и форму акта.",
+        "Единица исходной нормы 60 и длительность не подтверждены; шаблон их не задаёт."
+      ]
+    },
+    {
+      "operation_code": "1.5",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний",
+      "maintenance_type": "ТО2",
+      "status": "draft_for_review",
+      "required_workers_from_source": 1,
+      "source_refs": [
+        {
+          "source_id": "regulations",
+          "line_start": 11,
+          "line_end": 11
+        }
+      ],
+      "items": [
+        {
+          "item_key": "instrument",
+          "origin": "derived_field",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 53,
+              "line_end": 53
+            }
+          ],
+          "setting": {
+            "text": "Идентификатор проверяемого прибора",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "visible_condition",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 19,
+              "line_end": 19
+            }
+          ],
+          "setting": {
+            "text": "Результат осмотра стекла и корпуса: повреждения либо их отсутствие",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "partial",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "instrument_photos",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 53,
+              "line_end": 53
+            }
+          ],
+          "setting": {
+            "text": "Внешнее состояние прибора зафиксировано на фото до и после",
+            "answer_kind": "boolean",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "visible",
+            "photo_required": true
+          }
+        },
+        {
+          "item_key": "reference_instrument",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 27,
+              "line_end": 27
+            }
+          ],
+          "setting": {
+            "text": "Контрольный прибор, использованный при инструментальной сверке",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "comparison_result",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 27,
+              "line_end": 27
+            }
+          ],
+          "setting": {
+            "text": "Результат инструментальной сверки показаний",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "manual_act",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 27,
+              "line_end": 27
+            }
+          ],
+          "setting": {
+            "text": "Номер, ссылка или реквизиты акта инструментальной проверки",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "remarks",
+          "origin": "derived_field",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 27,
+              "line_end": 27
+            }
+          ],
+          "setting": {
+            "text": "Замечания по повреждениям или результатам сверки",
+            "answer_kind": "text",
+            "unit": null,
+            "required": false,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        }
+      ],
+      "engineer_review": [
+        "Сверить результаты с актом инструментальной проверки.",
+        "Оценка фото относится только к видимому состоянию; метрологическую точность по снимку не принимать."
+      ],
+      "open_questions": [
+        "Нужны методика инструментальной проверки, допуски и требования к контрольному прибору.",
+        "Единица исходной нормы 48 не определена. CASE-05 after — синтетическая редакция, не акт ремонта."
+      ]
+    },
+    {
+      "operation_code": "1.6",
+      "title": "Выпустить воздух из системы отопления/теплоснабжения",
+      "maintenance_type": "ТО2",
+      "status": "draft_for_review",
+      "required_workers_from_source": 1,
+      "source_refs": [
+        {
+          "source_id": "regulations",
+          "line_start": 12,
+          "line_end": 12
+        }
+      ],
+      "items": [
+        {
+          "item_key": "node",
+          "origin": "derived_field",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 54,
+              "line_end": 54
+            }
+          ],
+          "setting": {
+            "text": "Идентификатор обслуженного узла системы",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "condition_before",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 19,
+              "line_end": 19
+            }
+          ],
+          "setting": {
+            "text": "Видимое состояние узла до выполнения операции",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "partial",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "condition_after",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 19,
+              "line_end": 19
+            }
+          ],
+          "setting": {
+            "text": "Видимое состояние соединений и арматуры после операции",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "partial",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "node_photos",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 54,
+              "line_end": 54
+            }
+          ],
+          "setting": {
+            "text": "Видимое состояние одного узла зафиксировано на фото до и после",
+            "answer_kind": "boolean",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "visible",
+            "photo_required": true
+          }
+        },
+        {
+          "item_key": "execution_result",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 28,
+              "line_end": 28
+            }
+          ],
+          "setting": {
+            "text": "Результат выполнения операции по утверждённой инструкции",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "manual_control",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 28,
+              "line_end": 28
+            }
+          ],
+          "setting": {
+            "text": "Результат ручного контроля после выполнения операции",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "manual_act",
+          "origin": "source_requirement",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 54,
+              "line_end": 54
+            }
+          ],
+          "setting": {
+            "text": "Номер, ссылка или реквизиты акта ручной приёмки",
+            "answer_kind": "text",
+            "unit": null,
+            "required": true,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        },
+        {
+          "item_key": "remarks",
+          "origin": "derived_field",
+          "source_refs": [
+            {
+              "source_id": "an06",
+              "line_start": 28,
+              "line_end": 28
+            }
+          ],
+          "setting": {
+            "text": "Замечания или признаки, требующие дальнейшей проверки",
+            "answer_kind": "text",
+            "unit": null,
+            "required": false,
+            "visual_verifiability": "not_verifiable",
+            "photo_required": false
+          }
+        }
+      ],
+      "engineer_review": [
+        "Принимать физическое выполнение по чек-листу и ручным доказательствам.",
+        "Фото может показать внешнее состояние соединений; отсутствие воздуха внутри трубы оно не подтверждает."
+      ],
+      "open_questions": [
+        "Нужны инструкция для конкретной системы и критерии ручного контроля.",
+        "Для исходной пары CASE-06 тождество узла не подтверждено. Не использовать её как проверенную позитивную пару."
+      ]
+    }
+  ]
+}

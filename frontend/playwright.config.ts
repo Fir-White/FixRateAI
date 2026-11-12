@@ -1,7 +1,10 @@
-import { defineConfig } from "@playwright/test";
+import playwright from "@playwright/test";
+
+const { defineConfig } = playwright;
 
 export default defineConfig({
-  testDir: "./e2e",
+  testDir: "../tests/web/e2e",
+  tsconfig: "../tests/web/tsconfig.json",
   fullyParallel: false,
   workers: 1,
   timeout: 60_000,

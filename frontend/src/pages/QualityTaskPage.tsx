@@ -1,3 +1,7 @@
+import { AttemptHistory } from "@/features/analyst/AnalystPanels";
+import { ChiefActions,ActsPanel,ExecutionProtocol } from "@/features/analyst/AnalystPanels";
+import { AiModelSelector } from "@/features/ai/AiModelSelector";
+import { getStoredAiSettings } from "@/features/ai/aiSettings";
 import { DEMO_MODE } from "@/shared/api/request";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -7,10 +11,11 @@ import { formatDate } from "@/shared/lib/format";
 import { useSiteDateTime } from "@/shared/lib/useSiteDateTime";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Card, CardHeader } from "@/shared/ui/Card";
-import { EmptyState, ErrorState, LoadingState } from "@/shared/ui/States";
+import { ErrorState, LoadingState } from "@/shared/ui/States";
 import { Button, buttonClassName } from "@/shared/ui/Button";
 import { Icon } from "@/shared/ui/Icon";
-import { EvidenceGallery } from "@/entities/execution/EvidenceGallery";
+import { AnalysisTimerBadge, PhotoReviewCard } from "@/entities/execution/PhotoReviewCard";
+import { EvidenceComparison } from "@/entities/execution/EvidenceComparison";
 import { ChecklistSummary } from "@/entities/execution/ChecklistSummary";
 import { Callout } from "@/shared/ui/Callout";
 import { FormField, Textarea } from "@/shared/ui/Form";
@@ -20,17 +25,19 @@ import {
   EngineerDecisionBadge,
   OriginBadge,
   OverdueBadge,
-  ReviewStatusBadge,
   TaskStateBadge,
-  VerdictBadge,
 } from "@/shared/ui/StatusBadge";
+
+import { attemptStateSummary } from "@/shared/lib/presentation";
+import "./quality-redesign.css";
 
 export function QualityTaskPage() {
   const formatDateTime=useSiteDateTime();
   const { taskId = "" } = useParams();
   const [refresh, setRefresh] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [lastMeasured, setLastMeasured] = useState<{ reviewId: string; elapsedMs: number } | null>(null);
   const [reason, setReason] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingDecision, setPendingDecision] = useState<
@@ -39,16 +46,17 @@ export function QualityTaskPage() {
   const query = useApiQuery(
     () => maintenanceApi.getQualityBundle(taskId),
     [taskId, refresh],
+    bundle => !DEMO_MODE && bundle.photoAnalysisStatus === "pending",
   );
   const executionId = query.data?.execution?.id;
   const decisionContext = useRef("");
   useEffect(() => {
     if (!executionId || decisionContext.current === `${taskId}:${executionId}`) return;
     decisionContext.current = `${taskId}:${executionId}`;
-    setConfirmed(false);
     setReason("");
     setPendingDecision(null);
     setNotice(null);
+    setLastMeasured(null);
   }, [taskId, executionId]);
 
   if (query.status === "loading") {
@@ -69,7 +77,8 @@ export function QualityTaskPage() {
   }
 
   const { task, execution, review, decision } = query.data;
-  const canReview = DEMO_MODE ? task.state === "submitted" : !!query.data.allowedActions?.includes("review");
+  const hasDocuments = !!task.requiredActs?.length || !!execution?.acts?.length;
+  const canReview = !DEMO_MODE && !!query.data.allowedActions?.includes("review");
   const canAnalyze = !DEMO_MODE && !!query.data.allowedActions?.includes("photo_review");
 
   const handleDecision = async (verdict: "accepted" | "rejected") => {
@@ -77,7 +86,7 @@ export function QualityTaskPage() {
     if (DEMO_MODE) { setNotice("Деморежим: запрос не отправлен."); return; }
     if (!execution) return;
     setBusy(true); setNotice(null);
-    try { await maintenanceApi.review(task.id, task.revision, execution.id, verdict, reason); setRefresh(n => n+1); }
+    try { await maintenanceApi.review(task.id, task.revision, execution.id, verdict, reason,{reviewed_ai_result_id:review?.id,additional_evidence_refs:execution.acts?.filter(a=>a.verified).map(a=>a.id)??[]}); setRefresh(n => n+1); }
     catch (error) { setNotice(error instanceof Error ? error.message : "Ошибка API"); }
     finally { setBusy(false); }
   };
@@ -93,9 +102,8 @@ export function QualityTaskPage() {
       </Link>
 
       <PageHeader
-        eyebrow={task.code}
         title={task.title}
-        description={`${task.equipmentName} · ${task.summary}`}
+        description={`${task.code} · ${task.equipmentName} · ${task.summary}`}
         actions={
           <Link to={`/tasks/${task.id}`} className={buttonClassName("secondary")}>
             Карточка задания
@@ -112,17 +120,49 @@ export function QualityTaskPage() {
         </span>
       </div>
 
-      {canAnalyze && <div className="space-y-3 rounded-xl border border-line p-4">
-        <label className="block text-sm"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /> Подтверждаю, что фото показывают тот же объект и сопоставимый ракурс</label>
-        <Button variant="secondary" disabled={busy} onClick={async () => {
-          setBusy(true); setNotice(null);
-          try { await maintenanceApi.photoReview(task.id, task.revision, confirmed); setRefresh(n => n+1); }
-          catch (error) { setNotice(error instanceof Error ? error.message : "Ошибка анализа"); }
-          finally { setBusy(false); }
-        }}>Анализировать фото</Button>
+      {decision ? (
+        <Card>
+          <CardHeader title="Предыдущее решение" />
+          <div className="p-5 sm:p-6">
+            <EngineerDecisionBadge verdict={decision.verdict} />
+            <p className="mt-2 text-sm leading-6 text-ink-soft">{decision.reason}</p>
+            <p className="mt-2 text-xs text-muted">{decision.decidedBy} · {formatDateTime(decision.decidedAt)}</p>
+          </div>
+        </Card>
+      ) : null}
+
+      <p className="text-sm text-muted">{attemptStateSummary(task.state)}</p>
+      {canReview && <a className="fr-decision-shortcut" href="#review-decision">Перейти к основанию решения</a>}
+      {notice && !canReview && <div role="alert"><Callout tone="danger" className="text-xs">{notice}</Callout></div>}
+      {query.data.photoAnalysisStatus === "pending" && <Callout tone="neutral"><div className="flex flex-wrap items-center justify-between gap-2"><p role="status">Фотографии анализируются автоматически. Результат появится здесь без обновления страницы; запуск инженером не требуется.</p><AnalysisTimerBadge active /></div></Callout>}
+      {canAnalyze && query.data.photoAnalysisStatus !== "pending" && (!review || ["failed","unavailable"].includes(review.status)) && <div className="space-y-4 rounded-xl border border-line p-4">
+        <AiModelSelector variant="compact" />
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="secondary" disabled={busy} onClick={async () => {
+            const startedAt = performance.now();
+            setBusy(true); setAnalyzing(true); setNotice(null);
+            try {
+              const aiOpts = getStoredAiSettings();
+              const res = await maintenanceApi.photoReview(task.id, task.revision, false, {
+                provider: aiOpts.provider,
+                model: aiOpts.model,
+                api_key: aiOpts.apiKey,
+              });
+              setLastMeasured({ reviewId: res.id, elapsedMs: res.elapsedMs ?? Math.round(performance.now() - startedAt) });
+              setRefresh(n => n+1);
+            }
+            catch (error) { setNotice(error instanceof Error ? error.message : "Ошибка анализа"); }
+            finally { setBusy(false); setAnalyzing(false); }
+          }}>{analyzing?"Фотографии анализируются…":review?"Повторить анализ":"Анализировать фото"}</Button>
+          <AnalysisTimerBadge active={analyzing} />
+          {analyzing&&<p role="status" className="text-sm leading-6 text-muted">Модель сравнивает фотографии с заданием. Дождитесь результата; повторно нажимать кнопку не нужно.</p>}
+        </div>
       </div>}
-      <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+      {DEMO_MODE && <Callout tone="neutral">DEMO · Фото и решения показаны из примера. Анализ и приёмка доступны только при подключении к API.</Callout>}
+      <div className="quality-detail-grid fr-work-grid">
         <div className="space-y-6">
+          {hasDocuments && <div id="review-documents"><ActsPanel task={task} execution={execution} editable={false} onSaved={()=>setRefresh(n=>n+1)}/></div>}
+          {execution&&<ExecutionProtocol task={task} execution={execution} value={{actual:execution.actual?{started_at:execution.actual.started_at??"",performed_at:execution.actual.performed_at??"",person_hours:execution.actual.person_hours??""}:null,readings:execution.readings??[]}} onChange={()=>{}} disabled readOnly/>}
           <Card>
             <CardHeader
               title="Отчёт исполнителя"
@@ -149,89 +189,24 @@ export function QualityTaskPage() {
 
           <Card>
             <CardHeader
-              title="Фотографии попытки"
-              description="Доступ проверяется по Site и заданию"
+              title="До / после"
+              description="Сравнение по пункту чек-листа и одинаковому ракурсу"
             />
             <div className="p-5 sm:p-6">
-              <EvidenceGallery
-                photos={execution?.photos ?? []}
-                emptyText="Фото к этой попытке не приложены"
-              />
+              <EvidenceComparison photos={execution?.photos ?? []} checklist={execution?.checklist ?? []} />
             </div>
           </Card>
 
-          <Card>
-            <CardHeader
-              title="AI-заключение"
-              description="Ограниченный анализ видимых изменений"
-              action={
-                review ? <ReviewStatusBadge status={review.status} /> : null
-              }
-            />
-            <div className="p-5 sm:p-6">
-              {review ? (
-                <>
-                  <div className="rounded-xl bg-white/[0.035] p-4">
-                    <p className="text-xs font-semibold text-muted">
-                      Модель
-                    </p>
-                    <p className="mt-1 font-mono text-xs break-all text-ink-soft">
-                      {review.modelRef ?? "Модель не использовалась"}
-                    </p>
-                    <p className="mt-2 text-xs text-muted">
-                      Prompt set {review.promptSetVersion} ·{" "}
-                      {formatDateTime(review.createdAt)}
-                    </p>
-                  </div>
-
-                  <ul className="mt-4 space-y-3">
-                    {review.items.map((item) => (
-                      <li
-                        key={item.id}
-                        className="rounded-xl border border-line p-3"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-ink">
-                            {item.label}
-                          </p>
-                          <VerdictBadge verdict={item.verdict} />
-                        </div>
-                        <p className="mt-1 text-xs leading-5 text-muted">
-                          {item.note}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Callout
-                    tone="warning"
-                    title="Ограничения"
-                    className="mt-4 text-xs"
-                  >
-                    <ul className="space-y-1">
-                      {review.limitations.map((limitation) => (
-                        <li key={limitation}>{limitation}</li>
-                      ))}
-                    </ul>
-                  </Callout>
-                </>
-              ) : (
-                <EmptyState
-                  title="AI-заключение не создано"
-                  description="Фотоанализ доступен для текущей отправленной попытки. Решение о приёмке принимает инженер."
-                />
-              )}
-            </div>
-          </Card>
+          {query.data.photoAnalysisStatus !== "pending" && <PhotoReviewCard review={review} formatDateTime={formatDateTime} fallbackElapsedMs={lastMeasured && review?.id === lastMeasured.reviewId ? lastMeasured.elapsedMs : null}/>}
         </div>
 
-        <div className="space-y-6">
-          <Card>
+        <div id="review-decision" className="space-y-6 quality-decision-rail">
+          {canReview&&<Card>
             <CardHeader title="Основание решения" />
             <div className="p-5 sm:p-6">
               <InfoList className="grid grid-cols-2 gap-4">
                 <InfoItem
-                  label="Срок"
+                  label="Обязательный срок"
                   value={formatDate(task.mandatoryDueDate)}
                 />
                 <InfoItem label="Ревизия" value={String(task.revision)} />
@@ -241,15 +216,17 @@ export function QualityTaskPage() {
                 неуверенного AI-результата она служит основанием ручной оценки.
               </p>
 
+              <div className="fr-decision-facts"><p>Фото этой попытки: {execution?.photos.length??0}.{hasDocuments && <> <a href="#review-documents">Документы и проверки</a></>}</p>{task.requiredActs?.map(kind=><p key={kind}>{kind}: {execution?.acts?.some(a=>a.kind===kind&&a.verified)?"проверен":execution?.acts?.some(a=>a.kind===kind)?"ожидает проверки":"не приложен"}</p>)}<p>AI не принимает работу. Скрытые операции и точность прибора требуют ручной проверки.</p>{review?.limitations.map(text=><p key={text}>{text}</p>)}</div>
               <FormField
                 label="Причина решения"
                 htmlFor="quality-reason"
-                hint="Основание сохраняется в EngineerDecision."
+                hint="Ваше основание будет сохранено вместе с решением."
                 required
                 className="mt-4"
               >
                 <Textarea
                   id="quality-reason"
+                  disabled={!canReview || busy}
                   value={reason}
                   onChange={(event) => {
                     setReason(event.target.value);
@@ -261,9 +238,7 @@ export function QualityTaskPage() {
               </FormField>
 
               {notice ? (
-                <Callout tone="info" className="mt-3 text-xs">
-                  {notice}
-                </Callout>
+                <div role="alert"><Callout tone="danger" className="mt-3 text-xs">{notice}</Callout></div>
               ) : null}
 
               <div className="mt-4 grid gap-2">
@@ -283,30 +258,17 @@ export function QualityTaskPage() {
                   Вернуть на доработку
                 </Button>
               </div>
-              {!DEMO_MODE && task.state === "submitted" && !canReview && <Callout tone="warning" className="mt-3 text-xs">Собственную работу должен проверить другой инженер.</Callout>}
             </div>
-          </Card>
-
-          {decision ? (
-            <Card>
-              <CardHeader title="Предыдущее решение" />
-              <div className="p-5 sm:p-6">
-                <EngineerDecisionBadge verdict={decision.verdict} />
-                <p className="mt-2 text-sm leading-6 text-ink-soft">
-                  {decision.reason}
-                </p>
-                <p className="mt-2 text-xs text-muted">
-                  {decision.decidedBy} · {formatDateTime(decision.decidedAt)}
-                </p>
-              </div>
-            </Card>
-          ) : null}
+          </Card>}
+          {!DEMO_MODE && task.state === "submitted" && !canReview && <Callout tone="warning" className="mt-3 text-xs">Собственную работу должен проверить другой инженер.</Callout>}
 
           <Callout tone="neutral" className="text-xs leading-5">
-            Приёмка, сохранение решения и аудит выполняются в одной транзакции. Принятая попытка появляется в истории оборудования.
+            Решение и доказательства этой попытки сохраняются в истории задания.
           </Callout>
         </div>
       </div>
+      <ChiefActions task={task} onSaved={()=>setRefresh(n=>n+1)}/>
+      <AttemptHistory taskId={task.id}/>
       <Modal
         open={pendingDecision !== null}
         title={
@@ -344,7 +306,7 @@ export function QualityTaskPage() {
       >
         <p className="text-sm leading-6 text-ink-soft">{reason}</p>
         <p className="mt-3 text-xs text-muted">
-          Проверьте фотографии и заключение AI перед подтверждением.
+          {task.title} · Попытка №{execution?.attemptNumber}. Проверьте фотографии, показания и заключение AI. Обязательные документы: {task.requiredActs?.join(", ")||"не предусмотрены регламентом"}.
         </p>
       </Modal>
 

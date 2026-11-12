@@ -1,5 +1,7 @@
+import { FieldCaption, Input } from "@/shared/ui/Form";
 import { useEffect, useRef, useState } from "react";
 import { maintenanceApi } from "@/shared/api/maintenance";
+import { ApiError } from "@/shared/api/request";
 import type { TaskBundle } from "@/shared/api/maintenance";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
 import type { AssignmentContext, CrewSelection } from "@/shared/types/domain";
@@ -7,29 +9,32 @@ import { Button } from "@/shared/ui/Button";
 import { Card, CardHeader } from "@/shared/ui/Card";
 import { Callout } from "@/shared/ui/Callout";
 import { ErrorState, LoadingState } from "@/shared/ui/States";
+import "./assignment.css";
 
-export function CrewSelectionPanel({taskId, onClose, onAssigned, onInvalidated}: {
+export function CrewSelectionPanel({taskId, taskTitle, equipmentName, onClose, onAssigned, onInvalidated}: {
+  taskTitle?: string; equipmentName?: string;
   taskId: string; onClose: () => void; onAssigned?: (bundle: TaskBundle) => void; onInvalidated?: (message: string) => void;
 }) {
   const [saving, setSaving] = useState(false);
   const [generation, setGeneration] = useState(0);
   const [notice, setNotice] = useState("");
   const query = useApiQuery(() => maintenanceApi.assignmentContext(taskId), [taskId, generation]);
-  return <section aria-label="Подбор бригады">
+  return <section aria-label="Подбор бригады" className="fr-assignment">
     <div className="mb-3 flex items-center justify-between gap-3">
       <h2 className="text-lg font-semibold">Подбор бригады</h2>
       <Button variant="ghost" size="sm" disabled={saving} onClick={onClose}>Закрыть подбор</Button>
     </div>
     {query.status === "loading" && <LoadingState label="Загрузка условий подбора" />}
-    {query.status === "error" && <ErrorState description={query.error} />}
+    {query.status === "error" && <ErrorState description={query.error} action={<Button variant="secondary" onClick={() => setGeneration(value => value + 1)}>Повторить загрузку</Button>} />}
     {notice && <div role="alert"><Callout tone="danger">{notice}</Callout></div>}
-    {query.status === "success" && <Picker key={`${taskId}:${query.data.expectedRevision}:${generation}`} context={query.data}
+    {query.status === "success" && <Picker key={`${taskId}:${query.data.expectedRevision}:${generation}`} context={query.data} taskTitle={taskTitle} equipmentName={equipmentName}
       saving={saving} setSaving={setSaving} onAssigned={onAssigned} onSearch={() => setNotice("")}
       onSaveError={message => {setNotice(message); setGeneration(value => value + 1); onInvalidated?.(message);}} />}
   </section>;
 }
 
-function Picker({context, saving, setSaving, onAssigned, onSaveError, onSearch}: {
+function Picker({context, taskTitle, equipmentName, saving, setSaving, onAssigned, onSaveError, onSearch}: {
+  taskTitle?: string; equipmentName?: string;
   context: AssignmentContext; saving: boolean; setSaving: (value: boolean) => void;
   onAssigned?: (bundle: TaskBundle) => void; onSaveError: (message: string) => void; onSearch: () => void;
 }) {
@@ -71,19 +76,18 @@ function Picker({context, saving, setSaving, onAssigned, onSaveError, onSearch}:
         <p className="text-sm text-muted">Нужно {context.crewSize} чел. на {context.durationMinutes} мин. · Время объекта: {context.timezone}</p>
         <p className="text-sm text-muted">Допуски: {context.requiredQualifications.length ? context.requiredQualifications.join(" · ") : "дополнительные требования отсутствуют"}</p>
         <p className="text-xs text-muted">Допустимо: {showTime(context.earliestAt)} — {showTime(context.deadlineAt)}. Исходная норма: {context.rawNormValue ?? "не задана"}; длительность подтверждена отдельно.</p>
-        {context.dataOrigin === "synthetic_demo" && <p className="text-xs text-amber-200">DEMO: синтетические условия работы и исполнители.</p>}
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="space-y-1 text-sm">Начало окна поиска
-            <input aria-label="Начало окна поиска" type="datetime-local" required disabled={saving} value={start} onChange={event => {invalidate(); setStart(event.target.value);}}
-              className="w-full rounded-lg border border-line bg-canvas p-3 text-ink" />
+          <label className="space-y-1 text-sm"><FieldCaption>Начало окна поиска
+            </FieldCaption><Input aria-label="Начало окна поиска" type="datetime-local" required disabled={saving} value={start} onChange={event => {invalidate(); setStart(event.target.value);}}
+              />
           </label>
-          <label className="space-y-1 text-sm">Конец окна поиска
-            <input aria-label="Конец окна поиска" type="datetime-local" required disabled={saving} value={end} onChange={event => {invalidate(); setEnd(event.target.value);}}
-              className="w-full rounded-lg border border-line bg-canvas p-3 text-ink" />
+          <label className="space-y-1 text-sm"><FieldCaption>Конец окна поиска
+            </FieldCaption><Input aria-label="Конец окна поиска" type="datetime-local" required disabled={saving} value={end} onChange={event => {invalidate(); setEnd(event.target.value);}}
+              />
           </label>
         </div>
-        <label className="block space-y-1 text-sm">Состав
-          <select aria-label="Состав" disabled={saving} value={crew} onChange={event => {invalidate(); setCrew(event.target.value);}}
+        <label className="block space-y-1 text-sm"><FieldCaption>Состав
+          </FieldCaption><select aria-label="Состав" disabled={saving} value={crew} onChange={event => {invalidate(); setCrew(event.target.value);}}
             className="w-full rounded-lg border border-line bg-canvas p-3 text-ink">
             <option value="">Автоматический подбор работников</option>
             <option value="@individual">Работники без постоянной бригады</option>
@@ -113,6 +117,28 @@ function Picker({context, saving, setSaving, onAssigned, onSaveError, onSearch}:
         catch(failure){if(requestId.current===current)setError(failure instanceof Error?failure.message:"Проверка состава недоступна");}
         finally{if(requestId.current===current)setBusy(false);}
       }}>Проверить выбранный состав</Button></div>}
+      <Card className="overflow-hidden"><CardHeader title="Проверка кандидатов" />
+        <div className="overflow-x-auto"><table className="w-full text-left text-sm" aria-label="Кандидаты для назначения">
+          <thead className="text-muted"><tr><th className="p-4">Выбор</th><th className="p-4">Работник</th><th className="p-4">Результат</th><th className="p-4">Загрузка за день</th><th className="p-4">Причина</th></tr></thead>
+          <tbody>{result.workers.map(worker => <tr key={worker.executorId} className="border-t border-line align-top">
+            <td className="p-4" data-label="Выбор"><input type="checkbox" aria-label={`Выбрать: ${worker.name}`} disabled={saving||busy||worker.status==="excluded"} checked={picked.includes(worker.executorId)} onChange={event=>{
+              requestId.current+=1;setChanged(true);setError("");setPicked(event.target.checked?[...picked,worker.executorId]:picked.filter(id=>id!==worker.executorId));
+            }}/></td>
+            <td className="p-4" data-label="Работник">{worker.name}</td><td className="p-4" data-label="Результат">{{selected: result.recommendationMode==="manual" ? "Выбран" : "Приоритетный", available: "Доступен", excluded: "Не подходит"}[worker.status]}</td>
+            <td className="p-4" data-label="Загрузка за день">{worker.loadMinutes === null ? "Не определена" : `${worker.loadMinutes} мин.`}</td><td className="min-w-60 p-4" data-label="Причина">{worker.explanation}</td>
+          </tr>)}</tbody>
+        </table></div>
+      </Card>
+      {result.crews.length > 0 && <Card><CardHeader title="Проверка бригад" />
+        <ul className="divide-y divide-line">{result.crews.map(item => <li key={item.id} className="p-4 text-sm"><p className="font-semibold">{item.name}</p><p className="mt-1 text-muted">{item.explanation}</p></li>)}</ul>
+      </Card>}
+      {result.status === "ok" && result.command && <div className="fr-assignment-summary" aria-label="Итог назначения">
+        <h3 className="font-semibold">Подтверждение назначения</h3>
+        <p>{taskTitle ?? "Задание"}{equipmentName ? ` · ${equipmentName}` : ""}</p>
+        <p>Плановый интервал: {showTime(result.startAt)} — {showTime(result.endAt)} · {context.timezone}</p>
+        <p>Состав: {result.selectedWorkers.map(worker => worker.name).join(", ")}</p>
+        <p className="text-sm text-muted">Назначение сохранится после подтверждения. Сервер повторно проверит доступность и допуски.</p>
+      </div>}
       {result.status === "ok" && result.command && <Button disabled={saving || busy || changed} onClick={async () => {
         if (saveLock.current || !result.command) return;
         saveLock.current = true;
@@ -124,25 +150,14 @@ function Picker({context, saving, setSaving, onAssigned, onSaveError, onSearch}:
         } catch (failure) {
           if (requestId.current === current) {
             setResult(null);
-            onSaveError(failure instanceof Error ? failure.message : "Не удалось подтвердить сохранение. Повторите подбор.");
+            if (failure instanceof TypeError || (failure instanceof ApiError && failure.status >= 500)) {
+              setError("Сохранение не подтверждено. Параметры поиска сохранены; повторите подбор перед назначением.");
+            } else {
+              onSaveError(failure instanceof Error ? failure.message : "Не удалось подтвердить сохранение. Повторите подбор.");
+            }
           }
         } finally {saveLock.current = false; setSaving(false);}
       }}>{saving ? "Сохранение…" : "Подтвердить назначение"}</Button>}
-      <Card className="overflow-hidden"><CardHeader title="Проверка кандидатов" />
-        <div className="overflow-x-auto"><table className="w-full text-left text-sm">
-          <thead className="text-muted"><tr><th className="p-4">Выбор</th><th className="p-4">Работник</th><th className="p-4">Результат</th><th className="p-4">Загрузка за день</th><th className="p-4">Причина</th></tr></thead>
-          <tbody>{result.workers.map(worker => <tr key={worker.executorId} className="border-t border-line align-top">
-            <td className="p-4"><input type="checkbox" aria-label={`Выбрать: ${worker.name}`} disabled={saving||busy||worker.status==="excluded"} checked={picked.includes(worker.executorId)} onChange={event=>{
-              requestId.current+=1;setChanged(true);setError("");setPicked(event.target.checked?[...picked,worker.executorId]:picked.filter(id=>id!==worker.executorId));
-            }}/></td>
-            <td className="p-4">{worker.name}</td><td className="p-4">{{selected: result.recommendationMode==="manual" ? "Выбран" : "Приоритетный", available: "Доступен", excluded: "Не подходит"}[worker.status]}</td>
-            <td className="p-4">{worker.loadMinutes === null ? "Не определена" : `${worker.loadMinutes} мин.`}</td><td className="min-w-60 p-4">{worker.explanation}</td>
-          </tr>)}</tbody>
-        </table></div>
-      </Card>
-      {result.crews.length > 0 && <Card><CardHeader title="Проверка бригад" />
-        <ul className="divide-y divide-line">{result.crews.map(item => <li key={item.id} className="p-4 text-sm"><p className="font-semibold">{item.name}</p><p className="mt-1 text-muted">{item.explanation}</p></li>)}</ul>
-      </Card>}
     </>}
   </div>;
 }

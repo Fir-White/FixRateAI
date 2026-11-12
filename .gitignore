@@ -1,39 +1,75 @@
-# Python
+# Python and local environments
 __pycache__/
 *.py[cod]
-*.pyo
 .Python
 .venv/
 venv/
 env/
 ENV/
 
-# Test and type-check caches
+# Tests, caches and build output
 .pytest_cache/
 .mypy_cache/
 .pyright/
+.ruff_cache/
+.cache/
+.vite/
 .coverage
+.coverage.*
 htmlcov/
-
-# Local environment and secrets
-.env
-.env.*
-!.env.example
-
-# Build and editor output
+coverage/
 build/
 dist/
 *.egg-info/
-.vscode/
-!.vscode/extensions.json
-
-# Frontend
-node_modules/
-coverage/
 *.tsbuildinfo
+node_modules/
+test-results/
+playwright-report/
 
-# Local runtime files and verification output
+# Local settings and secrets
+.env
+.env.*
+*.env
+*.env.*
+!/.env.example
+
+# Runtime data, logs and generated reports
 /var/
-/test-results/
-/frontend/test-results/
-/frontend/playwright-report/
+/logs/
+*.log
+*.log.*
+*.pid
+*.dump
+*.backup
+*.sql.gz
+/reports/**
+!/reports/ml/
+!/reports/ml/archive/
+!/reports/ml/archive/clip_experiment.json
+!/reports/ml/archive/clip_default_experiment.json
+!/reports/ml/archive/clip_service_experiment.json
+
+# Editor and OS files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.bak
+*.tmp
+*.swp
+*.swo
+*~
+
+# Local tooling and worktrees
+/.opencode/
+/.codex/
+/.agents/
+/.worktrees/
+
+# Generated local source/report archive
+/reports.zip
+
+# Local verification bundles are artifacts, not repository sources.
+reports*.zip

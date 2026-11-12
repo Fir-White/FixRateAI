@@ -1,0 +1,2 @@
+# Preserve received bytes, Markdown line breaks and original whitespace.
+source/** -text -whitespace

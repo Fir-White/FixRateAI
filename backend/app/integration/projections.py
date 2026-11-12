@@ -8,21 +8,29 @@ from fastapi import HTTPException
 from sqlalchemy import select
 
 from app.db.repository import MaintenanceRepository
+from app.security.sessions import has_role
 
 TASK_STATES = {"in_review": "submitted", "rework": "rework_required", "completed": "accepted",
                "clarification": "draft"}
 
 
 def iso(value):
-    return value.isoformat() if value is not None else None
+    return value if isinstance(value,str) else value.isoformat() if value is not None else None
 
 
 class Views:
     def __init__(self, session, models, principal):
         self.session, self.models, self.principal = session, models, principal
         self.repo = MaintenanceRepository(session, models)
+        self._task_rows = {}
+        self._task_refs = []
 
     def rows(self, table, **filters):
+        if len(filters) == 1:
+            key, value = next(iter(filters.items()))
+            index = self._task_rows.get((table, key))
+            if index is not None:
+                return index.get(value, [])
         cls = self.models[table]
         query = select(cls)
         if hasattr(cls, "site_id"):
@@ -66,7 +74,10 @@ class Views:
                     revision=item.revision, dataOrigin=item.properties.get("data_origin"),
                     nextDueDate=iso(min((e.regulatory_deadline_on for e in entries), default=None)),
                     lastServiceAt=history[0]["acceptedAt"] if history else None,
-                    activeOperation=None)
+                    activeOperation=None,systemId=str(item.system_id),parentEquipmentId=str(item.parent_equipment_id) if item.parent_equipment_id else None,
+                    linkedOperations=[dict(code=b.rule.operation.code,title=b.rule.operation.title,frequency=b.rule.source_text,
+                        crewSize=b.rule.required_people,normValue=str(b.rule.norm_hours) if b.rule.norm_hours is not None else None,
+                        normUnit=b.rule.schedule_parameters.get("norm_unit","unconfirmed"),published=b.rule.publication_status=="published") for b in bindings if not b.rule.schedule_parameters.get("superseded_binding")])
 
     def visible_equipment_ids(self):
         orders = {a.work_order_id for a in self.rows("work_assignments", user_id=self.principal.user_id)
@@ -88,7 +99,7 @@ class Views:
                     continue
                 user = self.session.get(self.models["users"], review.reviewer_user_id)
                 result.append(dict(id=str(review.acceptance_review_id), equipmentId=str(equipment_id),
-                    performedAt=iso(order.completed_at), acceptedAt=iso(review.reviewed_at),
+                    performedAt=review.decision_context.get("performed_at") or iso(order.completed_at), acceptedAt=iso(review.reviewed_at),
                     operation=order.operation_snapshot.get('title') or (rule.operation.title if rule else 'Работа'),
                     engineer=user.full_name, taskCode=str(order.work_order_id)[:8], runtimeHours=None))
         return sorted(result, key=lambda x: x["acceptedAt"], reverse=True)
@@ -103,6 +114,34 @@ class Views:
             typ = self.session.get(self.models["maintenance_types"], rule.operation.maintenance_type_id)
             kind = typ.name if typ.name in ("ТО1", "ТО2") else None
         return rule, title, code, kind
+
+    def prepare_task_views(self, orders):
+        # Only use this request-local index for read-only list projections.
+        # The caller has already selected the orders visible to the principal.
+        order_ids = [order.work_order_id for order in orders]
+        if not order_ids:
+            return
+        def index(table, key, ids):
+            cls = self.models[table]
+            query = select(cls).where(cls.site_id == self.principal.site_id, getattr(cls, key).in_(ids))
+            groups = {}
+            for row in self.session.scalars(query).all():
+                groups.setdefault(getattr(row, key), []).append(row)
+            self._task_rows[(table, key)] = groups
+            return [row for group in groups.values() for row in group]
+        links = index("work_order_equipment", "work_order_id", order_ids)
+        assignments = index("work_assignments", "work_order_id", order_ids)
+        index("work_reports", "work_order_id", order_ids)
+        index("acceptance_reviews", "work_order_id", order_ids)
+        equipment_ids = {link.equipment_id for link in links}
+        entry_ids = {order.schedule_entry_id for order in orders if order.schedule_entry_id}
+        user_ids = {assignment.user_id for assignment in assignments}
+        index("equipment", "equipment_id", equipment_ids)
+        index("schedule_entries", "schedule_entry_id", entry_ids)
+        skills = index("user_skills", "user_id", user_ids)
+        for table, key, ids in (("users", "user_id", user_ids), ("skills", "skill_id", {skill.skill_id for skill in skills})):
+            cls = self.models[table]
+            self._task_refs.extend(self.session.scalars(select(cls).where(getattr(cls, key).in_(ids))).all())
 
     def task_view(self, order):
         tz = ZoneInfo(self.principal.timezone)
@@ -123,20 +162,23 @@ class Views:
         # A calendar deadline_at is the exclusive end of the due day, often
         # midnight on the following date. Display the persisted normative day.
         entry = self.one("schedule_entries", schedule_entry_id=order.schedule_entry_id) if order.schedule_entry_id else None
-        due_date = entry.regulatory_deadline_on if entry else deadline.astimezone(tz).date() if deadline else None
+        due_date = entry.regulatory_deadline_on if entry else order.operation_snapshot.get("earliest_date") or (deadline.astimezone(tz).date() if deadline else None)
         now = datetime.now(timezone.utc)
         overdue = bool(deadline and deadline < now and order.status not in ("completed", "cancelled"))
         return dict(id=str(order.work_order_id), code=str(order.work_order_id)[:8], title=title,
             equipmentId=str(eq.equipment_id) if eq else None, equipmentName=eq.name if eq else "Не указано",
             operationCode=code, maintenanceType=kind, state=TASK_STATES.get(order.status, order.status),
-            isOverdue=overdue, deadlineBreached=bool(deadline and order.completed_at and order.completed_at > deadline),
-            mandatoryDueDate=iso(due_date),
+            isOverdue=overdue, deadlineBreached=bool(deadline and any(r.decision=="accepted" and r.reviewed_at>deadline for r in self.rows("acceptance_reviews",work_order_id=order.work_order_id))),
+            mandatoryDueDate=iso(due_date),sourceDate=iso(entry.source_date or entry.regulatory_deadline_on) if entry else None,
             scheduledStart=iso(order.planned_start_at.astimezone(tz)) if order.planned_start_at else None,
             scheduledEnd=iso(order.planned_end_at.astimezone(tz)) if order.planned_end_at else None,
             crewSize=order.required_people_snapshot, assignees=assignees,
             activeExecutionId=str(reports[-1].work_report_id) if reports else None,
             revision=order.revision, dataOrigin=order.operation_snapshot.get("data_origin") or (rule.data_origin if rule else None),
-            summary=order.operation_snapshot.get("label", ""))
+            summary=order.operation_snapshot.get("label", ""),instructions=order.operation_snapshot.get("instructions") or (rule.operation.description if rule else None),
+            normHours=str(order.norm_hours_snapshot),normUnit=order.operation_snapshot.get("norm_unit","unconfirmed"),
+            durationMinutes=order.operation_snapshot.get("planning_duration_minutes"),overdueSince=iso(order.overdue_since_at),
+            requiredActs=order.operation_snapshot.get("required_acts",[]),measurementRequirements=order.operation_snapshot.get("measurement_requirements",[]))
 
     def report_view(self, report):
         answers = {str(r.checklist_template_id): r.response_value.get("answer")
@@ -146,10 +188,13 @@ class Views:
                        label=p.storage_key.rsplit("/", 1)[-1], capturedAt=iso(p.captured_at),
                        uploadedAt=iso(p.uploaded_at), checklistItemId=str(p.checklist_item_id) if p.checklist_item_id else "",
                        status="uploaded", url=f"/api/v1/maintenance/photos/{p.evidence_file_id}")
-                  for p in self.rows("evidence_files", work_report_id=report.work_report_id)]
+                  for p in self.rows("evidence_files", work_report_id=report.work_report_id) if p.stage in ("before","after")]
         return dict(id=str(report.work_report_id), taskId=str(report.work_order_id), attemptNumber=report.revision_no,
                     state="draft" if report.status == "draft" else "submitted", narrative=report.comment or "",
-                    checklist=checklist, photos=photos, submittedAt=iso(report.submitted_at))
+                    checklist=checklist, photos=photos, submittedAt=iso(report.submitted_at),actual=report.execution_context,
+                    readings=[dict(equipment_id=str(r.equipment_id),parameter_code=r.parameter_code,value=str(r.numeric_value),unit=r.unit_code,measured_at=iso(r.measured_at),phase=r.phase) for r in self.rows("work_readings",work_report_id=report.work_report_id)],
+                    acts=[dict(id=str(p.evidence_file_id),kind=p.verification_context.get("kind"),verified=bool(p.verification_context.get("verified_by")),
+                        url=f"/api/v1/maintenance/photos/{p.evidence_file_id}") for p in self.rows("evidence_files",work_report_id=report.work_report_id) if p.stage=="other"])
 
     def bundle(self, order):
         task = self.task_view(order)
@@ -164,12 +209,20 @@ class Views:
                 executionId=str(decision.work_report_id), verdict="accepted" if decision.decision == "accepted" else "rejected",
                 reason=decision.comment or "", decidedAt=iso(decision.reviewed_at), decidedBy=reviewer.full_name)
         checks = self.rows("ai_quality_checks", work_report_id=report.work_report_id) if report else []
-        review = max(checks, key=lambda c: c.created_at).findings.get("ui") if checks else None
+        latest_check = max(checks, key=lambda c: c.created_at) if checks else None
+        review = None
+        if latest_check and latest_check.findings.get("ui"):
+            review = dict(latest_check.findings["ui"])
+            if review.get("elapsedMs") is None:
+                canonical_elapsed = (latest_check.findings.get("canonical") or {}).get("elapsed_ms")
+                if canonical_elapsed is not None:
+                    review["elapsedMs"] = canonical_elapsed
         actions = []
+        if self.principal.role=="chief_engineer" and order.status=="completed": actions.append("reopen")
         role = self.principal.role
-        if role in ("dispatcher", "engineer"):
+        if has_role(role,("dispatcher", "engineer")):
             actions.append("forecast")
-        if role=='dispatcher' and order.status in ('draft','clarification','assigned') and not reports:
+        if has_role(role,('dispatcher',)) and order.status in ('draft','clarification','assigned') and not reports:
             actions.append('cancel')
         if role == "executor":
             # bundle is only called after task() has checked the active assignment.
@@ -178,28 +231,32 @@ class Views:
             if (order.status == "in_progress" and report and report.status == "draft"
                     and report.submitted_by == self.principal.user_id):
                 actions.extend(("edit_report", "upload_photo", "submit"))
-        if role == "engineer" and order.status == "in_review" and report and report.status == "submitted":
+        if has_role(role,("engineer",)) and order.status == "in_review" and report and report.status == "submitted":
             actions.append("photo_review")
             if report.submitted_by != self.principal.user_id and not any(
                     a.user_id == self.principal.user_id for a in self.rows("work_assignments", work_order_id=order.work_order_id)):
                 actions.append("review")
+        analysis_status=("failed" if review.get("status") in ("failed","unavailable") else "ready") if review else (
+            "pending" if report and report.status=="submitted" and order.status=="in_review" and report.execution_context.get("photo_analysis_requested_at") else "not_requested")
         return dict(task=task, execution=self.report_view(report) if report else None, review=review,
-                    decision=decision_view, allowedActions=actions)
+                    decision=decision_view, allowedActions=actions, photoAnalysisStatus=analysis_status)
 
     def calendar(self, year, month):
         today = datetime.now(ZoneInfo(self.principal.timezone)).date()
         items = []
+        orders_by_entry = {}
+        for order in self.rows("work_orders"):
+            orders_by_entry.setdefault(order.schedule_entry_id, []).append(order)
+        visible_orders = None
+        if self.principal.role == "executor":
+            visible_orders = {assignment.work_order_id for assignment in self.rows("work_assignments", user_id=self.principal.user_id)
+                              if assignment.status not in ("cancelled", "declined")}
         for entry in self.rows("schedule_entries"):
-            if (entry.planned_date.year, entry.planned_date.month) != (year, month):
+            if (entry.planned_date.year, entry.planned_date.month) != (year, month) and (entry.source_date is None or (entry.source_date.year,entry.source_date.month)!=(year,month)):
                 continue
-            orders = self.rows("work_orders", schedule_entry_id=entry.schedule_entry_id)
-            if self.principal.role == "executor":
-                if not orders:
-                    continue
-                try:
-                    self.task(orders[0].work_order_id)
-                except HTTPException:
-                    continue
+            orders = orders_by_entry.get(entry.schedule_entry_id, [])
+            if visible_orders is not None and (not orders or orders[0].work_order_id not in visible_orders):
+                continue
             rule = entry.rule
             operation_snapshot = entry.rule_snapshot.get('operation', {})
             binding = entry.binding
@@ -210,7 +267,7 @@ class Views:
                 kind = typ.name if typ.name in ("ТО1", "ТО2") else None
             done = bool(orders and orders[0].status == "completed")
             cancelled = entry.status != "planned" or bool(orders and orders[0].status == "cancelled")
-            items.append(dict(id=str(entry.schedule_entry_id), occurrenceDate=iso(entry.planned_date),
+            items.append(dict(id=str(entry.schedule_entry_id), occurrenceDate=iso(entry.planned_date),sourceDate=iso(entry.source_date or entry.regulatory_deadline_on),
                 equipmentId=str(eq.equipment_id) if eq else None, equipmentName=eq.name if eq else "Не указано",
                 operationCode=operation_snapshot.get('code') or rule.operation.code,
                 operationTitle=operation_snapshot.get('title') or rule.operation.title, maintenanceType=kind,

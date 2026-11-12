@@ -1,0 +1,167 @@
+{
+  "base": "d94f528df8c0e0f69c344ebd8c79a99bfbe5c1f2",
+  "captured_at": "2026-11-04",
+  "sources": [
+    {
+      "branch": "main",
+      "sha": "d94f528df8c0e0f69c344ebd8c79a99bfbe5c1f2",
+      "status": "integrated",
+      "document": "docs/service/development.md",
+      "not_included": [],
+      "fully_accounted_source_sha": "d94f528df8c0e0f69c344ebd8c79a99bfbe5c1f2"
+    },
+    {
+      "branch": "kran_dev",
+      "sha": "c31570eaf970d6c6d3398995b58cf7173e89d183",
+      "status": "integrated",
+      "document": "docs/service/development.md",
+      "not_included": [
+        "Nonfunctional new_file placeholder (a)"
+      ],
+      "fully_accounted_source_sha": "c31570eaf970d6c6d3398995b58cf7173e89d183"
+    },
+    {
+      "branch": "new_backend",
+      "sha": "c559d27046d5028f83ed4f67dda4e8418618303d",
+      "status": "integrated",
+      "document": "docs/service/development.md",
+      "not_included": [
+        "Duplicate async runtime/create_all and conflicting 004_sessions: existing SQL chain and opaque sessions retained",
+        "UUID-as-session-cookie and unscoped role mutations: replaced by shared authenticated site-scoped implementation",
+        "Source scenario_results is historical evidence; current tests executed independently"
+      ],
+      "fully_accounted_source_sha": "c559d27046d5028f83ed4f67dda4e8418618303d",
+      "previous_accounted_sha": "16b79affc155d75b76f585dcdfa4e5acc1781cfb"
+    },
+    {
+      "branch": "front/mvidy",
+      "sha": "226f3266a29cd43121ddca2c707cdcf5d71d375c",
+      "status": "integrated",
+      "document": "docs/service/development.md",
+      "not_included": [],
+      "fully_accounted_source_sha": "226f3266a29cd43121ddca2c707cdcf5d71d375c"
+    },
+    {
+      "branch": "feat/ml-forecasting-photo-review",
+      "sha": "2b8488f71ec295c94cb4874cbe9f8b324c3b0e41",
+      "status": "integrated",
+      "document": "docs/service/development.md",
+      "not_included": [],
+      "fully_accounted_source_sha": "2b8488f71ec295c94cb4874cbe9f8b324c3b0e41",
+      "validation_limits": [
+        "Customer-trained model absent: explicit unavailable is verified",
+        "Real CLIP inference verified on controlled HTTP test images; customer-photo accuracy not evaluated"
+      ]
+    },
+    {
+      "branch": "qa/roles-contracts",
+      "sha": "00b0dcafb55ccf30514e0dca413897ae01f61f37",
+      "status": "integrated",
+      "document": "docs/service/development.md",
+      "not_included": [],
+      "fully_accounted_source_sha": "00b0dcafb55ccf30514e0dca413897ae01f61f37"
+    },
+    {
+      "branch": "docs/tests-p0",
+      "sha": "f3730e86e5794d45c5fb154b194ce75a9ff9c522",
+      "status": "integrated",
+      "document": "docs/service/development.md",
+      "not_included": [
+        "Nonfunctional new_file placeholder (a)"
+      ],
+      "fully_accounted_source_sha": "f3730e86e5794d45c5fb154b194ce75a9ff9c522"
+    },
+    {
+      "branch": "feature/frontend-kran",
+      "sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+      "reviewed_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+      "status": "integrated",
+      "document": "docs/service/development.md",
+      "comparison_base": "720a8dd9c3d4e4e8051485e8f438a8b40c3cb631",
+      "frontend_change_base": "306f7fa98f2e33fa16b8e76fa0af1b520d3bb7d0",
+      "inherited_accounted_sources": [
+        {
+          "branch": "kran_dev",
+          "sha": "c31570eaf970d6c6d3398995b58cf7173e89d183"
+        },
+        {
+          "branch": "dev",
+          "sha": "720a8dd9c3d4e4e8051485e8f438a8b40c3cb631"
+        }
+      ],
+      "not_included": [
+        "Source deletion and ignore rule for AGENTS.md: current tracked dev instructions retained",
+        "Ignore rules for docs/ui/design-brief.md and docs/ui/login-refinement-plan.md: canonical documentation remains visible",
+        "Historical docs/database/orm_ddl_validation.md and tl03_target.md: already accounted kran_dev material kept in canonical service documents",
+        "Nonfunctional new_file placeholder (a)",
+        "Unused favicon.svg and inactive assets/favicons export: active favicons-visible set retained.",
+        "Source-only unreferenced login screenshots: current documentation illustrations retained.",
+        "Older source layout and documentation housekeeping: current dev resource paths, root env, centralized tests, ignore rules and canonical documents retained."
+      ],
+      "adaptations": [
+        "UI and browser tests moved to tests/web; imports adapted to project alias; desktop path fixture placed in tests/fixtures/web.",
+        "Source web description consolidated into docs/service/web.md and web-motion.md; mobile Canvas ADR indexed; current dev layout, runtime, dependencies and contract documentation preserved."
+      ],
+      "pending_paths": [],
+      "verification": "reports/verification/verify-20261102-194510-64feb8bc/results.json",
+      "validation_limits": [
+        "Auth browser scenarios use mocked API; sessions/RBAC, registration and application workflows are checked by existing real-backend browser scenarios.",
+        "Viewport/touch/reduced-motion are Chrome emulation; physical mobile keyboards and device GPU performance are not measured.",
+        "Changes integrated as adapted files without merging source Git history."
+      ],
+      "fully_accounted_source_sha": "5fc4e8eff56b60e4313ae6d535b4d79fa556ec6d",
+      "previous_accounted_sha": "29484582c649ecd94771204466be39fc14b13f16",
+      "incremental_comparison_base": "29484582c649ecd94771204466be39fc14b13f16",
+      "integration_date": "2026-11-02"
+    },
+    {
+      "branch": "archive/legacy-ai-estimator",
+      "sha": "c530bb869896160c231db2ce516c62cffbe329ae",
+      "status": "excluded_by_request",
+      "document": "AGENTS.md",
+      "not_included": [
+        "All unique legacy estimator changes"
+      ]
+    },
+    {
+      "branch": "backend",
+      "sha": "89d819d5b3fc448101d61a3c134292b9bf56c8c2",
+      "status": "integrated",
+      "document": "docs/service/development.md",
+      "not_included": [],
+      "adaptations": [
+        "Preserved dev's revision conflict and assignment transaction semantics",
+        "Routed job transitions through the existing execution and engineer review commands",
+        "Consolidated backend README and historical verification notes into service documentation"
+      ],
+      "fully_accounted_source_sha": "89d819d5b3fc448101d61a3c134292b9bf56c8c2"
+    },
+    {
+      "branch": "feat/ml-demo-cases-eval",
+      "sha": "95e695df491e12833c7bf8bc5df2a5f8e856928d",
+      "status": "integrated",
+      "document": "docs/service/development.md",
+      "not_included": [],
+      "adaptations": [
+        "Made CLI confirmation of comparable views opt-in"
+      ],
+      "fully_accounted_source_sha": "95e695df491e12833c7bf8bc5df2a5f8e856928d"
+    },
+    {
+      "branch": "feature/frontend-next",
+      "sha": "8d6935c4d013ac1875757cccccaed78013dc4a7c",
+      "reviewed_sha": "8d6935c4d013ac1875757cccccaed78013dc4a7c",
+      "status": "integrated",
+      "document": "docs/service/development.md",
+      "comparison_base": "6a09f3b446f3215112569784ff796a8e10bf99f5",
+      "included_scope": "Full Aurora Workspace, operational screen redesign and associated tests",
+      "pending_paths": [],
+      "not_included": [],
+      "verification": "reports/frontend-integration/20261104/results.json",
+      "adaptations": [
+        "Normal merge of workspace, redesign and tests; current dev backend, SQL, ML, demo credentials and canonical documentation retained."
+      ],
+      "fully_accounted_source_sha": "8d6935c4d013ac1875757cccccaed78013dc4a7c"
+    }
+  ]
+}

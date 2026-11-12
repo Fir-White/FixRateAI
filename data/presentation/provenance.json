@@ -1,0 +1,24 @@
+{
+  "data_origin": "synthetic_demo",
+  "profile": "presentation-v1",
+  "notice": "Fictional operating profile for the owner-requested presentation; not customer approvals or actual completed maintenance.",
+  "photos": [
+    {
+      "path": "data/presentation/inspection-before.jpg",
+      "source": "docs/analysis/nastya-2026-11-04/source/tests/fixtures/photos/case_05_before.jpg",
+      "sha256": "4f2f531f0e82ec3cf606af144092a98dbbd08cb145db09caefc5f7ee8e8d8492"
+    },
+    {
+      "path": "data/presentation/inspection-after.jpg",
+      "source": "docs/analysis/nastya-2026-11-04/source/tests/fixtures/photos/case_05_after.jpg",
+      "sha256": "81716d8a4fc2d9583871625422532fdad8c25730d7eaa2d3133225a37f5313d3"
+    }
+  ],
+  "generated_documents": [
+    {
+      "path": "data/presentation/inspection-protocol.pdf",
+      "sha256": "3f0c24b24df8b077e5ab3cb5da0aa6382682b616462ddf9c8354791a02d316b6",
+      "origin": "Generated fictional working protocol for the isolated presentation profile. Not a calibration certificate."
+    }
+  ]
+}

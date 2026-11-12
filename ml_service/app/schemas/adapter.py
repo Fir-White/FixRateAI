@@ -46,6 +46,7 @@ Equipment = _m.Equipment
 ForecastResult = _m.ForecastResult
 ForecastSnapshot = _m.ForecastSnapshot
 ImageLabelScore = _m.ImageLabelScore
+VisualAssessment = _m.VisualAssessment
 ItemPhotoReview = _m.ItemPhotoReview
 OperationVersion = _m.OperationVersion
 PhotoReport = _m.PhotoReport
@@ -64,6 +65,7 @@ __all__ = [
     "ForecastSnapshot",
     "ImageLabelScore",
     "ItemPhotoReview",
+    "VisualAssessment",
     "OperationVersion",
     "PhotoReport",
     "PhotoReviewRequest",

@@ -11,9 +11,21 @@ from uuid import UUID
 from fastapi import HTTPException, Request
 from sqlalchemy import text
 
-SQL_ROLES = {"executive": "admin", "chief_engineer": "engineer", "engineer": "engineer",
-             "technician": "executor", "admin": "admin", "dispatcher": "dispatcher", "executor": "executor"}
-API_ROLES = {role: role for role in ("admin", "dispatcher", "engineer", "executor")}
+SQL_ROLES = {role: role for role in ('director','chief_engineer','engineer','admin','dispatcher','executor')}
+SQL_ROLES['technician'] = 'executor'
+# Compatibility for previously provisioned data until migration 010 is applied.
+SQL_ROLES['executive'] = 'director'
+API_ROLES = {role: role for role in SQL_ROLES if role not in ('technician', 'executive')}
+
+
+def has_role(role, roles):
+    """Business hierarchy; technical administration is a separate capability."""
+    effective = {role}
+    if role == 'chief_engineer': effective.update(('engineer','dispatcher'))
+    if role == 'engineer': effective.add('dispatcher')
+    return bool(effective.intersection(roles))
+
+
 COOKIE = "fixrate_session"
 
 
@@ -69,6 +81,8 @@ def authenticate(request: Request, session) -> Principal:
     """), {"token": digest(token)}).mappings().first()
     if not row or row["role"] not in SQL_ROLES:
         raise HTTPException(401, "Сессия истекла или доступ отозван")
+    if SQL_ROLES[row["role"]] == "director" and request.method not in ("GET", "HEAD", "OPTIONS") and not (((request.method == "PATCH" and request.url.path == "/api/v1/maintenance/users/me/email") or (request.method == "POST" and request.url.path == "/api/v1/maintenance/users/me/password")) or request.url.path in ("/api/v1/auth/logout", "/api/v1/maintenance/notifications/read-all", "/api/v1/maintenance/notifications/clear") or (request.url.path.startswith("/api/v1/maintenance/notifications/") and request.url.path.endswith(("/read", "/delete")))):
+        raise HTTPException(403, "Руководитель имеет доступ только для чтения")
     if request.method not in ("GET", "HEAD", "OPTIONS"):
         csrf = request.headers.get("x-csrf-token", "")
         if not csrf or not hmac.compare_digest(digest(csrf), row["csrf_hash"]):

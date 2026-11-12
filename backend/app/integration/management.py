@@ -1,3 +1,4 @@
+from app.security.sessions import has_role
 """Authenticated catalog, equipment and staff administration on the shared schema.
 
 Equipment CRUD and user/profile/role capabilities adapt new_backend c559d27.
@@ -13,13 +14,15 @@ from pydantic import ValidationError
 
 from fastapi import Depends, HTTPException, Request, Response
 from sqlalchemy import select, text, delete
+from sqlalchemy.exc import IntegrityError
 
 from app.db.session import service_transaction
+from app.schemas.maintenance import CalendarPattern
 from app.schemas.management import (ApplicationDecision,AvailabilityInput,CrewInput,CrewEdit,
     EmploymentEdit,EquipmentCreate,EquipmentEdit,NamedReference,QualificationInput,
-    Registration,ServiceConfiguration,ShiftInput,ShiftEdit,SkillInput,Revision,PatternPreview)
-from app.security.sessions import SQL_ROLES,hash_password
-from app.scheduling.recurrence import pattern_description,occurrence_dates
+    Registration,ServiceConfiguration,ShiftInput,ShiftEdit,SkillInput,Revision,PatternPreview,AccountEmailUpdate,AccountPasswordUpdate)
+from app.security.sessions import SQL_ROLES,hash_password,verify_password,COOKIE,digest
+from app.scheduling.recurrence import pattern_description,occurrence_dates,occurrence_pairs
 from app.scheduling.shifts import expand_shift,employment_availability
 from .assignments import _lock
 from .calendar import _json_value, configured_pattern, checklist_for_rule
@@ -28,14 +31,17 @@ PREFIX='/api/v1/maintenance'
 
 
 def _guard(v,*roles):
-    if v.principal.role not in roles:
+    if not has_role(v.principal.role,roles):
         raise HTTPException(403,'Действие недоступно для текущей роли')
 
 
 @contextmanager
-def _edit(v,workers=(),roles=('admin','dispatcher')):
+def _edit(v,workers=(),roles=('admin','dispatcher'),exact_roles=False):
     """Use the same global user → membership → metadata lock order as BE05."""
-    _guard(v,*roles)
+    if exact_roles:
+        if v.principal.role not in roles:raise HTTPException(403,'Оборудование и структуру изменяет главный инженер')
+    else:
+        _guard(v,*roles)
     with service_transaction(v.session):
         identifiers=set(workers)|{v.principal.user_id}
         for table in ('users','site_memberships'):
@@ -44,7 +50,8 @@ def _edit(v,workers=(),roles=('admin','dispatcher')):
         v.session.expire_all()
         actor=v.one('users',user_id=v.principal.user_id)
         member=v.one('site_memberships',user_id=v.principal.user_id)
-        if not actor.is_active or not member.is_active or SQL_ROLES.get(member.role) not in roles:
+        permitted = SQL_ROLES.get(member.role) in roles if exact_roles else has_role(SQL_ROLES.get(member.role),roles)
+        if not actor.is_active or not member.is_active or not permitted:
             raise HTTPException(403,'Права пользователя изменились; обновите сессию')
         yield
 
@@ -72,7 +79,7 @@ def equipment_response(row):
 
 
 def save_equipment(v,data,identity=None):
-    with _edit(v):
+    with _edit(v,roles=('chief_engineer','admin','dispatcher'),exact_roles=True):
         # Serializes hierarchy changes and uniqueness checks for this site's catalog.
         v.session.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"),{'key':f'catalog:{v.principal.site_id}'})
         row=_equipment(v,identity,True) if identity else None
@@ -130,6 +137,13 @@ def _ensure_equipment_idle(v,equipment_id):
             raise HTTPException(409,'У оборудования есть незавершённые задания; сначала завершите или отмените их')
 
 
+def exposed_pattern(rule):
+    raw=configured_pattern(rule)
+    if raw is None:return None
+    try:return CalendarPattern.model_validate_json(json.dumps(raw,default=str)).model_dump(mode="json")
+    except ValidationError:return None
+
+
 def service_configurations(v,equipment_id):
     _equipment(v,equipment_id)
     rows=[]
@@ -144,23 +158,29 @@ def service_configurations(v,equipment_id):
             revision=binding.revision,rule_version=rule.rule_version,code=metadata.get('code',op.code),
             title=metadata.get('title',op.title),instructions=metadata.get('instructions',op.description or op.title),
             maintenance_type=v.one('maintenance_types',maintenance_type_id=op.maintenance_type_id).name,
-            pattern=configured_pattern(rule),basis=parameters.get('calendar_basis',parameters.get('basis')) or 'fixed_calendar',valid_from=binding.valid_from,valid_until=binding.valid_to,
+            pattern=exposed_pattern(rule),basis=parameters.get('calendar_basis',parameters.get('basis')) or 'fixed_calendar',valid_from=binding.valid_from,valid_until=binding.valid_to,
             crew_size=rule.required_people,norm_value=str(rule.norm_hours) if rule.norm_hours is not None else None,norm_unit=parameters.get('norm_unit','unconfirmed'),
             duration_minutes=parameters.get('planning_duration_minutes'),allowed_lead_days=parameters.get('allowed_lead_days',0),
             qualification_ids=[r.skill_id for r in v.rows('rule_required_skills',maintenance_rule_id=rule.maintenance_rule_id)],
-            checklist=[dict(text=r.prompt,answer_kind={'checkbox':'boolean','number':'number','text':'text','photo':'boolean'}[r.input_kind],
+            checklist=[dict(source_item_key=parameters.get('checklist_metadata',{}).get(str(r.checklist_template_id),{}).get('source_item_key'),source_refs=parameters.get('checklist_metadata',{}).get(str(r.checklist_template_id),{}).get('source_refs',[]),text=r.prompt,answer_kind={'checkbox':'boolean','number':'number','text':'text','photo':'boolean'}[r.input_kind],
                 unit=r.unit_code,required=r.is_required,
                 visual_verifiability=parameters.get('checklist_metadata',{}).get(str(r.checklist_template_id),{}).get('visual_verifiability','not_verifiable'),
                 photo_required=parameters.get('checklist_metadata',{}).get(str(r.checklist_template_id),{}).get('photo_required',r.input_kind=='photo'))
                 for r in checklist_for_rule(v,op.operation_template_id,parameters)],
-            enabled=rule.publication_status=='published',source_text=rule.source_text))
+            enabled=rule.publication_status=='published',source_text=rule.source_text,methodology_ref=parameters.get('methodology_ref'),measurement_requirements=parameters.get('measurement_requirements',[]),required_acts=parameters.get('required_acts',[])))
     return rows
 
 
 def save_service(v,equipment_id,data,binding_id=None):
-    with _edit(v):
+    if v.principal.role not in ("chief_engineer","admin"):
+        raise HTTPException(403,"Регламент изменяет главный инженер")
+    if data.enabled and v.principal.role!="chief_engineer":
+        raise HTTPException(403,"Публикацию утверждает главный инженер")
+    with _edit(v,roles=("chief_engineer","admin")):
         v.session.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"),{'key':f'catalog:{v.principal.site_id}'})
         eq=_equipment(v,equipment_id,True)
+        if data.enabled and data.pattern.frequency=="yearly_count" and data.pattern.annual_policy=="from_anchor" and (not eq.commissioned_on or data.pattern.anchor_date!=eq.commissioned_on):
+            raise HTTPException(422,"Для отсчёта от ввода нужна подтверждённая дата ввода, совпадающая с опорной датой")
         old=None
         if binding_id:
             old=v.one('rule_equipment',binding_id=binding_id,equipment_id=equipment_id)
@@ -204,15 +224,15 @@ def save_service(v,equipment_id,data,binding_id=None):
         document=v.repo.add('regulation_documents',site_id=eq.site_id,title=data.title,
             source_kind='demo' if eq.properties.get('data_origin')=='synthetic_demo' else 'internal')
         edition=v.repo.add('regulation_editions',site_id=eq.site_id,regulation_document_id=document.regulation_document_id,
-            edition_code=f'v{version}',effective_from=data.valid_from,effective_to=data.valid_until,is_approved=True,approved_by=v.principal.user_id)
+            edition_code=f'v{version}',effective_from=data.valid_from,effective_to=data.valid_until,is_approved=data.enabled,approved_by=v.principal.user_id if data.enabled else None)
         checks=[];check_metadata={}
         for index,item in enumerate(data.checklist,1):
             check=v.repo.add('checklist_templates',site_id=eq.site_id,operation_template_id=op.operation_template_id,
                 item_code=f'web-{index}',template_version=version,prompt=item.text,input_kind={'boolean':'checkbox','number':'number','text':'text'}[item.answer_kind],
                 unit_code=item.unit,is_required=item.required,position=index)
             checks.append(str(check.checklist_template_id))
-            check_metadata[str(check.checklist_template_id)]=dict(visual_verifiability=item.visual_verifiability,photo_required=item.photo_required)
-        parameters=dict(calendar_pattern=json.loads(data.pattern.model_dump_json()),norm_unit=data.norm_unit,
+            check_metadata[str(check.checklist_template_id)]=dict(visual_verifiability=item.visual_verifiability,photo_required=item.photo_required,source_item_key=item.source_item_key,source_refs=item.source_refs)
+        parameters=dict(methodology_ref=data.methodology_ref,measurement_requirements=[json.loads(r.model_dump_json()) for r in data.measurement_requirements],required_acts=data.required_acts,calendar_pattern=json.loads(data.pattern.model_dump_json()),norm_unit=data.norm_unit,
             calendar_basis=data.basis,
             planning_duration_minutes=data.duration_minutes,duration_basis='configured:explicit-duration',
             allowed_lead_days=data.allowed_lead_days,checklist_ids=checks,checklist_metadata=check_metadata,
@@ -247,16 +267,17 @@ def save_service(v,equipment_id,data,binding_id=None):
 def register_routes(app,views,db):
     @app.post(PREFIX+'/management/calendar-pattern/preview')
     def pattern_preview(command:PatternPreview,v=Depends(views)):
-        _guard(v,'admin','dispatcher','engineer')
+        _guard(v,'director','admin','dispatcher','engineer')
         try:
-            days=occurrence_dates(command.pattern,date(command.year,command.month,1),date(command.year,command.month,monthrange(command.year,command.month)[1]))
+            pairs=occurrence_pairs(command.pattern,date(command.year,command.month,1),date(command.year,command.month,monthrange(command.year,command.month)[1]))
+            days=[day for _,day in pairs]
         except ValueError as exc:
             raise HTTPException(422,str(exc)) from None
-        return dict(dates=days,explanation=pattern_description(command.pattern),timezone=v.principal.timezone)
+        return dict(dates=days,occurrences=[dict(source_date=source,date=day) for source,day in pairs],explanation=pattern_description(command.pattern),timezone=v.principal.timezone)
 
     @app.get(PREFIX+'/management/catalog')
     def catalog(v=Depends(views)):
-        _guard(v,'admin','dispatcher','engineer')
+        _guard(v,'director','admin','dispatcher','engineer')
         return dict(systems=[dict(id=r.system_id,code=r.code,name=r.name) for r in v.rows('engineering_systems') if r.is_active],
             equipment_types=[dict(id=r.equipment_type_id,code=r.code,name=r.name) for r in v.rows('equipment_types')],
             operations=[dict(id=r.operation_template_id,system_id=r.system_id,code=r.code,title=r.title,instructions=r.description or r.title,
@@ -265,7 +286,7 @@ def register_routes(app,views,db):
 
     @app.post(PREFIX+'/management/systems',status_code=201)
     def system_create(command:NamedReference,v=Depends(views)):
-        with _edit(v):
+        with _edit(v,roles=('chief_engineer','admin','dispatcher'),exact_roles=True):
             row=v.repo.add('engineering_systems',site_id=v.principal.site_id,**command.model_dump())
             return dict(id=row.system_id,name=row.name,code=row.code)
 
@@ -307,7 +328,8 @@ def register_routes(app,views,db):
 
     @app.get(PREFIX+'/equipment/{equipment_id}/service-configurations')
     def configs(equipment_id:UUID,v=Depends(views)):
-        _guard(v,'admin','dispatcher','engineer')
+        _guard(v,'director','admin','dispatcher','engineer','executor')
+        if v.principal.role=='executor' and equipment_id not in v.visible_equipment_ids():raise HTTPException(404,'Оборудование не найдено')
         return service_configurations(v,equipment_id)
 
     @app.post(PREFIX+'/equipment/{equipment_id}/service-configurations',status_code=201)
@@ -362,7 +384,7 @@ def _validate_bookings(v,user_ids):
 
 
 def workforce_view(v):
-    _guard(v,'admin','dispatcher','engineer')
+    _guard(v,'director','admin','dispatcher','engineer')
     staff=[]
     for member in v.rows('site_memberships'):
         user=v.one('users',user_id=member.user_id)
@@ -405,6 +427,33 @@ def register_workforce_routes(app,views,db):
     def me(v=Depends(views)):
         return v.principal.profile()
 
+    def own_user_for_update(v):
+        cls=v.models['users']
+        return v.session.scalar(select(cls).where(cls.user_id==v.principal.user_id).with_for_update())
+
+    @app.patch(PREFIX+'/users/me/email')
+    def update_email(command:AccountEmailUpdate,v=Depends(views)):
+        user=own_user_for_update(v)
+        if not user or not verify_password(command.current_password,user.password_hash):
+            raise HTTPException(400,'Неверный текущий пароль')
+        user.email=command.email.lower()
+        try: v.session.commit()
+        except IntegrityError:
+            v.session.rollback()
+            raise HTTPException(409,'Этот email уже зарегистрирован')
+        return dict(v.principal.profile(),email=user.email)
+
+    @app.post(PREFIX+'/users/me/password')
+    def update_password(command:AccountPasswordUpdate,request:Request,v=Depends(views)):
+        user=own_user_for_update(v)
+        if not user or not verify_password(command.current_password,user.password_hash):
+            raise HTTPException(400,'Неверный текущий пароль')
+        user.password_hash=hash_password(command.new_password)
+        v.session.execute(text('DELETE FROM fixrate_sessions WHERE user_id=:user AND token_hash<>:token'),
+            dict(user=v.principal.user_id,token=digest(request.cookies.get(COOKIE,''))))
+        v.session.commit()
+        return {'updated':True}
+
     @app.get(PREFIX+'/users')
     def users(v=Depends(views)):
         _guard(v,'admin')
@@ -412,7 +461,7 @@ def register_workforce_routes(app,views,db):
 
     @app.get(PREFIX+'/users/roles')
     def roles(v=Depends(views)):
-        return [dict(role=role,label=label) for role,label in [('admin','Администратор: сотрудники, роли, справочники'),
+        return [dict(role=role,label=label) for role,label in [('director','Руководитель: просмотр и SLA'),('chief_engineer','Главный инженер: нормативы, планы и исключения'),('admin','Администратор: сотрудники, роли, справочники'),
             ('dispatcher','Диспетчер: обслуживание, смены, предложения и подтверждение назначений'),
             ('engineer','Инженер: прогнозы и приёмка'),('executor','Исполнитель: только назначенные работы')]]
 
@@ -506,7 +555,7 @@ def register_workforce_routes(app,views,db):
 
     @app.get(PREFIX+'/management/staff/{user_id}/calendar')
     def employee_calendar(user_id:UUID,start:date,end:date,v=Depends(views)):
-        if user_id!=v.principal.user_id: _guard(v,'admin','dispatcher','engineer')
+        if user_id!=v.principal.user_id: _guard(v,'director','admin','dispatcher','engineer')
         if end<start or end-start>timedelta(days=366) or start.year<2000 or end.year>2100: raise HTTPException(422,'Диапазон календаря до 366 дней, 2000–2100 годы')
         intervals,issues=worker_intervals(v,v.one('site_memberships',user_id=user_id),start,end)
         tz=ZoneInfo(v.principal.timezone)

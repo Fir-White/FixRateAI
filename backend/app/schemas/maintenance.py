@@ -31,6 +31,9 @@ class CalendarPattern(Value):
     months: list[Annotated[int, Field(ge=1, le=12)]] = Field(default_factory=list)
     period_edge: Literal["start", "end"] = "end"
     short_month: Literal["last_day", "skip"] = "last_day"
+    quarter_policy: Literal["calendar_edge","rolling_months"] = "calendar_edge"
+    annual_policy: Literal["calendar_year","from_anchor"] = "calendar_year"
+    weekend_policy: Literal["none","next_workday"] = "none"
     count_per_year: Annotated[int, Field(ge=1, le=366)] | None = None
     dates: list[date] = Field(default_factory=list)
     excluded_dates: list[date] = Field(default_factory=list)
@@ -141,6 +144,7 @@ class RecurrenceRule(Contract):
     allowed_lead_days: NonNegativeInt
     source_ref: Text
     pattern: CalendarPattern | None = Field(default=None, exclude_if=lambda value: value is None)
+    weekend_policy: Literal["none", "next_workday"] = "none"
 
     @model_validator(mode="after")
     def confirmed_rule_is_explicit(self):
@@ -211,7 +215,10 @@ class ForecastSnapshot(Contract):
     runtime_due_at_hours: Hours | None
     accepted_events: list[AcceptedEvent]
     runtime_reading: RuntimeReading | None
+    source_occurrence_date: date | None = None
     feature_schema_version: Text
+    diagnostic_readings: list[dict] = Field(default_factory=list)
+    diagnostic_comments: list[dict] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def snapshot_is_consistent(self):
@@ -311,6 +318,7 @@ class PlanOccurrence(Value):
     binding_id: UUID
     rule_version_id: UUID
     operation_version_id: UUID
+    source_date: date | None = None
     occurrence_date: date
     earliest_date: date | None
     mandatory_due_date: date | None
@@ -333,7 +341,7 @@ class Schedule(Contract):
     def period_contains_occurrences(self):
         if self.period_end < self.period_start:
             raise ValueError("inverted plan period")
-        if any(not self.period_start <= x.occurrence_date <= self.period_end for x in self.occurrences):
+        if any(not self.period_start <= (x.source_date or x.occurrence_date) <= self.period_end for x in self.occurrences):
             raise ValueError("occurrence outside plan period")
         return self
 
@@ -461,6 +469,23 @@ class ImageLabelScore(Value):
     score: Annotated[float, Field(ge=0, le=1)]
 
 
+class VisualAssessment(Value):
+    """Observed photo content, separate from an engineer's acceptance decision."""
+    subject_matches_task: Literal["yes", "no", "uncertain"]
+    same_subject: Literal["yes", "no", "uncertain"]
+    comparable: Literal["yes", "no", "uncertain"]
+    before_description: Annotated[str, Field(min_length=1, max_length=2000)]
+    after_description: Annotated[str, Field(min_length=1, max_length=2000)]
+    visible_changes: Annotated[list[Annotated[str, Field(min_length=1, max_length=800)]], Field(max_length=8)]
+    concerns: Annotated[list[Annotated[str, Field(min_length=1, max_length=800)]], Field(max_length=8)]
+    recommended_actions: Annotated[list[Annotated[str, Field(min_length=1, max_length=800)]], Field(max_length=8)]
+    cannot_confirm: Annotated[list[Annotated[str, Field(min_length=1, max_length=800)]], Field(min_length=1, max_length=8)]
+    conclusion: Literal["visible_improvement", "no_clear_improvement", "insufficient_evidence"]
+    summary: Annotated[str, Field(min_length=1, max_length=2000)]
+    visible_readings: list[dict] = Field(default_factory=list,max_length=20)
+    evidence_class: Literal["approved","manual_review","rejected"] = "manual_review"
+
+
 class ItemPhotoReview(Value):
     checklist_item_id: UUID
     verdict: Literal["visible_change", "no_visible_change", "uncertain", "not_verifiable"]
@@ -468,6 +493,7 @@ class ItemPhotoReview(Value):
     after_photo_id: UUID | None
     observation: Text
     scores: list[ImageLabelScore]
+    visual_assessment: VisualAssessment | None = None
 
 
 class PhotoReviewResult(Contract):

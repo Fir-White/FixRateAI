@@ -1,8 +1,11 @@
-import { Route, Routes } from "react-router-dom";
+import { lazy, Suspense } from "react";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { RequireRole, RequireSession } from "@/app/guards";
+import { LoadingState } from "@/shared/ui/States";
 import { AppShell } from "@/layouts/AppShell";
 import { ExecutorLayout } from "@/layouts/ExecutorLayout";
 import { LoginPage } from "@/pages/LoginPage";
+import { AuthLayout } from "@/pages/AuthLayout";
 import { HomeRedirect } from "@/pages/HomeRedirect";
 import { DispatcherPage } from "@/pages/DispatcherPage";
 import { EquipmentPage } from "@/pages/EquipmentPage";
@@ -11,6 +14,7 @@ import { CalendarPage } from "@/pages/CalendarPage";
 import { TasksPage } from "@/pages/TasksPage";
 import { TaskDetailPage } from "@/pages/TaskDetailPage";
 import { ComparisonsPage } from "@/pages/ComparisonsPage";
+import { ReportsPage } from "@/pages/ReportsPage";
 import { ComparisonDetailPage } from "@/pages/ComparisonDetailPage";
 import { ExecutorPage } from "@/pages/ExecutorPage";
 import { ExecutorTaskPage } from "@/pages/ExecutorTaskPage";
@@ -20,19 +24,31 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 import { ServiceSettingsPage } from "@/pages/ServiceSettingsPage";
 import { WorkforceSettingsPage } from "@/pages/WorkforceSettingsPage";
 import { RegistrationPage } from "@/pages/RegistrationPage";
+import { ProfilePage } from "@/pages/ProfilePage";
 import { PersonalShiftsPage } from "@/pages/PersonalShiftsPage";
 import { SECTION_ROLES } from "@/shared/lib/roles";
+
+const WorkspaceLayout = lazy(() => import("@/layouts/WorkspaceLayout").then(module => ({ default: module.WorkspaceLayout })));
 
 export function AppRouter() {
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegistrationPage />} />
+      <Route element={<AuthLayout />}>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegistrationPage />} />
+      </Route>
 
       <Route element={<RequireSession />}>
+        <Route element={<Suspense fallback={<LoadingState label="Загрузка рабочего пространства" />}><WorkspaceLayout /></Suspense>}>
         <Route path="/" element={<HomeRedirect />} />
 
         <Route element={<AppShell />}>
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/director" element={<RequireRole roles={["director"]}><DispatcherPage /></RequireRole>} />
+          <Route path="/executive" element={<Navigate to="/director" replace />} />
+          <Route path="/chief-engineer" element={<RequireRole roles={["chief_engineer"]}><DispatcherPage /></RequireRole>} />
+          <Route path="/engineer" element={<RequireRole roles={["engineer"]}><QualityPage /></RequireRole>} />
+          <Route path="/admin" element={<RequireRole roles={["admin"]}><DispatcherPage /></RequireRole>} />
           <Route
             path="/dispatcher"
             element={
@@ -78,6 +94,7 @@ export function AppRouter() {
               </RequireRole>
             }
           />
+          <Route path="/reports" element={<RequireRole roles={SECTION_ROLES.reports}><ReportsPage /></RequireRole>} />
           <Route
             path="/comparisons/:runId"
             element={
@@ -114,6 +131,7 @@ export function AppRouter() {
         >
           <Route index element={<ExecutorPage />} />
           <Route path="tasks/:taskId" element={<ExecutorTaskPage />} />
+        </Route>
         </Route>
       </Route>
 

@@ -1,0 +1,8 @@
+{
+  "template_id": "op-tmpl-101",
+  "name": "Контроль параметров показаний приборов (давление, температура)",
+  "to_type": "ТО1",
+  "norm_hours": 1.0,
+  "required_qualification": "Слесарь-сантехник 3 разряда",
+  "required_workers": 1
+}

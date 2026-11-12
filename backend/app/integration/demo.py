@@ -15,11 +15,12 @@ def add_runtime_demo(repo, password_hash):
         return obj if obj else repo.add(table, **{pk: identity}, **values)
 
     site, system = demo_id("site"), demo_id("system")
-    for role, sql_role, key in (("dispatcher", "dispatcher", "dispatcher"),
+    for role, sql_role, key in (("director","director","executive"),("chief_engineer","chief_engineer","chief-engineer"),("dispatcher", "dispatcher", "dispatcher"),
                                ("admin", "admin", "admin"),
                                ("engineer", "engineer", "engineer"),
                                ("executor", "technician", "user-1")):
-        user = ensure("users", "user_id", key, full_name=f"DEMO {role}", email=f"fixrate-demo-{role}@example.test")
+        email_role = "executive" if role == "director" else role
+        user = ensure("users", "user_id", key, full_name=f"DEMO {role}", email=f"fixrate-demo-{email_role}@example.test")
         # A rerun never replaces an existing password or resets workflow history.
         if not user.password_hash:
             user.password_hash = password_hash
@@ -27,7 +28,8 @@ def add_runtime_demo(repo, password_hash):
             repo.add("site_memberships", site_id=site, user_id=user.user_id, role=sql_role)
     # Stable users imported by seed retain their original email addresses.
     now = datetime.now(timezone.utc)
-    day = now.date() + timedelta(days=1)
+    from zoneinfo import ZoneInfo
+    day = now.astimezone(ZoneInfo(repo.get("sites",site).timezone)).date()
     op = ensure("operation_templates", "operation_template_id", "runtime-operation", site_id=site, system_id=system,
         code="DEMO-1.4", title="DEMO — чистка учебного узла", maintenance_type_id=demo_id("to2"),
         description="Только синтетический сценарий интеграции, не норматив заказчика")
@@ -55,7 +57,7 @@ def add_runtime_demo(repo, password_hash):
         maintenance_rule_id=rule.maintenance_rule_id, schedule_entry_id=entry.schedule_entry_id,
         status="assigned", required_people_snapshot=1, norm_hours_snapshot=1,
         planned_start_at=now+timedelta(hours=1), regulatory_deadline_at=entry.regulatory_deadline_at,
-        operation_snapshot={"data_origin": "synthetic_demo", "title": op.title, "code": "1.4", "maintenance_type": "ТО2",
+        operation_snapshot={"data_origin": "synthetic_demo", "title": op.title, "code": "DEMO-1.4", "maintenance_type": "ТО2",
                             "label": "DEMO: синтетический сценарий, нормы и даты не подтверждены",
                             "checklist": [{"id": str(item.checklist_template_id), "text": item.prompt, "answerKind": "boolean",
                                 "unit": None, "required": True, "visualVerifiability": "visible", "photoRequired": True}]})
@@ -64,6 +66,6 @@ def add_runtime_demo(repo, password_hash):
     ensure("work_assignments", "work_assignment_id", "runtime-assignment", site_id=site,
         work_order_id=order.work_order_id, user_id=demo_id("user-1"), assigned_by=demo_id("dispatcher"))
     from .assignment_demo import add_assignment_demo
-    add_assignment_demo(repo)
+    add_assignment_demo(repo, password_hash=password_hash)
     from .planning_demo import add_planning_demo
     add_planning_demo(repo)

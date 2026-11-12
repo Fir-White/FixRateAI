@@ -1,0 +1,296 @@
+{
+  "source_archive": "FixRateAI_frontend_redesign.zip",
+  "archive_sha256": "854be444916642d32198b752d6b810ce019df7911f1492b141fba05d9711d10b",
+  "integrated_at": "2026-11-03",
+  "documentation": "docs/service/web.md",
+  "files": [
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/entities/equipment/EquipmentTable.tsx",
+      "project_path": "frontend/src/entities/equipment/EquipmentTable.tsx",
+      "source_sha256": "3389a5c06fcf2b9bb691c338417a145e6575ebd9a89187440514257cd43f8e4c",
+      "integrated_sha256": "3389a5c06fcf2b9bb691c338417a145e6575ebd9a89187440514257cd43f8e4c"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/entities/execution/EvidenceComparison.tsx",
+      "project_path": "frontend/src/entities/execution/EvidenceComparison.tsx",
+      "source_sha256": "8bf1048ed5803e0fcf44f433c5279245940ae36f43088680f8ed24d6ea59c9ed",
+      "integrated_sha256": "8bf1048ed5803e0fcf44f433c5279245940ae36f43088680f8ed24d6ea59c9ed"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/entities/execution/EvidenceGallery.tsx",
+      "project_path": "frontend/src/entities/execution/EvidenceGallery.tsx",
+      "source_sha256": "7a22c884c5c29b7390e2bac52918c5925ada234a31bc7f63c67a85de6eea1bd9",
+      "integrated_sha256": "7a22c884c5c29b7390e2bac52918c5925ada234a31bc7f63c67a85de6eea1bd9"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/entities/forecast/ForecastResultCard.tsx",
+      "project_path": "frontend/src/entities/forecast/ForecastResultCard.tsx",
+      "source_sha256": "2d6ae9360abb2a0e15d03e2d374d002baad6628c236fef31c9b70e76ade93d78",
+      "integrated_sha256": "2d6ae9360abb2a0e15d03e2d374d002baad6628c236fef31c9b70e76ade93d78"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/entities/task/TaskLine.tsx",
+      "project_path": "frontend/src/entities/task/TaskLine.tsx",
+      "source_sha256": "53df5b7d6718d28ea9b4224a378014a343621d8635af6e1d683a378fc9d28f4d",
+      "integrated_sha256": "53df5b7d6718d28ea9b4224a378014a343621d8635af6e1d683a378fc9d28f4d"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/entities/task/TaskTable.tsx",
+      "project_path": "frontend/src/entities/task/TaskTable.tsx",
+      "source_sha256": "f38bfb7b2fe2191df213ad470529569a52ee9f059e180a777b1742eadf2964c6",
+      "integrated_sha256": "f38bfb7b2fe2191df213ad470529569a52ee9f059e180a777b1742eadf2964c6"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/features/calendar/calendar.css",
+      "project_path": "frontend/src/features/calendar/calendar.css",
+      "source_sha256": "89486606fd34fd38e88133a5f74bedc397f1bbc9586e9f7896bac190640be74a",
+      "integrated_sha256": "89486606fd34fd38e88133a5f74bedc397f1bbc9586e9f7896bac190640be74a"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/features/calendar/CalendarBoard.tsx",
+      "project_path": "frontend/src/features/calendar/CalendarBoard.tsx",
+      "source_sha256": "b2c63f8fdc3cb79d39f12d38b8eba1e1848fc2718c446f43e2f21740ea771659",
+      "integrated_sha256": "b2c63f8fdc3cb79d39f12d38b8eba1e1848fc2718c446f43e2f21740ea771659"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/index.css",
+      "project_path": "frontend/src/index.css",
+      "source_sha256": "85e051963b7c93da3a557712c86a37a05e76496d52715a3e77957640f214aae7",
+      "integrated_sha256": "85e051963b7c93da3a557712c86a37a05e76496d52715a3e77957640f214aae7"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/layouts/AppShell.tsx",
+      "project_path": "frontend/src/layouts/AppShell.tsx",
+      "source_sha256": "ef8d422e1e0100d2022abed5203e4cd3044b8d05613d11824efa23adeaa1316d",
+      "integrated_sha256": "ef8d422e1e0100d2022abed5203e4cd3044b8d05613d11824efa23adeaa1316d"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/layouts/CommandMenu.tsx",
+      "project_path": "frontend/src/layouts/CommandMenu.tsx",
+      "source_sha256": "1181dcb8c0f87945f4a3dd535c17ceda7a343a46bd01290af98c5b0cf0f02f4e",
+      "integrated_sha256": "1181dcb8c0f87945f4a3dd535c17ceda7a343a46bd01290af98c5b0cf0f02f4e"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/layouts/operations.css",
+      "project_path": "frontend/src/layouts/operations.css",
+      "source_sha256": "32792da793918fb302074ffbe44fe009d13fb14058540b514c0cb1d73d4d7482",
+      "integrated_sha256": "32792da793918fb302074ffbe44fe009d13fb14058540b514c0cb1d73d4d7482"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/layouts/Sidebar.css",
+      "project_path": "frontend/src/layouts/Sidebar.css",
+      "source_sha256": "72c0291bcef2eaf28a4093a1e56738ebd7053f26550a42476872277e9394ac1d",
+      "integrated_sha256": "72c0291bcef2eaf28a4093a1e56738ebd7053f26550a42476872277e9394ac1d"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/layouts/Sidebar.tsx",
+      "project_path": "frontend/src/layouts/Sidebar.tsx",
+      "source_sha256": "b74cbf390ed0828a98ddf545006b91dd2be7a1deeb1076fa21cf5938dab93b24",
+      "integrated_sha256": "b74cbf390ed0828a98ddf545006b91dd2be7a1deeb1076fa21cf5938dab93b24"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/layouts/workspace.css",
+      "project_path": "frontend/src/layouts/workspace.css",
+      "source_sha256": "95139cb47a6b729f88b8ef779c0a947f759300311f46278ce64b85e3edc7da5a",
+      "integrated_sha256": "95139cb47a6b729f88b8ef779c0a947f759300311f46278ce64b85e3edc7da5a"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/pages/CalendarPage.tsx",
+      "project_path": "frontend/src/pages/CalendarPage.tsx",
+      "source_sha256": "ca27ada7177349da952ed6606e9f972282e62578e2bd95939c7d4a6ff3ecabc5",
+      "integrated_sha256": "ca27ada7177349da952ed6606e9f972282e62578e2bd95939c7d4a6ff3ecabc5"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/pages/ComparisonDetailPage.tsx",
+      "project_path": "frontend/src/pages/ComparisonDetailPage.tsx",
+      "source_sha256": "6b6a150039e05594b15020b5e12d47449cdc16cc43e3d22d5ab613514ce9ef89",
+      "integrated_sha256": "6b6a150039e05594b15020b5e12d47449cdc16cc43e3d22d5ab613514ce9ef89"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/pages/ComparisonsPage.tsx",
+      "project_path": "frontend/src/pages/ComparisonsPage.tsx",
+      "source_sha256": "47944a4f3002147d6bb1e6ee50655c9776d4462f46c27c854d7de5d9a225d56f",
+      "integrated_sha256": "47944a4f3002147d6bb1e6ee50655c9776d4462f46c27c854d7de5d9a225d56f"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/pages/DispatcherPage.tsx",
+      "project_path": "frontend/src/pages/DispatcherPage.tsx",
+      "source_sha256": "c71ccad810b90219256de08bc40e07dac6d65b912711daf5e83fe7732d48966c",
+      "integrated_sha256": "c71ccad810b90219256de08bc40e07dac6d65b912711daf5e83fe7732d48966c"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/pages/EquipmentDetailPage.tsx",
+      "project_path": "frontend/src/pages/EquipmentDetailPage.tsx",
+      "source_sha256": "18a4a759826b632a314f23fa0bf3534d0c9809321f0ab819b2e9ba95fb8d0efe",
+      "integrated_sha256": "18a4a759826b632a314f23fa0bf3534d0c9809321f0ab819b2e9ba95fb8d0efe"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/pages/EquipmentPage.tsx",
+      "project_path": "frontend/src/pages/EquipmentPage.tsx",
+      "source_sha256": "49f34ae537b1d00acf1fcbc7d8939b0f6ded0bdd94b8bb20b68f4f63d85a8de2",
+      "integrated_sha256": "49f34ae537b1d00acf1fcbc7d8939b0f6ded0bdd94b8bb20b68f4f63d85a8de2"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/pages/ExecutorPage.tsx",
+      "project_path": "frontend/src/pages/ExecutorPage.tsx",
+      "source_sha256": "061e1949e0016a1d7b69ade6c8491dc5b198dca27478768e9ac1a7d761b4636f",
+      "integrated_sha256": "061e1949e0016a1d7b69ade6c8491dc5b198dca27478768e9ac1a7d761b4636f"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/pages/ExecutorTaskPage.tsx",
+      "project_path": "frontend/src/pages/ExecutorTaskPage.tsx",
+      "source_sha256": "71a08df2eba637c87a707a4d6d24f36a498b92f1ed32aba697da047f233f4981",
+      "integrated_sha256": "71a08df2eba637c87a707a4d6d24f36a498b92f1ed32aba697da047f233f4981"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/pages/QualityPage.tsx",
+      "project_path": "frontend/src/pages/QualityPage.tsx",
+      "source_sha256": "68299f33f206f4c1e7dba849e033feb1fc7f49cadc8058fb346a961c47184b11",
+      "integrated_sha256": "68299f33f206f4c1e7dba849e033feb1fc7f49cadc8058fb346a961c47184b11"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/pages/QualityTaskPage.tsx",
+      "project_path": "frontend/src/pages/QualityTaskPage.tsx",
+      "source_sha256": "cfc364fa40669711e46ebc8a796646afc275183b66bb53688c6a58e17c26978b",
+      "integrated_sha256": "cfc364fa40669711e46ebc8a796646afc275183b66bb53688c6a58e17c26978b"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/pages/ReportsPage.tsx",
+      "project_path": "frontend/src/pages/ReportsPage.tsx",
+      "source_sha256": "37892d617cf883d8c5fff44a7a871f5d0f089389f994aae7a9feb2860c83c77e",
+      "integrated_sha256": "37892d617cf883d8c5fff44a7a871f5d0f089389f994aae7a9feb2860c83c77e"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/pages/ServiceSettingsPage.tsx",
+      "project_path": "frontend/src/pages/ServiceSettingsPage.tsx",
+      "source_sha256": "00232590379b42d8e72a5a5f18ba957d938e4accbc8d6b5c3c107270aa17cc1a",
+      "integrated_sha256": "00232590379b42d8e72a5a5f18ba957d938e4accbc8d6b5c3c107270aa17cc1a"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/pages/TaskDetailPage.tsx",
+      "project_path": "frontend/src/pages/TaskDetailPage.tsx",
+      "source_sha256": "6b2e166d638f604b9e0ebf17ddc7365ed8f90b90403e8971eeb661ff300f4625",
+      "integrated_sha256": "6b2e166d638f604b9e0ebf17ddc7365ed8f90b90403e8971eeb661ff300f4625"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/pages/TasksPage.tsx",
+      "project_path": "frontend/src/pages/TasksPage.tsx",
+      "source_sha256": "a8a25e9bc0ce3f65316276829c7579bec9c40678172dc121c35975c2b0f7d046",
+      "integrated_sha256": "a8a25e9bc0ce3f65316276829c7579bec9c40678172dc121c35975c2b0f7d046"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/pages/WorkforceSettingsPage.tsx",
+      "project_path": "frontend/src/pages/WorkforceSettingsPage.tsx",
+      "source_sha256": "b27316dc56f56b8abd18cad63ab18192b8df1441a0aee8a7f28dadade9086258",
+      "integrated_sha256": "b27316dc56f56b8abd18cad63ab18192b8df1441a0aee8a7f28dadade9086258"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/shared/lib/evidence.ts",
+      "project_path": "frontend/src/shared/lib/evidence.ts",
+      "source_sha256": "d080f7a8c942f08fe0086d7ae4d9557a538bce6cb9ece9dda782805a704d4756",
+      "integrated_sha256": "d080f7a8c942f08fe0086d7ae4d9557a538bce6cb9ece9dda782805a704d4756"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/shared/lib/exportCsv.ts",
+      "project_path": "frontend/src/shared/lib/exportCsv.ts",
+      "source_sha256": "4a780cfd329d7aefe7f2697968f3ed52095981a853152fd44149232a80bc338c",
+      "integrated_sha256": "4a780cfd329d7aefe7f2697968f3ed52095981a853152fd44149232a80bc338c"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/shared/lib/forecastPresentation.ts",
+      "project_path": "frontend/src/shared/lib/forecastPresentation.ts",
+      "source_sha256": "4d7c092d5a6d901bd1be448f5c9aff12b70aba4a5922ac721fabdcf46bde7de5",
+      "integrated_sha256": "4d7c092d5a6d901bd1be448f5c9aff12b70aba4a5922ac721fabdcf46bde7de5"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/shared/lib/operations.ts",
+      "project_path": "frontend/src/shared/lib/operations.ts",
+      "source_sha256": "1eca7fdf9d27e568dcc03ea7f2f179b6ab1076abdefff9cd481250840bd3ac97",
+      "integrated_sha256": "1eca7fdf9d27e568dcc03ea7f2f179b6ab1076abdefff9cd481250840bd3ac97"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/shared/lib/useDialogFocus.ts",
+      "project_path": "frontend/src/shared/lib/useDialogFocus.ts",
+      "source_sha256": "2f9d82897e1e44bc44c9ccb88af078d59c3c191b96f016b180284fa75eccb8e6",
+      "integrated_sha256": "2f9d82897e1e44bc44c9ccb88af078d59c3c191b96f016b180284fa75eccb8e6"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/shared/lib/useMediaQuery.ts",
+      "project_path": "frontend/src/shared/lib/useMediaQuery.ts",
+      "source_sha256": "e8b54068a7a79093f10ee4bffc86a12926a3319e35cbdaa629e16aa09a626f6c",
+      "integrated_sha256": "e8b54068a7a79093f10ee4bffc86a12926a3319e35cbdaa629e16aa09a626f6c"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/shared/ui/Brand.tsx",
+      "project_path": "frontend/src/shared/ui/Brand.tsx",
+      "source_sha256": "c8ce98529360cd7e28551e7955f48a47486b06aabf930b82cc3ba0457e2745dd",
+      "integrated_sha256": "c8ce98529360cd7e28551e7955f48a47486b06aabf930b82cc3ba0457e2745dd"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/shared/ui/Button.tsx",
+      "project_path": "frontend/src/shared/ui/Button.tsx",
+      "source_sha256": "1fa5fd320e2de5e32ebb231cadadc39b122835372937da84957a10707942c899",
+      "integrated_sha256": "1fa5fd320e2de5e32ebb231cadadc39b122835372937da84957a10707942c899"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/shared/ui/Card.tsx",
+      "project_path": "frontend/src/shared/ui/Card.tsx",
+      "source_sha256": "d4778fba2fe6b3cebdde5c82accf4898bf97412d3d148a7a99837a8409884fba",
+      "integrated_sha256": "d4778fba2fe6b3cebdde5c82accf4898bf97412d3d148a7a99837a8409884fba"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/shared/ui/ConnectionRequired.tsx",
+      "project_path": "frontend/src/shared/ui/ConnectionRequired.tsx",
+      "source_sha256": "c382abea9cdbf4ba3181c858147ac036be6f7c3a2060c6830b38fc22bc219c62",
+      "integrated_sha256": "c382abea9cdbf4ba3181c858147ac036be6f7c3a2060c6830b38fc22bc219c62"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/shared/ui/Drawer.tsx",
+      "project_path": "frontend/src/shared/ui/Drawer.tsx",
+      "source_sha256": "f1303ff242049ea1c290599d75aefb72e4c4e14646a52bab5d47c8a634e8b5d2",
+      "integrated_sha256": "f1303ff242049ea1c290599d75aefb72e4c4e14646a52bab5d47c8a634e8b5d2"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/shared/ui/FilterChip.tsx",
+      "project_path": "frontend/src/shared/ui/FilterChip.tsx",
+      "source_sha256": "28e959c5eb7fe8b2095d5070069a91dea670ada489fdad2b15c2b3b73fb0ecb3",
+      "integrated_sha256": "28e959c5eb7fe8b2095d5070069a91dea670ada489fdad2b15c2b3b73fb0ecb3"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/shared/ui/Form.tsx",
+      "project_path": "frontend/src/shared/ui/Form.tsx",
+      "source_sha256": "a406cd79cdb39f14117b72b916baba4ddad94531677a45b07f4c404dd611b0a5",
+      "integrated_sha256": "a406cd79cdb39f14117b72b916baba4ddad94531677a45b07f4c404dd611b0a5"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/shared/ui/Modal.tsx",
+      "project_path": "frontend/src/shared/ui/Modal.tsx",
+      "source_sha256": "fc86487844044f6f93492d58cd1d12f247216f66d655e9e6c26632e1d04d876b",
+      "integrated_sha256": "fc86487844044f6f93492d58cd1d12f247216f66d655e9e6c26632e1d04d876b"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/shared/ui/PageHeader.tsx",
+      "project_path": "frontend/src/shared/ui/PageHeader.tsx",
+      "source_sha256": "9622bf000d96a2a7b752d6d026d4e123d3a718d5cb8f828df0ddd2f0ce25055b",
+      "integrated_sha256": "9622bf000d96a2a7b752d6d026d4e123d3a718d5cb8f828df0ddd2f0ce25055b"
+    },
+    {
+      "source_path": "FixRateAI_Frontend/frontend/src/shared/ui/StatusBadge.tsx",
+      "project_path": "frontend/src/shared/ui/StatusBadge.tsx",
+      "source_sha256": "0fc63d51a2b31ea31dab534cabf8da88e197c85a95d67036a54c434428b015f9",
+      "integrated_sha256": "0fc63d51a2b31ea31dab534cabf8da88e197c85a95d67036a54c434428b015f9"
+    }
+  ],
+  "adaptations": [
+    "Production Vite build retained; archive dist-demo and portable build tools not imported.",
+    "Archive documentation consolidated in docs/service/web.md, runtime.md, verification.md and docs/PLAN.md.",
+    "Archive domain checks moved to tests/web/unit/shared/lib/redesign-domain.test.ts and run with Vitest.",
+    "Existing UI/E2E expectations adapted for new labels, calendar drawer, responsive rows and submit confirmation."
+  ],
+  "excluded": [
+    "frontend/README.md and README_REDESIGN.md: content consolidated into service documentation",
+    "frontend/dist-demo and START_DEMO scripts: production uses standard frontend/dist",
+    "docs/redesign/verification and screenshots: historical source evidence remains in original archive",
+    "frontend/scripts: portable bundler and bespoke inline browser harness replaced by native project tools"
+  ]
+}

@@ -1,0 +1,2733 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:fixrate:maintenance:0.1",
+  "title": "FixRate maintenance-0.1 contract definitions",
+  "$defs": {
+    "AcceptedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "service_event_id": {
+          "format": "uuid",
+          "title": "Service Event Id",
+          "type": "string"
+        },
+        "performed_at": {
+          "format": "date-time",
+          "title": "Performed At",
+          "type": "string"
+        },
+        "accepted_at": {
+          "format": "date-time",
+          "title": "Accepted At",
+          "type": "string"
+        },
+        "runtime_hours": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Runtime Hours"
+        },
+        "observed_need_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Observed Need Date"
+        }
+      },
+      "required": [
+        "service_event_id",
+        "performed_at",
+        "accepted_at",
+        "runtime_hours",
+        "observed_need_date"
+      ],
+      "title": "AcceptedEvent",
+      "type": "object"
+    },
+    "Assignment": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "maintenance-0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "data_origin": {
+          "enum": [
+            "customer",
+            "synthetic_demo"
+          ],
+          "title": "Data Origin",
+          "type": "string"
+        },
+        "assignment_id": {
+          "format": "uuid",
+          "title": "Assignment Id",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "executor_id": {
+          "format": "uuid",
+          "title": "Executor Id",
+          "type": "string"
+        },
+        "start_at": {
+          "format": "date-time",
+          "title": "Start At",
+          "type": "string"
+        },
+        "end_at": {
+          "format": "date-time",
+          "title": "End At",
+          "type": "string"
+        },
+        "qualification_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Qualification Ids",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "active",
+            "released"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "assigned_by": {
+          "format": "uuid",
+          "title": "Assigned By",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "data_origin",
+        "assignment_id",
+        "task_id",
+        "executor_id",
+        "start_at",
+        "end_at",
+        "qualification_ids",
+        "status",
+        "assigned_by"
+      ],
+      "title": "Assignment",
+      "type": "object"
+    },
+    "AssignmentCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "maintenance-0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "expected_revision": {
+          "exclusiveMinimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "executor_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Executor Ids",
+          "type": "array"
+        },
+        "start_at": {
+          "format": "date-time",
+          "title": "Start At",
+          "type": "string"
+        },
+        "end_at": {
+          "format": "date-time",
+          "title": "End At",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "expected_revision",
+        "executor_ids",
+        "start_at",
+        "end_at",
+        "reason"
+      ],
+      "title": "AssignmentCommand",
+      "type": "object"
+    },
+    "CalendarPattern": {
+      "additionalProperties": false,
+      "description": "Shared local-date recurrence for equipment maintenance and employee shifts.",
+      "properties": {
+        "frequency": {
+          "enum": [
+            "day",
+            "week",
+            "month",
+            "quarter",
+            "year",
+            "yearly_count",
+            "dates"
+          ],
+          "title": "Frequency",
+          "type": "string"
+        },
+        "anchor_date": {
+          "format": "date",
+          "title": "Anchor Date",
+          "type": "string"
+        },
+        "interval": {
+          "default": 1,
+          "maximum": 10000,
+          "minimum": 1,
+          "title": "Interval",
+          "type": "integer"
+        },
+        "weekdays": {
+          "items": {
+            "maximum": 7,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "title": "Weekdays",
+          "type": "array"
+        },
+        "week_parity": {
+          "default": "any",
+          "enum": [
+            "any",
+            "even",
+            "odd"
+          ],
+          "title": "Week Parity",
+          "type": "string"
+        },
+        "month_days": {
+          "items": {
+            "maximum": 31,
+            "minimum": -1,
+            "type": "integer"
+          },
+          "title": "Month Days",
+          "type": "array"
+        },
+        "months": {
+          "items": {
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "title": "Months",
+          "type": "array"
+        },
+        "period_edge": {
+          "default": "end",
+          "enum": [
+            "start",
+            "end"
+          ],
+          "title": "Period Edge",
+          "type": "string"
+        },
+        "short_month": {
+          "default": "last_day",
+          "enum": [
+            "last_day",
+            "skip"
+          ],
+          "title": "Short Month",
+          "type": "string"
+        },
+        "quarter_policy": {
+          "default": "calendar_edge",
+          "enum": [
+            "calendar_edge",
+            "rolling_months"
+          ],
+          "title": "Quarter Policy",
+          "type": "string"
+        },
+        "annual_policy": {
+          "default": "calendar_year",
+          "enum": [
+            "calendar_year",
+            "from_anchor"
+          ],
+          "title": "Annual Policy",
+          "type": "string"
+        },
+        "weekend_policy": {
+          "default": "none",
+          "enum": [
+            "none",
+            "next_workday"
+          ],
+          "title": "Weekend Policy",
+          "type": "string"
+        },
+        "count_per_year": {
+          "anyOf": [
+            {
+              "maximum": 366,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Count Per Year"
+        },
+        "dates": {
+          "items": {
+            "format": "date",
+            "type": "string"
+          },
+          "title": "Dates",
+          "type": "array"
+        },
+        "excluded_dates": {
+          "items": {
+            "format": "date",
+            "type": "string"
+          },
+          "title": "Excluded Dates",
+          "type": "array"
+        }
+      },
+      "required": [
+        "frequency",
+        "anchor_date"
+      ],
+      "title": "CalendarPattern",
+      "type": "object"
+    },
+    "ChecklistAnswer": {
+      "additionalProperties": false,
+      "properties": {
+        "checklist_item_id": {
+          "format": "uuid",
+          "title": "Checklist Item Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "done",
+            "not_done",
+            "not_applicable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit"
+        },
+        "comment": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Comment"
+        },
+        "completed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Completed At"
+        }
+      },
+      "required": [
+        "checklist_item_id",
+        "status",
+        "value",
+        "unit",
+        "comment",
+        "completed_at"
+      ],
+      "title": "ChecklistAnswer",
+      "type": "object"
+    },
+    "ChecklistItem": {
+      "additionalProperties": false,
+      "properties": {
+        "checklist_item_id": {
+          "format": "uuid",
+          "title": "Checklist Item Id",
+          "type": "string"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "answer_kind": {
+          "enum": [
+            "boolean",
+            "number",
+            "text"
+          ],
+          "title": "Answer Kind",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit"
+        },
+        "required": {
+          "title": "Required",
+          "type": "boolean"
+        },
+        "visual_verifiability": {
+          "enum": [
+            "visible",
+            "partial",
+            "not_verifiable"
+          ],
+          "title": "Visual Verifiability",
+          "type": "string"
+        },
+        "photo_required": {
+          "title": "Photo Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "checklist_item_id",
+        "text",
+        "answer_kind",
+        "unit",
+        "required",
+        "visual_verifiability",
+        "photo_required"
+      ],
+      "title": "ChecklistItem",
+      "type": "object"
+    },
+    "EngineerDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "maintenance-0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "data_origin": {
+          "enum": [
+            "customer",
+            "synthetic_demo"
+          ],
+          "title": "Data Origin",
+          "type": "string"
+        },
+        "decision_id": {
+          "format": "uuid",
+          "title": "Decision Id",
+          "type": "string"
+        },
+        "execution_id": {
+          "format": "uuid",
+          "title": "Execution Id",
+          "type": "string"
+        },
+        "engineer_id": {
+          "format": "uuid",
+          "title": "Engineer Id",
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "accepted",
+            "rejected"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "reviewed_ai_result_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reviewed Ai Result Id"
+        },
+        "additional_evidence_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Additional Evidence Refs",
+          "type": "array"
+        },
+        "decided_at": {
+          "format": "date-time",
+          "title": "Decided At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "data_origin",
+        "decision_id",
+        "execution_id",
+        "engineer_id",
+        "verdict",
+        "reason",
+        "reviewed_ai_result_id",
+        "additional_evidence_refs",
+        "decided_at"
+      ],
+      "title": "EngineerDecision",
+      "type": "object"
+    },
+    "Equipment": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "maintenance-0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "data_origin": {
+          "enum": [
+            "customer",
+            "synthetic_demo"
+          ],
+          "title": "Data Origin",
+          "type": "string"
+        },
+        "equipment_id": {
+          "format": "uuid",
+          "title": "Equipment Id",
+          "type": "string"
+        },
+        "site_id": {
+          "format": "uuid",
+          "title": "Site Id",
+          "type": "string"
+        },
+        "equipment_type_id": {
+          "format": "uuid",
+          "title": "Equipment Type Id",
+          "type": "string"
+        },
+        "inventory_code": {
+          "minLength": 1,
+          "title": "Inventory Code",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "commissioned_on": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Commissioned On"
+        },
+        "state": {
+          "enum": [
+            "active",
+            "out_of_service",
+            "retired"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "revision": {
+          "exclusiveMinimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "schema_version",
+        "data_origin",
+        "equipment_id",
+        "site_id",
+        "equipment_type_id",
+        "inventory_code",
+        "name",
+        "commissioned_on",
+        "state",
+        "revision"
+      ],
+      "title": "Equipment",
+      "type": "object"
+    },
+    "ErrorDetail": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "minLength": 1,
+          "title": "Field",
+          "type": "string"
+        },
+        "issue": {
+          "minLength": 1,
+          "title": "Issue",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "issue"
+      ],
+      "title": "ErrorDetail",
+      "type": "object"
+    },
+    "ErrorInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "minLength": 1,
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "details": {
+          "items": {
+            "$ref": "#/$defs/ErrorDetail"
+          },
+          "title": "Details",
+          "type": "array"
+        },
+        "request_id": {
+          "minLength": 1,
+          "title": "Request Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "details",
+        "request_id"
+      ],
+      "title": "ErrorInfo",
+      "type": "object"
+    },
+    "ErrorResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "maintenance-0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "error": {
+          "$ref": "#/$defs/ErrorInfo"
+        },
+        "detail": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
+        }
+      },
+      "required": [
+        "schema_version",
+        "error"
+      ],
+      "title": "ErrorResponse",
+      "type": "object"
+    },
+    "ExecutionReport": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "maintenance-0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "data_origin": {
+          "enum": [
+            "customer",
+            "synthetic_demo"
+          ],
+          "title": "Data Origin",
+          "type": "string"
+        },
+        "execution_id": {
+          "format": "uuid",
+          "title": "Execution Id",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "attempt_number": {
+          "exclusiveMinimum": 0,
+          "title": "Attempt Number",
+          "type": "integer"
+        },
+        "state": {
+          "enum": [
+            "draft",
+            "submitted"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "performed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Performed At"
+        },
+        "submitted_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Submitted At"
+        },
+        "submitted_by": {
+          "format": "uuid",
+          "title": "Submitted By",
+          "type": "string"
+        },
+        "narrative": {
+          "minLength": 1,
+          "title": "Narrative",
+          "type": "string"
+        },
+        "answers": {
+          "items": {
+            "$ref": "#/$defs/ChecklistAnswer"
+          },
+          "minItems": 1,
+          "title": "Answers",
+          "type": "array"
+        },
+        "photo_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Photo Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema_version",
+        "data_origin",
+        "execution_id",
+        "task_id",
+        "attempt_number",
+        "state",
+        "performed_at",
+        "submitted_at",
+        "submitted_by",
+        "narrative",
+        "answers",
+        "photo_ids"
+      ],
+      "title": "ExecutionReport",
+      "type": "object"
+    },
+    "ForecastResult": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "maintenance-0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "data_origin": {
+          "enum": [
+            "customer",
+            "synthetic_demo"
+          ],
+          "title": "Data Origin",
+          "type": "string"
+        },
+        "result_id": {
+          "format": "uuid",
+          "title": "Result Id",
+          "type": "string"
+        },
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "format": "uuid",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "snapshot_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Snapshot Sha256",
+          "type": "string"
+        },
+        "equipment_id": {
+          "format": "uuid",
+          "title": "Equipment Id",
+          "type": "string"
+        },
+        "binding_id": {
+          "format": "uuid",
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "as_of": {
+          "format": "date-time",
+          "title": "As Of",
+          "type": "string"
+        },
+        "method": {
+          "enum": [
+            "algorithmic",
+            "ai"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "method_version": {
+          "minLength": 1,
+          "title": "Method Version",
+          "type": "string"
+        },
+        "model_ref": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Model Ref"
+        },
+        "status": {
+          "enum": [
+            "ok",
+            "needs_input",
+            "unavailable",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "recommended_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Recommended Date"
+        },
+        "mandatory_due_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mandatory Due Date"
+        },
+        "runtime_due_at_hours": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Runtime Due At Hours"
+        },
+        "overdue": {
+          "title": "Overdue",
+          "type": "boolean"
+        },
+        "uncertainty": {
+          "$ref": "#/$defs/Uncertainty"
+        },
+        "explanation": {
+          "minLength": 1,
+          "title": "Explanation",
+          "type": "string"
+        },
+        "warnings": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error Code"
+        },
+        "elapsed_ms": {
+          "minimum": 0,
+          "title": "Elapsed Ms",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "schema_version",
+        "data_origin",
+        "result_id",
+        "run_id",
+        "snapshot_id",
+        "snapshot_sha256",
+        "equipment_id",
+        "binding_id",
+        "as_of",
+        "method",
+        "method_version",
+        "model_ref",
+        "status",
+        "recommended_date",
+        "mandatory_due_date",
+        "runtime_due_at_hours",
+        "overdue",
+        "uncertainty",
+        "explanation",
+        "warnings",
+        "error_code",
+        "elapsed_ms"
+      ],
+      "title": "ForecastResult",
+      "type": "object"
+    },
+    "ForecastSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "maintenance-0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "data_origin": {
+          "enum": [
+            "customer",
+            "synthetic_demo"
+          ],
+          "title": "Data Origin",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "format": "uuid",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "content_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Content Sha256",
+          "type": "string"
+        },
+        "binding_id": {
+          "format": "uuid",
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "binding_revision": {
+          "exclusiveMinimum": 0,
+          "title": "Binding Revision",
+          "type": "integer"
+        },
+        "site": {
+          "$ref": "#/$defs/Site"
+        },
+        "equipment": {
+          "$ref": "#/$defs/Equipment"
+        },
+        "operation": {
+          "$ref": "#/$defs/OperationVersion"
+        },
+        "rule": {
+          "$ref": "#/$defs/RecurrenceRule"
+        },
+        "as_of": {
+          "format": "date-time",
+          "title": "As Of",
+          "type": "string"
+        },
+        "horizon_end": {
+          "format": "date",
+          "title": "Horizon End",
+          "type": "string"
+        },
+        "earliest_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Earliest Date"
+        },
+        "mandatory_due_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mandatory Due Date"
+        },
+        "runtime_due_at_hours": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Runtime Due At Hours"
+        },
+        "accepted_events": {
+          "items": {
+            "$ref": "#/$defs/AcceptedEvent"
+          },
+          "title": "Accepted Events",
+          "type": "array"
+        },
+        "runtime_reading": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RuntimeReading"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_occurrence_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Occurrence Date"
+        },
+        "feature_schema_version": {
+          "minLength": 1,
+          "title": "Feature Schema Version",
+          "type": "string"
+        },
+        "diagnostic_readings": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Diagnostic Readings",
+          "type": "array"
+        },
+        "diagnostic_comments": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Diagnostic Comments",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema_version",
+        "data_origin",
+        "snapshot_id",
+        "content_sha256",
+        "binding_id",
+        "binding_revision",
+        "site",
+        "equipment",
+        "operation",
+        "rule",
+        "as_of",
+        "horizon_end",
+        "earliest_date",
+        "mandatory_due_date",
+        "runtime_due_at_hours",
+        "accepted_events",
+        "runtime_reading",
+        "feature_schema_version"
+      ],
+      "title": "ForecastSnapshot",
+      "type": "object"
+    },
+    "ImageLabelScore": {
+      "additionalProperties": false,
+      "properties": {
+        "photo_id": {
+          "format": "uuid",
+          "title": "Photo Id",
+          "type": "string"
+        },
+        "label": {
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "photo_id",
+        "label",
+        "score"
+      ],
+      "title": "ImageLabelScore",
+      "type": "object"
+    },
+    "ItemPhotoReview": {
+      "additionalProperties": false,
+      "properties": {
+        "checklist_item_id": {
+          "format": "uuid",
+          "title": "Checklist Item Id",
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "visible_change",
+            "no_visible_change",
+            "uncertain",
+            "not_verifiable"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        },
+        "before_photo_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Before Photo Id"
+        },
+        "after_photo_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "After Photo Id"
+        },
+        "observation": {
+          "minLength": 1,
+          "title": "Observation",
+          "type": "string"
+        },
+        "scores": {
+          "items": {
+            "$ref": "#/$defs/ImageLabelScore"
+          },
+          "title": "Scores",
+          "type": "array"
+        },
+        "visual_assessment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VisualAssessment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "checklist_item_id",
+        "verdict",
+        "before_photo_id",
+        "after_photo_id",
+        "observation",
+        "scores"
+      ],
+      "title": "ItemPhotoReview",
+      "type": "object"
+    },
+    "OperationVersion": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "maintenance-0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "data_origin": {
+          "enum": [
+            "customer",
+            "synthetic_demo"
+          ],
+          "title": "Data Origin",
+          "type": "string"
+        },
+        "operation_id": {
+          "format": "uuid",
+          "title": "Operation Id",
+          "type": "string"
+        },
+        "operation_version_id": {
+          "format": "uuid",
+          "title": "Operation Version Id",
+          "type": "string"
+        },
+        "version": {
+          "exclusiveMinimum": 0,
+          "title": "Version",
+          "type": "integer"
+        },
+        "code": {
+          "minLength": 1,
+          "title": "Code",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "maintenance_type": {
+          "enum": [
+            "ТО1",
+            "ТО2"
+          ],
+          "title": "Maintenance Type",
+          "type": "string"
+        },
+        "instructions": {
+          "minLength": 1,
+          "title": "Instructions",
+          "type": "string"
+        },
+        "crew_size": {
+          "exclusiveMinimum": 0,
+          "title": "Crew Size",
+          "type": "integer"
+        },
+        "raw_norm_value": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Raw Norm Value"
+        },
+        "norm_unit": {
+          "enum": [
+            "unconfirmed",
+            "person_hour",
+            "elapsed_hour"
+          ],
+          "title": "Norm Unit",
+          "type": "string"
+        },
+        "planning_duration_minutes": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Planning Duration Minutes"
+        },
+        "duration_basis": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Duration Basis"
+        },
+        "qualification_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Qualification Ids",
+          "type": "array"
+        },
+        "checklist": {
+          "items": {
+            "$ref": "#/$defs/ChecklistItem"
+          },
+          "minItems": 1,
+          "title": "Checklist",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "draft",
+            "approved",
+            "retired"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "source_ref": {
+          "minLength": 1,
+          "title": "Source Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "data_origin",
+        "operation_id",
+        "operation_version_id",
+        "version",
+        "code",
+        "title",
+        "maintenance_type",
+        "instructions",
+        "crew_size",
+        "raw_norm_value",
+        "norm_unit",
+        "planning_duration_minutes",
+        "duration_basis",
+        "qualification_ids",
+        "checklist",
+        "status",
+        "source_ref"
+      ],
+      "title": "OperationVersion",
+      "type": "object"
+    },
+    "OrchestrationDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "maintenance-0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "data_origin": {
+          "enum": [
+            "customer",
+            "synthetic_demo"
+          ],
+          "title": "Data Origin",
+          "type": "string"
+        },
+        "orchestration_id": {
+          "format": "uuid",
+          "title": "Orchestration Id",
+          "type": "string"
+        },
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "format": "uuid",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "algorithmic_result_id": {
+          "format": "uuid",
+          "title": "Algorithmic Result Id",
+          "type": "string"
+        },
+        "ai_result_id": {
+          "format": "uuid",
+          "title": "Ai Result Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "selected",
+            "fallback",
+            "needs_input",
+            "manual_review"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "selected_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Selected Date"
+        },
+        "policy_version": {
+          "minLength": 1,
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Reasons",
+          "type": "array"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "data_origin",
+        "orchestration_id",
+        "run_id",
+        "snapshot_id",
+        "algorithmic_result_id",
+        "ai_result_id",
+        "status",
+        "selected_date",
+        "policy_version",
+        "reasons",
+        "created_at"
+      ],
+      "title": "OrchestrationDecision",
+      "type": "object"
+    },
+    "PhotoReport": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "maintenance-0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "data_origin": {
+          "enum": [
+            "customer",
+            "synthetic_demo"
+          ],
+          "title": "Data Origin",
+          "type": "string"
+        },
+        "photo_id": {
+          "format": "uuid",
+          "title": "Photo Id",
+          "type": "string"
+        },
+        "execution_id": {
+          "format": "uuid",
+          "title": "Execution Id",
+          "type": "string"
+        },
+        "equipment_id": {
+          "format": "uuid",
+          "title": "Equipment Id",
+          "type": "string"
+        },
+        "checklist_item_id": {
+          "format": "uuid",
+          "title": "Checklist Item Id",
+          "type": "string"
+        },
+        "phase": {
+          "enum": [
+            "before",
+            "after"
+          ],
+          "title": "Phase",
+          "type": "string"
+        },
+        "view_key": {
+          "minLength": 1,
+          "title": "View Key",
+          "type": "string"
+        },
+        "mime_type": {
+          "enum": [
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+          ],
+          "title": "Mime Type",
+          "type": "string"
+        },
+        "file_size_bytes": {
+          "exclusiveMinimum": 0,
+          "maximum": 10485760,
+          "title": "File Size Bytes",
+          "type": "integer"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "title": "Height",
+          "type": "integer"
+        },
+        "original_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Original Sha256",
+          "type": "string"
+        },
+        "captured_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Captured At"
+        },
+        "uploaded_at": {
+          "format": "date-time",
+          "title": "Uploaded At",
+          "type": "string"
+        },
+        "uploaded_by": {
+          "format": "uuid",
+          "title": "Uploaded By",
+          "type": "string"
+        },
+        "content_url": {
+          "pattern": "^/api/v1/maintenance/photos/[0-9a-f-]+/content$",
+          "title": "Content Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "data_origin",
+        "photo_id",
+        "execution_id",
+        "equipment_id",
+        "checklist_item_id",
+        "phase",
+        "view_key",
+        "mime_type",
+        "file_size_bytes",
+        "width",
+        "height",
+        "original_sha256",
+        "captured_at",
+        "uploaded_at",
+        "uploaded_by",
+        "content_url"
+      ],
+      "title": "PhotoReport",
+      "type": "object"
+    },
+    "PhotoReviewRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "maintenance-0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "data_origin": {
+          "enum": [
+            "customer",
+            "synthetic_demo"
+          ],
+          "title": "Data Origin",
+          "type": "string"
+        },
+        "execution_id": {
+          "format": "uuid",
+          "title": "Execution Id",
+          "type": "string"
+        },
+        "operation": {
+          "$ref": "#/$defs/OperationVersion"
+        },
+        "photos": {
+          "items": {
+            "$ref": "#/$defs/PhotoReport"
+          },
+          "minItems": 2,
+          "title": "Photos",
+          "type": "array"
+        },
+        "report": {
+          "$ref": "#/$defs/ExecutionReport"
+        },
+        "prompt_set_version": {
+          "minLength": 1,
+          "title": "Prompt Set Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "data_origin",
+        "execution_id",
+        "operation",
+        "photos",
+        "report",
+        "prompt_set_version"
+      ],
+      "title": "PhotoReviewRequest",
+      "type": "object"
+    },
+    "PhotoReviewResult": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "maintenance-0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "data_origin": {
+          "enum": [
+            "customer",
+            "synthetic_demo"
+          ],
+          "title": "Data Origin",
+          "type": "string"
+        },
+        "ai_review_id": {
+          "format": "uuid",
+          "title": "Ai Review Id",
+          "type": "string"
+        },
+        "execution_id": {
+          "format": "uuid",
+          "title": "Execution Id",
+          "type": "string"
+        },
+        "operation_version_id": {
+          "format": "uuid",
+          "title": "Operation Version Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "completed",
+            "uncertain",
+            "not_verifiable",
+            "unavailable",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "model_ref": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Model Ref"
+        },
+        "prompt_set_version": {
+          "minLength": 1,
+          "title": "Prompt Set Version",
+          "type": "string"
+        },
+        "input_photo_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Input Photo Ids",
+          "type": "array"
+        },
+        "item_results": {
+          "items": {
+            "$ref": "#/$defs/ItemPhotoReview"
+          },
+          "title": "Item Results",
+          "type": "array"
+        },
+        "limitations": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Limitations",
+          "type": "array"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error Code"
+        },
+        "elapsed_ms": {
+          "minimum": 0,
+          "title": "Elapsed Ms",
+          "type": "integer"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "data_origin",
+        "ai_review_id",
+        "execution_id",
+        "operation_version_id",
+        "status",
+        "model_ref",
+        "prompt_set_version",
+        "input_photo_ids",
+        "item_results",
+        "limitations",
+        "error_code",
+        "elapsed_ms",
+        "created_at"
+      ],
+      "title": "PhotoReviewResult",
+      "type": "object"
+    },
+    "PlanOccurrence": {
+      "additionalProperties": false,
+      "properties": {
+        "occurrence_id": {
+          "format": "uuid",
+          "title": "Occurrence Id",
+          "type": "string"
+        },
+        "binding_id": {
+          "format": "uuid",
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "rule_version_id": {
+          "format": "uuid",
+          "title": "Rule Version Id",
+          "type": "string"
+        },
+        "operation_version_id": {
+          "format": "uuid",
+          "title": "Operation Version Id",
+          "type": "string"
+        },
+        "source_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Date"
+        },
+        "occurrence_date": {
+          "format": "date",
+          "title": "Occurrence Date",
+          "type": "string"
+        },
+        "earliest_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Earliest Date"
+        },
+        "mandatory_due_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mandatory Due Date"
+        },
+        "runtime_due_at_hours": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Runtime Due At Hours"
+        },
+        "status": {
+          "enum": [
+            "draft",
+            "planned",
+            "fulfilled",
+            "cancelled"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "revision": {
+          "exclusiveMinimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Task Id"
+        }
+      },
+      "required": [
+        "occurrence_id",
+        "binding_id",
+        "rule_version_id",
+        "operation_version_id",
+        "occurrence_date",
+        "earliest_date",
+        "mandatory_due_date",
+        "runtime_due_at_hours",
+        "status",
+        "revision",
+        "task_id"
+      ],
+      "title": "PlanOccurrence",
+      "type": "object"
+    },
+    "RecurrenceRule": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "maintenance-0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "data_origin": {
+          "enum": [
+            "customer",
+            "synthetic_demo"
+          ],
+          "title": "Data Origin",
+          "type": "string"
+        },
+        "rule_version_id": {
+          "format": "uuid",
+          "title": "Rule Version Id",
+          "type": "string"
+        },
+        "regulation_version_id": {
+          "format": "uuid",
+          "title": "Regulation Version Id",
+          "type": "string"
+        },
+        "source_text": {
+          "minLength": 1,
+          "title": "Source Text",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "calendar_interval",
+            "explicit_dates",
+            "runtime",
+            "calendar_pattern"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "confirmed": {
+          "title": "Confirmed",
+          "type": "boolean"
+        },
+        "interval": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Interval"
+        },
+        "calendar_unit": {
+          "anyOf": [
+            {
+              "enum": [
+                "day",
+                "month"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Calendar Unit"
+        },
+        "anchor_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Anchor Date"
+        },
+        "basis": {
+          "anyOf": [
+            {
+              "enum": [
+                "fixed_calendar",
+                "after_accepted_completion"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Basis"
+        },
+        "explicit_dates": {
+          "items": {
+            "format": "date",
+            "type": "string"
+          },
+          "title": "Explicit Dates",
+          "type": "array"
+        },
+        "yearly_count": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Yearly Count"
+        },
+        "runtime_interval_hours": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Runtime Interval Hours"
+        },
+        "allowed_lead_days": {
+          "minimum": 0,
+          "title": "Allowed Lead Days",
+          "type": "integer"
+        },
+        "source_ref": {
+          "minLength": 1,
+          "title": "Source Ref",
+          "type": "string"
+        },
+        "pattern": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CalendarPattern"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "weekend_policy": {
+          "default": "none",
+          "enum": [
+            "none",
+            "next_workday"
+          ],
+          "title": "Weekend Policy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "data_origin",
+        "rule_version_id",
+        "regulation_version_id",
+        "source_text",
+        "kind",
+        "confirmed",
+        "interval",
+        "calendar_unit",
+        "anchor_date",
+        "basis",
+        "explicit_dates",
+        "yearly_count",
+        "runtime_interval_hours",
+        "allowed_lead_days",
+        "source_ref"
+      ],
+      "title": "RecurrenceRule",
+      "type": "object"
+    },
+    "ReviewCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "maintenance-0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "expected_revision": {
+          "exclusiveMinimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "execution_id": {
+          "format": "uuid",
+          "title": "Execution Id",
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "accepted",
+            "rejected"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "reviewed_ai_result_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reviewed Ai Result Id"
+        },
+        "additional_evidence_refs": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Additional Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema_version",
+        "expected_revision",
+        "execution_id",
+        "verdict",
+        "reason",
+        "reviewed_ai_result_id",
+        "additional_evidence_refs"
+      ],
+      "title": "ReviewCommand",
+      "type": "object"
+    },
+    "RuntimeReading": {
+      "additionalProperties": false,
+      "properties": {
+        "reading_id": {
+          "format": "uuid",
+          "title": "Reading Id",
+          "type": "string"
+        },
+        "measured_at": {
+          "format": "date-time",
+          "title": "Measured At",
+          "type": "string"
+        },
+        "value_hours": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Value Hours"
+        },
+        "meter_epoch": {
+          "exclusiveMinimum": 0,
+          "title": "Meter Epoch",
+          "type": "integer"
+        },
+        "verified": {
+          "title": "Verified",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "reading_id",
+        "measured_at",
+        "value_hours",
+        "meter_epoch",
+        "verified"
+      ],
+      "title": "RuntimeReading",
+      "type": "object"
+    },
+    "Schedule": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "maintenance-0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "data_origin": {
+          "enum": [
+            "customer",
+            "synthetic_demo"
+          ],
+          "title": "Data Origin",
+          "type": "string"
+        },
+        "plan_id": {
+          "format": "uuid",
+          "title": "Plan Id",
+          "type": "string"
+        },
+        "site_id": {
+          "format": "uuid",
+          "title": "Site Id",
+          "type": "string"
+        },
+        "period_start": {
+          "format": "date",
+          "title": "Period Start",
+          "type": "string"
+        },
+        "period_end": {
+          "format": "date",
+          "title": "Period End",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "draft",
+            "approved"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "revision": {
+          "exclusiveMinimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "occurrences": {
+          "items": {
+            "$ref": "#/$defs/PlanOccurrence"
+          },
+          "title": "Occurrences",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema_version",
+        "data_origin",
+        "plan_id",
+        "site_id",
+        "period_start",
+        "period_end",
+        "status",
+        "revision",
+        "occurrences"
+      ],
+      "title": "Schedule",
+      "type": "object"
+    },
+    "Site": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "maintenance-0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "data_origin": {
+          "enum": [
+            "customer",
+            "synthetic_demo"
+          ],
+          "title": "Data Origin",
+          "type": "string"
+        },
+        "site_id": {
+          "format": "uuid",
+          "title": "Site Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "address": {
+          "minLength": 1,
+          "title": "Address",
+          "type": "string"
+        },
+        "timezone": {
+          "minLength": 1,
+          "title": "Timezone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "data_origin",
+        "site_id",
+        "name",
+        "address",
+        "timezone"
+      ],
+      "title": "Site",
+      "type": "object"
+    },
+    "Task": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "maintenance-0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "data_origin": {
+          "enum": [
+            "customer",
+            "synthetic_demo"
+          ],
+          "title": "Data Origin",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "occurrence_id": {
+          "format": "uuid",
+          "title": "Occurrence Id",
+          "type": "string"
+        },
+        "equipment_id": {
+          "format": "uuid",
+          "title": "Equipment Id",
+          "type": "string"
+        },
+        "operation_version_id": {
+          "format": "uuid",
+          "title": "Operation Version Id",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "draft",
+            "assigned",
+            "in_progress",
+            "submitted",
+            "rework_required",
+            "accepted",
+            "cancelled"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "revision": {
+          "exclusiveMinimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "scheduled_start": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Scheduled Start"
+        },
+        "scheduled_end": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Scheduled End"
+        },
+        "assignment_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Assignment Ids",
+          "type": "array"
+        },
+        "active_execution_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Active Execution Id"
+        },
+        "deadline_breached": {
+          "title": "Deadline Breached",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "schema_version",
+        "data_origin",
+        "task_id",
+        "occurrence_id",
+        "equipment_id",
+        "operation_version_id",
+        "state",
+        "revision",
+        "scheduled_start",
+        "scheduled_end",
+        "assignment_ids",
+        "active_execution_id",
+        "deadline_breached"
+      ],
+      "title": "Task",
+      "type": "object"
+    },
+    "Uncertainty": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "deterministic",
+            "tree_dispersion",
+            "unknown"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "lower_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Lower Date"
+        },
+        "upper_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Upper Date"
+        },
+        "calibrated": {
+          "title": "Calibrated",
+          "type": "boolean"
+        },
+        "note": {
+          "minLength": 1,
+          "title": "Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "lower_date",
+        "upper_date",
+        "calibrated",
+        "note"
+      ],
+      "title": "Uncertainty",
+      "type": "object"
+    },
+    "VisualAssessment": {
+      "additionalProperties": false,
+      "description": "Observed photo content, separate from an engineer's acceptance decision.",
+      "properties": {
+        "subject_matches_task": {
+          "enum": [
+            "yes",
+            "no",
+            "uncertain"
+          ],
+          "title": "Subject Matches Task",
+          "type": "string"
+        },
+        "same_subject": {
+          "enum": [
+            "yes",
+            "no",
+            "uncertain"
+          ],
+          "title": "Same Subject",
+          "type": "string"
+        },
+        "comparable": {
+          "enum": [
+            "yes",
+            "no",
+            "uncertain"
+          ],
+          "title": "Comparable",
+          "type": "string"
+        },
+        "before_description": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Before Description",
+          "type": "string"
+        },
+        "after_description": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "After Description",
+          "type": "string"
+        },
+        "visible_changes": {
+          "items": {
+            "maxLength": 800,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Visible Changes",
+          "type": "array"
+        },
+        "concerns": {
+          "items": {
+            "maxLength": 800,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Concerns",
+          "type": "array"
+        },
+        "recommended_actions": {
+          "items": {
+            "maxLength": 800,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Recommended Actions",
+          "type": "array"
+        },
+        "cannot_confirm": {
+          "items": {
+            "maxLength": 800,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Cannot Confirm",
+          "type": "array"
+        },
+        "conclusion": {
+          "enum": [
+            "visible_improvement",
+            "no_clear_improvement",
+            "insufficient_evidence"
+          ],
+          "title": "Conclusion",
+          "type": "string"
+        },
+        "summary": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        },
+        "visible_readings": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "maxItems": 20,
+          "title": "Visible Readings",
+          "type": "array"
+        },
+        "evidence_class": {
+          "default": "manual_review",
+          "enum": [
+            "approved",
+            "manual_review",
+            "rejected"
+          ],
+          "title": "Evidence Class",
+          "type": "string"
+        }
+      },
+      "required": [
+        "subject_matches_task",
+        "same_subject",
+        "comparable",
+        "before_description",
+        "after_description",
+        "visible_changes",
+        "concerns",
+        "recommended_actions",
+        "cannot_confirm",
+        "conclusion",
+        "summary"
+      ],
+      "title": "VisualAssessment",
+      "type": "object"
+    }
+  }
+}

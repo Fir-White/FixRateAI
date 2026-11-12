@@ -1,10 +1,10 @@
 """Executable integrated API. Run from the repository: uvicorn app.main:app --app-dir backend."""
 from __future__ import annotations
+from app.security.sessions import has_role
 
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 import hashlib
-import io
 import logging
 import os
 import re
@@ -13,29 +13,50 @@ import secrets
 from typing import Literal
 from uuid import UUID, uuid4
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from PIL import Image
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
+from app.config import RuntimeSettings
+from app.files import validate_upload
 from app.db.models import map_schema
 from app.db.session import make_engine, make_session_factory
 from app.integration.projections import Views
 from app.integration.calendar import preview_calendar
 from app.integration.assignment import assignment_context, assignment_preview
 from app.integration.assignments import save_assignment, lock_workers
+from app.integration.maintenance_jobs import _job_payload, create_job, job_history
+from app.maintenance_jobs import InvalidJobTransition, ensure_transition, public_status
 from app.schemas.maintenance import AssignmentCommand, ErrorResponse
+from app.schemas.maintenance_api import (
+    MaintenanceJobCreate,
+    MaintenanceJobHistoryItem,
+    MaintenanceJobResponse,
+    MaintenanceJobTransition,
+)
 from app.schemas.management import CancelTask
+from app.integration.analyst import ReadingInput, ExecutionInput, validate_execution, validate_acceptance, notify_event
 from app.security.authorization import AuthorizationError, require_any_role
 from app.security.sessions import COOKIE, Principal, SQL_ROLES, authenticate, create_session, digest, verify_password
+from app.storage import safe_storage_path
 
 ROOT = Path(__file__).resolve().parents[2]
 logger = logging.getLogger(__name__)
+
+
+def configured_cors_origins(value: str | None = None) -> list[str]:
+    """Return explicit browser origins; credentials must never use a wildcard."""
+    raw = os.environ.get("CORS_ORIGINS", "") if value is None else value
+    origins = [origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip()]
+    if "*" in origins:
+        raise ValueError("CORS_ORIGINS must contain explicit origins, not '*'")
+    return origins
 
 
 class Command(BaseModel):
@@ -55,6 +76,8 @@ class Revision(Command):
 class ReportEdit(Revision):
     narrative: str = Field(max_length=10000)
     answers: dict[UUID, str | None]
+    readings: list[ReadingInput] = Field(default_factory=list,max_length=200)
+    actual: ExecutionInput | None = None
 
 
 class AssignmentPreview(Revision):
@@ -88,11 +111,13 @@ class Review(Revision):
     reason: str = Field(min_length=1, max_length=10000)
     reviewed_ai_result_id: UUID | None = None
     additional_evidence_refs: list[str] = Field(default_factory=list)
+    late_reason: str | None = Field(default=None,max_length=2000)
 
 
 def require_role(principal: Principal, *roles):
     try:
-        require_any_role([principal.role], roles)
+        if not has_role(principal.role, roles):
+            raise AuthorizationError()
     except AuthorizationError:
         raise HTTPException(403, "Действие недоступно для текущей роли") from None
 
@@ -103,30 +128,33 @@ def check_revision(order, revision):
 
 
 def create_app(engine=None):
+    runtime_settings = RuntimeSettings.from_environment()
     @asynccontextmanager
     async def lifespan(app):
         app.state.engine = engine if engine is not None else make_engine()
         try:
             app.state.models = map_schema(app.state.engine)
             with app.state.engine.connect() as conn:
-                if not conn.scalar(text("SELECT to_regclass('public.employee_shift_rules')")):
-                    raise RuntimeError("Apply migrations through 008 before starting the API")
+                if not conn.scalar(text("SELECT to_regclass('public.maintenance_notifications')")):
+                    raise RuntimeError("Apply migrations through 009 before starting the API")
             app.state.factory = make_session_factory(app.state.engine)
             app.state.forecaster = None
+            if runtime_settings.forecast_provider == "rf":
+                try:
+                    from ml_service.app.forecast.runtime import load_verified_forecaster
+                    app.state.forecaster = load_verified_forecaster()
+                except Exception as exc:
+                    logger.error("RF artifact unavailable: %s", type(exc).__name__)
+            import asyncio
+            from app.integration.scheduler import run as run_scheduler
+            scheduler=asyncio.create_task(run_scheduler(app)) if os.environ.get("MAINTENANCE_SCHEDULER","true").lower()=="true" and engine is None else None
             try:
-                import json
-                from ml_service.app.core.config import settings
-                from ml_service.app.forecast.model import RandomForestForecaster
-                artifact = settings.artifacts_path / "rf_model.joblib"
-                manifest = settings.artifacts_path / "artifact_manifest.json"
-                if artifact.is_file() and manifest.is_file():
-                    metadata = json.loads(manifest.read_text(encoding="utf-8"))
-                    if hashlib.sha256(artifact.read_bytes()).hexdigest() != metadata["artifact_sha256"]:
-                        raise ValueError("RF artifact hash does not match manifest")
-                    app.state.forecaster = RandomForestForecaster.from_file(artifact)
-            except Exception:
-                logger.exception("RF artifact could not be loaded; forecasting will report unavailable")
-            yield
+                yield
+            finally:
+                if scheduler:
+                    scheduler.cancel()
+                    try: await scheduler
+                    except asyncio.CancelledError: pass
         finally:
             if hasattr(app.state, "models"):
                 app.state.models.registry.dispose()
@@ -134,12 +162,33 @@ def create_app(engine=None):
                 app.state.engine.dispose()
 
     app = FastAPI(title="FixRate AI", version="dev-0.1", lifespan=lifespan)
+    cors_origins = configured_cors_origins()
+    if cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=cors_origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
+    app.state.settings = runtime_settings
 
     @app.middleware('http')
     async def request_identity(request,call_next):
         request.state.request_id=str(uuid4())
-        response=await call_next(request)
+        origin = request.headers.get("origin")
+        if request.url.path.startswith("/api/") and origin and origin.rstrip("/") != str(request.base_url).rstrip("/"):
+            response = error_response(request, 403, "Недопустимый origin")
+        else:
+            try:
+                response = await call_next(request)
+            except Exception as exc:
+                logger.error("Request failed id=%s type=%s", request.state.request_id, type(exc).__name__)
+                response = error_response(request, 500, "Внутренняя ошибка сервера", code="INTERNAL_ERROR")
         response.headers['X-Request-ID']=request.state.request_id
+        logger.info("%s %s -> %s request_id=%s", request.method, request.url.path,
+                    response.status_code, request.state.request_id)
         return response
 
     def error_response(request,status,message,code=None,details=None,headers=None):
@@ -152,6 +201,14 @@ def create_app(engine=None):
 
     @app.exception_handler(StarletteHTTPException)
     async def http_error(request,exc):
+        who=getattr(request.state,"principal",None)
+        if who and exc.status_code in (403,409,422) and request.url.path.endswith(("/assign","/assignment-preview")):
+            try:
+                with request.app.state.factory() as failed:
+                    failed.execute(text("INSERT INTO audit_events(site_id,actor_type,actor_user_id,entity_type,entity_id,action,after_snapshot) VALUES (:site,'user',:actor,'assignment',:entity,'denied',CAST(:details AS jsonb))"),dict(site=who.site_id,actor=who.user_id,entity=UUID(str(request.path_params.get("task_id",uuid4()))),details=__import__("json").dumps(dict(path=request.url.path,status=exc.status_code,reason=str(exc.detail)))))
+                    failed.commit()
+            except SQLAlchemyError:
+                logger.error("Assignment denial audit unavailable")
         return error_response(request,exc.status_code,str(exc.detail),headers=exc.headers)
 
     @app.exception_handler(RequestValidationError)
@@ -169,7 +226,9 @@ def create_app(engine=None):
                 raise
 
     def principal(request: Request, session=Depends(db)):
-        return authenticate(request, session)
+        who=authenticate(request, session)
+        request.state.principal=who
+        return who
 
     def views(request: Request, who=Depends(principal), session=Depends(db)):
         return Views(session, request.app.state.models, who)
@@ -186,8 +245,15 @@ def create_app(engine=None):
 
     @app.exception_handler(SQLAlchemyError)
     async def database_error(request, exc):
-        logger.error("Database operation failed: %s", type(exc).__name__)
+        logger.error("Database operation failed: %s request_id=%s", type(exc).__name__,
+                     getattr(request.state, "request_id", "unknown"))
         return error_response(request,503,'База данных недоступна')
+
+    @app.exception_handler(Exception)
+    async def unexpected_error(request, exc):
+        logger.exception("Unhandled API error request_id=%s",
+                         getattr(request.state, "request_id", "unknown"))
+        return error_response(request, 500, "Внутренняя ошибка сервера", code="INTERNAL_ERROR")
 
     @app.get("/api/health")
     def health(session=Depends(db)):
@@ -198,7 +264,8 @@ def create_app(engine=None):
     def login(payload: Login, response: Response, request: Request, session=Depends(db)):
         # Login is also same-origin; the session is not chosen by a role header.
         origin = request.headers.get("origin")
-        if origin and origin.rstrip("/") != str(request.base_url).rstrip("/"):
+        same_origin = origin and origin.rstrip("/") == str(request.base_url).rstrip("/")
+        if origin and not same_origin and origin.rstrip("/") not in cors_origins:
             raise HTTPException(403, "Недопустимый origin")
         user = session.execute(text("SELECT * FROM users WHERE lower(email)=lower(:email) AND is_active"),
                                {"email": payload.email}).mappings().first()
@@ -221,9 +288,9 @@ def create_app(engine=None):
         # Commit before setting a successful cookie/response.
         session.commit()
         response.set_cookie(COOKIE, token, httponly=True, samesite="lax", max_age=28800,
-                            secure=os.environ.get("COOKIE_SECURE", "false").lower() == "true", path="/")
+                            secure=runtime_settings.cookie_secure, path="/")
         response.set_cookie("fixrate_csrf", csrf, httponly=False, samesite="lax", max_age=28800,
-                            secure=os.environ.get("COOKIE_SECURE", "false").lower() == "true", path="/")
+                            secure=runtime_settings.cookie_secure, path="/")
         who = Principal(user["user_id"], member["site_id"], SQL_ROLES[member["role"]], user["full_name"],
                         user["email"], member["name"], member["timezone"])
         return {"profile": who.profile(), "csrfToken": csrf}
@@ -242,6 +309,88 @@ def create_app(engine=None):
 
     prefix = "/api/v1/maintenance"
 
+    @app.get("/api/v1/maintenance_jobs", response_model=list[MaintenanceJobResponse], operation_id="maintenance_jobs_list")
+    @app.get(prefix + "/jobs", response_model=list[MaintenanceJobResponse])
+    def maintenance_job_list(status: str | None = None, v=Depends(views)):
+        require_role(v.principal, "director", "admin", "dispatcher", "engineer", "executor")
+        if status is not None and status not in {
+            "planned", "assigned", "in_progress", "submitted", "accepted", "rework",
+        }:
+            raise HTTPException(422, "Некорректный статус задания")
+        orders = v.repo.orders(
+            v.principal.site_id,
+            user_id=v.principal.user_id if v.principal.role == "executor" else None,
+        )
+        return [
+            _job_payload(v, order)
+            for order in orders
+            if (status is None or public_status(order.status) == status)
+            and public_status(order.status) != "cancelled"
+        ]
+
+    @app.post("/api/v1/maintenance_jobs", status_code=201, response_model=MaintenanceJobResponse, operation_id="maintenance_jobs_create")
+    @app.post(prefix + "/jobs", status_code=201, response_model=MaintenanceJobResponse)
+    def maintenance_job_create(command: MaintenanceJobCreate, v=Depends(views)):
+        require_role(v.principal, "admin", "dispatcher")
+        order = create_job(
+            v,
+            command.schedule_entry_id,
+            command.equipment_id,
+            command.maintenance_rule_id,
+            command.planned_start_at,
+        )
+        return _job_payload(v, order)
+
+    @app.get("/api/v1/maintenance_jobs/{job_id}", response_model=MaintenanceJobResponse, operation_id="maintenance_jobs_read")
+    @app.get(prefix + "/jobs/{job_id}", response_model=MaintenanceJobResponse)
+    def maintenance_job_detail(job_id: UUID, v=Depends(views)):
+        require_role(v.principal, "director", "admin", "dispatcher", "engineer", "executor")
+        return _job_payload(v, v.task(job_id))
+
+    @app.post("/api/v1/maintenance_jobs/{job_id}/transitions", response_model=MaintenanceJobResponse, operation_id="maintenance_jobs_transition_post")
+    @app.post(prefix + "/jobs/{job_id}/transitions", response_model=MaintenanceJobResponse)
+    @app.patch("/api/v1/maintenance_jobs/{job_id}", response_model=MaintenanceJobResponse, operation_id="maintenance_jobs_transition_patch")
+    @app.patch(prefix + "/jobs/{job_id}", response_model=MaintenanceJobResponse)
+    def maintenance_job_transition(
+        job_id: UUID, command: MaintenanceJobTransition, v=Depends(views), background_tasks: BackgroundTasks = None
+    ):
+        require_role(v.principal, "director", "admin", "dispatcher", "engineer", "executor")
+        order = v.task(job_id, lock=True)
+        check_revision(order, command.expected_revision)
+        _job_payload(v, order)
+        try:
+            ensure_transition(public_status(order.status), command.status)
+        except InvalidJobTransition as exc:
+            raise HTTPException(409, f"INVALID_STATUS_TRANSITION: {exc}") from None
+
+        revision = Revision(expected_revision=command.expected_revision)
+        if command.status == "assigned":
+            raise HTTPException(409, "ASSIGNMENT_REQUIRED: подтвердите состав и интервал через команду назначения")
+        if command.status == "in_progress":
+            start(job_id, revision, v)
+        elif command.status == "submitted":
+            submit(job_id, revision, v, background_tasks)
+        else:
+            require_role(v.principal, "engineer")
+            report = max(v.rows("work_reports", work_order_id=job_id),
+                         key=lambda item: item.revision_no, default=None)
+            if report is None:
+                raise HTTPException(409, "Принимать можно только текущую отправленную попытку")
+            reason = (command.reason or "").strip()
+            if not reason or len(reason) > 10000:
+                raise HTTPException(422, "Укажите причину решения длиной до 10000 символов")
+            review(job_id, Review(expected_revision=command.expected_revision,
+                                  execution_id=report.work_report_id,
+                                  verdict="accepted" if command.status == "accepted" else "rejected",
+                                  reason=reason), v)
+        return _job_payload(v, order)
+
+    @app.get("/api/v1/maintenance_jobs/{job_id}/history", response_model=list[MaintenanceJobHistoryItem], operation_id="maintenance_jobs_history")
+    @app.get(prefix + "/jobs/{job_id}/history", response_model=list[MaintenanceJobHistoryItem])
+    def maintenance_job_history(job_id: UUID, v=Depends(views)):
+        require_role(v.principal, "director", "admin", "dispatcher", "engineer", "executor")
+        return job_history(v, job_id)
+
     @app.get(prefix + "/ui/equipment")
     def equipment_list(v=Depends(views)):
         visible = v.visible_equipment_ids() if v.principal.role == "executor" else None
@@ -256,16 +405,9 @@ def create_app(engine=None):
     @app.get(prefix + "/ui/tasks")
     def task_list(v=Depends(views)):
         orders = v.repo.orders(v.principal.site_id, user_id=v.principal.user_id if v.principal.role == "executor" else None)
-        visible = []
-        for order in orders:
-            try:
-                v.task(order.work_order_id)
-            except HTTPException as exc:
-                if exc.status_code == 404:
-                    continue
-                raise
-            visible.append(v.task_view(order))
-        return visible
+        # orders() already limits executor results to active assignments at this site.
+        v.prepare_task_views(orders)
+        return [v.task_view(order) for order in orders]
 
     @app.get(prefix + "/ui/tasks/{task_id}")
     def task_detail(task_id: UUID, v=Depends(views)):
@@ -273,7 +415,7 @@ def create_app(engine=None):
 
     @app.get(prefix + "/ui/calendar")
     def calendar(year: int, month: int, v=Depends(views)):
-        require_role(v.principal, "dispatcher", "engineer", "executor")
+        require_role(v.principal, "director", "chief_engineer", "dispatcher", "engineer", "executor")
         if not 2000 <= year <= 2200 or not 1 <= month <= 12:
             raise HTTPException(422, "Некорректный месяц")
         return v.calendar(year, month)
@@ -317,16 +459,17 @@ def create_app(engine=None):
         from app.integration.planning import generate_tasks
         require_role(v.principal, "dispatcher")
         response.headers["Cache-Control"] = "private, no-store"
-        return generate_tasks(v, command.year, command.month, command.idempotency_key, command.preview_token, app.state.forecaster)
+        return generate_tasks(v, command.year, command.month, command.idempotency_key, command.preview_token, app.state.forecaster,
+                              forecast_timeout_seconds=app.state.settings.forecast_timeout_seconds)
 
     @app.get(prefix + "/ui/comparisons")
     def comparisons(v=Depends(views)):
-        require_role(v.principal, "admin", "dispatcher", "engineer")
+        require_role(v.principal, "director", "admin", "dispatcher", "engineer")
         return v.comparisons()
 
     @app.get(prefix + "/ui/comparisons/{run_id}")
     def comparison(run_id: UUID, v=Depends(views)):
-        require_role(v.principal, "admin", "dispatcher", "engineer")
+        require_role(v.principal, "director", "admin", "dispatcher", "engineer")
         run = next((r for r in v.comparisons() if r["runId"] == str(run_id)), None)
         if run is None:
             raise HTTPException(404, "Запуск не найден")
@@ -350,6 +493,19 @@ def create_app(engine=None):
         checklist = order.operation_snapshot.get("checklist")
         if not checklist:
             raise HTTPException(422, "MISSING_CHECKLIST: сначала согласуйте чек-лист операции")
+        if order.schedule_entry_id:
+            entry=v.one("schedule_entries",schedule_entry_id=order.schedule_entry_id)
+            from zoneinfo import ZoneInfo
+            if datetime.now(ZoneInfo(v.principal.timezone)).date() < (entry.earliest_date or entry.regulatory_deadline_on):
+                raise HTTPException(409,"MAINTENANCE_WINDOW_NOT_OPEN: обязательство ещё нельзя выполнять")
+        if not order.schedule_entry_id and order.operation_snapshot.get("earliest_date"):
+            from datetime import date
+            from zoneinfo import ZoneInfo
+            if datetime.now(ZoneInfo(v.principal.timezone)).date()<date.fromisoformat(order.operation_snapshot["earliest_date"]):
+                raise HTTPException(409,"MAINTENANCE_WINDOW_NOT_OPEN: окно работы ещё не открыто")
+        if order.operation_snapshot.get("methodology_ref") and order.schedule_entry_id:
+            approved=v.one("schedule_plans",schedule_plan_id=entry.schedule_plan_id)
+            if approved.status!="approved": raise HTTPException(409,"PLAN_NOT_APPROVED: месячный план должен утвердить главный инженер")
         reports = v.rows("work_reports", work_order_id=task_id)
         v.repo.add("work_reports", site_id=v.principal.site_id, work_order_id=task_id,
                    revision_no=max((r.revision_no for r in reports), default=0)+1, submitted_by=v.principal.user_id,
@@ -397,6 +553,7 @@ def create_app(engine=None):
                 v.repo.add("checklist_results", site_id=v.principal.site_id, work_order_id=task_id,
                            work_report_id=report.work_report_id, checklist_template_id=identity,
                            question_snapshot=item["text"], response_value={"answer": answer})
+        validate_execution(v,order,report,payload)
         report.comment = payload.narrative
         order.revision += 1
         v.session.flush()
@@ -405,14 +562,15 @@ def create_app(engine=None):
         v.session.commit()
         return result
 
-    storage = Path(os.environ.get("PHOTO_STORAGE_ROOT", ROOT / "var/photos")).resolve()
+    storage = runtime_settings.photo_storage_root
 
     def photo_path(photo):
         # Source demo photo is read-only and served only through the same access check.
         if photo.storage_key == "database/demo/demo-photo.png":
-            return ROOT / photo.storage_key
-        path = (storage / photo.storage_key).resolve()
-        if not path.is_relative_to(storage):
+            return ROOT / "data/demo/demo-photo.png"
+        try:
+            path = safe_storage_path(storage, photo.storage_key)
+        except ValueError:
             raise HTTPException(404, "Файл не найден")
         return path
 
@@ -423,26 +581,34 @@ def create_app(engine=None):
         order, report = editable(v, task_id, expected_revision)
         if str(checklist_item_id) not in {i["id"] for i in report.checklist_snapshot} or not view_key.strip() or len(view_key) > 200:
             raise HTTPException(422, "Укажите пункт чек-листа и ракурс")
-        data = file.file.read(10_485_761)
-        if not data or len(data) > 10_485_760:
-            raise HTTPException(422, "Размер фото должен быть от 1 байта до 10 МиБ")
         try:
-            with Image.open(io.BytesIO(data)) as img:
-                if img.width * img.height > 20_000_000 or img.format not in ("JPEG", "PNG", "WEBP"):
-                    raise ValueError()
-                mime = Image.MIME[img.format]
-                img.verify()
+            data = file.file.read(10_485_761)
+            mime = validate_upload(data, file.filename, file.content_type)
         except Exception:
             raise HTTPException(422, "Недопустимое изображение") from None
+        if order.operation_snapshot.get("methodology_ref"):
+            from ml_service.app.cv.quality import ImageQualityGuard
+            quality=ImageQualityGuard().assess_bytes(data)
+            if not quality.is_acceptable:raise HTTPException(422,"PHOTO_QUALITY: "+str(quality.issue))
         links = v.rows("work_order_equipment", work_order_id=task_id)
         if len(links) != 1:
             raise HTTPException(422, "Фото API требует ровно одно оборудование в задании")
         identity = uuid4()
         key = f"{v.principal.site_id}/{identity}"
-        path = storage / key
-        path.parent.mkdir(parents=True, exist_ok=True)
         try:
+            path = safe_storage_path(storage, key)
+        except ValueError:
+            raise HTTPException(503, "PHOTO_STORAGE_UNAVAILABLE") from None
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(data)
+        except OSError:
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise HTTPException(503, "PHOTO_STORAGE_UNAVAILABLE") from None
+        try:
             v.repo.add("evidence_files", evidence_file_id=identity, site_id=v.principal.site_id,
                 work_order_id=task_id, work_report_id=report.work_report_id, uploaded_by=v.principal.user_id,
                 stage=phase, storage_key=key, mime_type=mime, file_size=len(data), sha256=hashlib.sha256(data).hexdigest(),
@@ -453,7 +619,10 @@ def create_app(engine=None):
             result = v.bundle(order)
             v.session.commit()
         except BaseException:
-            path.unlink(missing_ok=True)
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                logger.error("Photo cleanup failed")
             raise
         return result
 
@@ -468,7 +637,7 @@ def create_app(engine=None):
         return FileResponse(path, media_type=photo.mime_type, headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
 
     @app.post(prefix + "/tasks/{task_id}/submit")
-    def submit(task_id: UUID, payload: Revision, v=Depends(views)):
+    def submit(task_id: UUID, payload: Revision, v=Depends(views), background_tasks:BackgroundTasks=None):
         order, report = editable(v, task_id, payload.expected_revision)
         answers = {str(a.checklist_template_id): a.response_value.get("answer")
                    for a in v.rows("checklist_results", work_report_id=report.work_report_id)}
@@ -481,11 +650,19 @@ def create_app(engine=None):
                 pairs = {(p.stage, p.view_key) for p in photos if str(p.checklist_item_id) == item["id"]}
                 if not any(("after", key) in pairs for stage, key in pairs if stage == "before"):
                     raise HTTPException(422, "Требуется пара фото до/после одного ракурса")
+        validate_execution(v,order,report,None,submitting=True)
         report.status, report.submitted_at = "submitted", datetime.now(timezone.utc)
-        order.status, order.completed_at = "in_review", report.submitted_at
+        order.status = "in_review"
+        notify_event(v,order,"submitted",("engineer","chief_engineer"))
         order.revision += 1
         v.session.flush()
         audit(v, order, "submit")
+        from app.integration.photo_evidence import has_photo_pair
+        if has_photo_pair(photos):
+            # Durable opt-in for this submission only; historical reports are not backfilled.
+            report.execution_context=dict(report.execution_context,photo_analysis_requested_at=report.submitted_at.isoformat())
+            if background_tasks is not None:
+                background_tasks.add_task(app.state.automatic_photo_review,task_id,order.revision,v.principal)
         result = v.bundle(order)
         v.session.commit()
         return result
@@ -504,15 +681,23 @@ def create_app(engine=None):
             raise HTTPException(403, "Нельзя принимать собственную работу")
         if not payload.reason.strip():
             raise HTTPException(422, "Укажите причину решения")
+        validate_acceptance(v,order,report,payload)
         if payload.reviewed_ai_result_id:
             v.one("ai_quality_checks", ai_quality_check_id=payload.reviewed_ai_result_id, work_report_id=report.work_report_id)
         v.repo.add("acceptance_reviews", site_id=v.principal.site_id, work_order_id=task_id,
                    work_report_id=report.work_report_id, reviewer_user_id=v.principal.user_id,
                    decision="accepted" if payload.verdict == "accepted" else "rework", comment=payload.reason.strip(),
                    decision_context={"reviewed_ai_result_id": str(payload.reviewed_ai_result_id) if payload.reviewed_ai_result_id else None,
-                                     "additional_evidence_refs": payload.additional_evidence_refs})
+                                     "additional_evidence_refs": payload.additional_evidence_refs,
+                                     "performed_at": report.execution_context.get("performed_at"),
+                                     "actual_person_hours": report.execution_context.get("person_hours"),
+                                     "late_reason": payload.late_reason,
+                                     "exception":order.exception_context})
         report.status = "reviewed"
         order.status = "completed" if payload.verdict == "accepted" else "rework"
+        if payload.verdict=="accepted":
+            order.completed_at=datetime.fromisoformat(report.execution_context["performed_at"]) if report.execution_context.get("performed_at") else report.submitted_at
+        notify_event(v,order,"accepted" if payload.verdict=="accepted" else "rework",("executor","technician"))
         order.revision += 1
         v.session.flush()
         audit(v, order, "review")
@@ -522,6 +707,12 @@ def create_app(engine=None):
 
     from app.integration.management import register_routes
     register_routes(app,views,db)
+    from app.integration.analyst import register_analyst_routes
+    register_analyst_routes(app,views,photo_path,editable)
+    from app.integration.incidents import register_incident_routes
+    register_incident_routes(app,views)
+    from app.integration.maintenance_api import register_routes as register_maintenance_api_routes
+    register_maintenance_api_routes(app, views)
     from app.integration.ml import register_ml_routes
     register_ml_routes(app, views, photo_path, require_role, check_revision)
 

@@ -1,0 +1,180 @@
+import { useRef, useState } from "react";
+import { useMediaQuery } from "@/shared/lib/useMediaQuery";
+import { formatDate } from "@/shared/lib/format";
+import { Link } from "react-router-dom";
+import { request,DEMO_MODE } from "@/shared/api/request";
+import { managementApi } from "@/shared/api/management";
+import { useApiQuery } from "@/shared/lib/useApiQuery";
+import { useSession } from "@/shared/session/SessionContext";
+import { Button } from "@/shared/ui/Button";
+import { Icon } from "@/shared/ui/Icon";
+import { Card } from "@/shared/ui/Card";
+import { FormField,Input,Select,Textarea } from "@/shared/ui/Form";
+import { Disclosure } from "@/shared/ui/Disclosure";
+import "./incident-workspace.css";
+import type { ServiceConfiguration,ChecklistSetting } from "@/shared/types/management";
+import type { MaintenanceTask,ExecutionReport,ActualExecution,Reading,Act } from "@/shared/types/domain";
+import { ReadOnlyValue } from "@/shared/ui/ContentTheme";
+import { useSiteDateTime } from "@/shared/lib/useSiteDateTime";
+import { DateTimeField } from "@/shared/ui/DateTimeField";
+import "./execution-protocol.css";
+import { unitLabel, viewLabel } from "@/shared/lib/presentation";
+const base="/api/v1/maintenance";
+const post=<T,>(url:string,body:unknown)=>request<T>(base+url,{method:"POST",body:JSON.stringify(body)});
+
+export function ServiceEvidenceSettings({value,onChange}:{value:ServiceConfiguration;onChange:(v:Partial<ServiceConfiguration>)=>void}){
+ const catalog=useApiQuery(()=>DEMO_MODE?Promise.resolve({profiles:[]}):request<{profiles:{operation_code:string;title:string;items:{item_key:string;source_refs:{source_id:string;line_start:number;line_end:number}[];setting:ChecklistSetting}[];open_questions:string[]}[]}>(base+"/checklist-catalog"),[]);
+ return <fieldset className="space-y-3 rounded-xl border border-line p-4"><legend>Методика и доказательства</legend>
+ <label className="block">Чек-лист аналитика<Select value="" onChange={e=>{const profile=catalog.status==="success"?catalog.data.profiles.find(p=>p.operation_code===e.target.value):null;if(profile)onChange({checklist:profile.items.map(i=>({...i.setting,source_item_key:i.item_key,source_refs:i.source_refs.map(r=>`${r.source_id}:${r.line_start}-${r.line_end}`)})),required_acts:profile.operation_code==="1.4"?["Акт очистки и проверки герметичности"]:profile.operation_code==="1.5"?["Протокол сравнения с контрольным прибором"]:profile.operation_code==="1.6"?["Акт проверки выпуска воздуха"]:[]});}}><option value="">Выбрать профиль для этой операции</option>{catalog.status==="success"&&catalog.data.profiles.map(p=><option key={p.operation_code} value={p.operation_code}>{p.operation_code} · {p.title}</option>)}</Select></label>
+ <p className="text-sm text-muted">Шесть исходных профилей содержат 46 пунктов. Проверьте применимость к оборудованию. Единицы, пределы и методика не подставляются автоматически.</p>
+ <label className="block">Документ и раздел утверждённой методики<Textarea value={value.methodology_ref??""} required={value.enabled} onChange={e=>onChange({methodology_ref:e.target.value||null})}/></label>
+ <label className="block">Обязательные акты (каждый с новой строки)<Textarea value={(value.required_acts??[]).join("\n")} onChange={e=>onChange({required_acts:e.target.value.split("\n").map(s=>s.trim()).filter(Boolean)})}/></label>
+ <p>Протокол измерений</p>{(value.measurement_requirements??[]).map((r,index)=><div key={index} className="grid gap-2 rounded border border-line p-3 sm:grid-cols-2">
+ {([['parameter_code','Код параметра'],['unit','Единица'],['minimum','Допустимый минимум'],['maximum','Допустимый максимум']] as const).map(([key,label])=><label key={key}>{label}<Input value={r[key]??""} onChange={e=>onChange({measurement_requirements:value.measurement_requirements!.map((a,i)=>i===index?{...a,[key]:e.target.value||null}:a)})}/></label>)}
+ <Button type="button" variant="ghost" onClick={()=>onChange({measurement_requirements:value.measurement_requirements!.filter((_,i)=>i!==index)})}>Убрать параметр</Button></div>)}
+ <Button type="button" variant="secondary" onClick={()=>onChange({measurement_requirements:[...(value.measurement_requirements??[]),{parameter_code:"",unit:"",required:true,phases:["before","after"]}]})}>Добавить измеряемый параметр</Button></fieldset>;
+}
+
+export function EquipmentOperations({equipmentId}:{equipmentId:string}){
+ const {profile}=useSession();
+ const query=useApiQuery(()=>DEMO_MODE?Promise.resolve([]):managementApi.services(equipmentId),[equipmentId],undefined,`equipment-operations:${equipmentId}`);
+ return <Card className="space-y-3 p-5"><h2 className="font-semibold">Связанные регламентные операции</h2>{query.status==="error"?<p role="alert">{query.error}</p>:query.status==="success"?query.data.length?query.data.map(r=><div key={r.binding_id} className="border-t border-line pt-3"><strong>{r.code} · {r.title}</strong><p>{r.maintenance_type} · {r.source_text} · {r.crew_size} чел.</p><p>Норма: {r.norm_value??"не задана"} · {unitLabel(r.norm_unit)} · {r.duration_minutes??"не задано"} мин.</p><p>{r.enabled?"Утверждено":"Черновик: планирование заблокировано"}</p></div>):<p>Операции ещё не привязаны.</p>:<p>Загрузка операций…</p>}{["chief_engineer","admin"].includes(profile?.role??"")&&<Link to={"/settings/equipment?equipment="+encodeURIComponent(equipmentId)}>Настроить связь с существующей операцией</Link>}</Card>;
+}
+
+export function ExecutionProtocol({task,execution,value,onChange,disabled,readOnly=false}:{task:MaintenanceTask;execution:ExecutionReport|null;value:{actual:ActualExecution|null;readings:Reading[]};onChange:(v:typeof value)=>void;disabled:boolean;readOnly?:boolean}){
+ const dateTime=useSiteDateTime();
+ const actual=value.actual??{started_at:"",performed_at:"",person_hours:""};
+ if(readOnly)return <section className="execution-section space-y-3"><h2>Фактическое выполнение и показания</h2><p className="whitespace-pre-wrap">{task.instructions||"Инструкция не указана"}</p><div className="grid gap-x-6 sm:grid-cols-3"><ReadOnlyValue label="Фактическое начало">{actual.started_at?dateTime(actual.started_at):"Не указано"}</ReadOnlyValue><ReadOnlyValue label="Фактическое окончание">{actual.performed_at?dateTime(actual.performed_at):"Не указано"}</ReadOnlyValue><ReadOnlyValue label="Фактические трудозатраты">{actual.person_hours!==""?`${actual.person_hours} чел.-ч`:"Не указаны"}</ReadOnlyValue></div><p>Численность: {task.crewSize}. Норма: {task.normHours??"не задана"} {unitLabel(task.normUnit)}. Плановая длительность: {task.durationMinutes??"не задана"} мин.</p>{value.readings.map((r,index)=><ReadOnlyValue key={index} label={`${r.parameter_code} · ${r.phase==="before"?"До":r.phase==="after"?"После":r.phase}`}><span>{r.value} {r.unit}</span><br/><span>{r.measured_at?dateTime(r.measured_at):"Время измерения не указано"}</span></ReadOnlyValue>)}</section>;
+ const local=(s:string)=>s?new Date(new Date(s).getTime()-new Date(s).getTimezoneOffset()*60000).toISOString().slice(0,16):"";
+ const reqs=task.measurementRequirements??[];
+ return <section className="execution-section fr-execution-protocol">
+  <div className="fr-protocol-heading"><h2>Инструкция и фактическое выполнение</h2></div>
+  {task.sourceDate&&<p className="fr-protocol-obligation">Обязательство за {formatDate(task.sourceDate)}<span aria-hidden="true"> · </span>Допустимый срок: {formatDate(task.mandatoryDueDate)}</p>}
+  <p className="fr-protocol-instruction whitespace-pre-wrap">{task.instructions||"Инструкция отсутствует — уточните регламент у инженера."}</p>
+  <dl className="fr-protocol-facts"><div><dt>Состав бригады</dt><dd>{task.crewSize} чел.</dd></div><div><dt>Норматив</dt><dd>{task.normHours??"Не задан"} <span>{unitLabel(task.normUnit)}</span></dd></div><div><dt>Плановая длительность</dt><dd>{task.durationMinutes??"Не задана"} <span>{task.durationMinutes!=null?"мин.":""}</span></dd></div></dl>
+  <fieldset disabled={disabled} className="fr-protocol-fields">
+    {([['started_at','Фактическое начало'],['performed_at','Фактическое окончание']] as const).map(([key,label])=><DateTimeField key={key} label={label} disabled={disabled} value={local(actual[key])} onChange={next=>onChange({...value,actual:{...actual,[key]:next?new Date(next).toISOString():""}})}/>)}
+    <label className="fr-protocol-labor">Фактические трудозатраты<div className="fr-protocol-number"><Input aria-label="Фактические человеко-часы" type="number" min="0.001" step="0.001" placeholder="0,000" value={actual.person_hours} onChange={e=>onChange({...value,actual:{...actual,person_hours:e.target.value}})}/><span aria-hidden="true">чел.-ч</span></div></label>
+  </fieldset>
+  <p className="fr-protocol-timezone"><Icon name="clock" size={14}/> Дата и время — по часам вашего устройства. Время начала и окончания указывайте по факту выполнения.</p>
+  {reqs.flatMap(r=>r.phases.map(phase=>{const i=value.readings.findIndex(a=>a.parameter_code===r.parameter_code&&a.phase===phase);const row=value.readings[i];const update=(part:Partial<Reading>)=>{const next:Reading={...(row??{equipment_id:task.equipmentId??"",parameter_code:r.parameter_code,value:"",unit:r.unit,measured_at:"",phase}),...part};onChange({...value,readings:i<0?[...value.readings,next]:value.readings.map((a,n)=>n===i?next:a)});};return <fieldset disabled={disabled} key={r.parameter_code+phase} className="fr-protocol-reading"><legend>{r.parameter_code} · {phase==="before"?"До":"После"} · {r.unit}</legend><label>Показание<Input type="number" step="any" value={row?.value??""} onChange={e=>update({value:e.target.value})}/></label><DateTimeField label="Время измерения" disabled={disabled} value={local(row?.measured_at??"")} onChange={next=>update({measured_at:next?new Date(next).toISOString():""})}/><p>Допустимый диапазон: {r.minimum??"не задан"} … {r.maximum??"не задан"}</p></fieldset>;}))}
+ {!!execution?.readings?.length&&disabled&&<p>Показаний сохранено: {execution.readings.length}</p>}</section>;
+}
+
+export function ActsPanel({task,execution,editable,onSaved,disabled=false,onBusyChange}:{task:MaintenanceTask;execution:ExecutionReport|null;editable:boolean;onSaved:()=>void;disabled?:boolean;onBusyChange?:(busy:boolean)=>void}){
+ const {profile}=useSession();const [kind,setKind]=useState(task.requiredActs?.[0]??"");const [file,setFile]=useState<File|null>(null);const [notice,setNotice]=useState("");const [busy,setBusy]=useState(false);const [reason,setReason]=useState("");
+ const act=async(work:()=>Promise<unknown>)=>{if(busy||disabled)return;setBusy(true);onBusyChange?.(true);setNotice("");try{await work();onSaved();}catch(e){setNotice(e instanceof Error?e.message:"Ошибка");}finally{setBusy(false);onBusyChange?.(false);}};
+ if(!task.requiredActs?.length&&!execution?.acts?.length)return null;
+ return <section className="execution-section space-y-3"><h2>Акты и инструментальные проверки</h2>{!!task.requiredActs?.length&&<p>Обязательные документы: {task.requiredActs.join(", ")}. Фотография не подтверждает скрытые работы и точность прибора.</p>}{execution?.acts?.map((a:Act)=><div key={a.id}><a href={a.url} target="_blank" rel="noreferrer">Открыть скан: {a.kind}</a><span> · {a.verified?"Проверен контролёром":"Ожидает проверки"}</span>{!a.verified&&task.state==="submitted"&&["engineer","chief_engineer"].includes(profile?.role??"")&&<Button disabled={busy||!reason.trim()} onClick={()=>act(()=>post(`/tasks/${task.id}/acts/${a.id}/verify`,{expected_revision:task.revision,reason}))}>Подтвердить проверку документа</Button>}</div>)}
+ {editable&&!!task.requiredActs?.length&&<fieldset disabled={busy||disabled} className="space-y-2"><label>Вид документа<Select value={kind} onChange={e=>setKind(e.target.value)}>{task.requiredActs.map(k=><option key={k}>{k}</option>)}</Select></label><Input aria-label="Скан документа" type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>setFile(e.target.files?.[0]??null)}/><Button disabled={!file||!kind} onClick={()=>act(async()=>{const body=new FormData();body.append("expected_revision",String(task.revision));body.append("kind",kind);body.append("file",file!);await request(base+`/tasks/${task.id}/acts`,{method:"POST",body});})}>Загрузить скан</Button></fieldset>}
+ {task.state==="submitted"&&execution?.acts?.some(a=>!a.verified)&&["engineer","chief_engineer"].includes(profile?.role??"")&&<label>Основание проверки документа<Input value={reason} onChange={e=>setReason(e.target.value)}/></label>}{notice&&<p role="alert">{notice}</p>}</section>;
+}
+
+export function ChiefActions({task,onSaved}:{task:MaintenanceTask;onSaved:()=>void}){
+ const {profile}=useSession();const [reason,setReason]=useState("");const [until,setUntil]=useState("");const [notice,setNotice]=useState("");const [busy,setBusy]=useState(false);
+ const openLate=task.isOverdue&&["draft","assigned","in_progress","rework_required"].includes(task.state);
+ if(DEMO_MODE||profile?.role!=="chief_engineer"||(!openLate&&!["accepted","submitted"].includes(task.state)))return null;
+ return <Card className="space-y-3 p-5"><h2>Решение главного инженера</h2><label>Причина и основание<Textarea value={reason} onChange={e=>setReason(e.target.value)}/></label>{openLate&&<><label>Разрешить выполнение до (время устройства)<Input type="datetime-local" value={until} onChange={e=>setUntil(e.target.value)}/></label><p>Обязательный срок и нарушение SLA сохраняются. Назначение бригады и поздняя приёмка проверяются отдельно.</p></>}<Button disabled={busy||!reason.trim()||(openLate&&!until)} onClick={async()=>{setBusy(true);try{await post(`/tasks/${task.id}/${openLate?"late-execution":task.state==="accepted"?"reopen":"late-authorization"}`,{expected_revision:task.revision,reason,...(openLate?{until:new Date(until).toISOString()}:{})});onSaved();}catch(e){setNotice(e instanceof Error?e.message:"Ошибка");}finally{setBusy(false);}}}>{openLate?"Разрешить выполнение с сохранением просрочки":task.state==="accepted"?"Открыть новую попытку с сохранением истории":"Разрешить позднюю приёмку"}</Button>{notice&&<p role="alert">{notice}</p>}</Card>;
+}
+
+
+export { PerformanceOverview } from "./PerformanceOverview";
+
+export function PlanApproval({year,month,onSaved}:{year:number;month:number;onSaved:()=>void}){
+ const {profile}=useSession();
+ return profile?.role==="chief_engineer"?<DraftPlanApproval year={year} month={month} onSaved={onSaved}/>:null;
+}
+
+function DraftPlanApproval({year,month,onSaved}:{year:number;month:number;onSaved:()=>void}){
+ const [refresh,setRefresh]=useState(0);
+ const query=useApiQuery(()=>request<{id:string;revision:number;status:string}[]>(base+`/plans?year=${year}&month=${month}`),[year,month,refresh]);
+ const [reason,setReason]=useState("");const [notice,setNotice]=useState("");const [busy,setBusy]=useState(false);
+ if(query.status==="loading")return null;
+ if(query.status==="error")return <p role="alert">Не удалось загрузить планы для утверждения: {query.error}</p>;
+ const drafts=query.data.filter(plan=>plan.status==="draft");
+ if(!drafts.length)return null;
+ return <Card className="space-y-3 p-4"><h2>Утверждение плана</h2>
+  <FormField label="Основание утверждения" htmlFor="plan-approval-reason"><Input id="plan-approval-reason" value={reason} disabled={busy} onChange={event=>setReason(event.target.value)}/></FormField>
+  {drafts.map(plan=><div key={plan.id} className="flex flex-wrap items-center justify-between gap-3"><span>Черновик · версия {plan.revision}</span><Button disabled={busy||!reason.trim()} onClick={async()=>{
+   setBusy(true);setNotice("");
+   try{await post(`/plans/${plan.id}/approve`,{expected_revision:plan.revision,reason});setReason("");setRefresh(value=>value+1);onSaved();}
+   catch(error){setNotice(error instanceof Error?error.message:"Ошибка");}
+   finally{setBusy(false);}
+  }}>Утвердить</Button></div>)}
+  {notice&&<p role="alert">{notice}</p>}
+ </Card>;
+}
+
+interface MatrixRow {bindingId:string;system:string;complex:string|null;equipment:string;equipmentId:string;code:string;title:string;frequency:string;crewSize:number;normValue:string|null;normUnit:string;published:boolean;dates:string[];transfers?:Record<string,string>;}
+export function ScheduleMatrix({year,month}:{year:number;month:number}){
+ const query=useApiQuery(()=>request<{rows:MatrixRow[]}>(base+`/schedule-matrix?year=${year}&month=${month}`),[year,month],undefined,`schedule-matrix:${year}:${month}`);const [search,setSearch]=useState("");const days=Array.from({length:new Date(year,month,0).getDate()},(_,i)=>i+1);
+ const compact=useMediaQuery("(max-width: 767px)");const [fullMatrix,setFullMatrix]=useState(false);const scroll=useRef<HTMLDivElement>(null);
+ const rows=query.status==="success" ? query.data.rows.filter(r=>JSON.stringify([r.system,r.complex,r.code,r.title,r.equipment]).toLowerCase().includes(search.toLowerCase())) : [];
+ const metadata=(r:MatrixRow)=><><small>{r.system} → {r.complex??"комплекс не указан"}</small><p>{r.code} · {r.title}</p><Link to={"/equipment/"+r.equipmentId}>{r.equipment}</Link><p className="text-sm text-muted">{r.frequency} · {r.crewSize} чел. · {r.normValue??"Норма не задана"} {unitLabel(r.normUnit)}</p>{!r.published&&<p className="text-amber-200">Черновик — нужны нормативы</p>}</>;
+ return <Card className="space-y-3 p-4 fr-obligation-matrix"><h2>Месячный график по операциям · {month}.{year}</h2><label>Система, комплекс, операция или оборудование<Input value={search} onChange={e=>setSearch(e.target.value)}/></label><p className="text-sm text-muted">Исходные даты обязательств сохраняются отдельно, даже если перенесены на один день. Выполнение смотрите в принятой истории. Черновики без утверждённых данных остаются без дат.</p>
+ {compact&&<Button variant="secondary" onClick={()=>setFullMatrix(value=>!value)}>{fullMatrix ? "Список обязательств" : "Открыть полную матрицу"}</Button>}
+ {query.status==="loading"&&<p>Загрузка обязательств…</p>}{query.status==="error"&&<p role="alert">{query.error}</p>}{query.status==="success"&&!rows.length&&<p>{search ? "По выбранному поиску операций нет." : "В этом месяце операций нет."}</p>}
+ {compact&&!fullMatrix ? <div className="fr-obligation-list">{rows.map(r=><details key={r.bindingId}><summary>{r.code} · {r.title}<small>{r.equipment} · обязательств: {r.dates.length}</small></summary><div>{metadata(r)}{r.dates.length ? <ul>{r.dates.map(date=><li key={date}>Обязательство: {formatDate(date)}{r.transfers?.[date]&&<span> → перенос на {formatDate(r.transfers[date])}</span>}</li>)}</ul> : <p>Даты не рассчитаны.</p>}</div></details>)}</div> : <><div className="fr-matrix-controls"><p>Даты продолжаются справа. Прокрутите таблицу или используйте кнопки.</p><Button type="button" variant="secondary" onClick={()=>scroll.current?.scrollBy({left:-280,behavior:"auto"})}>Даты левее</Button><Button type="button" variant="secondary" onClick={()=>scroll.current?.scrollBy({left:280,behavior:"auto"})}>Даты правее</Button></div><div ref={scroll} className="fr-matrix-scroll" tabIndex={0} role="region" aria-label="Месячная матрица операций"><table><caption className="sr-only">Исходные обязательства и переносы за {month}.{year}</caption><thead><tr><th scope="col">Операция / оборудование</th>{days.map(day=><th scope="col" key={day}>{day}</th>)}</tr></thead><tbody>{rows.map(r=><tr key={r.bindingId}><th scope="row">{metadata(r)}</th>{days.map(d=>{const date=`${year}-${String(month).padStart(2,"0")}-${String(d).padStart(2,"0")}`;return <td key={d}>{r.dates.includes(date)?<span aria-label={`Обязательство ${formatDate(date)}${r.transfers?.[date]?`, перенос ${formatDate(r.transfers[date])}`:""}`}>{r.transfers?.[date]?"П → "+formatDate(r.transfers[date]):"П"}</span>:""}</td>;})}</tr>)}</tbody></table></div><p className="text-sm text-muted">П — обязательство по регламенту. Стрелка — перенос, а не факт выполнения.</p></>}
+ </Card>;
+}
+
+export function ForecastConfirmation({run}:{run:import("@/shared/types/domain").ComparisonRun}){
+ const {profile}=useSession();const [day,setDay]=useState(run.decision.selectedDate??run.mandatoryDueDate??"");const [reason,setReason]=useState("");const [notice,setNotice]=useState("");const [busy,setBusy]=useState(false);
+ if(DEMO_MODE||!["chief_engineer","engineer","dispatcher"].includes(profile?.role??""))return null;
+ const early=!!run.mandatoryDueDate&&day<run.mandatoryDueDate;
+ return <Card className="space-y-3 p-5"><h2>Подтверждение решения человеком</h2><p>Исходные рекомендации и решение оркестратора сохраняются. Досрочное ТО по некалиброванному AI разрешает главный инженер; оно не заменяет обязательную ежедневную работу будущего дня.</p><label>Выбранная дата<Input type="date" max={run.mandatoryDueDate??undefined} value={day} onChange={e=>setDay(e.target.value)}/></label><label>Основание выбора<Textarea value={reason} onChange={e=>setReason(e.target.value)}/></label>{early&&profile?.role!=="chief_engineer"&&<p>Запросите согласование главного инженера.</p>}<Button disabled={busy||!day||!reason.trim()||(early&&profile?.role!=="chief_engineer")} onClick={async()=>{setBusy(true);try{const result=await post<{taskId:string;extra_maintenance:boolean}>(`/comparisons/${run.runId}/confirm`,{selected_date:day,reason});setNotice(result.extra_maintenance?"Создано отдельное досрочное ТО. Исходное обязательство сохранено.":"Выбор сохранён; назначьте бригаду на выбранную дату.");}catch(e){setNotice(e instanceof Error?e.message:"Ошибка");}finally{setBusy(false);}}}>Подтвердить выбранную дату</Button>{notice&&<p role="status">{notice}</p>}</Card>;
+}
+
+interface Incident {id:string;equipmentId:string;description:string;status:string;attachmentUrl:string|null;analysis?:{status:string;observed_problem?:string;explanation?:string;suggested_binding_id?:string|null;missing_data?:string[];error_code?:string};selection?:{binding_id:string;reason:string};}
+export function IncidentWorkspace({equipmentId}:{equipmentId:string}) {
+ const {profile}=useSession();
+ const [refresh,setRefresh]=useState(0);
+ const [description,setDescription]=useState("");
+ const [file,setFile]=useState<File|null>(null);
+ const [fileKey,setFileKey]=useState(0);
+ const [notice,setNotice]=useState("");
+ const [created,setCreated]=useState(false);
+ const [busy,setBusy]=useState(false);
+ const query=useApiQuery(()=>DEMO_MODE?Promise.resolve([]):request<Incident[]>(base+"/incidents"),[equipmentId,refresh]);
+ const mayCreate=!DEMO_MODE&&["engineer","chief_engineer","dispatcher","executor"].includes(profile?.role??"");
+ const records=query.status==="success"?query.data.filter(row=>row.equipmentId===equipmentId):[];
+ return <div className="fr-incident-workspace">
+  {mayCreate&&<form className="fr-incident-form" onSubmit={async event=>{
+   event.preventDefault();if(busy||!description.trim())return;
+   setBusy(true);setNotice("");setCreated(false);
+   try{const body=new FormData();body.append("equipment_id",equipmentId);body.append("description",description);if(file)body.append("file",file);
+    await request(base+"/incidents",{method:"POST",body});setDescription("");setFile(null);setFileKey(value=>value+1);setCreated(true);setRefresh(value=>value+1);
+   }catch(error){setNotice(error instanceof Error?error.message:"Не удалось создать обращение");}
+   finally{setBusy(false);}
+  }}>
+   <header><h2>Новое обращение</h2><p>Опишите неисправность. Фотография поможет уточнить, что произошло.</p></header>
+   <fieldset disabled={busy} className="fr-incident-fields">
+    <FormField label="Что обнаружено" htmlFor={`incident-description-${equipmentId}`} required><Textarea id={`incident-description-${equipmentId}`} required maxLength={10000} rows={5} value={description} onChange={event=>setDescription(event.target.value)} placeholder="Что произошло, где находится дефект и как он проявляется"/></FormField>
+    <FormField label="Фото дефекта" htmlFor={`incident-photo-${equipmentId}`} hint="Необязательно"><Input key={fileKey} id={`incident-photo-${equipmentId}`} aria-label="Фото дефекта" type="file" accept="image/jpeg,image/png,image/webp" onChange={event=>setFile(event.target.files?.[0]??null)}/></FormField>
+   </fieldset>
+   {notice&&<p className="fr-incident-error" role="alert">{notice}</p>}
+   {created&&<p className="fr-incident-success" role="status">Обращение создано.</p>}
+   <footer><Button type="submit" disabled={busy||!description.trim()}><Icon name="plus" size={17}/>{busy?"Создаём обращение…":"Создать обращение"}</Button></footer>
+  </form>}
+  <section className="fr-incident-records" aria-label="Сохранённые обращения">
+   <header><h2>Обращения</h2>{query.status==="success"&&<span>{records.length}</span>}</header>
+   {query.status==="loading"&&<p className="fr-incident-empty" role="status">Загружаем обращения…</p>}
+   {query.status==="error"&&<p className="fr-incident-error" role="alert">Не удалось загрузить обращения: {query.error}</p>}
+   {query.status==="success"&&!records.length&&<p className="fr-incident-empty">По этому оборудованию обращений пока нет.</p>}
+   {records.map(row=><IncidentDraft key={row.id+refresh} incident={row} equipmentId={equipmentId} refresh={()=>setRefresh(value=>value+1)}/>)}
+  </section>
+ </div>;
+}
+
+function IncidentDraft({incident:r,equipmentId,refresh}:{incident:Incident;equipmentId:string;refresh:()=>void}){
+ const {profile}=useSession();const configs=useApiQuery(()=>DEMO_MODE||!["engineer","chief_engineer","dispatcher"].includes(profile?.role??"")?Promise.resolve([]):managementApi.services(equipmentId),[equipmentId,profile?.role]);const [binding,setBinding]=useState(r.analysis?.suggested_binding_id??"");const [reason,setReason]=useState(r.analysis?.explanation??"");const [day,setDay]=useState("");const [busy,setBusy]=useState(false);const [notice,setNotice]=useState("");
+ const submit=async(url:string,body:unknown)=>{setBusy(true);try{await post(url,body);refresh();}catch(e){setNotice(e instanceof Error?e.message:"Ошибка");}finally{setBusy(false);}};
+ return <article className="space-y-3 border-t border-line pt-4"><p>{r.description}</p>{r.attachmentUrl&&<a href={r.attachmentUrl} target="_blank" rel="noreferrer">Открыть исходный снимок</a>}<p className="text-sm text-muted">Состояние: {({new:"Новое",triaged:"Создано задание",closed:"Закрыто"} as Record<string,string>)[r.status]??r.status}</p>{r.analysis&&<div><p>{r.analysis.observed_problem}</p><p>{r.analysis.explanation||r.analysis.error_code}</p><ul>{r.analysis.missing_data?.map(s=><li key={s}>{s}</li>)}</ul><p className="text-sm text-muted">AI-черновик требует проверки. Процент уверенности не измерен.</p></div>}{r.status==="new"&&["engineer","chief_engineer","dispatcher"].includes(profile?.role??"")&&<><Button disabled={busy} onClick={()=>submit(`/incidents/${r.id}/analyze`,{})}>Проанализировать фото и описание</Button><label>Проверенная связь с существующей операцией<Select value={binding} onChange={e=>setBinding(e.target.value)}><option value="">Выбрать вручную или уточнить AI-предложение</option>{configs.status==="success"&&configs.data.map(s=><option key={s.binding_id} value={s.binding_id}>{s.code} · {s.title} · {s.enabled?"утверждено":"черновик"}</option>)}</Select></label><label>Дата внеплановой работы<Input type="date" value={day} onChange={e=>setDay(e.target.value)}/></label><label>Проверенное основание<Textarea value={reason} onChange={e=>setReason(e.target.value)}/></label>{profile?.role==="chief_engineer"&&<Button disabled={busy||!binding||!day||!reason.trim()} onClick={()=>submit(`/incidents/${r.id}/create-task`,{binding_id:binding,planned_date:day,reason})}>Утвердить внеплановое задание</Button>}</>}{notice&&<p role="alert">{notice}</p>}</article>;
+}
+
+export function AttemptHistory({taskId}:{taskId:string}){
+ const dateTime=useSiteDateTime();
+ const [open,setOpen]=useState(false);
+ const query=useApiQuery(()=>DEMO_MODE||!open?Promise.resolve([]):request<ExecutionReport[]>(base+`/tasks/${taskId}/attempts`),[taskId,open]);
+ return <Disclosure title="История попыток и доказательств" onToggle={event=>setOpen(event.currentTarget.open)}>{open&&query.status==="success"&&query.data.map(r=><section key={r.id} className="space-y-2 border-t border-line py-3"><h3>Попытка {r.attemptNumber} · {r.submittedAt?"отправлена "+dateTime(r.submittedAt):"черновик"}</h3><p>{r.narrative}</p><div className="flex flex-wrap gap-3">{r.photos.map(p=><a key={p.id} href={p.url??undefined} target="_blank" rel="noreferrer">{p.phase==="before"?"Фото до":"Фото после"} · {viewLabel(p.viewKey)}</a>)}{r.acts?.map(a=><a key={a.id} href={a.url} target="_blank" rel="noreferrer">Акт {a.kind}</a>)}</div></section>)}{query.status==="error"&&<p role="alert">{query.error}</p>}</Disclosure>;
+}

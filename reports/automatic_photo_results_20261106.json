@@ -1,0 +1,73 @@
+{
+  "date": "2026-11-06",
+  "regression": {
+    "run": "verify-20261106-005750-d19ad4b0",
+    "stages": 29,
+    "python": 719,
+    "ui": 334,
+    "browser": 31,
+    "npm_vulnerabilities": 0
+  },
+  "url": "http://127.0.0.1:8000",
+  "image": "fixrate-ai:automatic-photos",
+  "image_id": "sha256:60f9cebc0779e78f7587e64ce1e60fe3408d754533a3d3320d677c5d62598b4a",
+  "source_revision": "b3902d1b1adedc08164537f29abd999db8daf105",
+  "health": {
+    "status": "ok",
+    "database": "ready"
+  },
+  "business_counts_before": {
+    "work_orders": 624,
+    "work_reports": 377,
+    "acceptance_reviews": 249,
+    "evidence_files": 11
+  },
+  "business_counts_after": {
+    "work_orders": 624,
+    "work_reports": 378,
+    "acceptance_reviews": 249,
+    "evidence_files": 11
+  },
+  "no_count_decrease": true,
+  "counts_note": "One additional work report appeared on the active stand; equality of all rows is not claimed.",
+  "backup": "var\\backups\\before-automatic-photos-20261105T200134Z",
+  "models": {
+    "vision": "aitunnel:qwen3.7-flash",
+    "forecast": "aitunnel:qwen3.7-flash"
+  },
+  "live_browser": {
+    "checks": [
+      {
+        "role": "engineer",
+        "menu": [
+          "/dispatcher",
+          "/quality",
+          "/calendar",
+          "/equipment",
+          "/tasks",
+          "/comparisons",
+          "/reports",
+          "/settings/equipment",
+          "/settings/workforce"
+        ],
+        "routes": 1,
+        "mobile": false
+      },
+      {
+        "role": "executor",
+        "menu": [
+          "/executor",
+          "/calendar",
+          "/equipment",
+          "/my-shifts"
+        ],
+        "routes": 1,
+        "mobile": true
+      }
+    ],
+    "errors": [],
+    "status": "PASS"
+  },
+  "fresh_cloud_inference": false,
+  "app_logs_secret_check": "PASS"
+}

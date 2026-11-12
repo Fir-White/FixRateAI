@@ -61,7 +61,7 @@ def review_photos(
             item_photos = photos_by_item.get(item.checklist_item_id, [])
 
             # 1. Guardrail for hidden / metrological operations
-            if request.operation.code in ("1.5", "1.6") or not VisualGuardrailPolicy.is_item_verifiable(item):
+            if not VisualGuardrailPolicy.is_item_verifiable(item):
                 before_id = next((p.photo_id for p in item_photos if p.phase == "before"), None)
                 after_id = next((p.photo_id for p in item_photos if p.phase == "after"), None)
                 review = VisualGuardrailPolicy.create_not_verifiable_review(

@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 from .demo import demo_id
 
 
-def add_assignment_demo(repo):
+def add_assignment_demo(repo, password_hash=None):
     def ensure(table, pk, key, **values):
         identity = demo_id(key)
         return repo.get(table, identity) or repo.add(table, **{pk: identity}, **values)
@@ -26,6 +26,10 @@ def add_assignment_demo(repo):
     for number in (1, 2, 3):
         user = ensure("users", "user_id", f"assignment-worker-{number}", full_name=f"DEMO — работник планирования {number}",
                       email=f"fixrate-assignment-{number}@example.test")
+        # Explicit demo provisioning enables the workers selected by the dispatcher.
+        # Rerunning seed must never replace an existing account password.
+        if password_hash and not user.password_hash:
+            user.password_hash = password_hash
         if not repo.get("site_memberships", (site, user.user_id)):
             repo.add("site_memberships", site_id=site, user_id=user.user_id, role="technician")
         if not repo.get("user_skills", (site, user.user_id, skill.skill_id)):

@@ -19,6 +19,30 @@ class Input(BaseModel):
         return CalendarPattern.model_validate_json(json.dumps(value)) if isinstance(value,dict) else value
 
 
+class AccountEmailUpdate(Input):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=False)
+    email: str = Field(min_length=3, max_length=320, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+    current_password: str = Field(min_length=1, max_length=1024)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def trim_email(cls, value):
+        return value.strip() if isinstance(value, str) else value
+
+
+class AccountPasswordUpdate(Input):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=False)
+    current_password: str = Field(min_length=1, max_length=1024)
+    new_password: str = Field(min_length=12, max_length=128)
+    password_confirmation: str = Field(min_length=1, max_length=128)
+
+    @model_validator(mode="after")
+    def confirm_password(self):
+        if self.new_password != self.password_confirmation:
+            raise ValueError("Passwords do not match")
+        return self
+
+
 class Revision(Input):
     expected_revision: int = Field(gt=0)
 
@@ -96,7 +120,7 @@ class Registration(Input):
 
 
 class EmploymentEdit(Revision):
-    role: Literal["admin","dispatcher","engineer","executor"]
+    role: Literal["director","chief_engineer","admin","dispatcher","engineer","executor"]
     is_active: bool
     employed_from: date | None = None
     employed_until: date | None = None
@@ -196,12 +220,23 @@ class CrewEdit(CrewInput,Revision):
 
 
 class ChecklistSetting(Input):
+    source_item_key: str | None = Field(default=None,max_length=128)
+    source_refs: list[str] = Field(default_factory=list,max_length=20)
     text: str = Field(min_length=1,max_length=2000)
     answer_kind: Literal['boolean','number','text'] = 'boolean'
     unit: str | None = Field(default=None,max_length=64)
     required: bool = True
     visual_verifiability: Literal['visible','partial','not_verifiable'] = 'not_verifiable'
     photo_required: bool = False
+
+
+class MeasurementRequirement(Input):
+    parameter_code: str = Field(min_length=1,max_length=128)
+    unit: str = Field(min_length=1,max_length=64)
+    required: bool = True
+    phases: list[Literal['before','after']] = Field(default_factory=lambda:['before','after'],min_length=1,max_length=2)
+    minimum: Decimal | None = Field(default=None,allow_inf_nan=False)
+    maximum: Decimal | None = Field(default=None,allow_inf_nan=False)
 
 
 class ServiceConfiguration(Input):
@@ -216,16 +251,43 @@ class ServiceConfiguration(Input):
     valid_from: date
     valid_until: date | None = None
     crew_size: int = Field(ge=1,le=100)
-    norm_value: Decimal = Field(ge=0,max_digits=12,decimal_places=3)
-    norm_unit: Literal["person_hour","elapsed_hour"]
-    duration_minutes: int = Field(ge=1,le=46080)
+    norm_value: Decimal | None = Field(default=None,ge=0,max_digits=12,decimal_places=3)
+    norm_unit: Literal["person_hour","elapsed_hour","unconfirmed"] = "unconfirmed"
+    duration_minutes: int | None = Field(default=None,ge=1,le=46080)
     qualification_ids: list[UUID] = Field(default_factory=list,max_length=100)
     checklist: list[ChecklistSetting] = Field(min_length=1,max_length=100)
     allowed_lead_days: int = Field(ge=0,le=366)
-    enabled: bool = True
+    enabled: bool = False
+    methodology_ref: str | None = Field(default=None,max_length=2000)
+    measurement_requirements: list[MeasurementRequirement] = Field(default_factory=list,max_length=100)
+    required_acts: list[str] = Field(default_factory=list,max_length=20)
 
     @model_validator(mode="after")
     def coherent_configuration(self):
+        defaults={"quarter_policy":"rolling_months","annual_policy":"from_anchor","weekend_policy":"next_workday"}
+        self.pattern=self.pattern.model_copy(update={k:v for k,v in defaults.items() if k not in self.pattern.model_fields_set})
+        if self.pattern.frequency=="day" and self.pattern.interval==1 and self.allowed_lead_days:
+            raise ValueError("daily maintenance cannot be performed in advance")
+        if self.code=="1.4" and self.crew_size!=2:
+            raise ValueError("operation 1.4 requires two workers")
+        codes=[r.parameter_code for r in self.measurement_requirements]
+        if len(codes)!=len(set(codes)):raise ValueError("duplicate measurement parameter")
+        for req in self.measurement_requirements:
+            req=req.model_dump()
+            if len(req["phases"])!=len(set(req["phases"])):raise ValueError("duplicate measurement phase")
+            if not req.get("parameter_code") or not req.get("unit") or not set(req.get("phases",[])).issubset({"before","after"}) or not req.get("phases"):
+                raise ValueError("measurement requires parameter, unit and phases")
+            for bound in ("minimum","maximum"):
+                if req.get(bound) is not None and not Decimal(str(req[bound])).is_finite():
+                    raise ValueError("measurement limit must be finite")
+            if req.get("minimum") is not None and req.get("maximum") is not None and Decimal(str(req["minimum"]))>Decimal(str(req["maximum"])):
+                raise ValueError("reversed measurement limits")
+        if len(self.required_acts)!=len(set(self.required_acts)) or any(not a.strip() or len(a)>256 for a in self.required_acts):
+            raise ValueError("acts must have unique nonempty titles up to 256 characters")
+        if self.enabled and any(c.answer_kind=="number" and not c.unit for c in self.checklist):
+            raise ValueError("numeric checklist items require confirmed units")
+        if self.enabled and (self.norm_value is None or self.norm_unit=="unconfirmed" or self.duration_minutes is None or not self.methodology_ref):
+            raise ValueError("publication requires confirmed norms, duration and methodology")
         if self.basis=='after_accepted_completion':
             if self.pattern.frequency not in ('day','month','year') or self.pattern.weekdays or self.pattern.month_days or self.pattern.months or self.pattern.week_parity!='any' or self.pattern.excluded_dates or self.pattern.short_month!='last_day':
                 raise ValueError('completion-based recurrence needs an unfiltered day/month/year interval')

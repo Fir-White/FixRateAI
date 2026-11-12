@@ -9,7 +9,7 @@ from app.scheduling import CalendarGenerationRequest, generate_month
 
 
 def configured_pattern(rule):
-    """Translate stored period units consistently; quarter always means a calendar quarter."""
+    """Expose stored policies; missing fields retain the legacy calendar semantics."""
     parameters=rule.schedule_parameters
     if parameters.get('calendar_pattern') is not None:
         return parameters['calendar_pattern']
@@ -58,7 +58,8 @@ def _binding_payload(v, binding, rule, equipment, site):
     if pattern is not None and parameters.get('calendar_basis',parameters.get('basis'))=='after_accepted_completion':
         recurrence=dict(kind='calendar_interval',interval=pattern['interval']*(12 if pattern['frequency']=='year' else 1),
             calendar_unit='day' if pattern['frequency']=='day' else 'month',anchor_date=pattern['anchor_date'],
-            basis='after_accepted_completion',explicit_dates=[],yearly_count=None)
+            basis='after_accepted_completion',explicit_dates=[],yearly_count=None,
+            weekend_policy=pattern.get('weekend_policy','none'))
     elif pattern is not None:
         recurrence = dict(kind="calendar_pattern", interval=None, calendar_unit=None, anchor_date=None,
                           basis=None, explicit_dates=[], yearly_count=None, pattern=pattern)
@@ -87,7 +88,7 @@ def _binding_payload(v, binding, rule, equipment, site):
             continue
         for review in v.rows("acceptance_reviews", work_order_id=order.work_order_id):
             if review.decision == "accepted":
-                history.append(dict(service_event_id=review.acceptance_review_id, performed_at=order.completed_at,
+                history.append(dict(service_event_id=review.acceptance_review_id, performed_at=datetime.fromisoformat(review.decision_context["performed_at"]) if review.decision_context.get("performed_at") else order.completed_at,
                                     accepted_at=review.reviewed_at, runtime_hours=None, observed_need_date=None))
     typ = v.one("maintenance_types", maintenance_type_id=op.maintenance_type_id)
     metadata = parameters.get("operation_metadata", {})
@@ -170,9 +171,11 @@ def preview_calendar(v, year, month, *, as_of=None):
             totalPersonHours=str(generated.total_person_hours) if generated.total_person_hours is not None else None,
             totalPlanningPersonMinutes=generated.total_planning_person_minutes,
             nextDueDate=generated.next_due_date.isoformat() if generated.next_due_date else None)
-        for calendar_item, detail in zip(result.calendar.items, generated.occurrences, strict=True):
+        by_id={detail.occurrence.occurrence_id:detail for detail in generated.occurrences}
+        for calendar_item in result.calendar.items:
+            detail=by_id[calendar_item.occurrence_id]
             occurrence = detail.occurrence
-            items.append(dict(id=str(calendar_item.occurrence_id), bindingId=str(binding.binding_id), occurrenceDate=calendar_item.occurrence_date.isoformat(),
+            items.append(dict(id=str(calendar_item.occurrence_id), bindingId=str(binding.binding_id),sourceDate=(occurrence.source_date or occurrence.occurrence_date).isoformat(), occurrenceDate=calendar_item.occurrence_date.isoformat(),
                 equipmentId=str(equipment.equipment_id), equipmentName=equipment.name, operationCode=metadata.get('code',op.code),
                 operationTitle=metadata.get('title',op.title), maintenanceType=calendar_item.maintenance_type, status="draft",
                 isOverdue=False, requiresInput=False, taskId=None,

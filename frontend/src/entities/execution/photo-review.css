@@ -1,0 +1,6 @@
+.fr-content-v2 .fr-ai-details > summary { color: var(--fr2-accent); cursor: pointer; padding-block: 12px; }
+.fr-content-v2 .fr-ai-details article { border: 0; border-top: 1px solid var(--fr2-line); border-radius: 0; padding-inline: 0; }
+.fr-content-v2 .fr-checklist-result > div { border: 0; border-bottom: 1px solid var(--fr2-line); border-radius: 0; padding: 12px 0; }
+.fr-content-v2 .evidence-photo figcaption details { color: var(--fr2-muted); font-size: 12px; overflow-wrap: anywhere; }
+.fr-content-v2 .evidence-photo figcaption strong { font-size: 14px; line-height: 21px; }
+.fr-content-v2 .evidence-pair h3 { font-size: 16px; line-height: 24px; }

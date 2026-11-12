@@ -1,95 +1,89 @@
-import { useState } from "react";
+import { AnalysisTimerBadge, PhotoReviewCard } from "@/entities/execution/PhotoReviewCard";
+import { AttemptHistory } from "@/features/analyst/AnalystPanels";
+import { ExecutionProtocol,ActsPanel } from "@/features/analyst/AnalystPanels";
+import type { ActualExecution,Reading } from "@/shared/types/domain";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { maintenanceApi, type TaskBundle } from "@/shared/api/maintenance";
 import { DEMO_MODE } from "@/shared/api/request";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
 import { formatDate } from "@/shared/lib/format";
+import { isTaskOverdue } from "@/shared/lib/operations";
 import { useSiteDateTime } from "@/shared/lib/useSiteDateTime";
-import { Button, buttonClassName } from "@/shared/ui/Button";
+import { Button } from "@/shared/ui/Button";
 import { Callout } from "@/shared/ui/Callout";
 import { ErrorState, LoadingState } from "@/shared/ui/States";
-import { EvidenceGallery } from "@/entities/execution/EvidenceGallery";
+import { EvidenceComparison } from "@/entities/execution/EvidenceComparison";
+import { PhotoEvidenceUpload, type PhotoUploadRequest } from "@/entities/execution/PhotoEvidenceUpload";
+import { photoRequirementProgress } from "@/shared/lib/evidence";
+import { ReadOnlyValue } from "@/shared/ui/ContentTheme";
+import { answerLabel, attemptStateSummary } from "@/shared/lib/presentation";
+import "./execution-redesign.css";
 import { TaskStateBadge, OverdueBadge } from "@/shared/ui/StatusBadge";
 import { useSession } from "@/shared/session/SessionContext";
+import { PageHeader } from "@/shared/ui/PageHeader";
+import { FormField, Input, Textarea } from "@/shared/ui/Form";
+import { Icon } from "@/shared/ui/Icon";
+import { Modal } from "@/shared/ui/Modal";
 
-export function ExecutorTaskPage() {
-  const { taskId = "" } = useParams();
-  const [refresh, setRefresh] = useState(0);
-  const query = useApiQuery(() => maintenanceApi.getExecutorTask(taskId), [taskId, refresh]);
-  const { profile } = useSession();
-  if (query.status === "loading") return <LoadingState label="Загрузка задания" />;
-  if (query.status === "error") return <ErrorState description={query.error} />;
-  if (!query.data.task.assignees.some(a => a.executorId === profile?.userId)) return <ErrorState title="Задание назначено другому исполнителю" description="Доступ проверяется сервером." />;
-  return <ExecutionEditor key={`${query.data.task.id}:${query.data.task.revision}`} bundle={query.data} reload={() => setRefresh(n => n+1)} />;
+export function ExecutorTaskPage(){
+ const {taskId=""}=useParams();const [refresh,setRefresh]=useState(0);
+ const query=useApiQuery(()=>maintenanceApi.getExecutorTask(taskId),[taskId,refresh],bundle=>!DEMO_MODE&&bundle.photoAnalysisStatus==="pending");const {profile}=useSession();
+ if(query.status==="loading")return <LoadingState label="Загрузка задания"/>;
+ if(query.status==="error")return <ErrorState description={query.error}/>;
+ if(!query.data.task.assignees.some(a=>a.executorId===profile?.userId))return <ErrorState title="Задание назначено другому исполнителю" description="Доступ проверяется сервером."/>;
+ return <ExecutionEditor key={`${query.data.task.id}:${query.data.task.revision}`} bundle={query.data} reload={()=>setRefresh(n=>n+1)}/>;
 }
-
-function ExecutionEditor({bundle, reload}: {bundle: TaskBundle; reload: () => void}) {
-  const formatDateTime=useSiteDateTime();
-  const {task, execution, decision} = bundle;
-  const editable = !DEMO_MODE && !!bundle.allowedActions?.includes("edit_report");
-  const canStart = DEMO_MODE ? task.state === "assigned" || task.state === "rework_required" : !!bundle.allowedActions?.includes("start");
-  const [revision, setRevision] = useState(task.revision);
-  const [narrative, setNarrative] = useState(execution?.narrative ?? "");
-  const [answers, setAnswers] = useState<Record<string, string | null>>(Object.fromEntries(execution?.checklist.map(i => [i.id, i.answer]) ?? []));
-  const [notice, setNotice] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [itemId, setItemId] = useState(execution?.checklist[0]?.id ?? "");
-  const [phase, setPhase] = useState("before");
-  const [viewKey, setViewKey] = useState("front");
-  const [file, setFile] = useState<File | null>(null);
-  const saveDraft = async () => {
-    const saved = await maintenanceApi.saveReport(task.id, revision, narrative, answers);
-    setRevision(saved.task.revision);
-    return saved.task.revision;
-  };
-  const act = async (action: () => Promise<unknown>) => {
-    setBusy(true); setNotice("");
-    try { await action(); reload(); }
-    catch (error) { setNotice(error instanceof Error ? error.message : "Ошибка API"); }
-    finally { setBusy(false); }
-  };
-  return <div className="space-y-5">
-    <Link to="/executor" className={buttonClassName("secondary")}>Мои задания</Link>
-    <div className="flex gap-2"><TaskStateBadge state={task.state} />{task.isOverdue && <OverdueBadge />}</div>
-    <h1 className="text-2xl font-semibold">{task.title}</h1>
-    <p>{task.equipmentName} · {task.summary}</p>
-    <p>Срок: {formatDate(task.mandatoryDueDate)} · Начало: {formatDateTime(task.scheduledStart)}</p>
-    {decision && <Callout tone={decision.verdict === "accepted" ? "success" : "warning"}>{decision.reason} · {decision.decidedBy}</Callout>}
-    {DEMO_MODE && <Callout tone="warning">Демонстрационные данные. Изменения доступны при подключении к API.</Callout>}
-    {notice && <div role="alert"><Callout tone="danger">{notice}</Callout></div>}
-    {canStart && <Button disabled={busy || DEMO_MODE} onClick={() => act(() => maintenanceApi.start(task.id, revision))}>{task.state === "rework_required" ? "Начать новую попытку" : "Приступить к работе"}</Button>}
-    {!DEMO_MODE && task.state === "in_progress" && !editable && <Callout tone="neutral">Отчёт текущей попытки ведёт другой участник бригады. Вам доступен просмотр.</Callout>}
-    {execution && <>
-      <section className="space-y-4 rounded-2xl border border-line bg-surface p-5">
-        <h2 className="text-lg">Чек-лист · Попытка №{execution.attemptNumber}</h2>
-        {execution.checklist.map(item => <label key={item.id} className="block rounded border border-line p-3">
-          <span>{item.text}{item.required ? " *" : ""}</span>
-          {item.answerKind === "boolean" ? <input className="ml-3" type="checkbox" checked={answers[item.id] === "done"} disabled={!editable || busy} onChange={e => setAnswers({...answers, [item.id]: e.target.checked ? "done" : "not_done"})} />
-            : <input className="ml-3 rounded border border-line bg-surface-raised p-2" value={answers[item.id] ?? ""} disabled={!editable || busy} onChange={e => setAnswers({...answers, [item.id]: e.target.value})} />}
-          {item.unit && <span> {item.unit}</span>}
-          {item.photoRequired && <span className="ml-2 text-xs text-violet-200">Фото до/после обязательно</span>}
-        </label>)}
-        <label className="block">Комментарий исполнителя<textarea className="mt-2 block w-full rounded border border-line bg-surface-raised p-3" value={narrative} disabled={!editable || busy} onChange={e => setNarrative(e.target.value)} /></label>
-        {editable && <Button disabled={busy} onClick={() => act(saveDraft)}>Сохранить отчёт</Button>}
-      </section>
-      <section className="space-y-4 rounded-2xl border border-line bg-surface p-5">
-        <h2 className="text-lg">Фотоотчёт</h2>
-        <EvidenceGallery photos={execution.photos} />
-        {editable && <fieldset disabled={busy} className="space-y-3">
-          <label className="block">Пункт чек-листа<select className="ml-2 bg-surface-raised p-2" value={itemId} onChange={e => setItemId(e.target.value)}>{execution.checklist.map(i => <option key={i.id} value={i.id}>{i.text}</option>)}</select></label>
-          <label className="block">Этап<select className="ml-2 bg-surface-raised p-2" value={phase} onChange={e => setPhase(e.target.value)}><option value="before">До</option><option value="after">После</option></select></label>
-          <label className="block">Ракурс<input className="ml-2 rounded border border-line bg-surface-raised p-2" value={viewKey} onChange={e => setViewKey(e.target.value)} /></label>
-          <label className="block">Файл фото<input className="block" type="file" accept="image/jpeg,image/png,image/webp" onChange={e => setFile(e.target.files?.[0] ?? null)} /></label>
-          <Button variant="secondary" disabled={!file || !viewKey.trim()} onClick={() => file && act(async () => {
-            const savedRevision = await saveDraft();
-            return maintenanceApi.upload(task.id, savedRevision, itemId, phase, viewKey, file);
-          })}>Загрузить фото</Button>
-        </fieldset>}
-      </section>
-      {editable && <><p className="text-xs text-muted">Ответы сохраняются перед загрузкой фото и сдачей. После сдачи попытка замораживается.</p><Button disabled={busy} onClick={() => act(async () => {
-        const savedRevision = await saveDraft();
-        return maintenanceApi.submit(task.id, savedRevision);
-      })}>Сдать работу</Button></>}
-    </>}
-  </div>;
+function ExecutionEditor({bundle,reload}:{bundle:TaskBundle;reload:()=>void}){
+ const dateTime=useSiteDateTime();const {task,execution,decision}=bundle;
+ const allowed=(action:NonNullable<TaskBundle["allowedActions"]>[number])=>!DEMO_MODE&&!!bundle.allowedActions?.includes(action);
+ const editable=allowed("edit_report");const canStart=allowed("start");
+ const [revision,setRevision]=useState(task.revision);const [narrative,setNarrative]=useState(execution?.narrative??"");
+ const [protocol,setProtocol]=useState<{actual:ActualExecution|null;readings:Reading[]}>({actual:execution?.actual?{started_at:execution.actual.started_at??"",performed_at:execution.actual.performed_at??"",person_hours:execution.actual.person_hours??""}:null,readings:execution?.readings??[]});
+ const [answers,setAnswers]=useState<Record<string,string|null>>(Object.fromEntries(execution?.checklist.map(i=>[i.id,i.answer])??[]));
+ const [notice,setNotice]=useState("");const [busy,setBusy]=useState(false);const [dirty,setDirty]=useState(false);const [confirmSubmit,setConfirmSubmit]=useState(false);
+ const [photos,setPhotos]=useState(execution?.photos??[]);const [uploadingPhoto,setUploadingPhoto]=useState(false);const [photoQueueLength,setPhotoQueueLength]=useState(0);
+ const revisionRef=useRef(task.revision);const mutating=useRef(false);
+ useEffect(()=>{if(!dirty)return;const warn=(e:BeforeUnloadEvent)=>{e.preventDefault();e.returnValue="";};window.addEventListener("beforeunload",warn);return()=>window.removeEventListener("beforeunload",warn);},[dirty]);
+ const required=execution?.checklist.filter(i=>i.required)??[];
+ const photosReady=execution?photoRequirementProgress(execution.checklist,photos).ready:false;
+ const filled=required.filter(i=>i.answerKind==="boolean"?answers[i.id]==="done":answers[i.id]!==null&&answers[i.id]!==undefined&&String(answers[i.id]).trim()!=="").length;
+ const changeAnswer=(id:string,value:string|null)=>{setAnswers(prev=>({...prev,[id]:value}));setDirty(true);};
+ const saveDraft=async()=>{const saved=await maintenanceApi.saveReport(task.id,revisionRef.current,narrative,answers,protocol);revisionRef.current=saved.task.revision;setRevision(saved.task.revision);setDirty(false);return saved.task.revision;};
+ const act=async(action:()=>Promise<unknown>)=>{if(mutating.current)return;mutating.current=true;setBusy(true);setNotice("");try{await action();reload();}catch(error){setNotice(error instanceof Error?error.message:"Ошибка API");}finally{mutating.current=false;setBusy(false);}};
+ const uploadPhoto=async({file,itemId,phase,viewKey}:PhotoUploadRequest)=>{
+  if(mutating.current)throw new Error("Дождитесь завершения текущего сохранения.");
+  mutating.current=true;setBusy(true);setUploadingPhoto(true);setNotice("");
+  try{const saved=dirty?await saveDraft():revisionRef.current;const result=await maintenanceApi.upload(task.id,saved,itemId,phase,viewKey,file);revisionRef.current=result.task.revision;setRevision(result.task.revision);setPhotos(result.execution?.photos??[]);}
+  finally{mutating.current=false;setUploadingPhoto(false);setBusy(false);}
+ };
+ return <div className="space-y-5 executor-editor"><Link to="/executor" className="ops-back" onClick={e=>{if(dirty&&!window.confirm("Есть несохранённые ответы. Вернуться к заданиям без сохранения?"))e.preventDefault();}}><Icon name="back" size={17}/>Мои задания</Link>
+ <PageHeader title={task.title} description={`${task.code} · ${task.equipmentName}`}/>
+ <div className="flex flex-wrap items-center gap-2"><TaskStateBadge state={task.state}/>{isTaskOverdue(task)&&<OverdueBadge/>}<span className="text-xs text-muted">{execution?`Попытка №${execution.attemptNumber}`:"Выполнение ещё не начато"}</span></div>
+ <div className="fr-attempt-layout"><aside className="fr-attempt-context"><h2>Текущая попытка</h2><p>{attemptStateSummary(task.state)}</p><div className="execution-deadline"><div><span>Обязательный срок</span><strong>{formatDate(task.mandatoryDueDate)}</strong></div><div><span>Плановое начало</span><strong>{dateTime(task.scheduledStart)}</strong></div>{task.equipmentId&&<Link to={`/equipment/${task.equipmentId}`} className="text-xs text-accent">Паспорт оборудования ↗</Link>}</div></aside><div className="fr-attempt-content space-y-5">
+ {task.summary&&<p className="execution-instruction">{task.summary}</p>}
+ {decision&&<Callout tone={decision.verdict==="accepted"?"success":"warning"} title={decision.verdict==="accepted"?"Работа принята":"Основание возврата"}><p>{decision.reason}</p><p className="mt-2 text-sm text-muted">Проверяющий: {decision.decidedBy}</p></Callout>}
+ {DEMO_MODE&&<Callout tone="neutral">DEMO · Отчёт доступен для просмотра. Начало работ, изменение ответов, загрузка фото и сдача требуют рабочего API.</Callout>}
+ {notice&&<div role="alert"><Callout tone="danger">{notice}</Callout></div>}
+ {canStart&&<Button disabled={busy} onClick={()=>act(()=>maintenanceApi.start(task.id,revision))}><Icon name="check" size={18}/>{task.state==="rework_required"?"Начать новую попытку":"Приступить к работе"}</Button>}
+ {!DEMO_MODE&&task.state==="in_progress"&&!editable&&<Callout tone="neutral">Отчёт текущей попытки ведёт другой участник бригады. Вам доступен просмотр.</Callout>}
+ {!execution&&<div className="execution-not-started"><Icon name="tasks" size={25}/><strong>Чек-лист откроется после начала работ</strong><p>Ответы и фотографии будут привязаны к текущей попытке выполнения.</p></div>}
+ {execution&&<><ExecutionProtocol task={task} execution={execution} value={protocol} onChange={v=>{setProtocol(v);setDirty(true);}} disabled={!editable||busy} readOnly={!editable}/><ActsPanel task={{...task,revision}} execution={execution} editable={editable} disabled={busy||photoQueueLength>0} onBusyChange={value=>{mutating.current=value;setBusy(value);}} onSaved={reload}/><nav className="execution-section-nav" aria-label="Разделы отчёта"><a href="#execution-checklist">01 Чек-лист</a><a href="#execution-photos">02 Фотоотчёт</a><a href="#execution-comment">03 Комментарий</a></nav>
+ <section id="execution-checklist" className="execution-section"><header><div><h2>Чек-лист</h2></div><span className="execution-progress">{filled} / {required.length}<small>обязательных ответов</small></span></header>
+ <div className="execution-progress-track"><span style={{width:`${required.length?filled/required.length*100:0}%`}}/></div>
+ <div className="execution-checklist">{execution.checklist.map((item,index)=><div key={item.id} className="execution-check-item"><span className="execution-check-number">{String(index+1).padStart(2,"0")}</span><div className="execution-check-content"><label htmlFor={`answer-${item.id}`} className="execution-item-label">{item.text}{item.required&&<span aria-label="обязательный"> *</span>}</label>{item.photoRequired&&<p className="execution-photo-required"><Icon name="camera" size={13}/>Требуются фотографии до и после</p>}
+ {!editable?<ReadOnlyValue label="Сохранённый ответ">{answerLabel(answers[item.id])}{item.unit?` ${item.unit}`:""}</ReadOnlyValue>:item.answerKind==="boolean"?<label className="execution-checkbox"><input id={`answer-${item.id}`} type="checkbox" checked={answers[item.id]==="done"} disabled={!editable||busy} onChange={e=>changeAnswer(item.id,e.target.checked?"done":"not_done")}/><span>{answers[item.id]==="done"?"Выполнено":answers[item.id]==="not_done"?"Не выполнено":answers[item.id]==="not_applicable"?"Не применимо":"Отметить выполнение"}</span></label>:<div className="execution-measurement"><Input id={`answer-${item.id}`} inputMode={item.answerKind==="number"?"decimal":"text"} autoComplete="off" value={answers[item.id]??""} disabled={!editable||busy} onChange={e=>changeAnswer(item.id,e.target.value)} placeholder={item.answerKind==="number"?"Введите показание":"Введите ответ"}/>{item.unit&&<span>{item.unit}</span>}</div>}
+ </div></div>)}</div></section>
+ <section id="execution-photos" className="execution-section"><header><div><h2>Фотоотчёт</h2></div><span className="text-xs text-muted">{photos.length} фото</span></header>
+ {editable&&allowed("upload_photo")?<PhotoEvidenceUpload checklist={execution.checklist} photos={photos} disabled={busy&&!uploadingPhoto} onUpload={uploadPhoto} onPendingChange={setPhotoQueueLength}/>:<EvidenceComparison photos={photos} checklist={execution.checklist}/>}
+ </section>
+ <section id="execution-comment" className="execution-section"><header><div><h2>Комментарий к работе</h2></div></header>{!editable?<ReadOnlyValue label="Что выполнено и какие замечания остались">{narrative||"Комментарий не указан"}</ReadOnlyValue>:<FormField label="Что выполнено и какие замечания остались" htmlFor="executor-narrative"><Textarea id="executor-narrative" rows={4} value={narrative} disabled={!editable||busy} onChange={e=>{setNarrative(e.target.value);setDirty(true);}} placeholder="Укажите обстоятельства, которые не видны на фотографиях"/></FormField>}</section>
+ {editable&&<div className="execution-submit-bar"><div role="status"><strong>{uploadingPhoto?"Загрузка фотографий…":photoQueueLength?`Фотографий в очереди: ${photoQueueLength}`:busy?"Сохранение…":dirty?"Есть несохранённые изменения":"Текущие ответы сохранены"}</strong><span>Ответы сохраняются перед загрузкой фото и сдачей.</span></div><Button variant="secondary" disabled={busy||photoQueueLength>0||!dirty} onClick={()=>act(saveDraft)}>Сохранить</Button>{allowed("submit")&&<Button disabled={busy||photoQueueLength>0||filled<required.length||!photosReady} onClick={()=>setConfirmSubmit(true)}>Сдать работу<Icon name="chevron" size={16}/></Button>}</div>}
+ {!editable&&<Callout tone="neutral">{attemptStateSummary(task.state)}</Callout>}
+ {bundle.photoAnalysisStatus==="pending"&&<Callout tone="neutral"><div className="flex flex-wrap items-center justify-between gap-2"><p role="status">Фотографии анализируются автоматически. Результат появится без обновления страницы.</p><AnalysisTimerBadge active/></div></Callout>}
+ {bundle.review&&<PhotoReviewCard review={bundle.review} formatDateTime={dateTime}/>}
+ </>}
+ </div></div><AttemptHistory taskId={task.id}/>
+ <Modal open={confirmSubmit} onClose={()=>setConfirmSubmit(false)} title="Передать отчёт инженеру?" description="Ответы будут сохранены. После сдачи эта попытка станет недоступной для редактирования." footer={<><Button variant="secondary" onClick={()=>setConfirmSubmit(false)}>Проверить ещё раз</Button><Button disabled={busy} onClick={()=>{setConfirmSubmit(false);void act(async()=>{const saved=await saveDraft();return maintenanceApi.submit(task.id,saved);});}}>Подтвердить сдачу</Button></>}><p className="text-sm text-ink-soft">Заполнено обязательных ответов: {filled} из {required.length}. Фотографий: {photos.length}. Полноту отчёта проверит сервер.</p></Modal>
+ </div>;
 }

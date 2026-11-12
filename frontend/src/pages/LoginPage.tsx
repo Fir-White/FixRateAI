@@ -1,24 +1,20 @@
-import { useState } from "react";
-import { DEMO_MODE } from "@/shared/api/request";
+import { useContext, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { DEMO_MODE } from "@/shared/api/request";
+import { ROLE_DESCRIPTIONS, ROLE_LABELS, homePathForRole } from "@/shared/lib/roles";
 import { useSession } from "@/shared/session/SessionContext";
-import {
-  ROLE_DESCRIPTIONS,
-  ROLE_LABELS,
-  homePathForRole,
-} from "@/shared/lib/roles";
 import type { Role } from "@/shared/types/domain";
-import { BrandLockup, BrandMark } from "@/shared/ui/Brand";
+import { Button } from "@/shared/ui/Button";
+import { FormField, Input } from "@/shared/ui/Form";
 import { Icon } from "@/shared/ui/Icon";
+import { AuthPasswordInput } from "@/features/auth/AuthPasswordInput";
+import { describeAuthFailure, focusAuthError, type AuthErrors } from "@/features/auth/authValidation";
+import { useAuthValidation } from "@/features/auth/useAuthValidation";
+import { AuthMotionContext } from "@/features/auth/AuthMotionContext";
+import { AuthFormError } from "@/features/auth/AuthFormError";
+import { AUTH_ENTRY_STATE } from "@/shared/motion/authEntry";
 
 const ROLES: Role[] = ["dispatcher", "engineer", "executor", "admin"];
-
-const ROLE_ICONS = {
-  dispatcher: "dashboard",
-  engineer: "quality",
-  executor: "executor",
-  admin: "equipment",
-} as const;
 
 export function LoginPage() {
   const { profile, login, signIn, loading } = useSession();
@@ -27,146 +23,92 @@ export function LoginPage() {
   const [siteId, setSiteId] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [needsSite, setNeedsSite] = useState(false);
+  const motion = useContext(AuthMotionContext);
+  const confirmedNavigation = useRef(false);
+  const alive = useRef(false);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [serverFocus, setServerFocus] = useState<AuthErrors | null>(null);
+  const validation = useAuthValidation("login", { email, password, ...(needsSite ? { site_id: siteId } : {}) });
+  useEffect(() => {
+    if (!pending && serverFocus && formRef.current) {
+      focusAuthError(formRef.current, serverFocus);
+      setServerFocus(null);
+    }
+  }, [pending, serverFocus]);
   const navigate = useNavigate();
   const location = useLocation();
-  const from = location.state?.from;
-  const destination = (role: Role) => typeof from === "string" && from.startsWith("/") && !from.startsWith("//") && from.split(/[?#]/)[0] !== "/login" ? from : homePathForRole(role);
+  const active = !motion || /^\/login\/?$/.test(location.pathname);
+  const activeRoute = useRef(active);
+  activeRoute.current = active;
 
-  if (profile) {
-    return <Navigate to={destination(profile.role)} replace />;
-  }
-
-  if (loading) return <p role="status">Загрузка сессии…</p>;
-  if (!DEMO_MODE) return (
-    <main className="app-backdrop grid min-h-screen place-items-center p-6">
-      <form className="w-full max-w-md space-y-4 rounded-2xl border border-line bg-surface p-8" onSubmit={async event => {
-        event.preventDefault(); setPending(true); setError("");
-        try { const user = await signIn(email, password, siteId); navigate(destination(user.role), {replace: true}); }
-        catch (failure) { setError(failure instanceof Error ? failure.message : "Ошибка входа"); }
-        finally { setPending(false); }
-      }}>
-        <BrandLockup size="lg" subtitle="Планирование ТО и ППР" />
-        <h1 className="text-2xl">Вход в FixRate AI</h1>
-        <label className="block">Email<input className="mt-1 block w-full rounded border border-line bg-surface-raised p-2" type="email" required autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} /></label>
-        <label className="block">Пароль<input className="mt-1 block w-full rounded border border-line bg-surface-raised p-2" type="password" required autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} /></label>
-        <label className="block">ID объекта (если доступно несколько)<input className="mt-1 block w-full rounded border border-line bg-surface-raised p-2" value={siteId} onChange={e => setSiteId(e.target.value)} /></label>
-        {error && <p role="alert" className="text-rose-300">{error}</p>}
-        <button className="rounded bg-accent px-4 py-2 text-slate-950" disabled={pending}>{pending ? "Вход…" : "Войти"}</button>
-        <Link to="/register" className="block text-sm text-accent underline">Регистрация сотрудника</Link>
-      </form>
-    </main>
-  );
-
-  const handleLogin = (role: Role) => {
-    login(role);
-    navigate(destination(role), { replace: true });
-  };
+  if (profile && !pending && !confirmedNavigation.current && active) return <Navigate to={homePathForRole(profile.role)} replace />;
 
   return (
-    <div className="app-backdrop grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
-      <section className="relative flex flex-col justify-between overflow-hidden border-b border-line px-6 py-8 sm:px-10 lg:border-r lg:border-b-0 lg:px-14 lg:py-12">
-        <div
-          aria-hidden="true"
-          className="absolute -top-28 -right-28 h-96 w-96 rounded-full bg-accent/[0.07] blur-3xl"
-        />
-        <div
-          aria-hidden="true"
-          className="absolute bottom-0 left-0 h-72 w-72 rounded-full bg-accent/[0.04] blur-3xl"
-        />
+    <>
+    <header className="auth-heading">
+      {DEMO_MODE && <p className="auth-eyebrow">Демонстрационный вход</p>}
+      <h1 id="login-title" tabIndex={-1}>{DEMO_MODE ? "Выберите роль" : "Вход в систему"}</h1>
+      <p>{DEMO_MODE ? "Посмотрите, как устроено рабочее пространство каждой роли." : "Введите рабочую почту и пароль"}</p>
+    </header>
 
-        <div className="relative">
-          <BrandLockup size="lg" subtitle="Планирование ТО и ППР" />
-        </div>
+    {loading ? <p role="status" className="auth-session-loading">Загрузка сессии…</p> : DEMO_MODE ? (
+      <div className="auth-demo">
+        {ROLES.map(role => (
+          <Button key={role} variant="secondary" className="auth-demo__role" onClick={() => {
+            login(role);
+            navigate(homePathForRole(role), { replace: true });
+          }}>
+            <span><strong>{ROLE_LABELS[role]}</strong><span>{ROLE_DESCRIPTIONS[role]}</span></span>
+            <Icon name="chevron" size={17} />
+          </Button>
+        ))}
+        <p className="auth-demo__note">Демонстрация на учебных данных. Выбранная роль действует только в этом режиме.</p>
+      </div>
+    ) : (
+      <>
+        <form ref={formRef} noValidate className="auth-form" aria-label="Вход в систему" aria-busy={pending} aria-describedby={error ? "login-error" : undefined} onSubmit={async event => {
+          event.preventDefault();
+          if (pending) return;
+          setError("");
+          if (!validation.validate(event.currentTarget)) return;
+          setPending(true);
+          try {
+            const user = await signIn(email.trim(), password, siteId.trim());
+            if (!alive.current || !activeRoute.current) return;
+            confirmedNavigation.current = true;
+            const proceed = () => navigate(homePathForRole(user.role), { replace: true, state: AUTH_ENTRY_STATE });
+            if (motion) { if (!await motion.leaveAfterSuccess(proceed)) confirmedNavigation.current = false; }
+            else proceed();
+          } catch (failure) {
+            const result = describeAuthFailure(failure, "login");
+            setError(result.message ?? "");
+            validation.server(result.fields);
+            if (result.requiresSite || result.fields?.site_id) setNeedsSite(true);
+            if (result.fields) setServerFocus(result.fields);
+          } finally { if (alive.current) setPending(false); }
+        }}>
+          <fieldset disabled={pending}>
+            <FormField label="Email" htmlFor="login-email" className="auth-field" error={validation.errors.email}>
+              <Input id="login-email" name="email" className="auth-input" data-validation={validation.state("email")} type="email" required autoComplete="username" autoCapitalize="none" spellCheck={false} placeholder="name@company.ru" value={email} onBlur={event => validation.blur("email", event)} onChange={e => { setEmail(e.target.value); validation.change("email"); setError(""); }} />
+            </FormField>
+            <FormField label="Пароль" htmlFor="login-password" className="auth-field" error={validation.errors.password}>
+              <AuthPasswordInput id="login-password" name="password" className="auth-input" data-validation={validation.state("password")} required autoComplete="current-password" placeholder="Введите пароль" value={password} onBlur={event => validation.blur("password", event)} onChange={e => { setPassword(e.target.value); validation.change("password"); setError(""); }} />
+            </FormField>
 
-        <div className="relative my-14 max-w-xl">
-          <p className="text-[10px] font-semibold tracking-[0.22em] text-accent uppercase">
-            Оборудование → регламент → календарь → задание → фотоотчёт → приёмка
-          </p>
-          <h1 className="mt-5 text-hero leading-[0.98] font-semibold tracking-[-0.045em] text-ink">
-            Один процесс обслуживания без разрывов
-          </h1>
-          <p className="mt-6 max-w-lg text-sm leading-7 text-muted sm:text-base">
-            Диспетчер видит просрочки и очередь. Инженер сравнивает прогнозы и
-            принимает работу. Исполнитель фиксирует показания и фото. Решение
-            остаётся за человеком.
-          </p>
-        </div>
-
-        <div className="relative grid gap-2 text-sm sm:grid-cols-3">
-          <div className="rounded-xl border border-line bg-white/[0.025] p-4">
-            <p className="text-xl font-semibold text-ink">93</p>
-            <p className="mt-1 text-xs text-muted">вхождения в октябре</p>
-          </div>
-          <div className="rounded-xl border border-line bg-white/[0.025] p-4">
-            <p className="text-xl font-semibold text-ink">2</p>
-            <p className="mt-1 text-xs text-muted">независимых прогноза</p>
-          </div>
-          <div className="rounded-xl border border-line bg-white/[0.025] p-4">
-            <p className="text-xl font-semibold text-ink">1</p>
-            <p className="mt-1 text-xs text-muted">принятый факт в истории</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="flex items-center justify-center px-5 py-10 sm:px-10 lg:py-12">
-        <div className="w-full max-w-lg">
-          <div className="mb-7 flex items-center gap-4 lg:hidden">
-            <BrandMark size={48} />
-            <div>
-              <p className="text-lg font-semibold tracking-[-0.03em] text-ink">
-                FixRate AI
-              </p>
-              <p className="text-[10px] font-semibold tracking-[0.18em] text-muted uppercase">
-                Демонстрационный вход
-              </p>
-            </div>
-          </div>
-
-          <p className="text-[10px] font-semibold tracking-[0.2em] text-accent uppercase">
-            Демонстрационный вход
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-ink sm:text-3xl">
-            Выберите роль
-          </h2>
-          <p className="mt-3 text-sm leading-6 text-muted">
-            Пароль и серверная сессия появятся вместе с backend. Сейчас выбор
-            роли открывает соответствующий набор экранов.
-          </p>
-
-          <div className="mt-7 space-y-2.5">
-            {ROLES.map((role) => (
-              <button
-                key={role}
-                type="button"
-                onClick={() => handleLogin(role)}
-                className="group flex w-full items-center gap-4 rounded-xl border border-line bg-surface/70 p-4 text-left transition-colors hover:border-line-strong hover:bg-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-              >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line-strong bg-white/[0.035] text-ink-soft transition-colors group-hover:text-accent">
-                  <Icon name={ROLE_ICONS[role]} size={21} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold text-ink">
-                    {ROLE_LABELS[role]}
-                  </span>
-                  <span className="mt-1 block text-xs leading-5 text-muted">
-                    {ROLE_DESCRIPTIONS[role]}
-                  </span>
-                </span>
-                <Icon
-                  name="chevron"
-                  size={17}
-                  className="shrink-0 text-muted transition-colors group-hover:text-accent"
-                />
-              </button>
-            ))}
-          </div>
-
-          <p className="mt-6 rounded-xl border border-amber-300/20 bg-amber-300/[0.06] p-3 text-xs leading-5 text-amber-200/85">
-            Это демонстрационная сессия на клиенте. Права, site scope и запрет
-            собственной приёмки должны проверяться backend.
-          </p>
-        </div>
-      </section>
-    </div>
+            {needsSite && <FormField label="ID объекта" htmlFor="login-site" className="auth-field" error={validation.errors.site_id}>
+                <Input id="login-site" name="site_id" className="auth-input" data-validation={validation.state("site_id")} autoComplete="off" placeholder="UUID объекта" required={needsSite} value={siteId} onBlur={event => validation.blur("site_id", event)} onChange={e => { setSiteId(e.target.value); validation.change("site_id"); setError(""); }} />
+              </FormField>}
+            <AuthFormError id="login-error" message={error} />
+            <Button className="auth-submit" type="submit" disabled={pending}>
+              {pending ? <><span className="auth-spinner" aria-hidden="true" />Входим…</> : "Войти"}
+            </Button>
+          </fieldset>
+        </form>
+        <p className="auth-register">Новый сотрудник? <Link to="/register">Регистрация</Link></p>
+      </>
+    )}
+    </>
   );
 }

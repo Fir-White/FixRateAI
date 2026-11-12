@@ -43,11 +43,12 @@ export interface EquipmentBundle {
 }
 
 export interface TaskBundle {
+  photoAnalysisStatus?: "pending" | "ready" | "failed" | "not_requested";
   task: MaintenanceTask;
   execution: ExecutionReport | null;
   review: PhotoReview | null;
   decision: EngineerDecision | null;
-  allowedActions?: ("start" | "edit_report" | "upload_photo" | "submit" | "forecast" | "photo_review" | "review" | "cancel")[];
+  allowedActions?: ("start" | "edit_report" | "upload_photo" | "submit" | "forecast" | "photo_review" | "review" | "cancel" | "reopen")[];
 }
 
 export interface ComparisonBundle {

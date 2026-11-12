@@ -43,7 +43,7 @@ def _job(v, order):
         result.update(status="needs_input", code=code, explanation=explanation)
         return result
 
-    if order.status not in ("draft", "assigned"):
+    if order.status not in ("draft", "assigned", "in_progress", "rework"):
         return stop("TASK_NOT_ASSIGNABLE", "Подбор доступен для чернового или назначенного задания до начала работы.")
     if origin not in ("customer", "synthetic_demo"):
         return stop("ORIGIN_UNCONFIRMED", "Не указано происхождение исходных данных задания.")
@@ -129,6 +129,17 @@ def _job(v, order):
             or not 0 < result["durationMinutes"] <= 46080 or not isinstance(result["durationBasis"], str)
             or not result["durationBasis"].strip()):
         return stop("DURATION_UNCONFIRMED", "Нужна подтверждённая длительность в снимке задания. Исходная норма не заменяет длительность.")
+    grant=getattr(order,"exception_context",{}).get("late_execution",{})
+    if grant.get("approved_by") and grant.get("reason") and grant.get("until"):
+        try:
+            permitted=datetime.fromisoformat(grant["until"]).astimezone(tz)
+            ends=[permitted]
+            if rule:
+                for day in (rule.active_until,rule.edition.effective_to):
+                    if day:ends.append(datetime.combine(day+timedelta(days=1),time.min,tz))
+            result["deadlineAt"]=min(ends).isoformat()
+            result["explanation"]="Просрочка сохранена. Работа разрешена главным инженером в отдельном окне; SLA не переносится."
+        except (ValueError,TypeError): return stop("INVALID_LATE_AUTHORIZATION","Проверьте разрешение главного инженера")
     now = datetime.now(tz)
     deadline = datetime.fromisoformat(result["deadlineAt"]).astimezone(tz)
     if deadline <= now:

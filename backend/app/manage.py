@@ -82,12 +82,18 @@ def seed_demo(engine, password):
 
 def main():
     from dotenv import load_dotenv
+    from app.demo_accounts import read_demo_environment
+    demo_settings = read_demo_environment(ROOT / ".env", os.environ)
     load_dotenv(ROOT / ".env", override=False)
+    os.environ.update(demo_settings)
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", required=True)
     migration = sub.add_parser("migrate")
     migration.add_argument("--adopt-existing", action="store_true")
-    sub.add_parser("seed-demo")
+    seed = sub.add_parser("seed-demo")
+    seed.add_argument("--configure-accounts", action="store_true",
+                      help="Apply FIXRATE_DEMO_* to existing demo accounts without resetting work")
+    sub.add_parser("seed-presentation")
     user = sub.add_parser("create-user")
     user.add_argument("--email", required=True)
     user.add_argument("--name", required=True)
@@ -99,7 +105,19 @@ def main():
         if args.command == "migrate":
             migrate(engine, args.adopt_existing)
         elif args.command == "seed-demo":
-            seed_demo(engine, os.environ.get("FIXRATE_DEMO_PASSWORD") or getpass.getpass("Demo password (12+ chars): "))
+            password = os.environ.get("FIXRATE_DEMO_PASSWORD") or getpass.getpass("Demo password (12+ chars): ")
+            if args.configure_accounts:
+                from app.demo_accounts import configure_demo_accounts, validate_demo_credentials
+                validate_demo_credentials(password, os.environ)
+            seed_demo(engine, password)
+            if args.configure_accounts:
+                changed = configure_demo_accounts(engine, password, os.environ)
+                print(f"Demo accounts configured: {changed} changed")
+        elif args.command == "seed-presentation":
+            from app.integration.presentation import seed_presentation
+            import json
+            password = os.environ.get("FIXRATE_DEMO_PASSWORD") or getpass.getpass("Presentation password (12+ chars): ")
+            print(json.dumps(seed_presentation(engine,password),ensure_ascii=False))
         else:
             password = hash_password(getpass.getpass("Password (12+ chars): "))
             with engine.begin() as conn:
