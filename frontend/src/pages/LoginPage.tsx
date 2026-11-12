@@ -1,11 +1,11 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { DEMO_MODE } from "@/shared/api/request";
+import { DEMO_MODE, request } from "@/shared/api/request";
 import { ROLE_DESCRIPTIONS, ROLE_LABELS, homePathForRole } from "@/shared/lib/roles";
 import { useSession } from "@/shared/session/SessionContext";
 import type { Role } from "@/shared/types/domain";
 import { Button } from "@/shared/ui/Button";
-import { FormField, Input } from "@/shared/ui/Form";
+import { FormField, Input, Select } from "@/shared/ui/Form";
 import { Icon } from "@/shared/ui/Icon";
 import { AuthPasswordInput } from "@/features/auth/AuthPasswordInput";
 import { describeAuthFailure, focusAuthError, type AuthErrors } from "@/features/auth/authValidation";
@@ -24,6 +24,7 @@ export function LoginPage() {
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [needsSite, setNeedsSite] = useState(false);
+  const [sites, setSites] = useState<{site_id:string;name:string}[]>([]);
   const motion = useContext(AuthMotionContext);
   const confirmedNavigation = useRef(false);
   const alive = useRef(false);
@@ -86,6 +87,12 @@ export function LoginPage() {
             setError(result.message ?? "");
             validation.server(result.fields);
             if (result.requiresSite || result.fields?.site_id) setNeedsSite(true);
+            if (result.requiresSite) {
+              try {
+                const choices = await request<{site_id:string;name:string}[]>('/api/v1/auth/sites', {method:'POST',body:JSON.stringify({email:email.trim(),password})});
+                if(alive.current && activeRoute.current && Array.isArray(choices)) {setSites(choices);if(choices.length)setError('Выберите здание, чтобы войти.');}
+              } catch { /* Keep the existing explicit site-ID fallback if discovery is unavailable. */ }
+            }
             if (result.fields) setServerFocus(result.fields);
           } finally { if (alive.current) setPending(false); }
         }}>
@@ -97,8 +104,10 @@ export function LoginPage() {
               <AuthPasswordInput id="login-password" name="password" className="auth-input" data-validation={validation.state("password")} required autoComplete="current-password" placeholder="Введите пароль" value={password} onBlur={event => validation.blur("password", event)} onChange={e => { setPassword(e.target.value); validation.change("password"); setError(""); }} />
             </FormField>
 
-            {needsSite && <FormField label="ID объекта" htmlFor="login-site" className="auth-field" error={validation.errors.site_id}>
+            {needsSite && <FormField label={sites.length ? 'Здание' : 'ID объекта'} htmlFor="login-site" className="auth-field" error={validation.errors.site_id}>
+                {sites.length ? <Select id="login-site" name="site_id" className="auth-input" required value={siteId} onChange={e=>{setSiteId(e.target.value);validation.change('site_id');setError('');}}><option value="">Выберите здание</option>{sites.map(site=><option key={site.site_id} value={site.site_id}>{site.name}</option>)}</Select> :
                 <Input id="login-site" name="site_id" className="auth-input" data-validation={validation.state("site_id")} autoComplete="off" placeholder="UUID объекта" required={needsSite} value={siteId} onBlur={event => validation.blur("site_id", event)} onChange={e => { setSiteId(e.target.value); validation.change("site_id"); setError(""); }} />
+                }
               </FormField>}
             <AuthFormError id="login-error" message={error} />
             <Button className="auth-submit" type="submit" disabled={pending}>

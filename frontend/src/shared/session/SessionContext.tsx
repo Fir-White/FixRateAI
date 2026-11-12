@@ -69,6 +69,7 @@ interface SessionContextValue {
   loading: boolean;
   updateEmail: (email: string, currentPassword: string) => Promise<void>;
   signIn: (email: string, password: string, siteId?: string) => Promise<SessionProfile>;
+  switchSite: (siteId: string) => Promise<void>;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -149,6 +150,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return {
       profile: DEMO_MODE ? (role ? DEMO_PROFILES[role] : null) : profile,
       loading, login, logout, switchRole: login,
+      switchSite: async (siteId: string) => {
+        if (DEMO_MODE) throw new Error('Переключение зданий доступно при подключении к серверу');
+        await request('/api/v1/auth/site', {method: 'POST', body: JSON.stringify({site_id: siteId})});
+        clearAiKey(); authVersion.current++; invalidateApiQueries(); notifyOtherTabs();
+        window.location.replace('/equipment');
+      },
       updateEmail: async (email: string, currentPassword: string) => {
         if (DEMO_MODE) throw new Error("Изменение профиля недоступно в этом режиме");
         const updated = await request<SessionProfile>("/api/v1/maintenance/users/me/email", {method: "PATCH", body: JSON.stringify({email, current_password: currentPassword})});

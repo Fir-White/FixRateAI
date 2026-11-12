@@ -262,6 +262,16 @@ def create_app(engine=None):
         session.execute(text("SELECT 1"))
         return {"status": "ok", "database": "ready"}
 
+    @app.post("/api/v1/auth/sites")
+    def login_sites(payload: Login, response: Response, session=Depends(db)):
+        user = session.execute(text('SELECT user_id,password_hash FROM users WHERE lower(email)=lower(:email) AND is_active'),dict(email=payload.email)).mappings().first()
+        if not user or not verify_password(payload.password,user['password_hash']):
+            raise HTTPException(401, 'Неверный email или пароль')
+        response.headers['Cache-Control']='private, no-store'
+        rows=session.execute(text('''SELECT s.site_id,s.name FROM sites s JOIN site_memberships m USING(site_id)
+            WHERE m.user_id=:user AND m.is_active AND s.is_active ORDER BY s.name,s.site_id'''),dict(user=user['user_id'])).mappings().all()
+        return [dict(row) for row in rows]
+
     @app.post("/api/v1/auth/login")
     def login(payload: Login, response: Response, request: Request, session=Depends(db)):
         # Login is also same-origin; the session is not chosen by a role header.
@@ -719,6 +729,10 @@ def create_app(engine=None):
 
     from app.integration.management import register_routes
     register_routes(app,views,db)
+    from app.integration.registry import register_routes as register_registry
+    register_registry(app, views, storage, runtime_settings)
+    from app.integration.registry_excel import register_routes as register_registry_excel
+    register_registry_excel(app, views)
     from app.integration.analyst import register_analyst_routes
     register_analyst_routes(app,views,photo_path,editable)
     from app.integration.incidents import register_incident_routes

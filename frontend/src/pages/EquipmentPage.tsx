@@ -12,10 +12,17 @@ import { Icon } from "@/shared/ui/Icon";
 import { EquipmentTable } from "@/entities/equipment/EquipmentTable";
 import type { EquipmentState } from "@/shared/types/domain";
 import { useSession } from "@/shared/session/SessionContext";
+import { DEMO_MODE } from "@/shared/api/request";
+import { EquipmentRegistry } from "@/features/equipment/EquipmentRegistry";
 
 type StateFilter = "all" | EquipmentState;
 
 export function EquipmentPage() {
+  const { profile } = useSession();
+  return !DEMO_MODE && profile?.role !== 'executor' ? <EquipmentRegistry/> : <LegacyEquipmentPage/>;
+}
+
+function LegacyEquipmentPage() {
   const { profile } = useSession();
   const query = useApiQuery(readQueries.equipment.load, [], undefined, readQueries.equipment.key);
   const [search, setSearch] = useWorkspaceState("equipment.search", "", isShortString);

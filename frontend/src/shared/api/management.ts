@@ -11,7 +11,7 @@ export const managementApi = {
   equipment: () => request<{items: EquipmentRecord[]; total: number}>(base + "/equipment?limit=100"),
   getEquipment: (key: string) => request<EquipmentRecord>(`${base}/equipment/${id(key)}`),
   saveEquipment: (body: EquipmentInput, key?: string) => send<EquipmentRecord>(`/equipment${key ? "/"+id(key) : ""}`,key ? "PATCH" : "POST",body),
-  createReference: (kind: "systems" | "equipment-types" | "skills", body: {code: string; name: string; validity_required?: boolean}) => send<{id: string}>(`/management/${kind}`,"POST",body),
+  createReference: (kind: "systems" | "equipment-types" | "skills", body: {code: string; name: string; validity_required?: boolean; system_group?: import('../types/registry').SystemGroup | null}) => send<{id: string}>(`/management/${kind}`,"POST",body),
   services: (key: string) => request<ServiceConfiguration[]>(`${base}/equipment/${id(key)}/service-configurations`),
   saveService: (key: string, body: ServiceConfiguration, binding?: string) => {
     const {binding_id: _binding,revision: _revision,rule_version: _version,source_text: _source,...input}=body;

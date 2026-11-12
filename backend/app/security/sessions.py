@@ -81,7 +81,7 @@ def authenticate(request: Request, session) -> Principal:
     """), {"token": digest(token)}).mappings().first()
     if not row or row["role"] not in SQL_ROLES:
         raise HTTPException(401, "Сессия истекла или доступ отозван")
-    if SQL_ROLES[row["role"]] == "director" and request.method not in ("GET", "HEAD", "OPTIONS") and not (((request.method == "PATCH" and request.url.path == "/api/v1/maintenance/users/me/email") or (request.method == "POST" and request.url.path == "/api/v1/maintenance/users/me/password")) or request.url.path in ("/api/v1/auth/logout", "/api/v1/maintenance/notifications/read-all", "/api/v1/maintenance/notifications/clear") or (request.url.path.startswith("/api/v1/maintenance/notifications/") and request.url.path.endswith(("/read", "/delete")))):
+    if SQL_ROLES[row["role"]] == "director" and request.method not in ("GET", "HEAD", "OPTIONS") and not (((request.method == "PATCH" and request.url.path == "/api/v1/maintenance/users/me/email") or (request.method == "POST" and request.url.path == "/api/v1/maintenance/users/me/password")) or request.url.path in ("/api/v1/auth/logout", "/api/v1/auth/site", "/api/v1/maintenance/notifications/read-all", "/api/v1/maintenance/notifications/clear") or (request.url.path.startswith("/api/v1/maintenance/notifications/") and request.url.path.endswith(("/read", "/delete")))):
         raise HTTPException(403, "Руководитель имеет доступ только для чтения")
     if request.method not in ("GET", "HEAD", "OPTIONS"):
         csrf = request.headers.get("x-csrf-token", "")

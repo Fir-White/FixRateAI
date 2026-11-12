@@ -4,7 +4,7 @@ from app.security.sessions import has_role
 Equipment CRUD and user/profile/role capabilities adapt new_backend c559d27.
 The existing opaque session, site scope, CSRF and revision protocol remain shared.
 """
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from calendar import monthrange
 from datetime import date, datetime, time, timedelta, timezone
 import json
@@ -21,6 +21,7 @@ from app.schemas.maintenance import CalendarPattern
 from app.schemas.management import (ApplicationDecision,AvailabilityInput,CrewInput,CrewEdit,
     EmploymentEdit,EquipmentCreate,EquipmentEdit,NamedReference,QualificationInput,
     Registration,ServiceConfiguration,ShiftInput,ShiftEdit,SkillInput,Revision,PatternPreview,AccountEmailUpdate,AccountPasswordUpdate)
+from app.schemas.registry import SystemCreate
 from app.security.sessions import SQL_ROLES,hash_password,verify_password,COOKIE,digest
 from app.scheduling.recurrence import pattern_description,occurrence_dates,occurrence_pairs
 from app.scheduling.shifts import expand_shift,employment_availability
@@ -78,8 +79,8 @@ def equipment_response(row):
         'equipment_type_id','asset_code','name','serial_number','commissioned_on','location','properties','status','revision')}
 
 
-def save_equipment(v,data,identity=None):
-    with _edit(v,roles=('chief_engineer','admin','dispatcher'),exact_roles=True):
+def save_equipment(v,data,identity=None,*,_locked=False):
+    with (nullcontext() if _locked else _edit(v,roles=('chief_engineer','admin','dispatcher'),exact_roles=True)):
         # Serializes hierarchy changes and uniqueness checks for this site's catalog.
         v.session.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"),{'key':f'catalog:{v.principal.site_id}'})
         row=_equipment(v,identity,True) if identity else None
@@ -171,12 +172,12 @@ def service_configurations(v,equipment_id):
     return rows
 
 
-def save_service(v,equipment_id,data,binding_id=None):
+def save_service(v,equipment_id,data,binding_id=None,*,_locked=False):
     if v.principal.role not in ("chief_engineer","admin"):
         raise HTTPException(403,"Регламент изменяет главный инженер")
     if data.enabled and v.principal.role!="chief_engineer":
         raise HTTPException(403,"Публикацию утверждает главный инженер")
-    with _edit(v,roles=("chief_engineer","admin")):
+    with (nullcontext() if _locked else _edit(v,roles=("chief_engineer","admin"))):
         v.session.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"),{'key':f'catalog:{v.principal.site_id}'})
         eq=_equipment(v,equipment_id,True)
         if data.enabled and data.pattern.frequency=="yearly_count" and data.pattern.annual_policy=="from_anchor" and (not eq.commissioned_on or data.pattern.anchor_date!=eq.commissioned_on):
@@ -278,17 +279,18 @@ def register_routes(app,views,db):
     @app.get(PREFIX+'/management/catalog')
     def catalog(v=Depends(views)):
         _guard(v,'director','admin','dispatcher','engineer')
-        return dict(systems=[dict(id=r.system_id,code=r.code,name=r.name) for r in v.rows('engineering_systems') if r.is_active],
+        return dict(systems=[dict(id=r.system_id,code=r.code,name=r.name,system_group=r.system_group,revision=r.revision) for r in v.rows('engineering_systems') if r.is_active],
             equipment_types=[dict(id=r.equipment_type_id,code=r.code,name=r.name) for r in v.rows('equipment_types')],
             operations=[dict(id=r.operation_template_id,system_id=r.system_id,code=r.code,title=r.title,instructions=r.description or r.title,
                 maintenance_type=v.one('maintenance_types',maintenance_type_id=r.maintenance_type_id).name) for r in v.rows('operation_templates') if r.is_active],
             skills=[dict(id=r.skill_id,code=r.code,name=r.name,validity_required=r.validity_required) for r in v.rows('skills')])
 
     @app.post(PREFIX+'/management/systems',status_code=201)
-    def system_create(command:NamedReference,v=Depends(views)):
+    def system_create(command:SystemCreate,v=Depends(views)):
         with _edit(v,roles=('chief_engineer','admin','dispatcher'),exact_roles=True):
+            v.session.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"),{'key':f'catalog:{v.principal.site_id}'})
             row=v.repo.add('engineering_systems',site_id=v.principal.site_id,**command.model_dump())
-            return dict(id=row.system_id,name=row.name,code=row.code)
+            return dict(id=row.system_id,name=row.name,code=row.code,system_group=row.system_group,revision=row.revision)
 
     @app.post(PREFIX+'/management/equipment-types',status_code=201)
     def type_create(command:NamedReference,v=Depends(views)):

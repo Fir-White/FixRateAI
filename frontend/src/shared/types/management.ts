@@ -22,7 +22,7 @@ export const patternDefaults = (day: string, frequency: CalendarPattern["frequen
   week_parity: "any", month_days: [], months: [], period_edge: "end", short_month: "last_day",
   count_per_year: frequency === "yearly_count" ? 5 : null, dates: [], excluded_dates: [],
 });
-export interface Reference { id: string; code: string; name: string; validity_required?: boolean }
+export interface Reference { id: string; code: string; name: string; validity_required?: boolean; system_group?: import('./registry').SystemGroup | null; revision?: number }
 export interface ManagementCatalog { systems: Reference[]; equipment_types: Reference[]; skills: Reference[];
   operations: {id:string;system_id:string;code:string;title:string;instructions:string;maintenance_type:"ТО1"|"ТО2"|"ТО3"}[];
 }

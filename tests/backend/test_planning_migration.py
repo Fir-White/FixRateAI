@@ -36,16 +36,22 @@ def test_upgrade_010_preserves_all_rows_and_supports_full_day_shifts(runtime):
                 "SELECT site_id,user_id,'TEST legacy night shift','{}','2026-01-01','22:00','06:00' "
                 "FROM site_memberships WHERE role IN ('executor','technician') LIMIT 1"))
 
+        # Compare all original columns/rows; later migrations may add columns and tables.
+        with engine.connect() as conn:
+            names = list(conn.scalars(text("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' AND table_name NOT IN ('fixrate_schema_migrations','maintenance_types')")))
+            columns = {name: list(conn.scalars(text("SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name=:name ORDER BY ordinal_position"),dict(name=name))) for name in names}
+
         def snapshot():
             with engine.connect() as conn:
-                names = list(conn.scalars(text("SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' AND table_name NOT IN ('fixrate_schema_migrations','maintenance_types')")))
-                return {table: conn.scalar(text(f'SELECT md5(coalesce(jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text)::text,\'[]\')) FROM "{table}" t')) for table in names}
+                return {name: conn.scalar(text(f'SELECT md5(coalesce(jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text)::text,\'[]\')) FROM (SELECT '+','.join('"'+c+'"' for c in columns[name])+f' FROM "{name}") t')) for name in names}
 
         before = snapshot()
         migrate(engine)
         migrate(engine)
         assert snapshot() == before
         with engine.begin() as conn:
+            assert conn.scalar(text('SELECT count(*) FROM engineering_systems WHERE system_group IS NOT NULL OR revision<>1')) == 0
+            assert conn.scalar(text('SELECT count(*) FROM equipment_components')) == 0
             assert conn.scalar(text("SELECT count(*) FROM maintenance_types WHERE code='TO3' AND name='ТО3'")) == 1
             row = conn.execute(text('SELECT shift_rule_id,starts_local,ends_local FROM employee_shift_rules LIMIT 1')).one()
             conn.execute(text('UPDATE employee_shift_rules SET ends_local=starts_local WHERE shift_rule_id=:id'), dict(id=row.shift_rule_id))

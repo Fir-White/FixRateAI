@@ -44,7 +44,7 @@ test("account preserves session after failed logout and clears the previous user
   await signIn(page, "dispatcher@workspace.test");
   const canvas = await page.locator(".workspace-aurora canvas").elementHandle();
   await page.getByRole("link", { name: "Оборудование", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Оборудование", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Работы + реестр оборудования", exact: true })).toBeVisible();
   expect(await page.locator(".workspace-aurora canvas").evaluate((element, original) => element === original, canvas)).toBe(true);
   await page.getByRole("link", {name: "Учётная запись", exact: true}).click();
   await expect(page.getByRole("heading", {name: "Мой профиль"})).toBeVisible();
