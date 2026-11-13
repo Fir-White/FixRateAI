@@ -1,0 +1,1011 @@
+{
+  "$defs": {
+    "ApplyOptimization": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_revision": {
+          "minimum": 1,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "kind": {
+          "enum": [
+            "baseline",
+            "optimized"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "expected_revision",
+        "kind",
+        "reason"
+      ],
+      "title": "ApplyOptimization",
+      "type": "object"
+    },
+    "DailyPlanLoad": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "format": "date",
+          "title": "Date",
+          "type": "string"
+        },
+        "planned_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Planned Person Hours"
+        },
+        "reserved_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Reserved Person Hours"
+        },
+        "available_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Available Person Hours"
+        },
+        "deficit_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Deficit Person Hours"
+        }
+      },
+      "required": [
+        "date",
+        "planned_person_hours",
+        "reserved_person_hours",
+        "available_person_hours",
+        "deficit_person_hours"
+      ],
+      "title": "DailyPlanLoad",
+      "type": "object"
+    },
+    "OptimizationMetrics": {
+      "additionalProperties": false,
+      "properties": {
+        "total_occurrences": {
+          "title": "Total Occurrences",
+          "type": "integer"
+        },
+        "covered_occurrences": {
+          "title": "Covered Occurrences",
+          "type": "integer"
+        },
+        "mandatory_work_coverage": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Mandatory Work Coverage"
+        },
+        "total_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Total Person Hours"
+        },
+        "placed_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Placed Person Hours"
+        },
+        "unplaced_segments": {
+          "title": "Unplaced Segments",
+          "type": "integer"
+        },
+        "peak_daily_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Peak Daily Person Hours"
+        },
+        "peak_daily_utilization": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Peak Daily Utilization"
+        },
+        "daily_load_balance": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Daily Load Balance"
+        },
+        "staff_utilization": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Staff Utilization"
+        },
+        "fairness_spread": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Fairness Spread"
+        },
+        "changed_assignments": {
+          "title": "Changed Assignments",
+          "type": "integer"
+        },
+        "unfilled_slots": {
+          "title": "Unfilled Slots",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "total_occurrences",
+        "covered_occurrences",
+        "mandatory_work_coverage",
+        "total_person_hours",
+        "placed_person_hours",
+        "unplaced_segments",
+        "peak_daily_person_hours",
+        "peak_daily_utilization",
+        "daily_load_balance",
+        "staff_utilization",
+        "fairness_spread",
+        "changed_assignments",
+        "unfilled_slots"
+      ],
+      "title": "OptimizationMetrics",
+      "type": "object"
+    },
+    "OptimizationOptions": {
+      "additionalProperties": false,
+      "properties": {
+        "grid_minutes": {
+          "default": 60,
+          "enum": [
+            15,
+            30,
+            60
+          ],
+          "title": "Grid Minutes",
+          "type": "integer"
+        },
+        "time_limit_seconds": {
+          "default": 10,
+          "maximum": 30,
+          "minimum": 1,
+          "title": "Time Limit Seconds",
+          "type": "integer"
+        },
+        "replan_existing": {
+          "default": false,
+          "title": "Replan Existing",
+          "type": "boolean"
+        },
+        "start_buffer_minutes": {
+          "default": 5,
+          "maximum": 60,
+          "minimum": 1,
+          "title": "Start Buffer Minutes",
+          "type": "integer"
+        },
+        "random_seed": {
+          "default": 1,
+          "maximum": 2147483647,
+          "minimum": 0,
+          "title": "Random Seed",
+          "type": "integer"
+        },
+        "weights": {
+          "$ref": "#/$defs/OptimizationWeights"
+        }
+      },
+      "title": "OptimizationOptions",
+      "type": "object"
+    },
+    "OptimizationPlacements": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/WorkSegment"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "worker_labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Worker Labels",
+          "type": "object"
+        },
+        "occurrence_labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Occurrence Labels",
+          "type": "object"
+        },
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "worker_labels",
+        "occurrence_labels",
+        "total"
+      ],
+      "title": "OptimizationPlacements",
+      "type": "object"
+    },
+    "OptimizationResult": {
+      "additionalProperties": false,
+      "properties": {
+        "model_version": {
+          "title": "Model Version",
+          "type": "string"
+        },
+        "objective_version": {
+          "title": "Objective Version",
+          "type": "string"
+        },
+        "candidate_count": {
+          "title": "Candidate Count",
+          "type": "integer"
+        },
+        "variable_count": {
+          "title": "Variable Count",
+          "type": "integer"
+        },
+        "model_complete": {
+          "title": "Model Complete",
+          "type": "boolean"
+        },
+        "completion_reason": {
+          "enum": [
+            "finished",
+            "time_limit",
+            "model_limit",
+            "needs_input",
+            "solver_unavailable"
+          ],
+          "title": "Completion Reason",
+          "type": "string"
+        },
+        "diagnostics": {
+          "items": {
+            "$ref": "#/$defs/PlanIssue"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "diagnostic_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Diagnostic Counts",
+          "type": "object"
+        },
+        "baseline": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OptimizationVariant"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "optimized": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OptimizationVariant"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ready_for_real_plan": {
+          "const": false,
+          "default": false,
+          "title": "Ready For Real Plan",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "model_version",
+        "objective_version",
+        "candidate_count",
+        "variable_count",
+        "model_complete",
+        "completion_reason",
+        "diagnostics",
+        "diagnostic_counts",
+        "baseline",
+        "optimized"
+      ],
+      "title": "OptimizationResult",
+      "type": "object"
+    },
+    "OptimizationRun": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "format": "uuid",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "draft_id": {
+          "format": "uuid",
+          "title": "Draft Id",
+          "type": "string"
+        },
+        "base_revision": {
+          "title": "Base Revision",
+          "type": "integer"
+        },
+        "created_by": {
+          "format": "uuid",
+          "title": "Created By",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Started At"
+        },
+        "finished_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Finished At"
+        },
+        "state": {
+          "enum": [
+            "queued",
+            "running",
+            "cancel_requested",
+            "cancelled",
+            "succeeded",
+            "failed"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "options": {
+          "$ref": "#/$defs/OptimizationOptions"
+        },
+        "input_sha256": {
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error Code"
+        },
+        "result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OptimizationResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "applied_revision": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Applied Revision"
+        },
+        "applied_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "baseline",
+                "optimized"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Applied Kind"
+        }
+      },
+      "required": [
+        "run_id",
+        "draft_id",
+        "base_revision",
+        "created_by",
+        "created_at",
+        "started_at",
+        "finished_at",
+        "state",
+        "options",
+        "input_sha256",
+        "error_code"
+      ],
+      "title": "OptimizationRun",
+      "type": "object"
+    },
+    "OptimizationRunList": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/OptimizationRun"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "total"
+      ],
+      "title": "OptimizationRunList",
+      "type": "object"
+    },
+    "OptimizationVariant": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "baseline",
+            "optimized"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "method_version": {
+          "title": "Method Version",
+          "type": "string"
+        },
+        "solver_status": {
+          "enum": [
+            "HEURISTIC",
+            "OPTIMAL",
+            "FEASIBLE",
+            "INFEASIBLE",
+            "UNKNOWN",
+            "MODEL_INVALID",
+            "UNAVAILABLE"
+          ],
+          "title": "Solver Status",
+          "type": "string"
+        },
+        "coverage_status": {
+          "enum": [
+            "FEASIBLE",
+            "INFEASIBLE",
+            "UNKNOWN"
+          ],
+          "title": "Coverage Status",
+          "type": "string"
+        },
+        "optimality_proven": {
+          "title": "Optimality Proven",
+          "type": "boolean"
+        },
+        "optimality_scope": {
+          "const": "discrete_candidate_model",
+          "default": "discrete_candidate_model",
+          "title": "Optimality Scope",
+          "type": "string"
+        },
+        "model_complete": {
+          "title": "Model Complete",
+          "type": "boolean"
+        },
+        "duration_seconds": {
+          "title": "Duration Seconds",
+          "type": "number"
+        },
+        "objective_value": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Objective Value"
+        },
+        "objective_bound": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Objective Bound"
+        },
+        "metrics": {
+          "$ref": "#/$defs/OptimizationMetrics"
+        },
+        "validation": {
+          "$ref": "#/$defs/PlanValidation"
+        },
+        "applicable": {
+          "title": "Applicable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "method_version",
+        "solver_status",
+        "coverage_status",
+        "optimality_proven",
+        "model_complete",
+        "duration_seconds",
+        "metrics",
+        "validation",
+        "applicable"
+      ],
+      "title": "OptimizationVariant",
+      "type": "object"
+    },
+    "OptimizationWeights": {
+      "additionalProperties": false,
+      "properties": {
+        "daily_peak": {
+          "default": 10,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Daily Peak",
+          "type": "integer"
+        },
+        "worker_spread": {
+          "default": 3,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Worker Spread",
+          "type": "integer"
+        },
+        "changes": {
+          "default": 10,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Changes",
+          "type": "integer"
+        },
+        "earliness": {
+          "default": 0,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Earliness",
+          "type": "integer"
+        }
+      },
+      "title": "OptimizationWeights",
+      "type": "object"
+    },
+    "PlanIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "row_number": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Row Number"
+        },
+        "occurrence_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Occurrence Id"
+        },
+        "segment_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Segment Id"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "PlanIssue",
+      "type": "object"
+    },
+    "PlanValidation": {
+      "additionalProperties": false,
+      "properties": {
+        "validator_version": {
+          "default": "draft-validator-v1",
+          "title": "Validator Version",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "valid",
+            "incomplete",
+            "invalid"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "checked_at": {
+          "format": "date-time",
+          "title": "Checked At",
+          "type": "string"
+        },
+        "input_sha256": {
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "resource_sha256": {
+          "title": "Resource Sha256",
+          "type": "string"
+        },
+        "total_issues": {
+          "title": "Total Issues",
+          "type": "integer"
+        },
+        "issue_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Issue Counts",
+          "type": "object"
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/PlanIssue"
+          },
+          "title": "Issues",
+          "type": "array"
+        },
+        "total_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Total Person Hours"
+        },
+        "placed_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Placed Person Hours"
+        },
+        "unplaced_segments": {
+          "title": "Unplaced Segments",
+          "type": "integer"
+        },
+        "days": {
+          "items": {
+            "$ref": "#/$defs/DailyPlanLoad"
+          },
+          "title": "Days",
+          "type": "array"
+        },
+        "ready_for_real_plan": {
+          "const": false,
+          "default": false,
+          "title": "Ready For Real Plan",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "status",
+        "checked_at",
+        "input_sha256",
+        "resource_sha256",
+        "total_issues",
+        "issue_counts",
+        "issues",
+        "total_person_hours",
+        "placed_person_hours",
+        "unplaced_segments",
+        "days"
+      ],
+      "title": "PlanValidation",
+      "type": "object"
+    },
+    "StartOptimization": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_revision": {
+          "minimum": 1,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "idempotency_key": {
+          "format": "uuid",
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "options": {
+          "$ref": "#/$defs/OptimizationOptions"
+        }
+      },
+      "required": [
+        "expected_revision",
+        "idempotency_key"
+      ],
+      "title": "StartOptimization",
+      "type": "object"
+    },
+    "WorkSegment": {
+      "additionalProperties": false,
+      "properties": {
+        "segment_id": {
+          "format": "uuid",
+          "title": "Segment Id",
+          "type": "string"
+        },
+        "occurrence_id": {
+          "format": "uuid",
+          "title": "Occurrence Id",
+          "type": "string"
+        },
+        "equipment_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "title": "Equipment Ids",
+          "type": "array"
+        },
+        "person_hours": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Person Hours"
+        },
+        "start_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start At"
+        },
+        "end_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End At"
+        },
+        "worker_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Worker Ids",
+          "type": "array"
+        },
+        "locked": {
+          "default": false,
+          "title": "Locked",
+          "type": "boolean"
+        },
+        "depends_on_segment_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Depends On Segment Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "segment_id",
+        "occurrence_id",
+        "equipment_ids",
+        "person_hours"
+      ],
+      "title": "WorkSegment",
+      "type": "object"
+    }
+  }
+}

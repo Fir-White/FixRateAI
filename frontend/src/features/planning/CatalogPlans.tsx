@@ -1,4 +1,4 @@
-import { useDeferredValue,useRef,useState } from 'react';
+import { lazy,Suspense,useDeferredValue,useRef,useState } from 'react';
 import { draftPlansApi as api,type DraftRecord,type GenerationInput,type GenerationPreview,type PlanValidation,type WorkOccurrence,type WorkSegment } from '@/shared/api/draftPlans';
 import { catalogImportsApi } from '@/shared/api/catalogImports';
 import { useApiQuery } from '@/shared/lib/useApiQuery';
@@ -12,6 +12,7 @@ import { Drawer } from '@/shared/ui/Drawer';
 import { PlanningChoices,PlanningPages } from './PlanningChoices';
 import { splitPersonHours } from './segmentHours';
 import './draft-plans.css';
+const OptimizationPanel=lazy(()=>import('./OptimizationPanel'));
 
 const failure=(error:unknown)=>error instanceof Error?error.message:'Не удалось выполнить действие';
 const titleForStatus={valid:'Проверенные ограничения соблюдены',incomplete:'Нужны данные или размещение',invalid:'Обнаружены нарушения'};
@@ -82,6 +83,7 @@ function SavedPlan({record,timezone,mayEdit,onPickVersion,onSaved}:{record:Draft
     {rows.status==='loading'&&<LoadingState/>}{rows.status==='error'&&<ErrorState description={rows.error}/>}
     {rows.status==='success'&&<><ul className="space-y-3" aria-label="Работы версии плана">{rows.data.items.map(item=><li className="rounded-xl border border-line p-4" key={item.occurrence_id}><Button variant="ghost" onClick={()=>setRoot(item.occurrence_id)}>{item.operation_code} · {item.title}</Button><p className="mt-2 text-sm">{item.maintenance_type} · {formatDate(item.earliest_date)} — {formatDate(item.latest_date)} · {item.total_person_hours} чел.-ч · бригада {item.crew_size}</p><p className="text-xs text-muted">Строка {item.source_row}, решение v{item.decision_revision} · {item.source_slot==='day'?'Дневное событие':item.source_slot==='night'?'Ночное событие':'В пределах допустимых дат'}</p></li>)}</ul>{!rows.data.total&&<p>В этом представлении работ нет.</p>}<PlanningPages offset={offset} total={rows.data.total} onPage={setOffset}/></>}
     <Button variant="ghost" aria-expanded={history} onClick={()=>setHistory(v=>!v)}>История версий плана</Button>{history&&<PlanVersions id={record.draft_id} onPick={onPickVersion}/>}
+    <Suspense fallback={<LoadingState/>}><OptimizationPanel record={record} timezone={timezone} mayEdit={mayEdit} onSaved={onSaved}/></Suspense>
     <Drawer open={root!==null} onClose={()=>setRoot(null)} title="Работа и сегменты плана">{root&&<RootSegments id={record.draft_id} revision={record.revision} rootId={root} timezone={timezone} mayEdit={mayEdit} onSaved={onSaved}/>}</Drawer>
   </section>;
 }

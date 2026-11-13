@@ -1,5 +1,9 @@
 # PostgreSQL, данные и история
 
+## Дополнение 016: расчёты черновика, 13.11.2026
+
+Последовательная цепочка дополнена `016_draft_optimization_runs.sql`: очередь расчётов, приватные снимки, lease, два результата, fingerprints/idempotency и ссылка на применённую версию из 015. Миграция только добавляет таблицу/индексы; прежние записи не обновляются. Upgrade проверяется от 010/013/014/015, включая непустые каталог, решение и версию черновика. [Фоновый процесс и проверки применения](optimization.md).
+
 ## Текущая схема и дополнение 009
 
 Текущая цепочка — 001–010: 41 прикладная таблица и `fixrate_schema_migrations`, всего 42. Принятые 001–008 не изменены. Новая `009_analyst_workflows.sql` добавляет `maintenance_notifications`, исходный день `schedule_entries.source_date` с уникальностью `(site_id, binding_id, source_date)`, фазу `work_readings.phase`, фактический контекст `work_reports.execution_context`, контекст проверки `evidence_files.verification_context`, `work_orders.overdue_since_at` и `exception_context`.

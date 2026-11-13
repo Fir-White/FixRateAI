@@ -27,6 +27,7 @@ from app.schemas.planning import WorkloadRequest, WorkloadResponse
 from app.schemas.registry import REGISTRY_INPUTS
 from app.schemas.catalog import CATALOG_CONTRACTS
 from app.schemas.draft_plans import DRAFT_CONTRACTS
+from app.schemas.optimization import OPTIMIZATION_CONTRACTS
 
 DOCS = ROOT / "docs"
 DIAGRAMS = DOCS / "assets/architecture"
@@ -243,6 +244,12 @@ def main():
         draft_path.write_text(json.dumps(draft_schema, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
     require(json.loads(draft_path.read_text(encoding='utf-8')) == draft_schema,
             'draft plan schema export differs; use --write-schema')
+    _, optimization_schema = models_json_schema([(model, 'validation') for model in OPTIMIZATION_CONTRACTS])
+    optimization_path = ROOT / 'contracts/optimization.schema.json'
+    if args.write_schema:
+        optimization_path.write_text(json.dumps(optimization_schema, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    require(json.loads(optimization_path.read_text(encoding='utf-8')) == optimization_schema,
+            'optimization schema export differs; use --write-schema')
     examples = json.loads((ROOT/"contracts/examples/maintenance.json").read_text(encoding="utf-8"))["examples"]
     parsed = validate_models(examples)
     comparisons = check_relations(parsed, examples)

@@ -14,7 +14,7 @@ from tests.backend.test_runtime_integration import runtime
 ROOT = Path(__file__).resolve().parents[2]
 
 
-@pytest.mark.parametrize('version',[10,13,14])
+@pytest.mark.parametrize('version',[10,13,14,15])
 def test_upgrade_preserves_all_rows_and_supports_full_day_shifts(runtime,version):
     runtime_engine, _ = runtime
     assert runtime_engine.url.database.startswith('fixrate_test_')
@@ -51,6 +51,13 @@ def test_upgrade_preserves_all_rows_and_supports_full_day_shifts(runtime,version
                         (decision_id,site_id,import_id,row_number,revision,created_by,reason,payload,binding_snapshot)
                         SELECT :id,site_id,import_id,:row,1,created_by,'TEST ONLY upgrade decision',CAST(:payload AS jsonb),'[]'
                         FROM regulation_catalog_imports LIMIT 1'''),dict(id=uuid4(),row=catalog['operations'][0]['row'],payload=DecisionInput().model_dump_json()))
+                if version>=15:
+                    conn.execute(text('''INSERT INTO planning_draft_versions
+                        (version_id,draft_id,site_id,import_id,revision,created_by,title,reason,starts_on,ends_on,input_sha256,
+                         source_snapshot,resource_snapshot,occurrences,segments,validation_snapshot,summary,month_summary)
+                        SELECT :version,:draft,site_id,import_id,1,created_by,'TEST ONLY retained draft','TEST ONLY upgrade',
+                          '2027-01-01','2027-01-31',:sha,'{"test":"source"}','{"test":"resources"}','[]','[]','{}','{}','[]'
+                        FROM regulation_catalog_imports LIMIT 1'''),dict(version=uuid4(),draft=uuid4(),sha='a'*64))
         with engine.begin() as conn:
             conn.execute(text("INSERT INTO employee_shift_rules(site_id,user_id,label,calendar_pattern,valid_from,starts_local,ends_local) "
                 "SELECT site_id,user_id,'TEST legacy night shift','{}','2026-01-01','22:00','06:00' "
@@ -74,7 +81,8 @@ def test_upgrade_preserves_all_rows_and_supports_full_day_shifts(runtime,version
             assert conn.scalar(text('SELECT count(*) FROM equipment_components')) == 0
             assert conn.scalar(text('SELECT count(*) FROM regulation_catalog_imports')) == (1 if version>=13 else 0)
             assert conn.scalar(text('SELECT count(*) FROM catalog_operation_decisions')) == (1 if version>=14 else 0)
-            assert conn.scalar(text('SELECT count(*) FROM planning_draft_versions')) == 0
+            assert conn.scalar(text('SELECT count(*) FROM planning_draft_versions')) == (1 if version>=15 else 0)
+            assert conn.scalar(text('SELECT count(*) FROM draft_optimization_runs')) == 0
             assert conn.scalar(text("SELECT count(*) FROM maintenance_types WHERE code='TO3' AND name='ТО3'")) == 1
             row = conn.execute(text('SELECT shift_rule_id,starts_local,ends_local FROM employee_shift_rules LIMIT 1')).one()
             conn.execute(text('UPDATE employee_shift_rules SET ends_local=starts_local WHERE shift_rule_id=:id'), dict(id=row.shift_rule_id))

@@ -140,6 +140,11 @@ def create_app(engine=None):
                 if not conn.scalar(text("SELECT to_regclass('public.maintenance_notifications')")):
                     raise RuntimeError("Apply migrations through 009 before starting the API")
             app.state.factory = make_session_factory(app.state.engine)
+            app.state.optimizer = None
+            if engine is None and os.environ.get('OPTIMIZATION_WORKER','true').lower()=='true':
+                from app.optimization_worker import OptimizationManager
+                app.state.optimizer=OptimizationManager(app.state.engine)
+                app.state.optimizer.start()
             app.state.forecaster = None
             if runtime_settings.forecast_provider == "rf":
                 try:
@@ -153,6 +158,7 @@ def create_app(engine=None):
             try:
                 yield
             finally:
+                if app.state.optimizer: app.state.optimizer.stop()
                 if scheduler:
                     scheduler.cancel()
                     try: await scheduler
@@ -740,6 +746,8 @@ def create_app(engine=None):
     register_catalog_decisions(app, views)
     from app.integration.draft_plans import register_routes as register_draft_plans
     register_draft_plans(app, views)
+    from app.integration.optimization import register_routes as register_optimization
+    register_optimization(app, views)
     from app.integration.analyst import register_analyst_routes
     register_analyst_routes(app,views,photo_path,editable)
     from app.integration.incidents import register_incident_routes

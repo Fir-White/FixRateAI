@@ -100,7 +100,7 @@ def get_version(v,identity,revision=None,*,full=True):
     return dict(row)
 
 
-def persist(v,*,draft_id,revision,title,reason,snapshot,sha,occurrences,segments,report,resource_snapshot,key=None,request_sha=None):
+def persist(v,*,draft_id,revision,title,reason,snapshot,sha,occurrences,segments,report,resource_snapshot,key=None,request_sha=None,action=None):
     request=GenerationInput.model_validate(snapshot['input']);identity=uuid4()
     summary=dict(occurrence_count=len(occurrences),segment_count=len(segments),total_person_hours=str(sum((o.total_person_hours for o in occurrences),Decimal(0))))
     due=defaultdict(Decimal);planned=defaultdict(Decimal)
@@ -116,7 +116,7 @@ def persist(v,*,draft_id,revision,title,reason,snapshot,sha,occurrences,segments
             actor=v.principal.user_id,title=title,reason=reason,start=request.starts_on,end=request.ends_on,sha=sha,
             source=json.dumps(snapshot,default=str),resources=json.dumps(resource_snapshot),occurrences=json.dumps([o.model_dump(mode='json') for o in occurrences]),
             segments=json.dumps([s.model_dump(mode='json') for s in segments]),validation=report.model_dump_json(),summary=json.dumps(summary),months=json.dumps(months),key=key,request_sha=request_sha))
-    _audit(v,'planning_draft_versions',identity,'create' if revision==1 else 'edit_segments',dict(draft_id=str(draft_id),revision=revision,source_sha256=sha,status=report.status))
+    _audit(v,'planning_draft_versions',identity,action or ('create' if revision==1 else 'edit_segments'),dict(draft_id=str(draft_id),revision=revision,source_sha256=sha,status=report.status))
     return metadata(get_version(v,draft_id,revision,full=False))
 
 
