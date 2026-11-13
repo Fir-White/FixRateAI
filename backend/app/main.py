@@ -734,6 +734,8 @@ def create_app(engine=None):
     register_registry(app, views, storage, runtime_settings)
     from app.integration.registry_excel import register_routes as register_registry_excel
     register_registry_excel(app, views)
+    from app.integration.catalog_imports import register_routes as register_catalog_imports
+    register_catalog_imports(app, views)
     from app.integration.analyst import register_analyst_routes
     register_analyst_routes(app,views,photo_path,editable)
     from app.integration.incidents import register_incident_routes

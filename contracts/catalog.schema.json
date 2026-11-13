@@ -1,0 +1,929 @@
+{
+  "$defs": {
+    "CatalogDetail": {
+      "properties": {
+        "import_id": {
+          "format": "uuid",
+          "title": "Import Id",
+          "type": "string"
+        },
+        "filename": {
+          "title": "Filename",
+          "type": "string"
+        },
+        "source_sha256": {
+          "title": "Source Sha256",
+          "type": "string"
+        },
+        "parser_version": {
+          "title": "Parser Version",
+          "type": "string"
+        },
+        "status": {
+          "const": "draft",
+          "title": "Status",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/$defs/CatalogSummary"
+        },
+        "source_kind": {
+          "const": "hvac_january_catalog",
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "groups": {
+          "items": {
+            "$ref": "#/$defs/CatalogGroup"
+          },
+          "title": "Groups",
+          "type": "array"
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/CatalogIssue"
+          },
+          "title": "Issues",
+          "type": "array"
+        },
+        "sheet2_diagnostic": {
+          "items": {
+            "$ref": "#/$defs/SourceCell"
+          },
+          "title": "Sheet2 Diagnostic",
+          "type": "array"
+        },
+        "header_context": {
+          "items": {
+            "$ref": "#/$defs/SourceCell"
+          },
+          "title": "Header Context",
+          "type": "array"
+        }
+      },
+      "required": [
+        "import_id",
+        "filename",
+        "source_sha256",
+        "parser_version",
+        "status",
+        "created_at",
+        "summary",
+        "source_kind",
+        "groups",
+        "issues",
+        "sheet2_diagnostic",
+        "header_context"
+      ],
+      "title": "CatalogDetail",
+      "type": "object"
+    },
+    "CatalogGroup": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "row": {
+          "title": "Row",
+          "type": "integer"
+        },
+        "parent_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Parent Id"
+        },
+        "source_cells": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Cells",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "code",
+        "title",
+        "row",
+        "parent_id",
+        "source_cells"
+      ],
+      "title": "CatalogGroup",
+      "type": "object"
+    },
+    "CatalogIssue": {
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "sheet": {
+          "title": "Sheet",
+          "type": "string"
+        },
+        "cell": {
+          "title": "Cell",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "sheet",
+        "cell",
+        "message"
+      ],
+      "title": "CatalogIssue",
+      "type": "object"
+    },
+    "CatalogList": {
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/CatalogRecord"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "total"
+      ],
+      "title": "CatalogList",
+      "type": "object"
+    },
+    "CatalogMark": {
+      "properties": {
+        "address": {
+          "title": "Address",
+          "type": "string"
+        },
+        "present": {
+          "title": "Present",
+          "type": "boolean"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text"
+        },
+        "raw_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Raw Value"
+        },
+        "cell_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Type"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Style"
+        },
+        "formula": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Formula"
+        },
+        "sheet": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sheet"
+        },
+        "day": {
+          "maximum": 31,
+          "minimum": 1,
+          "title": "Day",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "address",
+        "present",
+        "text",
+        "raw_value",
+        "cell_type",
+        "style",
+        "formula",
+        "day"
+      ],
+      "title": "CatalogMark",
+      "type": "object"
+    },
+    "CatalogOperation": {
+      "properties": {
+        "row": {
+          "title": "Row",
+          "type": "integer"
+        },
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "maintenance_type": {
+          "title": "Maintenance Type",
+          "type": "string"
+        },
+        "frequency_raw": {
+          "title": "Frequency Raw",
+          "type": "string"
+        },
+        "frequency_hint": {
+          "$ref": "#/$defs/FrequencyHint"
+        },
+        "group_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Group Id"
+        },
+        "quality_flags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Quality Flags",
+          "type": "array"
+        },
+        "interpretation": {
+          "const": "UNKNOWN",
+          "title": "Interpretation",
+          "type": "string"
+        },
+        "ready_for_real_plan": {
+          "const": false,
+          "title": "Ready For Real Plan",
+          "type": "boolean"
+        },
+        "norm_value": {
+          "default": null,
+          "title": "Norm Value",
+          "type": "null"
+        },
+        "norm_unit": {
+          "default": null,
+          "title": "Norm Unit",
+          "type": "null"
+        },
+        "quantity": {
+          "default": null,
+          "title": "Quantity",
+          "type": "null"
+        },
+        "equipment_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Equipment Ids",
+          "type": "array"
+        },
+        "calendar_month": {
+          "const": 1,
+          "title": "Calendar Month",
+          "type": "integer"
+        },
+        "calendar_year": {
+          "default": null,
+          "title": "Calendar Year",
+          "type": "null"
+        },
+        "mark_count": {
+          "title": "Mark Count",
+          "type": "integer"
+        },
+        "source_cells": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Source Cells",
+          "type": "object"
+        }
+      },
+      "required": [
+        "row",
+        "code",
+        "title",
+        "maintenance_type",
+        "frequency_raw",
+        "frequency_hint",
+        "group_id",
+        "quality_flags",
+        "interpretation",
+        "ready_for_real_plan",
+        "equipment_ids",
+        "calendar_month",
+        "mark_count",
+        "source_cells"
+      ],
+      "title": "CatalogOperation",
+      "type": "object"
+    },
+    "CatalogOperationSource": {
+      "properties": {
+        "row": {
+          "title": "Row",
+          "type": "integer"
+        },
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "maintenance_type": {
+          "title": "Maintenance Type",
+          "type": "string"
+        },
+        "frequency_raw": {
+          "title": "Frequency Raw",
+          "type": "string"
+        },
+        "frequency_hint": {
+          "$ref": "#/$defs/FrequencyHint"
+        },
+        "group_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Group Id"
+        },
+        "quality_flags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Quality Flags",
+          "type": "array"
+        },
+        "interpretation": {
+          "const": "UNKNOWN",
+          "title": "Interpretation",
+          "type": "string"
+        },
+        "ready_for_real_plan": {
+          "const": false,
+          "title": "Ready For Real Plan",
+          "type": "boolean"
+        },
+        "norm_value": {
+          "default": null,
+          "title": "Norm Value",
+          "type": "null"
+        },
+        "norm_unit": {
+          "default": null,
+          "title": "Norm Unit",
+          "type": "null"
+        },
+        "quantity": {
+          "default": null,
+          "title": "Quantity",
+          "type": "null"
+        },
+        "equipment_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Equipment Ids",
+          "type": "array"
+        },
+        "calendar_month": {
+          "const": 1,
+          "title": "Calendar Month",
+          "type": "integer"
+        },
+        "calendar_year": {
+          "default": null,
+          "title": "Calendar Year",
+          "type": "null"
+        },
+        "mark_count": {
+          "title": "Mark Count",
+          "type": "integer"
+        },
+        "source_cells": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Source Cells",
+          "type": "object"
+        },
+        "raw_cells": {
+          "additionalProperties": {
+            "$ref": "#/$defs/SourceCell"
+          },
+          "title": "Raw Cells",
+          "type": "object"
+        },
+        "calendar_marks": {
+          "items": {
+            "$ref": "#/$defs/CatalogMark"
+          },
+          "title": "Calendar Marks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "row",
+        "code",
+        "title",
+        "maintenance_type",
+        "frequency_raw",
+        "frequency_hint",
+        "group_id",
+        "quality_flags",
+        "interpretation",
+        "ready_for_real_plan",
+        "equipment_ids",
+        "calendar_month",
+        "mark_count",
+        "source_cells",
+        "raw_cells",
+        "calendar_marks"
+      ],
+      "title": "CatalogOperationSource",
+      "type": "object"
+    },
+    "CatalogOperations": {
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/CatalogOperation"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "total"
+      ],
+      "title": "CatalogOperations",
+      "type": "object"
+    },
+    "CatalogPreview": {
+      "properties": {
+        "format": {
+          "const": "hvac_catalog",
+          "title": "Format",
+          "type": "string"
+        },
+        "preview_token": {
+          "title": "Preview Token",
+          "type": "string"
+        },
+        "can_save_draft": {
+          "const": true,
+          "title": "Can Save Draft",
+          "type": "boolean"
+        },
+        "parser_version": {
+          "title": "Parser Version",
+          "type": "string"
+        },
+        "source_sha256": {
+          "title": "Source Sha256",
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/$defs/CatalogSummary"
+        },
+        "groups": {
+          "items": {
+            "$ref": "#/$defs/CatalogGroup"
+          },
+          "title": "Groups",
+          "type": "array"
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/CatalogIssue"
+          },
+          "title": "Issues",
+          "type": "array"
+        },
+        "header_context": {
+          "items": {
+            "$ref": "#/$defs/SourceCell"
+          },
+          "title": "Header Context",
+          "type": "array"
+        },
+        "sheet2_diagnostic": {
+          "items": {
+            "$ref": "#/$defs/SourceCell"
+          },
+          "title": "Sheet2 Diagnostic",
+          "type": "array"
+        },
+        "operations": {
+          "items": {
+            "$ref": "#/$defs/CatalogOperation"
+          },
+          "title": "Operations",
+          "type": "array"
+        },
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        },
+        "ready_for_real_plan": {
+          "const": false,
+          "title": "Ready For Real Plan",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "format",
+        "preview_token",
+        "can_save_draft",
+        "parser_version",
+        "source_sha256",
+        "summary",
+        "groups",
+        "issues",
+        "header_context",
+        "sheet2_diagnostic",
+        "operations",
+        "total",
+        "ready_for_real_plan"
+      ],
+      "title": "CatalogPreview",
+      "type": "object"
+    },
+    "CatalogRecord": {
+      "properties": {
+        "import_id": {
+          "format": "uuid",
+          "title": "Import Id",
+          "type": "string"
+        },
+        "filename": {
+          "title": "Filename",
+          "type": "string"
+        },
+        "source_sha256": {
+          "title": "Source Sha256",
+          "type": "string"
+        },
+        "parser_version": {
+          "title": "Parser Version",
+          "type": "string"
+        },
+        "status": {
+          "const": "draft",
+          "title": "Status",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/$defs/CatalogSummary"
+        }
+      },
+      "required": [
+        "import_id",
+        "filename",
+        "source_sha256",
+        "parser_version",
+        "status",
+        "created_at",
+        "summary"
+      ],
+      "title": "CatalogRecord",
+      "type": "object"
+    },
+    "CatalogSaved": {
+      "properties": {
+        "import_id": {
+          "format": "uuid",
+          "title": "Import Id",
+          "type": "string"
+        },
+        "status": {
+          "const": "draft",
+          "title": "Status",
+          "type": "string"
+        },
+        "already_saved": {
+          "title": "Already Saved",
+          "type": "boolean"
+        },
+        "summary": {
+          "$ref": "#/$defs/CatalogSummary"
+        },
+        "ready_for_real_plan": {
+          "const": false,
+          "title": "Ready For Real Plan",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "import_id",
+        "status",
+        "already_saved",
+        "summary",
+        "ready_for_real_plan"
+      ],
+      "title": "CatalogSaved",
+      "type": "object"
+    },
+    "CatalogSummary": {
+      "properties": {
+        "operation_count": {
+          "title": "Operation Count",
+          "type": "integer"
+        },
+        "group_count": {
+          "title": "Group Count",
+          "type": "integer"
+        },
+        "top_level_group_count": {
+          "title": "Top Level Group Count",
+          "type": "integer"
+        },
+        "maintenance_types": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Maintenance Types",
+          "type": "object"
+        },
+        "frequency_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Frequency Counts",
+          "type": "object"
+        },
+        "empty_duration_count": {
+          "title": "Empty Duration Count",
+          "type": "integer"
+        },
+        "mark_count": {
+          "title": "Mark Count",
+          "type": "integer"
+        },
+        "readiness_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Readiness Counts",
+          "type": "object"
+        },
+        "ready_count": {
+          "const": 0,
+          "title": "Ready Count",
+          "type": "integer"
+        },
+        "issue_count": {
+          "title": "Issue Count",
+          "type": "integer"
+        },
+        "ready_for_real_plan": {
+          "const": false,
+          "title": "Ready For Real Plan",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "operation_count",
+        "group_count",
+        "top_level_group_count",
+        "maintenance_types",
+        "frequency_counts",
+        "empty_duration_count",
+        "mark_count",
+        "readiness_counts",
+        "ready_count",
+        "issue_count",
+        "ready_for_real_plan"
+      ],
+      "title": "CatalogSummary",
+      "type": "object"
+    },
+    "FrequencyHint": {
+      "properties": {
+        "kind": {
+          "enum": [
+            "quarter",
+            "yearly_count",
+            "year",
+            "month",
+            "day",
+            "week",
+            "daily_events",
+            "event",
+            "included_in",
+            "unknown"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "interval": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Interval"
+        },
+        "confirmed": {
+          "const": false,
+          "title": "Confirmed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "interval",
+        "confirmed"
+      ],
+      "title": "FrequencyHint",
+      "type": "object"
+    },
+    "SourceCell": {
+      "properties": {
+        "address": {
+          "title": "Address",
+          "type": "string"
+        },
+        "present": {
+          "title": "Present",
+          "type": "boolean"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text"
+        },
+        "raw_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Raw Value"
+        },
+        "cell_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Type"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Style"
+        },
+        "formula": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Formula"
+        },
+        "sheet": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sheet"
+        }
+      },
+      "required": [
+        "address",
+        "present",
+        "text",
+        "raw_value",
+        "cell_type",
+        "style",
+        "formula"
+      ],
+      "title": "SourceCell",
+      "type": "object"
+    }
+  }
+}

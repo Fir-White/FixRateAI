@@ -6,6 +6,16 @@ afterEach(() => {
 });
 
 describe("production HTTP transport", () => {
+  it("keeps warm lists for a read-only preview, but clears them if authorization is rejected",async()=>{
+    const {onApiQueryInvalidation}=await import("@/shared/lib/apiQueryCache");
+    const changed=vi.fn(),unsubscribe=onApiQueryInvalidation(changed);
+    vi.stubGlobal("fetch",vi.fn().mockResolvedValueOnce(new Response('{}')).mockResolvedValueOnce(new Response('{"detail":"Forbidden"}',{status:403})));
+    const {request}=await import("@/shared/api/request");
+    await request('/api/preview',{method:'POST',body:new FormData()},{readOnly:true});
+    expect(changed).not.toHaveBeenCalled();
+    await expect(request('/api/preview',{method:'POST'},{readOnly:true})).rejects.toThrow('Forbidden');
+    expect(changed).toHaveBeenCalledOnce();unsubscribe();
+  });
   it("invalidates cached reads after a successful write and after an authorization failure", async () => {
     const {onApiQueryInvalidation}=await import("@/shared/lib/apiQueryCache");
     const changed=vi.fn(),unsubscribe=onApiQueryInvalidation(changed);

@@ -1,0 +1,53 @@
+import { test, expect } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+
+for(const width of [1440,390]) {
+  test(`real isolated catalog preview, persistence and source lineage at ${width}px`,async({page},testInfo)=>{
+    test.skip(!process.env.FIXRATE_CATALOG_E2E || !process.env.FIXRATE_CATALOG_PASSWORD,'Requires the disposable catalog QA application');
+    expect(process.env.FIXRATE_BASE_URL).toBe('http://127.0.0.1:8875');
+    await expect.poll(async()=>{try{return (await page.request.get('/api/health')).status();}catch{return 0;}},{timeout:30000}).toBe(200);
+    await page.setViewportSize({width,height:900});
+    const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+    await page.goto('/login');
+    await page.getByLabel('Email',{exact:true}).fill('fixrate-demo-chief_engineer@example.test');
+    await page.getByLabel('Пароль',{exact:true}).fill(process.env.FIXRATE_CATALOG_PASSWORD!);
+    await page.getByRole('button',{name:'Войти',exact:true}).click();
+    await expect(page).not.toHaveURL(/\/login$/);
+    await page.goto('/equipment');
+    await page.getByRole('button',{name:'Каталоги регламентов СВиК'}).click();
+    await page.getByLabel('Excel каталога СВиК').setInputFiles('reports/anonymous-hvac.xlsx');
+    await page.getByRole('button',{name:'Проверить каталог',exact:true}).click();
+    const preview=page.getByRole('region',{name:'Предпросмотр каталога СВиК'});
+    await expect(preview.getByLabel('Готовность каталога')).toContainText('217');
+    await expect(preview).toContainText('Лист2!I6');
+    await expect(preview.locator('tbody tr')).toHaveCount(25);
+    await preview.getByRole('button',{name:'Сохранить каталог-черновик'}).click();
+    const saved=page.getByRole('region',{name:'Сохранённый каталог СВиК'});
+    await expect(saved).toBeVisible();
+    await expect(saved.locator('tbody tr')).toHaveCount(25);
+    await saved.getByRole('button',{name:'Следующие 25'}).click();
+    await expect(saved.locator('tbody tr').first()).toContainText('0025');
+    await saved.getByRole('textbox',{name:'Поиск операций каталога'}).fill('0216');
+    await expect(saved.locator('tbody tr')).toHaveCount(1);
+    await saved.getByRole('button',{name:/SYNTHETIC OPERATION 0216/}).click();
+    const dialog=page.getByRole('dialog',{name:'Исходная строка каталога'});
+    await expect(dialog).toContainText('Пустая ячейка');
+    await expect(dialog).toContainText('Смысл отметок не подтверждён');
+    await expect(dialog).toContainText('Все 31 исходная ячейка января');
+    await page.getByRole('button',{name:'Закрыть подробности'}).click();
+    const [download]=await Promise.all([page.waitForEvent('download'),saved.getByRole('link',{name:'Скачать исходный Excel'}).click()]);
+    const original=await readFile('reports/anonymous-hvac.xlsx'),returned=await readFile((await download.path())!);
+    expect(createHash('sha256').update(returned).digest('hex')).toBe(createHash('sha256').update(original).digest('hex'));
+    await page.reload();
+    await page.getByRole('button',{name:'Каталоги регламентов СВиК'}).click();
+    await page.getByRole('button',{name:/anonymous-hvac.xlsx · 217 операций/}).click();
+    await expect(saved.locator('tbody tr')).toHaveCount(25);
+    await saved.getByRole('textbox',{name:'Поиск операций каталога'}).fill('0216');
+    await expect(saved.locator('tbody tr')).toHaveCount(1);
+    await saved.getByRole('textbox',{name:'Поиск операций каталога'}).scrollIntoViewIfNeeded();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+    await page.screenshot({path:testInfo.outputPath(`catalog-${width}.png`)});
+    expect(errors).toEqual([]);
+  });
+}

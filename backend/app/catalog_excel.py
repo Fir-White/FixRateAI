@@ -27,14 +27,14 @@ def column(index):
     return result
 
 
-def read_workbook(data):
+def read_workbook(data, *, provenance=False):
     if not data or len(data) > MAX_FILE: raise ValueError('Размер Excel должен быть от 1 байта до 5 МБ')
     try:
         with ZipFile(BytesIO(data)) as archive:
             files = archive.infolist()
             if len(files) > 200 or sum(f.file_size for f in files) > 20*1024*1024 or len({f.filename for f in files}) != len(files):
                 raise ValueError('Слишком большой или неоднозначный архив Excel')
-            if any('vbaProject' in f.filename or f.flag_bits & 1 for f in files): raise ValueError('Макросы и зашифрованные книги не поддерживаются')
+            if any('vbaproject' in f.filename.lower() or f.flag_bits & 1 for f in files): raise ValueError('Макросы и зашифрованные книги не поддерживаются')
             shared = []
             book=xml(archive.read('xl/workbook.xml'))
             properties=book.find(f'{{{NS}}}workbookPr')
@@ -52,19 +52,32 @@ def read_workbook(data):
             links = {e.attrib['Id']: e.attrib['Target'] for e in xml(archive.read('xl/_rels/workbook.xml.rels')) if e.attrib.get('TargetMode') != 'External'}
             sheets = {}
             count = 0
+            cell_count = 0
             for sheet in book.findall(f'{{{NS}}}sheets/{{{NS}}}sheet'):
                 if sheet.attrib['name'] in sheets:raise ValueError('Повтор названия листа')
                 target = links[sheet.attrib[f'{{{REL}}}id']]
                 target = target.lstrip('/') if target.startswith('/') else 'xl/' + target
                 if '..' in PurePosixPath(target).parts: raise ValueError('Недопустимая ссылка на лист')
                 rows = []
+                seen_rows = set()
                 for row in xml(archive.read(target)).findall(f'{{{NS}}}sheetData/{{{NS}}}row'):
+                    row_number = int(row.attrib['r'])
+                    if row_number in seen_rows or not 1 <= row_number <= 1048576:
+                        raise ValueError('Неоднозначный номер строки Excel')
+                    seen_rows.add(row_number)
                     count += 1
                     if count > 5000: raise ValueError('В книге допускается не более 5000 строк')
                     cells = {}
                     for cell in row.findall(f'{{{NS}}}c'):
+                        cell_count += 1
+                        if cell_count > 200000: raise ValueError('Слишком много ячеек в Excel')
+                        address = cell.attrib['r']
+                        if not re.fullmatch(r'[A-Z]{1,3}[1-9][0-9]{0,6}', address) or int(re.sub('[A-Z]', '', address)) != row_number:
+                            raise ValueError('Некорректный адрес ячейки Excel')
                         key = ''.join(c for c in cell.attrib['r'] if c.isalpha())
+                        if key in cells: raise ValueError('Повтор адреса ячейки Excel')
                         value = cell.findtext(f'{{{NS}}}v', '')
+                        raw_value = value
                         if cell.attrib.get('t') == 's': value = shared[int(value)]
                         elif cell.attrib.get('t') == 'inlineStr': value = ''.join(cell.find(f'{{{NS}}}is').itertext())
                         elif value and cell.attrib.get('t','n')=='n' and int(cell.attrib.get('s','0')) in date_styles:
@@ -75,7 +88,10 @@ def read_workbook(data):
                             value=(base+timedelta(days=float(serial))).date().isoformat()
                         if len(value) > 32767: raise ValueError('Слишком длинное значение в Excel')
                         cells[key] = dict(value=value.strip(), formula=cell.find(f'{{{NS}}}f') is not None)
-                    rows.append((int(row.attrib['r']), cells))
+                        if provenance:
+                            cells[key].update(address=address, text=(shared[int(raw_value)] if cell.attrib.get('t') == 's' else ''.join(cell.find(f'{{{NS}}}is').itertext()) if cell.attrib.get('t') == 'inlineStr' else raw_value),
+                                raw_value=raw_value, cell_type=cell.attrib.get('t','n'), style=cell.attrib.get('s'), formula_text=cell.findtext(f'{{{NS}}}f'))
+                    rows.append((row_number, cells))
                 sheets[sheet.attrib['name']] = rows
             return sheets
     except (BadZipFile, KeyError, IndexError, ET.ParseError, TypeError, OSError, RuntimeError, OverflowError, ValueError) as error:

@@ -9,7 +9,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function request<T>(url: string, options: RequestInit = {}): Promise<T> {
+export async function request<T>(url: string, options: RequestInit = {}, policy: {readOnly?:boolean} = {}): Promise<T> {
   const headers = new Headers(options.headers);
   if (options.body && !(options.body instanceof FormData)) headers.set("Content-Type", "application/json");
   const csrf = document.cookie.split("; ").find(item => item.startsWith("fixrate_csrf="))?.split("=")[1];
@@ -20,6 +20,8 @@ export async function request<T>(url: string, options: RequestInit = {}): Promis
     const payload = await response.json().catch(() => null);
     throw new ApiError(response.status, typeof payload?.detail === "string" ? payload.detail : `Ошибка API (${response.status})`, payload?.error?.details ?? payload?.detail, payload?.error?.code);
   }
-  if (!["GET", "HEAD", "OPTIONS"].includes((options.method ?? "GET").toUpperCase())) invalidateApiQueries();
+  // Explicit read-only POST previews preserve warm lists; failed authorization
+  // still invalidates them above, independently of this success policy.
+  if (!policy.readOnly && !["GET", "HEAD", "OPTIONS"].includes((options.method ?? "GET").toUpperCase())) invalidateApiQueries();
   return response.status === 204 ? undefined as T : response.json() as Promise<T>;
 }

@@ -52,6 +52,7 @@ def test_upgrade_010_preserves_all_rows_and_supports_full_day_shifts(runtime):
         with engine.begin() as conn:
             assert conn.scalar(text('SELECT count(*) FROM engineering_systems WHERE system_group IS NOT NULL OR revision<>1')) == 0
             assert conn.scalar(text('SELECT count(*) FROM equipment_components')) == 0
+            assert conn.scalar(text('SELECT count(*) FROM regulation_catalog_imports')) == 0
             assert conn.scalar(text("SELECT count(*) FROM maintenance_types WHERE code='TO3' AND name='ТО3'")) == 1
             row = conn.execute(text('SELECT shift_rule_id,starts_local,ends_local FROM employee_shift_rules LIMIT 1')).one()
             conn.execute(text('UPDATE employee_shift_rules SET ends_local=starts_local WHERE shift_rule_id=:id'), dict(id=row.shift_rule_id))

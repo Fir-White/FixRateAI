@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState } from 'react';
+import { lazy, Suspense, useDeferredValue, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { registryApi } from '@/shared/api/registry';
 import { readQueries } from '@/shared/api/readQueries';
@@ -18,7 +18,9 @@ import { RegistryExcel } from './RegistryExcel';
 import './registry.css';
 
 const failure = (error: unknown) => error instanceof Error ? error.message : 'Не удалось сохранить';
+const CatalogImports = lazy(() => import('./CatalogImports').then(module => ({default:module.CatalogImports})));
 export function EquipmentRegistry() {
+  const [catalogOpen,setCatalogOpen] = useState(false);
   const {profile, switchSite} = useSession();
   const [refresh, setRefresh] = useState(0);
   const [group, setGroup] = useWorkspaceState<SystemGroup | 'unclassified'>('registry.group', 'electricity', (value): value is SystemGroup | 'unclassified' => typeof value === 'string' && ['electricity','water','air','unclassified'].includes(value));
@@ -51,6 +53,7 @@ export function EquipmentRegistry() {
     {query.status === 'loading' && <LoadingState/>}{query.status === 'error' && <ErrorState description={query.error}/>}
     {query.status === 'success' && <>
       <RegistryExcel mayImport={mayEdit} onSaved={() => setRefresh(n => n+1)}/>
+      <Card className="space-y-4 p-5"><Button variant="secondary" aria-expanded={catalogOpen} onClick={()=>setCatalogOpen(open=>!open)}>Каталоги регламентов СВиК</Button>{catalogOpen&&<Suspense fallback={<LoadingState/>}><CatalogImports mayImport={mayEdit} siteName={profile?.siteName} timezone={profile?.timezone}/></Suspense>}</Card>
       <Card className="space-y-4 p-5"><div className="registry-tools"><label className="space-y-1 text-sm"><FieldCaption>Здание</FieldCaption><Select aria-label="Здание" value={query.data.registry.site_id} disabled={busy} onChange={async e => {setBusy(true); setError(''); try{await switchSite(e.target.value);}catch(error){setError(failure(error));setBusy(false);}}}>{query.data.sites.map(site => <option key={site.site_id} value={site.site_id}>{site.name}</option>)}</Select></label><label className="space-y-1 text-sm"><FieldCaption>Поиск оборудования, работы или детали</FieldCaption><Input aria-label="Поиск по реестру" value={search} onChange={e => {setSearch(e.target.value);setPage(1);setSelected('');}} placeholder="Название, номер или расположение"/></label></div>
         {mayEdit && <BuildingForm timezone={profile?.timezone ?? 'Asia/Yekaterinburg'} onSaved={() => setRefresh(n => n+1)}/>}
         <div className="registry-tabs" role="tablist" aria-label="Инженерные системы">{(Object.entries(systemGroups) as [SystemGroup, string][]).map(([key, label]) => <Button key={key} role="tab" id={`registry-tab-${key}`} aria-controls="registry-table-panel" aria-selected={group === key} variant={group === key ? 'primary' : 'ghost'} onClick={() => {setGroup(key);setPage(1);setSelected('');}}>{label} <span>{counts[key]}</span></Button>)}<Button role="tab" id="registry-tab-unclassified" aria-controls="registry-table-panel" aria-selected={group === 'unclassified'} variant={group === 'unclassified' ? 'primary' : 'ghost'} onClick={() => {setGroup('unclassified');setPage(1);setSelected('');}}>Без группы <span>{counts.unclassified}</span></Button></div>

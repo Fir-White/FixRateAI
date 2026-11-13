@@ -25,6 +25,7 @@ sys.path[:0] = [str(ROOT / "backend"), str(ROOT)]
 from app.schemas.maintenance import CONTRACTS
 from app.schemas.planning import WorkloadRequest, WorkloadResponse
 from app.schemas.registry import REGISTRY_INPUTS
+from app.schemas.catalog import CATALOG_CONTRACTS
 
 DOCS = ROOT / "docs"
 DIAGRAMS = DOCS / "assets/architecture"
@@ -229,6 +230,12 @@ def main():
         registry_path.write_text(json.dumps(registry_schema, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
     require(json.loads(registry_path.read_text(encoding='utf-8')) == registry_schema,
             'registry input schema export differs; use --write-schema')
+    _, catalog_schema = models_json_schema([(model, 'validation') for model in CATALOG_CONTRACTS])
+    catalog_path = ROOT / 'contracts/catalog.schema.json'
+    if args.write_schema:
+        catalog_path.write_text(json.dumps(catalog_schema, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    require(json.loads(catalog_path.read_text(encoding='utf-8')) == catalog_schema,
+            'catalog draft schema export differs; use --write-schema')
     examples = json.loads((ROOT/"contracts/examples/maintenance.json").read_text(encoding="utf-8"))["examples"]
     parsed = validate_models(examples)
     comparisons = check_relations(parsed, examples)
