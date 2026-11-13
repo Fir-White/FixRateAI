@@ -12,6 +12,15 @@ textarea {
   color-scheme: dark;
 }
 
+/* Native placeholders participate in document selection in Chromium, which
+   paints them like selected input values even though the control is empty.
+   Exclude only empty controls; entered/autofilled text keeps native selection. */
+input:placeholder-shown,
+textarea:placeholder-shown {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 select,
 .ui-select {
   appearance: none;

@@ -28,6 +28,55 @@ test.beforeEach(async ({ page, context }) => {
 });
 
 for (const width of [1440, 390]) {
+  test(`empty field hints do not acquire document selection at ${width}px`, async ({page},testInfo) => {
+    await page.setViewportSize({width,height:900});
+    await page.emulateMedia({reducedMotion:'reduce'});
+    for(const path of ['/login','/register']){
+      await page.goto(path);
+      const fields=page.locator('.auth-form input[placeholder]');
+      await expect(fields.first()).toBeVisible();
+      // Document selection may cross native empty inputs and paint their
+      // placeholder as if it were an entered, selected value in Chromium.
+      for(const field of await fields.all()){
+        await field.evaluate(input=>{(document.activeElement as HTMLElement)?.blur();window.getSelection()?.removeAllRanges();input.scrollIntoView({block:'center'});});
+        const original=await field.screenshot({animations:'disabled'});
+        await page.keyboard.press('ControlOrMeta+A');
+        expect(await field.evaluate(input=>window.getSelection()?.containsNode(input,true))).toBe(true);
+        expect(createHash('sha256').update(await field.screenshot({animations:'disabled'})).digest('hex')).toBe(createHash('sha256').update(original).digest('hex'));
+        await expect(field).toHaveValue('');
+        await page.evaluate(()=>window.getSelection()?.removeAllRanges());
+        await field.dblclick();await expect(field).toBeFocused();
+        await page.keyboard.insertText('typed-value');
+        await field.press('ControlOrMeta+A');
+        await page.keyboard.insertText('replacement');
+        await expect(field).toHaveValue('replacement');
+        await field.fill('');
+      }
+      const email=page.getByLabel('Email',{exact:true});
+      await email.evaluate(input=>{(document.activeElement as HTMLElement)?.blur();window.getSelection()?.removeAllRanges();input.scrollIntoView({block:'center'});});
+      const originalEmail=await email.screenshot({animations:'disabled'}),box=(await email.boundingBox())!;
+      await page.mouse.move(box.x-4,box.y-4);await page.mouse.down();
+      await page.mouse.move(box.x+box.width+4,box.y+box.height+4,{steps:8});await page.mouse.up();
+      await expect(email).toHaveValue('');
+      // A label gesture may focus its input. Compare the same unfocused state
+      // without clearing any document selection left by the drag.
+      await email.evaluate(input=>(input as HTMLInputElement).blur());
+      expect(createHash('sha256').update(await email.screenshot({animations:'disabled'})).digest('hex')).toBe(createHash('sha256').update(originalEmail).digest('hex'));
+      await page.evaluate(()=>window.getSelection()?.removeAllRanges());
+      // The same protection must survive validation and password visibility.
+      await page.locator('.auth-submit').click();
+      await expect(page.getByLabel('Email',{exact:true})).toHaveAttribute('aria-invalid','true');
+      await page.getByRole('button',{name:'Показать пароль',exact:true}).click();
+      const password=page.getByLabel('Пароль',{exact:true});
+      await password.evaluate(input=>{(document.activeElement as HTMLElement)?.blur();window.getSelection()?.removeAllRanges();input.scrollIntoView({block:'center'});});
+      const original=await password.screenshot({animations:'disabled'});
+      await page.keyboard.press('ControlOrMeta+A');
+      expect(await password.screenshot({animations:'disabled'})).toEqual(original);
+      await page.screenshot({path:testInfo.outputPath(`${path.slice(1)}-placeholder-selection-${width}.png`),animations:'disabled'});
+      await page.evaluate(()=>window.getSelection()?.removeAllRanges());
+    }
+  });
+
   test(`auth hints stay separate from entered values at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: "reduce" });
