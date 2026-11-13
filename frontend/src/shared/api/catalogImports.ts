@@ -1,4 +1,5 @@
 import { request } from './request';
+import type { CalendarPattern } from '@/shared/types/management';
 
 export interface RawCatalogCell {address:string;present:boolean;text:string|null;raw_value:string|null;cell_type:string|null;style:string|null;formula:string|null}
 export interface CatalogSummary {operation_count:number;group_count:number;top_level_group_count:number;maintenance_types:Record<string,number>;empty_duration_count:number;mark_count:number;readiness_counts:Record<string,number>;ready_count:number;ready_for_real_plan:false;issue_count:number}
@@ -28,12 +29,13 @@ export const catalogImportsApi={
 export interface CatalogDecision {
   interpretation:'UNKNOWN'|'FIXED_EXECUTION'|'ALLOWED_WINDOW'|'CONTINUOUS_WORK'|'EQUIPMENT_BATCH';
   calendar_year:number|null;mark_slots:'unconfirmed'|'one_per_mark'|'day_night';semantics_note:string;
-  frequency_kind:'unconfirmed'|'day'|'week'|'month'|'quarter'|'year'|'yearly_count'|'daily_events'|'event'|'included_in';
+  frequency_kind:'unconfirmed'|'day'|'week'|'month'|'quarter'|'year'|'yearly_count'|'dates'|'daily_events'|'event'|'included_in';
   frequency_interval:number|null;included_in_row:number|null;equipment_ids:string[];
   norm_value:string|null;norm_unit:'unconfirmed'|'person_hour'|'elapsed_hour';norm_scope:'unconfirmed'|'per_asset'|'whole_binding';
   crew_size:number|null;norm_ref:string;splittable:boolean|null;min_segment_minutes:number|null;policy_note:string;
+  calendar_pattern?:CalendarPattern|null;allowed_lead_days?:number;qualifications_confirmed?:boolean;qualification_ids?:string[];qualification_note?:string;
 }
 export interface CatalogBinding {equipment_id:string;asset_code:string;name:string;status:string;revision:number}
-export interface CatalogDecisionRecord {row_number:number;revision:number;created_by:string|null;author_name?:string|null;created_at:string|null;confirmed:boolean;reason:string;decision:CatalogDecision;equipment:CatalogBinding[];blockers:string[];prepared:boolean;total_person_hours:string|null;elapsed_hours:string|null;ready_for_real_plan:false}
+export interface CatalogDecisionRecord {row_number:number;revision:number;created_by:string|null;author_name?:string|null;created_at:string|null;confirmed:boolean;reason:string;decision:CatalogDecision;equipment:CatalogBinding[];qualification_labels?:Record<string,string>;blockers:string[];prepared:boolean;total_person_hours:string|null;elapsed_hours:string|null;ready_for_real_plan:false}
 export interface CatalogDecisionHistory extends Pick<CatalogDecisionRecord,'revision'|'created_by'|'author_name'|'created_at'|'confirmed'|'reason'|'decision'|'equipment'> {parent_revision:number|null}
 export interface CatalogPreparation {total:number;prepared_count:number;confirmed_count:number;blocker_counts:Record<string,number>;items:Pick<CatalogDecisionRecord,'row_number'|'revision'|'confirmed'|'prepared'|'blockers'>[];ready_for_real_plan:false}

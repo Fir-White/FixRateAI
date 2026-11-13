@@ -68,6 +68,11 @@ def load(v,identity,number=None):
     return rows,decisions,bindings(v,decisions)
 
 
+def qualification_labels(v,ids):
+    if not ids: return {}
+    return {str(r['skill_id']):r['name'] for r in v.session.execute(text('SELECT skill_id,name FROM skills WHERE skill_id=ANY(CAST(:ids AS uuid[]))'),dict(ids=[UUID(str(i)) for i in ids])).mappings()}
+
+
 def register_routes(app,views):
     base=PREFIX+'/catalog-imports/{identity}'
 
@@ -97,7 +102,9 @@ def register_routes(app,views):
         rows,decisions,equipment=load(v,identity,number)
         if number not in rows: raise HTTPException(404,'Строка каталога не найдена')
         response.headers['Cache-Control']='private, no-store'
-        return records(rows,decisions,equipment,[number])[number]
+        result=records(rows,decisions,equipment,[number])[number]
+        result['qualification_labels']=qualification_labels(v,result['decision'].get('qualification_ids',[]))
+        return result
 
     @app.post(base+'/operations/{number}/decision',response_model=DecisionRecord)
     def write(identity:UUID,command:DecisionCommand,response:Response,number:int=Path(ge=1,le=1048576),v=Depends(views)):
@@ -120,6 +127,10 @@ def register_routes(app,views):
             equipment=bindings(v,decisions)
             if any(str(i) not in equipment for i in command.decision.equipment_ids):
                 raise HTTPException(422,'Оборудование не найдено в текущем здании')
+            if command.decision.qualification_ids:
+                skills=v.session.scalar(text('SELECT count(*) FROM skills WHERE skill_id=ANY(CAST(:ids AS uuid[]))'),
+                    dict(ids=command.decision.qualification_ids))
+                if skills != len(command.decision.qualification_ids): raise HTTPException(422,'Выбран неизвестный допуск')
             assessment=records(rows,decisions,equipment,[number])[number]
             if command.confirm and assessment['blockers']:
                 raise HTTPException(422,'Нельзя подтвердить строку: '+', '.join(assessment['blockers']))
@@ -136,6 +147,7 @@ def register_routes(app,views):
                    dict(import_id=str(identity),row_number=number,revision=revision+1))
             proposed.update(confirmed=command.confirm,created_at=saved,binding_snapshot=snapshot,parent_revision=parent['revision'] if parent else None)
             result=records(rows,decisions,equipment,[number])[number]
+            result['qualification_labels']=qualification_labels(v,command.decision.qualification_ids)
         response.headers['Cache-Control']='private, no-store'
         return result
 

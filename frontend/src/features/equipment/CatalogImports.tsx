@@ -1,4 +1,4 @@
-import { useDeferredValue, useRef, useState } from 'react';
+import { lazy,Suspense,useDeferredValue, useRef, useState } from 'react';
 import { catalogImportsApi as api, type CatalogPreview, type CatalogSummary, type CatalogOperation, type CatalogIssue, type RawCatalogCell } from '@/shared/api/catalogImports';
 import { useApiQuery } from '@/shared/lib/useApiQuery';
 import { Button } from '@/shared/ui/Button';
@@ -14,8 +14,9 @@ import type { CatalogPreparation } from '@/shared/api/catalogImports';
 
 const message=(error:unknown)=>error instanceof Error?error.message:'Не удалось обработать каталог';
 const flags:Record<string,string>={NEEDS_SEMANTICS:'Уточнить смысл отметок',NEEDS_DURATION:'Подтвердить норму времени',NEEDS_ASSET_BINDING:'Привязать оборудование',NEEDS_POLICY:'Подтвердить правила планирования'};
+const CatalogPlans=lazy(()=>import('@/features/planning/CatalogPlans').then(m=>({default:m.CatalogPlans})));
 
-export function CatalogImports({mayImport,mayConfirm=false,siteName,timezone='UTC'}:{mayImport:boolean;mayConfirm?:boolean;siteName?:string;timezone?:string}) {
+export function CatalogImports({mayImport,mayConfirm=false,mayPlan=mayImport,siteName,timezone='UTC'}:{mayImport:boolean;mayConfirm?:boolean;mayPlan?:boolean;siteName?:string;timezone?:string}) {
   const [file,setFile]=useState<File|null>(null),[preview,setPreview]=useState<CatalogPreview|null>(null);
   const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
   const [selected,setSelected]=useState(''),[refresh,setRefresh]=useState(0),[offset,setOffset]=useState(0);
@@ -37,7 +38,7 @@ export function CatalogImports({mayImport,mayConfirm=false,siteName,timezone='UT
     <h3 className="font-semibold">Сохранённые каталоги</h3>
     {list.status==='loading'&&<LoadingState/>}{list.status==='error'&&<ErrorState description={list.error}/>}
     {list.status==='success'&&<><ul className="space-y-2">{list.data.items.map(item=><li key={item.import_id}><Button variant={selected===item.import_id?'primary':'secondary'} onClick={()=>setSelected(item.import_id)}><span>{item.filename} · {item.summary.operation_count} операций · Черновик<small className="block text-xs font-normal">Загружен: {dateTimeFormatter('ru-RU',{timeZone:timezone,dateStyle:'short',timeStyle:'medium'}).format(new Date(item.created_at))}</small></span></Button></li>)}</ul>{!list.data.total&&<p className="text-sm text-muted">Каталоги ещё не загружены.</p>}<Pager offset={offset} total={list.data.total} onChange={setOffset}/></>}
-    {selected&&<SavedCatalog key={selected} id={selected} mayEdit={mayImport} mayConfirm={mayConfirm}/>}
+    {selected&&<SavedCatalog key={selected} id={selected} mayEdit={mayImport} mayConfirm={mayConfirm} mayPlan={mayPlan} timezone={timezone}/>}
   </div>;
 }
 
@@ -61,7 +62,8 @@ function Operations({items,onSelect,preparation}:{items:CatalogOperation[];onSel
   })}</tbody></table>{!items.length&&<p className="p-4 text-sm">Операции не найдены.</p>}</div>;
 }
 
-function SavedCatalog({id,mayEdit,mayConfirm}:{id:string;mayEdit:boolean;mayConfirm:boolean}) {
+function SavedCatalog({id,mayEdit,mayConfirm,mayPlan,timezone}:{id:string;mayEdit:boolean;mayConfirm:boolean;mayPlan:boolean;timezone:string}) {
+  const [plans,setPlans]=useState(false);
   const [refresh,setRefresh]=useState(0);
   const preparation=useApiQuery(()=>api.preparation(id),[id,refresh],undefined,`catalog-preparation:${id}`);
   const [search,setSearch]=useState(''),[group,setGroup]=useState(''),[kind,setKind]=useState(''),[offset,setOffset]=useState(0),[row,setRow]=useState<number|null>(null);
@@ -69,6 +71,8 @@ function SavedCatalog({id,mayEdit,mayConfirm}:{id:string;mayEdit:boolean;mayConf
   const detail=useApiQuery(()=>api.detail(id),[id],undefined,`catalog:${id}`);
   const rows=useApiQuery(()=>api.operations(id,offset,needle,group,kind),[id,offset,needle,group,kind],undefined,`catalog-rows:${JSON.stringify([id,offset,needle,group,kind])}`);
   return <section className="space-y-4 border-t border-line pt-5" aria-label="Сохранённый каталог СВиК">
+    <Button variant="secondary" aria-expanded={plans} onClick={()=>setPlans(v=>!v)}>Черновики планов этого каталога</Button>
+    {plans&&<Suspense fallback={<LoadingState/>}><CatalogPlans id={id} mayEdit={mayPlan} timezone={timezone}/></Suspense>}
     {detail.status==='loading'&&<LoadingState/>}{detail.status==='error'&&<ErrorState description={detail.error}/>}
     {detail.status==='success'&&<><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-semibold">{detail.data.filename}</h3><a className="text-accent underline" href={api.source(id)}>Скачать исходный Excel</a></div>
       <details><summary>Состояние исходного Excel до уточнений</summary><Summary value={detail.data.summary}/></details><Issues issues={detail.data.issues}/><Diagnostics cells={detail.data.sheet2_diagnostic}/>

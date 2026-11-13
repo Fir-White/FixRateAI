@@ -14,7 +14,7 @@ from tests.backend.test_runtime_integration import runtime
 ROOT = Path(__file__).resolve().parents[2]
 
 
-@pytest.mark.parametrize('version',[10,13])
+@pytest.mark.parametrize('version',[10,13,14])
 def test_upgrade_preserves_all_rows_and_supports_full_day_shifts(runtime,version):
     runtime_engine, _ = runtime
     assert runtime_engine.url.database.startswith('fixrate_test_')
@@ -34,7 +34,7 @@ def test_upgrade_preserves_all_rows_and_supports_full_day_shifts(runtime,version
                 conn.execute(text('INSERT INTO fixrate_schema_migrations(filename,sha256) VALUES (:name,:hash)'),
                              dict(name=path.name, hash=migration_checksum(path)))
         seed_demo(engine, 'Isolated-migration-test-password')
-        if version == 13:
+        if version >= 13:
             from app.catalog_import import inspect_catalog
             from tests.fixtures.catalog_source import catalog_book
             content=catalog_book(5);catalog=inspect_catalog(content)
@@ -45,6 +45,12 @@ def test_upgrade_preserves_all_rows_and_supports_full_day_shifts(runtime,version
                     FROM site_memberships WHERE role='chief_engineer' LIMIT 1'''),dict(id=uuid4(),sha=catalog['source_sha256'],
                     parser=catalog['parser_version'],kind=catalog['source_kind'],file=content,
                     summary=json.dumps(catalog['summary']),data=json.dumps(catalog)))
+                if version>=14:
+                    from app.schemas.catalog_decisions import DecisionInput
+                    conn.execute(text('''INSERT INTO catalog_operation_decisions
+                        (decision_id,site_id,import_id,row_number,revision,created_by,reason,payload,binding_snapshot)
+                        SELECT :id,site_id,import_id,:row,1,created_by,'TEST ONLY upgrade decision',CAST(:payload AS jsonb),'[]'
+                        FROM regulation_catalog_imports LIMIT 1'''),dict(id=uuid4(),row=catalog['operations'][0]['row'],payload=DecisionInput().model_dump_json()))
         with engine.begin() as conn:
             conn.execute(text("INSERT INTO employee_shift_rules(site_id,user_id,label,calendar_pattern,valid_from,starts_local,ends_local) "
                 "SELECT site_id,user_id,'TEST legacy night shift','{}','2026-01-01','22:00','06:00' "
@@ -66,8 +72,9 @@ def test_upgrade_preserves_all_rows_and_supports_full_day_shifts(runtime,version
         with engine.begin() as conn:
             assert conn.scalar(text('SELECT count(*) FROM engineering_systems WHERE system_group IS NOT NULL OR revision<>1')) == 0
             assert conn.scalar(text('SELECT count(*) FROM equipment_components')) == 0
-            assert conn.scalar(text('SELECT count(*) FROM regulation_catalog_imports')) == (1 if version==13 else 0)
-            assert conn.scalar(text('SELECT count(*) FROM catalog_operation_decisions')) == 0
+            assert conn.scalar(text('SELECT count(*) FROM regulation_catalog_imports')) == (1 if version>=13 else 0)
+            assert conn.scalar(text('SELECT count(*) FROM catalog_operation_decisions')) == (1 if version>=14 else 0)
+            assert conn.scalar(text('SELECT count(*) FROM planning_draft_versions')) == 0
             assert conn.scalar(text("SELECT count(*) FROM maintenance_types WHERE code='TO3' AND name='ТО3'")) == 1
             row = conn.execute(text('SELECT shift_rule_id,starts_local,ends_local FROM employee_shift_rules LIMIT 1')).one()
             conn.execute(text('UPDATE employee_shift_rules SET ends_local=starts_local WHERE shift_rule_id=:id'), dict(id=row.shift_rule_id))

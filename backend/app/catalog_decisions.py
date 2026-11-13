@@ -8,7 +8,7 @@ def assess(decision, equipment, source_rows, *, current=None, parent=None):
     blockers = []
     if d.interpretation == 'UNKNOWN' or d.calendar_year is None or d.mark_slots == 'unconfirmed' or not d.semantics_note:
         blockers.append('NEEDS_SEMANTICS')
-    if d.frequency_kind == 'unconfirmed' or (d.frequency_kind not in ('unconfirmed','event','included_in') and d.frequency_interval is None):
+    if d.frequency_kind == 'unconfirmed' or (d.frequency_kind not in ('unconfirmed','event','included_in','dates') and d.frequency_interval is None) or (d.frequency_kind=='dates' and d.calendar_pattern is None):
         blockers.append('NEEDS_FREQUENCY')
     if not d.equipment_ids or any(str(i) not in equipment or equipment[str(i)]['status'] != 'active' for i in d.equipment_ids):
         blockers.append('NEEDS_ASSET_BINDING')

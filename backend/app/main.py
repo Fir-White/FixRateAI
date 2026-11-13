@@ -738,6 +738,8 @@ def create_app(engine=None):
     register_catalog_imports(app, views)
     from app.integration.catalog_decisions import register_routes as register_catalog_decisions
     register_catalog_decisions(app, views)
+    from app.integration.draft_plans import register_routes as register_draft_plans
+    register_draft_plans(app, views)
     from app.integration.analyst import register_analyst_routes
     register_analyst_routes(app,views,photo_path,editable)
     from app.integration.incidents import register_incident_routes

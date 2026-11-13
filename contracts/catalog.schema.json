@@ -55,6 +55,155 @@
       "title": "BindingOptions",
       "type": "object"
     },
+    "CalendarPattern": {
+      "additionalProperties": false,
+      "description": "Shared local-date recurrence for equipment maintenance and employee shifts.",
+      "properties": {
+        "frequency": {
+          "enum": [
+            "day",
+            "week",
+            "month",
+            "quarter",
+            "year",
+            "yearly_count",
+            "dates"
+          ],
+          "title": "Frequency",
+          "type": "string"
+        },
+        "anchor_date": {
+          "format": "date",
+          "title": "Anchor Date",
+          "type": "string"
+        },
+        "interval": {
+          "default": 1,
+          "maximum": 10000,
+          "minimum": 1,
+          "title": "Interval",
+          "type": "integer"
+        },
+        "weekdays": {
+          "items": {
+            "maximum": 7,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "title": "Weekdays",
+          "type": "array"
+        },
+        "week_parity": {
+          "default": "any",
+          "enum": [
+            "any",
+            "even",
+            "odd"
+          ],
+          "title": "Week Parity",
+          "type": "string"
+        },
+        "month_days": {
+          "items": {
+            "maximum": 31,
+            "minimum": -1,
+            "type": "integer"
+          },
+          "title": "Month Days",
+          "type": "array"
+        },
+        "months": {
+          "items": {
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "title": "Months",
+          "type": "array"
+        },
+        "period_edge": {
+          "default": "end",
+          "enum": [
+            "start",
+            "end"
+          ],
+          "title": "Period Edge",
+          "type": "string"
+        },
+        "short_month": {
+          "default": "last_day",
+          "enum": [
+            "last_day",
+            "skip"
+          ],
+          "title": "Short Month",
+          "type": "string"
+        },
+        "quarter_policy": {
+          "default": "calendar_edge",
+          "enum": [
+            "calendar_edge",
+            "rolling_months"
+          ],
+          "title": "Quarter Policy",
+          "type": "string"
+        },
+        "annual_policy": {
+          "default": "calendar_year",
+          "enum": [
+            "calendar_year",
+            "from_anchor"
+          ],
+          "title": "Annual Policy",
+          "type": "string"
+        },
+        "weekend_policy": {
+          "default": "none",
+          "enum": [
+            "none",
+            "next_workday"
+          ],
+          "title": "Weekend Policy",
+          "type": "string"
+        },
+        "count_per_year": {
+          "anyOf": [
+            {
+              "maximum": 366,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Count Per Year"
+        },
+        "dates": {
+          "items": {
+            "format": "date",
+            "type": "string"
+          },
+          "title": "Dates",
+          "type": "array"
+        },
+        "excluded_dates": {
+          "items": {
+            "format": "date",
+            "type": "string"
+          },
+          "title": "Excluded Dates",
+          "type": "array"
+        }
+      },
+      "required": [
+        "frequency",
+        "anchor_date"
+      ],
+      "title": "CalendarPattern",
+      "type": "object"
+    },
     "CatalogDetail": {
       "properties": {
         "import_id": {
@@ -1019,6 +1168,7 @@
             "quarter",
             "year",
             "yearly_count",
+            "dates",
             "daily_events",
             "event",
             "included_in"
@@ -1149,6 +1299,44 @@
           "default": "",
           "maxLength": 2000,
           "title": "Policy Note",
+          "type": "string"
+        },
+        "calendar_pattern": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CalendarPattern"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "allowed_lead_days": {
+          "default": 0,
+          "maximum": 366,
+          "minimum": 0,
+          "title": "Allowed Lead Days",
+          "type": "integer"
+        },
+        "qualifications_confirmed": {
+          "default": false,
+          "title": "Qualifications Confirmed",
+          "type": "boolean"
+        },
+        "qualification_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Qualification Ids",
+          "type": "array"
+        },
+        "qualification_note": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Qualification Note",
           "type": "string"
         }
       },
@@ -1301,6 +1489,13 @@
           },
           "title": "Equipment",
           "type": "array"
+        },
+        "qualification_labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Qualification Labels",
+          "type": "object"
         },
         "blockers": {
           "items": {

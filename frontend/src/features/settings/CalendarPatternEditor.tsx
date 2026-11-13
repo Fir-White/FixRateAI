@@ -9,7 +9,7 @@ import { Button } from "@/shared/ui/Button";
 const frequencies: [CalendarPattern["frequency"], string][] = [["day","Дни"],["week","Недели"],["month","Месяцы"],["quarter","Календарные кварталы"],["year","Годы и сезоны"],["yearly_count","Заданное число раз в год"],["dates","Конкретные даты"]];
 const weekdays=["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
 
-export function CalendarPatternEditor({value,onChange,disabled=false,rolling=false,context="service"}: {value: CalendarPattern; onChange: (value: CalendarPattern)=>void; disabled?: boolean; rolling?:boolean; context?:"service"|"shift"}) {
+export function CalendarPatternEditor({value,onChange,disabled=false,rolling=false,context="service",allowedFrequencies}: {value: CalendarPattern; onChange: (value: CalendarPattern)=>void; disabled?: boolean; rolling?:boolean; context?:"service"|"shift";allowedFrequencies?:CalendarPattern['frequency'][]}) {
   const set = (part: Partial<CalendarPattern>) => onChange({...value,...part});
   const periods=["month","quarter","year","yearly_count"].includes(value.frequency);
   const [year,setYear]=useState(Number(value.anchor_date.slice(0,4))||2026);
@@ -26,7 +26,7 @@ export function CalendarPatternEditor({value,onChange,disabled=false,rolling=fal
     <div className="grid gap-4 sm:grid-cols-3">
       <label className="space-y-1 text-sm"><FieldCaption>Повторять по
         </FieldCaption><Select aria-label="Повторять по" value={value.frequency} onChange={event=>onChange({...patternDefaults(value.anchor_date,event.target.value as CalendarPattern["frequency"]),excluded_dates:value.excluded_dates,quarter_policy:value.quarter_policy,annual_policy:value.annual_policy,weekend_policy:value.weekend_policy})}>
-          {frequencies.filter(([key])=>!rolling||["day","month","year"].includes(key)).map(([key,title])=><option key={key} value={key}>{title}</option>)}
+          {frequencies.filter(([key])=>(!allowedFrequencies||allowedFrequencies.includes(key))&&(!rolling||["day","month","year"].includes(key))).map(([key,title])=><option key={key} value={key}>{title}</option>)}
         </Select>
       </label>
       <label className="space-y-1 text-sm"><FieldCaption>Не раньше даты
