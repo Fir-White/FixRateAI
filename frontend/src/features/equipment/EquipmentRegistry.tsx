@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { registryApi } from '@/shared/api/registry';
+import { readQueries } from '@/shared/api/readQueries';
+import { isShortString, useWorkspaceState } from '@/shared/lib/workspaceState';
 import { useApiQuery } from '@/shared/lib/useApiQuery';
 import { useSession } from '@/shared/session/SessionContext';
 import { canOpenSection } from '@/shared/lib/roles';
@@ -18,37 +20,50 @@ import './registry.css';
 const failure = (error: unknown) => error instanceof Error ? error.message : 'Не удалось сохранить';
 export function EquipmentRegistry() {
   const {profile, switchSite} = useSession();
-  const [refresh, setRefresh] = useState(0); const [group, setGroup] = useState<SystemGroup | 'unclassified'>('electricity');
-  const [search, setSearch] = useState(''); const [selected, setSelected] = useState('');
+  const [refresh, setRefresh] = useState(0);
+  const [group, setGroup] = useWorkspaceState<SystemGroup | 'unclassified'>('registry.group', 'electricity', (value): value is SystemGroup | 'unclassified' => typeof value === 'string' && ['electricity','water','air','unclassified'].includes(value));
+  const [page, setPage] = useWorkspaceState('registry.page', 1, (value): value is number => Number.isSafeInteger(value) && Number(value) > 0 && Number(value) <= 100_000);
+  const [search, setSearch] = useWorkspaceState('registry.search', '', isShortString); const [selected, setSelected] = useState('');
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
   const mayEdit = profile?.role === 'chief_engineer' || profile?.role === 'admin';
-  const query = useApiQuery(async () => {
-    const [registry, sites] = await Promise.all([registryApi.load(), registryApi.sites()]);
-    if (!Array.isArray(registry.items) || !Array.isArray(registry.systems) || !Array.isArray(sites)) throw new Error('Не удалось загрузить реестр оборудования');
-    return {registry, sites};
-  }, [profile?.siteId, refresh]);
+  const query = useApiQuery(readQueries.registry.load, [profile?.siteId, refresh], undefined, readQueries.registry.key);
   const systems = query.data?.registry.systems ?? [];
   const all = query.data?.registry.items ?? [];
-  const items = useMemo(() => all.filter(item => {
-    const system = systems.find(row => row.id === item.system_id);
-    return (system?.system_group ?? 'unclassified') === group && (!search.trim() || [item.name, item.asset_code, item.location,
-      ...item.services.map(service => service.title), ...item.components.map(part => part.name)].join(' ').toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
-  }), [all, systems, group, search]);
+  const needle = useDeferredValue(search.trim().toLocaleLowerCase('ru'));
+  const systemIndex = useMemo(() => new Map(systems.map(system => [system.id, system])), [systems]);
+  const indexed = useMemo(() => all.map(item => ({item,
+    group: systemIndex.get(item.system_id)?.system_group ?? ('unclassified' as const),
+    text: [item.name, item.asset_code, item.location, ...item.services.map(service => service.title),
+      ...item.components.map(part => part.name)].join(' ').toLocaleLowerCase('ru'),
+  })), [all, systemIndex]);
+  const counts = useMemo(() => {
+    const counts = {electricity: 0, water: 0, air: 0, unclassified: 0};
+    indexed.forEach(row => { counts[row.group]++; });
+    return counts;
+  }, [indexed]);
+  const items = useMemo(() => indexed.filter(row => row.group === group && (!needle || row.text.includes(needle))).map(row => row.item), [indexed, group, needle]);
+  const pages = Math.max(1, Math.ceil(items.length / 25));
+  const currentPage = Math.min(page, pages);
+  const visible = items.slice((currentPage - 1) * 25, currentPage * 25);
   const active = all.find(row => row.equipment_id === selected);
   return <div className="space-y-6 registry-page"><PageHeader title="Работы + реестр оборудования" description="Оборудование, регламенты ТО и наработка деталей по зданиям." actions={mayEdit ? <Link to="/settings/equipment" className={buttonClassName('primary')}>Добавить оборудование</Link> : undefined}/>
     {error && <p role="alert"><Callout tone="danger">{error}</Callout></p>}
     {query.status === 'loading' && <LoadingState/>}{query.status === 'error' && <ErrorState description={query.error}/>}
     {query.status === 'success' && <>
       <RegistryExcel mayImport={mayEdit} onSaved={() => setRefresh(n => n+1)}/>
-      <Card className="space-y-4 p-5"><div className="registry-tools"><label className="space-y-1 text-sm"><FieldCaption>Здание</FieldCaption><Select aria-label="Здание" value={query.data.registry.site_id} disabled={busy} onChange={async e => {setBusy(true); setError(''); try{await switchSite(e.target.value);}catch(error){setError(failure(error));setBusy(false);}}}>{query.data.sites.map(site => <option key={site.site_id} value={site.site_id}>{site.name}</option>)}</Select></label><label className="space-y-1 text-sm"><FieldCaption>Поиск оборудования, работы или детали</FieldCaption><Input aria-label="Поиск по реестру" value={search} onChange={e => setSearch(e.target.value)} placeholder="Название, номер или расположение"/></label></div>
+      <Card className="space-y-4 p-5"><div className="registry-tools"><label className="space-y-1 text-sm"><FieldCaption>Здание</FieldCaption><Select aria-label="Здание" value={query.data.registry.site_id} disabled={busy} onChange={async e => {setBusy(true); setError(''); try{await switchSite(e.target.value);}catch(error){setError(failure(error));setBusy(false);}}}>{query.data.sites.map(site => <option key={site.site_id} value={site.site_id}>{site.name}</option>)}</Select></label><label className="space-y-1 text-sm"><FieldCaption>Поиск оборудования, работы или детали</FieldCaption><Input aria-label="Поиск по реестру" value={search} onChange={e => {setSearch(e.target.value);setPage(1);setSelected('');}} placeholder="Название, номер или расположение"/></label></div>
         {mayEdit && <BuildingForm timezone={profile?.timezone ?? 'Asia/Yekaterinburg'} onSaved={() => setRefresh(n => n+1)}/>}
-        <div className="registry-tabs" role="tablist" aria-label="Инженерные системы">{(Object.entries(systemGroups) as [SystemGroup, string][]).map(([key, label]) => <Button key={key} role="tab" id={`registry-tab-${key}`} aria-controls="registry-table-panel" aria-selected={group === key} variant={group === key ? 'primary' : 'ghost'} onClick={() => {setGroup(key);setSelected('');}}>{label} <span>{all.filter(item => systems.find(system => system.id === item.system_id)?.system_group === key).length}</span></Button>)}<Button role="tab" id="registry-tab-unclassified" aria-controls="registry-table-panel" aria-selected={group === 'unclassified'} variant={group === 'unclassified' ? 'primary' : 'ghost'} onClick={() => {setGroup('unclassified');setSelected('');}}>Без группы <span>{all.filter(item => !systems.find(system => system.id === item.system_id)?.system_group).length}</span></Button></div>
+        <div className="registry-tabs" role="tablist" aria-label="Инженерные системы">{(Object.entries(systemGroups) as [SystemGroup, string][]).map(([key, label]) => <Button key={key} role="tab" id={`registry-tab-${key}`} aria-controls="registry-table-panel" aria-selected={group === key} variant={group === key ? 'primary' : 'ghost'} onClick={() => {setGroup(key);setPage(1);setSelected('');}}>{label} <span>{counts[key]}</span></Button>)}<Button role="tab" id="registry-tab-unclassified" aria-controls="registry-table-panel" aria-selected={group === 'unclassified'} variant={group === 'unclassified' ? 'primary' : 'ghost'} onClick={() => {setGroup('unclassified');setPage(1);setSelected('');}}>Без группы <span>{counts.unclassified}</span></Button></div>
       </Card>
       {systems.some(system => !system.system_group) && <Callout>Есть системы без группы. Их оборудование сохранено во вкладке «Без группы». {mayEdit ? 'Укажите группу ниже, чтобы распределить его по таблицам.' : 'Главный инженер может указать группу системы.'}</Callout>}
       {mayEdit && <SystemGroups systems={systems} onSaved={() => setRefresh(n => n+1)}/>}
       <div id="registry-table-panel" role="tabpanel" aria-labelledby={`registry-tab-${group}`}>
-        {!items.length ? <EmptyState title="В этой таблице пока нет оборудования" description={search ? 'Измените поисковый запрос.' : 'Добавьте оборудование или укажите группу существующей системы.'}/> : <Card className="overflow-hidden"><div className="registry-scroll"><table className="registry-table" aria-label={`${group === 'unclassified' ? 'Без группы' : systemGroups[group]} — работы и оборудование`}><thead><tr><th>Оборудование</th><th>Работы и периодичность</th><th>Трудозатраты на одно ТО</th><th>Детали и наработка</th><th><span className="sr-only">Действия</span></th></tr></thead><tbody>{items.map(item => <RegistryRow key={item.equipment_id} item={item} system={systems.find(system => system.id === item.system_id)} selected={selected === item.equipment_id} canConfigure={canOpenSection(profile?.role,'service_settings')} onSelect={() => setSelected(selected === item.equipment_id ? '' : item.equipment_id)}/>)}</tbody></table></div></Card>}
+        {!items.length ? <EmptyState title="В этой таблице пока нет оборудования" description={search ? 'Измените поисковый запрос.' : 'Добавьте оборудование или укажите группу существующей системы.'}/> : <Card className="overflow-hidden"><div className="registry-scroll"><table className="registry-table" aria-label={`${group === 'unclassified' ? 'Без группы' : systemGroups[group]} — работы и оборудование`}><thead><tr><th>Оборудование</th><th>Работы и периодичность</th><th>Трудозатраты на одно ТО</th><th>Детали и наработка</th><th><span className="sr-only">Действия</span></th></tr></thead><tbody>{visible.map(item => <RegistryRow key={item.equipment_id} item={item} system={systemIndex.get(item.system_id)} selected={selected === item.equipment_id} canConfigure={canOpenSection(profile?.role,'service_settings')} onSelect={() => setSelected(selected === item.equipment_id ? '' : item.equipment_id)}/>)}</tbody></table></div></Card>}
       </div>
+      {items.length > 25 && <nav aria-label="Страницы оборудования" className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted" aria-live="polite">{(currentPage-1)*25+1}–{Math.min(currentPage*25,items.length)} из {items.length} · Страница {currentPage} из {pages}</p>
+        <div className="flex gap-2"><Button variant="secondary" disabled={currentPage === 1} onClick={() => {setPage(currentPage-1);setSelected('');}}>Предыдущая страница оборудования</Button><Button variant="secondary" disabled={currentPage === pages} onClick={() => {setPage(currentPage+1);setSelected('');}}>Следующая страница оборудования</Button></div>
+      </nav>}
       {active && <section className="space-y-4" aria-label={`Детали: ${active.name}`}><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">{active.name} · {active.asset_code}</h2>{mayEdit && <Link to={`/settings/equipment?equipment=${encodeURIComponent(active.equipment_id)}`} className={buttonClassName('secondary')}>Настроить оборудование и работы</Link>}</div><ComponentPanel equipmentId={active.equipment_id} onChanged={() => setRefresh(n => n+1)}/></section>}
     </>}
   </div>;

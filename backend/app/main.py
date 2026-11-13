@@ -406,7 +406,8 @@ def create_app(engine=None):
     @app.get(prefix + "/ui/equipment")
     def equipment_list(v=Depends(views)):
         visible = v.visible_equipment_ids() if v.principal.role == "executor" else None
-        return [v.equipment(e) for e in v.rows("equipment") if visible is None or e.equipment_id in visible]
+        equipment = v.prepare_equipment_views()
+        return [v.equipment(e) for e in equipment if visible is None or e.equipment_id in visible]
 
     @app.get(prefix + "/ui/equipment/{equipment_id}")
     def equipment_detail(equipment_id: UUID, v=Depends(views)):

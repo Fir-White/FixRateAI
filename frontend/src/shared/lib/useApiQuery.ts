@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type DependencyList } from "react";
 import { useApiQueryCache } from "./ApiQueryProvider";
-import { QUERY_FRESH_MS } from "./apiQueryCache";
+import { QUERY_FRESH_MS, type ApiQueryCache } from "./apiQueryCache";
 
 export type ApiQuery<T> =
   | { status: "loading"; data: null; error: null }
@@ -11,7 +11,7 @@ const loading = { status: "loading", data: null, error: null } as const;
 const sameDependencies = (a: DependencyList, b: DependencyList) => a.length === b.length && a.every((value, index) => Object.is(value, b[index]));
 
 export function useApiQuery<T>(
-  loader: () => Promise<T>,
+  loader: (cache?: ApiQueryCache | null) => Promise<T>,
   dependencies: DependencyList,
   pollWhile?: (data: T) => boolean,
   cacheKey?: string,
@@ -26,6 +26,9 @@ export function useApiQuery<T>(
 
   useEffect(() => {
     let active = true;
+    let inFlight = false;
+    let latest: T | undefined;
+    let hasLatest = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const force = previous.current?.cache === cache && previous.current.cacheKey === cacheKey && !sameDependencies(previous.current.dependencies, dependencies);
     previous.current = { cache, cacheKey, dependencies: [...dependencies] };
@@ -36,25 +39,33 @@ export function useApiQuery<T>(
     };
     publish(force ? loading : snapshot());
     const load = (fresh = false) => {
+      if (!active || inFlight) return;
+      inFlight = true;
+      clearTimeout(timer);
       const generation = cache?.generation;
-      const result = cache && cacheKey ? cache.load(cacheKey, loader, fresh) : Promise.resolve().then(loader);
+      const result = cache && cacheKey ? cache.load(cacheKey, () => loader(cache), fresh) : Promise.resolve().then(() => loader(cache));
       void result.then(data => {
+        inFlight = false;
         if (!active) return;
         // A write overtook this read. Never publish its earlier snapshot.
         if (cache && cacheKey && cache.generation !== generation) { load(true); return; }
         publish({ status: "success", data, error: null });
-        if (pollWhile?.(data)) timer = setTimeout(() => load(true), 3000);
+        latest = data; hasLatest = true;
+        if (pollWhile?.(data) && !document.hidden) timer = setTimeout(() => load(true), 3000);
       }).catch((error: unknown) => {
+        inFlight = false;
         publish({ status: "error", data: null, error: error instanceof Error ? error.message : "Не удалось загрузить данные" });
       });
     };
     load(force);
     const refresh = () => {
-      if (!cache || !cacheKey || document.hidden) return;
+      if (document.hidden) { clearTimeout(timer); return; }
+      if (hasLatest && pollWhile?.(latest as T)) { load(true); return; }
+      if (!cache || !cacheKey) return;
       const entry = cache.peek(cacheKey);
       if (!entry || Date.now() - entry.updatedAt >= QUERY_FRESH_MS) load(true);
     };
-    if (cache && cacheKey) {
+    if ((cache && cacheKey) || pollWhile) {
       window.addEventListener("focus", refresh);
       document.addEventListener("visibilitychange", refresh);
     }

@@ -26,17 +26,18 @@ def upload(admin, sheets, suffix='/preview', token=None):
 
 def test_preview_has_no_writes_and_import_uses_shared_catalog_services(managed):
     _,_,admin,_,ids=managed
-    sheets=book(ids)
-    preview=upload(admin,sheets)
+    # Preview and import must receive identical bytes, including ZIP timestamps.
+    content=write_workbook(book(ids))
+    preview=upload(admin,content)
     assert preview.status_code==200,preview.text
     assert preview.json()['can_import'] and len(preview.json()['rows'])==3
     assert admin.get(PREFIX+'/registry').json()['items']==[]
-    response=upload(admin,sheets,'/import',preview.json()['preview_token'])
+    response=upload(admin,content,'/import',preview.json()['preview_token'])
     assert response.status_code==200,response.text
     row=admin.get(PREFIX+'/registry').json()['items'][0]
     assert row['name']=='Насос из Excel' and row['components'][0]['current_usage']=='12.000'
     assert row['services'][0]['maintenance_type']=='ТО3' and row['services'][0]['enabled'] is False
-    assert upload(admin,sheets,'/import',preview.json()['preview_token']).status_code==409
+    assert upload(admin,content,'/import',preview.json()['preview_token']).status_code==409
 
 
 def test_export_roundtrip_preserves_existing_types_properties_and_part_history(managed):
@@ -75,9 +76,10 @@ def test_visible_excel_columns_edit_recurrence_and_checklist_without_losing_meta
     sheets={name:[headers]+values[name] for name,headers in [('Оборудование',EQ),('Работы',WORK),('Детали',PART)]}
     sheets['Работы'][1][WORK.index('Интервал')]='6'
     sheets['Работы'][1][WORK.index('Пункты регламента')]='Новое название измерения'
-    checked=upload(admin,sheets)
+    content=write_workbook(sheets)
+    checked=upload(admin,content)
     assert checked.status_code==200 and checked.json()['can_import'],checked.text
-    imported=upload(admin,sheets,'/import',checked.json()['preview_token'])
+    imported=upload(admin,content,'/import',checked.json()['preview_token'])
     assert imported.status_code==200,imported.text
     current=admin.get(f"{PREFIX}/equipment/{eq['equipment_id']}/service-configurations").json()[0]
     assert current['pattern']['interval']==6 and current['enabled'] is False
@@ -89,9 +91,10 @@ def test_import_allows_no_partial_writes_on_late_validation_error(managed):
     _,_,admin,_,ids=managed
     sheets=book(ids)
     sheets['Детали'][1][PART.index('Дата установки')]=(date.today()-timedelta(days=10)).isoformat()
-    checked=upload(admin,sheets)
+    content=write_workbook(sheets)
+    checked=upload(admin,content)
     assert checked.status_code==200,checked.text
-    imported=upload(admin,sheets,'/import',checked.json()['preview_token'])
+    imported=upload(admin,content,'/import',checked.json()['preview_token'])
     assert imported.status_code==422,imported.text
     assert admin.get(PREFIX+'/registry').json()['items']==[]
     assert all(s['code']!='EXCEL' for s in admin.get(PREFIX+'/registry').json()['systems'])

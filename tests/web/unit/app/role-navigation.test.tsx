@@ -1,9 +1,13 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
+import { pageLoaders } from "@/app/pageModules";
 import { AppRouter } from "@/app/router";
 import { SessionProvider } from "@/shared/session/SessionContext";
 import type { Role } from "@/shared/types/domain";
+
+// Permission checks exercise rendered routes; bundler transforms are measured by browser tests.
+beforeAll(async () => { await Promise.all(Object.values(pageLoaders).map(load => load())); });
 
 // Expected permissions come from the screen specification, independently of router guards.
 const roles: Role[] = ["director", "chief_engineer", "admin", "dispatcher", "engineer", "executor"];
@@ -41,7 +45,7 @@ describe("role access and links on every screen", () => {
       window.localStorage.setItem("fixrate.demo.role", role);
       render(<SessionProvider><MemoryRouter initialEntries={[path]}><AppRouter /></MemoryRouter></SessionProvider>);
       const allowed = access[path.split("/")[1]].includes(role);
-      await screen.findByRole("heading", {name: allowed ? heading : "Раздел недоступен для текущей роли"});
+      await screen.findByRole("heading", {name: allowed ? heading : "Раздел недоступен для текущей роли"}, {timeout: 5000});
       await waitFor(() => expect(screen.queryByRole("status", {hidden: true})).not.toBeInTheDocument());
       // Permission checks include every rendered link, even in collapsed regions.
       // Avoid jsdom's expensive ancestor visibility walk for each calendar link;

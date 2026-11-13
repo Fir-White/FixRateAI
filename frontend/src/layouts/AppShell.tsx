@@ -23,6 +23,7 @@ import { useWorkspaceBack } from "./WorkspaceNavigation";
 import { NAVIGATION_ITEMS } from "./navigation";
 import "./operations.css";
 import { ContentTheme } from "@/shared/ui/ContentTheme";
+import { preloadPage } from "@/app/pageModules";
 
 const ROLES: Role[] = ["director","chief_engineer","dispatcher", "engineer", "executor", "admin"];
 
@@ -74,6 +75,7 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
     switchRole(role);
     navigate(homePathForRole(role));
   };
+  const warmProfile = () => { void preloadPage("/profile")?.catch(() => {}); };
 
 
   return (
@@ -86,6 +88,7 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
       </a>
 
       <Sidebar
+        timezone={profile.timezone}
         items={items}
         expanded={sidebarExpanded}
         mobile={isMobile}
@@ -95,7 +98,7 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
       />
 
       <div className="ops-stage" inert={mobileOpen} aria-hidden={mobileOpen || undefined}>
-        <header ref={topbarRef} className="ops-topbar scroll-boundary sticky top-0 z-30 border-b border-line bg-canvas/80 backdrop-blur-xl">
+        <header ref={topbarRef} className="ops-topbar scroll-boundary sticky top-0 z-30 border-b border-line">
           <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
               <IconButton
@@ -111,7 +114,7 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
               {location.pathname.replace(/\/+$/, "") !== homePathForRole(profile.role) && <button type="button" className="workspace-back" onClick={workspaceBack}><Icon name="back" size={17}/>Назад</button>}
             </div>
 
-              <div className="fr-topbar-actions"><MaintenanceInbox/><NavLink to="/profile" className="profile-trigger" aria-label="Учётная запись"><Icon name="user" size={20}/><span className="topbar-hint" aria-hidden="true">Учётная запись</span></NavLink>
+              <div className="fr-topbar-actions"><MaintenanceInbox/><NavLink to="/profile" className="profile-trigger" aria-label="Учётная запись" onMouseEnter={warmProfile} onFocus={warmProfile} onPointerDown={warmProfile}><Icon name="user" size={20}/><span className="topbar-hint" aria-hidden="true">Учётная запись</span></NavLink>
               {DEMO_MODE && (
                 <div className="fr-topbar-actions">
                   <span className="fr-demo-badge">DEMO</span>

@@ -1,13 +1,19 @@
-import { useEffect, useRef } from "react";
-import { createWorkspaceAuroraRenderer } from "./workspaceAuroraRenderer";
+import { useEffect, useRef, useState } from "react";
+import { createWorkspaceAuroraSurface } from "./workspaceAuroraSurface";
 
 export function WorkspaceAuroraBackground() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [workerFailed, setWorkerFailed] = useState(false);
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || typeof window.CanvasRenderingContext2D === "undefined") return;
-    const renderer = createWorkspaceAuroraRenderer(canvas);
-    if (!renderer) return;
+    const host = hostRef.current;
+    if (!host) return;
+    // Offscreen transfer is one-shot. Each effect lifetime owns its own canvas,
+    // including React StrictMode's setup/cleanup/setup cycle in development.
+    const canvas = document.createElement("canvas");
+    host.appendChild(canvas);
+    if (typeof window.CanvasRenderingContext2D === "undefined") return () => canvas.remove();
+    const renderer = createWorkspaceAuroraSurface(canvas, !workerFailed, () => setWorkerFailed(true));
+    if (!renderer) return () => canvas.remove();
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)");
     const compact = window.matchMedia?.("(max-width: 820px)");
     let frame: number | null = null;
@@ -89,8 +95,9 @@ export function WorkspaceAuroraBackground() {
       root?.removeEventListener("click", click, true);
       root?.removeEventListener("input", input);
       renderer.destroy();
+      canvas.remove();
     };
-  }, []);
+  }, [workerFailed]);
 
-  return <div className="workspace-aurora" aria-hidden="true"><canvas ref={canvasRef} /></div>;
+  return <div ref={hostRef} className="workspace-aurora" aria-hidden="true" />;
 }

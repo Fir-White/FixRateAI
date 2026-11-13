@@ -9,6 +9,7 @@ from fastapi import Depends, File, Form, HTTPException, Request, Response, Uploa
 from fastapi.responses import FileResponse
 from pydantic import ValidationError
 from sqlalchemy import text
+from sqlalchemy.orm import joinedload
 from app.db.session import service_transaction
 from app.files import MAX_BYTES, validate_upload
 from app.schemas.registry import BuildingCreate, ComponentCreate, ComponentMetadata, ComponentReplacement, SiteSelection, SystemEdit, UsageReading
@@ -68,13 +69,20 @@ def add_component(v, equipment_id, data):
 
 def registry_payload(v):
     _guard(v, 'director', 'admin', 'chief_engineer', 'engineer', 'dispatcher')
+    binding, rule = v.models['rule_equipment'], v.models['maintenance_rules']
+    v.prefetch('rule_equipment', 'equipment_id', options=(joinedload(binding.rule).joinedload(rule.operation),))
+    v.prefetch('maintenance_types', 'maintenance_type_id')
+    v.prefetch('rule_required_skills', 'maintenance_rule_id')
+    v.prefetch('checklist_templates', 'operation_template_id')
+    v.prefetch('component_usage_readings', 'component_id')
+    v.prefetch('equipment', 'equipment_id')
     equipment = sorted(v.rows('equipment'), key=lambda r: (r.asset_code, str(r.equipment_id)))
-    parts = v.rows('equipment_components')
+    v.prefetch('equipment_components', 'equipment_id')
     return dict(site_id=v.principal.site_id, site_name=v.principal.site_name, timezone=v.principal.timezone,
         systems=[dict(id=r.system_id, code=r.code, name=r.name, system_group=r.system_group, revision=r.revision, is_active=r.is_active)
             for r in sorted(v.rows('engineering_systems'), key=lambda r: (r.name, str(r.system_id)))],
         items=[dict(**equipment_response(row), services=service_configurations(v, row.equipment_id),
-            components=[component_response(v, part) for part in parts if part.equipment_id == row.equipment_id]) for row in equipment])
+            components=[component_response(v, part) for part in v.rows('equipment_components', equipment_id=row.equipment_id)]) for row in equipment])
 
 
 def register_routes(app, views, storage, runtime_settings):

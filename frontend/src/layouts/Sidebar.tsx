@@ -8,6 +8,8 @@ import { useScrollBoundary } from "@/shared/lib/useScrollBoundary";
 import { Icon } from "@/shared/ui/Icon";
 import type { NavigationItem } from "./navigation";
 import "./Sidebar.css";
+import { warmWorkspacePath } from "@/features/navigation/warmWorkspacePath";
+import { useApiQueryCache } from "@/shared/lib/ApiQueryProvider";
 
 interface SidebarProps {
   items: readonly NavigationItem[];
@@ -17,9 +19,12 @@ interface SidebarProps {
   onClose: () => void;
   onToggle: () => void;
   footer?: ReactNode;
+  timezone?: string;
 }
 
-export function Sidebar({ items, expanded, mobile, open, onClose, onToggle, footer }: SidebarProps) {
+export function Sidebar({ items, expanded, mobile, open, onClose, onToggle, footer, timezone = "Asia/Yekaterinburg" }: SidebarProps) {
+  const cache = useApiQueryCache();
+  const warm = (path: string) => warmWorkspacePath(cache, path, timezone);
   const location = useLocation();
   const dialogRef = useDialogFocus<HTMLElement>(mobile && open, onClose);
   const tooltipId = useId();
@@ -107,9 +112,10 @@ export function Sidebar({ items, expanded, mobile, open, onClose, onToggle, foot
               aria-label={item.label}
               aria-describedby={tooltip?.to === item.to ? tooltipId : undefined}
               className="ops-sidebar-link"
-              onMouseEnter={event => { tooltipSuspended.current = false; showTooltip(event, item); }}
+              onMouseEnter={event => { warm(item.to); tooltipSuspended.current = false; showTooltip(event, item); }}
               onMouseLeave={() => setTooltip(null)}
-              onFocus={event => { if (!tooltipSuspended.current) showTooltip(event, item); }}
+              onFocus={event => { warm(item.to); if (!tooltipSuspended.current) showTooltip(event, item); }}
+              onPointerDown={() => warm(item.to)}
               onBlur={() => setTooltip(null)}
               onKeyDown={event => { if (event.key === "Escape") setTooltip(null); }}
               onClick={event => navigateOnce(event, item.to)}

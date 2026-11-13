@@ -133,7 +133,8 @@ def workbook(rows):
     def cell(col,row,value):
         name=''
         while col: col,rem=divmod(col-1,26);name=chr(65+rem)+name
-        return f'<c r="{name}{row}" t="inlineStr"><is><t xml:space="preserve">{escape(''.join(c for c in str(value if value is not None else "") if ord(c)>=32 or c in '\t\n\r'))}</t></is></c>'
+        clean = ''.join(c for c in str(value if value is not None else '') if ord(c) >= 32 or c in '\t\n\r')
+        return f'<c r="{name}{row}" t="inlineStr"><is><t xml:space="preserve">{escape(clean)}</t></is></c>'
     sheet='<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>'+''.join('<row r="%d">'%i+''.join(cell(j,i,v) for j,v in enumerate(row,1))+'</row>' for i,row in enumerate(rows,1))+'</sheetData></worksheet>'
     files={
       '[Content_Types].xml':'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>',
@@ -161,8 +162,12 @@ def register_analyst_routes(app,views,photo_path,editable):
 
     @app.get(PREFIX+'/notifications')
     def inbox(v=Depends(views)):
+        notifications = v.models['maintenance_notifications']
+        rows = v.session.scalars(select(notifications).where(
+            notifications.site_id == v.principal.site_id, notifications.user_id == v.principal.user_id,
+        ).order_by(notifications.created_at.desc()).limit(100)).all()
         return [dict(id=str(n.notification_id),message=n.message,taskId=str(n.work_order_id) if n.work_order_id else None,
-                     createdAt=n.created_at,readAt=n.read_at) for n in sorted(v.rows('maintenance_notifications',user_id=v.principal.user_id),key=lambda n:n.created_at,reverse=True)[:100]]
+                     createdAt=n.created_at,readAt=n.read_at) for n in rows]
 
     @app.post(PREFIX+'/notifications/read-all')
     def read_all_notifications(v=Depends(views)):

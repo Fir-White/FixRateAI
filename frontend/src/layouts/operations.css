@@ -2,7 +2,7 @@
    Palette and type tokens live in index.css; no competing page overrides. */
 .ops-shell{--ops-line:var(--color-line);--ops-accent:var(--color-accent);position:relative;z-index:1;background:transparent;color:var(--color-ink);font-size:14px;line-height:1.5}
 .ops-stage,.ops-main,.ops-main>*{min-width:0}
-.ops-topbar{height:68px;border-bottom:1px solid var(--color-line);background:rgb(16 21 22 / .96);backdrop-filter:blur(12px)}
+.ops-topbar{height:68px;border-bottom:1px solid var(--color-line);background:#101516;backdrop-filter:none}
 .ops-topbar>div{height:100%;padding:0 32px}
 .ops-main{max-width:1720px;padding:32px 36px 56px;margin:auto}
 .ops-main:focus{outline:none}
