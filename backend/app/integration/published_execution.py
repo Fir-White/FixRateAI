@@ -45,7 +45,7 @@ def ensure_start(v,order):
     segment=WorkSegment(segment_id=UUID(row['segment_ids'][0]),occurrence_id=root.occurrence_id,equipment_ids=root.equipment_ids,
         person_hours=order.norm_hours_snapshot,start_at=now,end_at=ends,worker_ids=list(workers))
     report=validate([root],[segment],people,DraftPolicy.model_validate(snapshot['policy']),root.earliest_date,
-        root.latest_date, v.principal.timezone,now,equipment_bookings=equipment,equipment_unknown=unknown)
+        root.latest_date, v.principal.timezone,now,equipment_bookings=equipment,equipment_unknown=unknown,allow_legacy_policy=True)
     assets=_lock(v,'equipment',read=True,equipment_id=set(root.equipment_ids))
     if report.status!='valid' or any(a.status!='active' or a.commissioned_on and a.commissioned_on>now.astimezone(ZoneInfo(v.principal.timezone)).date() for a in assets):
         raise HTTPException(409,'Начало больше не обеспечено текущими ресурсами или допустимым окном: '+('; '.join(i.message for i in report.issues[:3]) or 'оборудование недоступно'))

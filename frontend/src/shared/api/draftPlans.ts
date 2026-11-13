@@ -1,6 +1,8 @@
 import { request } from './request';
 
-export interface DraftPolicy {capacity_hours_per_24h:string|null;capacity_confirmed:boolean;capacity_ref:string;day_start_minute:number|null;night_start_minute:number|null}
+export type ConfirmationStatus='unknown'|'provisional'|'confirmed';
+export interface ServiceWindow {weekday:number;start_minute:number;end_minute:number}
+export interface DraftPolicy {format_version?:1|2;capacity_hours_per_24h:string|null;capacity_confirmed:boolean;capacity_ref:string;day_start_minute:number|null;night_start_minute:number|null;capacity_status?:ConfirmationStatus;access_status?:ConfirmationStatus;access_mode?:'unrestricted'|'weekly'|null;access_ref?:string;service_windows?:ServiceWindow[]}
 export interface GenerationInput {import_id:string;starts_on:string;ends_on:string;row_numbers:number[];expansion:'source_january'|'confirmed_rule';policy:DraftPolicy}
 export interface PlanIssue {code:string;message:string;row_number:number|null;occurrence_id:string|null;segment_id:string|null;date:string|null}
 export interface WorkOccurrence {occurrence_id:string;site_id:string;import_id:string;source_sha256:string;parser_version:string;source_row:number;decision_revision:number;source_cells:string[];source_date:string;source_slot:'whole_day'|'day'|'night';date_basis?:'source_january'|'confirmed_rule';title:string;operation_code:string;maintenance_type:string;interpretation:string;equipment_ids:string[];earliest_date:string;latest_date:string;allowed_intervals:{start_at:string;end_at:string}[];total_person_hours:string;crew_size:number;splittable:boolean;min_segment_minutes:number|null;qualification_ids:string[];qualifications_confirmed:boolean;included_rows:number[];norm_ref:string;norm_scope:'per_asset'|'whole_binding';policy_note:string}
@@ -13,6 +15,8 @@ export interface PlanningChoice {id:string;label:string}
 const base='/api/v1/maintenance/draft-plans';
 const revisionQuery=(revision:number)=>new URLSearchParams({revision:String(revision)});
 export const draftPlansApi={
+  policy:(id:string,revision?:number)=>request<{record:DraftRecord;policy:DraftPolicy}>(`${base}/${encodeURIComponent(id)}/policy${revision===undefined?'':`?${revisionQuery(revision)}`}`),
+  changePolicy:(id:string,body:{expected_revision:number;idempotency_key:string;reason:string;policy:DraftPolicy})=>request<DraftRecord>(`${base}/${encodeURIComponent(id)}/policy`,{method:'POST',body:JSON.stringify(body)}),
   sources:(id:string,q:string,offset:number)=>request<{items:{row_number:number;code:string;title:string;maintenance_type:string}[];total:number}>(`${base}/source-choices/${encodeURIComponent(id)}?${new URLSearchParams({q,offset:String(offset)})}`),
   preview:(input:GenerationInput)=>request<GenerationPreview>(base+'/preview',{method:'POST',body:JSON.stringify(input)},{readOnly:true}),
   create:(input:GenerationInput,preview_sha256:string,idempotency_key:string,title:string,reason:string)=>request<DraftRecord>(base,{method:'POST',body:JSON.stringify({input,preview_sha256,idempotency_key,title,reason})}),

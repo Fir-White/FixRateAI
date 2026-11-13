@@ -4,26 +4,87 @@ from datetime import date as Date
 from decimal import Decimal
 from typing import Literal
 from uuid import UUID
-from pydantic import BaseModel, ConfigDict, Field, AwareDatetime, model_validator
+from pydantic import BaseModel, ConfigDict, Field, AwareDatetime, model_validator, model_serializer
 
 class Model(BaseModel):
     model_config=ConfigDict(extra='forbid',str_strip_whitespace=True)
 
+class ServiceWindow(Model):
+    weekday: int = Field(ge=1,le=7,strict=True)
+    start_minute: int = Field(ge=0,le=1439,strict=True)
+    end_minute: int = Field(ge=1,le=2879,strict=True)
+
+    @model_validator(mode='after')
+    def coherent(self):
+        if not self.start_minute<self.end_minute<=self.start_minute+1440:
+            raise ValueError('Окно должно длиться от одной минуты до 24 часов; ночное окончание относится к следующим суткам')
+        return self
+
 class DraftPolicy(Model):
+    format_version: Literal[1,2] = 1
     capacity_hours_per_24h: Decimal | None = Field(default=None,gt=0,le=24,decimal_places=3,allow_inf_nan=False)
     capacity_confirmed: bool = False
     capacity_ref: str = Field(default='',max_length=2000)
     day_start_minute: int | None = Field(default=None,ge=0,le=1439)
     night_start_minute: int | None = Field(default=None,ge=0,le=1439)
+    capacity_status: Literal['unknown','provisional','confirmed'] | None = None
+    access_status: Literal['unknown','provisional','confirmed'] = 'unknown'
+    access_mode: Literal['unrestricted','weekly'] | None = None
+    access_ref: str = Field(default='',max_length=2000)
+    service_windows: list[ServiceWindow] = Field(default_factory=list,max_length=28)
+
+    @model_serializer(mode='wrap')
+    def stable_legacy_snapshot(self,handler):
+        value=handler(self)
+        if self.format_version==1:
+            # Existing signatures/idempotency keys and approved snapshots retain
+            # precisely their original representation after schema evolution.
+            for field in ('format_version','capacity_status','access_status','access_mode','access_ref','service_windows'):
+                value.pop(field,None)
+        return value
 
     @model_validator(mode='after')
     def coherent(self):
+        if self.format_version==1:
+            if self.capacity_status is not None or self.access_status!='unknown' or self.access_mode is not None or self.access_ref or self.service_windows:
+                raise ValueError('Для статусов и окон доступа используйте версию параметров 2')
+        else:
+            if self.capacity_status is None or self.capacity_confirmed!=(self.capacity_status=='confirmed'):
+                raise ValueError('Статус ёмкости должен соответствовать её подтверждению')
+            if self.capacity_status!='unknown' and self.capacity_hours_per_24h is None:
+                raise ValueError('Для предварительной или подтверждённой ёмкости укажите значение')
+            if self.access_status=='confirmed' and (not self.access_ref or self.access_mode is None):
+                raise ValueError('Укажите режим доступа и основание подтверждения окон')
+            if self.access_mode=='weekly' and not self.service_windows:
+                raise ValueError('Для недельного режима добавьте хотя бы одно окно доступа')
+            if self.access_mode!='weekly' and self.service_windows:
+                raise ValueError('Окна задаются только для недельного режима доступа')
+            canonical=sorted(self.service_windows,key=lambda w:(w.weekday,w.start_minute,w.end_minute))
+            spans=[]
+            for window in canonical:
+                left=(window.weekday-1)*1440+window.start_minute;right=(window.weekday-1)*1440+window.end_minute
+                for offset in (-10080,0,10080):spans.append((left+offset,right+offset))
+            spans.sort()
+            if any(left<previous_end for (_,previous_end),(left,_) in zip(spans,spans[1:])):
+                raise ValueError('Недельные окна доступа не должны пересекаться, включая переход воскресенье/понедельник')
+            self.service_windows=canonical
         if (self.day_start_minute is None)!=(self.night_start_minute is None):
             raise ValueError('Задайте обе границы дневного и ночного события')
         if self.day_start_minute is not None and self.day_start_minute>=self.night_start_minute:
             raise ValueError('Начало ночного события должно следовать после начала дневного')
         if self.capacity_confirmed and (not self.capacity_ref or self.capacity_hours_per_24h is None):
             raise ValueError('Укажите источник полезной ёмкости')
+        return self
+
+class ChangeDraftPolicy(Model):
+    expected_revision: int = Field(ge=1)
+    idempotency_key: UUID
+    reason: str = Field(min_length=1,max_length=2000)
+    policy: DraftPolicy
+
+    @model_validator(mode='after')
+    def coherent(self):
+        if self.policy.format_version!=2:raise ValueError('Новые параметры сохраняются в формате версии 2')
         return self
 
 class GenerationInput(Model):
@@ -166,7 +227,7 @@ class DailyPlanLoad(Model):
     deficit_person_hours: Decimal | None
 
 class PlanValidation(Model):
-    validator_version: str = 'draft-validator-v1'
+    validator_version: str = 'draft-validator-v2'
     status: Literal['valid','incomplete','invalid']
     checked_at: AwareDatetime
     input_sha256: str
@@ -241,4 +302,8 @@ class DraftOverview(Model):
     months: list[DraftMonth]
     validation: PlanValidation
 
-DRAFT_CONTRACTS=(GenerationInput,GenerationPreview,SaveDraft,EditSegments,LocalPlacement,DraftList,OccurrencePage,SegmentPage,DraftOverview,PlanValidation,PlanningChoices,PreparedSourceChoices)
+class DraftPolicyView(Model):
+    record: DraftRecord
+    policy: DraftPolicy
+
+DRAFT_CONTRACTS=(GenerationInput,GenerationPreview,SaveDraft,EditSegments,LocalPlacement,DraftList,OccurrencePage,SegmentPage,DraftOverview,PlanValidation,PlanningChoices,PreparedSourceChoices,ChangeDraftPolicy,DraftPolicyView)

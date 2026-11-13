@@ -19,8 +19,9 @@ from app.assignment.selection import _merge,_subtract
 from app.schemas.draft_plans import WorkOccurrence,WorkSegment,GenerationInput
 from app.schemas.optimization import OptimizationOptions
 from app.scheduling.draft_validator import validate,_parts,_hours,_contains,digest
+from app.scheduling.planning_policy import access_intervals,intersect
 
-MODEL_VERSION='placement-candidates-v1'
+MODEL_VERSION='placement-candidates-v2'
 OBJECTIVE_VERSION='coverage-then-segments-then-weighted-balance-v1'
 MAX_SEGMENTS=500
 MAX_CANDIDATES=20000
@@ -75,12 +76,23 @@ class Problem:
         self.diagnostics=[];self.counts=Counter();self.complete=all(_known(w) for w in self.people if w.active and w.membership_active and w.can_execute)
         if self.unknown_assets&{a for r in self.roots for a in r.equipment_ids}: self.complete=False
         self.reason='finished';self.candidate_count=0;self.variable_count=0
+        try:self.access=access_intervals(self.request.policy,self.request.starts_on,self.request.ends_on,self.tz)
+        except ValueError:
+            self.access=None;self.issue('ACCESS_TIME_UNRESOLVED','Уточните границы доступа в часовом поясе объекта')
+        if self.access is None:
+            self.complete=False
+            self.issue('ACCESS_UNCONFIRMED','Окна доступа объекта не подтверждены; вариант не готов к публикации')
         for w in self.known:
             available=_subtract(_merge([(a.start_at.astimezone(UTC),a.end_at.astimezone(UTC)) for a in w.availability if a.status=='available']),
                 [(a.start_at.astimezone(UTC),a.end_at.astimezone(UTC)) for a in w.availability if a.status=='unavailable'])
             booked=_merge([(b.start_at.astimezone(UTC),b.end_at.astimezone(UTC)) for b in w.bookings if b.blocks_time])
-            free=_subtract(available,booked);self.free[w.worker_id]=(free,[a for a,_ in free])
+            free=_subtract(available,booked)
+            if self.access is not None and self.request.policy.format_version==2:free=intersect(free,self.access)
+            self.free[w.worker_id]=(free,[a for a,_ in free])
             raw=defaultdict(Decimal);used=defaultdict(Decimal)
+            access_seconds=defaultdict(Decimal)
+            for a,b in free:
+                for day,left,right in _parts(a,b,self.tz):access_seconds[day]+=_hours(left,right)*3600
             for a,b in available:
                 for day,left,right in _parts(a,b,self.tz):
                     if self.request.starts_on<=day<=self.request.ends_on+timedelta(days=1):
@@ -89,6 +101,7 @@ class Problem:
                 for day,left,right in _parts(a,b,self.tz): used[day]+=_hours(left,right)*3600
             for day,seconds in raw.items():
                 capacity=max(0,int((seconds-used[day]).to_integral_value(rounding=ROUND_FLOOR)))
+                if self.request.policy.format_version==2:capacity=min(capacity,int(access_seconds[day].to_integral_value(rounding=ROUND_FLOOR)))
                 self.cap[w.worker_id,day]=capacity;self.by_day[day]+=capacity;self.worker_capacity[w.worker_id]+=capacity
         grouped=defaultdict(list)
         for s in self.original: grouped[s.occurrence_id].append(s)
@@ -404,7 +417,7 @@ class Problem:
 def calculate(payload,cancel=None):
     p=Problem(payload,cancel);baseline=None;optimized=None;baseline_segments=None;optimized_segments=None
     report=p.report(p.original)
-    input_codes={'HOURS_NOT_CONSERVED','DUPLICATE_SEGMENT','UNKNOWN_OCCURRENCE','DEPENDENCY_CYCLE','DEPENDENCY_MISSING','CAPACITY_UNCONFIRMED','QUALIFICATIONS_UNCONFIRMED','SEGMENTATION_FORBIDDEN','ASSET_COVERAGE','BATCH_HOURS_NOT_CONSERVED','BATCH_UNIT_REQUIRED','FOREIGN_ASSET','SEGMENT_TOO_SMALL'}
+    input_codes={'HOURS_NOT_CONSERVED','DUPLICATE_SEGMENT','UNKNOWN_OCCURRENCE','DEPENDENCY_CYCLE','DEPENDENCY_MISSING','CAPACITY_UNCONFIRMED','QUALIFICATIONS_UNCONFIRMED','SEGMENTATION_FORBIDDEN','ASSET_COVERAGE','BATCH_HOURS_NOT_CONSERVED','BATCH_UNIT_REQUIRED','FOREIGN_ASSET','SEGMENT_TOO_SMALL','ACCESS_UNCONFIRMED','ACCESS_TIME_UNRESOLVED'}
     if set(report.issue_counts)&input_codes or len(p.original)>MAX_SEGMENTS:
         p.complete=False;p.reason='needs_input'
         for issue in report.issues:

@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 from pydantic import Field,model_validator
-from app.schemas.draft_plans import Model,PlanValidation,PlanIssue
+from app.schemas.draft_plans import Model,PlanValidation,PlanIssue,DraftPolicy
 from app.schemas.management import ChecklistSetting
 
 
@@ -81,6 +81,7 @@ class PublicationProposal(Model):
     approval_token:UUID|None=None
     published_at:datetime|None=None
     publication_id:UUID|None=None
+    planning_policy:DraftPolicy|None=None
 
 
 class PublicationHistoryItem(Model):

@@ -26,6 +26,7 @@ def enqueue(managed,*,capacity=True):
     engine,app,_,_,ids=managed
     admin,_,_,_,_,request=prepare(managed)
     request['policy']['capacity_confirmed']=capacity
+    request['policy']['capacity_status']='confirmed' if capacity else 'provisional'
     worker_id=worker(managed,'TEST ONLY optimizer worker')
     record,_,_=save(admin,request)
     command=dict(expected_revision=1,idempotency_key=str(uuid4()),options=dict(time_limit_seconds=10))

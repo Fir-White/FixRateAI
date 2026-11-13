@@ -7,6 +7,7 @@ import { catalogImportsApi as catalogs, type CatalogSummary } from '@/shared/api
 import { draftPlansApi as plans, type DraftRecord, type PlanValidation } from '@/shared/api/draftPlans';
 import { optimizationApi } from '@/shared/api/optimization';
 import { publicationApi } from '@/shared/api/publication';
+import { newPolicy } from '@/features/planning/PolicyFields';
 
 vi.mock('@/shared/api/request',async original=>({...await original<typeof import('@/shared/api/request')>(),DEMO_MODE:false}));
 const session=vi.hoisted(()=>({role:'chief_engineer'}));
@@ -19,6 +20,7 @@ function Location(){const location=useLocation();return <output data-testid="loc
 function mount(path='/planning'){return render(<MemoryRouter initialEntries={[path]}><PlanningPage/><Location/></MemoryRouter>);}
 beforeEach(()=>{
   vi.restoreAllMocks();session.role='chief_engineer';
+  vi.spyOn(plans,'policy').mockResolvedValue({record,policy:newPolicy()});
   vi.spyOn(catalogs,'list').mockResolvedValue({items:[metadata],total:1});
   vi.spyOn(catalogs,'detail').mockResolvedValue({...metadata,groups:[],issues:[],sheet2_diagnostic:[],header_context:[]});
   vi.spyOn(catalogs,'preparation').mockResolvedValue({total:217,prepared_count:1,confirmed_count:1,blocker_counts:{},items:[],ready_for_real_plan:false});

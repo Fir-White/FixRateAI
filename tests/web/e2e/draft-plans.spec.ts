@@ -6,6 +6,13 @@ async function calendarDate(page:Page,label:string,value:string){
   await dialog.getByPlaceholder('ДД.ММ.ГГГГ').fill(value);
   await dialog.getByRole('button',{name:'Применить',exact:true}).click();
 }
+async function accessTime(page:Page,label:string,hour:string){
+  await page.getByRole('button',{name:label,exact:true}).click();
+  const dialog=page.getByRole('dialog',{name:label,exact:true});
+  await dialog.getByLabel('Часы',{exact:true}).fill(hour);
+  await dialog.getByLabel('Минуты',{exact:true}).fill('00');
+  await dialog.getByRole('button',{name:'Применить',exact:true}).click();
+}
 
 for(const [index,width] of [1440,390,320].entries()) {
   test(`isolated scenario, conserved split and version history at ${width}px`,async({page},testInfo)=>{
@@ -53,8 +60,11 @@ for(const [index,width] of [1440,390,320].entries()) {
     await form.getByRole('checkbox',{name:new RegExp('SYNTHETIC OPERATION '+operationNumber)}).check();
     await calendarDate(page,'Начало горизонта','01.01.2027');await calendarDate(page,'Конец горизонта','31.12.2027');
     await form.getByLabel('Полезная ёмкость сотрудника за 24 часа присутствия').fill('24');
-    await form.getByRole('checkbox',{name:'Полезная ёмкость подтверждена для этого расчёта'}).check();
     await form.getByLabel('Источник политики ёмкости').fill('TEST ONLY synthetic capacity');
+    await form.getByLabel('Статус полезной ёмкости').selectOption('confirmed');
+    await form.getByLabel('Режим доступа к объекту').selectOption('unrestricted');
+    await form.getByLabel('Основание режима доступа').fill('TEST ONLY synthetic unrestricted access');
+    await form.getByLabel('Статус доступа к объекту').selectOption('confirmed');
     await form.getByRole('button',{name:'Предпросмотр работ',exact:true}).click();
     await expect(form.getByLabel('Предпросмотр работ')).toContainText('1 корневых работ · 1 сегментов');
     const title=`TEST ONLY scenario ${width} ${Date.now()}`;
@@ -124,6 +134,28 @@ for(const [index,width] of [1440,390,320].entries()) {
     await page.screenshot({path:testInfo.outputPath(`publication-${width}.png`)});
     const active=await page.request.get('/api/v1/maintenance/ui/calendar?year=2027&month=1');expect(active.ok()).toBe(true);
     const entries=await active.json();expect(entries.filter((i:{operationTitle:string})=>i.operationTitle.includes('SYNTHETIC OPERATION '+operationNumber))).toHaveLength(2);
+    // Changing access creates a draft version, leaving the published calendar intact.
+    await expect(proposal.getByLabel('Условия расчёта версии')).toContainText('TEST ONLY synthetic unrestricted access');
+    await saved.getByRole('button',{name:'Состав работ',exact:true}).click();
+    const policy=saved.getByRole('region',{name:'Параметры расчёта и доступ объекта'});
+    await policy.getByRole('button',{name:'Изменить условия расчёта'}).click();
+    await policy.getByLabel('Режим доступа к объекту').selectOption('weekly');
+    await policy.getByLabel('День недели, окно 1').selectOption('7');
+    await accessTime(page,'С, окно 1','22');
+    await accessTime(page,'До, окно 1','06');
+    await policy.getByLabel('Окончание на следующий день, окно 1').check();
+    await policy.getByLabel('Основание режима доступа').fill('TEST ONLY reviewed overnight access');
+    await policy.getByLabel('Статус доступа к объекту').selectOption('confirmed');
+    await policy.getByLabel('Причина изменения условий').fill('TEST ONLY preserve published assignments while reviewing new access');
+    await policy.getByRole('button',{name:'Свернуть параметры'}).click();
+    await policy.getByRole('button',{name:'Изменить условия расчёта'}).click();
+    await expect(policy.getByLabel('С, окно 1',{exact:true})).toHaveAttribute('data-value','22:00');
+    expect(await policy.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+    await page.screenshot({path:testInfo.outputPath(`planning-policy-${width}.png`)});
+    await policy.getByRole('button',{name:'Сохранить условия новой версией'}).click();
+    await expect(saved.getByRole('heading',{name:`${title} · версия 4`})).toBeVisible();
+    await expect(saved.getByLabel('Условия расчёта версии')).toContainText('22:00–06:00 следующего дня');
+    const after=await page.request.get('/api/v1/maintenance/ui/calendar?year=2027&month=1');expect(await after.json()).toEqual(entries);
     await saved.getByRole('button',{name:'История версий плана'}).click();
     await saved.getByRole('button',{name:/Версия 1 ·/}).click();
     await expect(saved).toContainText('Открыта версия для просмотра');
@@ -134,7 +166,7 @@ for(const [index,width] of [1440,390,320].entries()) {
     await dialog.getByRole('button',{name:/Сегмент 1 ·/}).click();await expect(dialog.getByLabel('Причина изменения плана')).toBeDisabled();
     await page.getByRole('button',{name:'Закрыть подробности'}).click();
     await page.reload();await page.getByRole('button',{name:'← Все планы этого файла'}).click();
-    await expect(page.getByRole('button',{name:new RegExp(`${title} · версия 3`)})).toBeVisible();
+    await expect(page.getByRole('button',{name:new RegExp(`${title} · версия 4`)})).toBeVisible();
     expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
     expect(errors).toEqual([]);
   });

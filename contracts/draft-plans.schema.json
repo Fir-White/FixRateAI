@@ -21,6 +21,38 @@
       "title": "AllowedInterval",
       "type": "object"
     },
+    "ChangeDraftPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_revision": {
+          "minimum": 1,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "idempotency_key": {
+          "format": "uuid",
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "policy": {
+          "$ref": "#/$defs/DraftPolicy"
+        }
+      },
+      "required": [
+        "expected_revision",
+        "idempotency_key",
+        "reason",
+        "policy"
+      ],
+      "title": "ChangeDraftPolicy",
+      "type": "object"
+    },
     "DailyPlanLoad": {
       "additionalProperties": false,
       "properties": {
@@ -178,6 +210,15 @@
     "DraftPolicy": {
       "additionalProperties": false,
       "properties": {
+        "format_version": {
+          "default": 1,
+          "enum": [
+            1,
+            2
+          ],
+          "title": "Format Version",
+          "type": "integer"
+        },
         "capacity_hours_per_24h": {
           "anyOf": [
             {
@@ -233,9 +274,83 @@
           ],
           "default": null,
           "title": "Night Start Minute"
+        },
+        "capacity_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "unknown",
+                "provisional",
+                "confirmed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capacity Status"
+        },
+        "access_status": {
+          "default": "unknown",
+          "enum": [
+            "unknown",
+            "provisional",
+            "confirmed"
+          ],
+          "title": "Access Status",
+          "type": "string"
+        },
+        "access_mode": {
+          "anyOf": [
+            {
+              "enum": [
+                "unrestricted",
+                "weekly"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Access Mode"
+        },
+        "access_ref": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Access Ref",
+          "type": "string"
+        },
+        "service_windows": {
+          "items": {
+            "$ref": "#/$defs/ServiceWindow"
+          },
+          "maxItems": 28,
+          "title": "Service Windows",
+          "type": "array"
         }
       },
       "title": "DraftPolicy",
+      "type": "object"
+    },
+    "DraftPolicyView": {
+      "additionalProperties": false,
+      "properties": {
+        "record": {
+          "$ref": "#/$defs/DraftRecord"
+        },
+        "policy": {
+          "$ref": "#/$defs/DraftPolicy"
+        }
+      },
+      "required": [
+        "record",
+        "policy"
+      ],
+      "title": "DraftPolicyView",
       "type": "object"
     },
     "DraftRecord": {
@@ -717,7 +832,7 @@
       "additionalProperties": false,
       "properties": {
         "validator_version": {
-          "default": "draft-validator-v1",
+          "default": "draft-validator-v2",
           "title": "Validator Version",
           "type": "string"
         },
@@ -980,6 +1095,36 @@
         "total"
       ],
       "title": "SegmentPage",
+      "type": "object"
+    },
+    "ServiceWindow": {
+      "additionalProperties": false,
+      "properties": {
+        "weekday": {
+          "maximum": 7,
+          "minimum": 1,
+          "title": "Weekday",
+          "type": "integer"
+        },
+        "start_minute": {
+          "maximum": 1439,
+          "minimum": 0,
+          "title": "Start Minute",
+          "type": "integer"
+        },
+        "end_minute": {
+          "maximum": 2879,
+          "minimum": 1,
+          "title": "End Minute",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "weekday",
+        "start_minute",
+        "end_minute"
+      ],
+      "title": "ServiceWindow",
       "type": "object"
     },
     "WorkOccurrence": {

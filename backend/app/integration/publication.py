@@ -23,7 +23,7 @@ PUBLIC='proposal_id,draft_id,base_revision,state,created_by,created_at,expires_a
 
 
 def get(v,identity,*,full=False,lock=False):
-    row=v.session.execute(text('SELECT '+('*' if full else PUBLIC)+' FROM draft_publication_proposals WHERE site_id=:site AND proposal_id=:id'+(' FOR UPDATE' if lock else '')),
+    row=v.session.execute(text('SELECT '+('*' if full else PUBLIC+", input_snapshot->'policy' AS planning_policy")+' FROM draft_publication_proposals WHERE site_id=:site AND proposal_id=:id'+(' FOR UPDATE' if lock else '')),
         dict(site=v.principal.site_id,id=identity)).mappings().first()
     if not row:raise HTTPException(404,'Предложение не найдено')
     return dict(row)
@@ -32,6 +32,7 @@ def get(v,identity,*,full=False,lock=False):
 def public(row):
     value={k:row.get(k) for k in PUBLIC.split(',') if k!='validation_snapshot'}
     value['validation']=row['validation_snapshot']
+    value['planning_policy']=row.get('planning_policy') or row.get('input_snapshot',{}).get('policy')
     value['can_approve']=row['blocker_count']==0 and row['state']=='prepared' and row['expires_at']>datetime.now(timezone.utc)
     return value
 
@@ -83,7 +84,7 @@ def lock_facts(v,row):
 
 def prepare(v,identity,command):
     request_sha=digest(dict(actor=str(v.principal.user_id),draft_id=str(identity),command=command.model_dump(mode='json')))
-    old=v.session.execute(text('SELECT '+PUBLIC+',request_sha256 FROM draft_publication_proposals WHERE site_id=:site AND idempotency_key=:key'),dict(site=v.principal.site_id,key=command.idempotency_key)).mappings().first()
+    old=v.session.execute(text('SELECT '+PUBLIC+",request_sha256,input_snapshot->'policy' AS planning_policy FROM draft_publication_proposals WHERE site_id=:site AND idempotency_key=:key"),dict(site=v.principal.site_id,key=command.idempotency_key)).mappings().first()
     if old:
         if old['request_sha256']!=request_sha:raise HTTPException(409,'Ключ повтора использован с другими параметрами')
         return public(old)

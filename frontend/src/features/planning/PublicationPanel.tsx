@@ -1,5 +1,6 @@
 import { useRef,useState } from 'react';
 import { publicationApi as api,type ExecutionProfile,type PublicationProposal,type PublicationChange } from '@/shared/api/publication';
+import { PolicySummary } from './PolicyFields';
 import type { DraftRecord } from '@/shared/api/draftPlans';
 import { useApiQuery } from '@/shared/lib/useApiQuery';
 import { formatDateTime } from '@/shared/lib/format';
@@ -67,6 +68,7 @@ function Proposal({value:p,mayApprove,timezone,busy,run}:{value:PublicationPropo
     <p className="text-sm">Строк выбрано: {p.summary.selected_rows}; вне состава: {p.summary.unselected_rows}. Месяцы: {p.summary.months.join(', ')||'нет размещения'}.</p>
     <p className="whitespace-pre-wrap text-sm">{p.scope_note}</p><p className="text-xs text-muted">Предложение действительно до {formatDateTime(p.expires_at,timezone)}. При изменении исходных данных потребуется новое предложение.</p>
     <ul className="space-y-2 text-sm">{p.blockers.map((item,i)=><li key={i}>{item.message}</li>)}</ul>{p.blocker_count>p.blockers.length&&<p>Всего замечаний: {p.blocker_count}. Показаны первые {p.blockers.length}.</p>}
+    {p.planning_policy&&<PolicySummary value={p.planning_policy} timezone={timezone}/>}
     <Changes proposal={p.proposal_id} timezone={timezone}/>
     {p.decision_reason&&<p className="whitespace-pre-wrap text-sm">Решение главного инженера: {p.decision_reason}</p>}
     {mayApprove&&['prepared','approved'].includes(p.state)&&<fieldset disabled={busy} className="min-w-0 space-y-3"><legend className="sr-only">Решение главного инженера</legend>

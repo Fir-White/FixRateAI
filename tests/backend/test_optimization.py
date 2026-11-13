@@ -60,7 +60,7 @@ def test_missing_roster_capacity_and_qualifications_do_not_turn_into_success():
     result=calculate(payload);variant=result['result']['optimized']
     assert result['result']['diagnostic_counts']['NO_CANDIDATE']==1
     assert variant is not None and variant['coverage_status']=='INFEASIBLE' and variant['metrics']['covered_occurrences']==0
-    payload=case(1);payload['source_snapshot']['input']['policy']['capacity_confirmed']=False
+    payload=case(1);payload['source_snapshot']['input']['policy'].update(capacity_confirmed=False,capacity_status='provisional')
     result=calculate(payload)
     assert result['result']['completion_reason']=='needs_input' and result['result']['optimized'] is None
     payload=case(1);payload['occurrences'][0]['qualifications_confirmed']=False

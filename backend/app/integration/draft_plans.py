@@ -12,7 +12,7 @@ import json
 from fastapi import Depends,HTTPException,Query,Response
 from sqlalchemy import text
 from app.schemas.draft_plans import (GenerationInput,GenerationPreview,SaveDraft,EditSegments,DraftList,
-    DraftRecord,DraftOverview,OccurrencePage,SegmentPage,PlanValidation,WorkOccurrence,WorkSegment,PlanningChoices,LocalPlacement,PreparedSourceChoices)
+    DraftRecord,DraftOverview,OccurrencePage,SegmentPage,PlanValidation,WorkOccurrence,WorkSegment,PlanningChoices,LocalPlacement,PreparedSourceChoices,ChangeDraftPolicy,DraftPolicyView)
 from app.scheduling.draft_generator import expand,GENERATOR_VERSION
 from app.scheduling.draft_validator import validate,digest
 from .catalog_imports import READ_ROLES
@@ -125,6 +125,44 @@ def _lock_catalog(v):
 
 
 def register_routes(app,views):
+    @app.get(BASE+'/{identity}/policy',response_model=DraftPolicyView)
+    def policy_view(identity:UUID,response:Response,revision:int|None=Query(None,ge=1),v=Depends(views)):
+        _guard(v,*READ_ROLES)
+        row=get_version(v,identity,revision,full=False)
+        policy=v.session.scalar(text("SELECT source_snapshot#>'{input,policy}' FROM planning_draft_versions WHERE site_id=:site AND draft_id=:id AND revision=:revision"),
+            dict(site=v.principal.site_id,id=identity,revision=row['revision']))
+        response.headers['Cache-Control']='private, no-store'
+        return dict(record=metadata(row),policy=policy)
+
+    @app.post(BASE+'/{identity}/policy',response_model=DraftRecord)
+    def change_policy(identity:UUID,command:ChangeDraftPolicy,response:Response,v=Depends(views)):
+        response.headers['Cache-Control']='private, no-store'
+        with _edit(v,roles=EDIT_ROLES,exact_roles=True):
+            _lock_catalog(v)
+            request_sha=digest(dict(actor=str(v.principal.user_id),draft_id=str(identity),command=command.model_dump(mode='json')))
+            old=v.session.execute(text('SELECT draft_id,revision,request_sha256 FROM planning_draft_versions WHERE site_id=:site AND idempotency_key=:key'),
+                dict(site=v.principal.site_id,key=command.idempotency_key)).mappings().first()
+            if old:
+                if old['request_sha256']!=request_sha:raise HTTPException(409,'Ключ повтора использован для другого изменения параметров')
+                return metadata(get_version(v,old['draft_id'],old['revision'],full=False))
+            row=get_version(v,identity)
+            if row['revision']!=command.expected_revision:raise HTTPException(409,'Версия плана изменилась; параметры сохранены в форме, обновите актуальную версию')
+            snapshot=clean(row['source_snapshot']);request=GenerationInput.model_validate(snapshot['input'])
+            if digest(clean(source_snapshot(v,request)))!=snapshot['source_digest'] or snapshot['generator_version']!=GENERATOR_VERSION:
+                raise HTTPException(409,'Источник изменился; создайте актуальный расчёт перед изменением параметров')
+            if (request.policy.day_start_minute,request.policy.night_start_minute)!=(command.policy.day_start_minute,command.policy.night_start_minute):
+                raise HTTPException(422,'Изменение границ событий день/ночь требует нового расчёта состава работ')
+            snapshot['input']['policy']=command.policy.model_dump(mode='json')
+            roots=[WorkOccurrence.model_validate(o) for o in row['occurrences']]
+            segments=[WorkSegment.model_validate(s) for s in row['segments']]
+            report,facts=checked(v,snapshot,roots,segments,capture=True)
+            # Constraints may make the unchanged draft incomplete/invalid. Keep
+            # the truthful report; never silently move locks or active orders.
+            result=persist(v,draft_id=identity,revision=row['revision']+1,title=row['title'],reason=command.reason,snapshot=snapshot,
+                sha=digest(dict(snapshot=snapshot,actor=str(v.principal.user_id))),occurrences=roots,segments=segments,report=report,
+                resource_snapshot=facts,key=command.idempotency_key,request_sha=request_sha,action='change_policy')
+        return result
+
     @app.get(BASE+'/source-choices/{import_id}',response_model=PreparedSourceChoices)
     def source_choices(import_id:UUID,response:Response,q:str=Query('',max_length=320),offset:int=Query(0,ge=0,le=1000000),v=Depends(views)):
         _guard(v,*READ_ROLES)

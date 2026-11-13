@@ -11,10 +11,11 @@ import json
 from zoneinfo import ZoneInfo
 from app.assignment.selection import _merge, _subtract
 from app.schemas.draft_plans import PlanValidation
+from app.scheduling.planning_policy import access_intervals,intersect
 
 ZERO=Decimal(0)
 UTC=timezone.utc
-INCOMPLETE={'UNPLACED','CAPACITY_UNCONFIRMED','QUALIFICATIONS_UNCONFIRMED','RESOURCE_DATA_INCOMPLETE','SOURCE_STALE','QUALIFICATION_EXPIRY_UNKNOWN','EQUIPMENT_BOOKING_UNKNOWN','DEPENDENCY_UNPLACED'}
+INCOMPLETE={'UNPLACED','CAPACITY_UNCONFIRMED','QUALIFICATIONS_UNCONFIRMED','RESOURCE_DATA_INCOMPLETE','SOURCE_STALE','QUALIFICATION_EXPIRY_UNKNOWN','EQUIPMENT_BOOKING_UNKNOWN','DEPENDENCY_UNPLACED','ACCESS_UNCONFIRMED','ACCESS_TIME_UNRESOLVED'}
 
 
 def digest(value):
@@ -39,7 +40,7 @@ def _contains(intervals,starts,left,right):
     return index>=0 and intervals[index][1]>=right
 
 
-def validate(occurrences,segments,workers,policy,starts_on,ends_on,timezone_name,now,*,source_stale=False,equipment_bookings=None,equipment_unknown=(),previous_segments=(),unlock=False):
+def validate(occurrences,segments,workers,policy,starts_on,ends_on,timezone_name,now,*,source_stale=False,equipment_bookings=None,equipment_unknown=(),previous_segments=(),unlock=False,allow_legacy_policy=False):
     tz=ZoneInfo(timezone_name);issues=[];counts=Counter()
     def add(code,message,root=None,segment=None,day=None):
         counts[code]+=1
@@ -77,10 +78,16 @@ def validate(occurrences,segments,workers,policy,starts_on,ends_on,timezone_name
     if visited!=len(indegree): add('DEPENDENCY_CYCLE','В зависимостях сегментов обнаружен цикл')
     if source_stale: add('SOURCE_STALE','Источник, решение или привязка изменились: создайте новый расчёт')
     if not policy.capacity_confirmed or not policy.capacity_ref: add('CAPACITY_UNCONFIRMED','Подтвердите полезную ёмкость и её источник')
+    try: access=access_intervals(policy,starts_on,ends_on,tz,allow_legacy=allow_legacy_policy)
+    except ValueError:
+        access=None;add('ACCESS_TIME_UNRESOLVED','Граница окна доступа попадает в пропущенное или неоднозначное местное время; уточните окно')
+    if access is None and 'ACCESS_TIME_UNRESOLVED' not in counts:
+        add('ACCESS_UNCONFIRMED','Подтвердите допустимые часы обслуживания объекта или отсутствие дополнительных ограничений')
+    access_starts=[a for a,_ in access] if access is not None else []
     for old in previous_segments:
         if old.locked and not unlock and (old.segment_id not in by_id or old.model_dump()!=by_id[old.segment_id].model_dump()):
             add('LOCKED_SEGMENT','Закреплённый сегмент изменён без явного разблокирования',roots.get(old.occurrence_id),old)
-    free={};available={};booked={};capacity=defaultdict(Decimal);existing_load=defaultdict(Decimal);unknown=set()
+    free={};available={};booked={};capacity=defaultdict(Decimal);existing_load=defaultdict(Decimal);access_capacity=defaultdict(Decimal);unknown=set()
     for identity,worker in people.items():
         if not worker.active or not worker.membership_active or not worker.can_execute: continue
         if not all((worker.booking_data_complete,worker.workload_data_complete,worker.availability_data_complete)): unknown.add(identity)
@@ -89,7 +96,10 @@ def validate(occurrences,segments,workers,policy,starts_on,ends_on,timezone_name
         available[identity]=_subtract(raw,exclusions)
         booked[identity]=_merge([(_utc(b.start_at),_utc(b.end_at)) for b in worker.bookings if b.blocks_time])
         windows=_subtract(available[identity],booked[identity])
+        if access is not None and policy.format_version==2:windows=intersect(windows,access)
         free[identity]=(windows,[a for a,_ in windows])
+        for start,end in windows:
+            for day,left,right in _parts(start,end,tz):access_capacity[identity,day]+=_hours(left,right)
         for start,end in available[identity]:
             for day,left,right in _parts(start,end,tz):
                 if starts_on<=day<=ends_on+timedelta(days=1) and policy.capacity_hours_per_24h is not None:
@@ -132,6 +142,8 @@ def validate(occurrences,segments,workers,policy,starts_on,ends_on,timezone_name
             left,right=_utc(segment.start_at),_utc(segment.end_at)
             if left<_utc(now): add('PAST_PLACEMENT','Нельзя выдавать прошлый интервал за новое будущее назначение',root,segment)
             if not _contains(allowed,allowed_starts,left,right): add('OUTSIDE_WINDOW','Размещение выходит за допустимые даты или слот работы',root,segment)
+            if access is not None and policy.format_version==2 and not _contains(access,access_starts,left,right):
+                add('OUTSIDE_ACCESS_WINDOW','Объект недоступен для обслуживания в выбранном интервале',root,segment)
             if left.astimezone(tz).date()<starts_on or (right-timedelta(microseconds=1)).astimezone(tz).date()>ends_on+timedelta(days=root.source_slot=='night'):
                 add('OUTSIDE_HORIZON','Размещение выходит за горизонт версии плана',root,segment)
             if _hours(left,right)*root.crew_size<segment.person_hours: add('DURATION_TOO_SHORT','Интервал бригады меньше подтверждённой трудоёмкости сегмента',root,segment)
@@ -176,12 +188,14 @@ def validate(occurrences,segments,workers,policy,starts_on,ends_on,timezone_name
         if policy.capacity_confirmed and policy.capacity_hours_per_24h is not None and identity not in unknown and hours+existing_load[identity,day]>capacity[identity,day]:
             add('CAPACITY_EXCEEDED',f'Превышена полезная ёмкость сотрудника: {people[identity].name}',day=day)
     available_by_day=defaultdict(Decimal)
-    for (identity,day),hours in capacity.items(): available_by_day[day]+=max(ZERO,hours-existing_load[identity,day])
+    for (identity,day),hours in capacity.items():
+        remaining=max(ZERO,hours-existing_load[identity,day])
+        available_by_day[day]+=min(remaining,access_capacity[identity,day]) if policy.format_version==2 else remaining
     days=[]
     for number in range((ends_on-starts_on).days+1+int(any(d>ends_on for d in planned))):
         day=starts_on+timedelta(days=number)
         free_capacity=None if unknown else available_by_day[day]
-        if not policy.capacity_confirmed: free_capacity=None
+        if not policy.capacity_confirmed or access is None: free_capacity=None
         days.append(dict(date=day,planned_person_hours=planned[day],reserved_person_hours=reserved[day],
             available_person_hours=free_capacity,deficit_person_hours=None if free_capacity is None else max(ZERO,reserved[day]-free_capacity)))
     facts=[w.model_dump(mode='json') for w in sorted(workers,key=lambda w:str(w.worker_id))]

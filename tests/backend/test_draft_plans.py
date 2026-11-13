@@ -30,7 +30,8 @@ def pure_case():
         availability=[dict(start_at=moment(1).isoformat(),end_at=moment(11).isoformat(),status='available')],qualifications=[],bookings=[]))) for _ in range(2)]
     segments=[WorkSegment(segment_id=uuid4(),occurrence_id=root.occurrence_id,equipment_ids=root.equipment_ids,person_hours='24',start_at=a,end_at=b,worker_ids=[w.worker_id for w in people])
         for a,b in ((moment(2),moment(2,12)),(moment(2,12),moment(3)))]
-    policy=DraftPolicy(capacity_hours_per_24h='24',capacity_confirmed=True,capacity_ref='TEST ONLY synthetic policy')
+    policy=DraftPolicy(format_version=2,capacity_status='confirmed',capacity_hours_per_24h='24',capacity_confirmed=True,capacity_ref='TEST ONLY synthetic policy',
+        access_status='confirmed',access_mode='unrestricted',access_ref='TEST ONLY confirmed unrestricted fixture access')
     return root,segments,people,policy
 
 def check(root,segments,people,policy,**kwargs):
@@ -87,7 +88,8 @@ def prepare(managed,**overrides):
     response=write(admin.chief,identity,row,payload,confirm=True)
     assert response.status_code==200,response.text
     request=dict(import_id=identity,starts_on='2027-01-01',ends_on='2027-12-31',row_numbers=[row],expansion='source_january',
-        policy=dict(capacity_hours_per_24h='24',capacity_confirmed=True,capacity_ref='TEST ONLY synthetic capacity'))
+        policy=dict(format_version=2,capacity_status='confirmed',capacity_hours_per_24h='24',capacity_confirmed=True,capacity_ref='TEST ONLY synthetic capacity',
+            access_status='confirmed',access_mode='unrestricted',access_ref='TEST ONLY confirmed unrestricted fixture access'))
     return admin,eq,identity,row,payload,request
 
 def save(admin,request):

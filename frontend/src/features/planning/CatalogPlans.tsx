@@ -14,6 +14,8 @@ import { splitPersonHours } from './segmentHours';
 import './draft-plans.css';
 import { JourneySteps } from '@/shared/ui/JourneySteps';
 import type { CatalogWorkspace } from '@/features/equipment/CatalogImports';
+import { PolicyFields,newPolicy } from './PolicyFields';
+import PlanPolicyPanel from './PlanPolicyPanel';
 const OptimizationPanel=lazy(()=>import('./OptimizationPanel'));
 const PublicationPanel=lazy(()=>import('./PublicationPanel'));
 
@@ -51,7 +53,7 @@ function LinkedPlan({id,workspace,timezone,mayEdit,mayApprove}:{id:string;worksp
 
 function CreateDraft({id,timezone,onSaved}:{id:string;timezone:string;onSaved:(r:DraftRecord)=>void}) {
   const year=todayAt(timezone).slice(0,4);
-  const [input,setInput]=useState<GenerationInput>({import_id:id,starts_on:`${year}-01-01`,ends_on:`${year}-12-31`,row_numbers:[],expansion:'source_january',policy:{capacity_hours_per_24h:null,capacity_confirmed:false,capacity_ref:'',day_start_minute:null,night_start_minute:null}});
+  const [input,setInput]=useState<GenerationInput>({import_id:id,starts_on:`${year}-01-01`,ends_on:`${year}-12-31`,row_numbers:[],expansion:'source_january',policy:newPolicy()});
   const [labels,setLabels]=useState<Record<number,string>>({}),[selectedOffset,setSelectedOffset]=useState(0),[search,setSearch]=useState(''),[offset,setOffset]=useState(0);
   const [preview,setPreview]=useState<GenerationPreview|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[title,setTitle]=useState('План СВиК'),[reason,setReason]=useState('');
   const key=useRef(crypto.randomUUID());const needle=useDeferredValue(search);
@@ -69,9 +71,7 @@ function CreateDraft({id,timezone,onSaved}:{id:string;timezone:string;onSaved:(r
       {choices.status==='success'&&<><ul className="space-y-2">{choices.data.items.map(item=><li key={item.row_number}><label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={input.row_numbers.includes(item.row_number)} onChange={e=>{setLabels(m=>({...m,[item.row_number]:`${item.code} · ${item.title}`}));change({...input,row_numbers:e.target.checked?[...input.row_numbers,item.row_number]:input.row_numbers.filter(n=>n!==item.row_number)});}}/><span>{item.code} · {item.title} · строка {item.row_number}</span></label></li>)}</ul>{!choices.data.total&&<p>Подготовленных строк нет. Сначала подтвердите смысл, оборудование и норму в редакторе операции.</p>}<PlanningPages offset={offset} total={choices.data.total} onPage={setOffset}/></>}
       <p className="font-semibold">Выбрано строк: {input.row_numbers.length}</p>
       <ul className="space-y-1 text-sm">{input.row_numbers.slice(selectedOffset,selectedOffset+25).map(n=><li key={n}>{labels[n]??`Строка Excel ${n}`} <Button variant="ghost" onClick={()=>change({...input,row_numbers:input.row_numbers.filter(i=>i!==n)})}>Убрать строку {n}</Button></li>)}</ul><PlanningPages offset={selectedOffset} total={input.row_numbers.length} onPage={setSelectedOffset}/>
-      <label className="block"><FieldCaption>Полезная ёмкость сотрудника за 24 часа присутствия</FieldCaption><Input aria-label="Полезная ёмкость сотрудника за 24 часа присутствия" type="number" min="0.001" max={24} step="0.001" placeholder="Не подтверждена" value={input.policy.capacity_hours_per_24h??''} onChange={e=>setPolicy({capacity_hours_per_24h:e.target.value||null})}/></label>
-      <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={input.policy.capacity_confirmed} onChange={e=>setPolicy({capacity_confirmed:e.target.checked})}/><span>Полезная ёмкость подтверждена для этого расчёта</span></label>
-      <label className="block"><FieldCaption>Источник политики ёмкости</FieldCaption><Textarea aria-label="Источник политики ёмкости" maxLength={2000} value={input.policy.capacity_ref} onChange={e=>setPolicy({capacity_ref:e.target.value})}/></label>
+      <PolicyFields value={input.policy} onChange={policy=>change({...input,policy})} timezone={timezone}/>
       <details><summary>Границы событий день / ночь</summary><p className="my-2 text-sm text-muted">Нужны для подтверждённых двух событий в сутки. Ночной слот заканчивается в начале дневного следующей даты. Они не определяют численность или длину смен сотрудников.</p><div className="grid gap-3 sm:grid-cols-2">{(['day_start_minute','night_start_minute'] as const).map((field,index)=><label key={field}><FieldCaption>{index?'Ночное событие начинается':'Дневное событие начинается'}</FieldCaption><Input aria-label={index?'Ночное событие начинается':'Дневное событие начинается'} type="time" value={input.policy[field]===null?'':`${String(Math.floor(input.policy[field]!/60)).padStart(2,'0')}:${String(input.policy[field]!%60).padStart(2,'0')}`} onChange={e=>{const [h,m]=e.target.value.split(':').map(Number);setPolicy({[field]:e.target.value?h*60+m:null});}}/></label>)}</div></details>
       <Button disabled={!input.row_numbers.length||!input.starts_on||!input.ends_on} variant="secondary" onClick={async()=>{setBusy(true);setError('');setPreview(null);try{setPreview(await api.preview(input));key.current=crypto.randomUUID();}catch(e){setError(failure(e));}finally{setBusy(false);}}}>{busy?'Расчёт…':'Предпросмотр работ'}</Button>
       {preview&&<div className="space-y-3" aria-label="Предпросмотр работ"><p>{preview.total_occurrences} корневых работ · {preview.total_segments} сегментов · {preview.total_person_hours} чел.-ч</p><p className="text-sm text-muted">За пределами выбранного состава осталось строк: {preview.unselected_rows}. Весь каталог этим расчётом не объявляется покрытым.</p><ul className="space-y-2 text-sm">{preview.issues.map((issue,index)=><li key={index}>{issue.row_number&&`Строка ${issue.row_number}: `}{issue.message}</li>)}</ul>{preview.total_issues>preview.issues.length&&<p>Показаны первые {preview.issues.length} из {preview.total_issues} замечаний.</p>}
@@ -90,6 +90,7 @@ function SavedPlan({record,timezone,mayEdit,mayApprove,onPickVersion,onSaved,wor
   const overview=useApiQuery(()=>api.overview(record.draft_id,record.revision),[record.draft_id,record.revision],undefined,`draft-overview:${record.draft_id}:${record.revision}`);
   const rows=useApiQuery(()=>api.occurrences(record.draft_id,record.revision,offset,needle,period),[record.draft_id,record.revision,offset,needle,period],undefined,`draft-occurrences:${JSON.stringify([record.draft_id,record.revision,offset,needle,period])}`);
   const work=<>
+    <PlanPolicyPanel record={record} mayEdit={mayEdit} timezone={timezone} onSaved={onSaved}/>
     {overview.status==='loading'&&<LoadingState/>}{overview.status==='error'&&<ErrorState description={overview.error}/>}
     {overview.status==='success'&&<><div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-4" aria-label="Месяцы одной версии"><Button variant={!period?'primary':'secondary'} onClick={()=>{setPeriod('');setOffset(0);}}>Весь горизонт · {record.total_person_hours} чел.-ч</Button>{overview.data.months.map(month=><Button key={month.month} variant={period===month.month?'primary':'secondary'} onClick={()=>{setPeriod(month.month);setOffset(0);}}>{month.month} · обязательства {month.due_person_hours} · размещено {month.planned_person_hours} чел.-ч</Button>)}</div>
       <ValidationReport key={validation?.input_sha256??'stored'} value={validation??overview.data.validation}/>

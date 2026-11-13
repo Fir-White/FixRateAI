@@ -1,10 +1,10 @@
 import { request } from './request';
-import type { PlanIssue,PlanValidation } from './draftPlans';
+import type { DraftPolicy,PlanIssue,PlanValidation } from './draftPlans';
 
 export interface ExecutionCheck {text:string;answer_kind:'boolean'|'number'|'text';unit?:string|null;required:boolean;visual_verifiability:'visible'|'partial'|'not_verifiable';photo_required:boolean}
 export interface ExecutionProfile {row_number:number;instructions:string;safety_notes:string;methodology_ref:string;engineer_note:string;checklist:ExecutionCheck[]}
 export interface PublicationSummary {added_tasks:number;changed_tasks:0;cancelled_tasks:0;occurrences:number;segments:number;total_person_hours:string;selected_rows:number;unselected_rows:number;months:string[]}
-export interface PublicationProposal {proposal_id:string;draft_id:string;base_revision:number;state:'prepared'|'approved'|'rejected'|'published';created_at:string;expires_at:string;reason:string;scope_note:string;proposal_digest:string;summary:PublicationSummary;validation:PlanValidation;blockers:PlanIssue[];blocker_count:number;can_approve:boolean;decided_by:string|null;decision_reason:string|null;approval_token:string|null;publication_id:string|null;published_at:string|null}
+export interface PublicationProposal {planning_policy?:DraftPolicy|null;proposal_id:string;draft_id:string;base_revision:number;state:'prepared'|'approved'|'rejected'|'published';created_at:string;expires_at:string;reason:string;scope_note:string;proposal_digest:string;summary:PublicationSummary;validation:PlanValidation;blockers:PlanIssue[];blocker_count:number;can_approve:boolean;decided_by:string|null;decision_reason:string|null;approval_token:string|null;publication_id:string|null;published_at:string|null}
 export type PublicationHistoryItem=Pick<PublicationProposal,'proposal_id'|'draft_id'|'base_revision'|'state'|'created_at'|'expires_at'|'summary'|'blocker_count'>;
 export interface PublicationChange {item_id:string;occurrence_id:string;segment_ids:string[];depends_on_item_ids:string[];row_number:number;operation_code:string;title:string;equipment_ids:string[];worker_ids:string[];start_at:string|null;end_at:string|null;person_hours:string;execution:ExecutionProfile;kind:'create';previous:null}
 const base='/api/v1/maintenance/publication-proposals';

@@ -789,7 +789,7 @@
       "additionalProperties": false,
       "properties": {
         "validator_version": {
-          "default": "draft-validator-v1",
+          "default": "draft-validator-v2",
           "title": "Validator Version",
           "type": "string"
         },
