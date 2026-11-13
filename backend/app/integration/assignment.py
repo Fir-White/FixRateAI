@@ -28,6 +28,12 @@ def local_time(value, tz):
 
 
 def _job(v, order):
+    if order.operation_snapshot.get('catalog_publication_id'):
+        return dict(taskId=str(order.work_order_id),expectedRevision=order.revision,timezone=v.principal.timezone,
+            status='needs_input',code='PUBLISHED_PLAN_IMMUTABLE',explanation='Назначение утверждено в составе плана. Перенос требует нового предложения.',
+            crewSize=order.required_people_snapshot,durationMinutes=order.operation_snapshot.get('planning_duration_minutes'),
+            durationBasis=order.operation_snapshot.get('duration_basis'),rawNormValue=str(order.norm_hours_snapshot),
+            earliestAt=None,deadlineAt=None,qualificationIds=[],requiredQualifications=[],dataOrigin=order.operation_snapshot.get('data_origin'),crewChoices=[])
     site = v.one("sites", site_id=order.site_id)
     tz = ZoneInfo(site.timezone)
     snapshot = order.operation_snapshot

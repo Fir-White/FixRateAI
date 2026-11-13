@@ -7,10 +7,11 @@ async function calendarDate(page:Page,label:string,value:string){
   await dialog.getByRole('button',{name:'Применить',exact:true}).click();
 }
 
-for(const width of [1440,390,320]) {
+for(const [index,width] of [1440,390,320].entries()) {
   test(`isolated scenario, conserved split and version history at ${width}px`,async({page},testInfo)=>{
     test.skip(!process.env.FIXRATE_CATALOG_E2E||!process.env.FIXRATE_CATALOG_PASSWORD,'Requires the isolated QA application');
     expect(process.env.FIXRATE_BASE_URL).toBe('http://127.0.0.1:8875');
+    const operationNumber=String(190+index).padStart(4,'0');
     await expect.poll(async()=>{try{return(await page.request.get('/api/health')).status();}catch{return 0;}},{timeout:30000}).toBe(200);
     await page.setViewportSize({width,height:900});const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
     await page.goto('/login');await page.getByLabel('Email',{exact:true}).fill('fixrate-demo-chief_engineer@example.test');
@@ -21,8 +22,8 @@ for(const width of [1440,390,320]) {
     await page.getByRole('button',{name:'Проверить каталог',exact:true}).click();
     await page.getByRole('button',{name:'Сохранить каталог-черновик'}).click();
     const catalog=page.getByRole('region',{name:'Сохранённый каталог СВиК'});
-    await catalog.getByLabel('Поиск операций каталога').fill('0190');
-    await catalog.getByRole('button',{name:/SYNTHETIC OPERATION 0190/}).click();
+    await catalog.getByLabel('Поиск операций каталога').fill(operationNumber);
+    await catalog.getByRole('button',{name:new RegExp('SYNTHETIC OPERATION '+operationNumber)}).click();
     const editor=page.getByRole('region',{name:'Решение инженера по строке'});
     await editor.getByLabel('Смысл отметок',{exact:true}).selectOption('ALLOWED_WINDOW');
     await editor.getByLabel('Год исходного января').fill('2027');
@@ -45,8 +46,8 @@ for(const width of [1440,390,320]) {
     const plans=page.getByRole('region',{name:'Версии плана каталога'});
     await plans.getByRole('button',{name:'Подготовить новый черновик'}).click();
     const form=plans.getByRole('region',{name:'Подготовка черновика плана'});
-    await form.getByLabel('Поиск подготовленных операций').fill('0190');
-    await form.getByRole('checkbox',{name:/SYNTHETIC OPERATION 0190/}).check();
+    await form.getByLabel('Поиск подготовленных операций').fill(operationNumber);
+    await form.getByRole('checkbox',{name:new RegExp('SYNTHETIC OPERATION '+operationNumber)}).check();
     await calendarDate(page,'Начало горизонта','01.01.2027');await calendarDate(page,'Конец горизонта','31.12.2027');
     await form.getByLabel('Полезная ёмкость сотрудника за 24 часа присутствия').fill('24');
     await form.getByRole('checkbox',{name:'Полезная ёмкость подтверждена для этого расчёта'}).check();
@@ -62,13 +63,13 @@ for(const width of [1440,390,320]) {
     await expect(saved.getByLabel('Работы версии плана').getByRole('listitem')).toHaveCount(1);
     await saved.getByRole('button',{name:/2027-02 · обязательства/}).click();await expect(saved).toContainText('В этом представлении работ нет');
     await saved.getByRole('button',{name:/Весь горизонт/}).click();
-    await saved.getByRole('button',{name:/SYNTHETIC OPERATION 0190/}).click();
+    await saved.getByRole('button',{name:new RegExp('SYNTHETIC OPERATION '+operationNumber)}).click();
     let dialog=page.getByRole('dialog',{name:'Работа и сегменты плана'});
     await dialog.getByRole('button',{name:/Сегмент 1 · .* чел.-ч · Без размещения/}).click();
     await dialog.getByLabel('Причина изменения плана').fill('TEST ONLY split preserving three person-hours');
     await dialog.getByRole('button',{name:'Разделить с сохранением общего объёма'}).click();
     await expect(saved.getByRole('heading',{name:`${title} · версия 2`})).toBeVisible();
-    await saved.getByRole('button',{name:/SYNTHETIC OPERATION 0190/}).click();
+    await saved.getByRole('button',{name:new RegExp('SYNTHETIC OPERATION '+operationNumber)}).click();
     dialog=page.getByRole('dialog',{name:'Работа и сегменты плана'});
     await expect(dialog.getByRole('button',{name:/Сегмент \d+ · 1.500 чел.-ч/})).toHaveCount(2);
     expect(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
@@ -89,10 +90,38 @@ for(const width of [1440,390,320]) {
     await balanced.getByRole('button',{name:'Применить в новую версию'}).click();
     await expect(saved.getByRole('heading',{name:`${title} · версия 3`})).toBeVisible();
     await expect(saved.getByRole('region',{name:'Результат проверки плана'})).toContainText('Проверенные ограничения соблюдены');
+    const publication=saved.getByRole('region',{name:'Утверждение и публикация плана'});
+    await publication.getByRole('button',{name:'Подготовить предложение к публикации'}).click();
+    await publication.getByRole('button',{name:new RegExp('SYNTHETIC OPERATION '+operationNumber)}).click();
+    await publication.getByLabel('Инструкция выполнения').fill('TEST ONLY approved inspection procedure');
+    await publication.getByLabel('Меры безопасности').fill('TEST ONLY approved synthetic safety procedure');
+    await publication.getByLabel('Основание инструкции').fill('TEST ONLY fixture methodology');
+    await publication.getByLabel('Примечание инженера').fill('TEST ONLY note visible to the technician');
+    await publication.getByLabel('Чек-лист: один пункт на строку').fill('TEST ONLY inspection confirmed\nTEST ONLY result recorded');
+    await publication.getByLabel('Состав и границы публикации').fill('TEST ONLY selected row and fixture asset; remaining catalog excluded');
+    await publication.getByLabel('Основание предложения').fill('TEST ONLY reviewed finite plan');
+    await publication.getByRole('button',{name:'Сохранить предложение на утверждение'}).click();
+    const proposal=publication.getByRole('region',{name:'Предложение публикации'});
+    await expect(proposal.getByRole('status',{name:'Состояние предложения'})).toContainText('Ожидает утверждения');
+    await expect(proposal.getByLabel('Изменения публикации').getByRole('listitem')).toHaveCount(2);
+    await proposal.getByRole('button',{name:'Проверить инструкцию и чек-лист'}).first().click();
+    await expect(proposal.getByRole('region',{name:'Утверждаемая инструкция'})).toContainText('TEST ONLY fixture methodology');
+    await proposal.getByLabel('Основание решения главного инженера').fill('TEST ONLY reviewed exact assignments, instructions and scope');
+    await proposal.getByRole('checkbox',{name:'Проверены выбранный состав, ограничения, инструкции, чек-листы и назначения'}).check();
+    await proposal.getByRole('button',{name:'Утвердить предложение'}).click();
+    await expect(proposal.getByRole('status',{name:'Состояние предложения'})).toContainText('Утверждено');
+    await expect(proposal.getByRole('button',{name:'Опубликовать утверждённый план'})).toBeDisabled();
+    await proposal.getByRole('checkbox',{name:'Создать утверждённые задания и назначения в рабочем календаре и уведомить исполнителей'}).check();
+    await proposal.getByRole('button',{name:'Опубликовать утверждённый план'}).click();
+    await expect(proposal.getByRole('status',{name:'Состояние предложения'})).toContainText('Опубликовано');
+    expect(await publication.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+    await page.screenshot({path:testInfo.outputPath(`publication-${width}.png`)});
+    const active=await page.request.get('/api/v1/maintenance/ui/calendar?year=2027&month=1');expect(active.ok()).toBe(true);
+    const entries=await active.json();expect(entries.filter((i:{operationTitle:string})=>i.operationTitle.includes('SYNTHETIC OPERATION '+operationNumber))).toHaveLength(2);
     await saved.getByRole('button',{name:'История версий плана'}).click();
     await saved.getByRole('button',{name:/Версия 1 ·/}).click();
     await expect(saved).toContainText('Версия доступна для просмотра');
-    await saved.getByRole('button',{name:/SYNTHETIC OPERATION 0190/}).click();
+    await saved.getByRole('button',{name:new RegExp('SYNTHETIC OPERATION '+operationNumber)}).click();
     dialog=page.getByRole('dialog',{name:'Работа и сегменты плана'});
     await expect(dialog.getByRole('button',{name:/Сегмент 1 · 3(?:\.0+)? чел.-ч/})).toBeVisible();
     await dialog.getByRole('button',{name:/Сегмент 1 ·/}).click();await expect(dialog.getByLabel('Причина изменения плана')).toBeDisabled();

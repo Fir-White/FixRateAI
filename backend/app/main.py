@@ -518,6 +518,8 @@ def create_app(engine=None):
             raise HTTPException(409, "Начать можно назначенное задание или новую попытку после доработки")
         lock_workers(v, {a.user_id for a in v.rows("work_assignments", work_order_id=task_id)
                          if a.status not in ("cancelled", "declined")})
+        from app.integration.published_execution import ensure_start
+        ensure_start(v,order)
         # Snapshot must be defined by the operation, never generated from UI assumptions.
         checklist = order.operation_snapshot.get("checklist")
         if not checklist:
@@ -532,7 +534,7 @@ def create_app(engine=None):
             from zoneinfo import ZoneInfo
             if datetime.now(ZoneInfo(v.principal.timezone)).date()<date.fromisoformat(order.operation_snapshot["earliest_date"]):
                 raise HTTPException(409,"MAINTENANCE_WINDOW_NOT_OPEN: окно работы ещё не открыто")
-        if order.operation_snapshot.get("methodology_ref") and order.schedule_entry_id:
+        if order.operation_snapshot.get("methodology_ref") and order.schedule_entry_id and not order.operation_snapshot.get('catalog_publication_id'):
             approved=v.one("schedule_plans",schedule_plan_id=entry.schedule_plan_id)
             if approved.status!="approved": raise HTTPException(409,"PLAN_NOT_APPROVED: месячный план должен утвердить главный инженер")
         reports = v.rows("work_reports", work_order_id=task_id)
@@ -748,6 +750,8 @@ def create_app(engine=None):
     register_draft_plans(app, views)
     from app.integration.optimization import register_routes as register_optimization
     register_optimization(app, views)
+    from app.integration.publication import register_routes as register_publication
+    register_publication(app, views)
     from app.integration.analyst import register_analyst_routes
     register_analyst_routes(app,views,photo_path,editable)
     from app.integration.incidents import register_incident_routes

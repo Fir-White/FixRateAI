@@ -28,9 +28,9 @@ def _job_interval(row,now):
     return start,end,not completed and row['assignment_status']!='finished',complete
 
 
-def resources(v,start,end,now,asset_ids=()):
+def resources(v,start,end,now,asset_ids=(),*,exclude_order_ids=()):
     site=v.one('sites',site_id=v.principal.site_id)
-    params=dict(site=site.site_id)
+    params=dict(site=site.site_id,exclude=list(exclude_order_ids))
     members=v.session.execute(text('''SELECT m.user_id,m.is_active AS membership_active,m.employed_from,m.employed_until,
         u.full_name,u.is_active FROM site_memberships m JOIN users u USING(user_id)
         WHERE m.site_id=:site AND m.role IN ('executor','technician') ORDER BY m.user_id LIMIT 501'''),params).mappings().all()
@@ -52,6 +52,7 @@ def resources(v,start,end,now,asset_ids=()):
             o.work_order_id,o.status AS order_status,o.started_at,o.completed_at,o.planned_start_at,o.operation_snapshot
             FROM work_assignments a JOIN work_orders o USING(work_order_id)
             WHERE a.user_id=ANY(CAST(:ids AS uuid[])) AND a.status NOT IN ('declined','cancelled') AND o.status<>'cancelled'
+            AND o.work_order_id<>ALL(CAST(:exclude AS uuid[]))
             AND (o.completed_at IS NULL OR o.status NOT IN ('completed','in_review') OR o.completed_at>:starts)
             AND ((o.status IN ('completed','in_review') AND o.started_at IS NOT NULL AND o.completed_at IS NOT NULL AND o.started_at<:ends AND o.completed_at>:starts)
               OR (NOT (o.status IN ('completed','in_review') AND o.started_at IS NOT NULL AND o.completed_at IS NOT NULL)
@@ -92,7 +93,8 @@ def resources(v,start,end,now,asset_ids=()):
             o.work_order_id,o.status AS order_status,o.started_at,o.completed_at,o.planned_start_at,o.operation_snapshot
             FROM work_order_equipment e JOIN work_orders o USING(work_order_id)
             LEFT JOIN work_assignments a ON a.work_order_id=o.work_order_id AND a.status NOT IN ('declined','cancelled','finished')
-            WHERE e.site_id=:site AND e.equipment_id=ANY(CAST(:assets AS uuid[])) AND o.status IN ('assigned','in_progress','rework') LIMIT 100001'''),params).mappings().all()
+            WHERE e.site_id=:site AND e.equipment_id=ANY(CAST(:assets AS uuid[])) AND o.status IN ('assigned','in_progress','rework')
+            AND o.work_order_id<>ALL(CAST(:exclude AS uuid[])) LIMIT 100001'''),params).mappings().all()
         if len(rows)>100000: raise HTTPException(422,'Слишком много резервов оборудования: сократите расчёт')
         for row in rows:
             left,right,_,complete=_job_interval(row,now)

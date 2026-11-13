@@ -151,7 +151,7 @@ def service_configurations(v,equipment_id):
     for binding in v.rows('rule_equipment',equipment_id=equipment_id):
         rule=binding.rule
         parameters=rule.schedule_parameters
-        if parameters.get('superseded_binding'):
+        if parameters.get('superseded_binding') or parameters.get('catalog_publication_id'):
             continue
         op=rule.operation
         metadata=parameters.get('operation_metadata',{})
@@ -184,6 +184,9 @@ def save_service(v,equipment_id,data,binding_id=None,*,_locked=False):
             raise HTTPException(422,"Для отсчёта от ввода нужна подтверждённая дата ввода, совпадающая с опорной датой")
         old=None
         if binding_id:
+            existing=v.one('rule_equipment',binding_id=binding_id,equipment_id=equipment_id)
+            if existing.rule.schedule_parameters.get('catalog_publication_id'):
+                raise HTTPException(409,'Утверждённая версия каталога неизменяема; подготовьте новый план')
             old=v.one('rule_equipment',binding_id=binding_id,equipment_id=equipment_id)
             _lock(v,'rule_equipment',binding_id=binding_id)
             if data.expected_revision is None:
@@ -206,6 +209,8 @@ def save_service(v,equipment_id,data,binding_id=None,*,_locked=False):
             if data.operation_id:
                 op=v.one('operation_templates',operation_template_id=data.operation_id)
                 _lock(v,'operation_templates',operation_template_id=data.operation_id)
+                if any(r.schedule_parameters.get('catalog_publication_id') for r in v.rows('maintenance_rules',operation_template_id=op.operation_template_id)):
+                    raise HTTPException(409,'Конечная процедура каталога не преобразуется в периодический регламент; подготовьте отдельный источник и план')
                 if op.system_id!=eq.system_id or not op.is_active or data.code!=op.code:
                     raise HTTPException(422,'Выберите активную операцию той же инженерной системы и сохраните её код')
                 version=max((r.rule_version for r in v.rows('maintenance_rules',operation_template_id=op.operation_template_id)),default=0)+1
@@ -279,10 +284,13 @@ def register_routes(app,views,db):
     @app.get(PREFIX+'/management/catalog')
     def catalog(v=Depends(views)):
         _guard(v,'director','admin','dispatcher','engineer')
+        from .planning import legacy_source_query
+        types={r.maintenance_type_id:r.name for r in v.rows('maintenance_types')}
+        operations=v.session.scalars(legacy_source_query(v,'operation_templates')).all()
         return dict(systems=[dict(id=r.system_id,code=r.code,name=r.name,system_group=r.system_group,revision=r.revision) for r in v.rows('engineering_systems') if r.is_active],
             equipment_types=[dict(id=r.equipment_type_id,code=r.code,name=r.name) for r in v.rows('equipment_types')],
             operations=[dict(id=r.operation_template_id,system_id=r.system_id,code=r.code,title=r.title,instructions=r.description or r.title,
-                maintenance_type=v.one('maintenance_types',maintenance_type_id=r.maintenance_type_id).name) for r in v.rows('operation_templates') if r.is_active],
+                maintenance_type=types[r.maintenance_type_id]) for r in operations if r.is_active],
             skills=[dict(id=r.skill_id,code=r.code,name=r.name,validity_required=r.validity_required) for r in v.rows('skills')])
 
     @app.post(PREFIX+'/management/systems',status_code=201)

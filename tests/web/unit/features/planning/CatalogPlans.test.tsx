@@ -6,6 +6,7 @@ import { draftPlansApi as api,type DraftRecord,type WorkOccurrence,type WorkSegm
 import { catalogImportsApi } from '@/shared/api/catalogImports';
 import { splitPersonHours } from '@/features/planning/segmentHours';
 import { optimizationApi } from '@/shared/api/optimization';
+import { publicationApi } from '@/shared/api/publication';
 
 const record=(revision=1):DraftRecord=>({draft_id:'draft',revision,parent_revision:revision>1?revision-1:null,import_id:'source',title:'План СВиК',starts_on:'2027-01-01',ends_on:'2027-12-31',created_at:'2026-11-13T12:00:00Z',created_by:'chief',author_name:'Главный инженер',reason:'Проверенный источник',input_sha256:'a'.repeat(64),occurrence_count:1,segment_count:revision===1?1:3,total_person_hours:'3.000',status:'draft',ready_for_real_plan:false});
 const root:WorkOccurrence={occurrence_id:'root',site_id:'site',import_id:'source',source_sha256:'a'.repeat(64),parser_version:'test',source_row:8,decision_revision:1,source_cells:['B8','H8'],source_date:'2027-01-10',source_slot:'whole_day',title:'Обслуживание фильтра',operation_code:'1.4',maintenance_type:'ТО2',interpretation:'ALLOWED_WINDOW',equipment_ids:['asset'],earliest_date:'2027-01-01',latest_date:'2027-01-10',allowed_intervals:[{start_at:'2027-01-01T00:00:00+05:00',end_at:'2027-01-11T00:00:00+05:00'}],total_person_hours:'3.000',crew_size:1,splittable:true,min_segment_minutes:60,qualification_ids:[],qualifications_confirmed:true,included_rows:[],norm_ref:'Проверенная методика',norm_scope:'per_asset',policy_note:'Делимость разрешена'};
@@ -15,6 +16,7 @@ function calendarField(label:string){return screen.getByRole('button',{name:labe
 beforeEach(()=>{
   vi.restoreAllMocks();
   vi.spyOn(optimizationApi,'list').mockResolvedValue({items:[],total:0});
+  vi.spyOn(publicationApi,'list').mockResolvedValue({items:[],total:0});
   vi.spyOn(api,'list').mockResolvedValue({items:[record()],total:1});
   vi.spyOn(api,'sources').mockResolvedValue({items:[{row_number:8,code:'1.4',title:'Обслуживание фильтра',maintenance_type:'ТО2'}],total:1});
   vi.spyOn(catalogImportsApi,'preparation').mockResolvedValue({total:217,prepared_count:1,confirmed_count:1,blocker_counts:{},items:[{row_number:8,revision:1,confirmed:true,prepared:true,blockers:[]}],ready_for_real_plan:false});

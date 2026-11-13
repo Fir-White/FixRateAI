@@ -78,6 +78,8 @@ def cancel_task(v,task_id,revision,reason):
         raise HTTPException(403,'Отмена задания доступна диспетчеру')
     with service_transaction(v.session):
         order=v.task(task_id,lock=True)
+        if order.operation_snapshot.get('catalog_publication_id'):
+            raise HTTPException(409,'Изменение опубликованного состава требует нового предложения на утверждение')
         if order.revision!=revision:
             raise HTTPException(409,'REVISION_CONFLICT: обновите задание')
         if order.status not in ('draft','clarification','assigned') or v.rows('work_reports',work_order_id=task_id):
@@ -110,6 +112,8 @@ def save_assignment(v, task_id, command, crew_id=None):
         raise HTTPException(403, "Действие недоступно для текущей роли")
     with service_transaction(v.session):
         order = v.task(task_id, lock=True)
+        if order.operation_snapshot.get('catalog_publication_id'):
+            raise HTTPException(409,'Перенос утверждённого назначения требует нового предложения на утверждение')
         if order.revision != command.expected_revision:
             raise HTTPException(409, "REVISION_CONFLICT: обновите данные и повторите подбор")
         ids = set(command.executor_ids)

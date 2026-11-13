@@ -42,6 +42,9 @@ def managed(runtime):
         if hasattr(admin,"chief"):admin.chief.close()
         admin.close()
         with engine.begin() as c:
+            c.execute(text("UPDATE draft_publication_proposals SET state=CASE WHEN state='published' THEN 'approved' ELSE state END,publication_id=NULL WHERE site_id=:site"),dict(site=site))
+            for table in ('published_catalog_tasks','published_catalog_obligations','draft_publications','draft_publication_proposals'):
+                c.execute(text(f'DELETE FROM {table} WHERE site_id=:site'),dict(site=site))
             users=list(c.scalars(text('SELECT user_id FROM site_memberships WHERE site_id=:site UNION SELECT user_id FROM employment_applications WHERE site_id=:site'),dict(site=site)))
             for table in ['draft_optimization_runs','planning_draft_versions','catalog_operation_decisions','regulation_catalog_imports','maintenance_notifications','planning_runs','evidence_files','checklist_results','work_readings','acceptance_reviews','ai_quality_checks','work_reports','work_assignments','work_order_equipment','work_orders','schedule_entries','schedule_plans','incident_reports','orchestration_decisions','forecast_runs','rule_equipment','rule_required_skills','maintenance_rules','checklist_templates','regulation_editions','regulation_documents','operation_templates','equipment','engineering_systems','crew_members','crews','availability_slots','employee_shift_rules','user_skills','employment_applications','site_join_codes','fixrate_sessions','audit_events','site_memberships']:
                 c.execute(text(f'DELETE FROM {table} WHERE site_id=:site'),dict(site=site))

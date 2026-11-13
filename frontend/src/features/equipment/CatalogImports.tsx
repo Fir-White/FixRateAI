@@ -72,7 +72,7 @@ function SavedCatalog({id,mayEdit,mayConfirm,mayPlan,timezone}:{id:string;mayEdi
   const rows=useApiQuery(()=>api.operations(id,offset,needle,group,kind),[id,offset,needle,group,kind],undefined,`catalog-rows:${JSON.stringify([id,offset,needle,group,kind])}`);
   return <section className="space-y-4 border-t border-line pt-5" aria-label="Сохранённый каталог СВиК">
     <Button variant="secondary" aria-expanded={plans} onClick={()=>setPlans(v=>!v)}>Черновики планов этого каталога</Button>
-    {plans&&<Suspense fallback={<LoadingState/>}><CatalogPlans id={id} mayEdit={mayPlan} timezone={timezone}/></Suspense>}
+    {plans&&<Suspense fallback={<LoadingState/>}><CatalogPlans id={id} mayEdit={mayPlan} mayApprove={mayConfirm} timezone={timezone}/></Suspense>}
     {detail.status==='loading'&&<LoadingState/>}{detail.status==='error'&&<ErrorState description={detail.error}/>}
     {detail.status==='success'&&<><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-semibold">{detail.data.filename}</h3><a className="text-accent underline" href={api.source(id)}>Скачать исходный Excel</a></div>
       <details><summary>Состояние исходного Excel до уточнений</summary><Summary value={detail.data.summary}/></details><Issues issues={detail.data.issues}/><Diagnostics cells={detail.data.sheet2_diagnostic}/>

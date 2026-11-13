@@ -266,9 +266,9 @@ class Views:
         actions = []
         if self.principal.role=="chief_engineer" and order.status=="completed": actions.append("reopen")
         role = self.principal.role
-        if has_role(role,("dispatcher", "engineer")):
+        if has_role(role,("dispatcher", "engineer")) and not order.operation_snapshot.get('catalog_publication_id'):
             actions.append("forecast")
-        if has_role(role,('dispatcher',)) and order.status in ('draft','clarification','assigned') and not reports:
+        if has_role(role,('dispatcher',)) and order.status in ('draft','clarification','assigned') and not reports and not order.operation_snapshot.get('catalog_publication_id'):
             actions.append('cancel')
         if role == "executor":
             # bundle is only called after task() has checked the active assignment.
@@ -318,11 +318,12 @@ class Views:
             rule = entry.rule
             operation_snapshot = entry.rule_snapshot.get('operation', {})
             binding = entry.binding
+            catalog=entry.rule_snapshot.get('catalog_publication_id')
             eq = binding.equipment if binding else None
             kind = None
             if rule.operation.maintenance_type_id:
                 typ = self.session.get(self.models["maintenance_types"], rule.operation.maintenance_type_id)
-                kind = typ.name if typ.name in ("ТО1", "ТО2", "ТО3") else None
+                kind = typ.name if catalog or typ.name in ("ТО1", "ТО2", "ТО3") else None
             done = bool(orders and orders[0].status == "completed")
             cancelled = entry.status != "planned" or bool(orders and orders[0].status == "cancelled")
             items.append(dict(id=str(entry.schedule_entry_id), occurrenceDate=iso(entry.planned_date),sourceDate=iso(entry.source_date or entry.regulatory_deadline_on),

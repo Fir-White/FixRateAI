@@ -206,7 +206,8 @@ def test_model_pin_accepts_ollama_bare_sha256_hex(server):
     client.check_model()
 
 
-def test_independent_photo_observations_are_not_overwritten_by_comparison(canonical_photo_review_request,monkeypatch):
+@pytest.mark.parametrize('catalog',[False,True])
+def test_independent_photo_observations_are_not_overwritten_by_comparison(canonical_photo_review_request,monkeypatch,catalog):
     client=LocalVisionClient(CONFIG);calls=[]
     contents=iter([
         json.dumps(dict(description="До: на стекле видны линии повреждения",visible_defects=["Линии на стекле"],uncertain_features=[])),
@@ -218,6 +219,9 @@ def test_independent_photo_observations_are_not_overwritten_by_comparison(canoni
         return dict(done=True,done_reason="stop",model=CONFIG.model,message=dict(content=next(contents)))
     monkeypatch.setattr(client,"request",response)
     request=canonical_photo_review_request
+    if catalog:
+        request=type(request).model_validate_json(request.model_copy(update={'operation':request.operation.model_copy(update={
+            'source_ref':'catalog_svik:'+'a'*64+':row:8','maintenance_type':'ТОр'})}).model_dump_json())
     result=client.assess(request,request.operation.checklist[0],*photos(request).values())
     assert result.before_description=="До: на стекле видны линии повреждения"
     assert result.after_description=="После: стекло снято крупным планом"
@@ -225,3 +229,5 @@ def test_independent_photo_observations_are_not_overwritten_by_comparison(canoni
     assert all(call["keep_alive"]==-1 for call in calls)
     assert calls[0]["messages"][0]["content"] != calls[1]["messages"][0]["content"]
     assert all(call["think"] is False for call in calls)
+    assert ('Для 1.1' in calls[-1]['messages'][0]['content']) is (not catalog)
+    if catalog:assert 'отдельному каталогу СВиК' in calls[-1]['messages'][0]['content']

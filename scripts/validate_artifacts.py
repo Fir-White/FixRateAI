@@ -28,6 +28,7 @@ from app.schemas.registry import REGISTRY_INPUTS
 from app.schemas.catalog import CATALOG_CONTRACTS
 from app.schemas.draft_plans import DRAFT_CONTRACTS
 from app.schemas.optimization import OPTIMIZATION_CONTRACTS
+from app.schemas.publication import PUBLICATION_CONTRACTS
 
 DOCS = ROOT / "docs"
 DIAGRAMS = DOCS / "assets/architecture"
@@ -250,6 +251,12 @@ def main():
         optimization_path.write_text(json.dumps(optimization_schema, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
     require(json.loads(optimization_path.read_text(encoding='utf-8')) == optimization_schema,
             'optimization schema export differs; use --write-schema')
+    _, publication_schema = models_json_schema([(model, 'validation') for model in PUBLICATION_CONTRACTS])
+    publication_path = ROOT / 'contracts/publication.schema.json'
+    if args.write_schema:
+        publication_path.write_text(json.dumps(publication_schema, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    require(json.loads(publication_path.read_text(encoding='utf-8')) == publication_schema,
+            'publication schema export differs; use --write-schema')
     examples = json.loads((ROOT/"contracts/examples/maintenance.json").read_text(encoding="utf-8"))["examples"]
     parsed = validate_models(examples)
     comparisons = check_relations(parsed, examples)

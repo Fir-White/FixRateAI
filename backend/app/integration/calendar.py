@@ -134,6 +134,10 @@ def preview_calendar(v, year, month, *, as_of=None):
     for binding in sorted(v.rows("rule_equipment"), key=lambda b: b.binding_id.int):
         rule, equipment = binding.rule, binding.equipment
         op = rule.operation
+        if rule.schedule_parameters.get('catalog_publication_id'):
+            # This finite approved source already owns exact occurrences. The
+            # legacy recurrence generator must never issue them a second time.
+            continue
         metadata=rule.schedule_parameters.get('operation_metadata',{})
         diagnostic = dict(bindingId=str(binding.binding_id), equipmentName=equipment.name,
             operationCode=metadata.get('code',op.code), operationTitle=metadata.get('title',op.title), dataOrigin=rule.data_origin,
