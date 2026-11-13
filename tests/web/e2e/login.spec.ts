@@ -35,14 +35,21 @@ for (const width of [1440, 390]) {
       await page.goto(path);
       const fields=page.locator('.auth-form input[placeholder]');
       await expect(fields.first()).toBeVisible();
+      await page.evaluate(()=>document.fonts.ready);
       // Document selection may cross native empty inputs and paint their
       // placeholder as if it were an entered, selected value in Chromium.
       for(const field of await fields.all()){
         await field.evaluate(input=>{(document.activeElement as HTMLElement)?.blur();window.getSelection()?.removeAllRanges();input.scrollIntoView({block:'center'});});
+        await page.mouse.move(0,0);
         const original=await field.screenshot({animations:'disabled'});
         await page.keyboard.press('ControlOrMeta+A');
         expect(await field.evaluate(input=>window.getSelection()?.containsNode(input,true))).toBe(true);
-        expect(createHash('sha256').update(await field.screenshot({animations:'disabled'})).digest('hex')).toBe(createHash('sha256').update(original).digest('hex'));
+        const selected=await field.screenshot({animations:'disabled'});
+        if(!original.equals(selected)){
+          await testInfo.attach('unselected-placeholder',{body:original,contentType:'image/png'});
+          await testInfo.attach('selected-placeholder',{body:selected,contentType:'image/png'});
+        }
+        expect(createHash('sha256').update(selected).digest('hex')).toBe(createHash('sha256').update(original).digest('hex'));
         await expect(field).toHaveValue('');
         await page.evaluate(()=>window.getSelection()?.removeAllRanges());
         await field.dblclick();await expect(field).toBeFocused();
