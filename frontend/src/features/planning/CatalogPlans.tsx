@@ -12,16 +12,19 @@ import { Drawer } from '@/shared/ui/Drawer';
 import { PlanningChoices,PlanningPages } from './PlanningChoices';
 import { splitPersonHours } from './segmentHours';
 import './draft-plans.css';
+import { JourneySteps } from '@/shared/ui/JourneySteps';
+import type { CatalogWorkspace } from '@/features/equipment/CatalogImports';
 const OptimizationPanel=lazy(()=>import('./OptimizationPanel'));
 const PublicationPanel=lazy(()=>import('./PublicationPanel'));
 
 const failure=(error:unknown)=>error instanceof Error?error.message:'Не удалось выполнить действие';
 const titleForStatus={valid:'Проверенные ограничения соблюдены',incomplete:'Нужны данные или размещение',invalid:'Обнаружены нарушения'};
 
-export function CatalogPlans({id,mayEdit,mayApprove=false,timezone}:{id:string;mayEdit:boolean;mayApprove?:boolean;timezone:string}) {
+export function CatalogPlans({id,mayEdit,mayApprove=false,timezone,workspace}:{id:string;mayEdit:boolean;mayApprove?:boolean;timezone:string;workspace?:CatalogWorkspace}) {
   const [create,setCreate]=useState(false),[refresh,setRefresh]=useState(0),[offset,setOffset]=useState(0),[selected,setSelected]=useState<DraftRecord|null>(null),[head,setHead]=useState(0);
   const query=useApiQuery(()=>api.list(id,offset),[id,offset,refresh],undefined,`draft-plans:${id}:${offset}`);
-  const pick=(record:DraftRecord)=>{setSelected(record);setHead(record.revision);};
+  const pick=(record:DraftRecord)=>{setSelected(record);setHead(record.revision);workspace?.selectDraft(record);};
+  if(workspace?.draftId)return <section aria-label="Версии плана каталога" className="space-y-4"><Button variant="ghost" onClick={()=>workspace.selectDraft(null)}>← Все планы этого файла</Button><LinkedPlan id={id} workspace={workspace} timezone={timezone} mayEdit={mayEdit} mayApprove={mayApprove}/></section>;
   return <section className="draft-plans space-y-4 border-t border-line pt-4" aria-label="Версии плана каталога">
     <h3 className="text-lg font-semibold">Черновики планов</h3>
     <Callout>Год и месяц показывают одну версию работ. Изменения сохраняются новой версией. Публикация и резервирование людей выполняются отдельным действием после утверждения.</Callout>
@@ -29,8 +32,21 @@ export function CatalogPlans({id,mayEdit,mayApprove=false,timezone}:{id:string;m
     {create&&<CreateDraft id={id} timezone={timezone} onSaved={record=>{setCreate(false);setOffset(0);setRefresh(n=>n+1);pick(record);}}/>}
     {query.status==='loading'&&<LoadingState/>}{query.status==='error'&&<ErrorState description={query.error}/>}
     {query.status==='success'&&<><ul className="space-y-2">{query.data.items.map(record=><li key={record.draft_id}><Button variant={selected?.draft_id===record.draft_id?'primary':'secondary'} onClick={()=>pick(record)}>{record.title} · версия {record.revision} · {record.total_person_hours} чел.-ч</Button></li>)}</ul>{!query.data.total&&<p>Сохранённых вариантов пока нет.</p>}<PlanningPages offset={offset} total={query.data.total} onPage={setOffset}/></>}
-    {selected&&<SavedPlan key={`${selected.draft_id}:${selected.revision}`} record={selected} timezone={timezone} mayApprove={mayApprove} mayEdit={mayEdit&&selected.revision===head} onPickVersion={setSelected} onSaved={record=>{setRefresh(n=>n+1);pick(record);}}/>}
+    {selected&&!workspace&&<SavedPlan key={`${selected.draft_id}:${selected.revision}`} record={selected} timezone={timezone} mayApprove={mayApprove} mayEdit={mayEdit&&selected.revision===head} onPickVersion={setSelected} onSaved={record=>{setRefresh(n=>n+1);pick(record);}}/>}
   </section>;
+}
+
+function LinkedPlan({id,workspace,timezone,mayEdit,mayApprove}:{id:string;workspace:CatalogWorkspace;timezone:string;mayEdit:boolean;mayApprove:boolean}) {
+  const query=useApiQuery(async()=>{
+    const versions=await api.versions(workspace.draftId,0),head=versions.items[0];
+    if(!head||head.import_id!==id)throw new Error('План не найден в выбранном файле. Вернитесь к списку планов.');
+    const record=workspace.draftRevision&&workspace.draftRevision!==head.revision?(await api.overview(workspace.draftId,workspace.draftRevision)).record:head;
+    if(record.import_id!==id)throw new Error('План относится к другому файлу.');
+    return {record,head:head.revision};
+  },[id,workspace.draftId,workspace.draftRevision],undefined,`linked-plan:${id}:${workspace.draftId}:${workspace.draftRevision}`);
+  if(query.status==='loading')return <LoadingState label="Открытие сохранённого плана"/>;
+  if(query.status==='error')return <ErrorState description={query.error}/>;
+  return <SavedPlan key={`${query.data.record.draft_id}:${query.data.record.revision}`} record={query.data.record} timezone={timezone} mayApprove={mayApprove} mayEdit={mayEdit&&query.data.record.revision===query.data.head} onPickVersion={workspace.selectDraft} onSaved={workspace.selectDraft} workspace={workspace}/>;
 }
 
 function CreateDraft({id,timezone,onSaved}:{id:string;timezone:string;onSaved:(r:DraftRecord)=>void}) {
@@ -67,14 +83,13 @@ function CreateDraft({id,timezone,onSaved}:{id:string;timezone:string;onSaved:(r
   </section>;
 }
 
-function SavedPlan({record,timezone,mayEdit,mayApprove,onPickVersion,onSaved}:{record:DraftRecord;timezone:string;mayEdit:boolean;mayApprove:boolean;onPickVersion:(r:DraftRecord)=>void;onSaved:(r:DraftRecord)=>void}) {
+function SavedPlan({record,timezone,mayEdit,mayApprove,onPickVersion,onSaved,workspace}:{record:DraftRecord;timezone:string;mayEdit:boolean;mayApprove:boolean;onPickVersion:(r:DraftRecord)=>void;onSaved:(r:DraftRecord)=>void;workspace?:CatalogWorkspace}) {
   const [period,setPeriod]=useState(''),[search,setSearch]=useState(''),[offset,setOffset]=useState(0),[root,setRoot]=useState<string|null>(null),[history,setHistory]=useState(false);
   const [validation,setValidation]=useState<PlanValidation|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
   const needle=useDeferredValue(search);
   const overview=useApiQuery(()=>api.overview(record.draft_id,record.revision),[record.draft_id,record.revision],undefined,`draft-overview:${record.draft_id}:${record.revision}`);
   const rows=useApiQuery(()=>api.occurrences(record.draft_id,record.revision,offset,needle,period),[record.draft_id,record.revision,offset,needle,period],undefined,`draft-occurrences:${JSON.stringify([record.draft_id,record.revision,offset,needle,period])}`);
-  return <section className="space-y-4" aria-label="Сохранённая версия плана"><h3 className="font-semibold">{record.title} · версия {record.revision}</h3><p className="text-sm">{formatDate(record.starts_on)} — {formatDate(record.ends_on)} · {record.author_name} · {record.occurrence_count} работ · {record.total_person_hours} чел.-ч</p><p className="text-sm text-muted">Изменения требуют новой версии. Сводные проверки не резервируют людей; перед будущей публикацией потребуется повторная проверка.</p>
-    {!mayEdit&&<p className="text-sm text-muted">Версия доступна для просмотра.</p>}
+  const work=<>
     {overview.status==='loading'&&<LoadingState/>}{overview.status==='error'&&<ErrorState description={overview.error}/>}
     {overview.status==='success'&&<><div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-4" aria-label="Месяцы одной версии"><Button variant={!period?'primary':'secondary'} onClick={()=>{setPeriod('');setOffset(0);}}>Весь горизонт · {record.total_person_hours} чел.-ч</Button>{overview.data.months.map(month=><Button key={month.month} variant={period===month.month?'primary':'secondary'} onClick={()=>{setPeriod(month.month);setOffset(0);}}>{month.month} · обязательства {month.due_person_hours} · размещено {month.planned_person_hours} чел.-ч</Button>)}</div>
       <ValidationReport key={validation?.input_sha256??'stored'} value={validation??overview.data.validation}/>
@@ -83,9 +98,18 @@ function SavedPlan({record,timezone,mayEdit,mayApprove,onPickVersion,onSaved}:{r
     <label className="block"><FieldCaption>Поиск работ версии</FieldCaption><Input aria-label="Поиск работ версии" value={search} onChange={e=>{setSearch(e.target.value);setOffset(0);}}/></label>
     {rows.status==='loading'&&<LoadingState/>}{rows.status==='error'&&<ErrorState description={rows.error}/>}
     {rows.status==='success'&&<><ul className="space-y-3" aria-label="Работы версии плана">{rows.data.items.map(item=><li className="rounded-xl border border-line p-4" key={item.occurrence_id}><Button variant="ghost" onClick={()=>setRoot(item.occurrence_id)}>{item.operation_code} · {item.title}</Button><p className="mt-2 text-sm">{item.maintenance_type} · {formatDate(item.earliest_date)} — {formatDate(item.latest_date)} · {item.total_person_hours} чел.-ч · бригада {item.crew_size}</p><p className="text-xs text-muted">Строка {item.source_row}, решение v{item.decision_revision} · {item.source_slot==='day'?'Дневное событие':item.source_slot==='night'?'Ночное событие':'В пределах допустимых дат'}</p></li>)}</ul>{!rows.data.total&&<p>В этом представлении работ нет.</p>}<PlanningPages offset={offset} total={rows.data.total} onPage={setOffset}/></>}
+    {workspace&&<div className="journey-footer"><span className="text-sm text-muted">Проверьте состав и перейдите к распределению дат и бригад.</span><Button onClick={()=>workspace.selectPlanView('schedule')}>Распределить работы →</Button></div>}
+  </>;
+  const optimization=<Suspense fallback={<LoadingState/>}><OptimizationPanel simple={!!workspace} record={record} timezone={timezone} mayEdit={mayEdit} onSaved={onSaved}/>{workspace&&<div className="journey-footer"><Button variant="ghost" onClick={()=>workspace.selectPlanView('work')}>← Состав работ</Button><Button onClick={()=>workspace.selectPlanView('publish')}>К утверждению и выпуску →</Button></div>}</Suspense>;
+  const publication=<Suspense fallback={<LoadingState/>}><PublicationPanel record={record} timezone={timezone} mayEdit={mayEdit} mayApprove={mayApprove}/></Suspense>;
+  return <section className="space-y-5" aria-label="Сохранённая версия плана"><header className="journey-panel-heading"><h3 className="font-semibold">{record.title} · версия {record.revision}</h3><p className="text-sm">{formatDate(record.starts_on)} — {formatDate(record.ends_on)} · {record.author_name} · {record.occurrence_count} работ · {record.total_person_hours} чел.-ч</p></header>
+    {!mayEdit&&<p className="text-sm text-muted">Открыта версия для просмотра. Изменять можно последнюю версию при наличии прав.</p>}
+    {workspace?<JourneySteps label="Этапы работы с планом" value={workspace.planView} onChange={workspace.selectPlanView} steps={[
+      {id:'work',title:'Состав работ',content:()=>work},
+      {id:'schedule',title:'Даты и бригады',description:'Рассчитайте варианты, проверьте назначения и примените выбранный вариант в новую версию.',content:()=>optimization},
+      {id:'publish',title:'Утверждение и выпуск',content:()=>publication},
+    ]}/>:<>{work}{optimization}{publication}</>}
     <Button variant="ghost" aria-expanded={history} onClick={()=>setHistory(v=>!v)}>История версий плана</Button>{history&&<PlanVersions id={record.draft_id} onPick={onPickVersion}/>}
-    <Suspense fallback={<LoadingState/>}><OptimizationPanel record={record} timezone={timezone} mayEdit={mayEdit} onSaved={onSaved}/></Suspense>
-    <Suspense fallback={<LoadingState/>}><PublicationPanel record={record} timezone={timezone} mayEdit={mayEdit} mayApprove={mayApprove} /></Suspense>
     <Drawer open={root!==null} onClose={()=>setRoot(null)} title="Работа и сегменты плана">{root&&<RootSegments id={record.draft_id} revision={record.revision} rootId={root} timezone={timezone} mayEdit={mayEdit} onSaved={onSaved}/>}</Drawer>
   </section>;
 }

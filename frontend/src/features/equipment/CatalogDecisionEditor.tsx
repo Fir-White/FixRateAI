@@ -1,4 +1,4 @@
-import { lazy,Suspense,useDeferredValue, useState } from 'react';
+import { lazy,Suspense,useDeferredValue, useState, type ReactNode } from 'react';
 import { catalogImportsApi as api, type CatalogDecision, type CatalogDecisionRecord, type CatalogBinding } from '@/shared/api/catalogImports';
 import { useApiQuery } from '@/shared/lib/useApiQuery';
 import { Button } from '@/shared/ui/Button';
@@ -7,6 +7,8 @@ import { Callout } from '@/shared/ui/Callout';
 import { LoadingState, ErrorState } from '@/shared/ui/States';
 import { patternDefaults,type CalendarPattern } from '@/shared/types/management';
 import { PlanningChoices,PlanningPages } from '@/features/planning/PlanningChoices';
+
+import { JourneySteps } from '@/shared/ui/JourneySteps';
 
 const PatternEditor=lazy(()=>import('@/features/settings/CalendarPatternEditor').then(m=>({default:m.CalendarPatternEditor})));
 
@@ -17,17 +19,17 @@ decisionBlockers.PARENT_POLICY_MISMATCH='Правила разделения д�
 const frequencies:Record<CatalogDecision['frequency_kind'],string>={unconfirmed:'Не подтверждена',day:'Раз в N дней',week:'Раз в N недель',month:'Раз в N месяцев',quarter:'Раз в N кварталов',year:'Раз в N лет',yearly_count:'N раз в год',dates:'Подтверждённые даты',daily_events:'N событий в сутки',event:'По необходимости',included_in:'В составе другой работы'};
 const errorText=(error:unknown)=>Object.entries(decisionBlockers).reduce((text,[code,label])=>text.replaceAll(code,label),error instanceof Error?error.message:'Не удалось сохранить решение');
 
-export function CatalogDecisionEditor({id,row,mayEdit,mayConfirm,onSaved}:{id:string;row:number;mayEdit:boolean;mayConfirm:boolean;onSaved:()=>void}) {
+export function CatalogDecisionEditor({id,row,mayEdit,mayConfirm,onSaved,guided=false}:{id:string;row:number;mayEdit:boolean;mayConfirm:boolean;onSaved:()=>void;guided?:boolean}) {
   const [refresh,setRefresh]=useState(0);
   // The editing base is read fresh on open/reload. Background focus refetches
   // must not unmount a form with unsaved input on a temporary network error.
   const query=useApiQuery(()=>api.decision(id,row),[id,row,refresh]);
   if(query.status==='loading')return <LoadingState/>;
   if(query.status==='error')return <ErrorState description={query.error}/>;
-  return <DecisionForm key={refresh} id={id} row={row} record={query.data} mayEdit={mayEdit} mayConfirm={mayConfirm} onSaved={onSaved} reload={()=>setRefresh(n=>n+1)}/>;
+  return <DecisionForm guided={guided} key={refresh} id={id} row={row} record={query.data} mayEdit={mayEdit} mayConfirm={mayConfirm} onSaved={onSaved} reload={()=>setRefresh(n=>n+1)}/>;
 }
 
-function DecisionForm({id,row,record,mayEdit,mayConfirm,onSaved,reload}:{id:string;row:number;record:CatalogDecisionRecord;mayEdit:boolean;mayConfirm:boolean;onSaved:()=>void;reload:()=>void}) {
+function DecisionForm({id,row,record,mayEdit,mayConfirm,onSaved,reload,guided}:{id:string;row:number;record:CatalogDecisionRecord;mayEdit:boolean;mayConfirm:boolean;onSaved:()=>void;reload:()=>void;guided:boolean}) {
   const [saved,setSaved]=useState(record),[draft,setDraft]=useState(record.decision),[reason,setReason]=useState('');
   const [equipment,setEquipment]=useState(record.equipment),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[dirty,setDirty]=useState(false),[history,setHistory]=useState(false);
   const [qualificationLabels,setQualificationLabels]=useState<Record<string,string>>(record.qualification_labels??{}),[qualificationOffset,setQualificationOffset]=useState(0);
@@ -38,16 +40,10 @@ function DecisionForm({id,row,record,mayEdit,mayConfirm,onSaved,reload}:{id:stri
     catch(e){setError(errorText(e));}finally{setBusy(false);}
   };
   const included=draft.frequency_kind==='included_in';
-  return <section className="catalog-decision-editor min-w-0 space-y-4" aria-label="Решение инженера по строке">
-    <h3 className="font-semibold">Решение инженера · версия {saved.revision}</h3>
-    <p className="text-sm">{saved.prepared?'Подготовлено для планировщика':saved.confirmed?'Подтверждение требует проверки':'Черновик решения'}. Исходные ячейки сохранены отдельно.</p>
-    {saved.created_by&&<p className="break-words text-xs text-muted">Автор: {saved.author_name??saved.created_by} · {saved.created_at}</p>}
-    <Callout>Подтверждение строки не публикует план. Часы относятся к одному выполнению выбранной работы. Проверка смен, сроков и нагрузки будет выполняться в планировщике.</Callout>
-    {saved.blockers.length>0&&<ul className="space-y-1 text-sm" aria-label="Что нужно уточнить">{saved.blockers.map(b=><li key={b}>{decisionBlockers[b]??b}</li>)}</ul>}
-    {dirty&&<p role="status" className="text-sm">Есть несохранённые изменения. Статус и часы выше относятся к сохранённой версии.</p>}
-    {!dirty&&saved.total_person_hours!==null&&<p aria-label="Расчёт трудозатрат">{saved.total_person_hours} чел.-ч · {saved.elapsed_hours} ч длительности{included?' · учтено у родителя':''}</p>}
-    <fieldset disabled={!mayEdit||busy} className="min-w-0 space-y-4">
-      <legend className="mb-3 font-semibold">Календарные отметки и частота</legend>
+  const [step,setStep]=useState('dates');
+
+  const datesFields=<>
+      <h4 className="mb-3 font-semibold">Календарные отметки и частота</h4>
       <label className="block"><FieldCaption>Смысл отметок</FieldCaption><Select aria-label="Смысл отметок" value={draft.interpretation} onChange={e=>field('interpretation',e.target.value as CatalogDecision['interpretation'])}>{Object.entries(modes).map(([value,label])=><option key={value} value={value}>{label}</option>)}</Select></label>
       <label className="block"><FieldCaption>Год исходного января</FieldCaption><Input aria-label="Год исходного января" type="number" min={2000} max={2200} value={draft.calendar_year??''} onChange={e=>field('calendar_year',e.target.value===''?null:Number(e.target.value))}/></label>
       <label className="block"><FieldCaption>События внутри отметки</FieldCaption><Select aria-label="События внутри отметки" value={draft.mark_slots} onChange={e=>field('mark_slots',e.target.value as CatalogDecision['mark_slots'])}><option value="unconfirmed">Не подтверждены</option><option value="one_per_mark">Одна отметка — одно событие</option><option value="day_night">День и ночь — отдельные события</option></Select></label>
@@ -63,6 +59,8 @@ function DecisionForm({id,row,record,mayEdit,mayConfirm,onSaved,reload}:{id:stri
         {draft.calendar_pattern&&<Suspense fallback={<LoadingState/>}><PatternEditor allowedFrequencies={draft.frequency_kind==='unconfirmed'?undefined:[(draft.frequency_kind==='daily_events'?'day':draft.frequency_kind) as CalendarPattern['frequency']]} value={draft.calendar_pattern} onChange={value=>field('calendar_pattern',value)}/></Suspense>}
         {draft.calendar_pattern&&<><p className="text-sm text-muted">Правило задаёт обязательные сроки; допуск заранее определяет начало окна до каждого срока. Полоса января на другие месяцы не копируется.</p><label className="block"><FieldCaption>Допуск выполнения заранее, дней</FieldCaption><Input aria-label="Допуск выполнения заранее, дней" type="number" min={0} max={366} disabled={['day','daily_events'].includes(draft.frequency_kind)} value={draft.allowed_lead_days??0} onChange={e=>field('allowed_lead_days',Number(e.target.value))}/></label></>}
       </div>}
+  </>;
+  const assetFields=<>
       <h4 className="font-semibold">Оборудование текущего здания</h4>
       <ul className="space-y-2">{draft.equipment_ids.map(identity=>{const item=equipment.find(e=>e.equipment_id===identity);return <li key={identity} className="break-words text-sm">{item?`${item.asset_code} · ${item.name}`:identity} <Button variant="ghost" onClick={()=>field('equipment_ids',draft.equipment_ids.filter(i=>i!==identity))} aria-label={`Убрать ${item?.asset_code??identity}`}>Убрать</Button></li>;})}</ul>
       <p className="text-sm text-muted">Выбрано единиц: {draft.equipment_ids.length}. Количество определяется реальным реестром.</p>
@@ -73,6 +71,8 @@ function DecisionForm({id,row,record,mayEdit,mayConfirm,onSaved,reload}:{id:stri
         <label className="block"><FieldCaption>База нормы</FieldCaption><Select aria-label="База нормы" value={draft.norm_scope} onChange={e=>field('norm_scope',e.target.value as CatalogDecision['norm_scope'])}><option value="unconfirmed">Не подтверждена</option><option value="per_asset">На одну единицу оборудования</option><option value="whole_binding">На весь выбранный комплекс</option></Select></label>
         <label className="block"><FieldCaption>Человек в бригаде</FieldCaption><Input aria-label="Человек в бригаде" type="number" min={1} max={100} value={draft.crew_size??''} onChange={e=>field('crew_size',e.target.value===''?null:Number(e.target.value))}/></label>
         <label className="block"><FieldCaption>Источник и методика нормы</FieldCaption><Textarea aria-label="Источник и методика нормы" maxLength={2000} value={draft.norm_ref} onChange={e=>field('norm_ref',e.target.value)}/></label></>}
+  </>;
+  const ruleFields=<>
       <h4 className="font-semibold">Правила выполнения</h4>
       <label className="block"><FieldCaption>Можно разделять работу на сегменты</FieldCaption><Select aria-label="Можно разделять работу на сегменты" value={draft.splittable===null?'unknown':String(draft.splittable)} onChange={e=>{const value=e.target.value;field('splittable',value==='unknown'?null:value==='true');if(value!=='true')field('min_segment_minutes',null);}}><option value="unknown">Не подтверждено</option><option value="false">Нет, выполнять целиком</option><option value="true">Да, с сохранением общего объёма часов</option></Select></label>
       {draft.splittable&&<label className="block"><FieldCaption>Минимальный сегмент, минут</FieldCaption><Input aria-label="Минимальный сегмент, минут" type="number" min={1} max={46080} value={draft.min_segment_minutes??''} onChange={e=>field('min_segment_minutes',e.target.value===''?null:Number(e.target.value))}/></label>}
@@ -84,9 +84,26 @@ function DecisionForm({id,row,record,mayEdit,mayConfirm,onSaved,reload}:{id:stri
       <PlanningPages offset={qualificationOffset} total={draft.qualification_ids?.length??0} onPage={setQualificationOffset}/>
       {mayEdit&&<PlanningChoices kind="skills" selected={draft.qualification_ids??[]} onAdd={item=>{setQualificationLabels(labels=>({...labels,[item.id]:item.label}));field('qualification_ids',[...(draft.qualification_ids??[]),item.id]);}}/>}
       <label className="block"><FieldCaption>Основание требований к допускам</FieldCaption><Textarea aria-label="Основание требований к допускам" maxLength={2000} value={draft.qualification_note??''} onChange={e=>field('qualification_note',e.target.value)}/></label>
+  </>;
+  const confirmationFields=<>
       <label className="block"><FieldCaption>Причина новой версии</FieldCaption><Textarea aria-label="Причина новой версии" maxLength={2000} value={reason} onChange={e=>setReason(e.target.value)}/></label>
       {mayEdit&&<div className="flex flex-wrap gap-3"><Button variant="secondary" disabled={!reason.trim()} onClick={()=>void save(false)}>Сохранить решение-черновик</Button>{mayConfirm&&<Button disabled={!reason.trim()} onClick={()=>void save(true)}>Подтвердить решение строки</Button>}</div>}
-    </fieldset>
+  </>;
+  const controls=(children:ReactNode)=><fieldset disabled={!mayEdit||busy} className="min-w-0 space-y-4">{children}</fieldset>;
+  return <section className="catalog-decision-editor min-w-0 space-y-4" aria-label="Решение инженера по строке">
+    <h3 className="font-semibold">Решение инженера · версия {saved.revision}</h3>
+    <p className="text-sm">{saved.prepared?'Подготовлено для планировщика':saved.confirmed?'Подтверждение требует проверки':'Черновик решения'}. Исходные ячейки сохранены отдельно.</p>
+    {saved.created_by&&<p className="break-words text-xs text-muted">Автор: {saved.author_name??saved.created_by} · {saved.created_at}</p>}
+    <Callout>Подтверждение строки не публикует план. Часы относятся к одному выполнению выбранной работы. Проверка смен, сроков и нагрузки будет выполняться в планировщике.</Callout>
+    {saved.blockers.length>0&&<ul className="space-y-1 text-sm" aria-label="Что нужно уточнить">{saved.blockers.map(b=><li key={b}>{decisionBlockers[b]??b}</li>)}</ul>}
+    {dirty&&<p role="status" className="text-sm">Есть несохранённые изменения. Статус и часы выше относятся к сохранённой версии.</p>}
+    {!dirty&&saved.total_person_hours!==null&&<p aria-label="Расчёт трудозатрат">{saved.total_person_hours} чел.-ч · {saved.elapsed_hours} ч длительности{included?' · учтено у родителя':''}</p>}
+    {guided?<JourneySteps label="Подготовка операции" value={step} onChange={setStep} steps={[
+      {id:'dates',title:'Даты и периодичность',content:()=> <>{controls(datesFields)}<div className="journey-footer"><Button variant="secondary" onClick={()=>setStep('assets')}> Далее: оборудование и часы →</Button></div></>},
+      {id:'assets',title:'Оборудование и часы',content:()=> <>{controls(assetFields)}<div className="journey-footer"><Button variant="secondary" onClick={()=>setStep('rules')}> Далее: условия выполнения →</Button></div></>},
+      {id:'rules',title:'Условия и допуски',content:()=> <>{controls(ruleFields)}<div className="journey-footer"><Button variant="secondary" onClick={()=>setStep('confirm')}> Далее: проверить и подтвердить →</Button></div></>},
+      {id:'confirm',title:'Подтверждение',content:()=> <>{controls(confirmationFields)}</>},
+    ]}/>:<fieldset disabled={!mayEdit||busy} className="min-w-0 space-y-4">{datesFields}{assetFields}{ruleFields}{confirmationFields}</fieldset>}
     {mayEdit&&!mayConfirm&&<p className="text-sm text-muted">Подтверждение доступно главному инженеру.</p>}
     {error&&<div role="alert"><Callout tone="danger">{error}</Callout><p className="text-sm">Введённые значения остаются в форме. Загрузка актуальной версии заменит их серверными данными.</p><Button variant="secondary" onClick={reload}>Загрузить актуальную версию</Button></div>}
     {notice&&<p role="status">{notice}</p>}

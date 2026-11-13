@@ -24,6 +24,7 @@ import { NAVIGATION_ITEMS } from "./navigation";
 import "./operations.css";
 import { ContentTheme } from "@/shared/ui/ContentTheme";
 import { preloadPage } from "@/app/pageModules";
+import { SectionNavigation } from "./SectionNavigation";
 
 const ROLES: Role[] = ["director","chief_engineer","dispatcher", "engineer", "executor", "admin"];
 
@@ -67,8 +68,8 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
   }
 
   const items = NAVIGATION_ITEMS.filter(item => item.roles.includes(profile.role)).map(item => {
-    if (item.to === "/dispatcher" && ["director", "chief_engineer", "admin"].includes(profile.role)) return { ...item, to: homePathForRole(profile.role) };
-    if (item.to === "/quality" && profile.role === "engineer") return { ...item, to: homePathForRole(profile.role) };
+    if (profile.role === 'executor') return {...item,group:'Моя работа'};
+    if (item.to === "/dispatcher") return { ...item, to: homePathForRole(profile.role), label: profile.role==='director'?'Обзор объекта':item.label };
     return item;
   });
   const handleRoleChange = (role: Role) => {
@@ -112,6 +113,7 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
                 <Icon name="menu" size={20} />
               </IconButton>
               {location.pathname.replace(/\/+$/, "") !== homePathForRole(profile.role) && <button type="button" className="workspace-back" onClick={workspaceBack}><Icon name="back" size={17}/>Назад</button>}
+              <span className="workspace-site" title={profile.siteName}>{profile.siteName}<small>{ROLE_LABELS[profile.role]}</small></span>
             </div>
 
               <div className="fr-topbar-actions"><MaintenanceInbox/><NavLink to="/profile" className="profile-trigger" aria-label="Учётная запись" onMouseEnter={warmProfile} onFocus={warmProfile} onPointerDown={warmProfile}><Icon name="user" size={20}/><span className="topbar-hint" aria-hidden="true">Учётная запись</span></NavLink>
@@ -145,7 +147,7 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
           tabIndex={-1}
           className={`ops-main mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-10 ${profile.role === "executor" ? "workspace-executor-main" : ""}`}
         >
-          {location.pathname.replace(/\/+$/, "") === "/profile" ? <Outlet /> : <ContentTheme><Outlet /></ContentTheme>}
+          {location.pathname.replace(/\/+$/, "") === "/profile" ? <Outlet /> : <ContentTheme><SectionNavigation/><Outlet /></ContentTheme>}
         </main>
 
       </div>

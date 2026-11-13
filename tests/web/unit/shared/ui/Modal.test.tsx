@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Button } from "@/shared/ui/Button";
 import { Modal } from "@/shared/ui/Modal";
 
@@ -25,6 +25,22 @@ function Harness() {
 }
 
 describe("Modal", () => {
+  it('skips hidden steps and closed details while trapping focus',async()=>{
+    const user=userEvent.setup();
+    render(<Modal open title="Этапы" onClose={()=>{}}><button>Последнее видимое действие</button><div hidden inert><button>Скрытый этап</button></div><details><summary>Дополнительно</summary><button>Закрытая форма</button></details></Modal>);
+    const dialog=screen.getByRole('dialog',{name:'Этапы'});
+    within(dialog).getByText('Дополнительно').focus();
+    await user.tab();
+    expect(within(dialog).getByRole('button',{name:'Закрыть окно'})).toHaveFocus();
+  });
+
+  it('handles Escape only in the most recently opened dialog',()=>{
+    const outer=vi.fn(),inner=vi.fn();
+    function Nested(){const [open,setOpen]=useState(false);return <Modal open title="Внешнее" onClose={outer}><button onClick={()=>setOpen(true)}>Открыть вложенное</button><Modal open={open} title="Вложенное" onClose={inner}>Подтверждение</Modal></Modal>;}
+    render(<Nested/>);fireEvent.click(screen.getByRole('button',{name:'Открыть вложенное'}));
+    fireEvent.keyDown(document,{key:'Escape'});
+    expect(inner).toHaveBeenCalledOnce();expect(outer).not.toHaveBeenCalled();
+  });
   it("traps focus, closes on Escape and restores focus", async () => {
     const user = userEvent.setup();
     const previousOverflow=document.body.style.overflow;

@@ -36,8 +36,10 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
   await executor.getByRole("button", {name: "Приступить к работе"}).click();
   await executor.getByRole("checkbox", {name: /Поверхность очищена/}).check();
   await checkpoint(executor,'executor-active');
+  await executor.getByRole('button',{name:'Проверить и сдать',exact:true}).click();
   await executor.getByLabel("Что выполнено и какие замечания остались").fill("Проверка полного процесса в браузере");
   // Upload must preserve the currently edited checklist and narrative without a manual save.
+  await executor.getByRole('button',{name:'Добавить фотографии',exact:true}).click();
   const photo = path.resolve(test.info().project.testDir, "../../../data/demo/demo-photo.png");
   for (const phase of ["before", "after"]) {
     const reply = executor.waitForResponse(r => r.url().endsWith("/photos") && r.request().method() === "POST");
@@ -45,11 +47,14 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
     expect((await reply).status()).toBe(200);
     await expect(executor.locator(".evidence-photo img")).toHaveCount(phase === "before" ? 1 : 2);
     await expect(executor.getByLabel("Что выполнено и какие замечания остались")).toHaveValue("Проверка полного процесса в браузере");
+    await executor.getByRole('button',{name:'Выполнить чек-лист',exact:true}).click();
     await expect(executor.getByRole("checkbox", {name: /Поверхность очищена/})).toBeChecked();
+    await executor.getByRole('button',{name:'Добавить фотографии',exact:true}).click();
   }
   await expect(executor.locator(".evidence-photo img")).toHaveCount(2);
   await executor.locator('.evidence-photo').first().scrollIntoViewIfNeeded();
   await checkpoint(executor,'executor-uploaded');
+  await executor.getByRole('button',{name:'Проверить и сдать',exact:true}).click();
   const submit = executor.waitForResponse(r => r.url().endsWith("/submit"));
   await executor.getByLabel("Что выполнено и какие замечания остались").fill("Последние изменения перед сдачей");
   await executor.getByRole("button", {name: "Сдать работу"}).click();
@@ -84,12 +89,14 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
   await expect(executor.getByRole("heading", {name: "Чек-лист"})).toBeVisible();
   await expect(executor.getByText("Попытка №2", {exact: true})).toBeVisible();
   await executor.getByRole("checkbox", {name: /Поверхность очищена/}).check();
+  await executor.getByRole('button',{name:'Добавить фотографии',exact:true}).click();
   for (const phase of ["before", "after"]) {
     const uploaded = executor.waitForResponse(r => r.url().endsWith("/photos") && r.request().method() === "POST");
     await executor.getByLabel(new RegExp(`^Фото ${phase === "before" ? "до" : "после"}: `)).setInputFiles(photo);
     expect((await uploaded).status()).toBe(200);
     await expect(executor.locator(".evidence-photo img")).toHaveCount(phase === "before" ? 1 : 2);
   }
+  await executor.getByRole('button',{name:'Проверить и сдать',exact:true}).click();
   const resubmit = executor.waitForResponse(r => r.url().endsWith("/submit"));
   await executor.getByRole("button", {name: "Сдать работу"}).click();
   await executor.getByRole("dialog", {name: "Передать отчёт инженеру?"}).getByRole("button", {name: "Подтвердить сдачу"}).click();
@@ -128,6 +135,7 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
   for(const name of ['Подобрать бригаду','Принять работу','Вернуть на доработку','Сдать работу','Отменить задание']){
     await expect(director.getByRole('button',{name,exact:true})).toHaveCount(0);
   }
+  await director.locator('summary').filter({hasText:'История задания и предыдущие попытки'}).click();
   await director.locator('summary').filter({hasText:'История попыток и доказательств'}).click();
   await expect(director.getByRole('heading',{name:/Попытка 1 ·/})).toBeVisible();
   await expect(director.getByRole('heading',{name:/Попытка 2 ·/})).toBeVisible();

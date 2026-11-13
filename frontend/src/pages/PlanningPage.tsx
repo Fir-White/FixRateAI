@@ -1,0 +1,27 @@
+import { Link, useSearchParams } from 'react-router-dom';
+import { CatalogImports, type CatalogWorkspace } from '@/features/equipment/CatalogImports';
+import { useSession } from '@/shared/session/SessionContext';
+import { DEMO_MODE } from '@/shared/api/request';
+import { PageHeader } from '@/shared/ui/PageHeader';
+import { Callout } from '@/shared/ui/Callout';
+import { buttonClassName } from '@/shared/ui/Button';
+import { canOpenSection } from '@/shared/lib/roles';
+
+export function PlanningPage() {
+  const {profile}=useSession(),[params,setParams]=useSearchParams();
+  const mayImport=['chief_engineer','admin','dispatcher'].includes(profile?.role??'');
+  const update=(values:Record<string,string|null>)=>setParams(previous=>{const next=new URLSearchParams(previous);for(const [key,value] of Object.entries(values)){if(value)next.set(key,value);else next.delete(key);}return next;});
+  const workspace:CatalogWorkspace={
+    catalogId:params.get('catalog')??'',stage:params.get('stage')==='plan'?'plan':'prepare',
+    draftId:params.get('draft')??'',draftRevision:Number(params.get('revision'))||null,
+    planView:params.get('view')??'work',
+    selectCatalog:id=>update({catalog:id,stage:null,draft:null,revision:null,view:null}),
+    selectStage:stage=>update({stage}),
+    selectDraft:record=>update({draft:record?.draft_id??null,revision:record?String(record.revision):null}),
+    selectPlanView:view=>update({view}),
+  };
+  return <div className="space-y-6"><PageHeader title="Планирование ТО" description="От Excel с регламентами до заданий в календаре. Выберите сохранённый файл или загрузите новый."/>
+    {DEMO_MODE?<Callout>Планы из Excel доступны при подключении к рабочему серверу.{canOpenSection(profile?.role,'calendar')&&<> В демонстрационном режиме можно посмотреть <Link className="text-accent underline" to="/calendar">пример календаря</Link>.</>}</Callout>:<CatalogImports key={`${profile?.siteId}:${profile?.role}`} mayImport={mayImport} mayConfirm={profile?.role==='chief_engineer'} mayPlan={mayImport} siteName={profile?.siteName} timezone={profile?.timezone} workspace={workspace}/>}
+    <div className="journey-context-links"><Link to="/equipment">Проверить оборудование →</Link>{canOpenSection(profile?.role,'workforce_settings')&&<Link to="/settings/workforce">Проверить сотрудников и смены →</Link>}{canOpenSection(profile?.role,'calendar')&&<Link to="/calendar" className={buttonClassName('ghost')}>Открыть действующий календарь</Link>}</div>
+  </div>;
+}

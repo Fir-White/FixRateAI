@@ -4,6 +4,7 @@ export const SECTION_ROLES: Record<string, Role[]> = {
   dispatcher: ["director", "chief_engineer", "engineer", "admin", "dispatcher"],
   equipment: ["director", "chief_engineer", "admin", "dispatcher", "engineer", "executor"],
   calendar: ["director", "chief_engineer", "dispatcher", "engineer", "executor"],
+  planning: ["director", "chief_engineer", "dispatcher", "engineer", "admin"],
   tasks: ["director", "chief_engineer", "dispatcher", "engineer"],
   comparisons: ["director", "chief_engineer", "dispatcher", "engineer"],
   reports: ["director", "chief_engineer", "dispatcher", "engineer"],

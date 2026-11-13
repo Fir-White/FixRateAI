@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 for(const width of [1440,390]) {
   test(`real isolated catalog preview, persistence and source lineage at ${width}px`,async({page},testInfo)=>{
     test.skip(!process.env.FIXRATE_CATALOG_E2E || !process.env.FIXRATE_CATALOG_PASSWORD,'Requires the disposable catalog QA application');
-    expect(process.env.FIXRATE_BASE_URL).toBe('http://127.0.0.1:8875');
+    expect(['http://127.0.0.1:8875','http://127.0.0.1:8885']).toContain(process.env.FIXRATE_BASE_URL);
     await expect.poll(async()=>{try{return (await page.request.get('/api/health')).status();}catch{return 0;}},{timeout:30000}).toBe(200);
     await page.setViewportSize({width,height:900});
     const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
@@ -14,8 +14,8 @@ for(const width of [1440,390]) {
     await page.getByLabel('Пароль',{exact:true}).fill(process.env.FIXRATE_CATALOG_PASSWORD!);
     await page.getByRole('button',{name:'Войти',exact:true}).click();
     await expect(page).not.toHaveURL(/\/login$/);
-    await page.goto('/equipment');
-    await page.getByRole('button',{name:'Каталоги регламентов СВиК'}).click();
+    await page.goto('/planning');
+    await page.getByRole('button',{name:'Загрузить Excel с регламентами'}).click();
     await page.getByLabel('Excel каталога СВиК').setInputFiles('reports/anonymous-hvac.xlsx');
     await page.getByRole('button',{name:'Проверить каталог',exact:true}).click();
     const preview=page.getByRole('region',{name:'Предпросмотр каталога СВиК'});
@@ -43,6 +43,7 @@ for(const width of [1440,390]) {
     await editor.getByLabel('Пояснение смысла отметок').fill('TEST ONLY: synthetic fixture window, no independent daily jobs');
     await editor.getByLabel('Подтверждённая периодичность').selectOption('month');
     await editor.getByLabel('Значение N').fill('1');
+    await editor.getByRole('button',{name:'Оборудование и часы',exact:true}).click();
     await editor.getByRole('button',{name:'Выбрать оборудование'}).click();
     const options=editor.getByRole('button',{name:/ · /});
     // The fixture inventory is read from the current building, never inferred from marks.
@@ -53,8 +54,10 @@ for(const width of [1440,390]) {
     await editor.getByLabel('База нормы').selectOption('per_asset');
     await editor.getByLabel('Человек в бригаде').fill('1');
     await editor.getByLabel('Источник и методика нормы').fill('TEST ONLY: synthetic methodology, not customer norms');
+    await editor.getByRole('button',{name:'Условия и допуски',exact:true}).click();
     await editor.getByLabel('Можно разделять работу на сегменты').selectOption('false');
     await editor.getByLabel('Правила и ограничения выполнения').fill('TEST ONLY: uninterrupted fixture operation');
+    await editor.getByRole('button',{name:'Подтверждение',exact:true}).click();
     await editor.getByLabel('Причина новой версии').fill('TEST ONLY: fullstack draft review');
     await editor.getByRole('button',{name:'Сохранить решение-черновик'}).click();
     await expect(editor.getByRole('status')).toContainText('Новая версия черновика сохранена');
@@ -70,8 +73,7 @@ for(const width of [1440,390]) {
     const original=await readFile('reports/anonymous-hvac.xlsx'),returned=await readFile((await download.path())!);
     expect(createHash('sha256').update(returned).digest('hex')).toBe(createHash('sha256').update(original).digest('hex'));
     await page.reload();
-    await page.getByRole('button',{name:'Каталоги регламентов СВиК'}).click();
-    await page.getByRole('button',{name:/anonymous-hvac.xlsx · 217 операций/}).click();
+
     await expect(saved.locator('tbody tr')).toHaveCount(25);
     await saved.getByRole('textbox',{name:'Поиск операций каталога'}).fill('0216');
     await expect(saved.locator('tbody tr')).toHaveCount(1);

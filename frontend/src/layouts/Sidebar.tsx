@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type MouseEvent, type ReactNode, type SyntheticEvent } from "react";
 import { createPortal } from "react-dom";
-import { NavLink, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import brandMark from "@/assets/fixrate-mark.svg";
 import brandWordmark from "@/assets/fixrate-wordmark.svg";
 import { useDialogFocus } from "@/shared/lib/useDialogFocus";
@@ -102,14 +102,13 @@ export function Sidebar({ items, expanded, mobile, open, onClose, onToggle, foot
       </div>
 
       <nav aria-label="Основная навигация" className="ops-sidebar-nav scroll-boundary" data-scroll-key="sidebar" onScroll={() => setTooltip(null)}>
-        <p className="fr-nav-caption ops-sidebar-label">Рабочее пространство</p>
         <ul>
           {items.map((item, index) => <li key={item.to}>
-            {item.to.startsWith("/settings") && !items[index-1]?.to.startsWith("/settings") && <p className="fr-nav-caption fr-nav-divider ops-sidebar-label">Управление</p>}
-            <NavLink
+            {item.group && item.group !== items[index-1]?.group && <p className={`fr-nav-caption ops-sidebar-label${index ? ' fr-nav-divider' : ''}`}>{item.group}</p>}
+            <Link
               to={item.to}
-              end={item.end}
               aria-label={item.label}
+              aria-current={([item.to,...item.activePaths??[]].some(path=>location.pathname.replace(/\/+$/, '')===path||!item.end&&location.pathname.startsWith(path+'/'))) ? 'page' : undefined}
               aria-describedby={tooltip?.to === item.to ? tooltipId : undefined}
               className="ops-sidebar-link"
               onMouseEnter={event => { warm(item.to); tooltipSuspended.current = false; showTooltip(event, item); }}
@@ -122,7 +121,7 @@ export function Sidebar({ items, expanded, mobile, open, onClose, onToggle, foot
             >
               <span className="ops-sidebar-icon"><Icon name={item.icon} size={20} /></span>
               <span className="ops-sidebar-label">{item.label}</span>
-            </NavLink>
+            </Link>
           </li>)}
         </ul>
       </nav>

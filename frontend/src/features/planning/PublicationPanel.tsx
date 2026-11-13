@@ -8,6 +8,8 @@ import { FieldCaption,Input,Select,Textarea } from '@/shared/ui/Form';
 import { ErrorState,LoadingState } from '@/shared/ui/States';
 import { Callout } from '@/shared/ui/Callout';
 import { PlanningPages } from './PlanningChoices';
+import { Link } from 'react-router-dom';
+import { buttonClassName } from '@/shared/ui/Button';
 
 const states={prepared:'Ожидает утверждения',approved:'Утверждено',rejected:'Отклонено',published:'Опубликовано'};
 const empty=(row_number:number):ExecutionProfile=>({row_number,instructions:'',safety_notes:'',methodology_ref:'',engineer_note:'',checklist:[]});
@@ -74,7 +76,7 @@ function Proposal({value:p,mayApprove,timezone,busy,run}:{value:PublicationPropo
       {p.state==='approved'&&p.approval_token&&<><label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={publishConsent} onChange={e=>setPublishConsent(e.target.checked)}/><span>Создать утверждённые задания и назначения в рабочем календаре и уведомить исполнителей</span></label><Button disabled={!publishConsent} onClick={()=>void run(()=>api.publish(p.proposal_id,p.proposal_digest,p.approval_token!,publishKey.current))}>Опубликовать утверждённый план</Button></>}
     </fieldset>}
     {!mayApprove&&p.state!=='published'&&<p className="text-sm">Решение и публикация доступны главному инженеру.</p>}
-    {p.state==='published'&&<Callout>Задания опубликованы. Они доступны в календаре ТО и списке заданий; исполнители получили уведомления.</Callout>}
+    {p.state==='published'&&<div className="journey-next"><div><h3>План выпущен — задания переданы исполнителям</h3><p>Работы появились в календаре и заданиях.</p></div>{mayApprove&&<div className="flex flex-wrap gap-2"><Link className={buttonClassName('primary')} to={`/calendar${p.summary.months[0]?`?date=${p.summary.months[0]}-01`:''}`}>Открыть календарь</Link><Link className={buttonClassName('secondary')} to="/tasks">К заданиям</Link></div>}</div>}
   </section>;
 }
 

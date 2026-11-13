@@ -16,7 +16,7 @@ const solverStates:Record<string,string>={HEURISTIC:'Базовое размещ
 const reasons:Record<string,string>={finished:'Расчёт завершён',time_limit:'Достигнут лимит времени',model_limit:'Рассмотрена часть вариантов: достигнут лимит модели',needs_input:'Нужно уточнить исходные данные',solver_unavailable:'Решатель недоступен; доступен базовый режим'};
 const defaults:OptimizationOptions={grid_minutes:60,time_limit_seconds:10,replan_existing:false,start_buffer_minutes:5,random_seed:1,weights:{daily_peak:10,worker_spread:3,changes:10,earliness:0}};
 
-export default function OptimizationPanel({record,mayEdit,timezone,onSaved}:{record:DraftRecord;mayEdit:boolean;timezone:string;onSaved:(record:DraftRecord)=>void}) {
+export default function OptimizationPanel({record,mayEdit,timezone,onSaved,simple=false}:{record:DraftRecord;mayEdit:boolean;timezone:string;onSaved:(record:DraftRecord)=>void;simple?:boolean}) {
   const [options,setOptions]=useState(defaults),[run,setRun]=useState<OptimizationRun|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[refresh,setRefresh]=useState(0),[offset,setOffset]=useState(0);
   const attempt=useRef<{signature:string;key:string}|null>(null),mounted=useRef(true);
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
@@ -41,15 +41,18 @@ export default function OptimizationPanel({record,mayEdit,timezone,onSaved}:{rec
     try{const next=await fn();if(mounted.current){setRun(next);setRefresh(n=>n+1);}}
     catch(e){if(mounted.current)setError(failure(e));}finally{if(mounted.current)setBusy(false);}
   };
+  const parameters=<>
+      <label><FieldCaption>Шаг начала работ</FieldCaption><Select aria-label="Шаг начала работ" value={options.grid_minutes} onChange={e=>{const grid_minutes=Number(e.target.value) as 15|30|60;setOptions(o=>({...o,grid_minutes}));}}><option value={60}>60 минут</option><option value={30}>30 минут</option><option value={15}>15 минут</option></Select></label>
+      <label><FieldCaption>Лимит расчёта, секунд</FieldCaption><Input aria-label="Лимит расчёта, секунд" type="number" min={1} max={30} value={options.time_limit_seconds} onChange={e=>setOptions(o=>({...o,time_limit_seconds:Number(e.target.value)}))}/></label>
+      <label className="flex items-start gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={options.replan_existing} onChange={e=>setOptions(o=>({...o,replan_existing:e.target.checked}))}/><span>Разрешить перенос незакреплённых размещений. Закреплённые дата и бригада сохраняются.</span></label>
+      <details className="sm:col-span-2"><summary className="cursor-pointer text-sm">Приоритеты балансировки</summary><div className="mt-3 grid gap-3 sm:grid-cols-2">{([['daily_peak','Снижение пиков по дням'],['worker_spread','Равномерность загрузки людей'],['changes','Сохранение прежних назначений'],['earliness','Более раннее выполнение']] as const).map(([key,label])=><label key={key}><FieldCaption>{label}</FieldCaption><Input aria-label={label} type="number" min={0} max={100} value={options.weights[key]} onChange={e=>setOptions(o=>({...o,weights:{...o.weights,[key]:Number(e.target.value)}}))}/></label>)}</div><p className="mt-2 text-xs text-muted">Сначала обеспечивается покрытие работ, затем число размещённых сегментов; веса применяются после этих приоритетов.</p></details>
+  </>;
   return <section className="space-y-4 rounded-xl border border-line p-4" aria-label="Автоматическое размещение работ">
     <h4 className="font-semibold">Автоматическое размещение и сравнение</h4>
     <p className="text-sm">Сравните размещение по ближайшему сроку и вариант с балансировкой нагрузки. Расчёт использует сохранённые сегменты, подтверждённые нормы, доступность и допуски сотрудников. Для делимой работы сначала задайте нужные части в редакторе.</p>
     {mayEdit&&<fieldset disabled={busy||Boolean(run&&active(run))} className="grid min-w-0 gap-3 sm:grid-cols-2">
       <legend className="sr-only">Параметры расчёта</legend>
-      <label><FieldCaption>Шаг начала работ</FieldCaption><Select aria-label="Шаг начала работ" value={options.grid_minutes} onChange={e=>{const grid_minutes=Number(e.target.value) as 15|30|60;setOptions(o=>({...o,grid_minutes}));}}><option value={60}>60 минут</option><option value={30}>30 минут</option><option value={15}>15 минут</option></Select></label>
-      <label><FieldCaption>Лимит расчёта, секунд</FieldCaption><Input aria-label="Лимит расчёта, секунд" type="number" min={1} max={30} value={options.time_limit_seconds} onChange={e=>setOptions(o=>({...o,time_limit_seconds:Number(e.target.value)}))}/></label>
-      <label className="flex items-start gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={options.replan_existing} onChange={e=>setOptions(o=>({...o,replan_existing:e.target.checked}))}/><span>Разрешить перенос незакреплённых размещений. Закреплённые дата и бригада сохраняются.</span></label>
-      <details className="sm:col-span-2"><summary className="cursor-pointer text-sm">Приоритеты балансировки</summary><div className="mt-3 grid gap-3 sm:grid-cols-2">{([['daily_peak','Снижение пиков по дням'],['worker_spread','Равномерность загрузки людей'],['changes','Сохранение прежних назначений'],['earliness','Более раннее выполнение']] as const).map(([key,label])=><label key={key}><FieldCaption>{label}</FieldCaption><Input aria-label={label} type="number" min={0} max={100} value={options.weights[key]} onChange={e=>setOptions(o=>({...o,weights:{...o.weights,[key]:Number(e.target.value)}}))}/></label>)}</div><p className="mt-2 text-xs text-muted">Сначала обеспечивается покрытие работ, затем число размещённых сегментов; веса применяются после этих приоритетов.</p></details>
+      {simple?<details className="sm:col-span-2"><summary className="cursor-pointer text-sm">Настроить расчёт</summary><div className="mt-4 grid gap-3 sm:grid-cols-2">{parameters}</div></details>:parameters}
       <Button onClick={()=>void action(()=>{
         const signature=JSON.stringify(options);if(attempt.current?.signature!==signature)attempt.current={signature,key:crypto.randomUUID()};
         return api.start(record.draft_id,record.revision,attempt.current!.key,options).then(next=>{attempt.current=null;return next;});

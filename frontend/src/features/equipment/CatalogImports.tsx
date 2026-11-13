@@ -11,21 +11,32 @@ import { dateTimeFormatter } from '@/shared/lib/dateTimeFormatter';
 import './catalog-imports.css';
 import { CatalogDecisionEditor, decisionBlockers } from './CatalogDecisionEditor';
 import type { CatalogPreparation } from '@/shared/api/catalogImports';
+import type { DraftRecord } from '@/shared/api/draftPlans';
+import { JourneySteps } from '@/shared/ui/JourneySteps';
 
 const message=(error:unknown)=>error instanceof Error?error.message:'Не удалось обработать каталог';
 const flags:Record<string,string>={NEEDS_SEMANTICS:'Уточнить смысл отметок',NEEDS_DURATION:'Подтвердить норму времени',NEEDS_ASSET_BINDING:'Привязать оборудование',NEEDS_POLICY:'Подтвердить правила планирования'};
 const CatalogPlans=lazy(()=>import('@/features/planning/CatalogPlans').then(m=>({default:m.CatalogPlans})));
 
-export function CatalogImports({mayImport,mayConfirm=false,mayPlan=mayImport,siteName,timezone='UTC'}:{mayImport:boolean;mayConfirm?:boolean;mayPlan?:boolean;siteName?:string;timezone?:string}) {
+export interface CatalogWorkspace {
+  catalogId:string;stage:'prepare'|'plan';draftId:string;draftRevision:number|null;planView:string;
+  selectCatalog:(id:string)=>void;selectStage:(stage:'prepare'|'plan')=>void;
+  selectDraft:(record:DraftRecord|null)=>void;selectPlanView:(view:string)=>void;
+}
+export function CatalogImports({mayImport,mayConfirm=false,mayPlan=mayImport,siteName,timezone='UTC',workspace}:{mayImport:boolean;mayConfirm?:boolean;mayPlan?:boolean;siteName?:string;timezone?:string;workspace?:CatalogWorkspace}) {
   const [file,setFile]=useState<File|null>(null),[preview,setPreview]=useState<CatalogPreview|null>(null);
   const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
-  const [selected,setSelected]=useState(''),[refresh,setRefresh]=useState(0),[offset,setOffset]=useState(0);
+  const [localSelected,setLocalSelected]=useState(''),[refresh,setRefresh]=useState(0),[offset,setOffset]=useState(0),[uploadOpen,setUploadOpen]=useState(false);
+  const selected=workspace?.catalogId??localSelected;
+  const setSelected=(id:string)=>{if(workspace)workspace.selectCatalog(id);else setLocalSelected(id);};
   const version=useRef(0);
   const list=useApiQuery(()=>api.list(offset),[offset,refresh],undefined,`catalog-imports:${offset}`);
   return <div className="catalog-imports space-y-4">
     {siteName&&<p className="text-sm text-muted">Здание: {siteName}</p>}
-    <Callout>Каталог содержит шаблоны работ. Смысл календарных отметок, оборудование и нормы подтверждаются отдельно. Сохранение черновика не создаёт наряды и назначения.</Callout>
-    {mayImport&&<div className="space-y-3"><p className="text-sm text-muted">Загрузите Excel СВиК с листом «Лист1»: операции A:G и дни января H:AL.</p>
+    {workspace&&selected&&<Button variant="ghost" onClick={()=>setSelected('')}>← Все файлы и планы</Button>}
+    {!workspace&&<Callout>Каталог содержит шаблоны работ. Смысл календарных отметок, оборудование и нормы подтверждаются отдельно. Сохранение черновика не создаёт наряды и назначения.</Callout>}
+    {workspace&&!selected&&mayImport&&<Button variant="secondary" aria-expanded={uploadOpen} onClick={()=>setUploadOpen(v=>!v)}>Загрузить Excel с регламентами</Button>}
+    {mayImport&&(!workspace||!selected&&(uploadOpen||list.status==='success'&&!list.data.total))&&<div className="space-y-3"><h2 className="font-semibold">Новый файл регламентов</h2><p className="text-sm text-muted">Загрузите Excel СВиК с листом «Лист1»: операции A:G и дни января H:AL. Реестр оборудования загружается в разделе «Оборудование».</p>
       <FileInput aria-label="Excel каталога СВиК" accept=".xlsx" disabled={busy} onChange={e=>{version.current++;setFile(e.target.files?.[0]??null);setPreview(null);setError('');setNotice('');}}/>
       <Button variant="secondary" disabled={busy||!file} onClick={async()=>{if(!file||busy)return;const current=version.current;setBusy(true);setError('');setPreview(null);try{const result=await api.preview(file);if(current===version.current)setPreview(result);}catch(e){setError(message(e));}finally{setBusy(false);}}}>{busy?'Обработка…':'Проверить каталог'}</Button>
       {preview&&<section className="space-y-4" aria-label="Предпросмотр каталога СВиК"><Summary value={preview.summary}/><Issues issues={preview.issues}/><Diagnostics cells={preview.sheet2_diagnostic}/>
@@ -35,10 +46,10 @@ export function CatalogImports({mayImport,mayConfirm=false,mayPlan=mayImport,sit
       </section>}
     </div>}
     {error&&<p role="alert"><Callout tone="danger">{error}</Callout></p>}{notice&&<p role="status">{notice}</p>}
-    <h3 className="font-semibold">Сохранённые каталоги</h3>
+    {(!workspace||!selected)&&<h3 className="font-semibold">Сохранённые файлы регламентов</h3>}
     {list.status==='loading'&&<LoadingState/>}{list.status==='error'&&<ErrorState description={list.error}/>}
-    {list.status==='success'&&<><ul className="space-y-2">{list.data.items.map(item=><li key={item.import_id}><Button variant={selected===item.import_id?'primary':'secondary'} onClick={()=>setSelected(item.import_id)}><span>{item.filename} · {item.summary.operation_count} операций · Черновик<small className="block text-xs font-normal">Загружен: {dateTimeFormatter('ru-RU',{timeZone:timezone,dateStyle:'short',timeStyle:'medium'}).format(new Date(item.created_at))}</small></span></Button></li>)}</ul>{!list.data.total&&<p className="text-sm text-muted">Каталоги ещё не загружены.</p>}<Pager offset={offset} total={list.data.total} onChange={setOffset}/></>}
-    {selected&&<SavedCatalog key={selected} id={selected} mayEdit={mayImport} mayConfirm={mayConfirm} mayPlan={mayPlan} timezone={timezone}/>}
+    {list.status==='success'&&(!workspace||!selected)&&<><ul className={`space-y-2${workspace?' planning-catalog-list':''}`}>{list.data.items.map(item=><li key={item.import_id}><Button variant={selected===item.import_id?'primary':'secondary'} onClick={()=>setSelected(item.import_id)}><span>{item.filename} · {item.summary.operation_count} операций · Черновик<small className="block text-xs font-normal">Загружен: {dateTimeFormatter('ru-RU',{timeZone:timezone,dateStyle:'short',timeStyle:'medium'}).format(new Date(item.created_at))}</small></span></Button></li>)}</ul>{!list.data.total&&<p className="text-sm text-muted">Файлов пока нет. {mayImport?'Загрузите Excel выше: после проверки появятся операции для подготовки плана.':'Главный инженер должен загрузить файл регламентов.'}</p>}<Pager offset={offset} total={list.data.total} onChange={setOffset}/></>}
+    {selected&&<SavedCatalog key={selected} id={selected} mayEdit={mayImport} mayConfirm={mayConfirm} mayPlan={mayPlan} timezone={timezone} workspace={workspace}/>}
   </div>;
 }
 
@@ -62,7 +73,15 @@ function Operations({items,onSelect,preparation}:{items:CatalogOperation[];onSel
   })}</tbody></table>{!items.length&&<p className="p-4 text-sm">Операции не найдены.</p>}</div>;
 }
 
-function SavedCatalog({id,mayEdit,mayConfirm,mayPlan,timezone}:{id:string;mayEdit:boolean;mayConfirm:boolean;mayPlan:boolean;timezone:string}) {
+function SavedCatalog({id,mayEdit,mayConfirm,mayPlan,timezone,workspace}:{id:string;mayEdit:boolean;mayConfirm:boolean;mayPlan:boolean;timezone:string;workspace?:CatalogWorkspace}) {
+  const detail=useApiQuery(()=>api.detail(id),[id],undefined,`catalog:${id}`);
+  if(!workspace)return <CatalogSource id={id} mayEdit={mayEdit} mayConfirm={mayConfirm} mayPlan={mayPlan} timezone={timezone}/>;
+  return <section className="space-y-5" aria-label="Сохранённый каталог СВиК">{detail.status==='success'&&<h2 className="text-lg font-semibold break-words">{detail.data.filename}</h2>}<JourneySteps label="Подготовка плана из файла" numbered={false} hideNavigation={!!workspace.draftId&&workspace.stage==='plan'} value={workspace.stage} onChange={stage=>workspace.selectStage(stage as 'prepare'|'plan')} steps={[
+    {id:'prepare',title:'Операции и нормы',description:'Подтвердите оборудование, норму времени и смысл отметок для тех операций, которые войдут в план.',content:()=> <><CatalogSource id={id} mayEdit={mayEdit} mayConfirm={mayConfirm} mayPlan={mayPlan} timezone={timezone} guided/><div className="journey-footer"><p className="text-sm text-muted">Операции подготовлены? Перейдите к составу работ и расчёту.</p><Button onClick={()=>workspace.selectStage('plan')}>Перейти к плану →</Button></div></>},
+    {id:'plan',title:'Планы этого файла',content:()=> <Suspense fallback={<LoadingState/>}><CatalogPlans id={id} mayEdit={mayPlan} mayApprove={mayConfirm} timezone={timezone} workspace={workspace}/></Suspense>},
+  ]}/></section>;
+}
+function CatalogSource({id,mayEdit,mayConfirm,mayPlan,timezone,guided=false}:{id:string;mayEdit:boolean;mayConfirm:boolean;mayPlan:boolean;timezone:string;guided?:boolean}) {
   const [plans,setPlans]=useState(false);
   const [refresh,setRefresh]=useState(0);
   const preparation=useApiQuery(()=>api.preparation(id),[id,refresh],undefined,`catalog-preparation:${id}`);
@@ -70,12 +89,12 @@ function SavedCatalog({id,mayEdit,mayConfirm,mayPlan,timezone}:{id:string;mayEdi
   const needle=useDeferredValue(search);
   const detail=useApiQuery(()=>api.detail(id),[id],undefined,`catalog:${id}`);
   const rows=useApiQuery(()=>api.operations(id,offset,needle,group,kind),[id,offset,needle,group,kind],undefined,`catalog-rows:${JSON.stringify([id,offset,needle,group,kind])}`);
-  return <section className="space-y-4 border-t border-line pt-5" aria-label="Сохранённый каталог СВиК">
-    <Button variant="secondary" aria-expanded={plans} onClick={()=>setPlans(v=>!v)}>Черновики планов этого каталога</Button>
+  return <section className="space-y-4 border-t border-line pt-5" aria-label={guided?'Операции и нормы каталога':'Сохранённый каталог СВиК'}>
+    {!guided&&<Button variant="secondary" aria-expanded={plans} onClick={()=>setPlans(v=>!v)}>Черновики планов этого каталога</Button>}
     {plans&&<Suspense fallback={<LoadingState/>}><CatalogPlans id={id} mayEdit={mayPlan} mayApprove={mayConfirm} timezone={timezone}/></Suspense>}
     {detail.status==='loading'&&<LoadingState/>}{detail.status==='error'&&<ErrorState description={detail.error}/>}
     {detail.status==='success'&&<><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-semibold">{detail.data.filename}</h3><a className="text-accent underline" href={api.source(id)}>Скачать исходный Excel</a></div>
-      <details><summary>Состояние исходного Excel до уточнений</summary><Summary value={detail.data.summary}/></details><Issues issues={detail.data.issues}/><Diagnostics cells={detail.data.sheet2_diagnostic}/>
+      <details><summary>Проверка исходного Excel и замечания</summary><Summary value={detail.data.summary}/><Issues issues={detail.data.issues}/><Diagnostics cells={detail.data.sheet2_diagnostic}/></details>
       {preparation.status==='loading'&&<LoadingState/>}{preparation.status==='error'&&<ErrorState description={preparation.error}/>}
       {preparation.status==='success'&&<div className="space-y-2" aria-label="Подготовка к планированию"><p>Подготовлено строк: <strong>{preparation.data.prepared_count} из {preparation.data.total}</strong>. Подтверждений: {preparation.data.confirmed_count}.</p><p className="text-sm text-muted">Откройте операцию, чтобы уточнить смысл отметок, оборудование и норму. Назначения появятся после отдельного этапа планирования.</p><ul className="text-sm text-muted">{Object.entries(preparation.data.blocker_counts).map(([flag,count])=><li key={flag}>{decisionBlockers[flag]??flag}: {count}</li>)}</ul></div>}
       <details><summary className="cursor-pointer text-sm">Иерархия и источник</summary><p className="mt-3 break-all text-xs text-muted">SHA-256: {detail.data.source_sha256}</p><ul className="mt-3 space-y-1 text-sm">{detail.data.groups.map(item=><li key={item.id} className={item.parent_id?'pl-5':''}>{item.code} · {item.title} · Лист1!B{item.row}</li>)}</ul><p className="mt-4 text-sm">Дополнительные заголовки исходника</p><ul className="mt-2 space-y-1 text-sm">{detail.data.header_context.map(cell=><li key={cell.address}>{cell.address} · {cell.text}</li>)}</ul></details>
@@ -84,7 +103,7 @@ function SavedCatalog({id,mayEdit,mayConfirm,mayPlan,timezone}:{id:string;mayEdi
         <label><FieldCaption>Вид ТО каталога</FieldCaption><Select aria-label="Вид ТО каталога" value={kind} onChange={e=>{setKind(e.target.value);setOffset(0);}}><option value="">Все виды</option>{Object.keys(detail.data.summary.maintenance_types).map(item=><option key={item}>{item}</option>)}</Select></label></div>
     </>}
     {rows.status==='loading'&&<LoadingState/>}{rows.status==='error'&&<ErrorState description={rows.error}/>}{rows.status==='success'&&<><Operations items={rows.data.items} onSelect={setRow} preparation={preparation.status==='success'?preparation.data:undefined}/><Pager offset={offset} total={rows.data.total} onChange={setOffset}/></>}
-    <Drawer open={row!==null} onClose={()=>setRow(null)} title="Исходная строка каталога">{row!==null&&<div className="space-y-6" key={row}><CatalogDecisionEditor id={id} row={row} mayEdit={mayEdit} mayConfirm={mayConfirm} onSaved={()=>setRefresh(n=>n+1)}/><details open><summary className="font-semibold">Исходные ячейки Excel</summary><SourceRow id={id} row={row}/></details></div>}</Drawer>
+    <Drawer open={row!==null} onClose={()=>setRow(null)} title="Исходная строка каталога">{row!==null&&<div className="space-y-6" key={row}><CatalogDecisionEditor guided={guided} id={id} row={row} mayEdit={mayEdit} mayConfirm={mayConfirm} onSaved={()=>setRefresh(n=>n+1)}/><details open={!guided}><summary className="font-semibold">Исходные ячейки Excel</summary><SourceRow id={id} row={row}/></details></div>}</Drawer>
   </section>;
 }
 function SourceRow({id,row}:{id:string;row:number}) {

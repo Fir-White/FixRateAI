@@ -47,7 +47,7 @@ function LiveServiceSettingsPage() {
         {equipment.map(item=><option key={item.id} value={item.id}>{item.inventoryCode} · {item.name}</option>)}
       </Select>
     </label><p className="text-xs text-muted">Время объекта: {profile?.timezone}. Нормативная дата относится к целым местным суткам.</p></Card>
-    {mayEdit&&<ReferenceForms catalog={catalog} mayCreateTypes={profile?.role==="admin"} onSaved={()=>setRefresh(value=>value+1)}/>}
+    {mayEdit&&<details className="fr-rule-section"><summary>Справочники систем и типов оборудования</summary><ReferenceForms catalog={catalog} mayCreateTypes={profile?.role==="admin"} onSaved={()=>setRefresh(value=>value+1)}/></details>}
     {(selected||mayEdit)&&<details className="fr-rule-section" open={!selected}><summary><span>{selected ? "Паспорт оборудования" : "Новое оборудование"}</span><small>Отдельное сохранение свойств оборудования</small></summary><EquipmentSettings key={selected} equipmentId={selected} catalog={catalog} mayEdit={mayEdit}
       onSaved={key=>{setNotice("Оборудование сохранено");setParams({equipment:key});setRefresh(value=>value+1);}}/></details>}
     {selected&&<ServiceList key={`${selected}:${refresh}`} equipmentId={selected} catalog={catalog} today={today} mayEdit={mayEdit}/>}

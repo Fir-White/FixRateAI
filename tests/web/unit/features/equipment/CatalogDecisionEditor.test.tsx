@@ -14,6 +14,26 @@ beforeEach(()=>{
   vi.spyOn(api,'history').mockResolvedValue({items:[],total:0});
 });
 
+it('guides source preparation through dates, assets, conditions and confirmation without dropping input',async()=>{
+  const user=userEvent.setup();
+  render(<CatalogDecisionEditor id="catalog" row={8} mayEdit mayConfirm guided onSaved={vi.fn()}/>);
+  await screen.findByRole('combobox',{name:'Смысл отметок'});
+  expect(screen.queryByRole('spinbutton',{name:'Норма времени'})).not.toBeInTheDocument();
+  await user.click(screen.getByRole('button',{name:'Оборудование и часы'}));
+  await user.type(screen.getByLabelText('Норма времени'),'3');
+  await user.click(screen.getByRole('button',{name:'Условия и допуски'}));
+  await user.type(screen.getByLabelText('Правила и ограничения выполнения'),' — уточнено');
+  await user.click(screen.getByRole('button',{name:'Подтверждение'}));
+  await user.type(screen.getByLabelText('Причина новой версии'),'Проверка инженера');
+  await user.click(screen.getByRole('button',{name:'Оборудование и часы'}));
+  expect(screen.getByLabelText('Норма времени')).toHaveValue(3);
+  await user.click(screen.getByRole('button',{name:'Подтверждение'}));
+  expect(screen.getByLabelText('Причина новой версии')).toHaveValue('Проверка инженера');
+  expect(api.saveDecision).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('button',{name:'Сохранить решение-черновик'}));
+  await waitFor(()=>expect(api.saveDecision).toHaveBeenCalledWith('catalog',8,expect.objectContaining({decision:expect.objectContaining({norm_value:'3',policy_note:'Synthetic continuous job — уточнено'})})));
+});
+
 it('binds real inventory, saves explicit norm and confirmation as a new revision',async()=>{
   const user=userEvent.setup(),saved=vi.fn();
   render(<CatalogDecisionEditor id="catalog" row={8} mayEdit mayConfirm onSaved={saved}/>);

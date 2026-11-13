@@ -13,16 +13,18 @@ beforeAll(async () => { await Promise.all(Object.values(pageLoaders).map(load =>
 const roles: Role[] = ["director", "chief_engineer", "admin", "dispatcher", "engineer", "executor"];
 const access: Record<string, Role[]> = {
   director:["director"], "chief-engineer":["chief_engineer"], engineer:["engineer"], admin:["admin"],
+  planning:["director","chief_engineer","admin","dispatcher","engineer"],
   dispatcher: ["director", "chief_engineer", "admin", "dispatcher","engineer"], equipment: roles,
   calendar: ["director", "chief_engineer", "dispatcher", "engineer", "executor"], tasks: ["director", "chief_engineer", "dispatcher", "engineer"],
   comparisons: ["director", "chief_engineer", "dispatcher", "engineer"], reports: ["director", "chief_engineer", "dispatcher", "engineer"], quality: ["chief_engineer", "engineer"], executor: ["executor"],
   settings: ["chief_engineer","admin","dispatcher","engineer"], "my-shifts": ["executor"], profile: roles,
 };
 const routes = [
+  ["/planning", "Планирование ТО"],
   ["/profile", "Мой профиль"],
   ["/director", "Панель диспетчера"],
   ["/chief-engineer", "Панель диспетчера"],
-  ["/engineer", "Контроль качества и приёмка"],
+  ["/engineer", "Панель диспетчера"],
   ["/admin", "Панель диспетчера"],
   ["/dispatcher", "Панель диспетчера"],
   ["/equipment", "Оборудование"],
@@ -65,10 +67,10 @@ describe("role access and links on every screen", () => {
 
 
 const businessMenus: [Role, string[]][] = [
-  ["director", ["/director", "/calendar", "/equipment", "/tasks", "/comparisons", "/reports"]],
-  ["chief_engineer", ["/chief-engineer", "/quality", "/calendar", "/equipment", "/tasks", "/comparisons", "/reports", "/settings/equipment", "/settings/workforce"]],
-  ["engineer", ["/dispatcher", "/engineer", "/calendar", "/equipment", "/tasks", "/comparisons", "/reports", "/settings/equipment", "/settings/workforce"]],
-  ["executor", ["/executor", "/calendar", "/equipment", "/my-shifts"]],
+  ["director", ["/director","/planning","/tasks","/equipment","/reports"]],
+  ["chief_engineer", ["/chief-engineer","/planning","/tasks","/quality","/equipment","/settings/workforce","/reports"]],
+  ["engineer", ["/engineer","/planning","/tasks","/quality","/equipment","/settings/workforce","/reports"]],
+  ["executor", ["/executor","/calendar","/equipment","/my-shifts"]],
 ];
 
 describe("required business navigation, independently of direct route access", () => {

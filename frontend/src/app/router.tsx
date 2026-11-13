@@ -13,6 +13,7 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 import { SECTION_ROLES } from "@/shared/lib/roles";
 
 const DispatcherPage = lazyPage(pageLoaders.DispatcherPage);
+const PlanningPage = lazyPage(pageLoaders.PlanningPage);
 const EquipmentPage = lazyPage(pageLoaders.EquipmentPage);
 const EquipmentDetailPage = lazyPage(pageLoaders.EquipmentDetailPage);
 const CalendarPage = lazyPage(pageLoaders.CalendarPage);
@@ -50,7 +51,7 @@ export function AppRouter() {
           <Route path="/director" element={<RequireRole roles={["director"]}><DispatcherPage /></RequireRole>} />
           <Route path="/executive" element={<Navigate to="/director" replace />} />
           <Route path="/chief-engineer" element={<RequireRole roles={["chief_engineer"]}><DispatcherPage /></RequireRole>} />
-          <Route path="/engineer" element={<RequireRole roles={["engineer"]}><QualityPage /></RequireRole>} />
+          <Route path="/engineer" element={<RequireRole roles={["engineer"]}><DispatcherPage /></RequireRole>} />
           <Route path="/admin" element={<RequireRole roles={["admin"]}><DispatcherPage /></RequireRole>} />
           <Route
             path="/dispatcher"
@@ -61,6 +62,7 @@ export function AppRouter() {
             }
           />
           <Route path="/equipment" element={<EquipmentPage />} />
+          <Route path="/planning" element={<RequireRole roles={SECTION_ROLES.planning}><PlanningPage /></RequireRole>} />
           <Route path="/equipment/:equipmentId" element={<EquipmentDetailPage />} />
           <Route path="/settings/equipment" element={<RequireRole roles={SECTION_ROLES.service_settings}><ServiceSettingsPage /></RequireRole>} />
           <Route path="/settings/workforce" element={<RequireRole roles={SECTION_ROLES.workforce_settings}><WorkforceSettingsPage /></RequireRole>} />

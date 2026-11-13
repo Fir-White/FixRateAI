@@ -10,14 +10,14 @@ async function calendarDate(page:Page,label:string,value:string){
 for(const [index,width] of [1440,390,320].entries()) {
   test(`isolated scenario, conserved split and version history at ${width}px`,async({page},testInfo)=>{
     test.skip(!process.env.FIXRATE_CATALOG_E2E||!process.env.FIXRATE_CATALOG_PASSWORD,'Requires the isolated QA application');
-    expect(process.env.FIXRATE_BASE_URL).toBe('http://127.0.0.1:8875');
+    expect(['http://127.0.0.1:8875','http://127.0.0.1:8885']).toContain(process.env.FIXRATE_BASE_URL);
     const operationNumber=String(190+index).padStart(4,'0');
     await expect.poll(async()=>{try{return(await page.request.get('/api/health')).status();}catch{return 0;}},{timeout:30000}).toBe(200);
     await page.setViewportSize({width,height:900});const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
     await page.goto('/login');await page.getByLabel('Email',{exact:true}).fill('fixrate-demo-chief_engineer@example.test');
     await page.getByLabel('Пароль',{exact:true}).fill(process.env.FIXRATE_CATALOG_PASSWORD!);await page.getByRole('button',{name:'Войти',exact:true}).click();
-    await expect(page).not.toHaveURL(/\/login$/);await page.goto('/equipment');
-    await page.getByRole('button',{name:'Каталоги регламентов СВиК'}).click();
+    await expect(page).not.toHaveURL(/\/login$/);await page.goto('/planning');
+    await page.getByRole('button',{name:'Загрузить Excel с регламентами'}).click();
     await page.getByLabel('Excel каталога СВиК').setInputFiles('reports/anonymous-hvac.xlsx');
     await page.getByRole('button',{name:'Проверить каталог',exact:true}).click();
     await page.getByRole('button',{name:'Сохранить каталог-черновик'}).click();
@@ -30,19 +30,22 @@ for(const [index,width] of [1440,390,320].entries()) {
     await editor.getByLabel('События внутри отметки').selectOption('one_per_mark');
     await editor.getByLabel('Пояснение смысла отметок').fill('TEST ONLY: one monthly obligation in the marked window');
     await editor.getByLabel('Подтверждённая периодичность').selectOption('month');await editor.getByLabel('Значение N').fill('1');
+    await editor.getByRole('button',{name:'Оборудование и часы',exact:true}).click();
     await editor.getByRole('button',{name:'Выбрать оборудование'}).click();
     const asset=editor.getByRole('button',{name:/ · /}).first();if(await asset.isEnabled())await asset.click();
     await editor.getByLabel('Норма времени',{exact:true}).fill('3');await editor.getByLabel('Единица нормы').selectOption('person_hour');
     await editor.getByLabel('База нормы').selectOption('per_asset');await editor.getByLabel('Человек в бригаде').fill('1');
     await editor.getByLabel('Источник и методика нормы').fill('TEST ONLY synthetic methodology');
+    await editor.getByRole('button',{name:'Условия и допуски',exact:true}).click();
     await editor.getByLabel('Можно разделять работу на сегменты').selectOption('true');await editor.getByLabel('Минимальный сегмент, минут').fill('60');
     await editor.getByLabel('Правила и ограничения выполнения').fill('TEST ONLY: splittable fixture operation');
     await editor.getByRole('checkbox',{name:'Требования к допускам проверены инженером'}).check();
     await editor.getByLabel('Основание требований к допускам').fill('TEST ONLY: no special qualification required');
+    await editor.getByRole('button',{name:'Подтверждение',exact:true}).click();
     await editor.getByLabel('Причина новой версии').fill('TEST ONLY fullstack scenario source');
     await editor.getByRole('button',{name:'Подтвердить решение строки'}).click();await expect(editor).toContainText('Решение подтверждено для подготовки планирования');
     await page.getByRole('button',{name:'Закрыть подробности'}).click();
-    await catalog.getByRole('button',{name:'Черновики планов этого каталога'}).click();
+    await catalog.getByRole('button',{name:'Перейти к плану →'}).click();
     const plans=page.getByRole('region',{name:'Версии плана каталога'});
     await plans.getByRole('button',{name:'Подготовить новый черновик'}).click();
     const form=plans.getByRole('region',{name:'Подготовка черновика плана'});
@@ -75,6 +78,7 @@ for(const [index,width] of [1440,390,320].entries()) {
     expect(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
     await page.screenshot({path:testInfo.outputPath(`draft-segments-${width}.png`)});
     await page.getByRole('button',{name:'Закрыть подробности'}).click();
+    await saved.getByRole('button',{name:'Даты и бригады',exact:true}).click();
     const optimizer=saved.getByRole('region',{name:'Автоматическое размещение работ'});
     await optimizer.getByRole('button',{name:'Рассчитать два варианта'}).click();
     const result=optimizer.getByRole('region',{name:'Результат автоматического расчёта'});
@@ -89,7 +93,9 @@ for(const [index,width] of [1440,390,320].entries()) {
     await balanced.getByLabel('Причина применения варианта').fill('TEST ONLY reviewed automatic placement');
     await balanced.getByRole('button',{name:'Применить в новую версию'}).click();
     await expect(saved.getByRole('heading',{name:`${title} · версия 3`})).toBeVisible();
+    await saved.getByRole('button',{name:'Состав работ',exact:true}).click();
     await expect(saved.getByRole('region',{name:'Результат проверки плана'})).toContainText('Проверенные ограничения соблюдены');
+    await saved.getByRole('button',{name:'Утверждение и выпуск',exact:true}).click();
     const publication=saved.getByRole('region',{name:'Утверждение и публикация плана'});
     await publication.getByRole('button',{name:'Подготовить предложение к публикации'}).click();
     await publication.getByRole('button',{name:new RegExp('SYNTHETIC OPERATION '+operationNumber)}).click();
@@ -120,15 +126,14 @@ for(const [index,width] of [1440,390,320].entries()) {
     const entries=await active.json();expect(entries.filter((i:{operationTitle:string})=>i.operationTitle.includes('SYNTHETIC OPERATION '+operationNumber))).toHaveLength(2);
     await saved.getByRole('button',{name:'История версий плана'}).click();
     await saved.getByRole('button',{name:/Версия 1 ·/}).click();
-    await expect(saved).toContainText('Версия доступна для просмотра');
+    await expect(saved).toContainText('Открыта версия для просмотра');
+    await saved.getByRole('button',{name:'Состав работ',exact:true}).click();
     await saved.getByRole('button',{name:new RegExp('SYNTHETIC OPERATION '+operationNumber)}).click();
     dialog=page.getByRole('dialog',{name:'Работа и сегменты плана'});
     await expect(dialog.getByRole('button',{name:/Сегмент 1 · 3(?:\.0+)? чел.-ч/})).toBeVisible();
     await dialog.getByRole('button',{name:/Сегмент 1 ·/}).click();await expect(dialog.getByLabel('Причина изменения плана')).toBeDisabled();
     await page.getByRole('button',{name:'Закрыть подробности'}).click();
-    await page.reload();await page.getByRole('button',{name:'Каталоги регламентов СВиК'}).click();
-    await page.getByRole('button',{name:/anonymous-hvac.xlsx · 217 операций/}).click();
-    await page.getByRole('button',{name:'Черновики планов этого каталога'}).click();
+    await page.reload();await page.getByRole('button',{name:'← Все планы этого файла'}).click();
     await expect(page.getByRole('button',{name:new RegExp(`${title} · версия 3`)})).toBeVisible();
     expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
     expect(errors).toEqual([]);

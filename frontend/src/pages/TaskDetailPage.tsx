@@ -140,6 +140,7 @@ export function TaskDetailPage() {
         <EngineerDecisionBadge verdict={decision.verdict}/><p className="mt-3 whitespace-pre-wrap">{decision.reason}</p>
         <p className="mt-2 text-sm text-muted">{decision.decidedBy} · {formatDateTime(decision.decidedAt)}</p>
       </div></Card>}
+      <div className="journey-next"><div><h2>{task.state==='submitted'?'Отчёт ждёт проверки':task.state==='draft'?'Назначьте дату и исполнителей':task.state==='assigned'?'Задание передано бригаде':task.state==='in_progress'?'Бригада выполняет работу':task.state==='rework_required'?'Работа возвращена на доработку':task.state==='accepted'?'Работа принята':'Задание отменено'}</h2><p>{task.state==='submitted'?'Проверьте фотографии, показания и документы в приёмке.':task.state==='draft'?'Проверьте оборудование и регламент, затем подберите доступную бригаду.':task.state==='assigned'?'Начать выполнение может назначенный техник в своём кабинете.':task.state==='in_progress'?'После сдачи отчёт появится в очереди приёмки.':task.state==='rework_required'?'Техник увидит причину возврата и начнёт новую попытку.':'Результат и предыдущие попытки доступны ниже.'}</p></div></div>
       <ChiefActions task={task} onSaved={()=>window.location.reload()}/>
       <div className="fr-work-grid">
         <div className="space-y-6">
@@ -274,7 +275,7 @@ export function TaskDetailPage() {
           </Card>
         </div>
       </div>
-      <AttemptHistory taskId={task.id}/>
+      <details className="fr-rule-section"><summary>История задания и предыдущие попытки</summary><AttemptHistory taskId={task.id}/></details>
     </div>
   );
 }

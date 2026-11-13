@@ -11,7 +11,8 @@ export function warmWorkspacePath(cache: ApiQueryCache | null, path: string, tim
   const query = path === "/equipment" ? readQueries.registry
     : path === "/tasks" || path === "/executor" ? readQueries.tasks
     : path === "/calendar" ? readQueries.calendarMonth(year, month)
-    : path === "/quality" || path === "/engineer" ? readQueries.quality
+    : path === "/quality" ? readQueries.quality
+    : ["/engineer","/chief-engineer","/dispatcher","/director"].includes(path) ? readQueries.tasks
     : path === "/comparisons" ? readQueries.comparisons
     : path === "/settings/equipment" ? readQueries.serviceIndex
     : path === "/settings/workforce" ? readQueries.workforce

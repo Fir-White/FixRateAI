@@ -2,6 +2,7 @@ import { pageModule } from "./pageModule";
 
 /** Route modules are shared by React.lazy and navigation intent prefetch. */
 export const pageLoaders = {
+  PlanningPage: pageModule(() => import("@/pages/PlanningPage").then(module => ({ default: module.PlanningPage }))),
   DispatcherPage: pageModule(() => import("@/pages/DispatcherPage").then(module => ({ default: module.DispatcherPage }))),
   EquipmentPage: pageModule(() => import("@/pages/EquipmentPage").then(module => ({ default: module.EquipmentPage }))),
   EquipmentDetailPage: pageModule(() => import("@/pages/EquipmentDetailPage").then(module => ({ default: module.EquipmentDetailPage }))),
@@ -23,6 +24,7 @@ export const pageLoaders = {
 };
 
 const byPath: Record<string, () => Promise<unknown>> = {
+  "/planning": pageLoaders.PlanningPage,
   "/equipment": pageLoaders.EquipmentPage,
   "/calendar": pageLoaders.CalendarPage,
   "/tasks": pageLoaders.TasksPage,
@@ -38,7 +40,7 @@ const byPath: Record<string, () => Promise<unknown>> = {
   "/director": pageLoaders.DispatcherPage,
   "/dispatcher": pageLoaders.DispatcherPage,
   "/admin": pageLoaders.DispatcherPage,
-  "/engineer": pageLoaders.QualityPage,
+  "/engineer": pageLoaders.DispatcherPage,
   "/register": pageLoaders.RegistrationPage,
 };
 

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { registryApi } from '@/shared/api/registry';
 import { readQueries } from '@/shared/api/readQueries';
@@ -18,12 +18,10 @@ import { RegistryExcel } from './RegistryExcel';
 import './registry.css';
 
 const failure = (error: unknown) => error instanceof Error ? error.message : 'Не удалось сохранить';
-const CatalogImports = lazy(() => import('./CatalogImports').then(module => ({default:module.CatalogImports})));
 export function EquipmentRegistry() {
-  const [catalogOpen,setCatalogOpen] = useState(false);
   const {profile, switchSite} = useSession();
   const [refresh, setRefresh] = useState(0);
-  const [group, setGroup] = useWorkspaceState<SystemGroup | 'unclassified'>('registry.group', 'electricity', (value): value is SystemGroup | 'unclassified' => typeof value === 'string' && ['electricity','water','air','unclassified'].includes(value));
+  const [group, setGroup] = useWorkspaceState<SystemGroup | 'unclassified' | 'all'>('registry.group', 'all', (value): value is SystemGroup | 'unclassified' | 'all' => typeof value === 'string' && ['electricity','water','air','unclassified','all'].includes(value));
   const [page, setPage] = useWorkspaceState('registry.page', 1, (value): value is number => Number.isSafeInteger(value) && Number(value) > 0 && Number(value) <= 100_000);
   const [search, setSearch] = useWorkspaceState('registry.search', '', isShortString); const [selected, setSelected] = useState('');
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
@@ -43,7 +41,7 @@ export function EquipmentRegistry() {
     indexed.forEach(row => { counts[row.group]++; });
     return counts;
   }, [indexed]);
-  const items = useMemo(() => indexed.filter(row => row.group === group && (!needle || row.text.includes(needle))).map(row => row.item), [indexed, group, needle]);
+  const items = useMemo(() => indexed.filter(row => (group === 'all' || row.group === group) && (!needle || row.text.includes(needle))).map(row => row.item), [indexed, group, needle]);
   const pages = Math.max(1, Math.ceil(items.length / 25));
   const currentPage = Math.min(page, pages);
   const visible = items.slice((currentPage - 1) * 25, currentPage * 25);
@@ -52,22 +50,22 @@ export function EquipmentRegistry() {
     {error && <p role="alert"><Callout tone="danger">{error}</Callout></p>}
     {query.status === 'loading' && <LoadingState/>}{query.status === 'error' && <ErrorState description={query.error}/>}
     {query.status === 'success' && <>
-      <RegistryExcel mayImport={mayEdit} onSaved={() => setRefresh(n => n+1)}/>
-      <Card className="space-y-4 p-5"><Button variant="secondary" aria-expanded={catalogOpen} onClick={()=>setCatalogOpen(open=>!open)}>Каталоги регламентов СВиК</Button>{catalogOpen&&<Suspense fallback={<LoadingState/>}><CatalogImports key={`${profile?.siteId}:${profile?.role}`} mayImport={mayEdit} mayConfirm={profile?.role==='chief_engineer'} mayPlan={['chief_engineer','dispatcher','admin'].includes(profile?.role??'')} siteName={profile?.siteName} timezone={profile?.timezone}/></Suspense>}</Card>
+      <div className="journey-next"><div><h2>Нужен план из Excel с регламентами?</h2><p>Загрузка каталога СВиК, расчёт дат и назначение бригад находятся в планировании ТО.</p></div><Link to="/planning" className={buttonClassName('secondary')}>Перейти в планирование →</Link></div>
       <Card className="space-y-4 p-5"><div className="registry-tools"><label className="space-y-1 text-sm"><FieldCaption>Здание</FieldCaption><Select aria-label="Здание" value={query.data.registry.site_id} disabled={busy} onChange={async e => {setBusy(true); setError(''); try{await switchSite(e.target.value);}catch(error){setError(failure(error));setBusy(false);}}}>{query.data.sites.map(site => <option key={site.site_id} value={site.site_id}>{site.name}</option>)}</Select></label><label className="space-y-1 text-sm"><FieldCaption>Поиск оборудования, работы или детали</FieldCaption><Input aria-label="Поиск по реестру" value={search} onChange={e => {setSearch(e.target.value);setPage(1);setSelected('');}} placeholder="Название, номер или расположение"/></label></div>
         {mayEdit && <BuildingForm timezone={profile?.timezone ?? 'Asia/Yekaterinburg'} onSaved={() => setRefresh(n => n+1)}/>}
-        <div className="registry-tabs" role="tablist" aria-label="Инженерные системы">{(Object.entries(systemGroups) as [SystemGroup, string][]).map(([key, label]) => <Button key={key} role="tab" id={`registry-tab-${key}`} aria-controls="registry-table-panel" aria-selected={group === key} variant={group === key ? 'primary' : 'ghost'} onClick={() => {setGroup(key);setPage(1);setSelected('');}}>{label} <span>{counts[key]}</span></Button>)}<Button role="tab" id="registry-tab-unclassified" aria-controls="registry-table-panel" aria-selected={group === 'unclassified'} variant={group === 'unclassified' ? 'primary' : 'ghost'} onClick={() => {setGroup('unclassified');setPage(1);setSelected('');}}>Без группы <span>{counts.unclassified}</span></Button></div>
+        <div className="registry-tabs" role="tablist" aria-label="Инженерные системы"><Button role="tab" id="registry-tab-all" aria-controls="registry-table-panel" aria-selected={group==='all'} variant={group==='all'?'primary':'ghost'} onClick={()=>{setGroup('all');setPage(1);setSelected('');}}>Все системы <span>{all.length}</span></Button>{(Object.entries(systemGroups) as [SystemGroup, string][]).map(([key, label]) => <Button key={key} role="tab" id={`registry-tab-${key}`} aria-controls="registry-table-panel" aria-selected={group === key} variant={group === key ? 'primary' : 'ghost'} onClick={() => {setGroup(key);setPage(1);setSelected('');}}>{label} <span>{counts[key]}</span></Button>)}<Button role="tab" id="registry-tab-unclassified" aria-controls="registry-table-panel" aria-selected={group === 'unclassified'} variant={group === 'unclassified' ? 'primary' : 'ghost'} onClick={() => {setGroup('unclassified');setPage(1);setSelected('');}}>Без группы <span>{counts.unclassified}</span></Button></div>
       </Card>
       {systems.some(system => !system.system_group) && <Callout>Есть системы без группы. Их оборудование сохранено во вкладке «Без группы». {mayEdit ? 'Укажите группу ниже, чтобы распределить его по таблицам.' : 'Главный инженер может указать группу системы.'}</Callout>}
       {mayEdit && <SystemGroups systems={systems} onSaved={() => setRefresh(n => n+1)}/>}
       <div id="registry-table-panel" role="tabpanel" aria-labelledby={`registry-tab-${group}`}>
-        {!items.length ? <EmptyState title="В этой таблице пока нет оборудования" description={search ? 'Измените поисковый запрос.' : 'Добавьте оборудование или укажите группу существующей системы.'}/> : <Card className="overflow-hidden"><div className="registry-scroll"><table className="registry-table" aria-label={`${group === 'unclassified' ? 'Без группы' : systemGroups[group]} — работы и оборудование`}><thead><tr><th>Оборудование</th><th>Работы и периодичность</th><th>Трудозатраты на одно ТО</th><th>Детали и наработка</th><th><span className="sr-only">Действия</span></th></tr></thead><tbody>{visible.map(item => <RegistryRow key={item.equipment_id} item={item} system={systemIndex.get(item.system_id)} selected={selected === item.equipment_id} canConfigure={canOpenSection(profile?.role,'service_settings')} onSelect={() => setSelected(selected === item.equipment_id ? '' : item.equipment_id)}/>)}</tbody></table></div></Card>}
+        {!items.length ? <EmptyState title="В этой таблице пока нет оборудования" description={search ? 'Измените поисковый запрос.' : 'Добавьте оборудование или укажите группу существующей системы.'}/> : <Card className="overflow-hidden"><div className="registry-scroll"><table className="registry-table" aria-label={`${group === 'all' ? 'Все системы' : group === 'unclassified' ? 'Без группы' : systemGroups[group]} — работы и оборудование`}><thead><tr><th>Оборудование</th><th>Работы и периодичность</th><th>Трудозатраты на одно ТО</th><th>Детали и наработка</th><th><span className="sr-only">Действия</span></th></tr></thead><tbody>{visible.map(item => <RegistryRow key={item.equipment_id} item={item} system={systemIndex.get(item.system_id)} selected={selected === item.equipment_id} canConfigure={canOpenSection(profile?.role,'service_settings')} onSelect={() => setSelected(selected === item.equipment_id ? '' : item.equipment_id)}/>)}</tbody></table></div></Card>}
       </div>
       {items.length > 25 && <nav aria-label="Страницы оборудования" className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted" aria-live="polite">{(currentPage-1)*25+1}–{Math.min(currentPage*25,items.length)} из {items.length} · Страница {currentPage} из {pages}</p>
         <div className="flex gap-2"><Button variant="secondary" disabled={currentPage === 1} onClick={() => {setPage(currentPage-1);setSelected('');}}>Предыдущая страница оборудования</Button><Button variant="secondary" disabled={currentPage === pages} onClick={() => {setPage(currentPage+1);setSelected('');}}>Следующая страница оборудования</Button></div>
       </nav>}
       {active && <section className="space-y-4" aria-label={`Детали: ${active.name}`}><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">{active.name} · {active.asset_code}</h2>{mayEdit && <Link to={`/settings/equipment?equipment=${encodeURIComponent(active.equipment_id)}`} className={buttonClassName('secondary')}>Настроить оборудование и работы</Link>}</div><ComponentPanel equipmentId={active.equipment_id} onChanged={() => setRefresh(n => n+1)}/></section>}
+      <RegistryExcel mayImport={mayEdit} onSaved={() => setRefresh(n => n+1)}/>
     </>}
   </div>;
 }

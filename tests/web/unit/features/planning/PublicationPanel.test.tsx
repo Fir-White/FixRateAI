@@ -1,6 +1,7 @@
 import { beforeEach,expect,it,vi } from 'vitest';
 import { render,screen,waitFor,within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import PublicationPanel from '@/features/planning/PublicationPanel';
 import { publicationApi as api,type PublicationProposal } from '@/shared/api/publication';
 import type { DraftRecord } from '@/shared/api/draftPlans';
@@ -12,7 +13,7 @@ beforeEach(()=>{
   vi.spyOn(api,'prepare').mockResolvedValue(proposal());vi.spyOn(api,'get').mockResolvedValue(proposal());vi.spyOn(api,'changes').mockResolvedValue({items:[],total:0,worker_labels:{},equipment_labels:{}});
   vi.spyOn(api,'approve').mockResolvedValue(proposal('approved'));vi.spyOn(api,'reject').mockResolvedValue(proposal('rejected'));vi.spyOn(api,'publish').mockResolvedValue(proposal('published'));
 });
-const mount=(chief=true)=>render(<PublicationPanel record={record} mayEdit mayApprove={chief} timezone="Asia/Yekaterinburg"/>);
+const mount=(chief=true)=>render(<MemoryRouter><PublicationPanel record={record} mayEdit mayApprove={chief} timezone="Asia/Yekaterinburg"/></MemoryRouter>);
 async function opened(user:ReturnType<typeof userEvent.setup>,state:PublicationProposal['state']='prepared',chief=true){
   vi.mocked(api.list).mockResolvedValue({items:[proposal(state)],total:1});vi.mocked(api.get).mockResolvedValue(proposal(state));mount(chief);
   await user.click(await screen.findByRole('button',{name:/версия 3 ·/}));return screen.findByRole('region',{name:'Предложение публикации'});

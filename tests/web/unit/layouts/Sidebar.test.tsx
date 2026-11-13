@@ -86,7 +86,7 @@ describe("single sidebar", () => {
 
   it("dismisses on window blur without reopening on restored focus, but allows fresh hover and keyboard navigation", () => {
     render(<MemoryRouter><Sidebar items={items} expanded={false} mobile={false} open={false} onClose={vi.fn()} onToggle={vi.fn()} /></MemoryRouter>);
-    const link = screen.getByRole("link", {name:"Прогнозы"});
+    const link = screen.getByRole("link", {name:"Планирование ТО"});
     fireEvent.mouseEnter(link);
     expect(screen.getByRole("tooltip")).toBeInTheDocument();
     fireEvent.blur(window);
@@ -107,7 +107,7 @@ describe("single sidebar", () => {
 
   it("dismisses when the tab is hidden and does not restore a stale tooltip", () => {
     render(<MemoryRouter><Sidebar items={items} expanded={false} mobile={false} open={false} onClose={vi.fn()} onToggle={vi.fn()} /></MemoryRouter>);
-    const link = screen.getByRole("link", {name:"Прогнозы"});
+    const link = screen.getByRole("link", {name:"Планирование ТО"});
     fireEvent.focus(link);
     const hidden = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
     try {
