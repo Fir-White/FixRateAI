@@ -1,5 +1,60 @@
 {
   "$defs": {
+    "BindingOption": {
+      "properties": {
+        "equipment_id": {
+          "format": "uuid",
+          "title": "Equipment Id",
+          "type": "string"
+        },
+        "asset_code": {
+          "title": "Asset Code",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "revision": {
+          "title": "Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "equipment_id",
+        "asset_code",
+        "name",
+        "status",
+        "revision"
+      ],
+      "title": "BindingOption",
+      "type": "object"
+    },
+    "BindingOptions": {
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/BindingOption"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "total"
+      ],
+      "title": "BindingOptions",
+      "type": "object"
+    },
     "CatalogDetail": {
       "properties": {
         "import_id": {
@@ -790,6 +845,522 @@
         "ready_for_real_plan"
       ],
       "title": "CatalogSummary",
+      "type": "object"
+    },
+    "DecisionCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_revision": {
+          "maximum": 2147483646,
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "confirm": {
+          "default": false,
+          "title": "Confirm",
+          "type": "boolean"
+        },
+        "reason": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "decision": {
+          "$ref": "#/$defs/DecisionInput"
+        }
+      },
+      "required": [
+        "expected_revision",
+        "reason",
+        "decision"
+      ],
+      "title": "DecisionCommand",
+      "type": "object"
+    },
+    "DecisionHistory": {
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/DecisionHistoryItem"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "total"
+      ],
+      "title": "DecisionHistory",
+      "type": "object"
+    },
+    "DecisionHistoryItem": {
+      "properties": {
+        "revision": {
+          "title": "Revision",
+          "type": "integer"
+        },
+        "created_by": {
+          "format": "uuid",
+          "title": "Created By",
+          "type": "string"
+        },
+        "author_name": {
+          "title": "Author Name",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "confirmed": {
+          "title": "Confirmed",
+          "type": "boolean"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "decision": {
+          "$ref": "#/$defs/DecisionInput"
+        },
+        "equipment": {
+          "items": {
+            "$ref": "#/$defs/BindingOption"
+          },
+          "title": "Equipment",
+          "type": "array"
+        },
+        "parent_revision": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Parent Revision"
+        }
+      },
+      "required": [
+        "revision",
+        "created_by",
+        "author_name",
+        "created_at",
+        "confirmed",
+        "reason",
+        "decision",
+        "equipment",
+        "parent_revision"
+      ],
+      "title": "DecisionHistoryItem",
+      "type": "object"
+    },
+    "DecisionInput": {
+      "additionalProperties": false,
+      "properties": {
+        "interpretation": {
+          "default": "UNKNOWN",
+          "enum": [
+            "UNKNOWN",
+            "FIXED_EXECUTION",
+            "ALLOWED_WINDOW",
+            "CONTINUOUS_WORK",
+            "EQUIPMENT_BATCH"
+          ],
+          "title": "Interpretation",
+          "type": "string"
+        },
+        "calendar_year": {
+          "anyOf": [
+            {
+              "maximum": 2200,
+              "minimum": 2000,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Calendar Year"
+        },
+        "mark_slots": {
+          "default": "unconfirmed",
+          "enum": [
+            "unconfirmed",
+            "one_per_mark",
+            "day_night"
+          ],
+          "title": "Mark Slots",
+          "type": "string"
+        },
+        "semantics_note": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Semantics Note",
+          "type": "string"
+        },
+        "frequency_kind": {
+          "default": "unconfirmed",
+          "enum": [
+            "unconfirmed",
+            "day",
+            "week",
+            "month",
+            "quarter",
+            "year",
+            "yearly_count",
+            "daily_events",
+            "event",
+            "included_in"
+          ],
+          "title": "Frequency Kind",
+          "type": "string"
+        },
+        "frequency_interval": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frequency Interval"
+        },
+        "included_in_row": {
+          "anyOf": [
+            {
+              "maximum": 1048576,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Included In Row"
+        },
+        "equipment_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Equipment Ids",
+          "type": "array"
+        },
+        "norm_value": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Norm Value"
+        },
+        "norm_unit": {
+          "default": "unconfirmed",
+          "enum": [
+            "unconfirmed",
+            "person_hour",
+            "elapsed_hour"
+          ],
+          "title": "Norm Unit",
+          "type": "string"
+        },
+        "norm_scope": {
+          "default": "unconfirmed",
+          "enum": [
+            "unconfirmed",
+            "per_asset",
+            "whole_binding"
+          ],
+          "title": "Norm Scope",
+          "type": "string"
+        },
+        "crew_size": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Crew Size"
+        },
+        "norm_ref": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Norm Ref",
+          "type": "string"
+        },
+        "splittable": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Splittable"
+        },
+        "min_segment_minutes": {
+          "anyOf": [
+            {
+              "maximum": 46080,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min Segment Minutes"
+        },
+        "policy_note": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Policy Note",
+          "type": "string"
+        }
+      },
+      "title": "DecisionInput",
+      "type": "object"
+    },
+    "DecisionProgress": {
+      "properties": {
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        },
+        "prepared_count": {
+          "title": "Prepared Count",
+          "type": "integer"
+        },
+        "confirmed_count": {
+          "title": "Confirmed Count",
+          "type": "integer"
+        },
+        "blocker_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Blocker Counts",
+          "type": "object"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/DecisionProgressItem"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "ready_for_real_plan": {
+          "const": false,
+          "default": false,
+          "title": "Ready For Real Plan",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "total",
+        "prepared_count",
+        "confirmed_count",
+        "blocker_counts",
+        "items"
+      ],
+      "title": "DecisionProgress",
+      "type": "object"
+    },
+    "DecisionProgressItem": {
+      "properties": {
+        "row_number": {
+          "title": "Row Number",
+          "type": "integer"
+        },
+        "revision": {
+          "title": "Revision",
+          "type": "integer"
+        },
+        "confirmed": {
+          "title": "Confirmed",
+          "type": "boolean"
+        },
+        "prepared": {
+          "title": "Prepared",
+          "type": "boolean"
+        },
+        "blockers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Blockers",
+          "type": "array"
+        }
+      },
+      "required": [
+        "row_number",
+        "revision",
+        "confirmed",
+        "prepared",
+        "blockers"
+      ],
+      "title": "DecisionProgressItem",
+      "type": "object"
+    },
+    "DecisionRecord": {
+      "properties": {
+        "row_number": {
+          "title": "Row Number",
+          "type": "integer"
+        },
+        "revision": {
+          "title": "Revision",
+          "type": "integer"
+        },
+        "created_by": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Created By"
+        },
+        "author_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Author Name"
+        },
+        "created_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Created At"
+        },
+        "confirmed": {
+          "title": "Confirmed",
+          "type": "boolean"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "decision": {
+          "$ref": "#/$defs/DecisionInput"
+        },
+        "equipment": {
+          "items": {
+            "$ref": "#/$defs/BindingOption"
+          },
+          "title": "Equipment",
+          "type": "array"
+        },
+        "blockers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Blockers",
+          "type": "array"
+        },
+        "prepared": {
+          "title": "Prepared",
+          "type": "boolean"
+        },
+        "total_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Total Person Hours"
+        },
+        "elapsed_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Elapsed Hours"
+        },
+        "ready_for_real_plan": {
+          "const": false,
+          "default": false,
+          "title": "Ready For Real Plan",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "row_number",
+        "revision",
+        "confirmed",
+        "reason",
+        "decision",
+        "equipment",
+        "blockers",
+        "prepared",
+        "total_person_hours",
+        "elapsed_hours"
+      ],
+      "title": "DecisionRecord",
       "type": "object"
     },
     "FrequencyHint": {

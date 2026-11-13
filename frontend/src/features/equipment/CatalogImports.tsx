@@ -9,11 +9,13 @@ import { Callout } from '@/shared/ui/Callout';
 import { Drawer } from '@/shared/ui/Drawer';
 import { dateTimeFormatter } from '@/shared/lib/dateTimeFormatter';
 import './catalog-imports.css';
+import { CatalogDecisionEditor, decisionBlockers } from './CatalogDecisionEditor';
+import type { CatalogPreparation } from '@/shared/api/catalogImports';
 
 const message=(error:unknown)=>error instanceof Error?error.message:'Не удалось обработать каталог';
 const flags:Record<string,string>={NEEDS_SEMANTICS:'Уточнить смысл отметок',NEEDS_DURATION:'Подтвердить норму времени',NEEDS_ASSET_BINDING:'Привязать оборудование',NEEDS_POLICY:'Подтвердить правила планирования'};
 
-export function CatalogImports({mayImport,siteName,timezone='UTC'}:{mayImport:boolean;siteName?:string;timezone?:string}) {
+export function CatalogImports({mayImport,mayConfirm=false,siteName,timezone='UTC'}:{mayImport:boolean;mayConfirm?:boolean;siteName?:string;timezone?:string}) {
   const [file,setFile]=useState<File|null>(null),[preview,setPreview]=useState<CatalogPreview|null>(null);
   const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
   const [selected,setSelected]=useState(''),[refresh,setRefresh]=useState(0),[offset,setOffset]=useState(0);
@@ -35,7 +37,7 @@ export function CatalogImports({mayImport,siteName,timezone='UTC'}:{mayImport:bo
     <h3 className="font-semibold">Сохранённые каталоги</h3>
     {list.status==='loading'&&<LoadingState/>}{list.status==='error'&&<ErrorState description={list.error}/>}
     {list.status==='success'&&<><ul className="space-y-2">{list.data.items.map(item=><li key={item.import_id}><Button variant={selected===item.import_id?'primary':'secondary'} onClick={()=>setSelected(item.import_id)}><span>{item.filename} · {item.summary.operation_count} операций · Черновик<small className="block text-xs font-normal">Загружен: {dateTimeFormatter('ru-RU',{timeZone:timezone,dateStyle:'short',timeStyle:'medium'}).format(new Date(item.created_at))}</small></span></Button></li>)}</ul>{!list.data.total&&<p className="text-sm text-muted">Каталоги ещё не загружены.</p>}<Pager offset={offset} total={list.data.total} onChange={setOffset}/></>}
-    {selected&&<SavedCatalog key={selected} id={selected}/>}
+    {selected&&<SavedCatalog key={selected} id={selected} mayEdit={mayImport} mayConfirm={mayConfirm}/>}
   </div>;
 }
 
@@ -51,9 +53,17 @@ function Issues({issues}:{issues:CatalogIssue[]}) {
 }
 function Diagnostics({cells}:{cells:RawCatalogCell[]}) {return cells.length>0&&<details><summary className="cursor-pointer text-sm">Сверка расчётного листа</summary><dl className="mt-3 space-y-2 text-sm">{cells.map(cell=><div key={cell.address}><dt>Лист2!{cell.address}</dt><dd className="break-words whitespace-pre-wrap">{cell.text??'Нет значения'}{cell.formula&&` · Формула: ${cell.formula}. Показан сохранённый результат Excel.`}</dd></div>)}</dl></details>;}
 function Pager({offset,total,onChange}:{offset:number;total:number;onChange:(next:number)=>void}) {return total>25&&<nav className="flex flex-wrap items-center justify-between gap-3" aria-label="Страницы каталога"><span className="text-sm text-muted">{offset+1}–{Math.min(offset+25,total)} из {total}</span><div className="flex gap-2"><Button variant="secondary" disabled={!offset} onClick={()=>onChange(offset-25)}>Предыдущие 25</Button><Button variant="secondary" disabled={offset+25>=total} onClick={()=>onChange(offset+25)}>Следующие 25</Button></div></nav>;}
-function Operations({items,onSelect}:{items:CatalogOperation[];onSelect?:(row:number)=>void}) {return <div className="registry-scroll"><table className="registry-table catalog-import-table" aria-label="Операции каталога СВиК"><thead><tr><th>Код и операция</th><th>Вид ТО / частота</th><th>Исходные данные</th><th>Уточнения</th></tr></thead><tbody>{items.map(row=><tr key={row.row}><td data-label="Операция">{onSelect?<Button variant="ghost" onClick={()=>onSelect(row.row)}>{row.code} · {row.title}</Button>:<span>{row.code} · {row.title}</span>}</td><td data-label="Вид ТО / частота">{row.maintenance_type}<br/>{row.frequency_raw}</td><td data-label="Источник">Лист1!{row.source_cells.B}<br/>{row.mark_count} отметок января</td><td data-label="Уточнения">{row.quality_flags.map(flag=><small key={flag}>{flags[flag]??flag}</small>)}</td></tr>)}</tbody></table>{!items.length&&<p className="p-4 text-sm">Операции не найдены.</p>}</div>;}
+function Operations({items,onSelect,preparation}:{items:CatalogOperation[];onSelect?:(row:number)=>void;preparation?:CatalogPreparation}) {
+  const states=new Map(preparation?.items.map(item=>[item.row_number,item]));
+  return <div className="registry-scroll"><table className="registry-table catalog-import-table" aria-label="Операции каталога СВиК"><thead><tr><th>Код и операция</th><th>Вид ТО / частота</th><th>Исходные данные</th><th>Уточнения</th></tr></thead><tbody>{items.map(row=>{
+    const state=states.get(row.row);
+    return <tr key={row.row}><td data-label="Операция">{onSelect?<Button variant="ghost" onClick={()=>onSelect(row.row)}>{row.code} · {row.title}</Button>:<span>{row.code} · {row.title}</span>}</td><td data-label="Вид ТО / частота">{row.maintenance_type}<br/>{row.frequency_raw}</td><td data-label="Источник">Лист1!{row.source_cells.B}<br/>{row.mark_count} отметок января</td><td data-label="Уточнения">{state&&<small>{state.prepared?'Подготовлено':state.confirmed?'Требует повторной проверки':'Черновик'} · v{state.revision}</small>}{(state?.blockers??row.quality_flags).map(flag=><small key={flag}>{decisionBlockers[flag]??flags[flag]??flag}</small>)}</td></tr>;
+  })}</tbody></table>{!items.length&&<p className="p-4 text-sm">Операции не найдены.</p>}</div>;
+}
 
-function SavedCatalog({id}:{id:string}) {
+function SavedCatalog({id,mayEdit,mayConfirm}:{id:string;mayEdit:boolean;mayConfirm:boolean}) {
+  const [refresh,setRefresh]=useState(0);
+  const preparation=useApiQuery(()=>api.preparation(id),[id,refresh],undefined,`catalog-preparation:${id}`);
   const [search,setSearch]=useState(''),[group,setGroup]=useState(''),[kind,setKind]=useState(''),[offset,setOffset]=useState(0),[row,setRow]=useState<number|null>(null);
   const needle=useDeferredValue(search);
   const detail=useApiQuery(()=>api.detail(id),[id],undefined,`catalog:${id}`);
@@ -61,14 +71,16 @@ function SavedCatalog({id}:{id:string}) {
   return <section className="space-y-4 border-t border-line pt-5" aria-label="Сохранённый каталог СВиК">
     {detail.status==='loading'&&<LoadingState/>}{detail.status==='error'&&<ErrorState description={detail.error}/>}
     {detail.status==='success'&&<><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-semibold">{detail.data.filename}</h3><a className="text-accent underline" href={api.source(id)}>Скачать исходный Excel</a></div>
-      <Summary value={detail.data.summary}/><Issues issues={detail.data.issues}/><Diagnostics cells={detail.data.sheet2_diagnostic}/>
+      <details><summary>Состояние исходного Excel до уточнений</summary><Summary value={detail.data.summary}/></details><Issues issues={detail.data.issues}/><Diagnostics cells={detail.data.sheet2_diagnostic}/>
+      {preparation.status==='loading'&&<LoadingState/>}{preparation.status==='error'&&<ErrorState description={preparation.error}/>}
+      {preparation.status==='success'&&<div className="space-y-2" aria-label="Подготовка к планированию"><p>Подготовлено строк: <strong>{preparation.data.prepared_count} из {preparation.data.total}</strong>. Подтверждений: {preparation.data.confirmed_count}.</p><p className="text-sm text-muted">Откройте операцию, чтобы уточнить смысл отметок, оборудование и норму. Назначения появятся после отдельного этапа планирования.</p><ul className="text-sm text-muted">{Object.entries(preparation.data.blocker_counts).map(([flag,count])=><li key={flag}>{decisionBlockers[flag]??flag}: {count}</li>)}</ul></div>}
       <details><summary className="cursor-pointer text-sm">Иерархия и источник</summary><p className="mt-3 break-all text-xs text-muted">SHA-256: {detail.data.source_sha256}</p><ul className="mt-3 space-y-1 text-sm">{detail.data.groups.map(item=><li key={item.id} className={item.parent_id?'pl-5':''}>{item.code} · {item.title} · Лист1!B{item.row}</li>)}</ul><p className="mt-4 text-sm">Дополнительные заголовки исходника</p><ul className="mt-2 space-y-1 text-sm">{detail.data.header_context.map(cell=><li key={cell.address}>{cell.address} · {cell.text}</li>)}</ul></details>
       <div className="grid gap-3 sm:grid-cols-3"><label><FieldCaption>Поиск операций каталога</FieldCaption><Input aria-label="Поиск операций каталога" value={search} onChange={e=>{setSearch(e.target.value);setOffset(0);}}/></label>
         <label><FieldCaption>Раздел каталога</FieldCaption><Select aria-label="Раздел каталога" value={group} onChange={e=>{setGroup(e.target.value);setOffset(0);}}><option value="">Все разделы</option>{detail.data.groups.map(item=><option key={item.id} value={item.id}>{item.code} · {item.title}</option>)}</Select></label>
         <label><FieldCaption>Вид ТО каталога</FieldCaption><Select aria-label="Вид ТО каталога" value={kind} onChange={e=>{setKind(e.target.value);setOffset(0);}}><option value="">Все виды</option>{Object.keys(detail.data.summary.maintenance_types).map(item=><option key={item}>{item}</option>)}</Select></label></div>
     </>}
-    {rows.status==='loading'&&<LoadingState/>}{rows.status==='error'&&<ErrorState description={rows.error}/>}{rows.status==='success'&&<><Operations items={rows.data.items} onSelect={setRow}/><Pager offset={offset} total={rows.data.total} onChange={setOffset}/></>}
-    <Drawer open={row!==null} onClose={()=>setRow(null)} title="Исходная строка каталога">{row!==null&&<SourceRow key={row} id={id} row={row}/>}</Drawer>
+    {rows.status==='loading'&&<LoadingState/>}{rows.status==='error'&&<ErrorState description={rows.error}/>}{rows.status==='success'&&<><Operations items={rows.data.items} onSelect={setRow} preparation={preparation.status==='success'?preparation.data:undefined}/><Pager offset={offset} total={rows.data.total} onChange={setOffset}/></>}
+    <Drawer open={row!==null} onClose={()=>setRow(null)} title="Исходная строка каталога">{row!==null&&<div className="space-y-6" key={row}><CatalogDecisionEditor id={id} row={row} mayEdit={mayEdit} mayConfirm={mayConfirm} onSaved={()=>setRefresh(n=>n+1)}/><details open><summary className="font-semibold">Исходные ячейки Excel</summary><SourceRow id={id} row={row}/></details></div>}</Drawer>
   </section>;
 }
 function SourceRow({id,row}:{id:string;row:number}) {
@@ -76,7 +88,7 @@ function SourceRow({id,row}:{id:string;row:number}) {
   if(query.status==='loading')return <LoadingState/>;if(query.status==='error')return <ErrorState description={query.error}/>;
   const data=query.data;
   const cellText=(cell:RawCatalogCell)=>!cell.present?'Ячейка отсутствует':cell.text===''?'Пустая ячейка':cell.text??'Неизвестно';
-  return <div className="space-y-4"><h3 className="font-semibold">{data.code} · {data.title}</h3><Callout>Смысл отметок не подтверждён. Месяц — январь, год не задан. Нормы и численность не рассчитаны.</Callout>
+  return <div className="space-y-4"><h3 className="font-semibold">{data.code} · {data.title}</h3><Callout>Данные исходного Excel: Смысл отметок не подтверждён. Месяц — январь, год не задан. Нормы и численность не рассчитаны. Уточнения инженера показаны отдельно выше.</Callout>
     <dl className="space-y-3 text-sm">{Object.values(data.raw_cells).map(cell=><div key={cell.address}><dt className="text-muted">Лист1!{cell.address}</dt><dd className="whitespace-pre-wrap break-words">{cellText(cell)}</dd>{cell.formula&&<dd>Формула исходника: {cell.formula}; не исполнялась</dd>}</div>)}</dl>
     <h4 className="font-semibold">Все 31 исходная ячейка января</h4><ul className="space-y-2 text-sm">{data.calendar_marks.map(cell=><li key={cell.address} className="whitespace-pre-wrap break-words">{cell.address} · день {cell.day}: {cellText(cell)}</li>)}</ul>
   </div>;

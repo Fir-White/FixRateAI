@@ -18,4 +18,22 @@ export const catalogImportsApi={
   operations:(id:string,offset:number,q:string,group:string,kind:string)=>request<{items:CatalogOperation[];total:number}>(`${base}/${encodeURIComponent(id)}/operations?${new URLSearchParams({offset:String(offset),limit:'25',q,group_id:group,kind})}`),
   operation:(id:string,row:number)=>request<CatalogRowDetail>(`${base}/${encodeURIComponent(id)}/operations/${row}`),
   source:(id:string)=>`${base}/${encodeURIComponent(id)}/source`,
+  decision:(id:string,row:number)=>request<CatalogDecisionRecord>(`${base}/${encodeURIComponent(id)}/operations/${row}/decision`),
+  saveDecision:(id:string,row:number,body:{expected_revision:number;confirm:boolean;reason:string;decision:CatalogDecision})=>request<CatalogDecisionRecord>(`${base}/${encodeURIComponent(id)}/operations/${row}/decision`,{method:'POST',body:JSON.stringify(body)}),
+  preparation:(id:string)=>request<CatalogPreparation>(`${base}/${encodeURIComponent(id)}/preparation`),
+  bindingOptions:(id:string,q:string,offset:number)=>request<{items:CatalogBinding[];total:number}>(`${base}/${encodeURIComponent(id)}/binding-options?${new URLSearchParams({q,offset:String(offset)})}`),
+  history:(id:string,row:number,offset:number)=>request<{items:CatalogDecisionHistory[];total:number}>(`${base}/${encodeURIComponent(id)}/operations/${row}/decision/history?offset=${offset}`),
 };
+
+export interface CatalogDecision {
+  interpretation:'UNKNOWN'|'FIXED_EXECUTION'|'ALLOWED_WINDOW'|'CONTINUOUS_WORK'|'EQUIPMENT_BATCH';
+  calendar_year:number|null;mark_slots:'unconfirmed'|'one_per_mark'|'day_night';semantics_note:string;
+  frequency_kind:'unconfirmed'|'day'|'week'|'month'|'quarter'|'year'|'yearly_count'|'daily_events'|'event'|'included_in';
+  frequency_interval:number|null;included_in_row:number|null;equipment_ids:string[];
+  norm_value:string|null;norm_unit:'unconfirmed'|'person_hour'|'elapsed_hour';norm_scope:'unconfirmed'|'per_asset'|'whole_binding';
+  crew_size:number|null;norm_ref:string;splittable:boolean|null;min_segment_minutes:number|null;policy_note:string;
+}
+export interface CatalogBinding {equipment_id:string;asset_code:string;name:string;status:string;revision:number}
+export interface CatalogDecisionRecord {row_number:number;revision:number;created_by:string|null;author_name?:string|null;created_at:string|null;confirmed:boolean;reason:string;decision:CatalogDecision;equipment:CatalogBinding[];blockers:string[];prepared:boolean;total_person_hours:string|null;elapsed_hours:string|null;ready_for_real_plan:false}
+export interface CatalogDecisionHistory extends Pick<CatalogDecisionRecord,'revision'|'created_by'|'author_name'|'created_at'|'confirmed'|'reason'|'decision'|'equipment'> {parent_revision:number|null}
+export interface CatalogPreparation {total:number;prepared_count:number;confirmed_count:number;blocker_counts:Record<string,number>;items:Pick<CatalogDecisionRecord,'row_number'|'revision'|'confirmed'|'prepared'|'blockers'>[];ready_for_real_plan:false}

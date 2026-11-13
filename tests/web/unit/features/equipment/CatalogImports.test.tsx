@@ -11,6 +11,8 @@ const groups=[{id:'group',code:'1',title:'Раздел',parent_id:null,row:4}];
 beforeEach(()=>{
   vi.restoreAllMocks();
   vi.spyOn(api,'list').mockResolvedValue({items:[],total:0});
+  vi.spyOn(api,'preparation').mockResolvedValue({total:217,prepared_count:0,confirmed_count:0,blocker_counts:{},items:[],ready_for_real_plan:false});
+  vi.spyOn(api,'decision').mockRejectedValue(new Error('Решение пока не загружено'));
   vi.spyOn(api,'preview').mockResolvedValue({format:'hvac_catalog',preview_token:'token',can_save_draft:true,source_sha256:'a'.repeat(64),summary,groups,issues:[{code:'NON_NUMERIC_LABOR',sheet:'Лист2',cell:'I6',message:'Текст вместо часов'}],operations:[op(8)],total:217,sheet2_diagnostic:[]});
   vi.spyOn(api,'save').mockResolvedValue({import_id:'draft',already_saved:false,summary});
   vi.spyOn(api,'detail').mockResolvedValue({...metadata,groups,issues:[],sheet2_diagnostic:[],header_context:[]});

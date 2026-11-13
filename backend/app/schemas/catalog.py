@@ -119,4 +119,5 @@ class CatalogSaved(BaseModel):
     summary:CatalogSummary
     ready_for_real_plan:Literal[False]
 
-CATALOG_CONTRACTS=(CatalogPreview,CatalogSaved,CatalogList,CatalogDetail,CatalogOperations,CatalogOperationSource)
+from .catalog_decisions import DECISION_CONTRACTS
+CATALOG_CONTRACTS=(CatalogPreview,CatalogSaved,CatalogList,CatalogDetail,CatalogOperations,CatalogOperationSource,*DECISION_CONTRACTS)
