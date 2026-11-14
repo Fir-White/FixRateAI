@@ -180,6 +180,19 @@ def _generate_binding(item: SchedulingBinding, start: date, end: date,
     return result(status, code, explanation, entries)
 
 
+def generate_binding_period(item: SchedulingBinding, start: date, end: date, as_of: datetime, tz: ZoneInfo):
+    """Reuse the calendar engine for a bounded horizon without projecting facts.
+
+    Explicit annual lists are checked separately for each year. Rolling rules
+    run once, so crossing a month/year never invents a future completion.
+    """
+    if not start<=end or (end-start).days>365:raise ValueError('Горизонт должен быть от одного дня до 366 дней')
+    if item.rule.kind=='explicit_dates':
+        return [_generate_binding(item,max(start,date(year,1,1)),min(end,date(year,12,31)),as_of,tz)
+            for year in range(start.year,end.year+1)]
+    return [_generate_binding(item,start,end,as_of,tz)]
+
+
 def generate_month(request: CalendarGenerationRequest) -> CalendarGenerationResult:
     """Return deterministic draft dates and per-binding diagnostics, with no I/O.
 

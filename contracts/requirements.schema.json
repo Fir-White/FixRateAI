@@ -1,0 +1,798 @@
+{
+  "$defs": {
+    "AllowedInterval": {
+      "additionalProperties": false,
+      "properties": {
+        "start_at": {
+          "format": "date-time",
+          "title": "Start At",
+          "type": "string"
+        },
+        "end_at": {
+          "format": "date-time",
+          "title": "End At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start_at",
+        "end_at"
+      ],
+      "title": "AllowedInterval",
+      "type": "object"
+    },
+    "DraftPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "format_version": {
+          "default": 1,
+          "enum": [
+            1,
+            2
+          ],
+          "title": "Format Version",
+          "type": "integer"
+        },
+        "capacity_hours_per_24h": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "maximum": 24.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capacity Hours Per 24H"
+        },
+        "capacity_confirmed": {
+          "default": false,
+          "title": "Capacity Confirmed",
+          "type": "boolean"
+        },
+        "capacity_ref": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Capacity Ref",
+          "type": "string"
+        },
+        "day_start_minute": {
+          "anyOf": [
+            {
+              "maximum": 1439,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Day Start Minute"
+        },
+        "night_start_minute": {
+          "anyOf": [
+            {
+              "maximum": 1439,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Night Start Minute"
+        },
+        "capacity_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "unknown",
+                "provisional",
+                "confirmed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capacity Status"
+        },
+        "access_status": {
+          "default": "unknown",
+          "enum": [
+            "unknown",
+            "provisional",
+            "confirmed"
+          ],
+          "title": "Access Status",
+          "type": "string"
+        },
+        "access_mode": {
+          "anyOf": [
+            {
+              "enum": [
+                "unrestricted",
+                "weekly"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Access Mode"
+        },
+        "access_ref": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Access Ref",
+          "type": "string"
+        },
+        "service_windows": {
+          "items": {
+            "$ref": "#/$defs/ServiceWindow"
+          },
+          "maxItems": 28,
+          "title": "Service Windows",
+          "type": "array"
+        }
+      },
+      "title": "DraftPolicy",
+      "type": "object"
+    },
+    "GenerationInput": {
+      "additionalProperties": false,
+      "properties": {
+        "import_id": {
+          "format": "uuid",
+          "title": "Import Id",
+          "type": "string"
+        },
+        "starts_on": {
+          "format": "date",
+          "title": "Starts On",
+          "type": "string"
+        },
+        "ends_on": {
+          "format": "date",
+          "title": "Ends On",
+          "type": "string"
+        },
+        "row_numbers": {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 1000,
+          "minItems": 1,
+          "title": "Row Numbers",
+          "type": "array"
+        },
+        "expansion": {
+          "default": "source_january",
+          "enum": [
+            "source_january",
+            "confirmed_rule"
+          ],
+          "title": "Expansion",
+          "type": "string"
+        },
+        "policy": {
+          "$ref": "#/$defs/DraftPolicy"
+        }
+      },
+      "required": [
+        "import_id",
+        "starts_on",
+        "ends_on",
+        "row_numbers",
+        "policy"
+      ],
+      "title": "GenerationInput",
+      "type": "object"
+    },
+    "Requirement": {
+      "additionalProperties": false,
+      "properties": {
+        "requirement_id": {
+          "format": "uuid",
+          "title": "Requirement Id",
+          "type": "string"
+        },
+        "source_kind": {
+          "enum": [
+            "regulation",
+            "catalog"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "binding_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Binding Id"
+        },
+        "rule_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rule Id"
+        },
+        "regulation_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Regulation Id"
+        },
+        "source_revision": {
+          "title": "Source Revision",
+          "type": "integer"
+        },
+        "import_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Import Id"
+        },
+        "source_row": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Row"
+        },
+        "source_ref": {
+          "title": "Source Ref",
+          "type": "string"
+        },
+        "equipment_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Equipment Ids",
+          "type": "array"
+        },
+        "equipment_labels": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Equipment Labels",
+          "type": "array"
+        },
+        "operation_code": {
+          "title": "Operation Code",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "maintenance_type": {
+          "title": "Maintenance Type",
+          "type": "string"
+        },
+        "source_date": {
+          "format": "date",
+          "title": "Source Date",
+          "type": "string"
+        },
+        "source_slot": {
+          "default": "whole_day",
+          "enum": [
+            "whole_day",
+            "day",
+            "night"
+          ],
+          "title": "Source Slot",
+          "type": "string"
+        },
+        "earliest_date": {
+          "format": "date",
+          "title": "Earliest Date",
+          "type": "string"
+        },
+        "due_date": {
+          "format": "date",
+          "title": "Due Date",
+          "type": "string"
+        },
+        "allowed_intervals": {
+          "items": {
+            "$ref": "#/$defs/AllowedInterval"
+          },
+          "maxItems": 366,
+          "title": "Allowed Intervals",
+          "type": "array"
+        },
+        "person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Person Hours"
+        },
+        "crew_size": {
+          "title": "Crew Size",
+          "type": "integer"
+        },
+        "qualification_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Qualification Ids",
+          "type": "array"
+        },
+        "state": {
+          "enum": [
+            "new",
+            "existing",
+            "fulfilled",
+            "review"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "task_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Task Ids",
+          "type": "array"
+        },
+        "explanation": {
+          "title": "Explanation",
+          "type": "string"
+        },
+        "issues": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Issues",
+          "type": "array"
+        },
+        "synthetic": {
+          "title": "Synthetic",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "requirement_id",
+        "source_kind",
+        "source_revision",
+        "source_ref",
+        "equipment_ids",
+        "equipment_labels",
+        "operation_code",
+        "title",
+        "maintenance_type",
+        "source_date",
+        "earliest_date",
+        "due_date",
+        "person_hours",
+        "crew_size",
+        "qualification_ids",
+        "state",
+        "explanation",
+        "synthetic"
+      ],
+      "title": "Requirement",
+      "type": "object"
+    },
+    "RequirementIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "source_kind": {
+          "enum": [
+            "regulation",
+            "catalog"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "source_label": {
+          "default": "",
+          "title": "Source Label",
+          "type": "string"
+        },
+        "binding_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Binding Id"
+        },
+        "import_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Import Id"
+        },
+        "source_row": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Row"
+        }
+      },
+      "required": [
+        "source_kind",
+        "code",
+        "message"
+      ],
+      "title": "RequirementIssue",
+      "type": "object"
+    },
+    "RequirementsPreview": {
+      "additionalProperties": false,
+      "properties": {
+        "method_version": {
+          "default": "requirements-v1",
+          "title": "Method Version",
+          "type": "string"
+        },
+        "starts_on": {
+          "format": "date",
+          "title": "Starts On",
+          "type": "string"
+        },
+        "ends_on": {
+          "format": "date",
+          "title": "Ends On",
+          "type": "string"
+        },
+        "timezone": {
+          "title": "Timezone",
+          "type": "string"
+        },
+        "calculated_at": {
+          "format": "date-time",
+          "title": "Calculated At",
+          "type": "string"
+        },
+        "source_sha256": {
+          "title": "Source Sha256",
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/$defs/RequirementsSummary"
+        },
+        "months": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Months",
+          "type": "array"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/Requirement"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/RequirementIssue"
+          },
+          "title": "Issues",
+          "type": "array"
+        },
+        "total_issues": {
+          "title": "Total Issues",
+          "type": "integer"
+        },
+        "ready_for_real_plan": {
+          "const": false,
+          "default": false,
+          "title": "Ready For Real Plan",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "starts_on",
+        "ends_on",
+        "timezone",
+        "calculated_at",
+        "source_sha256",
+        "summary",
+        "months",
+        "items",
+        "total",
+        "issues",
+        "total_issues"
+      ],
+      "title": "RequirementsPreview",
+      "type": "object"
+    },
+    "RequirementsRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "starts_on": {
+          "format": "date",
+          "title": "Starts On",
+          "type": "string"
+        },
+        "ends_on": {
+          "format": "date",
+          "title": "Ends On",
+          "type": "string"
+        },
+        "include_regulations": {
+          "default": true,
+          "title": "Include Regulations",
+          "type": "boolean"
+        },
+        "binding_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 500,
+          "title": "Binding Ids",
+          "type": "array"
+        },
+        "catalog": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GenerationInput"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "offset": {
+          "default": 0,
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
+        "issue_offset": {
+          "default": 0,
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Issue Offset",
+          "type": "integer"
+        },
+        "q": {
+          "default": "",
+          "maxLength": 320,
+          "title": "Q",
+          "type": "string"
+        },
+        "state": {
+          "default": "all",
+          "enum": [
+            "all",
+            "new",
+            "existing",
+            "fulfilled",
+            "review"
+          ],
+          "title": "State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "starts_on",
+        "ends_on"
+      ],
+      "title": "RequirementsRequest",
+      "type": "object"
+    },
+    "RequirementsSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        },
+        "known_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Known Person Hours"
+        },
+        "total_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Total Person Hours"
+        },
+        "new_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "New Person Hours"
+        },
+        "unknown_hours_count": {
+          "title": "Unknown Hours Count",
+          "type": "integer"
+        },
+        "state_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "State Counts",
+          "type": "object"
+        },
+        "source_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Source Counts",
+          "type": "object"
+        },
+        "binding_count": {
+          "title": "Binding Count",
+          "type": "integer"
+        },
+        "selected_catalog_rows": {
+          "title": "Selected Catalog Rows",
+          "type": "integer"
+        },
+        "unselected_catalog_rows": {
+          "title": "Unselected Catalog Rows",
+          "type": "integer"
+        },
+        "complete": {
+          "title": "Complete",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "total",
+        "known_person_hours",
+        "total_person_hours",
+        "new_person_hours",
+        "unknown_hours_count",
+        "state_counts",
+        "source_counts",
+        "binding_count",
+        "selected_catalog_rows",
+        "unselected_catalog_rows",
+        "complete"
+      ],
+      "title": "RequirementsSummary",
+      "type": "object"
+    },
+    "ServiceWindow": {
+      "additionalProperties": false,
+      "properties": {
+        "weekday": {
+          "maximum": 7,
+          "minimum": 1,
+          "title": "Weekday",
+          "type": "integer"
+        },
+        "start_minute": {
+          "maximum": 1439,
+          "minimum": 0,
+          "title": "Start Minute",
+          "type": "integer"
+        },
+        "end_minute": {
+          "maximum": 2879,
+          "minimum": 1,
+          "title": "End Minute",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "weekday",
+        "start_minute",
+        "end_minute"
+      ],
+      "title": "ServiceWindow",
+      "type": "object"
+    }
+  }
+}

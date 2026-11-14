@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor,within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { PlanningPage } from '@/pages/PlanningPage';
@@ -8,6 +8,7 @@ import { draftPlansApi as plans, type DraftRecord, type PlanValidation } from '@
 import { optimizationApi } from '@/shared/api/optimization';
 import { publicationApi } from '@/shared/api/publication';
 import { newPolicy } from '@/features/planning/PolicyFields';
+import { requirementsApi } from '@/shared/api/requirements';
 
 vi.mock('@/shared/api/request',async original=>({...await original<typeof import('@/shared/api/request')>(),DEMO_MODE:false}));
 const session=vi.hoisted(()=>({role:'chief_engineer'}));
@@ -20,6 +21,7 @@ function Location(){const location=useLocation();return <output data-testid="loc
 function mount(path='/planning'){return render(<MemoryRouter initialEntries={[path]}><PlanningPage/><Location/></MemoryRouter>);}
 beforeEach(()=>{
   vi.restoreAllMocks();session.role='chief_engineer';
+  vi.spyOn(requirementsApi,'preview');
   vi.spyOn(plans,'policy').mockResolvedValue({record,policy:newPolicy()});
   vi.spyOn(catalogs,'list').mockResolvedValue({items:[metadata],total:1});
   vi.spyOn(catalogs,'detail').mockResolvedValue({...metadata,groups:[],issues:[],sheet2_diagnostic:[],header_context:[]});
@@ -32,6 +34,19 @@ beforeEach(()=>{
   vi.spyOn(optimizationApi,'list').mockResolvedValue({items:[],total:0});
   vi.spyOn(publicationApi,'list').mockResolvedValue({items:[],total:0});
   vi.spyOn(plans,'create');vi.spyOn(publicationApi,'prepare');
+});
+
+it('opens the shared obligations view from its URL and retains unsaved input across views',async()=>{
+  const user=userEvent.setup();mount('/planning?mode=requirements&requirements_start=2027-01-01&requirements_end=2027-12-31');
+  await screen.findByRole('heading',{name:'Что нужно обслужить в выбранном периоде'});
+  expect(requirementsApi.preview).not.toHaveBeenCalled();expect(catalogs.list).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('checkbox',{name:'Действующие регламенты объекта'}));
+  const views=screen.getByRole('navigation',{name:'Представления планирования'});
+  await user.click(within(views).getByRole('button',{name:'Планы из Excel'}));
+  await screen.findByRole('button',{name:/TEST_HVAC.xlsx · 217/});
+  await user.click(within(views).getByRole('button',{name:'Общий состав обязательств'}));
+  expect(screen.getByRole('checkbox',{name:'Действующие регламенты объекта'})).not.toBeChecked();
+  expect(requirementsApi.preview).not.toHaveBeenCalled();
 });
 
 it('starts with saved files and follows one visible path while preserving the chosen plan in the URL',async()=>{

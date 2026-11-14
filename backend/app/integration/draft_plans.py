@@ -53,7 +53,7 @@ def source_snapshot(v,request):
         decisions=records(set(meta['row_numbers']),decisions,assets,[r for r in request.row_numbers if r in meta['row_numbers']]))
 
 
-def generate(v,request):
+def generate(v,request,*,capture_issues=False):
     source=source_snapshot(v,request)
     occurrences,segments,issues=expand(source,request)
     for occurrence in occurrences:
@@ -69,7 +69,8 @@ def generate(v,request):
         total_person_hours=sum((r.total_person_hours for r in occurrences),Decimal(0)),selected_rows=len(request.row_numbers),
         unselected_rows=source['operation_count']-len(source['operations']),can_save=bool(occurrences) and not issues,
         total_issues=len(issues),issues=issues[:25],items=occurrences[:25])
-    return preview,snapshot,occurrences,segments
+    result=(preview,snapshot,occurrences,segments)
+    return (*result,issues) if capture_issues else result
 
 
 def checked(v,snapshot,occurrences,segments,*,stale=False,previous=(),unlock=False,capture=False):
