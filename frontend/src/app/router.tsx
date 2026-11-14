@@ -13,6 +13,7 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 import { SECTION_ROLES } from "@/shared/lib/roles";
 
 const DispatcherPage = lazyPage(pageLoaders.DispatcherPage);
+const AssistantPage = lazyPage(pageLoaders.AssistantPage);
 const PlanningPage = lazyPage(pageLoaders.PlanningPage);
 const EquipmentPage = lazyPage(pageLoaders.EquipmentPage);
 const EquipmentDetailPage = lazyPage(pageLoaders.EquipmentDetailPage);
@@ -47,6 +48,7 @@ export function AppRouter() {
         <Route path="/" element={<HomeRedirect />} />
 
         <Route element={<AppShell />}>
+          <Route path="/assistant" element={<AssistantPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/director" element={<RequireRole roles={["director"]}><DispatcherPage /></RequireRole>} />
           <Route path="/executive" element={<Navigate to="/director" replace />} />

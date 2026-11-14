@@ -195,6 +195,8 @@ def create_app(engine=None):
                 logger.error("Request failed id=%s type=%s", request.state.request_id, type(exc).__name__)
                 response = error_response(request, 500, "Внутренняя ошибка сервера", code="INTERNAL_ERROR")
         response.headers['X-Request-ID']=request.state.request_id
+        if request.url.path.startswith('/api/v1/assistant/'):
+            response.headers['Cache-Control']='private, no-store'
         logger.info("%s %s -> %s request_id=%s", request.method, request.url.path,
                     response.status_code, request.state.request_id)
         return response
@@ -235,6 +237,10 @@ def create_app(engine=None):
 
     def principal(request: Request, session=Depends(db)):
         who=authenticate(request, session)
+        from app.assistant.tools import EXPECTED_PRINCIPAL
+        expected=EXPECTED_PRINCIPAL.get()
+        if expected and expected!=(who.user_id,who.site_id,who.role):
+            raise HTTPException(403,'Контекст доступа изменился во время действия ИИ')
         request.state.principal=who
         return who
 
@@ -736,6 +742,8 @@ def create_app(engine=None):
         v.session.commit()
         return result
 
+    from app.integration.assistant import register_routes as register_assistant
+    register_assistant(app,views)
     from app.integration.management import register_routes
     register_routes(app,views,db)
     from app.integration.registry import register_routes as register_registry

@@ -1,0 +1,125 @@
+{
+  "$defs": {
+    "AgentCall": {
+      "additionalProperties": false,
+      "properties": {
+        "tool": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Tool",
+          "type": "string"
+        },
+        "arguments_json": {
+          "description": "JSON object with tool arguments: path, query, body. For describe_tool: {\"name\":\"tool_name\"}.",
+          "maxLength": 40000,
+          "title": "Arguments Json",
+          "type": "string"
+        },
+        "explanation": {
+          "maxLength": 3000,
+          "minLength": 1,
+          "title": "Explanation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tool",
+        "arguments_json",
+        "explanation"
+      ],
+      "title": "AgentCall",
+      "type": "object"
+    },
+    "AgentStep": {
+      "additionalProperties": false,
+      "properties": {
+        "answer": {
+          "maxLength": 12000,
+          "title": "Answer",
+          "type": "string"
+        },
+        "calls": {
+          "items": {
+            "$ref": "#/$defs/AgentCall"
+          },
+          "maxItems": 3,
+          "title": "Calls",
+          "type": "array"
+        }
+      },
+      "required": [
+        "answer",
+        "calls"
+      ],
+      "title": "AgentStep",
+      "type": "object"
+    },
+    "ConfirmAction": {
+      "additionalProperties": false,
+      "properties": {
+        "payload_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Payload Sha256",
+          "type": "string"
+        },
+        "confirmed": {
+          "const": true,
+          "title": "Confirmed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "payload_sha256",
+        "confirmed"
+      ],
+      "title": "ConfirmAction",
+      "type": "object"
+    },
+    "ConversationCreate": {
+      "additionalProperties": false,
+      "properties": {
+        "agent": {
+          "default": "assistant",
+          "enum": [
+            "assistant",
+            "planner",
+            "photo"
+          ],
+          "title": "Agent",
+          "type": "string"
+        },
+        "title": {
+          "default": "Новый диалог",
+          "maxLength": 160,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "title": "ConversationCreate",
+      "type": "object"
+    },
+    "MessageCreate": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "format": "uuid",
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "content": {
+          "maxLength": 12000,
+          "minLength": 1,
+          "title": "Content",
+          "type": "string"
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "content"
+      ],
+      "title": "MessageCreate",
+      "type": "object"
+    }
+  }
+}
