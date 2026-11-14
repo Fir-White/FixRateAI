@@ -67,7 +67,7 @@ test("reload retains sidebar width, page scroll, month and filters without leaki
   await login(page, "other@workspace.test");
   await page.goto("/equipment");
   await expect(page.getByRole('textbox',{name:'Поиск по реестру'})).toHaveValue("");
-  await expect(page.getByRole('tab',{name:/Электрика/})).toHaveAttribute('aria-selected','true');
+  await expect(page.getByRole('tab',{name:/Все системы/})).toHaveAttribute('aria-selected','true');
 });
 
 test("phone reload retains an open menu and shows equipment without document overflow", async ({ page, context }) => {

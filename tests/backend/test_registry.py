@@ -5,6 +5,7 @@ import io
 import json
 import os
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 from PIL import Image
 from sqlalchemy import text
 from fastapi.testclient import TestClient
@@ -94,10 +95,13 @@ def test_replacement_is_atomic_and_retains_old_part_readings(managed):
     eq = equipment(admin, ids)
     item = install(admin, eq)
     updated = reading(admin, item).json()
+    # Calendar dates belong to the site, even while UTC is still the previous day.
+    site_timezone = admin.get('/api/v1/auth/session').json()['profile']['timezone']
+    today = datetime.now(ZoneInfo(site_timezone)).date()
     path = f"{PREFIX}/registry/components/{item['component_id']}/replace"
-    command = dict(expected_revision=updated['revision'], removed_on=date.today().isoformat(), reason='Плановая замена',
-        replacement=part(installed_on=date.today().isoformat(), initial_usage='0'))
-    bad = admin.post(path, json=dict(command, replacement=part(installed_on=(date.today()-timedelta(days=1)).isoformat())))
+    command = dict(expected_revision=updated['revision'], removed_on=today.isoformat(), reason='Плановая замена',
+        replacement=part(installed_on=today.isoformat(), initial_usage='0'))
+    bad = admin.post(path, json=dict(command, replacement=part(installed_on=(today-timedelta(days=1)).isoformat())))
     assert bad.status_code == 422, bad.text
     unchanged = admin.get(f"{PREFIX}/equipment/{eq['equipment_id']}/components").json()[0]
     assert unchanged['removed_on'] is None and unchanged['revision'] == updated['revision']

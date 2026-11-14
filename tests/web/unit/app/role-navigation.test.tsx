@@ -1,10 +1,16 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { pageLoaders } from "@/app/pageModules";
 import { AppRouter } from "@/app/router";
 import { SessionProvider } from "@/shared/session/SessionContext";
 import type { Role } from "@/shared/types/domain";
+
+// This suite verifies role guards and links, independently of the AI provider.
+vi.mock("@/shared/api/assistant", () => ({assistantApi: {
+  capabilities: async () => ({available:false,model_ref:null,prompt_version:"TEST",agents:[],tools:{assistant:[],planner:[],photo:[]}}),
+  list: async () => ({items:[],total:0}),
+}}));
 
 // Permission checks exercise rendered routes; bundler transforms are measured by browser tests.
 beforeAll(async () => { await Promise.all(Object.values(pageLoaders).map(load => load())); });
@@ -12,6 +18,7 @@ beforeAll(async () => { await Promise.all(Object.values(pageLoaders).map(load =>
 // Expected permissions come from the screen specification, independently of router guards.
 const roles: Role[] = ["director", "chief_engineer", "admin", "dispatcher", "engineer", "executor"];
 const access: Record<string, Role[]> = {
+  assistant: roles,
   director:["director"], "chief-engineer":["chief_engineer"], engineer:["engineer"], admin:["admin"],
   planning:["director","chief_engineer","admin","dispatcher","engineer"],
   dispatcher: ["director", "chief_engineer", "admin", "dispatcher","engineer"], equipment: roles,
@@ -20,6 +27,7 @@ const access: Record<string, Role[]> = {
   settings: ["chief_engineer","admin","dispatcher","engineer"], "my-shifts": ["executor"], profile: roles,
 };
 const routes = [
+  ["/assistant", "ИИ-помощник"],
   ["/planning", "Планирование ТО"],
   ["/profile", "Мой профиль"],
   ["/director", "Панель диспетчера"],
@@ -67,10 +75,10 @@ describe("role access and links on every screen", () => {
 
 
 const businessMenus: [Role, string[]][] = [
-  ["director", ["/director","/planning","/tasks","/equipment","/reports"]],
-  ["chief_engineer", ["/chief-engineer","/planning","/tasks","/quality","/equipment","/settings/workforce","/reports"]],
-  ["engineer", ["/engineer","/planning","/tasks","/quality","/equipment","/settings/workforce","/reports"]],
-  ["executor", ["/executor","/calendar","/equipment","/my-shifts"]],
+  ["director", ["/assistant","/director","/planning","/tasks","/equipment","/reports"]],
+  ["chief_engineer", ["/assistant","/chief-engineer","/planning","/tasks","/quality","/equipment","/settings/workforce","/reports"]],
+  ["engineer", ["/assistant","/engineer","/planning","/tasks","/quality","/equipment","/settings/workforce","/reports"]],
+  ["executor", ["/assistant","/executor","/calendar","/equipment","/my-shifts"]],
 ];
 
 describe("required business navigation, independently of direct route access", () => {

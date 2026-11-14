@@ -111,6 +111,8 @@ docs/          архитектура, спецификации, решения 
 
 Для локального запуска нужны Git, Python и работающий Docker Desktop / Docker Engine с Compose. По умолчанию локальному профилю необходимы подготовленные веса CLIP; подробные требования и инструкции приведены в [руководстве по запуску](docs/service/runtime.md).
 
+Для новой машины доступна [инструкция первого запуска](docs/service/first-run.md): подготовка Python и Docker, выбор AI-профиля, первый вход и остановка с сохранением данных.
+
 ```powershell
 python scripts/start_local.py
 python scripts/start_local.py --status
@@ -142,9 +144,11 @@ npm.cmd --prefix frontend run build
 
 | Раздел | Содержание |
 |---|---|
+| [Срез 15.11.2026](docs/releases/2026-11-15-kran-dev-to-dev.md) | Подробно реализованные функции, миграции, остаток до MVP и проверка перед интеграцией |
 | [Архитектура](docs/ARCHITECTURE.md) | Компоненты, потоки данных и предметная область |
 | [Узлы сервиса](docs/service/INDEX.md) | Backend, веб, календарь, БД, AI и роли |
 | [Запуск](docs/service/runtime.md) | Среда, профили, миграции и эксплуатация |
+| [Первый запуск](docs/service/first-run.md) | Подготовка новой машины, первый вход и начало работы |
 | [Разработка](docs/service/development.md) | Структура, ответственность и изменение контрактов |
 | [Проверки](docs/service/verification.md) | Тесты, критерии и результаты |
 | [План](docs/PLAN.md) · [ADR](docs/decisions/INDEX.md) | Состояние работ и архитектурные решения |
