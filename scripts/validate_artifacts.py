@@ -31,6 +31,7 @@ from app.schemas.optimization import OPTIMIZATION_CONTRACTS
 from app.schemas.publication import PUBLICATION_CONTRACTS
 from app.schemas.requirements import REQUIREMENTS_CONTRACTS
 from app.schemas.portfolio import PORTFOLIO_CONTRACTS
+from app.schemas.plan_load import PLAN_LOAD_CONTRACTS
 
 DOCS = ROOT / "docs"
 DIAGRAMS = DOCS / "assets/architecture"
@@ -271,6 +272,12 @@ def main():
         portfolio_path.write_text(json.dumps(portfolio_schema, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
     require(json.loads(portfolio_path.read_text(encoding='utf-8')) == portfolio_schema,
             'portfolio schema export differs; use --write-schema')
+    _, load_schema = models_json_schema([(model, 'validation') for model in PLAN_LOAD_CONTRACTS])
+    load_path = ROOT / 'contracts/plan-load.schema.json'
+    if args.write_schema:
+        load_path.write_text(json.dumps(load_schema, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    require(json.loads(load_path.read_text(encoding='utf-8')) == load_schema,
+            'plan load schema export differs; use --write-schema')
     examples = json.loads((ROOT/"contracts/examples/maintenance.json").read_text(encoding="utf-8"))["examples"]
     parsed = validate_models(examples)
     comparisons = check_relations(parsed, examples)

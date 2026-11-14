@@ -1,0 +1,642 @@
+{
+  "$defs": {
+    "DraftRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "draft_id": {
+          "format": "uuid",
+          "title": "Draft Id",
+          "type": "string"
+        },
+        "revision": {
+          "title": "Revision",
+          "type": "integer"
+        },
+        "parent_revision": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Parent Revision"
+        },
+        "import_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Import Id"
+        },
+        "source_kind": {
+          "default": "catalog",
+          "enum": [
+            "catalog",
+            "portfolio"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "starts_on": {
+          "format": "date",
+          "title": "Starts On",
+          "type": "string"
+        },
+        "ends_on": {
+          "format": "date",
+          "title": "Ends On",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "created_by": {
+          "format": "uuid",
+          "title": "Created By",
+          "type": "string"
+        },
+        "author_name": {
+          "title": "Author Name",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "input_sha256": {
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "occurrence_count": {
+          "title": "Occurrence Count",
+          "type": "integer"
+        },
+        "segment_count": {
+          "title": "Segment Count",
+          "type": "integer"
+        },
+        "total_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Total Person Hours"
+        },
+        "status": {
+          "const": "draft",
+          "default": "draft",
+          "title": "Status",
+          "type": "string"
+        },
+        "ready_for_real_plan": {
+          "const": false,
+          "default": false,
+          "title": "Ready For Real Plan",
+          "type": "boolean"
+        },
+        "change_kind": {
+          "anyOf": [
+            {
+              "const": "undo",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Change Kind"
+        },
+        "undone_revision": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Undone Revision"
+        },
+        "restored_revision": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Restored Revision"
+        }
+      },
+      "required": [
+        "draft_id",
+        "revision",
+        "parent_revision",
+        "import_id",
+        "title",
+        "starts_on",
+        "ends_on",
+        "created_at",
+        "created_by",
+        "author_name",
+        "reason",
+        "input_sha256",
+        "occurrence_count",
+        "segment_count",
+        "total_person_hours"
+      ],
+      "title": "DraftRecord",
+      "type": "object"
+    },
+    "PlanIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "row_number": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Row Number"
+        },
+        "occurrence_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Occurrence Id"
+        },
+        "segment_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Segment Id"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "PlanIssue",
+      "type": "object"
+    },
+    "PlanLoadDay": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "format": "date",
+          "title": "Date",
+          "type": "string"
+        },
+        "planned_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Planned Person Hours"
+        },
+        "reserved_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Reserved Person Hours"
+        },
+        "unplaced_due_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Unplaced Due Person Hours"
+        },
+        "required_people_peak": {
+          "title": "Required People Peak",
+          "type": "integer"
+        },
+        "selected_people_peak": {
+          "title": "Selected People Peak",
+          "type": "integer"
+        },
+        "available_people_peak": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Available People Peak"
+        },
+        "available_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Available Person Hours"
+        },
+        "deficit_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Deficit Person Hours"
+        }
+      },
+      "required": [
+        "date",
+        "planned_person_hours",
+        "reserved_person_hours",
+        "unplaced_due_person_hours",
+        "required_people_peak",
+        "selected_people_peak",
+        "available_people_peak",
+        "available_person_hours",
+        "deficit_person_hours"
+      ],
+      "title": "PlanLoadDay",
+      "type": "object"
+    },
+    "PlanLoadMonth": {
+      "additionalProperties": false,
+      "properties": {
+        "month": {
+          "title": "Month",
+          "type": "string"
+        },
+        "due_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Due Person Hours"
+        },
+        "planned_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Planned Person Hours"
+        },
+        "reserved_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Reserved Person Hours"
+        },
+        "unplaced_due_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Unplaced Due Person Hours"
+        },
+        "available_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Available Person Hours"
+        },
+        "deficit_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Deficit Person Hours"
+        },
+        "required_people_peak": {
+          "title": "Required People Peak",
+          "type": "integer"
+        },
+        "selected_people_peak": {
+          "title": "Selected People Peak",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "month",
+        "due_person_hours",
+        "planned_person_hours",
+        "reserved_person_hours",
+        "unplaced_due_person_hours",
+        "available_person_hours",
+        "deficit_person_hours",
+        "required_people_peak",
+        "selected_people_peak"
+      ],
+      "title": "PlanLoadMonth",
+      "type": "object"
+    },
+    "PlanLoadPreview": {
+      "additionalProperties": false,
+      "properties": {
+        "record": {
+          "$ref": "#/$defs/DraftRecord"
+        },
+        "timezone": {
+          "title": "Timezone",
+          "type": "string"
+        },
+        "checked_at": {
+          "format": "date-time",
+          "title": "Checked At",
+          "type": "string"
+        },
+        "resource_sha256": {
+          "title": "Resource Sha256",
+          "type": "string"
+        },
+        "source_state": {
+          "enum": [
+            "current",
+            "stale",
+            "published_snapshot"
+          ],
+          "title": "Source State",
+          "type": "string"
+        },
+        "validation_status": {
+          "enum": [
+            "valid",
+            "incomplete",
+            "invalid"
+          ],
+          "title": "Validation Status",
+          "type": "string"
+        },
+        "total_issues": {
+          "title": "Total Issues",
+          "type": "integer"
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/PlanIssue"
+          },
+          "maxItems": 25,
+          "title": "Issues",
+          "type": "array"
+        },
+        "unknown_workers": {
+          "title": "Unknown Workers",
+          "type": "integer"
+        },
+        "published_tasks": {
+          "title": "Published Tasks",
+          "type": "integer"
+        },
+        "totals": {
+          "$ref": "#/$defs/PlanLoadTotals"
+        },
+        "months": {
+          "items": {
+            "$ref": "#/$defs/PlanLoadMonth"
+          },
+          "maxItems": 14,
+          "title": "Months",
+          "type": "array"
+        },
+        "days": {
+          "items": {
+            "$ref": "#/$defs/PlanLoadDay"
+          },
+          "maxItems": 367,
+          "title": "Days",
+          "type": "array"
+        }
+      },
+      "required": [
+        "record",
+        "timezone",
+        "checked_at",
+        "resource_sha256",
+        "source_state",
+        "validation_status",
+        "total_issues",
+        "issues",
+        "unknown_workers",
+        "published_tasks",
+        "totals",
+        "months",
+        "days"
+      ],
+      "title": "PlanLoadPreview",
+      "type": "object"
+    },
+    "PlanLoadTotals": {
+      "additionalProperties": false,
+      "properties": {
+        "total_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Total Person Hours"
+        },
+        "placed_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Placed Person Hours"
+        },
+        "unplaced_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Unplaced Person Hours"
+        },
+        "available_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Available Person Hours"
+        },
+        "deficit_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Deficit Person Hours"
+        },
+        "due_outside_view_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Due Outside View Person Hours"
+        },
+        "unplaced_outside_view_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Unplaced Outside View Person Hours"
+        }
+      },
+      "required": [
+        "total_person_hours",
+        "placed_person_hours",
+        "unplaced_person_hours",
+        "available_person_hours",
+        "deficit_person_hours",
+        "due_outside_view_person_hours",
+        "unplaced_outside_view_person_hours"
+      ],
+      "title": "PlanLoadTotals",
+      "type": "object"
+    }
+  }
+}

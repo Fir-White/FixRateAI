@@ -81,12 +81,12 @@ def generate(v,request,*,capture_issues=False):
     return (*result,issues) if capture_issues else result
 
 
-def checked(v,snapshot,occurrences,segments,*,stale=False,previous=(),unlock=False,capture=False):
+def checked(v,snapshot,occurrences,segments,*,stale=False,previous=(),unlock=False,capture=False,exclude_order_ids=()):
     request=planning_input(snapshot['input'])
     tz=ZoneInfo(snapshot['source']['timezone']);now=datetime.now(timezone.utc)
     start=datetime.combine(request.starts_on,time.min,tz)
     end=datetime.combine(request.ends_on+timedelta(days=2),time.min,tz)
-    people,equipment,unknown=resources(v,start,end,now,{i for o in occurrences for i in o.equipment_ids})
+    people,equipment,unknown=resources(v,start,end,now,{i for o in occurrences for i in o.equipment_ids},exclude_order_ids=exclude_order_ids)
     report=validate(occurrences,segments,people,request.policy,request.starts_on,request.ends_on,str(tz),now,
         source_stale=stale,equipment_bookings=equipment,equipment_unknown=unknown,previous_segments=previous,unlock=unlock)
     facts=dict(as_of=now.isoformat(),workers=[w.model_dump(mode='json') for w in people],
@@ -109,10 +109,11 @@ def get_version(v,identity,revision=None,*,full=True):
     return dict(row)
 
 
-def persist(v,*,draft_id,revision,title,reason,snapshot,sha,occurrences,segments,report,resource_snapshot,key=None,request_sha=None,action=None):
+def persist(v,*,draft_id,revision,title,reason,snapshot,sha,occurrences,segments,report,resource_snapshot,key=None,request_sha=None,action=None,change_metadata=None):
     request=planning_input(snapshot['input']);identity=uuid4()
     summary=dict(occurrence_count=len(occurrences),segment_count=len(segments),total_person_hours=str(sum((o.total_person_hours for o in occurrences),Decimal(0))))
     if isinstance(request,PortfolioInput):summary['source_kind']='portfolio'
+    if change_metadata:summary.update(change_metadata)
     due=defaultdict(Decimal);planned=defaultdict(Decimal)
     for o in occurrences: due[o.latest_date.isoformat()[:7]]+=o.total_person_hours
     for day in report.days: planned[day.date.isoformat()[:7]]+=day.planned_person_hours
@@ -126,7 +127,7 @@ def persist(v,*,draft_id,revision,title,reason,snapshot,sha,occurrences,segments
             actor=v.principal.user_id,title=title,reason=reason,start=request.starts_on,end=request.ends_on,sha=sha,
             source=json.dumps(snapshot,default=str),resources=json.dumps(resource_snapshot),occurrences=json.dumps([o.model_dump(mode='json') for o in occurrences]),
             segments=json.dumps([s.model_dump(mode='json') for s in segments]),validation=report.model_dump_json(),summary=json.dumps(summary),months=json.dumps(months),key=key,request_sha=request_sha))
-    _audit(v,'planning_draft_versions',identity,action or ('create' if revision==1 else 'edit_segments'),dict(draft_id=str(draft_id),revision=revision,source_sha256=sha,status=report.status))
+    _audit(v,'planning_draft_versions',identity,action or ('create' if revision==1 else 'edit_segments'),dict(draft_id=str(draft_id),revision=revision,source_sha256=sha,status=report.status,**(change_metadata or {})))
     return metadata(get_version(v,draft_id,revision,full=False))
 
 

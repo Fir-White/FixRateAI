@@ -748,6 +748,10 @@ def create_app(engine=None):
     register_catalog_decisions(app, views)
     from app.integration.draft_plans import register_routes as register_draft_plans
     register_draft_plans(app, views)
+    from app.integration.draft_undo import register_routes as register_draft_undo
+    register_draft_undo(app, views)
+    from app.integration.plan_load import register_routes as register_plan_load
+    register_plan_load(app, views)
     from app.integration.requirements import register_routes as register_requirements
     register_requirements(app, views)
     from app.integration.portfolio_plans import register_routes as register_portfolio_plans

@@ -463,6 +463,43 @@
           "default": false,
           "title": "Ready For Real Plan",
           "type": "boolean"
+        },
+        "change_kind": {
+          "anyOf": [
+            {
+              "const": "undo",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Change Kind"
+        },
+        "undone_revision": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Undone Revision"
+        },
+        "restored_revision": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Restored Revision"
         }
       },
       "required": [
@@ -1141,6 +1178,103 @@
         "end_minute"
       ],
       "title": "ServiceWindow",
+      "type": "object"
+    },
+    "UndoDraft": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_revision": {
+          "minimum": 2,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "idempotency_key": {
+          "format": "uuid",
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "unlock": {
+          "default": false,
+          "title": "Unlock",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "expected_revision",
+        "idempotency_key",
+        "reason"
+      ],
+      "title": "UndoDraft",
+      "type": "object"
+    },
+    "UndoDraftView": {
+      "additionalProperties": false,
+      "properties": {
+        "record": {
+          "$ref": "#/$defs/DraftRecord"
+        },
+        "restores_revision": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Restores Revision"
+        },
+        "restores_author_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Restores Author Name"
+        },
+        "can_undo": {
+          "title": "Can Undo",
+          "type": "boolean"
+        },
+        "blocker": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Blocker"
+        },
+        "explanation": {
+          "title": "Explanation",
+          "type": "string"
+        },
+        "requires_unlock": {
+          "default": false,
+          "title": "Requires Unlock",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "record",
+        "restores_revision",
+        "restores_author_name",
+        "can_undo",
+        "blocker",
+        "explanation"
+      ],
+      "title": "UndoDraftView",
       "type": "object"
     },
     "WorkOccurrence": {

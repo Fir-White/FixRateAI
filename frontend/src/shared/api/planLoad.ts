@@ -1,0 +1,7 @@
+import {request} from './request';
+import type {DraftRecord,PlanIssue} from './draftPlans';
+
+export interface PlanLoadDay {date:string;planned_person_hours:string;reserved_person_hours:string;unplaced_due_person_hours:string;required_people_peak:number;selected_people_peak:number;available_people_peak:number|null;available_person_hours:string|null;deficit_person_hours:string|null}
+export interface PlanLoadMonth {month:string;due_person_hours:string;planned_person_hours:string;reserved_person_hours:string;unplaced_due_person_hours:string;available_person_hours:string|null;deficit_person_hours:string|null;required_people_peak:number;selected_people_peak:number}
+export interface PlanLoadPreview {record:DraftRecord;timezone:string;checked_at:string;resource_sha256:string;source_state:'current'|'stale'|'published_snapshot';validation_status:'valid'|'incomplete'|'invalid';total_issues:number;issues:PlanIssue[];unknown_workers:number;published_tasks:number;totals:{total_person_hours:string;placed_person_hours:string;unplaced_person_hours:string;available_person_hours:string|null;deficit_person_hours:string|null;due_outside_view_person_hours:string;unplaced_outside_view_person_hours:string};months:PlanLoadMonth[];days:PlanLoadDay[]}
+export const planLoadApi={preview:(id:string,revision:number)=>request<PlanLoadPreview>(`/api/v1/maintenance/draft-plans/${encodeURIComponent(id)}/load-preview?revision=${revision}`,{method:'POST'},{readOnly:true})};

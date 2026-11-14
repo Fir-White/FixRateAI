@@ -18,6 +18,8 @@ import { PolicyFields,newPolicy } from './PolicyFields';
 import PlanPolicyPanel from './PlanPolicyPanel';
 const OptimizationPanel=lazy(()=>import('./OptimizationPanel'));
 const PublicationPanel=lazy(()=>import('./PublicationPanel'));
+const UndoPlanPanel=lazy(()=>import('./UndoPlanPanel'));
+const PlanLoadPanel=lazy(()=>import('./PlanLoadPanel'));
 
 const failure=(error:unknown)=>error instanceof Error?error.message:'Не удалось выполнить действие';
 const titleForStatus={valid:'Проверенные ограничения соблюдены',incomplete:'Нужны данные или размещение',invalid:'Обнаружены нарушения'};
@@ -84,6 +86,7 @@ function CreateDraft({id,timezone,onSaved}:{id:string;timezone:string;onSaved:(r
 }
 
 export function SavedPlan({record,timezone,mayEdit,mayApprove,onPickVersion,onSaved,workspace}:{record:DraftRecord;timezone:string;mayEdit:boolean;mayApprove:boolean;onPickVersion:(r:DraftRecord)=>void;onSaved:(r:DraftRecord)=>void;workspace?:CatalogWorkspace}) {
+  const [undoOpen,setUndoOpen]=useState(false),[undoVisited,setUndoVisited]=useState(false),[loadVisited,setLoadVisited]=useState(false);
   const [period,setPeriod]=useState(''),[search,setSearch]=useState(''),[offset,setOffset]=useState(0),[root,setRoot]=useState<string|null>(null),[history,setHistory]=useState(false);
   const [validation,setValidation]=useState<PlanValidation|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
   const needle=useDeferredValue(search);
@@ -101,15 +104,19 @@ export function SavedPlan({record,timezone,mayEdit,mayApprove,onPickVersion,onSa
     {rows.status==='success'&&<><ul className="space-y-3" aria-label="Работы версии плана">{rows.data.items.map(item=><li className="rounded-xl border border-line p-4" key={item.occurrence_id}><Button variant="ghost" onClick={()=>setRoot(item.occurrence_id)}>{item.operation_code} · {item.title}</Button><p className="mt-2 text-sm">{item.maintenance_type} · {formatDate(item.earliest_date)} — {formatDate(item.latest_date)} · {item.total_person_hours} чел.-ч · бригада {item.crew_size}</p><p className="text-xs text-muted">{item.source_kind==='regulation'?'Действующий регламент':`Строка ${item.source_row}, решение v${item.decision_revision}`} · {item.source_slot==='day'?'Дневное событие':item.source_slot==='night'?'Ночное событие':'В пределах допустимых дат'}</p></li>)}</ul>{!rows.data.total&&<p>В этом представлении работ нет.</p>}<PlanningPages offset={offset} total={rows.data.total} onPage={setOffset}/></>}
     {workspace&&<div className="journey-footer"><span className="text-sm text-muted">Проверьте состав и перейдите к распределению дат и бригад.</span><Button onClick={()=>workspace.selectPlanView('schedule')}>Распределить работы →</Button></div>}
   </>;
-  const optimization=<Suspense fallback={<LoadingState/>}><OptimizationPanel simple={!!workspace} record={record} timezone={timezone} mayEdit={mayEdit} onSaved={onSaved}/>{workspace&&<div className="journey-footer"><Button variant="ghost" onClick={()=>workspace.selectPlanView('work')}>← Состав работ</Button><Button onClick={()=>workspace.selectPlanView('publish')}>К утверждению и выпуску →</Button></div>}</Suspense>;
+  const optimization=<Suspense fallback={<LoadingState/>}><OptimizationPanel simple={!!workspace} record={record} timezone={timezone} mayEdit={mayEdit} onSaved={onSaved}/>{workspace&&<div className="journey-footer"><Button variant="ghost" onClick={()=>workspace.selectPlanView('work')}>← Состав работ</Button><Button onClick={()=>workspace.selectPlanView('load')}>Проверить нагрузку →</Button></div>}</Suspense>;
   const publication=<Suspense fallback={<LoadingState/>}><PublicationPanel record={record} timezone={timezone} mayEdit={mayEdit} mayApprove={mayApprove}/></Suspense>;
+  const load=<Suspense fallback={<LoadingState/>}><PlanLoadPanel record={record} timezone={timezone} month={workspace?.loadMonth} onMonth={workspace?.selectLoadMonth}/>{workspace&&<div className="journey-footer"><Button variant="ghost" onClick={()=>workspace.selectPlanView('schedule')}>← Даты и бригады</Button><Button onClick={()=>workspace.selectPlanView('publish')}>К утверждению и выпуску →</Button></div>}</Suspense>;
   return <section className="space-y-5" aria-label="Сохранённая версия плана"><header className="journey-panel-heading"><h3 className="font-semibold">{record.title} · версия {record.revision}</h3><p className="text-sm">{formatDate(record.starts_on)} — {formatDate(record.ends_on)} · {record.author_name} · {record.occurrence_count} работ · {record.total_person_hours} чел.-ч</p></header>
     {!mayEdit&&<p className="text-sm text-muted">Открыта версия для просмотра. Изменять можно последнюю версию при наличии прав.</p>}
     {workspace?<JourneySteps label="Этапы работы с планом" value={workspace.planView} onChange={workspace.selectPlanView} steps={[
       {id:'work',title:'Состав работ',content:()=>work},
       {id:'schedule',title:'Даты и бригады',description:'Рассчитайте варианты, проверьте назначения и примените выбранный вариант в новую версию.',content:()=>optimization},
+      {id:'load',title:'Нагрузка',content:()=>load},
       {id:'publish',title:'Утверждение и выпуск',content:()=>publication},
-    ]}/>:<>{work}{optimization}{publication}</>}
+    ]}/>:<>{work}{optimization}<details onToggle={e=>{if(e.currentTarget.open)setLoadVisited(true);}}><summary>Нагрузка выбранной версии</summary>{loadVisited&&load}</details>{publication}</>}
+    {record.change_kind==='undo'&&<div role="status"><Callout>Изменение версии {record.undone_revision} отменено. Восстановлено содержимое версии {record.restored_revision}; история сохранена.</Callout></div>}
+    {mayEdit&&record.revision>1&&record.change_kind!=='undo'&&<><Button variant="ghost" aria-expanded={undoOpen} onClick={()=>{setUndoOpen(v=>!v);setUndoVisited(true);}}>Отменить последнее своё изменение</Button>{undoVisited&&<div hidden={!undoOpen} inert={!undoOpen}><Suspense fallback={<LoadingState/>}><UndoPlanPanel record={record} onSaved={onSaved}/></Suspense></div>}</>}
     <Button variant="ghost" aria-expanded={history} onClick={()=>setHistory(v=>!v)}>История версий плана</Button>{history&&<PlanVersions id={record.draft_id} onPick={onPickVersion}/>}
     <Drawer open={root!==null} onClose={()=>setRoot(null)} title="Работа и сегменты плана">{root&&<RootSegments id={record.draft_id} revision={record.revision} rootId={root} timezone={timezone} mayEdit={mayEdit} onSaved={onSaved}/>}</Drawer>
   </section>;

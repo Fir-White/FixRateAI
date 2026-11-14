@@ -23,10 +23,12 @@ export function PlanningPage() {
     selectStage:stage=>update({stage}),
     selectDraft:record=>update({draft:record?.draft_id??null,revision:record?String(record.revision):null}),
     selectPlanView:view=>update({view}),
+    loadMonth:params.get('load_month')??'',selectLoadMonth:month=>update({load_month:month||null}),
   };
   const portfolioWorkspace:CatalogWorkspace={...workspace,catalogId:'',draftId:params.get('portfolio')??'',draftRevision:Number(params.get('portfolio_revision'))||null,planView:params.get('portfolio_view')??'work',
     selectDraft:record=>update({portfolio:record?.draft_id??null,portfolio_revision:record?String(record.revision):null}),
     selectPlanView:view=>update({portfolio_view:view}),
+    loadMonth:params.get('portfolio_month')??'',selectLoadMonth:month=>update({portfolio_month:month||null}),
   };
   return <div className="space-y-6"><PageHeader title="Планирование ТО" description="Проверьте обязательные работы по регламентам или подготовьте план из сохранённого Excel."/>
     {DEMO_MODE?<Callout>Планы из Excel доступны при подключении к рабочему серверу.{canOpenSection(profile?.role,'calendar')&&<> В демонстрационном режиме можно посмотреть <Link className="text-accent underline" to="/calendar">пример календаря</Link>.</>}</Callout>:<JourneySteps key={`${profile?.siteId}:${profile?.role}`} label="Представления планирования" numbered={false} value={params.get('mode')==='requirements'?'requirements':'catalog'} onChange={id=>update({mode:id==='requirements'?'requirements':null})} steps={[

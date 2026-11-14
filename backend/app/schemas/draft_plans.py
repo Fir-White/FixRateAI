@@ -282,6 +282,24 @@ class DraftRecord(Model):
     total_person_hours: Decimal
     status: Literal['draft'] = 'draft'
     ready_for_real_plan: Literal[False] = False
+    change_kind: Literal['undo'] | None = None
+    undone_revision: int | None = None
+    restored_revision: int | None = None
+
+class UndoDraft(Model):
+    expected_revision: int = Field(ge=2)
+    idempotency_key: UUID
+    reason: str = Field(min_length=1,max_length=2000)
+    unlock: bool = False
+
+class UndoDraftView(Model):
+    record: DraftRecord
+    restores_revision: int | None
+    restores_author_name: str | None
+    can_undo: bool
+    blocker: str | None
+    explanation: str
+    requires_unlock: bool = False
 
 class DraftList(Model):
     items: list[DraftRecord]
@@ -329,4 +347,4 @@ class DraftPolicyView(Model):
     record: DraftRecord
     policy: DraftPolicy
 
-DRAFT_CONTRACTS=(GenerationInput,GenerationPreview,SaveDraft,EditSegments,LocalPlacement,DraftList,OccurrencePage,SegmentPage,DraftOverview,PlanValidation,PlanningChoices,PreparedSourceChoices,ChangeDraftPolicy,DraftPolicyView)
+DRAFT_CONTRACTS=(GenerationInput,GenerationPreview,SaveDraft,EditSegments,LocalPlacement,DraftList,OccurrencePage,SegmentPage,DraftOverview,PlanValidation,PlanningChoices,PreparedSourceChoices,ChangeDraftPolicy,DraftPolicyView,UndoDraft,UndoDraftView)

@@ -22,6 +22,7 @@ export interface CatalogWorkspace {
   catalogId:string;stage:'prepare'|'plan';draftId:string;draftRevision:number|null;planView:string;
   selectCatalog:(id:string)=>void;selectStage:(stage:'prepare'|'plan')=>void;
   selectDraft:(record:DraftRecord|null)=>void;selectPlanView:(view:string)=>void;
+  loadMonth?:string;selectLoadMonth?:(month:string)=>void;
 }
 export function CatalogImports({mayImport,mayConfirm=false,mayPlan=mayImport,siteName,timezone='UTC',workspace}:{mayImport:boolean;mayConfirm?:boolean;mayPlan?:boolean;siteName?:string;timezone?:string;workspace?:CatalogWorkspace}) {
   const [file,setFile]=useState<File|null>(null),[preview,setPreview]=useState<CatalogPreview|null>(null);
