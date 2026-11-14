@@ -2,12 +2,14 @@
 from datetime import timedelta
 import json
 from uuid import UUID,uuid4
-from fastapi import BackgroundTasks,Depends,HTTPException,Query,Request,Response
-from fastapi.responses import JSONResponse
+from typing import Literal
+from fastapi import BackgroundTasks,Depends,HTTPException,Query,Request,Response,UploadFile,File
+from fastapi.responses import JSONResponse,FileResponse
 from sqlalchemy import text
 from app.schemas.assistant import ConversationCreate,MessageCreate,ConfirmAction
 from app.assistant import service as svc
 from app.assistant.tools import available,catalog,describe,validate_arguments,invoke,bounded,EXPECTED_PRINCIPAL
+from app.assistant.attachments import SCOPE,COOKIE_EFFECTS,MAX_FILE,public as public_file,content as file_content
 
 BASE='/api/v1/assistant'
 AGENTS=[dict(id='assistant',title='Ассистент',description='Оборудование, задания и повседневная работа'),
@@ -19,6 +21,8 @@ def forwarded(request):
     return {key:request.headers[key] for key in ('cookie','x-csrf-token') if key in request.headers}
 
 def register_routes(app,views):
+    from .assistant_workspace import register_routes as register_workspace
+    register_workspace(app,views)
     @app.get(BASE+'/capabilities')
     def capabilities(response:Response,v=Depends(views)):
         response.headers['Cache-Control']='private, no-store'
@@ -52,7 +56,50 @@ def register_routes(app,views):
         count=v.session.scalar(text('SELECT count(*) FROM assistant_turns WHERE conversation_id=:id'),dict(id=identity))
         rows=v.session.execute(text('''SELECT * FROM assistant_actions WHERE conversation_id=:id AND
             (turn_id=ANY(CAST(:turns AS uuid[])) OR turn_id IS NULL) ORDER BY created_at LIMIT 100'''),dict(id=identity,turns=[r['turn_id'] for r in turns])).mappings().all()
-        return dict(conversation=thread,turns=list(reversed([dict(r) for r in turns])),total=count,actions=[svc.public_action(r) for r in rows])
+        files=v.session.execute(text('SELECT * FROM assistant_attachments WHERE conversation_id=:id ORDER BY created_at DESC LIMIT 20'),dict(id=identity)).mappings().all()
+        return dict(conversation=thread,turns=list(reversed([dict(r) for r in turns])),total=count,actions=[svc.public_action(r) for r in rows],attachments=[public_file(r) for r in files])
+
+    @app.post(BASE+'/conversations/{identity}/attachments',status_code=201)
+    def upload(identity:UUID,file:UploadFile=File(...),v=Depends(views)):
+        from pathlib import PureWindowsPath
+        import hashlib
+        from app.files import validate_upload
+        from app.storage import safe_storage_path
+        svc.conversation(v.session,v.principal,identity,lock=True)
+        filename=PureWindowsPath(file.filename or 'file').name[:160]
+        blob=file.file.read(MAX_FILE+1)
+        if not blob or len(blob)>MAX_FILE:raise HTTPException(413,'Вложение должно быть от 1 байта до 10 МиБ')
+        suffix=PureWindowsPath(filename).suffix.lower()
+        if suffix=='.xlsx':
+            if not blob.startswith(b'PK'):raise HTTPException(422,'Нужен настоящий файл Excel XLSX')
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        else:
+            try:mime=validate_upload(blob,filename,file.content_type)
+            except Exception:raise HTTPException(422,'Прикрепите XLSX или фотографию JPEG/PNG/WebP') from None
+        sha=hashlib.sha256(blob).hexdigest()
+        old=v.session.execute(text('SELECT * FROM assistant_attachments WHERE conversation_id=:id AND sha256=:sha AND original_name=:name'),dict(id=identity,sha=sha,name=filename)).mappings().first()
+        if old:return public_file(old)
+        count,total=v.session.execute(text('SELECT count(*),coalesce(sum(size_bytes),0) FROM assistant_attachments WHERE conversation_id=:id'),dict(id=identity)).one()
+        if count>=20 or total+len(blob)>104857600:raise HTTPException(413,'В одном диалоге — до 20 вложений и 100 МиБ')
+        file_id=uuid4();key=f'{v.principal.site_id}/assistant/{identity}/{file_id}'
+        path=safe_storage_path(app.state.settings.photo_storage_root,key)
+        try:
+            path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(blob)
+            v.session.execute(text('INSERT INTO assistant_attachments(attachment_id,conversation_id,original_name,mime_type,size_bytes,sha256,storage_key) VALUES (:id,:conversation,:name,:mime,:size,:sha,:key)'),dict(id=file_id,conversation=identity,name=filename,mime=mime,size=len(blob),sha=sha,key=key))
+            v.session.commit()
+        except BaseException:
+            path.unlink(missing_ok=True);raise
+        return public_file(v.session.execute(text('SELECT * FROM assistant_attachments WHERE attachment_id=:id'),dict(id=file_id)).mappings().one())
+
+    @app.get(BASE+'/attachments/{identity}')
+    def download(identity:UUID,v=Depends(views)):
+        from app.storage import safe_storage_path
+        row=v.session.execute(text('''SELECT a.* FROM assistant_attachments a JOIN assistant_conversations c USING(conversation_id)
+            WHERE a.attachment_id=:id AND c.user_id=:user AND c.site_id=:site AND c.role=:role'''),dict(id=identity,user=v.principal.user_id,site=v.principal.site_id,role=v.principal.role)).mappings().first()
+        if row is None:raise HTTPException(404,'Вложение не найдено')
+        SCOPE.set((row['conversation_id'],v.principal.user_id,v.principal.site_id,v.principal.role))
+        file_content(app,identity)
+        return FileResponse(safe_storage_path(app.state.settings.photo_storage_root,row['storage_key']),filename=row['original_name'],media_type=row['mime_type'],headers={'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'})
 
     @app.post(BASE+'/conversations/{identity}/messages',status_code=202)
     def message(identity:UUID,command:MessageCreate,background:BackgroundTasks,request:Request,v=Depends(views)):
@@ -84,12 +131,16 @@ def register_routes(app,views):
         return svc.public_action(svc.action(v.session,v.principal,identity))
 
     @app.post(BASE+'/actions/{identity}/confirm')
-    async def confirm(identity:UUID,command:ConfirmAction,request:Request,v=Depends(views)):
+    async def confirm(identity:UUID,command:ConfirmAction,request:Request,response:Response,v=Depends(views)):
         row=svc.action(v.session,v.principal,identity,lock=True)
         if command.payload_sha256!=row['payload_sha256']:raise HTTPException(409,'Состав предложения изменился')
         if row['status']!='proposed':return svc.public_action(row)
         if row['expires_at']<svc.now():raise HTTPException(409,'Предложение истекло. Подготовьте новое по свежим данным.')
-        return await svc.confirm(app,v.session,v.principal,row,forwarded(request))
+        cookies=[];token=COOKIE_EFFECTS.set(cookies)
+        try:result=await svc.confirm(app,v.session,v.principal,row,forwarded(request),command.secret_values)
+        finally:COOKIE_EFFECTS.reset(token)
+        for cookie in cookies:response.raw_headers.append((b'set-cookie',cookie.encode('latin-1')))
+        return result
 
     @app.post(BASE+'/mcp')
     async def mcp(request:Request,v=Depends(views)):
@@ -118,16 +169,18 @@ def register_routes(app,views):
             tools=[]
             for tool in available(app,v.principal.role).values():
                 description=describe(app,tool)
-                if tool.mode=='write':
+                from app.assistant.tools import file_fields
+                if tool.mode=='write' or file_fields(app,tool):
                     description['inputSchema']['properties']['conversation_id']=dict(type='string',format='uuid',description='Existing private chat in /assistant')
                     description['inputSchema']['required'].append('conversation_id')
                 tools.append(description)
             result=dict(tools=tools)
         elif method=='prompts/list':result=dict(prompts=[dict(name=a['id'],description=a['description'],arguments=[]) for a in AGENTS])
         elif method=='prompts/get':
-            if params.get('name') not in {a['id'] for a in AGENTS}:return error(-32602,'Unknown prompt')
+            if not isinstance(params.get('name'),str) or params['name'] not in {a['id'] for a in AGENTS}:return error(-32602,'Unknown prompt')
             result=dict(messages=[dict(role='user',content=dict(type='text',text=svc.prompt(params['name'])))])
         elif method=='tools/call':
+            if not isinstance(params.get('name'),str):return error(-32602,'Tool name must be a string')
             tool=available(app,v.principal.role).get(params.get('name'))
             if tool is None:return error(-32602,'Unknown or unavailable tool')
             try:
@@ -135,12 +188,15 @@ def register_routes(app,views):
                 if not isinstance(arguments,dict):raise HTTPException(422,'Аргументы должны быть объектом')
                 arguments=dict(arguments);thread_id=arguments.pop('conversation_id',None)
                 EXPECTED_PRINCIPAL.set((v.principal.user_id,v.principal.site_id,v.principal.role))
-                if tool.mode=='write':
+                from app.assistant.tools import file_fields
+                if tool.mode=='write' or file_fields(app,tool):
                     try:thread_id=UUID(thread_id)
                     except (ValueError,TypeError,AttributeError):raise HTTPException(422,'Укажите conversation_id своего диалога')
                     thread=svc.conversation(v.session,v.principal,thread_id)
+                    SCOPE.set((thread_id,v.principal.user_id,v.principal.site_id,v.principal.role))
                     if tool.name not in available(app,v.principal.role,thread['agent']):raise HTTPException(403,'Инструмент недоступен агенту диалога')
-                    value=await svc.propose(app,v.session,v.principal,thread,tool,arguments,'Предложение MCP: '+tool.title,forwarded(request))
+                    if tool.mode=='write':value=await svc.propose(app,v.session,v.principal,thread,tool,arguments,'Предложение MCP: '+tool.title,forwarded(request))
+                    else:value=bounded(await invoke(app,tool,validate_arguments(app,tool,arguments),forwarded(request)))
                 else:value=bounded(await invoke(app,tool,validate_arguments(app,tool,arguments),forwarded(request)))
                 result=dict(content=[dict(type='text',text=svc.dump(value))],isError=False)
             except HTTPException as exc:result=dict(content=[dict(type='text',text=str(exc.detail))],isError=True)

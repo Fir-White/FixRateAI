@@ -26,3 +26,13 @@ it('shows provider unavailability and disables sending',async()=>{
   vi.mocked(api.capabilities).mockResolvedValue({...caps,available:false});show();
   await screen.findByLabelText('Сообщение помощнику');expect(screen.getByRole('button',{name:'Отправить'})).toBeDisabled();expect(screen.getByText(/ИИ пока не подключён/)).toBeVisible();
 });
+it('stages a selected file without importing or sending a chat message',async()=>{
+  const user=userEvent.setup();vi.spyOn(api,'upload').mockResolvedValue({attachment_id:'file',original_name:'TEST.xlsx',mime_type:'application/octet-stream',size_bytes:12,sha256:'TEST',created_at:'2026-11-14'});
+  show();await screen.findByLabelText('Сообщение помощнику');const file=new File(['PK TEST ONLY'],'TEST.xlsx',{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  await user.upload(screen.getByLabelText('Прикрепить файл'),file);expect(api.upload).toHaveBeenCalledWith('chat',file);expect(api.send).not.toHaveBeenCalled();
+});
+it('uses a new turn key when the user repeats an already accepted message',async()=>{
+  const user=userEvent.setup();show();
+  for(let i=0;i<2;i++){const input=await screen.findByLabelText('Сообщение помощнику');await user.type(input,'Повторяемый запрос');await user.click(screen.getByRole('button',{name:'Отправить'}));await waitFor(()=>expect(input).toHaveValue(''));}
+  expect(api.send).toHaveBeenCalledTimes(2);expect(vi.mocked(api.send).mock.calls[0][2]).not.toBe(vi.mocked(api.send).mock.calls[1][2]);
+});

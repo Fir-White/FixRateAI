@@ -16,6 +16,7 @@ def assistant_case(managed):
     engine,_,_,_,ids=managed
     with engine.begin() as c:
         p=dict(site=ids['site'])
+        c.execute(text('DELETE FROM assistant_attachments WHERE conversation_id IN (SELECT conversation_id FROM assistant_conversations WHERE site_id=:site)'),p)
         c.execute(text('DELETE FROM assistant_actions WHERE conversation_id IN (SELECT conversation_id FROM assistant_conversations WHERE site_id=:site)'),p)
         c.execute(text('DELETE FROM assistant_turns WHERE conversation_id IN (SELECT conversation_id FROM assistant_conversations WHERE site_id=:site)'),p)
         c.execute(text('DELETE FROM assistant_conversations WHERE site_id=:site'),p)
@@ -28,6 +29,7 @@ class Scripted:
     def __init__(self,steps):self.steps=iter(steps);self.messages=[]
     def chat(self,messages,schema,tokens):
         self.messages.append(messages[:])
+        if schema.__name__=='ToolSelection':return schema.model_validate(dict(tools=[]))
         step=next(self.steps)
         for call in step['calls']:call['arguments_json']=json.dumps(call.pop('arguments'))
         return schema.model_validate(step)
@@ -59,14 +61,15 @@ def test_catalog_is_explicit_and_each_tool_has_real_typed_endpoint(assistant_cas
         schema=describe(app,tool)
         assert schema['inputSchema']['additionalProperties'] is False
         assert schema['annotations']['readOnlyHint']==(tool.mode=='read')
-    assert all(t.mode=='read' for t in available(app,'director').values())
+    personal={'site_switch','session_logout','profile_email','notifications_read_all','notifications_clear','notification_delete','notification_read'}
+    assert all(t.mode=='read' or t.name in personal for t in available(app,'director').values())
     assert 'photo_review' not in available(app,'executor','photo')
     assert 'equipment_create' not in available(app,'chief_engineer','photo')
 
 def test_optional_and_missing_required_parameters_follow_current_fastapi_fields(assistant_case):
     from fastapi import HTTPException
     _,app,_,_,_=assistant_case;tools=available(app,'chief_engineer')
-    assert validate_arguments(app,tools['equipment_list'],{})==dict(path={},query={})
+    assert validate_arguments(app,tools['equipment_list'],{})==dict(path={},query=dict(limit=25))
     assert validate_arguments(app,tools['equipment_list'],dict(query=dict(limit=25)))['query']==dict(limit=25)
     assert validate_arguments(app,tools['draft_list'],dict(query=dict(import_id=str(uuid4()))))['query']['import_id']
     assert validate_arguments(app,tools['calendar_read'],dict(query=dict(year=2026,month=11)))['query']==dict(year=2026,month=11)
@@ -165,13 +168,14 @@ def test_chat_provider_failure_persists_message_and_no_fabricated_success(assist
         assert 'secret' not in json.dumps(turn)
     finally:del app.state.assistant_provider_factory
 
-def test_director_can_chat_but_mcp_never_exposes_mutations(runtime):
+def test_director_can_chat_but_only_personal_mutations_are_exposed(runtime):
     _,app=runtime
     with closing(login(app,'director')) as client:
         t=thread(client)
         assert client.get(B+'/conversations/'+t).status_code==200
         tools=rpc(client,'tools/list').json()['result']['tools']
-        assert tools and all(t['annotations']['readOnlyHint'] for t in tools)
+        personal={'site_switch','session_logout','profile_email','notifications_read_all','notifications_clear','notification_delete','notification_read'}
+        assert tools and all(t['annotations']['readOnlyHint'] or t['name'] in personal for t in tools)
         assert rpc(client,'tools/call',dict(name='equipment_create',arguments={})).json()['error']['code']==-32602
 
 def test_confirmation_rechecks_role_and_never_accepts_a_client_supplied_body(assistant_case):

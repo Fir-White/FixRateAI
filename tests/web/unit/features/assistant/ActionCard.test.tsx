@@ -27,3 +27,11 @@ it('renders injected HTML as text',()=>{
   show({...record,explanation:'<img src=x onerror=alert(1)>'});
   expect(screen.getByText('<img src=x onerror=alert(1)>')).toBeVisible();expect(document.querySelector('img')).toBeNull();
 });
+it('collects a protected input only in confirmation and keeps the stored proposal unchanged',async()=>{
+  const user=userEvent.setup();const action={...record,tool_name:'profile_email',secret_fields:['current_password'],arguments:{body:{email:'test@example.test',current_password:'__human_secret__'}}};
+  show(action);const input=screen.getByLabelText(/Текущий пароль/);expect(input).toHaveAttribute('type','password');
+  await user.click(screen.getByRole('checkbox'));expect(screen.getByRole('button',{name:'Подтвердить и выполнить'})).toBeDisabled();
+  await user.type(input,'TEST-ONLY-PROTECTED');await user.click(screen.getByRole('button',{name:'Подтвердить и выполнить'}));
+  expect(api.confirm).toHaveBeenCalledWith(action,{current_password:'TEST-ONLY-PROTECTED'});
+  expect(action.arguments.body.current_password).toBe('__human_secret__');
+});

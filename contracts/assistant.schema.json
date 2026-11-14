@@ -66,6 +66,14 @@
           "const": true,
           "title": "Confirmed",
           "type": "boolean"
+        },
+        "secret_values": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "maxProperties": 3,
+          "title": "Secret Values",
+          "type": "object"
         }
       },
       "required": [
@@ -119,6 +127,71 @@
         "content"
       ],
       "title": "MessageCreate",
+      "type": "object"
+    },
+    "ResultView": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 6,
+          "title": "Path",
+          "type": "array"
+        },
+        "offset": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
+        "limit": {
+          "default": 25,
+          "maximum": 25,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "q": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Q",
+          "type": "string"
+        },
+        "text_offset": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Text Offset",
+          "type": "integer"
+        },
+        "text_limit": {
+          "default": 6000,
+          "maximum": 6000,
+          "minimum": 1,
+          "title": "Text Limit",
+          "type": "integer"
+        }
+      },
+      "title": "ResultView",
+      "type": "object"
+    },
+    "ToolSelection": {
+      "additionalProperties": false,
+      "properties": {
+        "tools": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Tools",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tools"
+      ],
+      "title": "ToolSelection",
       "type": "object"
     }
   }

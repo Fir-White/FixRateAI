@@ -1,0 +1,3353 @@
+{
+  "format_version": 1,
+  "tools": [
+    {
+      "name": "equipment_list",
+      "title": "Найти оборудование объекта",
+      "method": "GET",
+      "path": "/api/v1/maintenance/equipment",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner",
+        "photo"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "equipment_read",
+      "title": "Карточка оборудования",
+      "method": "GET",
+      "path": "/api/v1/maintenance/equipment/{equipment_id}",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner",
+        "photo"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "catalog_read",
+      "title": "Системы и типы оборудования",
+      "method": "GET",
+      "path": "/api/v1/maintenance/management/catalog",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "equipment_create",
+      "title": "Добавить оборудование",
+      "method": "POST",
+      "path": "/api/v1/maintenance/equipment",
+      "roles": [
+        "chief_engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "equipment_edit",
+      "title": "Изменить оборудование",
+      "method": "PATCH",
+      "path": "/api/v1/maintenance/equipment/{equipment_id}",
+      "roles": [
+        "chief_engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "equipment_retire",
+      "title": "Вывести оборудование из эксплуатации",
+      "method": "DELETE",
+      "path": "/api/v1/maintenance/equipment/{equipment_id}",
+      "roles": [
+        "chief_engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "regulations_read",
+      "title": "Регламенты и чек-листы оборудования",
+      "method": "GET",
+      "path": "/api/v1/maintenance/equipment/{equipment_id}/service-configurations",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner",
+        "photo"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "regulation_create",
+      "title": "Добавить конфигурацию обслуживания",
+      "method": "POST",
+      "path": "/api/v1/maintenance/equipment/{equipment_id}/service-configurations",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "regulation_edit",
+      "title": "Изменить конфигурацию обслуживания",
+      "method": "PUT",
+      "path": "/api/v1/maintenance/equipment/{equipment_id}/service-configurations/{binding_id}",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "tasks_list",
+      "title": "Задания текущего объекта и пользователя",
+      "method": "GET",
+      "path": "/api/v1/maintenance/ui/tasks",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner",
+        "photo"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "tasks_find",
+      "title": "Поиск заданий по статусу, названию и ближайшей дате; история",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/tasks",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner",
+        "photo"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "equipment_find",
+      "title": "Поиск оборудования по всему реестру",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/equipment",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner",
+        "photo"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "staff_find",
+      "title": "Поиск сотрудников по имени и email",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/staff",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "staff_read",
+      "title": "Подробные сведения о сотруднике",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/staff/{user_id}",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "task_read",
+      "title": "Задание, инструкции и состояние отчёта",
+      "method": "GET",
+      "path": "/api/v1/maintenance/ui/tasks/{task_id}",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner",
+        "photo"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "calendar_read",
+      "title": "Календарь работ",
+      "method": "GET",
+      "path": "/api/v1/maintenance/ui/calendar",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "director",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "assignment_context",
+      "title": "Сотрудники и условия назначения",
+      "method": "GET",
+      "path": "/api/v1/maintenance/ui/tasks/{task_id}/assignment-context",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "assignment_preview",
+      "title": "Проверить вариант назначения",
+      "method": "POST",
+      "path": "/api/v1/maintenance/tasks/{task_id}/assignment-preview",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "task_assign",
+      "title": "Назначить бригаду и время",
+      "method": "POST",
+      "path": "/api/v1/maintenance/tasks/{task_id}/assign",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "task_cancel",
+      "title": "Отменить задание с причиной",
+      "method": "POST",
+      "path": "/api/v1/maintenance/tasks/{task_id}/cancel",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "task_start",
+      "title": "Начать своё назначенное задание",
+      "method": "POST",
+      "path": "/api/v1/maintenance/tasks/{task_id}/start",
+      "roles": [
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "report_save",
+      "title": "Сохранить фактический отчёт",
+      "method": "PUT",
+      "path": "/api/v1/maintenance/tasks/{task_id}/report",
+      "roles": [
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "report_submit",
+      "title": "Передать свой отчёт на проверку",
+      "method": "POST",
+      "path": "/api/v1/maintenance/tasks/{task_id}/submit",
+      "roles": [
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "report_review",
+      "title": "Принять отчёт или вернуть с причиной",
+      "method": "POST",
+      "path": "/api/v1/maintenance/tasks/{task_id}/review",
+      "roles": [
+        "engineer",
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "photo_review",
+      "title": "Проанализировать сохранённые фотографии отчёта",
+      "method": "POST",
+      "path": "/api/v1/maintenance/tasks/{task_id}/photo-review",
+      "roles": [
+        "engineer",
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "photo"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [
+        "api_key"
+      ]
+    },
+    {
+      "name": "forecast_run",
+      "title": "Рассчитать и сохранить прогноз задания",
+      "method": "POST",
+      "path": "/api/v1/maintenance/tasks/{task_id}/forecast",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [
+        "api_key"
+      ]
+    },
+    {
+      "name": "workforce_read",
+      "title": "Команда, смены и квалификации",
+      "method": "GET",
+      "path": "/api/v1/maintenance/management/workforce",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "catalogs_list",
+      "title": "Сохранённые Excel-каталоги",
+      "method": "GET",
+      "path": "/api/v1/maintenance/catalog-imports",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "portfolio_list",
+      "title": "Сохранённые общие планы",
+      "method": "GET",
+      "path": "/api/v1/maintenance/portfolio-plans",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "portfolio_preview",
+      "title": "Рассчитать общий состав без записи",
+      "method": "POST",
+      "path": "/api/v1/maintenance/portfolio-plans/preview",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "portfolio_save",
+      "title": "Сохранить рассчитанный общий план",
+      "method": "POST",
+      "path": "/api/v1/maintenance/portfolio-plans",
+      "roles": [
+        "chief_engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "draft_list",
+      "title": "Планы из каталога",
+      "method": "GET",
+      "path": "/api/v1/maintenance/draft-plans",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "draft_read",
+      "title": "Выбранная версия и сводка плана",
+      "method": "GET",
+      "path": "/api/v1/maintenance/draft-plans/{identity}",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "draft_occurrences",
+      "title": "Страница работ выбранной версии",
+      "method": "GET",
+      "path": "/api/v1/maintenance/draft-plans/{identity}/occurrences",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "draft_policy",
+      "title": "Параметры версии плана",
+      "method": "GET",
+      "path": "/api/v1/maintenance/draft-plans/{identity}/policy",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "draft_load",
+      "title": "Проверить нагрузку одной версии",
+      "method": "POST",
+      "path": "/api/v1/maintenance/draft-plans/{identity}/load-preview",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "draft_policy_edit",
+      "title": "Изменить параметры новой версией",
+      "method": "POST",
+      "path": "/api/v1/maintenance/draft-plans/{identity}/policy",
+      "roles": [
+        "chief_engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "draft_place",
+      "title": "Разместить или закрепить сегмент",
+      "method": "POST",
+      "path": "/api/v1/maintenance/draft-plans/{identity}/placements",
+      "roles": [
+        "chief_engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "draft_undo_preview",
+      "title": "Возможность отмены собственного изменения",
+      "method": "GET",
+      "path": "/api/v1/maintenance/draft-plans/{identity}/undo",
+      "roles": [
+        "chief_engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "draft_undo",
+      "title": "Отменить своё изменение новой версией",
+      "method": "POST",
+      "path": "/api/v1/maintenance/draft-plans/{identity}/undo",
+      "roles": [
+        "chief_engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "catalog_read_saved",
+      "title": "Сведения о сохранённом Excel",
+      "method": "GET",
+      "path": "/api/v1/maintenance/catalog-imports/{identity}",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "catalog_operations",
+      "title": "Страница исходных операций Excel",
+      "method": "GET",
+      "path": "/api/v1/maintenance/catalog-imports/{identity}/operations",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "draft_preview",
+      "title": "Рассчитать состав из подготовленных строк Excel",
+      "method": "POST",
+      "path": "/api/v1/maintenance/draft-plans/preview",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "draft_save",
+      "title": "Сохранить рассчитанный план из Excel",
+      "method": "POST",
+      "path": "/api/v1/maintenance/draft-plans",
+      "roles": [
+        "chief_engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "draft_segments",
+      "title": "Сегменты выбранной работы",
+      "method": "GET",
+      "path": "/api/v1/maintenance/draft-plans/{identity}/occurrences/{occurrence_id}/segments",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "draft_versions",
+      "title": "История версий выбранного плана",
+      "method": "GET",
+      "path": "/api/v1/maintenance/draft-plans/{identity}/versions",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "draft_split",
+      "title": "Изменить части работы новой версией",
+      "method": "POST",
+      "path": "/api/v1/maintenance/draft-plans/{identity}/segments",
+      "roles": [
+        "chief_engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "draft_validate",
+      "title": "Проверить допустимость версии без изменения",
+      "method": "POST",
+      "path": "/api/v1/maintenance/draft-plans/{identity}/validate",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "optimization_start",
+      "title": "Запустить расчёт вариантов распределения",
+      "method": "POST",
+      "path": "/api/v1/maintenance/draft-plans/{identity}/optimization-runs",
+      "roles": [
+        "chief_engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "optimization_list",
+      "title": "Расчёты вариантов выбранного плана",
+      "method": "GET",
+      "path": "/api/v1/maintenance/draft-plans/{identity}/optimization-runs",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "optimization_read",
+      "title": "Состояние и итоги расчёта",
+      "method": "GET",
+      "path": "/api/v1/maintenance/optimization-runs/{run_id}",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "optimization_placements",
+      "title": "Размещения рассчитанного варианта",
+      "method": "GET",
+      "path": "/api/v1/maintenance/optimization-runs/{run_id}/placements",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "optimization_apply",
+      "title": "Применить рассчитанный вариант новой версией",
+      "method": "POST",
+      "path": "/api/v1/maintenance/optimization-runs/{run_id}/apply",
+      "roles": [
+        "chief_engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "optimization_cancel",
+      "title": "Остановить расчёт",
+      "method": "POST",
+      "path": "/api/v1/maintenance/optimization-runs/{run_id}/cancel",
+      "roles": [
+        "chief_engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "publication_regulations",
+      "title": "Утверждённые инструкции для выпуска общего плана",
+      "method": "GET",
+      "path": "/api/v1/maintenance/draft-plans/{identity}/publication-regulations",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "publication_profiles",
+      "title": "Шаблоны инструкций для выпуска каталога",
+      "method": "GET",
+      "path": "/api/v1/maintenance/draft-plans/{identity}/publication-profiles",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "publication_prepare",
+      "title": "Подготовить предложение о выпуске",
+      "method": "POST",
+      "path": "/api/v1/maintenance/draft-plans/{identity}/publication-proposals",
+      "roles": [
+        "chief_engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "publication_list",
+      "title": "Согласования выбранного плана",
+      "method": "GET",
+      "path": "/api/v1/maintenance/draft-plans/{identity}/publication-proposals",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "publication_read",
+      "title": "Точный состав предложения о выпуске",
+      "method": "GET",
+      "path": "/api/v1/maintenance/publication-proposals/{identity}",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "publication_changes",
+      "title": "Страница изменений выпуска",
+      "method": "GET",
+      "path": "/api/v1/maintenance/publication-proposals/{identity}/changes",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "publication_approve",
+      "title": "Утвердить точное предложение о выпуске",
+      "method": "POST",
+      "path": "/api/v1/maintenance/publication-proposals/{identity}/approve",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "publication_reject",
+      "title": "Отклонить предложение о выпуске",
+      "method": "POST",
+      "path": "/api/v1/maintenance/publication-proposals/{identity}/reject",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "publication_publish",
+      "title": "Выпустить утверждённый план в реальные задания",
+      "method": "POST",
+      "path": "/api/v1/maintenance/publication-proposals/{identity}/publish",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "sites_list",
+      "title": "Доступные мне здания",
+      "method": "GET",
+      "path": "/api/v1/auth/sites",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "site_switch",
+      "title": "Переключить текущее здание",
+      "method": "POST",
+      "path": "/api/v1/auth/site",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "session_logout",
+      "title": "Выйти из системы",
+      "method": "POST",
+      "path": "/api/v1/auth/logout",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "profile_read",
+      "title": "Мой профиль и роль",
+      "method": "GET",
+      "path": "/api/v1/maintenance/users/me",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "profile_email",
+      "title": "Изменить мой email",
+      "method": "PATCH",
+      "path": "/api/v1/maintenance/users/me/email",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [
+        "current_password"
+      ],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "roles_list",
+      "title": "Описание ролей",
+      "method": "GET",
+      "path": "/api/v1/maintenance/users/roles",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "user_roles",
+      "title": "Своя роль; администратору — роль сотрудника",
+      "method": "GET",
+      "path": "/api/v1/maintenance/users/{user_id}/roles",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "users_list",
+      "title": "Сотрудники для управления доступом",
+      "method": "GET",
+      "path": "/api/v1/maintenance/users",
+      "roles": [
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "enrollment_read",
+      "title": "Код присоединения к компании",
+      "method": "GET",
+      "path": "/api/v1/maintenance/management/enrollment",
+      "roles": [
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "enrollment_create",
+      "title": "Создать код присоединения к компании",
+      "method": "POST",
+      "path": "/api/v1/maintenance/management/enrollment",
+      "roles": [
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "application_decide",
+      "title": "Рассмотреть заявку сотрудника",
+      "method": "POST",
+      "path": "/api/v1/maintenance/management/applications/{application_id}/decision",
+      "roles": [
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "staff_edit",
+      "title": "Изменить роль или доступ сотрудника",
+      "method": "PUT",
+      "path": "/api/v1/maintenance/management/staff/{user_id}",
+      "roles": [
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "shift_create",
+      "title": "Добавить смену сотрудника",
+      "method": "POST",
+      "path": "/api/v1/maintenance/management/staff/{user_id}/shifts",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "shift_edit",
+      "title": "Изменить смену сотрудника",
+      "method": "PUT",
+      "path": "/api/v1/maintenance/management/staff/{user_id}/shifts/{shift_id}",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "availability_create",
+      "title": "Добавить доступность или отсутствие",
+      "method": "POST",
+      "path": "/api/v1/maintenance/management/staff/{user_id}/availability",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "availability_cancel",
+      "title": "Отменить исключение доступности",
+      "method": "POST",
+      "path": "/api/v1/maintenance/management/staff/{user_id}/availability/{availability_id}/cancel",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "staff_calendar",
+      "title": "Свой календарь смен; руководителю — календарь сотрудника",
+      "method": "GET",
+      "path": "/api/v1/maintenance/management/staff/{user_id}/calendar",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "skill_create",
+      "title": "Добавить квалификацию",
+      "method": "POST",
+      "path": "/api/v1/maintenance/management/skills",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "qualification_set",
+      "title": "Подтвердить допуск сотрудника",
+      "method": "PUT",
+      "path": "/api/v1/maintenance/management/staff/{user_id}/qualifications/{skill_id}",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "qualification_revoke",
+      "title": "Отозвать допуск сотрудника",
+      "method": "POST",
+      "path": "/api/v1/maintenance/management/staff/{user_id}/qualifications/{skill_id}/revoke",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "crew_create",
+      "title": "Создать бригаду",
+      "method": "POST",
+      "path": "/api/v1/maintenance/management/crews",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "crew_edit",
+      "title": "Изменить бригаду",
+      "method": "PUT",
+      "path": "/api/v1/maintenance/management/crews/{crew_id}",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "pattern_preview",
+      "title": "Проверить календарную периодичность",
+      "method": "POST",
+      "path": "/api/v1/maintenance/management/calendar-pattern/preview",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "system_create",
+      "title": "Добавить инженерную систему",
+      "method": "POST",
+      "path": "/api/v1/maintenance/management/systems",
+      "roles": [
+        "chief_engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "equipment_type_create",
+      "title": "Добавить тип оборудования",
+      "method": "POST",
+      "path": "/api/v1/maintenance/management/equipment-types",
+      "roles": [
+        "chief_engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "registry_read",
+      "title": "Реестр систем и оборудования",
+      "method": "GET",
+      "path": "/api/v1/maintenance/registry",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "system_classify",
+      "title": "Изменить группу системы",
+      "method": "PATCH",
+      "path": "/api/v1/maintenance/registry/systems/{system_id}",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "building_create",
+      "title": "Добавить здание",
+      "method": "POST",
+      "path": "/api/v1/maintenance/registry/buildings",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "components_read",
+      "title": "Установленные детали и наработка",
+      "method": "GET",
+      "path": "/api/v1/maintenance/equipment/{equipment_id}/components",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "component_install",
+      "title": "Установить деталь",
+      "method": "POST",
+      "path": "/api/v1/maintenance/equipment/{equipment_id}/components",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "component_edit",
+      "title": "Изменить параметры ресурса детали",
+      "method": "PATCH",
+      "path": "/api/v1/maintenance/registry/components/{component_id}",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "component_replace",
+      "title": "Заменить или снять деталь",
+      "method": "POST",
+      "path": "/api/v1/maintenance/registry/components/{component_id}/replace",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "component_reading",
+      "title": "Записать наработку с фотографией",
+      "method": "POST",
+      "path": "/api/v1/maintenance/registry/components/{component_id}/readings",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [
+        "photo"
+      ],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "reading_photo",
+      "title": "Открыть фотографию показания",
+      "method": "GET",
+      "path": "/api/v1/maintenance/registry/readings/{reading_id}/photo",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "registry_export",
+      "title": "Выгрузить реестр или шаблон Excel",
+      "method": "GET",
+      "path": "/api/v1/maintenance/registry/excel",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "registry_import_preview",
+      "title": "Проверить файл импорта реестра",
+      "method": "POST",
+      "path": "/api/v1/maintenance/registry/excel/preview",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [
+        "file"
+      ],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "registry_import",
+      "title": "Применить проверенный импорт реестра",
+      "method": "POST",
+      "path": "/api/v1/maintenance/registry/excel/import",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [
+        "file"
+      ],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "catalog_import_preview",
+      "title": "Проверить исходный каталог Excel",
+      "method": "POST",
+      "path": "/api/v1/maintenance/catalog-imports/preview",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [
+        "file"
+      ],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "catalog_import",
+      "title": "Сохранить исходный каталог Excel",
+      "method": "POST",
+      "path": "/api/v1/maintenance/catalog-imports",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [
+        "file"
+      ],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "catalog_operation_source",
+      "title": "Исходные ячейки операции",
+      "method": "GET",
+      "path": "/api/v1/maintenance/catalog-imports/{identity}/operations/{row_number}",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "catalog_source_file",
+      "title": "Скачать сохранённый исходный Excel",
+      "method": "GET",
+      "path": "/api/v1/maintenance/catalog-imports/{identity}/source",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "catalog_binding_options",
+      "title": "Доступные привязки операций",
+      "method": "GET",
+      "path": "/api/v1/maintenance/catalog-imports/{identity}/binding-options",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "catalog_preparation",
+      "title": "Готовность каталога к планированию",
+      "method": "GET",
+      "path": "/api/v1/maintenance/catalog-imports/{identity}/preparation",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "catalog_decision_read",
+      "title": "Решение о норме и датах операции",
+      "method": "GET",
+      "path": "/api/v1/maintenance/catalog-imports/{identity}/operations/{number}/decision",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "catalog_decision",
+      "title": "Сохранить или подтвердить норму операции",
+      "method": "POST",
+      "path": "/api/v1/maintenance/catalog-imports/{identity}/operations/{number}/decision",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "catalog_decision_history",
+      "title": "История решений по исходной операции",
+      "method": "GET",
+      "path": "/api/v1/maintenance/catalog-imports/{identity}/operations/{number}/decision/history",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "draft_source_choices",
+      "title": "Подготовленные исходные строки",
+      "method": "GET",
+      "path": "/api/v1/maintenance/draft-plans/source-choices/{import_id}",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "draft_choices",
+      "title": "Оборудование, люди и квалификации планировщика",
+      "method": "GET",
+      "path": "/api/v1/maintenance/draft-plans/choices/{kind}",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "requirements_preview",
+      "title": "Общие обязанности выбранного периода",
+      "method": "POST",
+      "path": "/api/v1/maintenance/planning-requirements/preview",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "jobs_list",
+      "title": "Рабочие наряды",
+      "method": "GET",
+      "path": "/api/v1/maintenance/jobs",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "job_create",
+      "title": "Создать наряд по регламенту",
+      "method": "POST",
+      "path": "/api/v1/maintenance/jobs",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "job_read",
+      "title": "Состояние рабочего наряда",
+      "method": "GET",
+      "path": "/api/v1/maintenance/jobs/{job_id}",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "job_transition",
+      "title": "Изменить состояние рабочего наряда",
+      "method": "POST",
+      "path": "/api/v1/maintenance/jobs/{job_id}/transitions",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "job_history",
+      "title": "История рабочего наряда",
+      "method": "GET",
+      "path": "/api/v1/maintenance/jobs/{job_id}/history",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "equipment_ui_list",
+      "title": "Оборудование с историей обслуживания",
+      "method": "GET",
+      "path": "/api/v1/maintenance/ui/equipment",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "equipment_history",
+      "title": "Карточка и история обслуживания",
+      "method": "GET",
+      "path": "/api/v1/maintenance/ui/equipment/{equipment_id}",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "calendar_preview",
+      "title": "Предпросмотр нормативного календаря",
+      "method": "GET",
+      "path": "/api/v1/maintenance/ui/calendar/preview",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "workload_read",
+      "title": "Расчёт загрузки и персонала",
+      "method": "GET",
+      "path": "/api/v1/maintenance/planning/workload",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "calendar_generate",
+      "title": "Сформировать задания нормативного календаря",
+      "method": "POST",
+      "path": "/api/v1/maintenance/calendar/generate",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "comparisons_list",
+      "title": "Сохранённые сравнения прогнозов",
+      "method": "GET",
+      "path": "/api/v1/maintenance/ui/comparisons",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "comparison_read",
+      "title": "Объяснение выбранного прогноза",
+      "method": "GET",
+      "path": "/api/v1/maintenance/ui/comparisons/{run_id}",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "quality_list",
+      "title": "Очередь отчётов на приёмку",
+      "method": "GET",
+      "path": "/api/v1/maintenance/ui/quality",
+      "roles": [
+        "chief_engineer",
+        "engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "photo_upload",
+      "title": "Прикрепить фотографию к отчёту",
+      "method": "POST",
+      "path": "/api/v1/maintenance/tasks/{task_id}/photos",
+      "roles": [
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [
+        "file"
+      ],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "photo_read",
+      "title": "Открыть фотографию отчёта",
+      "method": "GET",
+      "path": "/api/v1/maintenance/photos/{photo_id}",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "act_upload",
+      "title": "Прикрепить подтверждающий акт",
+      "method": "POST",
+      "path": "/api/v1/maintenance/tasks/{task_id}/acts",
+      "roles": [
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [
+        "file"
+      ],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "act_verify",
+      "title": "Проверить подтверждающий акт",
+      "method": "POST",
+      "path": "/api/v1/maintenance/tasks/{task_id}/acts/{identity}/verify",
+      "roles": [
+        "chief_engineer",
+        "engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "task_attempts",
+      "title": "История попыток выполнения",
+      "method": "GET",
+      "path": "/api/v1/maintenance/tasks/{task_id}/attempts",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "task_reopen",
+      "title": "Повторно открыть принятое задание",
+      "method": "POST",
+      "path": "/api/v1/maintenance/tasks/{task_id}/reopen",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "late_authorize",
+      "title": "Разрешить приёмку просроченного отчёта",
+      "method": "POST",
+      "path": "/api/v1/maintenance/tasks/{task_id}/late-authorization",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "late_execution",
+      "title": "Разрешить выполнение в отдельном окне",
+      "method": "POST",
+      "path": "/api/v1/maintenance/tasks/{task_id}/late-execution",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "plans_list",
+      "title": "Месячные нормативные планы",
+      "method": "GET",
+      "path": "/api/v1/maintenance/plans",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "plan_approve",
+      "title": "Утвердить месячный нормативный план",
+      "method": "POST",
+      "path": "/api/v1/maintenance/plans/{identity}/approve",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "overview_read",
+      "title": "Показатели доступных объектов",
+      "method": "GET",
+      "path": "/api/v1/maintenance/overview",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "report_export",
+      "title": "Выгрузить график или наряды в Excel",
+      "method": "GET",
+      "path": "/api/v1/maintenance/export.xlsx",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "schedule_matrix",
+      "title": "Матрица нормативных обязанностей",
+      "method": "GET",
+      "path": "/api/v1/maintenance/schedule-matrix",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "comparison_confirm",
+      "title": "Подтвердить вариант прогноза",
+      "method": "POST",
+      "path": "/api/v1/maintenance/comparisons/{run_id}/confirm",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "checklist_catalog",
+      "title": "Каталог утверждённых чек-листов",
+      "method": "GET",
+      "path": "/api/v1/maintenance/checklist-catalog",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "notifications_list",
+      "title": "Мои уведомления",
+      "method": "GET",
+      "path": "/api/v1/maintenance/notifications",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "notifications_read_all",
+      "title": "Отметить все уведомления прочитанными",
+      "method": "POST",
+      "path": "/api/v1/maintenance/notifications/read-all",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "notifications_clear",
+      "title": "Удалить все мои уведомления",
+      "method": "POST",
+      "path": "/api/v1/maintenance/notifications/clear",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "notification_delete",
+      "title": "Удалить моё уведомление",
+      "method": "POST",
+      "path": "/api/v1/maintenance/notifications/{identity}/delete",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "notification_read",
+      "title": "Прочитать моё уведомление",
+      "method": "POST",
+      "path": "/api/v1/maintenance/notifications/{identity}/read",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "incidents_list",
+      "title": "Мои доступные обращения о дефектах",
+      "method": "GET",
+      "path": "/api/v1/maintenance/incidents",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "photo"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "incident_create",
+      "title": "Сообщить о дефекте с фотографией",
+      "method": "POST",
+      "path": "/api/v1/maintenance/incidents",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "photo"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [
+        "file"
+      ],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "incident_photo",
+      "title": "Открыть снимок обращения",
+      "method": "GET",
+      "path": "/api/v1/maintenance/incidents/{identity}/photo",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "photo"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "incident_analyze",
+      "title": "Проанализировать обращение",
+      "method": "POST",
+      "path": "/api/v1/maintenance/incidents/{identity}/analyze",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher"
+      ],
+      "agents": [
+        "assistant",
+        "photo"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "incident_task",
+      "title": "Создать работу по разобранному обращению",
+      "method": "POST",
+      "path": "/api/v1/maintenance/incidents/{identity}/create-task",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "operations_list",
+      "title": "Каталог операций обслуживания",
+      "method": "GET",
+      "path": "/api/v1/maintenance/operations",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "operation_read",
+      "title": "Операция и её нормативные требования",
+      "method": "GET",
+      "path": "/api/v1/maintenance/operations/{operation_id}",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "operation_create",
+      "title": "Создать операцию обслуживания",
+      "method": "POST",
+      "path": "/api/v1/maintenance/operations",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "operation_edit",
+      "title": "Изменить операцию обслуживания",
+      "method": "PATCH",
+      "path": "/api/v1/maintenance/operations/{operation_id}",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "operation_retire",
+      "title": "Отключить операцию обслуживания",
+      "method": "DELETE",
+      "path": "/api/v1/maintenance/operations/{operation_id}",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "regulations_list",
+      "title": "Версии регламентов",
+      "method": "GET",
+      "path": "/api/v1/maintenance/regulations",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "canonical_tasks",
+      "title": "Задания с нормативными параметрами",
+      "method": "GET",
+      "path": "/api/v1/maintenance/tasks",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "canonical_calendar",
+      "title": "События нормативного календаря",
+      "method": "GET",
+      "path": "/api/v1/maintenance/calendar",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "equipment_executions",
+      "title": "Принятая история выполнения оборудования",
+      "method": "GET",
+      "path": "/api/v1/maintenance/equipment/{equipment_id}/executions",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "ai_models",
+      "title": "Доступные модели фотоанализа",
+      "method": "GET",
+      "path": "/api/v1/maintenance/ai/models",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    }
+  ],
+  "excluded": [
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "reason": "service health"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/assistant/attachments/{identity}",
+      "reason": "human chat transport; deliberately not callable as a model tool"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/assistant/capabilities",
+      "reason": "human chat transport; deliberately not callable as a model tool"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/assistant/conversations",
+      "reason": "human chat transport; deliberately not callable as a model tool"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/assistant/conversations/{identity}",
+      "reason": "human chat transport; deliberately not callable as a model tool"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/session",
+      "reason": "alias of profile_read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/maintenance/photos/{photo_id}/content",
+      "reason": "alias of photo_read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/maintenance_jobs",
+      "reason": "compatibility alias"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/maintenance_jobs/{job_id}",
+      "reason": "compatibility alias"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/maintenance_jobs/{job_id}/history",
+      "reason": "compatibility alias"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/maintenance/jobs/{job_id}",
+      "reason": "alias of job_transition"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/maintenance_jobs/{job_id}",
+      "reason": "compatibility alias"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/assistant/actions/{identity}/confirm",
+      "reason": "human chat transport; deliberately not callable as a model tool"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/assistant/actions/{identity}/reject",
+      "reason": "human chat transport; deliberately not callable as a model tool"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/assistant/conversations",
+      "reason": "human chat transport; deliberately not callable as a model tool"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/assistant/conversations/{identity}/attachments",
+      "reason": "human chat transport; deliberately not callable as a model tool"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/assistant/conversations/{identity}/messages",
+      "reason": "human chat transport; deliberately not callable as a model tool"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/assistant/mcp",
+      "reason": "human chat transport; deliberately not callable as a model tool"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "reason": "sign-in precedes the authenticated chat"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/register",
+      "reason": "registration precedes a session"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/sites",
+      "reason": "pre-login membership lookup"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/maintenance/users/me/password",
+      "reason": "password changes explicitly excluded by owner"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/maintenance_jobs",
+      "reason": "compatibility alias"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/maintenance_jobs/{job_id}/transitions",
+      "reason": "compatibility alias"
+    }
+  ],
+  "infrastructure_exclusion": "Only the exact transport, pre-login and compatibility routes listed above; no blanket path-prefix exclusion"
+}

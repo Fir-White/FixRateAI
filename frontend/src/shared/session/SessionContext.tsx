@@ -16,7 +16,7 @@ import { clearAiKey } from "@/shared/lib/aiCredentials";
 const STORAGE_KEY = "fixrate.demo.role";
 const SESSION_EVENT_KEY = "fixrate.session.changed.v1";
 
-function notifyOtherTabs() {
+export function notifyOtherTabs() {
   try { window.localStorage.setItem(SESSION_EVENT_KEY, `${Date.now()}:${Math.random()}`); } catch { /* The next focus check still synchronizes the session. */ }
 }
 

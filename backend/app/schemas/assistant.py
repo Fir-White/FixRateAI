@@ -23,6 +23,7 @@ class MessageCreate(Input):
 class ConfirmAction(Input):
     payload_sha256:str=Field(pattern=r'^[0-9a-f]{64}$')
     confirmed:Literal[True]
+    secret_values:dict[str,str]=Field(default_factory=dict,max_length=3)
 
 class AgentCall(Input):
     tool:str=Field(min_length=1,max_length=100)
@@ -40,4 +41,15 @@ class AgentStep(Input):
     answer:str=Field(max_length=12000)
     calls:list[AgentCall]=Field(max_length=3)
 
-ASSISTANT_CONTRACTS=(ConversationCreate,MessageCreate,ConfirmAction,AgentStep)
+class ToolSelection(Input):
+    tools:list[str]=Field(max_length=8)
+
+class ResultView(Input):
+    path:list[str]=Field(default_factory=list,max_length=6)
+    offset:int=Field(default=0,ge=0)
+    limit:int=Field(default=25,ge=1,le=25)
+    q:str=Field(default='',max_length=200)
+    text_offset:int=Field(default=0,ge=0)
+    text_limit:int=Field(default=6000,ge=1,le=6000)
+
+ASSISTANT_CONTRACTS=(ConversationCreate,MessageCreate,ConfirmAction,AgentStep,ResultView,ToolSelection)
