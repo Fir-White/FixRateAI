@@ -10,10 +10,28 @@ const chat={conversation_id:'chat',title:'Мой диалог',agent:'assistant'
 const view:ChatView={conversation:chat,turns:[],total:0,actions:[]};
 beforeEach(()=>{vi.restoreAllMocks();vi.spyOn(api,'capabilities').mockResolvedValue(caps);vi.spyOn(api,'list').mockResolvedValue({items:[chat],total:1});vi.spyOn(api,'read').mockResolvedValue(view);vi.spyOn(api,'send').mockResolvedValue({turn_id:'new',status:'running'});});
 function show(path='/assistant?chat=chat'){render(<MemoryRouter initialEntries={[path]}><AssistantPage/></MemoryRouter>);}
-it('retains the composer when switching specializations and returning to the saved conversation',async()=>{
+it('retains the composer when opening a new chat and returning through right-hand history',async()=>{
   const user=userEvent.setup();show();const input=await screen.findByLabelText('Сообщение помощнику');await user.type(input,'Сохранённый вопрос');
-  await user.click(screen.getByRole('button',{name:'Фотоанализ'}));await user.click(screen.getByRole('button',{name:/Мой диалог/}));
+  await user.click(screen.getAllByRole('button',{name:/Новый чат/})[0]);await user.click(screen.getByRole('button',{name:/Мой диалог/}));
   expect(await screen.findByLabelText('Сообщение помощнику')).toHaveValue('Сохранённый вопрос');
+});
+it('opens a blank composer without creating a conversation and always starts the unified agent',async()=>{
+  const user=userEvent.setup();vi.spyOn(api,'create').mockResolvedValue(chat);show('/assistant');
+  const input=await screen.findByLabelText('Сообщение помощнику');expect(api.create).not.toHaveBeenCalled();expect(api.read).not.toHaveBeenCalled();
+  expect(screen.queryByRole('button',{name:'Фотоанализ'})).not.toBeInTheDocument();
+  await user.type(input,'Первая задача');await user.keyboard('{Enter}');await waitFor(()=>expect(api.send).toHaveBeenCalled());expect(api.create).toHaveBeenCalledWith('assistant');
+});
+it('shows server activity and local timestamps without exposing an unfinished answer',async()=>{
+  const turn={turn_id:'t',content:'Проверь назначение',answer:'INTERNAL PARTIAL',status:'running' as const,error_code:null,trace:[{tool:'assignment_preview',status:'running'}],created_at:'2026-11-14T08:15:00Z',model_ref:null};
+  vi.mocked(api.read).mockResolvedValue({...view,turns:[turn],total:1});show();
+  expect(await screen.findByText(/Проверяю состав бригады, допуски и время/)).toHaveAttribute('role','status');expect(screen.queryByText('INTERNAL PARTIAL')).not.toBeInTheDocument();
+  expect(screen.getByText(/13:15/,{selector:'time'})).toHaveAttribute('datetime',turn.created_at);
+});
+it('retries a lost first-send response without creating another conversation or request key',async()=>{
+  const user=userEvent.setup();vi.spyOn(api,'create').mockResolvedValue(chat);vi.mocked(api.send).mockRejectedValue(new Error('Соединение потеряно'));show('/assistant');
+  await user.type(await screen.findByLabelText('Сообщение помощнику'),'Первая задача');
+  await user.click(screen.getByRole('button',{name:'Отправить'}));await screen.findByRole('alert');await user.click(screen.getByRole('button',{name:'Отправить'}));
+  await waitFor(()=>expect(api.send).toHaveBeenCalledTimes(2));expect(api.create).toHaveBeenCalledTimes(1);expect(vi.mocked(api.send).mock.calls[0][2]).toBe(vi.mocked(api.send).mock.calls[1][2]);
 });
 it('keeps text and idempotency key on a failed send',async()=>{
   const user=userEvent.setup();vi.mocked(api.send).mockRejectedValue(new Error('Соединение потеряно'));show();

@@ -145,7 +145,7 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
           ref={contentRef}
           id={executor ? "executor-content" : "main-content"}
           tabIndex={-1}
-          className={`ops-main mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-10 ${profile.role === "executor" ? "workspace-executor-main" : ""}`}
+          className={`ops-main mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-10 ${profile.role === "executor" ? "workspace-executor-main" : ""} ${location.pathname.replace(/\/+$/, "") === "/assistant" ? "ops-main--assistant" : ""}`}
         >
           {location.pathname.replace(/\/+$/, "") === "/profile" ? <Outlet /> : <ContentTheme><SectionNavigation/><Outlet /></ContentTheme>}
         </main>

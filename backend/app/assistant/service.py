@@ -20,6 +20,13 @@ MAX_TOOL_CALLS=20
 def now():return datetime.now(timezone.utc)
 def dump(value):return json.dumps(value,ensure_ascii=False,default=str)
 
+def progress(app,turn_id,trace,tool=None):
+    """Publish only server-controlled operation metadata, never model reasoning."""
+    entries=[*trace,*([dict(tool=tool,status='running',at=now().isoformat())] if tool else [])]
+    with app.state.factory() as session:
+        session.execute(text("UPDATE assistant_turns SET trace=CAST(:trace AS jsonb) WHERE turn_id=:id AND status='running'"),dict(id=turn_id,trace=dump(entries)))
+        session.commit()
+
 def conversation(session,principal,identity,lock=False):
     row=session.execute(text('SELECT * FROM assistant_conversations WHERE conversation_id=:id AND site_id=:site AND user_id=:user AND role=:role'+(' FOR UPDATE' if lock else '')),
         dict(id=identity,site=principal.site_id,user=principal.user_id,role=principal.role)).mappings().first()
@@ -101,10 +108,11 @@ async def agent_turn(app,principal,thread_id,turn_id,headers):
         outcomes=session.execute(text('''SELECT tool_name,status,result FROM assistant_actions WHERE conversation_id=:id
             ORDER BY created_at DESC LIMIT 8'''),dict(id=thread_id)).mappings().all()
         files=session.execute(text('SELECT * FROM assistant_attachments WHERE conversation_id=:id ORDER BY created_at DESC LIMIT 20'),dict(id=thread_id)).mappings().all()
-    tools=available(app,principal.role,thread['agent'])
+    # Legacy profile IDs remain readable; all conversations now use one capable agent.
+    tools=available(app,principal.role,'assistant')
     context=dict(site=principal.site_name,site_id=str(principal.site_id),user_id=str(principal.user_id),timezone=principal.timezone,role=principal.role,current_time=now().isoformat(),
-        tools=catalog(app,principal.role,thread['agent']),recent_action_results=compact([dict(r) for r in outcomes],10000),attachments=[public_file(r) for r in files])
-    messages=[dict(role='system',content=prompt(thread['agent'])+'\nКонтекст сервера:\n'+dump(context))]
+        tools=catalog(app,principal.role,'assistant'),recent_action_results=compact([dict(r) for r in outcomes],10000),attachments=[public_file(r) for r in files])
+    messages=[dict(role='system',content=prompt('assistant')+'\nКонтекст сервера:\n'+dump(context))]
     history=[];used=0
     for turn in reversed(turns):
         size=len(turn['content'])+len(turn['answer'])
@@ -116,6 +124,7 @@ async def agent_turn(app,principal,thread_id,turn_id,headers):
     client=app.state.assistant_provider_factory() if hasattr(app.state,'assistant_provider_factory') else provider()
     trace=[];calls_used=0;answer='';model_ref=None
     try:
+        progress(app,turn_id,trace,'__routing')
         route=await asyncio.to_thread(client.chat,[*messages,dict(role='system',content=(PROMPTS/'router.md').read_text(encoding='utf-8'))],ToolSelection,1200)
         schemas=[];schema_size=0
         for name in dict.fromkeys(route.tools):
@@ -128,6 +137,7 @@ async def agent_turn(app,principal,thread_id,turn_id,headers):
             while len(messages)>base_count+2 and sum(len(m['content']) for m in messages)>95000:
                 del messages[base_count:base_count+2]
             if sum(len(m['content']) for m in messages)>100000:raise AITunnelFailure('ASSISTANT_CONTEXT_LIMIT')
+            progress(app,turn_id,trace,'__responding')
             result=await asyncio.to_thread(client.chat,messages,AgentStep,3500)
             model_ref=getattr(client,'response_model',None) or getattr(getattr(client,'config',None),'model_ref',None)
             answer=result.answer
@@ -136,6 +146,7 @@ async def agent_turn(app,principal,thread_id,turn_id,headers):
             for call in result.calls:
                 calls_used+=1
                 if calls_used>MAX_TOOL_CALLS:raise AITunnelFailure('ASSISTANT_TOOL_LIMIT')
+                progress(app,turn_id,trace,call.tool)
                 try:
                     if call.tool=='describe_tool':
                         name=call.arguments.get('name')
@@ -159,16 +170,17 @@ async def agent_turn(app,principal,thread_id,turn_id,headers):
                                 proposal=await propose(app,session,who,thread,tool,args,call.explanation,headers,turn_id)
                             value=dict(status='awaiting_confirmation',action_id=str(proposal['action_id']))
                         else:value=bounded(await invoke(app,tool,args,headers))
-                    entry=dict(tool=call.tool,status='proposed' if proposal else 'completed')
+                    entry=dict(tool=call.tool,status='proposed' if proposal else 'completed',at=now().isoformat())
                     if isinstance(value,dict) and isinstance(value.get('resource'),dict):entry['resource']=value['resource']
                     trace.append(entry)
                     responses.append(dict(tool=call.tool,result=value))
                 except HTTPException as exc:
-                    trace.append(dict(tool=call.tool,status='denied',code=exc.status_code))
+                    trace.append(dict(tool=call.tool,status='denied',code=exc.status_code,at=now().isoformat()))
                     feedback=dict(tool=call.tool,error=str(exc.detail)[:1500],status_code=exc.status_code)
                     if exc.status_code==422 and call.tool in tools:
                         feedback['expected_arguments']=describe(app,tools[call.tool])['inputSchema']
                     responses.append(feedback)
+                progress(app,turn_id,trace)
                 if proposal:break
             if proposal:
                 answer=(answer+'\n\n' if answer else '')+'Подготовлено предложение «'+tool.title+'». Проверьте параметры и подтвердите его в карточке ниже. Изменение пока не выполнено.'
@@ -199,7 +211,7 @@ async def confirm(app,session,principal,row,headers,secret_values=None):
     EXPECTED_PRINCIPAL.set((principal.user_id,principal.site_id,principal.role))
     SCOPE.set((row['conversation_id'],principal.user_id,principal.site_id,principal.role))
     thread=conversation(session,principal,row['conversation_id'])
-    tools=available(app,principal.role,thread['agent']);tool=tools.get(row['tool_name'])
+    tools=available(app,principal.role,'assistant');tool=tools.get(row['tool_name'])
     if tool is None or tool.mode!='write':raise HTTPException(403,'Право на действие изменилось')
     secret_values=secret_values or {}
     secret_fields=public_action(row)['secret_fields']

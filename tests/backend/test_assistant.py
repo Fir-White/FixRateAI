@@ -168,6 +168,29 @@ def test_chat_provider_failure_persists_message_and_no_fabricated_success(assist
         assert 'secret' not in json.dumps(turn)
     finally:del app.state.assistant_provider_factory
 
+def test_live_progress_is_durable_and_legacy_profiles_use_unified_role_tools(assistant_case):
+    engine,app,admin,_,ids=assistant_case;t=thread(admin,'photo');observed=[]
+    class Observed(Scripted):
+        def chat(self,messages,schema,tokens):
+            with engine.connect() as c:
+                trace=c.scalar(text('SELECT trace FROM assistant_turns WHERE conversation_id=:id'),dict(id=t))
+            observed.append(trace)
+            return super().chat(messages,schema,tokens)
+    script=Observed([dict(answer='',calls=[dict(tool='catalog_read',arguments={},explanation='TEST ONLY read')]),
+        dict(answer='TEST ONLY proposal',calls=[dict(tool='equipment_create',arguments=dict(body=equipment_body(ids)),explanation='TEST ONLY create')])])
+    app.state.assistant_provider_factory=lambda:script
+    try:
+        r=admin.post(B+'/conversations/'+t+'/messages',json=dict(idempotency_key=str(uuid4()),content='TEST ONLY unified legacy chat'))
+        assert r.status_code==202
+        view=admin.get(B+'/conversations/'+t).json();turn=view['turns'][0]
+        assert observed[0][-1]['tool']=='__routing' and observed[0][-1]['status']=='running'
+        assert observed[-1][0]['tool']=='catalog_read' and observed[-1][0]['status']=='completed'
+        assert observed[-1][-1]['tool']=='__responding'
+        assert all(s.get('at') for s in turn['trace']) and all(not s['tool'].startswith('__') for s in turn['trace'])
+        assert view['actions'][0]['tool_name']=='equipment_create' and view['actions'][0]['status']=='proposed'
+        assert confirm(admin,view['actions'][0]).json()['status']=='succeeded'
+    finally:del app.state.assistant_provider_factory
+
 def test_director_can_chat_but_only_personal_mutations_are_exposed(runtime):
     _,app=runtime
     with closing(login(app,'director')) as client:

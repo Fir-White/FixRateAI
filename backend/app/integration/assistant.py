@@ -194,7 +194,7 @@ def register_routes(app,views):
                     except (ValueError,TypeError,AttributeError):raise HTTPException(422,'Укажите conversation_id своего диалога')
                     thread=svc.conversation(v.session,v.principal,thread_id)
                     SCOPE.set((thread_id,v.principal.user_id,v.principal.site_id,v.principal.role))
-                    if tool.name not in available(app,v.principal.role,thread['agent']):raise HTTPException(403,'Инструмент недоступен агенту диалога')
+                    if tool.name not in available(app,v.principal.role,'assistant'):raise HTTPException(403,'Инструмент недоступен агенту диалога')
                     if tool.mode=='write':value=await svc.propose(app,v.session,v.principal,thread,tool,arguments,'Предложение MCP: '+tool.title,forwarded(request))
                     else:value=bounded(await invoke(app,tool,validate_arguments(app,tool,arguments),forwarded(request)))
                 else:value=bounded(await invoke(app,tool,validate_arguments(app,tool,arguments),forwarded(request)))

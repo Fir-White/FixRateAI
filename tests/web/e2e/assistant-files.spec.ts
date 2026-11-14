@@ -7,7 +7,7 @@ test.describe('complete assistant file workflow on isolated TEST stand',()=>{
     const fixture=JSON.parse(readFileSync('reports/assistant-qa-cases.json','utf8'))[String(width)],base=process.env.FIXRATE_BASE_URL!;
     const auth=await context.request.post(base+'/api/v1/auth/login',{data:{email:fixture.email,password:'Test-Requirements-2026!'}});expect(auth.ok()).toBeTruthy();const csrf=(await auth.json()).csrfToken;
     await page.setViewportSize({width,height:900});const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
-    await page.goto('/assistant');await page.getByRole('button',{name:'Начать диалог',exact:true}).click();
+    await page.goto('/assistant');
     await page.getByLabel('Прикрепить файл').setInputFiles(path.resolve(`reports/assistant-import-fixtures/${width}.xlsx`));
     await expect(page.getByRole('list',{name:'Вложения диалога'})).toContainText(`${width}.xlsx`);
     let listing=await context.request.get(base+'/api/v1/maintenance/equipment?'+new URLSearchParams({q:'XLS-1'}));expect((await listing.json()).items.filter((item:{asset_code:string})=>item.asset_code==='XLS-1')).toHaveLength(0);

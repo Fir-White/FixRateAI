@@ -10,10 +10,10 @@ test.describe('assistant real API with explicitly scripted TEST model',()=>{
     const auth=await context.request.post(base+'/api/v1/auth/login',{data:{email:fixture.email,password:'Test-Requirements-2026!'}});expect(auth.ok()).toBeTruthy();
     const csrf=(await auth.json()).csrfToken;await page.setViewportSize({width,height:900});
     const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
-    await page.goto('/assistant');await page.getByRole('button',{name:'Начать диалог',exact:true}).click();
-    await expect(page).toHaveURL(/chat=/);const saved=page.url();
+    await page.goto('/assistant');
     const input=page.getByLabel('Сообщение помощнику');await input.fill(`TEST ONLY create equipment AIQA-${width}`);
     await page.getByRole('button',{name:'Отправить',exact:true}).click();
+    await expect(page).toHaveURL(/chat=/);const saved=page.url();
     const proposal=page.getByRole('region',{name:'Предложение: Добавить оборудование'});
     await expect(proposal).toBeVisible();await expect(proposal).toContainText(`AIQA-${width}`);
     const listing=async()=>{const response=await context.request.get(base+'/api/v1/maintenance/equipment');return (await response.json()).items.filter((item:{asset_code:string})=>item.asset_code===`AIQA-${width}`);};
@@ -25,7 +25,7 @@ test.describe('assistant real API with explicitly scripted TEST model',()=>{
     expect(await listing()).toHaveLength(1);
     await expect(proposal.getByRole('button',{name:'Подтвердить и выполнить'})).toHaveCount(0);
     await input.fill('TEST ONLY retained composer');
-    await page.getByRole('button',{name:'Фотоанализ',exact:true}).click();
+    await page.getByRole('button',{name:/Новый чат/}).first().click();
     await page.goBack();await expect(page).toHaveURL(saved);await expect(input).toHaveValue('TEST ONLY retained composer');
     await input.fill('TEST ONLY fail');await page.getByRole('button',{name:'Отправить',exact:true}).click();
     await expect(page.getByText('Код: AITUNNEL_UNAVAILABLE')).toBeVisible();
