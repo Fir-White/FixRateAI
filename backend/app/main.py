@@ -750,6 +750,8 @@ def create_app(engine=None):
     register_draft_plans(app, views)
     from app.integration.requirements import register_routes as register_requirements
     register_requirements(app, views)
+    from app.integration.portfolio_plans import register_routes as register_portfolio_plans
+    register_portfolio_plans(app, views)
     from app.integration.optimization import register_routes as register_optimization
     register_optimization(app, views)
     from app.integration.publication import register_routes as register_publication

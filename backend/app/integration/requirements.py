@@ -109,7 +109,7 @@ def _existing(rows,rule_id=None,*,catalog=False):
     return 'existing',tasks,[]
 
 
-def preview(v,request,now=None):
+def preview(v,request,now=None,*,capture=False):
     now=now or datetime.now(timezone.utc);site=v.one('sites',site_id=v.principal.site_id);tz=ZoneInfo(site.timezone)
     items=[];issues=[];facts={};binding_count=0;source_labels={}
     def issue(kind,code,message,**ref):
@@ -223,10 +223,11 @@ def preview(v,request,now=None):
     normalized=request.model_dump(mode='json',exclude={'q','state','offset','issue_offset'})
     normalized['binding_ids'].sort()
     if normalized['catalog']:normalized['catalog']['row_numbers'].sort()
-    return dict(starts_on=request.starts_on,ends_on=request.ends_on,timezone=site.timezone,calculated_at=now,
+    result=dict(starts_on=request.starts_on,ends_on=request.ends_on,timezone=site.timezone,calculated_at=now,
         source_sha256=digest(dict(input=normalized,facts=clean(facts),day=now.astimezone(tz).date())),summary=summary,
         months=[dict(month=k,**v) for k,v in sorted(months.items())],items=filtered[request.offset:request.offset+25],total=len(filtered),
         issues=issues[request.issue_offset:request.issue_offset+25],total_issues=len(issues))
+    return (result,items,facts,issues) if capture else result
 
 
 def register_routes(app,views):

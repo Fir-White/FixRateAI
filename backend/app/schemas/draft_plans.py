@@ -118,15 +118,20 @@ class AllowedInterval(Model):
 class WorkOccurrence(Model):
     occurrence_id: UUID
     site_id: UUID
-    import_id: UUID
+    import_id: UUID | None
     source_sha256: str
     parser_version: str
-    source_row: int
-    decision_revision: int
+    source_row: int | None
+    decision_revision: int | None
     source_cells: list[str]
     source_date: date
     source_slot: Literal['whole_day','day','night']
-    date_basis: Literal['source_january','confirmed_rule'] = 'source_january'
+    date_basis: Literal['source_january','confirmed_rule','regulation_rule','accepted_history'] = 'source_january'
+    source_kind: Literal['catalog','regulation'] = 'catalog'
+    binding_id: UUID | None = None
+    rule_id: UUID | None = None
+    regulation_id: UUID | None = None
+    minimum_duration_minutes: int | None = Field(default=None,gt=0,le=46080)
     title: str
     operation_code: str
     maintenance_type: str
@@ -145,6 +150,23 @@ class WorkOccurrence(Model):
     norm_ref: str
     norm_scope: Literal['per_asset','whole_binding']
     policy_note: str
+
+    @model_validator(mode='after')
+    def lineage(self):
+        if self.source_kind=='catalog':
+            if self.import_id is None or self.source_row is None or self.decision_revision is None or any((self.binding_id,self.rule_id,self.regulation_id)):
+                raise ValueError('Каталожная работа должна ссылаться на строку исходного Excel')
+        elif self.import_id is not None or self.source_row is not None or self.decision_revision is not None or not all((self.binding_id,self.rule_id,self.regulation_id,self.minimum_duration_minutes)):
+            raise ValueError('Регламентная работа должна ссылаться на реальные привязку/правило/редакцию и подтверждённую длительность')
+        return self
+
+    @model_serializer(mode='wrap')
+    def stable_snapshot(self,handler):
+        value=handler(self)
+        if self.source_kind=='catalog':
+            for key in ('source_kind','binding_id','rule_id','regulation_id'):value.pop(key,None)
+        if self.minimum_duration_minutes is None:value.pop('minimum_duration_minutes',None)
+        return value
 
 class WorkSegment(Model):
     segment_id: UUID
@@ -245,7 +267,8 @@ class DraftRecord(Model):
     draft_id: UUID
     revision: int
     parent_revision: int | None
-    import_id: UUID
+    import_id: UUID | None
+    source_kind: Literal['catalog','portfolio'] = 'catalog'
     title: str
     starts_on: date
     ends_on: date

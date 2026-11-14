@@ -147,6 +147,7 @@ def validate(occurrences,segments,workers,policy,starts_on,ends_on,timezone_name
             if left.astimezone(tz).date()<starts_on or (right-timedelta(microseconds=1)).astimezone(tz).date()>ends_on+timedelta(days=root.source_slot=='night'):
                 add('OUTSIDE_HORIZON','Размещение выходит за горизонт версии плана',root,segment)
             if _hours(left,right)*root.crew_size<segment.person_hours: add('DURATION_TOO_SHORT','Интервал бригады меньше подтверждённой трудоёмкости сегмента',root,segment)
+            if root.minimum_duration_minutes and right-left<timedelta(minutes=root.minimum_duration_minutes):add('DURATION_TOO_SHORT','Интервал меньше подтверждённой длительности регламента',root,segment)
             if len(segment.worker_ids)!=root.crew_size: add('CREW_SIZE','Для сегмента нужен полный одновременный состав бригады',root,segment)
             placed+=segment.person_hours
             parts=list(_parts(left,right,tz));remaining=segment.person_hours;duration=_hours(left,right)

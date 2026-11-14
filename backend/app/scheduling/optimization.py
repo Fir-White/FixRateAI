@@ -61,7 +61,8 @@ class Problem:
         self.started=monotonic();self.cancel=cancel or Event()
         self.options=OptimizationOptions.model_validate(payload['options'])
         self.deadline=self.started+self.options.time_limit_seconds
-        self.request=GenerationInput.model_validate(payload['source_snapshot']['input'])
+        from app.schemas.portfolio import planning_input
+        self.request=planning_input(payload['source_snapshot']['input'])
         self.tz=ZoneInfo(payload['source_snapshot']['source']['timezone'])
         self.now=datetime.fromisoformat(payload['resources']['as_of'])
         self.cutoff=self.now+timedelta(minutes=self.options.start_buffer_minutes)
@@ -164,7 +165,7 @@ class Problem:
     def enumerate(self):
         for group in self.groups:
             self.tick();root=group.root
-            durations=[_seconds(s.start_at,s.end_at) if self.frozen(s) else int((s.person_hours*60/root.crew_size).to_integral_value(rounding=ROUND_CEILING))*60 for s in group.segments]
+            durations=[_seconds(s.start_at,s.end_at) if self.frozen(s) else max(root.minimum_duration_minutes or 0,int((s.person_hours*60/root.crew_size).to_integral_value(rounding=ROUND_CEILING)))*60 for s in group.segments]
             offsets=[];offset=0
             for duration in durations: offsets.append(offset);offset+=duration
             forced=[(s,i) for i,s in enumerate(group.segments) if self.frozen(s)]

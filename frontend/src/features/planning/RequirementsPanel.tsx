@@ -11,11 +11,13 @@ import { Callout } from '@/shared/ui/Callout';
 import { LoadingState,ErrorState } from '@/shared/ui/States';
 import { PlanningPages } from './PlanningChoices';
 import { newPolicy,clock } from './PolicyFields';
+import { PortfolioPlans,SavePortfolio } from './PortfolioPlans';
+import type { CatalogWorkspace } from '@/features/equipment/CatalogImports';
 
 const states:Record<RequirementState,string>={new:'Нужно запланировать',existing:'Задание уже создано',fulfilled:'Выполнено и принято',review:'Нужна проверка'};
 const flags:Record<string,string>={ROLLING_NEXT_OCCURRENCE_ONLY:'Только следующее ТО от принятого выполнения',SYNTHETIC_DATA:'Тестовые данные',OVERDUE_REQUIRES_REVIEW:'Срок уже прошёл: требуется решение инженера',EXISTING_OCCURRENCE_REVIEW:'Существующее вхождение требует сверки',COMPLETION_NOT_ACCEPTED:'Выполнение ещё не принято',PARTIAL_ALREADY_PUBLISHED:'Часть этого объёма уже выдана',SOURCE_EQUIVALENCE_REQUIRED:'Нужно сопоставить одинаковые работы из разных источников',NORM_UNIT_UNCONFIRMED:'Не подтверждена единица нормы',NORM_VALUE_MISSING:'Не указана трудоёмкость',DURATION_UNCONFIRMED:'Не подтверждена длительность',EQUIPMENT_OUT_OF_SERVICE:'Оборудование в ремонте',HISTORY_AFTER_CUTOFF_IGNORED:'Будущие факты не учтены'};
 
-export default function RequirementsPanel({timezone,catalogId,initialStart,initialEnd,mayConfigure,mayViewTasks=false,onCatalog,onCalculate,onPrepare}:{timezone:string;catalogId:string;initialStart?:string;initialEnd?:string;mayConfigure:boolean;mayViewTasks?:boolean;onCatalog:(id:string)=>void;onCalculate:(start:string,end:string)=>void;onPrepare:()=>void}) {
+export default function RequirementsPanel({timezone,catalogId,initialStart,initialEnd,mayConfigure,mayViewTasks=false,mayEdit=false,workspace,onCatalog,onCalculate,onPrepare}:{timezone:string;catalogId:string;initialStart?:string;initialEnd?:string;mayConfigure:boolean;mayViewTasks?:boolean;mayEdit?:boolean;workspace?:CatalogWorkspace;onCatalog:(id:string)=>void;onCalculate:(start:string,end:string)=>void;onPrepare:()=>void}) {
   const year=todayAt(timezone).slice(0,4);
   const [start,setStart]=useState(initialStart||`${year}-01-01`),[end,setEnd]=useState(initialEnd||`${year}-12-31`),[regulations,setRegulations]=useState(true),[withCatalog,setWithCatalog]=useState(!!catalogId);
   const [rows,setRows]=useState<number[]>([]),[expansion,setExpansion]=useState<'source_january'|'confirmed_rule'>('confirmed_rule'),[policy,setPolicy]=useState<DraftPolicy>(newPolicy);
@@ -23,6 +25,8 @@ export default function RequirementsPanel({timezone,catalogId,initialStart,initi
   const body:RequirementsRequest={starts_on:start,ends_on:end,include_regulations:regulations,catalog:withCatalog&&catalogId?{import_id:catalogId,starts_on:start,ends_on:end,row_numbers:rows,expansion,policy}:null};
   const stale=submitted&&JSON.stringify(body)!==JSON.stringify(submitted.body);
   return <section className="space-y-5" aria-label="Обязательные работы из регламентов и Excel">
+    {workspace&&<PortfolioPlans workspace={workspace} timezone={timezone} mayEdit={mayEdit}/>}
+    <div hidden={!!workspace?.draftId} className="space-y-5">
     <div><h2 className="text-xl font-semibold">Что нужно обслужить в выбранном периоде</h2><p className="mt-2 text-sm text-muted">Общий состав по действующим регламентам и выбранным строкам Excel. Существующие задания учитываются отдельно.</p></div>
     <fieldset disabled={busy} className="min-w-0 space-y-4 rounded-xl border border-line p-4"><legend className="px-2 font-semibold">Период и источники</legend>
       <div className="grid gap-3 sm:grid-cols-2"><label><FieldCaption>Начало периода обязательств</FieldCaption><Input type="date" aria-label="Начало периода обязательств" value={start} onChange={e=>setStart(e.target.value)}/></label><label><FieldCaption>Конец периода обязательств</FieldCaption><Input type="date" aria-label="Конец периода обязательств" value={end} onChange={e=>setEnd(e.target.value)}/></label></div>
@@ -40,7 +44,9 @@ export default function RequirementsPanel({timezone,catalogId,initialStart,initi
       {error&&<p role="alert">{error}</p>}
     </fieldset>
     {stale&&<Callout>Параметры изменены. Ниже показан предыдущий расчёт; нажмите «Рассчитать состав обязательств», чтобы обновить его.</Callout>}
-    {submitted?<Results key={submitted.generation} input={submitted.body} timezone={timezone} mayConfigure={mayConfigure} mayViewTasks={mayViewTasks} onPrepare={onPrepare}/>:<Callout>Выберите период и источники, затем запустите расчёт. Неизвестные нормы и неподтверждённые правила будут показаны явно.</Callout>}
+    {submitted?<Results key={'results:'+submitted.generation} input={submitted.body} timezone={timezone} mayConfigure={mayConfigure} mayViewTasks={mayViewTasks} onPrepare={onPrepare}/>:<Callout>Выберите период и источники, затем запустите расчёт. Неизвестные нормы и неподтверждённые правила будут показаны явно.</Callout>}
+    {submitted&&mayEdit&&workspace&&<fieldset key={'save:'+submitted.generation} disabled={!!stale} className="min-w-0"><SavePortfolio requirements={submitted.body} timezone={timezone} onSaved={workspace.selectDraft}/></fieldset>}
+    </div>
   </section>;
 }
 
@@ -70,7 +76,7 @@ function Results({input,timezone,mayConfigure,mayViewTasks,onPrepare}:{input:Req
     {data.total_issues>0&&<section className="space-y-3 rounded-xl border border-line p-4" aria-label="Что нужно уточнить для расчёта"><h3 className="font-semibold">Что нужно уточнить: {data.total_issues}</h3><ul className="space-y-2 text-sm">{data.issues.map((x,i)=><li key={i}>{x.source_kind==='catalog'?`Excel${x.source_row?` · строка ${x.source_row}`:''}`:'Регламент'}: {x.source_label&&<strong>{x.source_label}: </strong>}{x.message}</li>)}</ul><PlanningPages offset={issueOffset} total={data.total_issues} onPage={setIssueOffset}/>{mayConfigure&&<Link className={buttonClassName('secondary')} to="/settings/equipment">Проверить регламенты оборудования</Link>}{input.catalog&&<Button variant="secondary" onClick={onPrepare}>Проверить строки Excel</Button>}</section>}
     <details><summary>Часы по месяцам срока</summary><ul className="mt-3 grid gap-2 sm:grid-cols-3">{data.months.map(x=><li key={x.month} className="rounded-lg border border-line p-3 text-sm">{x.month} · {x.requirements} работ · известно {x.known_person_hours} чел.-ч{x.unknown_hours_count>0&&` · без нормы: ${x.unknown_hours_count}`}</li>)}</ul></details>
     <ul className="space-y-3" aria-label="Работы общего состава">{data.items.map(item=><li key={item.requirement_id}><RequirementCard value={item} mayViewTasks={mayViewTasks}/></li>)}</ul>{!data.total&&<p>Работы в этом представлении не найдены. Проверьте источники, период и фильтр.</p>}<PlanningPages offset={offset} total={data.total} onPage={setOffset}/>
-    <Callout>Это проверка состава и исходной трудоёмкости. Назначения и действующий график не изменяются. Расчёт и выпуск плана по подготовленным строкам доступны во вкладке «Планы из Excel»; перенос общего состава в единый редактор — следующий этап.</Callout>
+    <Callout>Это проверка состава и исходной трудоёмкости. Назначения и действующий график не изменяются. Новые работы можно сохранить в общий черновик и распределить по датам и бригадам.</Callout>
   </section>;
 }
 function RequirementCard({value:x,mayViewTasks}:{value:Requirement;mayViewTasks:boolean}) {

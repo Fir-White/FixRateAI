@@ -377,8 +377,24 @@
           "title": "Parent Revision"
         },
         "import_id": {
-          "format": "uuid",
-          "title": "Import Id",
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Import Id"
+        },
+        "source_kind": {
+          "default": "catalog",
+          "enum": [
+            "catalog",
+            "portfolio"
+          ],
+          "title": "Source Kind",
           "type": "string"
         },
         "title": {
@@ -1141,9 +1157,16 @@
           "type": "string"
         },
         "import_id": {
-          "format": "uuid",
-          "title": "Import Id",
-          "type": "string"
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Import Id"
         },
         "source_sha256": {
           "title": "Source Sha256",
@@ -1154,12 +1177,26 @@
           "type": "string"
         },
         "source_row": {
-          "title": "Source Row",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Row"
         },
         "decision_revision": {
-          "title": "Decision Revision",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Decision Revision"
         },
         "source_cells": {
           "items": {
@@ -1186,10 +1223,74 @@
           "default": "source_january",
           "enum": [
             "source_january",
-            "confirmed_rule"
+            "confirmed_rule",
+            "regulation_rule",
+            "accepted_history"
           ],
           "title": "Date Basis",
           "type": "string"
+        },
+        "source_kind": {
+          "default": "catalog",
+          "enum": [
+            "catalog",
+            "regulation"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "binding_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Binding Id"
+        },
+        "rule_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rule Id"
+        },
+        "regulation_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Regulation Id"
+        },
+        "minimum_duration_minutes": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 46080,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum Duration Minutes"
         },
         "title": {
           "title": "Title",

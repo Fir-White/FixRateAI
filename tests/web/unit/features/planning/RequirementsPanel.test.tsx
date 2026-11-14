@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import RequirementsPanel from '@/features/planning/RequirementsPanel';
 import { requirementsApi,type RequirementsPreview } from '@/shared/api/requirements';
+import { portfolioPlansApi } from '@/shared/api/portfolioPlans';
 
 const result:RequirementsPreview={method_version:'requirements-v1',starts_on:'2027-01-01',ends_on:'2027-12-31',timezone:'UTC',calculated_at:'2026-11-14T00:00:00Z',source_sha256:'a'.repeat(64),summary:{total:1,known_person_hours:'3',total_person_hours:'3',new_person_hours:'3',unknown_hours_count:0,state_counts:{new:1},source_counts:{regulation:1},binding_count:1,selected_catalog_rows:0,unselected_catalog_rows:0,complete:true},months:[{month:'2027-01',known_person_hours:'3',requirements:1,unknown_hours_count:0}],items:[{requirement_id:'requirement',source_kind:'regulation',binding_id:'binding',rule_id:'rule',regulation_id:'regulation',source_revision:1,import_id:null,source_row:null,source_ref:'TEST ONLY real source reference',equipment_ids:['asset'],equipment_labels:['Насос № 1'],operation_code:'ТО-1',title:'Проверка насоса',maintenance_type:'ТО2',source_date:'2027-01-10',source_slot:'whole_day',earliest_date:'2027-01-01',due_date:'2027-01-10',person_hours:'3',crew_size:1,qualification_ids:[],state:'new',task_ids:[],explanation:'Проверенное календарное правило',issues:[],synthetic:false}],total:1,issues:[],total_issues:0,ready_for_real_plan:false};
 beforeEach(()=>{vi.restoreAllMocks();vi.spyOn(requirementsApi,'preview').mockResolvedValue(result);});
@@ -50,4 +51,19 @@ it('retains source input after failure and never silently replaces the previous 
   fireEvent.change(field,{target:{value:'2027-06-30'}});
   expect(screen.getByText(/Параметры изменены/)).toBeVisible();
   expect(requirementsApi.preview).toHaveBeenCalledTimes(2);
+});
+
+it('keeps a single result and an unchanged save form while searching the reviewed scope',async()=>{
+  vi.spyOn(portfolioPlansApi,'list').mockResolvedValue({items:[],total:0});
+  vi.spyOn(portfolioPlansApi,'preview').mockResolvedValue({input_sha256:'a'.repeat(64),generator_version:'portfolio-occurrences-v1',total_occurrences:1,total_segments:1,total_person_hours:'3',selected_rows:0,unselected_rows:0,can_save:true,total_issues:0,issues:[],items:[],ready_for_real_plan:false,excluded_occurrences:0,requirements_sha256:'b'.repeat(64)});
+  const user=userEvent.setup();mount({mayEdit:true,workspace:{catalogId:'',stage:'plan',draftId:'',draftRevision:null,planView:'work',selectCatalog:vi.fn(),selectStage:vi.fn(),selectDraft:vi.fn(),selectPlanView:vi.fn()}});
+  await user.click(screen.getByRole('button',{name:'Рассчитать состав обязательств'}));
+  await screen.findByRole('heading',{name:'ТО-1 · Проверка насоса'});
+  await user.click(screen.getByRole('button',{name:'Проверить общий черновик'}));
+  await user.type(await screen.findByLabelText('Основание общего плана'),'Проверен весь состав');
+  await user.type(screen.getByLabelText('Поиск обязательных работ'),'Насос');
+  await waitFor(()=>expect(requirementsApi.preview).toHaveBeenLastCalledWith(expect.objectContaining({q:'Насос'})));
+  await screen.findByRole('heading',{name:'ТО-1 · Проверка насоса'});
+  expect(screen.getAllByLabelText('Поиск обязательных работ')).toHaveLength(1);
+  expect(screen.getByLabelText('Основание общего плана')).toHaveValue('Проверен весь состав');
 });

@@ -14,6 +14,7 @@ from sqlalchemy import text
 from app.schemas.draft_plans import (GenerationInput,GenerationPreview,SaveDraft,EditSegments,DraftList,
     DraftRecord,DraftOverview,OccurrencePage,SegmentPage,PlanValidation,WorkOccurrence,WorkSegment,PlanningChoices,LocalPlacement,PreparedSourceChoices,ChangeDraftPolicy,DraftPolicyView)
 from app.scheduling.draft_generator import expand,GENERATOR_VERSION
+from app.schemas.portfolio import planning_input,PortfolioInput
 from app.scheduling.draft_validator import validate,digest
 from .catalog_imports import READ_ROLES
 from .catalog_decisions import latest,records,load as load_decisions
@@ -28,7 +29,14 @@ BASE=PREFIX+'/draft-plans'
 def clean(value): return json.loads(json.dumps(value,default=str))
 
 
+def generator_version(request):
+    return 'portfolio-occurrences-v1' if isinstance(request,PortfolioInput) else GENERATOR_VERSION
+
+
 def source_snapshot(v,request):
+    if isinstance(request,PortfolioInput):
+        from .portfolio_plans import capture
+        return capture(v,request)
     meta=v.session.execute(text('''SELECT source_sha256,parser_version,ARRAY(SELECT (o->>'row')::int
         FROM jsonb_array_elements(c.catalog_data->'operations') o) AS row_numbers
         FROM regulation_catalog_imports c WHERE site_id=:site AND import_id=:id'''),dict(site=v.principal.site_id,id=request.import_id)).mappings().first()
@@ -74,7 +82,7 @@ def generate(v,request,*,capture_issues=False):
 
 
 def checked(v,snapshot,occurrences,segments,*,stale=False,previous=(),unlock=False,capture=False):
-    request=GenerationInput.model_validate(snapshot['input'])
+    request=planning_input(snapshot['input'])
     tz=ZoneInfo(snapshot['source']['timezone']);now=datetime.now(timezone.utc)
     start=datetime.combine(request.starts_on,time.min,tz)
     end=datetime.combine(request.ends_on+timedelta(days=2),time.min,tz)
@@ -102,8 +110,9 @@ def get_version(v,identity,revision=None,*,full=True):
 
 
 def persist(v,*,draft_id,revision,title,reason,snapshot,sha,occurrences,segments,report,resource_snapshot,key=None,request_sha=None,action=None):
-    request=GenerationInput.model_validate(snapshot['input']);identity=uuid4()
+    request=planning_input(snapshot['input']);identity=uuid4()
     summary=dict(occurrence_count=len(occurrences),segment_count=len(segments),total_person_hours=str(sum((o.total_person_hours for o in occurrences),Decimal(0))))
+    if isinstance(request,PortfolioInput):summary['source_kind']='portfolio'
     due=defaultdict(Decimal);planned=defaultdict(Decimal)
     for o in occurrences: due[o.latest_date.isoformat()[:7]]+=o.total_person_hours
     for day in report.days: planned[day.date.isoformat()[:7]]+=day.planned_person_hours
@@ -148,8 +157,8 @@ def register_routes(app,views):
                 return metadata(get_version(v,old['draft_id'],old['revision'],full=False))
             row=get_version(v,identity)
             if row['revision']!=command.expected_revision:raise HTTPException(409,'Версия плана изменилась; параметры сохранены в форме, обновите актуальную версию')
-            snapshot=clean(row['source_snapshot']);request=GenerationInput.model_validate(snapshot['input'])
-            if digest(clean(source_snapshot(v,request)))!=snapshot['source_digest'] or snapshot['generator_version']!=GENERATOR_VERSION:
+            snapshot=clean(row['source_snapshot']);request=planning_input(snapshot['input'])
+            if digest(clean(source_snapshot(v,request)))!=snapshot['source_digest'] or snapshot['generator_version']!=generator_version(request):
                 raise HTTPException(409,'Источник изменился; создайте актуальный расчёт перед изменением параметров')
             if (request.policy.day_start_minute,request.policy.night_start_minute)!=(command.policy.day_start_minute,command.policy.night_start_minute):
                 raise HTTPException(422,'Изменение границ событий день/ночь требует нового расчёта состава работ')
@@ -281,9 +290,9 @@ def register_routes(app,views):
     @app.post(BASE+'/{identity}/validate',response_model=PlanValidation)
     def validate_version(identity:UUID,response:Response,revision:int|None=Query(None,ge=1),v=Depends(views)):
         _guard(v,*READ_ROLES);row=get_version(v,identity,revision)
-        snapshot=row['source_snapshot'];request=GenerationInput.model_validate(snapshot['input'])
+        snapshot=row['source_snapshot'];request=planning_input(snapshot['input'])
         current=source_snapshot(v,request)
-        stale=digest(clean(current))!=snapshot['source_digest'] or snapshot['generator_version']!=GENERATOR_VERSION
+        stale=digest(clean(current))!=snapshot['source_digest'] or snapshot['generator_version']!=generator_version(request)
         response.headers['Cache-Control']='private, no-store'
         return checked(v,snapshot,[WorkOccurrence.model_validate(o) for o in row['occurrences']],
             [WorkSegment.model_validate(s) for s in row['segments']],stale=stale)
@@ -293,8 +302,8 @@ def register_routes(app,views):
         with _edit(v,roles=EDIT_ROLES,exact_roles=True):
             _lock_catalog(v);row=get_version(v,identity)
             if row['revision']!=command.expected_revision: raise HTTPException(409,'Версия плана изменилась; обновите её перед записью. Введённые значения не применены')
-            snapshot=row['source_snapshot'];request=GenerationInput.model_validate(snapshot['input'])
-            if digest(clean(source_snapshot(v,request)))!=snapshot['source_digest'] or snapshot['generator_version']!=GENERATOR_VERSION:
+            snapshot=row['source_snapshot'];request=planning_input(snapshot['input'])
+            if digest(clean(source_snapshot(v,request)))!=snapshot['source_digest'] or snapshot['generator_version']!=generator_version(request):
                 raise HTTPException(409,'Источник или решение изменились; создайте новый предпросмотр с актуальными данными')
             occurrences=[WorkOccurrence.model_validate(o) for o in row['occurrences']]
             previous=[WorkSegment.model_validate(s) for s in row['segments']]

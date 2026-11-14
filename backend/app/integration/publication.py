@@ -22,6 +22,11 @@ PATH='/api/v1/maintenance/publication-proposals'
 PUBLIC='proposal_id,draft_id,base_revision,state,created_by,created_at,expires_at,reason,scope_note,proposal_digest,summary,validation_snapshot,blockers,blocker_count,decided_by,decided_at,decision_reason,approval_token,published_at,publication_id'
 
 
+def catalog_publication_only(draft):
+    if draft['import_id'] is None:
+        raise HTTPException(422,'PORTFOLIO_PUBLICATION_PENDING: общий черновик доступен для расчёта; выпуск с использованием действующих регламентов ещё не подключён')
+
+
 def get(v,identity,*,full=False,lock=False):
     row=v.session.execute(text('SELECT '+('*' if full else PUBLIC+", input_snapshot->'policy' AS planning_policy")+' FROM draft_publication_proposals WHERE site_id=:site AND proposal_id=:id'+(' FOR UPDATE' if lock else '')),
         dict(site=v.principal.site_id,id=identity)).mappings().first()
@@ -53,7 +58,7 @@ def consent_digest(row):
 def fresh(v,row):
     if consent_digest(row)!=row['proposal_digest']:raise HTTPException(409,'PLAN_STALE: состав предложения изменён; требуется новое предложение')
     if row['expires_at']<=datetime.now(timezone.utc):raise HTTPException(409,'PLAN_STALE: срок предложения истёк; подготовьте новое')
-    draft=get_version(v,row['draft_id'])
+    draft=get_version(v,row['draft_id']);catalog_publication_only(draft)
     if draft['revision']!=row['base_revision']:raise HTTPException(409,'PLAN_STALE: версия черновика изменилась')
     snapshot=draft['source_snapshot'];generation=GenerationInput.model_validate(snapshot['input'])
     if digest(clean(source_snapshot(v,generation)))!=row['source_digest']:raise HTTPException(409,'PLAN_STALE: источник или оборудование изменились')
@@ -90,7 +95,7 @@ def prepare(v,identity,command):
         return public(old)
     active=v.session.scalar(text("SELECT count(*) FROM draft_publication_proposals WHERE site_id=:site AND draft_id=:id AND state IN ('prepared','approved') AND expires_at>now()"),dict(site=v.principal.site_id,id=identity))
     if active>=10:raise HTTPException(429,'У черновика уже 10 действующих предложений. Сначала отклоните лишние или дождитесь истечения их срока')
-    draft=get_version(v,identity)
+    draft=get_version(v,identity);catalog_publication_only(draft)
     if draft['revision']!=command.expected_revision:raise HTTPException(409,'Версия изменилась; откройте актуальную')
     snapshot=draft['source_snapshot'];generation=GenerationInput.model_validate(snapshot['input'])
     current=clean(source_snapshot(v,generation))
@@ -239,7 +244,7 @@ def materialize(v,proposal,publication_id,roots,segments,facts,*,title):
 def register_routes(app,views):
     @app.get(BASE+'/{identity}/publication-profiles',response_model=PublicationProfileChoices)
     def profiles(identity:UUID,response:Response,revision:int=Query(...,ge=1),offset:int=Query(0,ge=0,le=1000000),v=Depends(views)):
-        _guard(v,*READ_ROLES);get_version(v,identity,revision,full=False)
+        _guard(v,*READ_ROLES);catalog_publication_only(get_version(v,identity,revision,full=False))
         params=dict(site=v.principal.site_id,id=identity,revision=revision,offset=offset)
         rows=v.session.execute(text('''SELECT DISTINCT ON (s->>'source_row') (s->>'source_row')::int AS row_number,s->>'operation_code' AS code,s->>'title' AS title,
             s->'included_rows' AS included_rows FROM planning_draft_versions d,LATERAL jsonb_array_elements(d.occurrences) s

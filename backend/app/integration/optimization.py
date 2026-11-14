@@ -6,6 +6,7 @@ from sqlalchemy import text
 from app.schemas.optimization import (StartOptimization,OptimizationRun,OptimizationRunList,OptimizationPlacements,ApplyOptimization)
 from app.schemas.draft_plans import DraftRecord,GenerationInput,WorkOccurrence,WorkSegment
 from app.scheduling.draft_validator import digest
+from app.schemas.portfolio import planning_input
 from .draft_plans import BASE,EDIT_ROLES,get_version,source_snapshot,clean,checked,persist,metadata,_lock_catalog
 from .catalog_imports import READ_ROLES
 from .management import _guard,_edit,_audit
@@ -39,7 +40,7 @@ def register_routes(app,views):
             if not manager or not manager.alive(): raise HTTPException(503,'Фоновый расчёт временно недоступен. Ручной режим продолжает работать')
             row=get_version(v,identity)
             if row['revision']!=command.expected_revision: raise HTTPException(409,'Версия изменилась; откройте актуальную перед расчётом')
-            snapshot=row['source_snapshot'];generation=GenerationInput.model_validate(snapshot['input'])
+            snapshot=row['source_snapshot'];generation=planning_input(snapshot['input'])
             if digest(clean(source_snapshot(v,generation)))!=snapshot['source_digest']: raise HTTPException(409,'Источник изменился. Сначала создайте актуальный черновик')
             active=v.session.scalar(text("SELECT count(*) FROM draft_optimization_runs WHERE site_id=:site AND state IN ('queued','running','cancel_requested')"),dict(site=v.principal.site_id))
             if active>=2: raise HTTPException(429,'У объекта уже есть два незавершённых расчёта. Дождитесь результата или отмените один')
@@ -120,7 +121,7 @@ def register_routes(app,views):
             if not variant or not variant['applicable']: raise HTTPException(422,'Этот вариант не содержит допустимых изменений для применения')
             row=get_version(v,run['draft_id'])
             if row['revision']!=command.expected_revision or row['revision']!=run['base_revision']: raise HTTPException(409,'Черновик изменился после расчёта. Запустите новый расчёт')
-            snapshot=row['source_snapshot'];request=GenerationInput.model_validate(snapshot['input'])
+            snapshot=row['source_snapshot'];request=planning_input(snapshot['input'])
             if digest(clean(source_snapshot(v,request)))!=snapshot['source_digest']: raise HTTPException(409,'Источник изменился после расчёта. Нужен новый черновик')
             segments=[WorkSegment.model_validate(s) for s in run[command.kind+'_segments']]
             occurrences=[WorkOccurrence.model_validate(o) for o in row['occurrences']]
