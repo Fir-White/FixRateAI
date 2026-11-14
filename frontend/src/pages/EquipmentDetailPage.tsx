@@ -14,6 +14,8 @@ import { Icon } from "@/shared/ui/Icon";
 import { useSession } from "@/shared/session/SessionContext";
 import { Disclosure } from "@/shared/ui/Disclosure";
 import { canOpenSection } from "@/shared/lib/roles";
+import { DEMO_MODE } from "@/shared/api/request";
+import { ComponentPanel } from "@/features/equipment/ComponentPanel";
 import {
   EquipmentStateBadge,
   OriginBadge,
@@ -89,6 +91,7 @@ export function EquipmentDetailPage() {
 
       <div className="fr-work-grid">
         <div className="space-y-6">
+          {!DEMO_MODE && <ComponentPanel equipmentId={equipmentId}/>}
           <Card>
             <CardHeader title="Паспорт оборудования" />
             <InfoList className="grid gap-x-6 gap-y-5 p-5 sm:grid-cols-2 sm:p-6">

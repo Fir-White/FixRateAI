@@ -47,7 +47,7 @@ function LiveServiceSettingsPage() {
         {equipment.map(item=><option key={item.id} value={item.id}>{item.inventoryCode} · {item.name}</option>)}
       </Select>
     </label><p className="text-xs text-muted">Время объекта: {profile?.timezone}. Нормативная дата относится к целым местным суткам.</p></Card>
-    {mayEdit&&<ReferenceForms catalog={catalog} mayCreateTypes={profile?.role==="admin"} onSaved={()=>setRefresh(value=>value+1)}/>}
+    {mayEdit&&<details className="fr-rule-section"><summary>Справочники систем и типов оборудования</summary><ReferenceForms catalog={catalog} mayCreateTypes={profile?.role==="admin"} onSaved={()=>setRefresh(value=>value+1)}/></details>}
     {(selected||mayEdit)&&<details className="fr-rule-section" open={!selected}><summary><span>{selected ? "Паспорт оборудования" : "Новое оборудование"}</span><small>Отдельное сохранение свойств оборудования</small></summary><EquipmentSettings key={selected} equipmentId={selected} catalog={catalog} mayEdit={mayEdit}
       onSaved={key=>{setNotice("Оборудование сохранено");setParams({equipment:key});setRefresh(value=>value+1);}}/></details>}
     {selected&&<ServiceList key={`${selected}:${refresh}`} equipmentId={selected} catalog={catalog} today={today} mayEdit={mayEdit}/>}
@@ -129,7 +129,7 @@ function ServiceEditor({initial,today,catalog,systemId,onClose,onSave}: {initial
     <div className="grid gap-4 sm:grid-cols-2">
       <label className="space-y-1 text-sm"><FieldCaption>Код операции</FieldCaption><Input aria-label="Код операции" required readOnly={!!initial||!!value.operation_id} value={value.code} onChange={e=>set({code:e.target.value})}/></label>
       <label className="space-y-1 text-sm"><FieldCaption>Название обслуживания</FieldCaption><Input aria-label="Название обслуживания" required value={value.title} onChange={e=>set({title:e.target.value})}/></label>
-      <label className="space-y-1 text-sm"><FieldCaption>Вид ТО</FieldCaption><Select aria-label="Вид ТО" value={value.maintenance_type} onChange={e=>set({maintenance_type:e.target.value as "ТО1"|"ТО2"})}><option>ТО1</option><option>ТО2</option></Select></label>
+      <label className="space-y-1 text-sm"><FieldCaption>Вид ТО</FieldCaption><Select aria-label="Вид ТО" value={value.maintenance_type} onChange={e=>set({maintenance_type:e.target.value as "ТО1"|"ТО2"|"ТО3"})}><option>ТО1</option><option>ТО2</option><option>ТО3</option></Select></label>
       <label className="space-y-1 text-sm"><FieldCaption>Действует с</FieldCaption><Input aria-label="Действует с" type="date" required value={value.valid_from} onChange={e=>set({valid_from:e.target.value})}/></label>
       <label className="space-y-1 text-sm"><FieldCaption>Действует по</FieldCaption><Input aria-label="Действует по" type="date" value={value.valid_until??""} onChange={e=>set({valid_until:e.target.value||null})}/></label>
     </div></RuleSection>

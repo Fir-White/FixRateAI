@@ -1,24 +1,38 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import { pageLoaders } from "@/app/pageModules";
 import { AppRouter } from "@/app/router";
 import { SessionProvider } from "@/shared/session/SessionContext";
 import type { Role } from "@/shared/types/domain";
 
+// This suite verifies role guards and links, independently of the AI provider.
+vi.mock("@/shared/api/assistant", () => ({assistantApi: {
+  capabilities: async () => ({available:false,model_ref:null,prompt_version:"TEST",agents:[],tools:{assistant:[],planner:[],photo:[]}}),
+  list: async () => ({items:[],total:0}),
+}}));
+
+// Permission checks exercise rendered routes; bundler transforms are measured by browser tests.
+beforeAll(async () => { await Promise.all(Object.values(pageLoaders).map(load => load())); });
+
 // Expected permissions come from the screen specification, independently of router guards.
 const roles: Role[] = ["director", "chief_engineer", "admin", "dispatcher", "engineer", "executor"];
 const access: Record<string, Role[]> = {
+  assistant: roles,
   director:["director"], "chief-engineer":["chief_engineer"], engineer:["engineer"], admin:["admin"],
+  planning:["director","chief_engineer","admin","dispatcher","engineer"],
   dispatcher: ["director", "chief_engineer", "admin", "dispatcher","engineer"], equipment: roles,
   calendar: ["director", "chief_engineer", "dispatcher", "engineer", "executor"], tasks: ["director", "chief_engineer", "dispatcher", "engineer"],
   comparisons: ["director", "chief_engineer", "dispatcher", "engineer"], reports: ["director", "chief_engineer", "dispatcher", "engineer"], quality: ["chief_engineer", "engineer"], executor: ["executor"],
   settings: ["chief_engineer","admin","dispatcher","engineer"], "my-shifts": ["executor"], profile: roles,
 };
 const routes = [
+  ["/assistant", "ИИ-помощник"],
+  ["/planning", "Планирование ТО"],
   ["/profile", "Мой профиль"],
   ["/director", "Панель диспетчера"],
   ["/chief-engineer", "Панель диспетчера"],
-  ["/engineer", "Контроль качества и приёмка"],
+  ["/engineer", "Панель диспетчера"],
   ["/admin", "Панель диспетчера"],
   ["/dispatcher", "Панель диспетчера"],
   ["/equipment", "Оборудование"],
@@ -41,7 +55,7 @@ describe("role access and links on every screen", () => {
       window.localStorage.setItem("fixrate.demo.role", role);
       render(<SessionProvider><MemoryRouter initialEntries={[path]}><AppRouter /></MemoryRouter></SessionProvider>);
       const allowed = access[path.split("/")[1]].includes(role);
-      await screen.findByRole("heading", {name: allowed ? heading : "Раздел недоступен для текущей роли"});
+      await screen.findByRole("heading", {name: allowed ? heading : "Раздел недоступен для текущей роли"}, {timeout: 5000});
       await waitFor(() => expect(screen.queryByRole("status", {hidden: true})).not.toBeInTheDocument());
       // Permission checks include every rendered link, even in collapsed regions.
       // Avoid jsdom's expensive ancestor visibility walk for each calendar link;
@@ -61,10 +75,10 @@ describe("role access and links on every screen", () => {
 
 
 const businessMenus: [Role, string[]][] = [
-  ["director", ["/director", "/calendar", "/equipment", "/tasks", "/comparisons", "/reports"]],
-  ["chief_engineer", ["/chief-engineer", "/quality", "/calendar", "/equipment", "/tasks", "/comparisons", "/reports", "/settings/equipment", "/settings/workforce"]],
-  ["engineer", ["/dispatcher", "/engineer", "/calendar", "/equipment", "/tasks", "/comparisons", "/reports", "/settings/equipment", "/settings/workforce"]],
-  ["executor", ["/executor", "/calendar", "/equipment", "/my-shifts"]],
+  ["director", ["/assistant","/director","/planning","/tasks","/equipment","/reports"]],
+  ["chief_engineer", ["/assistant","/chief-engineer","/planning","/tasks","/quality","/equipment","/settings/workforce","/reports"]],
+  ["engineer", ["/assistant","/engineer","/planning","/tasks","/quality","/equipment","/settings/workforce","/reports"]],
+  ["executor", ["/assistant","/executor","/calendar","/equipment","/my-shifts"]],
 ];
 
 describe("required business navigation, independently of direct route access", () => {

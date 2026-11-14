@@ -11,14 +11,14 @@ const SAMPLES = Array.from({ length: 49 }, (_, index) => {
   return { start: u ** 3, first: 3 * u * u * t, second: 3 * u * t * t, end: t ** 3, opacity: .069 * Math.sin(Math.PI * t) };
 });
 
-export function createWorkspaceAuroraRenderer(canvas: HTMLCanvasElement) {
+export function createWorkspaceAuroraRenderer(canvas: HTMLCanvasElement | OffscreenCanvas) {
   const context = canvas.getContext("2d", { alpha: true });
   if (!context) return null;
   const interaction = createWorkspaceAuroraInteraction();
   let previousPhase = 0;
   // Cache the continuous cross-section once. Closely overlapping samples form
   // two solid ribbons, without per-frame blur or low-alpha gradient strokes.
-  const glow = document.createElement("canvas");
+  const glow = typeof OffscreenCanvas === "function" ? new OffscreenCanvas(128, 128) : document.createElement("canvas");
   glow.width = glow.height = 128;
   const glowContext = glow.getContext("2d");
   if (!glowContext) return null;

@@ -19,6 +19,29 @@ beforeEach(() => { role = "engineer"; api.mockReset(); api.mockResolvedValue(mes
 afterEach(() => { vi.useRealTimers(); });
 
 describe("notifications", () => {
+  it("prepares the hidden portal during idle time without exposing its controls", async () => {
+    setup();
+    await screen.findByRole("button",{name:"Уведомления, непрочитанных: 2"});
+    await waitFor(()=>expect(document.querySelector('.inbox-panel')).toHaveAttribute('hidden'));
+    const panel=document.querySelector('.inbox-panel')!;
+    expect(panel.parentElement).toBe(document.body);
+    expect(panel).toHaveAttribute('inert');
+    expect(panel).toHaveAttribute('aria-hidden','true');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link',{name:/Открыть задание/})).not.toBeInTheDocument();
+  });
+  it("marks one item immediately and restores its unread state if saving fails", async () => {
+    const user=userEvent.setup();setup();
+    await user.click(await screen.findByRole('button',{name:'Уведомления, непрочитанных: 2'}));
+    let reject!: (error:Error)=>void;
+    api.mockReturnValueOnce(new Promise((_resolve,fail)=>{reject=fail;}));
+    await user.click(screen.getAllByRole('button',{name:'Отметить прочитанным'})[0]);
+    expect(screen.getByRole('button',{name:'Уведомления, непрочитанных: 1'})).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    await act(async()=>reject(new Error('network')));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Не удалось отметить');
+    expect(screen.getByRole('button',{name:'Уведомления, непрочитанных: 2'})).toBeInTheDocument();
+  });
   it("reuses the list on reopen while closed controls remain hidden and inert", async () => {
     const user=userEvent.setup();setup();
     const trigger=await screen.findByRole("button",{name:"Уведомления, непрочитанных: 2"});

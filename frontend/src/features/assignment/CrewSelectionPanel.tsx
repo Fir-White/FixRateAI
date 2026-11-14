@@ -1,3 +1,4 @@
+import { dateTimeFormatter } from "@/shared/lib/dateTimeFormatter";
 import { FieldCaption, Input } from "@/shared/ui/Form";
 import { useEffect, useRef, useState } from "react";
 import { maintenanceApi } from "@/shared/api/maintenance";
@@ -51,7 +52,7 @@ function Picker({context, taskTitle, equipmentName, saving, setSaving, onAssigne
   const requestId = useRef(0);
   useEffect(() => () => { requestId.current += 1; }, []);
   const invalidate = () => { requestId.current += 1; setResult(null); setError(""); setBusy(false); };
-  const showTime = (value: string | null) => value ? new Intl.DateTimeFormat("ru-RU", {
+  const showTime = (value: string | null) => value ? dateTimeFormatter("ru-RU", {
     timeZone: context.timezone, day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
   }).format(new Date(value)) : "не задано";
 

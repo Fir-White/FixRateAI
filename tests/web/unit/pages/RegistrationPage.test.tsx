@@ -53,6 +53,8 @@ it('disables the form during the request and preserves entered data when registr
   expect(screen.getByLabelText('Подтвердите пароль')).toHaveValue('Fixture-password-1234');
   expect(screen.getByRole('form',{name:'Регистрация сотрудника'})).toHaveAttribute('aria-busy','false');
   fireEvent.change(screen.getByLabelText('Код компании'),{target:{value:'0123456789abcdef2'}});
+  expect(screen.getByLabelText('Код компании')).not.toHaveAttribute('data-validation');
+  fireEvent.blur(screen.getByLabelText('Код компании'));
   expect(screen.getByLabelText('Код компании')).toHaveAttribute('data-validation','valid');
 });
 
@@ -75,7 +77,7 @@ it('blocks mismatched passwords, focuses an accessible error and recovers when t
   await user.type(screen.getByLabelText('Пароль'),'5');
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   expect(confirmation).not.toHaveAttribute('aria-invalid');
-  expect(confirmation).toHaveAttribute('data-validation','valid');
+  expect(confirmation).not.toHaveAttribute('data-validation');
   await user.click(screen.getByRole('button',{name:'Зарегистрироваться'}));
   expect(await screen.findByRole('status')).toHaveTextContent('Заявка ожидает выдачи роли');
   expect(register).toHaveBeenCalledOnce();

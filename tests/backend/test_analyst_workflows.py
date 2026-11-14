@@ -284,7 +284,11 @@ def test_overdue_events_are_durable_and_late_acceptance_requires_chief(job):
 
 def test_contract_stub_early_ai_requires_chief_and_keeps_original_obligation(managed,monkeypatch):
     """Real HTTP/PostgreSQL; the AI proposal here is an explicit contract stub, not ML evidence."""
-    engine,app,admin,login_user,ids=managed;eq=equipment(admin,ids);today=date.today();due=today+timedelta(days=1)
+    engine,app,admin,login_user,ids=managed;eq=equipment(admin,ids)
+    from zoneinfo import ZoneInfo
+    with engine.connect() as connection:
+        site_timezone=connection.scalar(text('SELECT timezone FROM sites WHERE site_id=:site'),dict(site=ids['site']))
+    today=datetime.now(ZoneInfo(site_timezone)).date();due=today+timedelta(days=1)
     settings=config(today,code='TEST-EARLY',pattern=dict(frequency='dates',anchor_date=today.isoformat(),dates=[due.isoformat()],weekend_policy='none'))
     configured=admin.chief.post(PREFIX+f"/equipment/{eq['equipment_id']}/service-configurations",json=settings)
     assert configured.status_code==201,configured.text

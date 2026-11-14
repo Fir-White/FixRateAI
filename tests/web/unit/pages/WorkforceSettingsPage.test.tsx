@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, expect, it, vi } from "vitest";
@@ -31,6 +31,23 @@ async function openExisting() {
   await user.click(screen.getByRole("button", { name: "Изменить смену" }));
   return user;
 }
+
+it("saves equal local times as a full-day shift without changing the calendar", async () => {
+  const save = vi.spyOn(managementApi, "saveShift").mockResolvedValue(undefined);
+  const user = await openExisting();
+  const original = structuredClone(fixture.staff[0].shifts[0].pattern);
+  for (const label of ["Начало смены", "Конец смены"]) {
+    await user.click(screen.getByRole("button", {name: label}));
+    fireEvent.change(screen.getByLabelText("Часы"), {target: {value: "8"}});
+    fireEvent.change(screen.getByLabelText("Минуты"), {target: {value: "0"}});
+    await user.click(screen.getByRole("button", {name: "Применить"}));
+  }
+  await user.click(screen.getByRole("button", {name: "Сохранить смену"}));
+  await waitFor(() => expect(save).toHaveBeenCalledWith("worker", expect.objectContaining({
+    starts_local: "08:00", ends_local: "08:00", expected_revision: 7,
+    pattern: expect.objectContaining(original),
+  })));
+});
 
 it("opens, edits and reopens a sparse existing shift, preserving ID, revision, exclusions and overnight hours", async () => {
   const save = vi.spyOn(managementApi, "saveShift").mockImplementation(async (_, body) => {

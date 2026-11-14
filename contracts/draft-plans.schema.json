@@ -1,0 +1,1674 @@
+{
+  "$defs": {
+    "AllowedInterval": {
+      "additionalProperties": false,
+      "properties": {
+        "start_at": {
+          "format": "date-time",
+          "title": "Start At",
+          "type": "string"
+        },
+        "end_at": {
+          "format": "date-time",
+          "title": "End At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start_at",
+        "end_at"
+      ],
+      "title": "AllowedInterval",
+      "type": "object"
+    },
+    "ChangeDraftPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_revision": {
+          "minimum": 1,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "idempotency_key": {
+          "format": "uuid",
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "policy": {
+          "$ref": "#/$defs/DraftPolicy"
+        }
+      },
+      "required": [
+        "expected_revision",
+        "idempotency_key",
+        "reason",
+        "policy"
+      ],
+      "title": "ChangeDraftPolicy",
+      "type": "object"
+    },
+    "DailyPlanLoad": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "format": "date",
+          "title": "Date",
+          "type": "string"
+        },
+        "planned_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Planned Person Hours"
+        },
+        "reserved_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Reserved Person Hours"
+        },
+        "available_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Available Person Hours"
+        },
+        "deficit_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Deficit Person Hours"
+        }
+      },
+      "required": [
+        "date",
+        "planned_person_hours",
+        "reserved_person_hours",
+        "available_person_hours",
+        "deficit_person_hours"
+      ],
+      "title": "DailyPlanLoad",
+      "type": "object"
+    },
+    "DraftList": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/DraftRecord"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "total"
+      ],
+      "title": "DraftList",
+      "type": "object"
+    },
+    "DraftMonth": {
+      "additionalProperties": false,
+      "properties": {
+        "month": {
+          "title": "Month",
+          "type": "string"
+        },
+        "due_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Due Person Hours"
+        },
+        "planned_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Planned Person Hours"
+        }
+      },
+      "required": [
+        "month",
+        "due_person_hours",
+        "planned_person_hours"
+      ],
+      "title": "DraftMonth",
+      "type": "object"
+    },
+    "DraftOverview": {
+      "additionalProperties": false,
+      "properties": {
+        "record": {
+          "$ref": "#/$defs/DraftRecord"
+        },
+        "months": {
+          "items": {
+            "$ref": "#/$defs/DraftMonth"
+          },
+          "title": "Months",
+          "type": "array"
+        },
+        "validation": {
+          "$ref": "#/$defs/PlanValidation"
+        }
+      },
+      "required": [
+        "record",
+        "months",
+        "validation"
+      ],
+      "title": "DraftOverview",
+      "type": "object"
+    },
+    "DraftPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "format_version": {
+          "default": 1,
+          "enum": [
+            1,
+            2
+          ],
+          "title": "Format Version",
+          "type": "integer"
+        },
+        "capacity_hours_per_24h": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "maximum": 24.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capacity Hours Per 24H"
+        },
+        "capacity_confirmed": {
+          "default": false,
+          "title": "Capacity Confirmed",
+          "type": "boolean"
+        },
+        "capacity_ref": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Capacity Ref",
+          "type": "string"
+        },
+        "day_start_minute": {
+          "anyOf": [
+            {
+              "maximum": 1439,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Day Start Minute"
+        },
+        "night_start_minute": {
+          "anyOf": [
+            {
+              "maximum": 1439,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Night Start Minute"
+        },
+        "capacity_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "unknown",
+                "provisional",
+                "confirmed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capacity Status"
+        },
+        "access_status": {
+          "default": "unknown",
+          "enum": [
+            "unknown",
+            "provisional",
+            "confirmed"
+          ],
+          "title": "Access Status",
+          "type": "string"
+        },
+        "access_mode": {
+          "anyOf": [
+            {
+              "enum": [
+                "unrestricted",
+                "weekly"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Access Mode"
+        },
+        "access_ref": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Access Ref",
+          "type": "string"
+        },
+        "service_windows": {
+          "items": {
+            "$ref": "#/$defs/ServiceWindow"
+          },
+          "maxItems": 28,
+          "title": "Service Windows",
+          "type": "array"
+        }
+      },
+      "title": "DraftPolicy",
+      "type": "object"
+    },
+    "DraftPolicyView": {
+      "additionalProperties": false,
+      "properties": {
+        "record": {
+          "$ref": "#/$defs/DraftRecord"
+        },
+        "policy": {
+          "$ref": "#/$defs/DraftPolicy"
+        }
+      },
+      "required": [
+        "record",
+        "policy"
+      ],
+      "title": "DraftPolicyView",
+      "type": "object"
+    },
+    "DraftRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "draft_id": {
+          "format": "uuid",
+          "title": "Draft Id",
+          "type": "string"
+        },
+        "revision": {
+          "title": "Revision",
+          "type": "integer"
+        },
+        "parent_revision": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Parent Revision"
+        },
+        "import_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Import Id"
+        },
+        "source_kind": {
+          "default": "catalog",
+          "enum": [
+            "catalog",
+            "portfolio"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "starts_on": {
+          "format": "date",
+          "title": "Starts On",
+          "type": "string"
+        },
+        "ends_on": {
+          "format": "date",
+          "title": "Ends On",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "created_by": {
+          "format": "uuid",
+          "title": "Created By",
+          "type": "string"
+        },
+        "author_name": {
+          "title": "Author Name",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "input_sha256": {
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "occurrence_count": {
+          "title": "Occurrence Count",
+          "type": "integer"
+        },
+        "segment_count": {
+          "title": "Segment Count",
+          "type": "integer"
+        },
+        "total_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Total Person Hours"
+        },
+        "status": {
+          "const": "draft",
+          "default": "draft",
+          "title": "Status",
+          "type": "string"
+        },
+        "ready_for_real_plan": {
+          "const": false,
+          "default": false,
+          "title": "Ready For Real Plan",
+          "type": "boolean"
+        },
+        "change_kind": {
+          "anyOf": [
+            {
+              "const": "undo",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Change Kind"
+        },
+        "undone_revision": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Undone Revision"
+        },
+        "restored_revision": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Restored Revision"
+        }
+      },
+      "required": [
+        "draft_id",
+        "revision",
+        "parent_revision",
+        "import_id",
+        "title",
+        "starts_on",
+        "ends_on",
+        "created_at",
+        "created_by",
+        "author_name",
+        "reason",
+        "input_sha256",
+        "occurrence_count",
+        "segment_count",
+        "total_person_hours"
+      ],
+      "title": "DraftRecord",
+      "type": "object"
+    },
+    "EditSegments": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_revision": {
+          "minimum": 1,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "occurrence_id": {
+          "format": "uuid",
+          "title": "Occurrence Id",
+          "type": "string"
+        },
+        "segments": {
+          "items": {
+            "$ref": "#/$defs/WorkSegment"
+          },
+          "maxItems": 1000,
+          "minItems": 1,
+          "title": "Segments",
+          "type": "array"
+        },
+        "replace_segment_ids": {
+          "anyOf": [
+            {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "maxItems": 1000,
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Replace Segment Ids"
+        },
+        "unlock": {
+          "default": false,
+          "title": "Unlock",
+          "type": "boolean"
+        },
+        "reason": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "expected_revision",
+        "occurrence_id",
+        "segments",
+        "reason"
+      ],
+      "title": "EditSegments",
+      "type": "object"
+    },
+    "GenerationInput": {
+      "additionalProperties": false,
+      "properties": {
+        "import_id": {
+          "format": "uuid",
+          "title": "Import Id",
+          "type": "string"
+        },
+        "starts_on": {
+          "format": "date",
+          "title": "Starts On",
+          "type": "string"
+        },
+        "ends_on": {
+          "format": "date",
+          "title": "Ends On",
+          "type": "string"
+        },
+        "row_numbers": {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 1000,
+          "minItems": 1,
+          "title": "Row Numbers",
+          "type": "array"
+        },
+        "expansion": {
+          "default": "source_january",
+          "enum": [
+            "source_january",
+            "confirmed_rule"
+          ],
+          "title": "Expansion",
+          "type": "string"
+        },
+        "policy": {
+          "$ref": "#/$defs/DraftPolicy"
+        }
+      },
+      "required": [
+        "import_id",
+        "starts_on",
+        "ends_on",
+        "row_numbers",
+        "policy"
+      ],
+      "title": "GenerationInput",
+      "type": "object"
+    },
+    "GenerationPreview": {
+      "additionalProperties": false,
+      "properties": {
+        "input_sha256": {
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "total_occurrences": {
+          "title": "Total Occurrences",
+          "type": "integer"
+        },
+        "total_segments": {
+          "title": "Total Segments",
+          "type": "integer"
+        },
+        "total_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Total Person Hours"
+        },
+        "selected_rows": {
+          "title": "Selected Rows",
+          "type": "integer"
+        },
+        "unselected_rows": {
+          "title": "Unselected Rows",
+          "type": "integer"
+        },
+        "can_save": {
+          "title": "Can Save",
+          "type": "boolean"
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/PlanIssue"
+          },
+          "title": "Issues",
+          "type": "array"
+        },
+        "total_issues": {
+          "title": "Total Issues",
+          "type": "integer"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/WorkOccurrence"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "ready_for_real_plan": {
+          "const": false,
+          "default": false,
+          "title": "Ready For Real Plan",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "input_sha256",
+        "generator_version",
+        "total_occurrences",
+        "total_segments",
+        "total_person_hours",
+        "selected_rows",
+        "unselected_rows",
+        "can_save",
+        "issues",
+        "total_issues",
+        "items"
+      ],
+      "title": "GenerationPreview",
+      "type": "object"
+    },
+    "LocalPlacement": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_revision": {
+          "minimum": 1,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "segment_id": {
+          "format": "uuid",
+          "title": "Segment Id",
+          "type": "string"
+        },
+        "start_local": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Local"
+        },
+        "end_local": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Local"
+        },
+        "worker_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Worker Ids",
+          "type": "array"
+        },
+        "locked": {
+          "default": false,
+          "title": "Locked",
+          "type": "boolean"
+        },
+        "unlock": {
+          "default": false,
+          "title": "Unlock",
+          "type": "boolean"
+        },
+        "reason": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "expected_revision",
+        "segment_id",
+        "reason"
+      ],
+      "title": "LocalPlacement",
+      "type": "object"
+    },
+    "OccurrencePage": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/WorkOccurrence"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "total"
+      ],
+      "title": "OccurrencePage",
+      "type": "object"
+    },
+    "PlanIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "row_number": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Row Number"
+        },
+        "occurrence_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Occurrence Id"
+        },
+        "segment_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Segment Id"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "PlanIssue",
+      "type": "object"
+    },
+    "PlanValidation": {
+      "additionalProperties": false,
+      "properties": {
+        "validator_version": {
+          "default": "draft-validator-v2",
+          "title": "Validator Version",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "valid",
+            "incomplete",
+            "invalid"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "checked_at": {
+          "format": "date-time",
+          "title": "Checked At",
+          "type": "string"
+        },
+        "input_sha256": {
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "resource_sha256": {
+          "title": "Resource Sha256",
+          "type": "string"
+        },
+        "total_issues": {
+          "title": "Total Issues",
+          "type": "integer"
+        },
+        "issue_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Issue Counts",
+          "type": "object"
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/PlanIssue"
+          },
+          "title": "Issues",
+          "type": "array"
+        },
+        "total_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Total Person Hours"
+        },
+        "placed_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Placed Person Hours"
+        },
+        "unplaced_segments": {
+          "title": "Unplaced Segments",
+          "type": "integer"
+        },
+        "days": {
+          "items": {
+            "$ref": "#/$defs/DailyPlanLoad"
+          },
+          "title": "Days",
+          "type": "array"
+        },
+        "ready_for_real_plan": {
+          "const": false,
+          "default": false,
+          "title": "Ready For Real Plan",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "status",
+        "checked_at",
+        "input_sha256",
+        "resource_sha256",
+        "total_issues",
+        "issue_counts",
+        "issues",
+        "total_person_hours",
+        "placed_person_hours",
+        "unplaced_segments",
+        "days"
+      ],
+      "title": "PlanValidation",
+      "type": "object"
+    },
+    "PlanningChoice": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "title": "PlanningChoice",
+      "type": "object"
+    },
+    "PlanningChoices": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/PlanningChoice"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "total"
+      ],
+      "title": "PlanningChoices",
+      "type": "object"
+    },
+    "PreparedSourceChoice": {
+      "additionalProperties": false,
+      "properties": {
+        "row_number": {
+          "title": "Row Number",
+          "type": "integer"
+        },
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "maintenance_type": {
+          "title": "Maintenance Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "row_number",
+        "code",
+        "title",
+        "maintenance_type"
+      ],
+      "title": "PreparedSourceChoice",
+      "type": "object"
+    },
+    "PreparedSourceChoices": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/PreparedSourceChoice"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "items",
+        "total"
+      ],
+      "title": "PreparedSourceChoices",
+      "type": "object"
+    },
+    "SaveDraft": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/GenerationInput"
+        },
+        "preview_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Preview Sha256",
+          "type": "string"
+        },
+        "idempotency_key": {
+          "format": "uuid",
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "input",
+        "preview_sha256",
+        "idempotency_key",
+        "title",
+        "reason"
+      ],
+      "title": "SaveDraft",
+      "type": "object"
+    },
+    "SegmentPage": {
+      "additionalProperties": false,
+      "properties": {
+        "occurrence": {
+          "$ref": "#/$defs/WorkOccurrence"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/WorkSegment"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        },
+        "worker_labels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Worker Labels",
+          "type": "object"
+        }
+      },
+      "required": [
+        "occurrence",
+        "items",
+        "total"
+      ],
+      "title": "SegmentPage",
+      "type": "object"
+    },
+    "ServiceWindow": {
+      "additionalProperties": false,
+      "properties": {
+        "weekday": {
+          "maximum": 7,
+          "minimum": 1,
+          "title": "Weekday",
+          "type": "integer"
+        },
+        "start_minute": {
+          "maximum": 1439,
+          "minimum": 0,
+          "title": "Start Minute",
+          "type": "integer"
+        },
+        "end_minute": {
+          "maximum": 2879,
+          "minimum": 1,
+          "title": "End Minute",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "weekday",
+        "start_minute",
+        "end_minute"
+      ],
+      "title": "ServiceWindow",
+      "type": "object"
+    },
+    "UndoDraft": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_revision": {
+          "minimum": 2,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "idempotency_key": {
+          "format": "uuid",
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "unlock": {
+          "default": false,
+          "title": "Unlock",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "expected_revision",
+        "idempotency_key",
+        "reason"
+      ],
+      "title": "UndoDraft",
+      "type": "object"
+    },
+    "UndoDraftView": {
+      "additionalProperties": false,
+      "properties": {
+        "record": {
+          "$ref": "#/$defs/DraftRecord"
+        },
+        "restores_revision": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Restores Revision"
+        },
+        "restores_author_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Restores Author Name"
+        },
+        "can_undo": {
+          "title": "Can Undo",
+          "type": "boolean"
+        },
+        "blocker": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Blocker"
+        },
+        "explanation": {
+          "title": "Explanation",
+          "type": "string"
+        },
+        "requires_unlock": {
+          "default": false,
+          "title": "Requires Unlock",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "record",
+        "restores_revision",
+        "restores_author_name",
+        "can_undo",
+        "blocker",
+        "explanation"
+      ],
+      "title": "UndoDraftView",
+      "type": "object"
+    },
+    "WorkOccurrence": {
+      "additionalProperties": false,
+      "properties": {
+        "occurrence_id": {
+          "format": "uuid",
+          "title": "Occurrence Id",
+          "type": "string"
+        },
+        "site_id": {
+          "format": "uuid",
+          "title": "Site Id",
+          "type": "string"
+        },
+        "import_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Import Id"
+        },
+        "source_sha256": {
+          "title": "Source Sha256",
+          "type": "string"
+        },
+        "parser_version": {
+          "title": "Parser Version",
+          "type": "string"
+        },
+        "source_row": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Row"
+        },
+        "decision_revision": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Decision Revision"
+        },
+        "source_cells": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Cells",
+          "type": "array"
+        },
+        "source_date": {
+          "format": "date",
+          "title": "Source Date",
+          "type": "string"
+        },
+        "source_slot": {
+          "enum": [
+            "whole_day",
+            "day",
+            "night"
+          ],
+          "title": "Source Slot",
+          "type": "string"
+        },
+        "date_basis": {
+          "default": "source_january",
+          "enum": [
+            "source_january",
+            "confirmed_rule",
+            "regulation_rule",
+            "accepted_history"
+          ],
+          "title": "Date Basis",
+          "type": "string"
+        },
+        "source_kind": {
+          "default": "catalog",
+          "enum": [
+            "catalog",
+            "regulation"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "binding_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Binding Id"
+        },
+        "rule_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rule Id"
+        },
+        "regulation_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Regulation Id"
+        },
+        "minimum_duration_minutes": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 46080,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum Duration Minutes"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "operation_code": {
+          "title": "Operation Code",
+          "type": "string"
+        },
+        "maintenance_type": {
+          "title": "Maintenance Type",
+          "type": "string"
+        },
+        "interpretation": {
+          "enum": [
+            "FIXED_EXECUTION",
+            "ALLOWED_WINDOW",
+            "CONTINUOUS_WORK",
+            "EQUIPMENT_BATCH"
+          ],
+          "title": "Interpretation",
+          "type": "string"
+        },
+        "equipment_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Equipment Ids",
+          "type": "array"
+        },
+        "earliest_date": {
+          "format": "date",
+          "title": "Earliest Date",
+          "type": "string"
+        },
+        "latest_date": {
+          "format": "date",
+          "title": "Latest Date",
+          "type": "string"
+        },
+        "allowed_intervals": {
+          "items": {
+            "$ref": "#/$defs/AllowedInterval"
+          },
+          "maxItems": 366,
+          "title": "Allowed Intervals",
+          "type": "array"
+        },
+        "total_person_hours": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Total Person Hours"
+        },
+        "crew_size": {
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Crew Size",
+          "type": "integer"
+        },
+        "splittable": {
+          "title": "Splittable",
+          "type": "boolean"
+        },
+        "min_segment_minutes": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Min Segment Minutes"
+        },
+        "qualification_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Qualification Ids",
+          "type": "array"
+        },
+        "qualifications_confirmed": {
+          "title": "Qualifications Confirmed",
+          "type": "boolean"
+        },
+        "included_rows": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Included Rows",
+          "type": "array"
+        },
+        "norm_ref": {
+          "title": "Norm Ref",
+          "type": "string"
+        },
+        "norm_scope": {
+          "enum": [
+            "per_asset",
+            "whole_binding"
+          ],
+          "title": "Norm Scope",
+          "type": "string"
+        },
+        "policy_note": {
+          "title": "Policy Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "occurrence_id",
+        "site_id",
+        "import_id",
+        "source_sha256",
+        "parser_version",
+        "source_row",
+        "decision_revision",
+        "source_cells",
+        "source_date",
+        "source_slot",
+        "title",
+        "operation_code",
+        "maintenance_type",
+        "interpretation",
+        "equipment_ids",
+        "earliest_date",
+        "latest_date",
+        "allowed_intervals",
+        "total_person_hours",
+        "crew_size",
+        "splittable",
+        "min_segment_minutes",
+        "qualification_ids",
+        "qualifications_confirmed",
+        "included_rows",
+        "norm_ref",
+        "norm_scope",
+        "policy_note"
+      ],
+      "title": "WorkOccurrence",
+      "type": "object"
+    },
+    "WorkSegment": {
+      "additionalProperties": false,
+      "properties": {
+        "segment_id": {
+          "format": "uuid",
+          "title": "Segment Id",
+          "type": "string"
+        },
+        "occurrence_id": {
+          "format": "uuid",
+          "title": "Occurrence Id",
+          "type": "string"
+        },
+        "equipment_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "title": "Equipment Ids",
+          "type": "array"
+        },
+        "person_hours": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Person Hours"
+        },
+        "start_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start At"
+        },
+        "end_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End At"
+        },
+        "worker_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Worker Ids",
+          "type": "array"
+        },
+        "locked": {
+          "default": false,
+          "title": "Locked",
+          "type": "boolean"
+        },
+        "depends_on_segment_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Depends On Segment Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "segment_id",
+        "occurrence_id",
+        "equipment_ids",
+        "person_hours"
+      ],
+      "title": "WorkSegment",
+      "type": "object"
+    }
+  }
+}

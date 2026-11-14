@@ -1,5 +1,9 @@
 .workspace-root {position:relative;isolation:isolate;min-height:100dvh;background:var(--color-canvas);color:var(--color-ink);}
-.workspace-aurora {position:fixed;z-index:0;inset:0;pointer-events:none;overflow:hidden;opacity:.14;}
+/* Hide only the document scrollbar; wheel, touch and keyboard scrolling remain native. */
+html:has(.workspace-root) {scrollbar-width:none;scrollbar-gutter:auto;}
+html:has(.workspace-root)::-webkit-scrollbar {display:none;}
+/* Viewport units keep the canvas independent of content reflow and dialog scroll locks. */
+.workspace-aurora {position:fixed;z-index:0;top:0;left:0;width:100vw;height:100lvh;pointer-events:none;overflow:hidden;opacity:.14;}
 .workspace-aurora canvas {display:block;width:100%;height:100%;}
 .workspace-account { position: relative; padding-top: 14px; border-top: 1px solid var(--color-line, #1a3432); }
 .workspace-account-trigger { position: relative; display: grid; grid-template-columns: 46px minmax(0, 1fr); align-items: center; width: 100%; min-height: 58px; border: 1px solid transparent; border-radius: 12px; background: transparent; color: #e8f3f1; cursor: pointer; text-align: left; }
@@ -23,5 +27,5 @@
 .workspace-account-panel dl { padding: 0 10px 12px; }.workspace-account-panel dt { margin-top: 12px; color: #8da9a4; font-size: 10px; }.workspace-account-panel dd { margin-top: 4px; overflow-wrap: anywhere; color: #d6e9e3; font-size: 12px; }
 @keyframes workspace-account-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-@media(max-width:1023px){.workspace-account-panel{width:100%;max-width:none;}.workspace-aurora{height:100lvh;}}
+@media(max-width:1023px){.workspace-account-panel{width:100%;max-width:none;}}
 @media(prefers-reduced-motion:reduce){.workspace-account-panel{animation:none;}}

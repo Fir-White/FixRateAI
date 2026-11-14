@@ -1,3 +1,4 @@
+import { dateTimeFormatter } from "@/shared/lib/dateTimeFormatter";
 import { Link } from "react-router-dom";
 import type { MaintenanceTask } from "@/shared/types/domain";
 import { useSession } from "@/shared/session/SessionContext";
@@ -10,7 +11,7 @@ import { isTaskOverdue } from "@/shared/lib/operations";
 export function TaskLine({task, compact=false}: {task:MaintenanceTask; compact?:boolean}) {
   const {profile}=useSession();
   const path=taskPathForRole(profile?.role,task.id);
-  const time=task.scheduledStart ? new Intl.DateTimeFormat("ru-RU",{timeZone:profile?.timezone??"Asia/Yekaterinburg",hour:"2-digit",minute:"2-digit"}).format(new Date(task.scheduledStart)):"—";
+  const time=task.scheduledStart ? dateTimeFormatter("ru-RU",{timeZone:profile?.timezone??"Asia/Yekaterinburg",hour:"2-digit",minute:"2-digit"}).format(new Date(task.scheduledStart)):"—";
   return <li className={`fr-task-line ${compact?"is-compact":""} ${isTaskOverdue(task)?"is-overdue":""}`}>
     {!compact && <div className="fr-task-time"><strong>{time}</strong><span>{task.scheduledStart?"по плану":"нет времени"}</span></div>}
     <div className="fr-task-line-body"><span className="fr-mono fr-reference">{task.code}</span><h3>{path?<Link to={path}>{task.title}</Link>:task.title}</h3><p>{task.equipmentName}</p>

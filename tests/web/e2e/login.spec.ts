@@ -1,7 +1,34 @@
-import { chromium, test, expect, type BrowserContext } from "@playwright/test";
+import { chromium, test, expect, type BrowserContext, type Page, type TestInfo } from "@playwright/test";
 import { createHash } from "node:crypto";
+import { writeFile } from "node:fs/promises";
 
 const PASSWORD = "local-test-password";
+async function expectHintUnchanged(page:Page,info:TestInfo,before:Buffer,after:Buffer){
+  if(before.equals(after))return;
+  const comparison=await page.evaluate(async([first,second])=>{
+    const read=async(encoded:string)=>{
+      const image=new Image();image.src='data:image/png;base64,'+encoded;await image.decode();
+      const canvas=document.createElement('canvas');canvas.width=image.width;canvas.height=image.height;
+      const context=canvas.getContext('2d')!;context.drawImage(image,0,0);
+      return {width:image.width,height:image.height,pixels:context.getImageData(0,0,image.width,image.height).data};
+    };
+    const a=await read(first),b=await read(second);
+    if(a.width!==b.width||a.height!==b.height)return {sameSize:false,changedPixels:-1};
+    let changedPixels=0;
+    // Chromium can switch between grayscale and LCD glyph antialiasing when
+    // a document range is selected. Ignore small channel differences, while
+    // detecting the much larger selection background/foreground changes.
+    for(let i=0;i<a.pixels.length;i+=4){
+      if([0,1,2].some(c=>Math.abs(a.pixels[i+c]-b.pixels[i+c])>64))changedPixels++;
+    }
+    return {sameSize:true,changedPixels};
+  },[before.toString('base64'),after.toString('base64')]);
+  if(!comparison.sameSize||comparison.changedPixels){
+    await writeFile(info.outputPath('unselected-placeholder.png'),before);
+    await writeFile(info.outputPath('selected-placeholder.png'),after);
+  }
+  expect(comparison).toEqual({sameSize:true,changedPixels:0});
+}
 async function mockLocalApi(context: BrowserContext) {
   let signedIn = false;
   const profile = { userId: "local-qa", name: "QA", email: "qa@example.test", role: "dispatcher", siteName: "QA", timezone: "UTC" };
@@ -28,6 +55,92 @@ test.beforeEach(async ({ page, context }) => {
 });
 
 for (const width of [1440, 390]) {
+  test(`auth validation stays quiet while exploring or correcting fields at ${width}px`,async({page},testInfo)=>{
+    await page.setViewportSize({width,height:900});await page.emulateMedia({reducedMotion:'reduce'});
+    const submissions:string[]=[];page.on('request',request=>{if(request.method()==='POST'&&/\/api\/v1\/auth\/(login|register)$/.test(new URL(request.url()).pathname))submissions.push(request.url());});
+    for(const path of ['/login','/register']){
+      await page.goto(path);
+      const inputs=page.locator('.auth-form input[placeholder]');await expect(inputs.first()).toBeVisible();
+      for(const field of await inputs.all()){
+        await field.focus();await field.press('Tab');
+        await expect(field).not.toHaveAttribute('aria-invalid','true');
+        await expect(field).not.toHaveAttribute('data-validation');
+      }
+      await expect(page.locator('.auth-form [role="alert"]')).toHaveCount(0);
+      const email=page.getByLabel('Email',{exact:true}),password=page.getByLabel('Пароль',{exact:true});
+      await email.fill('unfinished');await email.press('Tab');
+      await expect(email).toHaveAttribute('aria-invalid','true');
+      await email.fill('still-unfinished');
+      await expect(email).not.toHaveAttribute('aria-invalid','true');await expect(email).not.toHaveAttribute('data-validation');
+      await email.fill('');await password.focus();
+      await expect(page.locator('.auth-form [role="alert"]')).toHaveCount(0);
+      await page.screenshot({path:testInfo.outputPath(`${path.slice(1)}-neutral-${width}.png`),animations:'disabled'});
+      await page.locator('.auth-submit').click();
+      await expect(page.locator('.auth-form [role="alert"]')).toHaveCount(path==='/login'?2:5);
+      await expect(path==='/login'?email:page.getByLabel('Имя и фамилия',{exact:true})).toBeFocused();
+      await email.fill('incomplete');await expect(email).not.toHaveAttribute('aria-invalid','true');
+      await email.press('Tab');await expect(email).toHaveAttribute('aria-invalid','true');
+      await email.fill('qa@example.test');await expect(email).not.toHaveAttribute('data-validation');
+      await email.press('Tab');await expect(email).toHaveAttribute('data-validation','valid');
+      await expect(password).toHaveValue('');
+    }
+    expect(submissions).toEqual([]);
+  });
+
+  test(`empty field hints do not acquire document selection at ${width}px`, async ({page},testInfo) => {
+    await page.setViewportSize({width,height:900});
+    await page.emulateMedia({reducedMotion:'reduce'});
+    for(const path of ['/login','/register']){
+      await page.goto(path);
+      const fields=page.locator('.auth-form input[placeholder]');
+      await expect(fields.first()).toBeVisible();
+      await page.evaluate(()=>document.fonts.ready);
+      await page.keyboard.press('Escape');
+      await expect(page.locator('.auth-page')).not.toHaveAttribute('data-reveal','initial');
+      // Document selection may cross native empty inputs and paint their
+      // placeholder as if it were an entered, selected value in Chromium.
+      for(const field of await fields.all()){
+        await field.evaluate(input=>{(document.activeElement as HTMLElement)?.blur();window.getSelection()?.removeAllRanges();input.scrollIntoView({block:'center'});});
+        await page.mouse.move(0,0);
+        const original=await field.screenshot({animations:'disabled'});
+        await page.keyboard.press('ControlOrMeta+A');
+        expect(await field.evaluate(input=>window.getSelection()?.containsNode(input,true))).toBe(true);
+        const selected=await field.screenshot({animations:'disabled'});
+        await expectHintUnchanged(page,testInfo,original,selected);
+        await expect(field).toHaveValue('');
+        await page.evaluate(()=>window.getSelection()?.removeAllRanges());
+        await field.dblclick();await expect(field).toBeFocused();
+        await page.keyboard.insertText('typed-value');
+        await field.press('ControlOrMeta+A');
+        await page.keyboard.insertText('replacement');
+        await expect(field).toHaveValue('replacement');
+        await field.fill('');
+      }
+      const email=page.getByLabel('Email',{exact:true});
+      await email.evaluate(input=>{(document.activeElement as HTMLElement)?.blur();window.getSelection()?.removeAllRanges();input.scrollIntoView({block:'center'});});
+      const originalEmail=await email.screenshot({animations:'disabled'}),box=(await email.boundingBox())!;
+      await page.mouse.move(box.x-4,box.y-4);await page.mouse.down();
+      await page.mouse.move(box.x+box.width+4,box.y+box.height+4,{steps:8});await page.mouse.up();
+      await expect(email).toHaveValue('');
+      // A label gesture may focus its input. Compare the same unfocused state
+      // without clearing any document selection left by the drag.
+      await email.evaluate(input=>(input as HTMLInputElement).blur());
+      await expectHintUnchanged(page,testInfo,originalEmail,await email.screenshot({animations:'disabled'}));
+      await page.evaluate(()=>window.getSelection()?.removeAllRanges());
+      // The same protection must survive validation and password visibility.
+      await page.locator('.auth-submit').click();
+      await expect(page.getByLabel('Email',{exact:true})).toHaveAttribute('aria-invalid','true');
+      await page.getByRole('button',{name:'Показать пароль',exact:true}).click();
+      const password=page.getByLabel('Пароль',{exact:true});
+      await password.evaluate(input=>{(document.activeElement as HTMLElement)?.blur();window.getSelection()?.removeAllRanges();input.scrollIntoView({block:'center'});});
+      const original=await password.screenshot({animations:'disabled'});
+      await page.keyboard.press('ControlOrMeta+A');
+      await expectHintUnchanged(page,testInfo,original,await password.screenshot({animations:'disabled'}));
+      await page.screenshot({path:testInfo.outputPath(`${path.slice(1)}-placeholder-selection-${width}.png`),animations:'disabled'});
+      await page.evaluate(()=>window.getSelection()?.removeAllRanges());
+    }
+  });
+
   test(`auth hints stay separate from entered values at ${width}px`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -269,8 +382,8 @@ test("auth links activate on the first physical click or touch while an empty fi
       await page.goto(`${process.env.FIXRATE_BASE_URL}/login`);
       await page.getByLabel("Пароль",{exact:true}).focus();
       await page.getByLabel("Email",{exact:true}).focus();
-      await expect(page.getByLabel("Пароль",{exact:true})).toHaveAttribute("aria-invalid","true");
-      await expect(page.getByRole("alert")).toHaveText("Введите пароль");
+      await expect(page.getByLabel("Пароль",{exact:true})).not.toHaveAttribute("aria-invalid","true");
+      await expect(page.getByRole("alert")).toHaveCount(0);
     } finally { await context.close(); }
   }
 });
@@ -432,10 +545,10 @@ test("classic root scrollbar preserves auth geometry across route overflow and e
   const geometry=async()=>{
     const value=await page.evaluate(()=>{
       const x=(selector:string)=>{const box=document.querySelector(selector)!.getBoundingClientRect();return{x:box.x,width:box.width};};
-      return{clientWidth:document.documentElement.clientWidth,layout:{rootWidth:document.documentElement.getBoundingClientRect().width,panel:x(".auth-panel"),scene:x(".auth-aurora"),brand:x(".auth-brand")}};
+      return{clientWidth:document.documentElement.clientWidth,rootWidth:document.documentElement.getBoundingClientRect().width,layout:{panel:x(".auth-panel"),scene:x(".auth-aurora"),brand:x(".auth-brand")}};
     });
     measurements.push(value);
-    expect(value.clientWidth).toBeGreaterThanOrEqual(value.layout.rootWidth);
+    expect(value.clientWidth).toBeGreaterThanOrEqual(value.rootWidth);
     expect(value.clientWidth).toBeLessThanOrEqual(1366);
     return value.layout;
   };
@@ -446,7 +559,7 @@ test("classic root scrollbar preserves auth geometry across route overflow and e
     expect(await page.evaluate(()=>window.innerWidth-document.documentElement.clientWidth)).toBeGreaterThan(0);
     await page.evaluate(()=>document.getElementById("classic-scrollbar-probe")!.remove());
     const short=await geometry();
-    expect(short.rootWidth).toBeLessThan(1366);
+    expect(await page.evaluate(()=>document.documentElement.clientWidth)).toBe(1366);
     await page.getByRole("link",{name:"Регистрация",exact:true}).click();
     await expect(page.getByRole("heading",{name:"Регистрация",exact:true})).toBeFocused();
     await expect(page.locator(".auth-page")).toHaveAttribute("data-transition","idle");
@@ -468,7 +581,8 @@ test("classic root scrollbar preserves auth geometry across route overflow and e
     await page.getByRole("button",{name:"Войти",exact:true}).click();
     await expect(page.getByRole("alert")).toHaveCount(3);
     expect(await geometry()).toEqual(short);
-    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);
+    await page.evaluate(()=>window.scrollTo(100,0));
+    expect(await page.evaluate(()=>scrollX)).toBe(0);
     await test.info().attach("classic-root-scrollbar-measurements",{body:JSON.stringify(measurements,null,2),contentType:"application/json"});
   } finally{await browser.close();}
 });
@@ -497,6 +611,6 @@ test("editorial hero stays secondary, reveals once across auth navigation and re
   for(const [width,height] of [[768,1024],[390,844],[844,390]]){
     await page.setViewportSize({width,height});
     await expect(hero).toBeHidden();
-    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   }
 });

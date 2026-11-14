@@ -4,6 +4,7 @@ from app.security.sessions import has_role
 
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from decimal import Decimal
 import hashlib
 import logging
 import os
@@ -13,7 +14,7 @@ import secrets
 from typing import Literal
 from uuid import UUID, uuid4
 
-from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Query, Request, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -41,6 +42,7 @@ from app.schemas.maintenance_api import (
     MaintenanceJobTransition,
 )
 from app.schemas.management import CancelTask
+from app.schemas.planning import WorkloadResponse
 from app.integration.analyst import ReadingInput, ExecutionInput, validate_execution, validate_acceptance, notify_event
 from app.security.authorization import AuthorizationError, require_any_role
 from app.security.sessions import COOKIE, Principal, SQL_ROLES, authenticate, create_session, digest, verify_password
@@ -138,6 +140,11 @@ def create_app(engine=None):
                 if not conn.scalar(text("SELECT to_regclass('public.maintenance_notifications')")):
                     raise RuntimeError("Apply migrations through 009 before starting the API")
             app.state.factory = make_session_factory(app.state.engine)
+            app.state.optimizer = None
+            if engine is None and os.environ.get('OPTIMIZATION_WORKER','true').lower()=='true':
+                from app.optimization_worker import OptimizationManager
+                app.state.optimizer=OptimizationManager(app.state.engine)
+                app.state.optimizer.start()
             app.state.forecaster = None
             if runtime_settings.forecast_provider == "rf":
                 try:
@@ -151,6 +158,7 @@ def create_app(engine=None):
             try:
                 yield
             finally:
+                if app.state.optimizer: app.state.optimizer.stop()
                 if scheduler:
                     scheduler.cancel()
                     try: await scheduler
@@ -187,6 +195,8 @@ def create_app(engine=None):
                 logger.error("Request failed id=%s type=%s", request.state.request_id, type(exc).__name__)
                 response = error_response(request, 500, "Внутренняя ошибка сервера", code="INTERNAL_ERROR")
         response.headers['X-Request-ID']=request.state.request_id
+        if request.url.path.startswith('/api/v1/assistant/'):
+            response.headers['Cache-Control']='private, no-store'
         logger.info("%s %s -> %s request_id=%s", request.method, request.url.path,
                     response.status_code, request.state.request_id)
         return response
@@ -227,6 +237,10 @@ def create_app(engine=None):
 
     def principal(request: Request, session=Depends(db)):
         who=authenticate(request, session)
+        from app.assistant.tools import EXPECTED_PRINCIPAL
+        expected=EXPECTED_PRINCIPAL.get()
+        if expected and expected!=(who.user_id,who.site_id,who.role):
+            raise HTTPException(403,'Контекст доступа изменился во время действия ИИ')
         request.state.principal=who
         return who
 
@@ -259,6 +273,16 @@ def create_app(engine=None):
     def health(session=Depends(db)):
         session.execute(text("SELECT 1"))
         return {"status": "ok", "database": "ready"}
+
+    @app.post("/api/v1/auth/sites")
+    def login_sites(payload: Login, response: Response, session=Depends(db)):
+        user = session.execute(text('SELECT user_id,password_hash FROM users WHERE lower(email)=lower(:email) AND is_active'),dict(email=payload.email)).mappings().first()
+        if not user or not verify_password(payload.password,user['password_hash']):
+            raise HTTPException(401, 'Неверный email или пароль')
+        response.headers['Cache-Control']='private, no-store'
+        rows=session.execute(text('''SELECT s.site_id,s.name FROM sites s JOIN site_memberships m USING(site_id)
+            WHERE m.user_id=:user AND m.is_active AND s.is_active ORDER BY s.name,s.site_id'''),dict(user=user['user_id'])).mappings().all()
+        return [dict(row) for row in rows]
 
     @app.post("/api/v1/auth/login")
     def login(payload: Login, response: Response, request: Request, session=Depends(db)):
@@ -394,7 +418,8 @@ def create_app(engine=None):
     @app.get(prefix + "/ui/equipment")
     def equipment_list(v=Depends(views)):
         visible = v.visible_equipment_ids() if v.principal.role == "executor" else None
-        return [v.equipment(e) for e in v.rows("equipment") if visible is None or e.equipment_id in visible]
+        equipment = v.prepare_equipment_views()
+        return [v.equipment(e) for e in equipment if visible is None or e.equipment_id in visible]
 
     @app.get(prefix + "/ui/equipment/{equipment_id}")
     def equipment_detail(equipment_id: UUID, v=Depends(views)):
@@ -454,6 +479,16 @@ def create_app(engine=None):
         response.headers["Cache-Control"] = "private, no-store"
         return preview_calendar(v, year, month)
 
+    @app.get(prefix + '/planning/workload', response_model=WorkloadResponse)
+    def planning_workload(response: Response, year: int = Query(ge=2000, le=2100),
+                          month: int = Query(ge=1, le=12),
+                          capacity_hours_per_24h: Decimal = Query(default=Decimal('24'), gt=0, le=24, decimal_places=3, allow_inf_nan=False),
+                          v=Depends(views)):
+        from app.integration.workload import workload_preview
+        require_role(v.principal, 'director', 'admin', 'dispatcher', 'engineer')
+        response.headers['Cache-Control'] = 'private, no-store'
+        return workload_preview(v, year, month, capacity_hours_per_24h)
+
     @app.post(prefix + "/calendar/generate")
     def calendar_generate(command: GenerateCalendar, response: Response, v=Depends(views)):
         from app.integration.planning import generate_tasks
@@ -489,6 +524,8 @@ def create_app(engine=None):
             raise HTTPException(409, "Начать можно назначенное задание или новую попытку после доработки")
         lock_workers(v, {a.user_id for a in v.rows("work_assignments", work_order_id=task_id)
                          if a.status not in ("cancelled", "declined")})
+        from app.integration.published_execution import ensure_start
+        ensure_start(v,order)
         # Snapshot must be defined by the operation, never generated from UI assumptions.
         checklist = order.operation_snapshot.get("checklist")
         if not checklist:
@@ -503,7 +540,7 @@ def create_app(engine=None):
             from zoneinfo import ZoneInfo
             if datetime.now(ZoneInfo(v.principal.timezone)).date()<date.fromisoformat(order.operation_snapshot["earliest_date"]):
                 raise HTTPException(409,"MAINTENANCE_WINDOW_NOT_OPEN: окно работы ещё не открыто")
-        if order.operation_snapshot.get("methodology_ref") and order.schedule_entry_id:
+        if order.operation_snapshot.get("methodology_ref") and order.schedule_entry_id and not order.operation_snapshot.get('catalog_publication_id'):
             approved=v.one("schedule_plans",schedule_plan_id=entry.schedule_plan_id)
             if approved.status!="approved": raise HTTPException(409,"PLAN_NOT_APPROVED: месячный план должен утвердить главный инженер")
         reports = v.rows("work_reports", work_order_id=task_id)
@@ -705,8 +742,32 @@ def create_app(engine=None):
         v.session.commit()
         return result
 
+    from app.integration.assistant import register_routes as register_assistant
+    register_assistant(app,views)
     from app.integration.management import register_routes
     register_routes(app,views,db)
+    from app.integration.registry import register_routes as register_registry
+    register_registry(app, views, storage, runtime_settings)
+    from app.integration.registry_excel import register_routes as register_registry_excel
+    register_registry_excel(app, views)
+    from app.integration.catalog_imports import register_routes as register_catalog_imports
+    register_catalog_imports(app, views)
+    from app.integration.catalog_decisions import register_routes as register_catalog_decisions
+    register_catalog_decisions(app, views)
+    from app.integration.draft_plans import register_routes as register_draft_plans
+    register_draft_plans(app, views)
+    from app.integration.draft_undo import register_routes as register_draft_undo
+    register_draft_undo(app, views)
+    from app.integration.plan_load import register_routes as register_plan_load
+    register_plan_load(app, views)
+    from app.integration.requirements import register_routes as register_requirements
+    register_requirements(app, views)
+    from app.integration.portfolio_plans import register_routes as register_portfolio_plans
+    register_portfolio_plans(app, views)
+    from app.integration.optimization import register_routes as register_optimization
+    register_optimization(app, views)
+    from app.integration.publication import register_routes as register_publication
+    register_publication(app, views)
     from app.integration.analyst import register_analyst_routes
     register_analyst_routes(app,views,photo_path,editable)
     from app.integration.incidents import register_incident_routes

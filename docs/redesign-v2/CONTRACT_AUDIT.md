@@ -1,5 +1,7 @@
 # Контракты C00, C17 и семантика C02
 
+Примечание к опубликованному срезу 15.11.2026: исходные визуальные материалы `source/` и журналы/снимки `reports/` хранятся локально и не входят в Git. Ссылки на отсутствующие в checkout файлы ниже приведены как пути к артефактам, а не как доступные вложения. Исторические результаты не являются новым прогоном текущей сборки.
+
 Исходная версия: `frontend_polished`, `422eacf94aadf0fc75e29ef8b1ee110abce78bd2`. Аудит 06.11.2026. Этот документ фиксирует исследование исходников и отдельные проверки, а не прохождение C16. Исходный архив и `evidence/` не изменяются. Правила размещения описаны в [разработке](../service/development.md), текущая архитектура — в [ARCHITECTURE](../ARCHITECTURE.md).
 
 ## C17: причина отсутствия оборудования
@@ -98,7 +100,7 @@ Read-only Chrome на `:5174`, 1440×900, четыре живых anchor: execut
 
 Лично просмотрены все последовательные viewport tiles в `reports/redesign-v2/after-final-shared/`: `director-home-1440-y{0,800,1037}.png`, `director-anchor-1440-y{0,800,1017}.png`, `director-anchor-390-y{0,744,1488,2232,2740}.png`. Все 11 изображений просмотрены целиком; для каждой из трёх серий статус **FULL**, результат **passed** с замечаниями ниже. Это `/director` с раскрытым/свёрнутым sidebar и mobile; отдельной серии `director-home-390` нет, её нельзя заявлять просмотренной. Верх/середина/конец покрыты с overlap; конец страницы виден, повторов начала длинного PNG нет. `director-errors.json` пуст.
 
-Сравнение: `reports/redesign-v2/before/director-home-1440-y0.png` и `director-anchor-390-y0.png` (исходный верх), [desktop concept](source/FixRateAI-phase2-visual-design-2026-11-06/concepts/director-desktop.png), [mobile concept](source/FixRateAI-phase2-visual-design-2026-11-06/concepts/director-mobile.png). В baseline экспорт/аналитика занимали верх до заголовка; теперь роль, заголовок, компактные метрики и просроченная работа читаются первыми. Концепты — композиционный ориентир, не live доказательство.
+Сравнение: `reports/redesign-v2/before/director-home-1440-y0.png` и `director-anchor-390-y0.png` (исходный верх), desktop concept (`source/FixRateAI-phase2-visual-design-2026-11-06/concepts/director-desktop.png`), mobile concept (`source/FixRateAI-phase2-visual-design-2026-11-06/concepts/director-mobile.png`). В baseline экспорт/аналитика занимали верх до заголовка; теперь роль, заголовок, компактные метрики и просроченная работа читаются первыми. Концепты — композиционный ориентир, не live доказательство.
 
 | Критерий Phase II | Наблюдение по FULL сериям |
 |---|---|

@@ -1,0 +1,391 @@
+{
+  "$defs": {
+    "BuildingCreate": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "address": {
+          "anyOf": [
+            {
+              "maxLength": 1000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Address"
+        },
+        "timezone": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Timezone",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "timezone"
+      ],
+      "title": "BuildingCreate",
+      "type": "object"
+    },
+    "ComponentCreate": {
+      "additionalProperties": false,
+      "properties": {
+        "position_code": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Position Code",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "part_number": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Part Number"
+        },
+        "serial_number": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Serial Number"
+        },
+        "installed_on": {
+          "format": "date",
+          "title": "Installed On",
+          "type": "string"
+        },
+        "usage_unit": {
+          "default": "hour",
+          "enum": [
+            "hour",
+            "cycle",
+            "km"
+          ],
+          "title": "Usage Unit",
+          "type": "string"
+        },
+        "initial_usage": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Initial Usage"
+        },
+        "resource_limit": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resource Limit"
+        },
+        "resource_basis": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resource Basis"
+        }
+      },
+      "required": [
+        "position_code",
+        "name",
+        "installed_on",
+        "initial_usage"
+      ],
+      "title": "ComponentCreate",
+      "type": "object"
+    },
+    "ComponentMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_revision": {
+          "exclusiveMinimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "name": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "part_number": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Part Number"
+        },
+        "serial_number": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Serial Number"
+        },
+        "resource_limit": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resource Limit"
+        },
+        "resource_basis": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resource Basis"
+        }
+      },
+      "required": [
+        "expected_revision",
+        "name"
+      ],
+      "title": "ComponentMetadata",
+      "type": "object"
+    },
+    "ComponentReplacement": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_revision": {
+          "exclusiveMinimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "removed_on": {
+          "format": "date",
+          "title": "Removed On",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "replacement": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ComponentCreate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "expected_revision",
+        "removed_on",
+        "reason"
+      ],
+      "title": "ComponentReplacement",
+      "type": "object"
+    },
+    "SiteSelection": {
+      "additionalProperties": false,
+      "properties": {
+        "site_id": {
+          "format": "uuid",
+          "title": "Site Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "site_id"
+      ],
+      "title": "SiteSelection",
+      "type": "object"
+    },
+    "SystemCreate": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Code",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "system_group": {
+          "anyOf": [
+            {
+              "enum": [
+                "electricity",
+                "water",
+                "air"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "System Group"
+        }
+      },
+      "required": [
+        "code",
+        "name"
+      ],
+      "title": "SystemCreate",
+      "type": "object"
+    },
+    "SystemEdit": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_revision": {
+          "exclusiveMinimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "system_group": {
+          "anyOf": [
+            {
+              "enum": [
+                "electricity",
+                "water",
+                "air"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "System Group"
+        }
+      },
+      "required": [
+        "expected_revision",
+        "system_group"
+      ],
+      "title": "SystemEdit",
+      "type": "object"
+    },
+    "UsageReading": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_revision": {
+          "exclusiveMinimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "measured_at": {
+          "format": "date-time",
+          "title": "Measured At",
+          "type": "string"
+        },
+        "usage_value": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Usage Value"
+        },
+        "note": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "expected_revision",
+        "measured_at",
+        "usage_value",
+        "note"
+      ],
+      "title": "UsageReading",
+      "type": "object"
+    }
+  }
+}

@@ -1,11 +1,13 @@
 """Read models for the SPA. Missing persisted facts remain null, never fixtures."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+from calendar import monthrange
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import or_, select
+from sqlalchemy.orm import joinedload
 
 from app.db.repository import MaintenanceRepository
 from app.security.sessions import has_role
@@ -24,6 +26,41 @@ class Views:
         self.repo = MaintenanceRepository(session, models)
         self._task_rows = {}
         self._task_refs = []
+        self._read_rows = {}
+
+    def prefetch(self, table, *keys, options=()):
+        """Request-local snapshots for read projections only; never prime a writer."""
+        cls = self.models[table]
+        query = select(cls).options(*options)
+        if hasattr(cls, "site_id"):
+            query = query.where(cls.site_id == self.principal.site_id)
+        rows = self.session.scalars(query).all()
+        self._read_rows[table] = rows
+        for key in keys:
+            groups = {}
+            for row in rows:
+                groups.setdefault(getattr(row, key), []).append(row)
+            self._task_rows[(table, key)] = groups
+        return rows
+
+    def prepare_equipment_views(self):
+        """Bound SQL count independently of equipment, entries and history size."""
+        equipment = self.prefetch("equipment", "equipment_id")
+        self.prefetch("sites", "site_id")
+        self.prefetch("equipment_types")
+        binding = self.models["rule_equipment"]
+        rule = self.models["maintenance_rules"]
+        order = self.models["work_orders"]
+        self.prefetch("rule_equipment", "equipment_id", options=(joinedload(binding.rule).joinedload(rule.operation),))
+        self.prefetch("schedule_entries", "binding_id")
+        self.prefetch("work_orders", "schedule_entry_id", "work_order_id", options=(joinedload(order.rule).joinedload(rule.operation),))
+        self.prefetch("work_order_equipment", "equipment_id")
+        reviews = self.prefetch("acceptance_reviews", "work_order_id")
+        if self.principal.role == "executor":
+            self.prefetch("work_assignments", "work_order_id")
+        users = self.models["users"]
+        self._task_refs.extend(self.session.scalars(select(users).where(users.user_id.in_({r.reviewer_user_id for r in reviews}))).all())
+        return equipment
 
     def rows(self, table, **filters):
         if len(filters) == 1:
@@ -31,6 +68,8 @@ class Views:
             index = self._task_rows.get((table, key))
             if index is not None:
                 return index.get(value, [])
+        if table in self._read_rows:
+            return [row for row in self._read_rows[table] if all(getattr(row, key) == value for key, value in filters.items())]
         cls = self.models[table]
         query = select(cls)
         if hasattr(cls, "site_id"):
@@ -50,7 +89,8 @@ class Views:
         query = select(cls).where(cls.site_id == self.principal.site_id, cls.work_order_id == task_id)
         if lock:
             query = query.with_for_update()
-        order = self.session.scalar(query)
+        cached = self._task_rows.get(("work_orders", "work_order_id")) if not lock else None
+        order = (cached.get(task_id) or [None])[0] if cached is not None else self.session.scalar(query)
         if order is None:
             raise HTTPException(404, "Задание не найдено")
         if self.principal.role == "executor" and not any(
@@ -63,8 +103,8 @@ class Views:
         site = self.one("sites", site_id=item.site_id)
         typ = self.session.get(self.models["equipment_types"], item.equipment_type_id) if item.equipment_type_id else None
         bindings = self.rows("rule_equipment", equipment_id=item.equipment_id)
-        entries = [e for e in self.rows("schedule_entries") if any(b.binding_id == e.binding_id for b in bindings)
-                   and e.status == "planned" and not any(o.status in ("completed", "cancelled")
+        entries = [e for b in bindings for e in self.rows("schedule_entries", binding_id=b.binding_id)
+                   if e.status == "planned" and not any(o.status in ("completed", "cancelled")
                        for o in self.rows("work_orders", schedule_entry_id=e.schedule_entry_id))]
         history = self.history(item.equipment_id)
         return dict(id=str(item.equipment_id), siteId=str(item.site_id), siteName=site.name,
@@ -112,7 +152,7 @@ class Views:
         kind = snapshot.get("maintenance_type")
         if not kind and rule and rule.operation.maintenance_type_id:
             typ = self.session.get(self.models["maintenance_types"], rule.operation.maintenance_type_id)
-            kind = typ.name if typ.name in ("ТО1", "ТО2") else None
+            kind = typ.name if typ.name in ("ТО1", "ТО2", "ТО3") else None
         return rule, title, code, kind
 
     def prepare_task_views(self, orders):
@@ -121,6 +161,12 @@ class Views:
         order_ids = [order.work_order_id for order in orders]
         if not order_ids:
             return
+        rule = self.models["maintenance_rules"]
+        self._task_refs.extend(self.session.scalars(select(rule).where(
+            rule.site_id == self.principal.site_id,
+            rule.maintenance_rule_id.in_({o.maintenance_rule_id for o in orders if o.maintenance_rule_id}),
+        ).options(joinedload(rule.operation))).all())
+        self.prefetch("maintenance_types")
         def index(table, key, ids):
             cls = self.models[table]
             query = select(cls).where(cls.site_id == self.principal.site_id, getattr(cls, key).in_(ids))
@@ -220,9 +266,9 @@ class Views:
         actions = []
         if self.principal.role=="chief_engineer" and order.status=="completed": actions.append("reopen")
         role = self.principal.role
-        if has_role(role,("dispatcher", "engineer")):
+        if has_role(role,("dispatcher", "engineer")) and not order.operation_snapshot.get('catalog_publication_id'):
             actions.append("forecast")
-        if has_role(role,('dispatcher',)) and order.status in ('draft','clarification','assigned') and not reports:
+        if has_role(role,('dispatcher',)) and order.status in ('draft','clarification','assigned') and not reports and not order.operation_snapshot.get('catalog_publication_id'):
             actions.append('cancel')
         if role == "executor":
             # bundle is only called after task() has checked the active assignment.
@@ -244,27 +290,40 @@ class Views:
     def calendar(self, year, month):
         today = datetime.now(ZoneInfo(self.principal.timezone)).date()
         items = []
-        orders_by_entry = {}
-        for order in self.rows("work_orders"):
-            orders_by_entry.setdefault(order.schedule_entry_id, []).append(order)
         visible_orders = None
         if self.principal.role == "executor":
             visible_orders = {assignment.work_order_id for assignment in self.rows("work_assignments", user_id=self.principal.user_id)
                               if assignment.status not in ("cancelled", "declined")}
-        for entry in self.rows("schedule_entries"):
-            if (entry.planned_date.year, entry.planned_date.month) != (year, month) and (entry.source_date is None or (entry.source_date.year,entry.source_date.month)!=(year,month)):
-                continue
+        entry_type = self.models["schedule_entries"]
+        rule_type = self.models["maintenance_rules"]
+        binding_type = self.models["rule_equipment"]
+        first, last = date(year, month, 1), date(year, month, monthrange(year, month)[1])
+        entries = self.session.scalars(select(entry_type).where(
+            entry_type.site_id == self.principal.site_id,
+            or_(entry_type.planned_date.between(first, last), entry_type.source_date.between(first, last)),
+        ).options(joinedload(entry_type.rule).joinedload(rule_type.operation),
+                  joinedload(entry_type.binding).joinedload(binding_type.equipment))).all()
+        order_type = self.models["work_orders"]
+        orders_by_entry = {}
+        for order in self.session.scalars(select(order_type).where(
+            order_type.site_id == self.principal.site_id,
+            order_type.schedule_entry_id.in_([entry.schedule_entry_id for entry in entries]),
+        )).all():
+            orders_by_entry.setdefault(order.schedule_entry_id, []).append(order)
+        self.prefetch("maintenance_types")
+        for entry in entries:
             orders = orders_by_entry.get(entry.schedule_entry_id, [])
             if visible_orders is not None and (not orders or orders[0].work_order_id not in visible_orders):
                 continue
             rule = entry.rule
             operation_snapshot = entry.rule_snapshot.get('operation', {})
             binding = entry.binding
+            catalog=entry.rule_snapshot.get('catalog_publication_id')
             eq = binding.equipment if binding else None
             kind = None
             if rule.operation.maintenance_type_id:
                 typ = self.session.get(self.models["maintenance_types"], rule.operation.maintenance_type_id)
-                kind = typ.name if typ.name in ("ТО1", "ТО2") else None
+                kind = typ.name if catalog or typ.name in ("ТО1", "ТО2", "ТО3") else None
             done = bool(orders and orders[0].status == "completed")
             cancelled = entry.status != "planned" or bool(orders and orders[0].status == "cancelled")
             items.append(dict(id=str(entry.schedule_entry_id), occurrenceDate=iso(entry.planned_date),sourceDate=iso(entry.source_date or entry.regulatory_deadline_on),

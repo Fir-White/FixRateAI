@@ -15,7 +15,7 @@ import { DEMO_MODE } from "@/shared/api/request";
 export function WorkspaceLayout() {
   const { profile } = useSession();
   const root = useRef<HTMLDivElement>(null);
-  const scope = JSON.stringify([profile?.userId, profile?.siteName, profile?.role]);
+  const scope = JSON.stringify([profile?.userId, profile?.siteId ?? profile?.siteName, profile?.role]);
   useWorkspaceView(root, scope);
   return <div ref={root} className="workspace-root"><WorkspaceAuroraBackground /><ApiQueryProvider enabled={!DEMO_MODE} scope={JSON.stringify([profile?.userId, profile?.siteId, profile?.role])}><WorkspaceDataWarmup/><WorkspaceStateScope key={scope} value={scope}><WorkspaceNavigation home={profile ? homePathForRole(profile.role) : "/login"}><Outlet /></WorkspaceNavigation></WorkspaceStateScope></ApiQueryProvider></div>;
 }

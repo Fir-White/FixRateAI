@@ -13,6 +13,7 @@ import { Icon } from "@/shared/ui/Icon";
 import { TaskLine } from "@/entities/task/TaskLine";
 import { DEMO_DATE, dateLabel, isOpenTask, isTaskOverdue, isUnassigned, matchesTaskFilter, shiftDay, taskPriority, taskWorkDate, weekFor } from "@/shared/lib/operations";
 import "./management-redesign.css";
+import { DailyActions } from '@/features/navigation/DailyActions';
 
 export function DispatcherPage() {
   const {profile}=useSession();
@@ -38,6 +39,7 @@ export function DispatcherPage() {
     <header className="fr-overview-heading"><div><h1 aria-label="Панель диспетчера">{director?"Обзор объекта":chief?"Технический обзор":"Оперативный центр"}</h1><p>{profile?.siteName} · {director?"Просмотр отклонений и результатов работ.":chief?"Обязательства, регламенты и контроль качества.":"Работы, обязательные сроки и решения."}</p></div>
       {canCalendar && <Link to={`/calendar?date=${selected}`} className={buttonClassName("primary")}><Icon name="calendar" size={17}/>Открыть график</Link>}
     </header>
+    <DailyActions/>
     <div className="fr-signal-strip"><div className="fr-signal-total"><span className="fr-live-dot"/><strong>{open.length}</strong><span>незавершённых нарядов</span></div>
       <div className="fr-signals">{signals.map(s=>canTasks?<Link key={s.filter} to={`/tasks?status=${s.filter}`} className={`fr-signal ${s.value?`tone-${s.tone}`:""}`}><span>{s.label}</span><strong>{s.value}</strong><span aria-hidden="true">↗</span></Link>:<span key={s.filter} className={`fr-signal ${s.value?`tone-${s.tone}`:""}`}><span>{s.label}</span><strong>{s.value}</strong></span>)}</div>
     </div>
@@ -51,7 +53,7 @@ export function DispatcherPage() {
         <div className="fr-toolbar"><IconButton label="Предыдущая неделя" onClick={()=>setSelected(shiftDay(selected,-7))}><Icon name="back" size={16}/></IconButton><button type="button" className="fr-text-button" onClick={()=>setSelected(today)}>{DEMO_MODE?"Дата демо":"Сегодня"}</button><IconButton label="Следующая неделя" onClick={()=>setSelected(shiftDay(selected,7))}><Icon name="chevron" size={16}/></IconButton></div></div>
         <div className="fr-week-picker" aria-label="Выбор дня недели">{days.map(day=>{const count=tasks.filter(t=>t.state!=="cancelled"&&taskWorkDate(t,timezone)===day).length;return <button key={day} type="button" aria-pressed={day===selected} className={day===selected?"is-selected":""} onClick={()=>setSelected(day)} aria-label={`${dateLabel(day,{day:"numeric",month:"long"})}, нарядов: ${count}`}><span>{dateLabel(day,{weekday:"short"})}</span><strong>{day.slice(8)}</strong><small className="fr-week-workload"><span className="fr-week-workload-value">{count}</span><span className="fr-week-workload-label">{pluralize(count,"наряд","наряда","нарядов")}</span></small>{day===today&&<i aria-label={DEMO_MODE?"Дата демо":"Сегодня"}/>}</button>})}</div>
         <div className="fr-list-caption"><span>{daily.length?`Нарядов на выбранный день: ${daily.length}`:"Свободный день в сохранённом плане"}</span><span>Время объекта · {timezone}</span></div>
-        {daily.length?<ul className="fr-task-lines">{daily.map(task=><TaskLine key={task.id} task={task}/>)}</ul>:<div className="fr-empty-inline"><Icon name="calendar" size={24}/><h3>На этот день работ нет</h3><p>Это не отменяет регламент. Проверьте другие даты или задания без планового времени.</p>{canTasks&&<Link to="/tasks?status=unassigned">Посмотреть неназначенные наряды →</Link>}</div>}
+        {daily.length?<><ul className="fr-task-lines">{daily.slice(0,25).map(task=><TaskLine key={task.id} task={task}/>)}</ul>{daily.length>25&&<p className="text-xs text-muted">Показаны первые 25 работ. Остальные доступны в заданиях дня.</p>}</>:<div className="fr-empty-inline"><Icon name="calendar" size={24}/><h3>На этот день работ нет</h3><p>Выберите другой день или проверьте задания без исполнителя.</p>{canTasks&&<Link to="/tasks?status=unassigned">Посмотреть неназначенные наряды →</Link>}</div>}
         <div className="fr-section-footer"><span>Плановое начало; без него — обязательная дата. Это разные сроки.</span>{canTasks&&<Link to={`/tasks?date=${selected}`}>Наряды дня →</Link>}</div>
       </section>
     </div><aside className="fr-decision-rail" aria-label="Панель решений">

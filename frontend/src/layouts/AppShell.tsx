@@ -23,6 +23,8 @@ import { useWorkspaceBack } from "./WorkspaceNavigation";
 import { NAVIGATION_ITEMS } from "./navigation";
 import "./operations.css";
 import { ContentTheme } from "@/shared/ui/ContentTheme";
+import { preloadPage } from "@/app/pageModules";
+import { SectionNavigation } from "./SectionNavigation";
 
 const ROLES: Role[] = ["director","chief_engineer","dispatcher", "engineer", "executor", "admin"];
 
@@ -66,14 +68,15 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
   }
 
   const items = NAVIGATION_ITEMS.filter(item => item.roles.includes(profile.role)).map(item => {
-    if (item.to === "/dispatcher" && ["director", "chief_engineer", "admin"].includes(profile.role)) return { ...item, to: homePathForRole(profile.role) };
-    if (item.to === "/quality" && profile.role === "engineer") return { ...item, to: homePathForRole(profile.role) };
+    if (profile.role === 'executor') return {...item,group:'Моя работа'};
+    if (item.to === "/dispatcher") return { ...item, to: homePathForRole(profile.role), label: profile.role==='director'?'Обзор объекта':item.label };
     return item;
   });
   const handleRoleChange = (role: Role) => {
     switchRole(role);
     navigate(homePathForRole(role));
   };
+  const warmProfile = () => { void preloadPage("/profile")?.catch(() => {}); };
 
 
   return (
@@ -86,6 +89,7 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
       </a>
 
       <Sidebar
+        timezone={profile.timezone}
         items={items}
         expanded={sidebarExpanded}
         mobile={isMobile}
@@ -95,7 +99,7 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
       />
 
       <div className="ops-stage" inert={mobileOpen} aria-hidden={mobileOpen || undefined}>
-        <header ref={topbarRef} className="ops-topbar scroll-boundary sticky top-0 z-30 border-b border-line bg-canvas/80 backdrop-blur-xl">
+        <header ref={topbarRef} className="ops-topbar scroll-boundary sticky top-0 z-30 border-b border-line">
           <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
               <IconButton
@@ -109,9 +113,10 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
                 <Icon name="menu" size={20} />
               </IconButton>
               {location.pathname.replace(/\/+$/, "") !== homePathForRole(profile.role) && <button type="button" className="workspace-back" onClick={workspaceBack}><Icon name="back" size={17}/>Назад</button>}
+              <span className="workspace-site" title={profile.siteName}>{profile.siteName}<small>{ROLE_LABELS[profile.role]}</small></span>
             </div>
 
-              <div className="fr-topbar-actions"><MaintenanceInbox/><NavLink to="/profile" className="profile-trigger" aria-label="Учётная запись"><Icon name="user" size={20}/><span className="topbar-hint" aria-hidden="true">Учётная запись</span></NavLink>
+              <div className="fr-topbar-actions"><MaintenanceInbox/><NavLink to="/profile" className="profile-trigger" aria-label="Учётная запись" onMouseEnter={warmProfile} onFocus={warmProfile} onPointerDown={warmProfile}><Icon name="user" size={20}/><span className="topbar-hint" aria-hidden="true">Учётная запись</span></NavLink>
               {DEMO_MODE && (
                 <div className="fr-topbar-actions">
                   <span className="fr-demo-badge">DEMO</span>
@@ -140,9 +145,9 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
           ref={contentRef}
           id={executor ? "executor-content" : "main-content"}
           tabIndex={-1}
-          className={`ops-main mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-10 ${profile.role === "executor" ? "workspace-executor-main" : ""}`}
+          className={`ops-main mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-10 ${profile.role === "executor" ? "workspace-executor-main" : ""} ${location.pathname.replace(/\/+$/, "") === "/assistant" ? "ops-main--assistant" : ""}`}
         >
-          {location.pathname.replace(/\/+$/, "") === "/profile" ? <Outlet /> : <ContentTheme><Outlet /></ContentTheme>}
+          {location.pathname.replace(/\/+$/, "") === "/profile" ? <Outlet /> : <ContentTheme><SectionNavigation/><Outlet /></ContentTheme>}
         </main>
 
       </div>

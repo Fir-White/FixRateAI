@@ -54,6 +54,35 @@ it("shows all empty login errors after submit and focuses email without sending 
   expect(screen.getByLabelText("Пароль")).toHaveAccessibleDescription("Введите пароль");
 });
 
+it('keeps unexplored and cleared fields neutral until submit, then checks required values on blur',async()=>{
+  const user=userEvent.setup();render(<MemoryRouter><LoginPage/></MemoryRouter>);
+  const email=screen.getByLabelText('Email'),password=screen.getByLabelText('Пароль');
+  await user.click(email);await user.click(password);await user.click(screen.getByRole('heading'));
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(email).not.toHaveAttribute('data-validation');expect(password).not.toHaveAttribute('data-validation');
+  await user.type(email,'incomplete');await user.clear(email);await user.click(password);
+  expect(email).not.toHaveAttribute('aria-invalid');
+  await user.click(screen.getByRole('button',{name:'Войти'}));
+  expect(screen.getAllByRole('alert')).toHaveLength(2);expect(signIn).not.toHaveBeenCalled();
+  await user.type(email,'a');
+  expect(email).not.toHaveAttribute('aria-invalid');expect(email).not.toHaveAttribute('data-validation');
+  await user.clear(email);await user.click(password);
+  expect(email).toHaveAccessibleDescription('Введите email');
+});
+
+it('waits for completion of an edit before showing its error or success again',()=>{
+  render(<MemoryRouter><LoginPage/></MemoryRouter>);
+  const email=screen.getByLabelText('Email');
+  fireEvent.change(email,{target:{value:'not-an-email'}});fireEvent.blur(email);
+  expect(email).toHaveAttribute('aria-invalid','true');
+  fireEvent.change(email,{target:{value:'still-not-an-email'}});
+  expect(email).not.toHaveAttribute('aria-invalid');expect(email).not.toHaveAttribute('data-validation');
+  fireEvent.blur(email);expect(email).toHaveAccessibleDescription('Введите корректный email');
+  fireEvent.change(email,{target:{value:'person@example.test'}});
+  expect(email).not.toHaveAttribute('data-validation');
+  fireEvent.blur(email);expect(email).toHaveAttribute('data-validation','valid');
+});
+
 it("validates on blur and corrects inline errors while preserving a short raw login password", async () => {
   signIn.mockRejectedValueOnce(new ApiError(401, "Неверный email или пароль"));
   render(<MemoryRouter><LoginPage /></MemoryRouter>);
@@ -66,7 +95,7 @@ it("validates on blur and corrects inline errors while preserving a short raw lo
   expect(email).toHaveAttribute("data-validation","invalid");
   fireEvent.change(email,{target:{value:" person@example.test "}});
   expect(email).not.toHaveAttribute("aria-invalid");
-  expect(email).toHaveAttribute("data-validation","valid");
+  expect(email).not.toHaveAttribute("data-validation");
   fireEvent.blur(email,{relatedTarget:screen.getByLabelText("Пароль")});
   expect(email).toHaveAttribute("data-validation","valid");
   fireEvent.change(screen.getByLabelText("Пароль"),{target:{value:" x "}});
@@ -102,13 +131,14 @@ it("keeps null-relatedTarget pointer and compatibility mouse blur from moving a 
 
 it.each(["cancel","release outside","keyboard"])("does not let a %s action suppress the next ordinary field blur", action => {
   render(<MemoryRouter><LoginPage /></MemoryRouter>);
+  fireEvent.change(screen.getByLabelText("Email"),{target:{value:"unfinished"}});
   const link=screen.getByRole("link",{name:"Регистрация"});
   fireEvent.pointerDown(link);
   if(action==="cancel") fireEvent.pointerCancel(link);
   else if(action==="release outside") fireEvent.pointerUp(document.body);
   else fireEvent.keyDown(document,{key:"Tab"});
-  fireEvent.blur(screen.getByLabelText("Пароль"),{relatedTarget:screen.getByLabelText("Email")});
-  expect(screen.getByLabelText("Пароль")).toHaveAccessibleDescription("Введите пароль");
+  fireEvent.blur(screen.getByLabelText("Email"),{relatedTarget:screen.getByLabelText("Пароль")});
+  expect(screen.getByLabelText("Email")).toHaveAccessibleDescription("Введите корректный email");
 });
 
 it("keeps password visibility and first submit usable while deferring action-target blur checks", async () => {
@@ -129,11 +159,12 @@ it("keeps an action usable when keyboard focus leaves an empty input", () => {
   fireEvent.blur(screen.getByLabelText("Пароль"),{relatedTarget:screen.getByRole("link",{name:"Регистрация"})});
   expect(screen.queryByRole("alert")).toBeNull();
   fireEvent.blur(screen.getByLabelText("Email"),{relatedTarget:screen.getByLabelText("Пароль")});
-  expect(screen.getByLabelText("Email")).toHaveAccessibleDescription("Введите email");
+  expect(screen.getByLabelText("Email")).not.toHaveAttribute("aria-invalid");
 });
 
 it.each(["before press","before release"])("ignores inherited fieldset disablement %s instead of retaining a gesture until a missing click", timing => {
   render(<MemoryRouter><LoginPage /></MemoryRouter>);
+  fireEvent.change(screen.getByLabelText("Email"),{target:{value:"unfinished"}});
   const fieldset=document.querySelector("fieldset")!;
   const eye=screen.getByRole("button",{name:"Показать пароль"}) as HTMLButtonElement;
   if(timing==="before press") fieldset.disabled=true;
@@ -142,8 +173,8 @@ it.each(["before press","before release"])("ignores inherited fieldset disableme
   fieldset.disabled=true;
   fireEvent.pointerUp(eye);
   fieldset.disabled=false;
-  fireEvent.blur(screen.getByLabelText("Пароль"),{relatedTarget:null});
-  expect(screen.getByLabelText("Пароль")).toHaveAccessibleDescription("Введите пароль");
+  fireEvent.blur(screen.getByLabelText("Email"),{relatedTarget:null});
+  expect(screen.getByLabelText("Email")).toHaveAccessibleDescription("Введите корректный email");
 });
 
 it.each([

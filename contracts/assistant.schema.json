@@ -1,0 +1,214 @@
+{
+  "$defs": {
+    "AgentCall": {
+      "additionalProperties": false,
+      "properties": {
+        "tool": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Tool",
+          "type": "string"
+        },
+        "arguments_json": {
+          "description": "JSON object with tool arguments: path, query, body. For describe_tool: {\"name\":\"tool_name\"}.",
+          "maxLength": 40000,
+          "title": "Arguments Json",
+          "type": "string"
+        },
+        "explanation": {
+          "maxLength": 3000,
+          "minLength": 1,
+          "title": "Explanation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tool",
+        "arguments_json",
+        "explanation"
+      ],
+      "title": "AgentCall",
+      "type": "object"
+    },
+    "AgentStep": {
+      "additionalProperties": false,
+      "properties": {
+        "answer": {
+          "maxLength": 12000,
+          "title": "Answer",
+          "type": "string"
+        },
+        "calls": {
+          "items": {
+            "$ref": "#/$defs/AgentCall"
+          },
+          "maxItems": 3,
+          "title": "Calls",
+          "type": "array"
+        }
+      },
+      "required": [
+        "answer",
+        "calls"
+      ],
+      "title": "AgentStep",
+      "type": "object"
+    },
+    "ConfirmAction": {
+      "additionalProperties": false,
+      "properties": {
+        "payload_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Payload Sha256",
+          "type": "string"
+        },
+        "confirmed": {
+          "const": true,
+          "title": "Confirmed",
+          "type": "boolean"
+        },
+        "secret_values": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "maxProperties": 3,
+          "title": "Secret Values",
+          "type": "object"
+        }
+      },
+      "required": [
+        "payload_sha256",
+        "confirmed"
+      ],
+      "title": "ConfirmAction",
+      "type": "object"
+    },
+    "ConversationCreate": {
+      "additionalProperties": false,
+      "properties": {
+        "agent": {
+          "default": "assistant",
+          "enum": [
+            "assistant",
+            "planner",
+            "photo"
+          ],
+          "title": "Agent",
+          "type": "string"
+        },
+        "title": {
+          "default": "Новый диалог",
+          "maxLength": 160,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "title": "ConversationCreate",
+      "type": "object"
+    },
+    "FinalReply": {
+      "additionalProperties": false,
+      "properties": {
+        "answer": {
+          "maxLength": 12000,
+          "minLength": 1,
+          "title": "Answer",
+          "type": "string"
+        }
+      },
+      "required": [
+        "answer"
+      ],
+      "title": "FinalReply",
+      "type": "object"
+    },
+    "MessageCreate": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "format": "uuid",
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "content": {
+          "maxLength": 12000,
+          "minLength": 1,
+          "title": "Content",
+          "type": "string"
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "content"
+      ],
+      "title": "MessageCreate",
+      "type": "object"
+    },
+    "ResultView": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 6,
+          "title": "Path",
+          "type": "array"
+        },
+        "offset": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
+        "limit": {
+          "default": 25,
+          "maximum": 25,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "q": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Q",
+          "type": "string"
+        },
+        "text_offset": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Text Offset",
+          "type": "integer"
+        },
+        "text_limit": {
+          "default": 6000,
+          "maximum": 6000,
+          "minimum": 1,
+          "title": "Text Limit",
+          "type": "integer"
+        }
+      },
+      "title": "ResultView",
+      "type": "object"
+    },
+    "ToolSelection": {
+      "additionalProperties": false,
+      "properties": {
+        "tools": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Tools",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tools"
+      ],
+      "title": "ToolSelection",
+      "type": "object"
+    }
+  }
+}

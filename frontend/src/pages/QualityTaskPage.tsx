@@ -132,6 +132,8 @@ export function QualityTaskPage() {
       ) : null}
 
       <p className="text-sm text-muted">{attemptStateSummary(task.state)}</p>
+      <nav className="journey-context-links" aria-label="Порядок приёмки"><a href="#review-evidence">1. Фото и отчёт</a><a href="#review-facts">2. Факт и документы</a><a href="#review-decision">3. Решение инженера</a></nav>
+      {decision&&task.state==='accepted'&&<div className="journey-next"><div><h2>Проверка завершена</h2><p>Работа принята. Решение и доказательства сохранены.</p></div><Link to="/quality" className={buttonClassName('primary')}>Вернуться к приёмке</Link></div>}
       {canReview && <a className="fr-decision-shortcut" href="#review-decision">Перейти к основанию решения</a>}
       {notice && !canReview && <div role="alert"><Callout tone="danger" className="text-xs">{notice}</Callout></div>}
       {query.data.photoAnalysisStatus === "pending" && <Callout tone="neutral"><div className="flex flex-wrap items-center justify-between gap-2"><p role="status">Фотографии анализируются автоматически. Результат появится здесь без обновления страницы; запуск инженером не требуется.</p><AnalysisTimerBadge active /></div></Callout>}
@@ -161,9 +163,7 @@ export function QualityTaskPage() {
       {DEMO_MODE && <Callout tone="neutral">DEMO · Фото и решения показаны из примера. Анализ и приёмка доступны только при подключении к API.</Callout>}
       <div className="quality-detail-grid fr-work-grid">
         <div className="space-y-6">
-          {hasDocuments && <div id="review-documents"><ActsPanel task={task} execution={execution} editable={false} onSaved={()=>setRefresh(n=>n+1)}/></div>}
-          {execution&&<ExecutionProtocol task={task} execution={execution} value={{actual:execution.actual?{started_at:execution.actual.started_at??"",performed_at:execution.actual.performed_at??"",person_hours:execution.actual.person_hours??""}:null,readings:execution.readings??[]}} onChange={()=>{}} disabled readOnly/>}
-          <Card>
+          <Card id="review-evidence">
             <CardHeader
               title="Отчёт исполнителя"
               description={
@@ -198,6 +198,9 @@ export function QualityTaskPage() {
           </Card>
 
           {query.data.photoAnalysisStatus !== "pending" && <PhotoReviewCard review={review} formatDateTime={formatDateTime} fallbackElapsedMs={lastMeasured && review?.id === lastMeasured.reviewId ? lastMeasured.elapsedMs : null}/>}
+          <div id="review-facts" className="space-y-5">          {hasDocuments && <div id="review-documents"><ActsPanel task={task} execution={execution} editable={false} onSaved={()=>setRefresh(n=>n+1)}/></div>}
+          {execution&&<ExecutionProtocol task={task} execution={execution} value={{actual:execution.actual?{started_at:execution.actual.started_at??"",performed_at:execution.actual.performed_at??"",person_hours:execution.actual.person_hours??""}:null,readings:execution.readings??[]}} onChange={()=>{}} disabled readOnly/>}
+</div>
         </div>
 
         <div id="review-decision" className="space-y-6 quality-decision-rail">
@@ -268,7 +271,7 @@ export function QualityTaskPage() {
         </div>
       </div>
       <ChiefActions task={task} onSaved={()=>setRefresh(n=>n+1)}/>
-      <AttemptHistory taskId={task.id}/>
+      <details className="fr-rule-section"><summary>История проверки и предыдущие попытки</summary><AttemptHistory taskId={task.id}/></details>
       <Modal
         open={pendingDecision !== null}
         title={

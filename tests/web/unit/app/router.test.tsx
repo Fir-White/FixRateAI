@@ -1,11 +1,14 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { pageLoaders } from "@/app/pageModules";
 import { AppRouter } from "@/app/router";
 import { SessionProvider } from "@/shared/session/SessionContext";
 
 afterEach(() => vi.unstubAllGlobals());
+// Route assertions test page behavior; cold module loading has separate coverage.
+beforeAll(async () => { await Promise.all(Object.values(pageLoaders).map(load=>load())); },15000);
 
 function renderAt(path: string, role: string) {
   window.localStorage.setItem("fixrate.demo.role", role);
@@ -46,7 +49,7 @@ describe("app routes", () => {
     expect(await screen.findByText("Тепловой пункт №1")).toBeInTheDocument();
   });
 
-  it.each([["director", "Панель диспетчера"], ["executor", "Мои задания"], ["engineer", "Контроль качества и приёмка"]])("returns %s to their home when no workspace history exists", async (role, heading) => {
+  it.each([["director", "Панель диспетчера"], ["executor", "Мои задания"], ["engineer", "Панель диспетчера"]])("returns %s to their home when no workspace history exists", async (role, heading) => {
     const user=userEvent.setup();window.localStorage.setItem("fixrate.demo.role",role);
     render(<SessionProvider><MemoryRouter initialEntries={["/equipment", "/profile"]} initialIndex={1}><AppRouter /></MemoryRouter></SessionProvider>);
     await screen.findByRole("heading",{name:"Мой профиль"});

@@ -2,11 +2,12 @@ import { fileURLToPath, URL } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
+import { performanceBudget } from "./performanceBudget";
 
 export default defineConfig(({ mode }) => ({
   root: fileURLToPath(new URL(".", import.meta.url)),
   envDir: fileURLToPath(new URL("..", import.meta.url)),
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), performanceBudget()],
   resolve: {
     dedupe: mode === "test" ? [
       "react", "react-dom", "react-router-dom", "vitest",

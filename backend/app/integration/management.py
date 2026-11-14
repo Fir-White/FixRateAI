@@ -4,7 +4,7 @@ from app.security.sessions import has_role
 Equipment CRUD and user/profile/role capabilities adapt new_backend c559d27.
 The existing opaque session, site scope, CSRF and revision protocol remain shared.
 """
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from calendar import monthrange
 from datetime import date, datetime, time, timedelta, timezone
 import json
@@ -21,6 +21,7 @@ from app.schemas.maintenance import CalendarPattern
 from app.schemas.management import (ApplicationDecision,AvailabilityInput,CrewInput,CrewEdit,
     EmploymentEdit,EquipmentCreate,EquipmentEdit,NamedReference,QualificationInput,
     Registration,ServiceConfiguration,ShiftInput,ShiftEdit,SkillInput,Revision,PatternPreview,AccountEmailUpdate,AccountPasswordUpdate)
+from app.schemas.registry import SystemCreate
 from app.security.sessions import SQL_ROLES,hash_password,verify_password,COOKIE,digest
 from app.scheduling.recurrence import pattern_description,occurrence_dates,occurrence_pairs
 from app.scheduling.shifts import expand_shift,employment_availability
@@ -78,8 +79,8 @@ def equipment_response(row):
         'equipment_type_id','asset_code','name','serial_number','commissioned_on','location','properties','status','revision')}
 
 
-def save_equipment(v,data,identity=None):
-    with _edit(v,roles=('chief_engineer','admin','dispatcher'),exact_roles=True):
+def save_equipment(v,data,identity=None,*,_locked=False):
+    with (nullcontext() if _locked else _edit(v,roles=('chief_engineer','admin','dispatcher'),exact_roles=True)):
         # Serializes hierarchy changes and uniqueness checks for this site's catalog.
         v.session.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"),{'key':f'catalog:{v.principal.site_id}'})
         row=_equipment(v,identity,True) if identity else None
@@ -150,7 +151,7 @@ def service_configurations(v,equipment_id):
     for binding in v.rows('rule_equipment',equipment_id=equipment_id):
         rule=binding.rule
         parameters=rule.schedule_parameters
-        if parameters.get('superseded_binding'):
+        if parameters.get('superseded_binding') or parameters.get('catalog_publication_id'):
             continue
         op=rule.operation
         metadata=parameters.get('operation_metadata',{})
@@ -171,18 +172,21 @@ def service_configurations(v,equipment_id):
     return rows
 
 
-def save_service(v,equipment_id,data,binding_id=None):
+def save_service(v,equipment_id,data,binding_id=None,*,_locked=False):
     if v.principal.role not in ("chief_engineer","admin"):
         raise HTTPException(403,"Регламент изменяет главный инженер")
     if data.enabled and v.principal.role!="chief_engineer":
         raise HTTPException(403,"Публикацию утверждает главный инженер")
-    with _edit(v,roles=("chief_engineer","admin")):
+    with (nullcontext() if _locked else _edit(v,roles=("chief_engineer","admin"))):
         v.session.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"),{'key':f'catalog:{v.principal.site_id}'})
         eq=_equipment(v,equipment_id,True)
         if data.enabled and data.pattern.frequency=="yearly_count" and data.pattern.annual_policy=="from_anchor" and (not eq.commissioned_on or data.pattern.anchor_date!=eq.commissioned_on):
             raise HTTPException(422,"Для отсчёта от ввода нужна подтверждённая дата ввода, совпадающая с опорной датой")
         old=None
         if binding_id:
+            existing=v.one('rule_equipment',binding_id=binding_id,equipment_id=equipment_id)
+            if existing.rule.schedule_parameters.get('catalog_publication_id'):
+                raise HTTPException(409,'Утверждённая версия каталога неизменяема; подготовьте новый план')
             old=v.one('rule_equipment',binding_id=binding_id,equipment_id=equipment_id)
             _lock(v,'rule_equipment',binding_id=binding_id)
             if data.expected_revision is None:
@@ -205,6 +209,8 @@ def save_service(v,equipment_id,data,binding_id=None):
             if data.operation_id:
                 op=v.one('operation_templates',operation_template_id=data.operation_id)
                 _lock(v,'operation_templates',operation_template_id=data.operation_id)
+                if any(r.schedule_parameters.get('catalog_publication_id') for r in v.rows('maintenance_rules',operation_template_id=op.operation_template_id)):
+                    raise HTTPException(409,'Конечная процедура каталога не преобразуется в периодический регламент; подготовьте отдельный источник и план')
                 if op.system_id!=eq.system_id or not op.is_active or data.code!=op.code:
                     raise HTTPException(422,'Выберите активную операцию той же инженерной системы и сохраните её код')
                 version=max((r.rule_version for r in v.rows('maintenance_rules',operation_template_id=op.operation_template_id)),default=0)+1
@@ -278,17 +284,21 @@ def register_routes(app,views,db):
     @app.get(PREFIX+'/management/catalog')
     def catalog(v=Depends(views)):
         _guard(v,'director','admin','dispatcher','engineer')
-        return dict(systems=[dict(id=r.system_id,code=r.code,name=r.name) for r in v.rows('engineering_systems') if r.is_active],
+        from .planning import legacy_source_query
+        types={r.maintenance_type_id:r.name for r in v.rows('maintenance_types')}
+        operations=v.session.scalars(legacy_source_query(v,'operation_templates')).all()
+        return dict(systems=[dict(id=r.system_id,code=r.code,name=r.name,system_group=r.system_group,revision=r.revision) for r in v.rows('engineering_systems') if r.is_active],
             equipment_types=[dict(id=r.equipment_type_id,code=r.code,name=r.name) for r in v.rows('equipment_types')],
             operations=[dict(id=r.operation_template_id,system_id=r.system_id,code=r.code,title=r.title,instructions=r.description or r.title,
-                maintenance_type=v.one('maintenance_types',maintenance_type_id=r.maintenance_type_id).name) for r in v.rows('operation_templates') if r.is_active],
+                maintenance_type=types[r.maintenance_type_id]) for r in operations if r.is_active],
             skills=[dict(id=r.skill_id,code=r.code,name=r.name,validity_required=r.validity_required) for r in v.rows('skills')])
 
     @app.post(PREFIX+'/management/systems',status_code=201)
-    def system_create(command:NamedReference,v=Depends(views)):
+    def system_create(command:SystemCreate,v=Depends(views)):
         with _edit(v,roles=('chief_engineer','admin','dispatcher'),exact_roles=True):
+            v.session.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"),{'key':f'catalog:{v.principal.site_id}'})
             row=v.repo.add('engineering_systems',site_id=v.principal.site_id,**command.model_dump())
-            return dict(id=row.system_id,name=row.name,code=row.code)
+            return dict(id=row.system_id,name=row.name,code=row.code,system_group=row.system_group,revision=row.revision)
 
     @app.post(PREFIX+'/management/equipment-types',status_code=201)
     def type_create(command:NamedReference,v=Depends(views)):

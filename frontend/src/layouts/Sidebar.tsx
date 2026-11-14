@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type MouseEvent, type ReactNode, type SyntheticEvent } from "react";
 import { createPortal } from "react-dom";
-import { NavLink, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import brandMark from "@/assets/fixrate-mark.svg";
 import brandWordmark from "@/assets/fixrate-wordmark.svg";
 import { useDialogFocus } from "@/shared/lib/useDialogFocus";
@@ -8,6 +8,8 @@ import { useScrollBoundary } from "@/shared/lib/useScrollBoundary";
 import { Icon } from "@/shared/ui/Icon";
 import type { NavigationItem } from "./navigation";
 import "./Sidebar.css";
+import { warmWorkspacePath } from "@/features/navigation/warmWorkspacePath";
+import { useApiQueryCache } from "@/shared/lib/ApiQueryProvider";
 
 interface SidebarProps {
   items: readonly NavigationItem[];
@@ -17,9 +19,12 @@ interface SidebarProps {
   onClose: () => void;
   onToggle: () => void;
   footer?: ReactNode;
+  timezone?: string;
 }
 
-export function Sidebar({ items, expanded, mobile, open, onClose, onToggle, footer }: SidebarProps) {
+export function Sidebar({ items, expanded, mobile, open, onClose, onToggle, footer, timezone = "Asia/Yekaterinburg" }: SidebarProps) {
+  const cache = useApiQueryCache();
+  const warm = (path: string) => warmWorkspacePath(cache, path, timezone);
   const location = useLocation();
   const dialogRef = useDialogFocus<HTMLElement>(mobile && open, onClose);
   const tooltipId = useId();
@@ -97,26 +102,26 @@ export function Sidebar({ items, expanded, mobile, open, onClose, onToggle, foot
       </div>
 
       <nav aria-label="Основная навигация" className="ops-sidebar-nav scroll-boundary" data-scroll-key="sidebar" onScroll={() => setTooltip(null)}>
-        <p className="fr-nav-caption ops-sidebar-label">Рабочее пространство</p>
         <ul>
           {items.map((item, index) => <li key={item.to}>
-            {item.to.startsWith("/settings") && !items[index-1]?.to.startsWith("/settings") && <p className="fr-nav-caption fr-nav-divider ops-sidebar-label">Управление</p>}
-            <NavLink
+            {item.group && item.group !== items[index-1]?.group && <p className={`fr-nav-caption ops-sidebar-label${index ? ' fr-nav-divider' : ''}`}>{item.group}</p>}
+            <Link
               to={item.to}
-              end={item.end}
               aria-label={item.label}
+              aria-current={([item.to,...item.activePaths??[]].some(path=>location.pathname.replace(/\/+$/, '')===path||!item.end&&location.pathname.startsWith(path+'/'))) ? 'page' : undefined}
               aria-describedby={tooltip?.to === item.to ? tooltipId : undefined}
               className="ops-sidebar-link"
-              onMouseEnter={event => { tooltipSuspended.current = false; showTooltip(event, item); }}
+              onMouseEnter={event => { warm(item.to); tooltipSuspended.current = false; showTooltip(event, item); }}
               onMouseLeave={() => setTooltip(null)}
-              onFocus={event => { if (!tooltipSuspended.current) showTooltip(event, item); }}
+              onFocus={event => { warm(item.to); if (!tooltipSuspended.current) showTooltip(event, item); }}
+              onPointerDown={() => warm(item.to)}
               onBlur={() => setTooltip(null)}
               onKeyDown={event => { if (event.key === "Escape") setTooltip(null); }}
               onClick={event => navigateOnce(event, item.to)}
             >
               <span className="ops-sidebar-icon"><Icon name={item.icon} size={20} /></span>
               <span className="ops-sidebar-label">{item.label}</span>
-            </NavLink>
+            </Link>
           </li>)}
         </ul>
       </nav>

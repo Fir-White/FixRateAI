@@ -1,5 +1,8 @@
 from datetime import date,time,datetime
 from zoneinfo import ZoneInfo
+import json
+
+from app.schemas.management import ShiftInput
 
 from app.scheduling.shifts import expand_shift,employment_availability
 
@@ -44,3 +47,24 @@ def test_availability_is_clipped_to_employment_not_only_shift_dates():
     result=employment_availability(rows,date(2026,11,2),date(2026,11,2),str(tz))
     assert result[0]['start_at']==datetime(2026,11,2,0,tzinfo=tz)
     assert result[0]['end_at']==datetime(2026,11,3,0,tzinfo=tz)
+
+
+def test_full_day_shift_has_a_real_next_day_end_and_is_accepted_by_api_contract():
+    payload=dict(label='24-hour shift',pattern=dict(frequency='dates',anchor_date='2027-01-05',dates=['2027-01-05']),
+        valid_from='2027-01-05',starts_local='08:00',ends_local='08:00')
+    parsed=ShiftInput.model_validate_json(json.dumps(payload))
+    rule=parsed.model_dump(exclude={'pattern'})
+    rule['calendar_pattern']=parsed.pattern.model_dump(mode='json')
+    rows,issues=expand_shift(rule,date(2027,1,6),date(2027,1,6),'Asia/Yekaterinburg')
+    assert not issues and len(rows)==1
+    assert rows[0]['start_at'].isoformat()=='2027-01-05T08:00:00+05:00'
+    assert rows[0]['end_at'].isoformat()=='2027-01-06T08:00:00+05:00'
+    assert (rows[0]['end_at']-rows[0]['start_at']).total_seconds()==24*3600
+
+
+def test_full_day_shift_is_clipped_at_validity_end():
+    rule=shift()
+    rule.update(calendar_pattern=dict(frequency='day',anchor_date='2027-01-05'),
+        valid_from=date(2027,1,5),valid_until=date(2027,1,5),starts_local=time(8),ends_local=time(8))
+    rows,_=expand_shift(rule,date(2027,1,5),date(2027,1,6),'Asia/Yekaterinburg')
+    assert len(rows)==1 and rows[0]['end_at'].isoformat()=='2027-01-06T00:00:00+05:00'

@@ -16,6 +16,8 @@ async function fixtures(context: BrowserContext) {
     if (path.endsWith("/auth/session")) return route.fulfill(profile ? { json: { profile } } : { status: 401, json: { detail: "Нет сессии" } });
     if (path.endsWith("/auth/logout")) { profile = null; return route.fulfill({ status: 204 }); }
     if (path.endsWith("/schedule-matrix")) return route.fulfill({ json: { rows: [] } });
+    if (path.endsWith('/auth/sites')) return route.fulfill({json:[{site_id:'site',name:'QA',timezone:'UTC',role:'dispatcher'}]});
+    if (path.endsWith('/registry')) return route.fulfill({json:{site_id:'site',site_name:'QA',timezone:'UTC',systems:[{id:'system',name:'QA',code:'QA',system_group:null,revision:1,is_active:true}],items:[{equipment_id:equipment.id,site_id:'site',system_id:'system',asset_code:equipment.inventoryCode,name:equipment.name,location:equipment.location,status:'active',revision:1,services:[],components:[]}]}});
     if (path.endsWith("/ui/tasks") && delay) await new Promise(resolve => setTimeout(resolve, delay));
     return route.fulfill({ json: path.endsWith("/ui/equipment") ? [equipment] : [] });
   });
@@ -49,11 +51,11 @@ test("reload retains sidebar width, page scroll, month and filters without leaki
     await expect.poll(() => page.evaluate(() => scrollY)).toBe(300);
   }
   await page.goto("/equipment");
-  await page.locator("#equipment-search").fill("Насос");
-  await page.getByLabel("Состояние", { exact: true }).selectOption("active");
+  await page.getByRole('textbox',{name:'Поиск по реестру'}).fill("Насос");
+  await page.getByRole('tab',{name:/Без группы/}).click();
   await page.reload();
-  await expect(page.locator("#equipment-search")).toHaveValue("Насос");
-  await expect(page.getByLabel("Состояние", { exact: true })).toHaveValue("active");
+  await expect(page.getByRole('textbox',{name:'Поиск по реестру'})).toHaveValue("Насос");
+  await expect(page.getByRole('tab',{name:/Без группы/})).toHaveAttribute('aria-selected','true');
   await page.goto("/calendar");
   await page.getByRole("button", { name: "Следующий месяц" }).click();
   const month = await page.getByRole("button", { name: "Следующий месяц" }).evaluate(element => element.previousElementSibling!.textContent);
@@ -64,8 +66,8 @@ test("reload retains sidebar width, page scroll, month and filters without leaki
   await expect(page).toHaveURL(/\/login$/);
   await login(page, "other@workspace.test");
   await page.goto("/equipment");
-  await expect(page.locator("#equipment-search")).toHaveValue("");
-  await expect(page.getByLabel("Состояние", { exact: true })).toHaveValue("all");
+  await expect(page.getByRole('textbox',{name:'Поиск по реестру'})).toHaveValue("");
+  await expect(page.getByRole('tab',{name:/Все системы/})).toHaveAttribute('aria-selected','true');
 });
 
 test("phone reload retains an open menu and shows equipment without document overflow", async ({ page, context }) => {
@@ -74,7 +76,8 @@ test("phone reload retains an open menu and shows equipment without document ove
   await page.emulateMedia({ reducedMotion: "reduce" });
   await login(page);
   await page.goto("/equipment");
-  const table = page.locator(".equipment-register");
+  await page.getByRole('tab',{name:/Без группы/}).click();
+  const table = page.locator(".registry-table");
   await table.waitFor();
   await expect(table.getByText("Насос QA", {exact: true})).toBeVisible();
   await page.reload();

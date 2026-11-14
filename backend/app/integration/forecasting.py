@@ -145,6 +145,8 @@ def persist_comparison(v, snapshot, algorithmic, ai, decision, *, system_id, dea
 
 def forecast_task(v, task_id, revision, forecaster, *, timeout_seconds=2):
     order = v.task(task_id)
+    if order.operation_snapshot.get('catalog_publication_id'):
+        raise HTTPException(409,'Для утверждённого конечного плана изменение дат требует нового предложения')
     if order.revision != revision:
         raise HTTPException(409, "REVISION_CONFLICT: обновите данные")
     snapshot, item, entry = task_snapshot(v, order)

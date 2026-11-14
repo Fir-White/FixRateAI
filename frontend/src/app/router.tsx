@@ -1,4 +1,6 @@
 import { lazy, Suspense } from "react";
+import { pageLoaders } from "./pageModules";
+import { lazyPage } from "./pageModule";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { RequireRole, RequireSession } from "@/app/guards";
 import { LoadingState } from "@/shared/ui/States";
@@ -7,26 +9,29 @@ import { ExecutorLayout } from "@/layouts/ExecutorLayout";
 import { LoginPage } from "@/pages/LoginPage";
 import { AuthLayout } from "@/pages/AuthLayout";
 import { HomeRedirect } from "@/pages/HomeRedirect";
-import { DispatcherPage } from "@/pages/DispatcherPage";
-import { EquipmentPage } from "@/pages/EquipmentPage";
-import { EquipmentDetailPage } from "@/pages/EquipmentDetailPage";
-import { CalendarPage } from "@/pages/CalendarPage";
-import { TasksPage } from "@/pages/TasksPage";
-import { TaskDetailPage } from "@/pages/TaskDetailPage";
-import { ComparisonsPage } from "@/pages/ComparisonsPage";
-import { ReportsPage } from "@/pages/ReportsPage";
-import { ComparisonDetailPage } from "@/pages/ComparisonDetailPage";
-import { ExecutorPage } from "@/pages/ExecutorPage";
-import { ExecutorTaskPage } from "@/pages/ExecutorTaskPage";
-import { QualityPage } from "@/pages/QualityPage";
-import { QualityTaskPage } from "@/pages/QualityTaskPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
-import { ServiceSettingsPage } from "@/pages/ServiceSettingsPage";
-import { WorkforceSettingsPage } from "@/pages/WorkforceSettingsPage";
-import { RegistrationPage } from "@/pages/RegistrationPage";
-import { ProfilePage } from "@/pages/ProfilePage";
-import { PersonalShiftsPage } from "@/pages/PersonalShiftsPage";
 import { SECTION_ROLES } from "@/shared/lib/roles";
+
+const DispatcherPage = lazyPage(pageLoaders.DispatcherPage);
+const AssistantPage = lazyPage(pageLoaders.AssistantPage);
+const PlanningPage = lazyPage(pageLoaders.PlanningPage);
+const EquipmentPage = lazyPage(pageLoaders.EquipmentPage);
+const EquipmentDetailPage = lazyPage(pageLoaders.EquipmentDetailPage);
+const CalendarPage = lazyPage(pageLoaders.CalendarPage);
+const TasksPage = lazyPage(pageLoaders.TasksPage);
+const TaskDetailPage = lazyPage(pageLoaders.TaskDetailPage);
+const ComparisonsPage = lazyPage(pageLoaders.ComparisonsPage);
+const ReportsPage = lazyPage(pageLoaders.ReportsPage);
+const ComparisonDetailPage = lazyPage(pageLoaders.ComparisonDetailPage);
+const ExecutorPage = lazyPage(pageLoaders.ExecutorPage);
+const ExecutorTaskPage = lazyPage(pageLoaders.ExecutorTaskPage);
+const QualityPage = lazyPage(pageLoaders.QualityPage);
+const QualityTaskPage = lazyPage(pageLoaders.QualityTaskPage);
+const ServiceSettingsPage = lazyPage(pageLoaders.ServiceSettingsPage);
+const WorkforceSettingsPage = lazyPage(pageLoaders.WorkforceSettingsPage);
+const RegistrationPage = lazyPage(pageLoaders.RegistrationPage);
+const ProfilePage = lazyPage(pageLoaders.ProfilePage);
+const PersonalShiftsPage = lazyPage(pageLoaders.PersonalShiftsPage);
 
 const WorkspaceLayout = lazy(() => import("@/layouts/WorkspaceLayout").then(module => ({ default: module.WorkspaceLayout })));
 
@@ -43,11 +48,12 @@ export function AppRouter() {
         <Route path="/" element={<HomeRedirect />} />
 
         <Route element={<AppShell />}>
+          <Route path="/assistant" element={<AssistantPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/director" element={<RequireRole roles={["director"]}><DispatcherPage /></RequireRole>} />
           <Route path="/executive" element={<Navigate to="/director" replace />} />
           <Route path="/chief-engineer" element={<RequireRole roles={["chief_engineer"]}><DispatcherPage /></RequireRole>} />
-          <Route path="/engineer" element={<RequireRole roles={["engineer"]}><QualityPage /></RequireRole>} />
+          <Route path="/engineer" element={<RequireRole roles={["engineer"]}><DispatcherPage /></RequireRole>} />
           <Route path="/admin" element={<RequireRole roles={["admin"]}><DispatcherPage /></RequireRole>} />
           <Route
             path="/dispatcher"
@@ -58,6 +64,7 @@ export function AppRouter() {
             }
           />
           <Route path="/equipment" element={<EquipmentPage />} />
+          <Route path="/planning" element={<RequireRole roles={SECTION_ROLES.planning}><PlanningPage /></RequireRole>} />
           <Route path="/equipment/:equipmentId" element={<EquipmentDetailPage />} />
           <Route path="/settings/equipment" element={<RequireRole roles={SECTION_ROLES.service_settings}><ServiceSettingsPage /></RequireRole>} />
           <Route path="/settings/workforce" element={<RequireRole roles={SECTION_ROLES.workforce_settings}><WorkforceSettingsPage /></RequireRole>} />

@@ -51,7 +51,7 @@ export type TaskState =
   | "accepted"
   | "cancelled";
 
-export type MaintenanceType = "ТО1" | "ТО2";
+export type MaintenanceType = "ТО1" | "ТО2" | "ТО2*" | "ТО3" | "ТОр";
 
 export interface Assignee {
   executorId: string;
