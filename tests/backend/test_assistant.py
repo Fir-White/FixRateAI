@@ -275,3 +275,69 @@ def test_assignment_request_survives_multi_name_description_and_continues(assist
         assert [s['status'] for s in turn['trace']]==['completed','denied','completed']
         assert not view['actions']
     finally:del app.state.assistant_provider_factory
+
+@pytest.mark.parametrize('boundary',['steps','repeat','calls','empty','deadline','final_failure'])
+def test_bounded_search_finishes_with_an_honest_answer_and_no_writes(assistant_case,monkeypatch,boundary):
+    import time
+    from app.assistant import service
+    from ml_service.app.providers.aitunnel import AITunnelFailure
+    engine,app,admin,_,ids=assistant_case;t=thread(admin)
+    if boundary=='steps':monkeypatch.setattr(service,'MAX_STEPS',3)
+    if boundary=='calls':monkeypatch.setattr(service,'MAX_TOOL_CALLS',1)
+    class Bounded:
+        response_model='TEST-ONLY-bounded'
+        def __init__(self):self.steps=0;self.final=0;self.context=None
+        def chat(self,messages,schema,tokens):
+            if schema.__name__=='ToolSelection':
+                if boundary=='deadline':self.deadline=time.monotonic()+5
+                return schema(tools=[])
+            if schema.__name__=='FinalReply':
+                self.final+=1;self.context=json.loads(messages[-1]['content'])
+                if boundary=='final_failure':raise AITunnelFailure('AITUNNEL_TIMEOUT')
+                return schema(answer='TEST ONLY: Не хватает сопоставимой статистики. За какой период сравниваем работников?')
+            self.steps+=1
+            if boundary=='empty':return schema(answer='  ',calls=[])
+            args={} if boundary in ('repeat','final_failure','calls') else dict(query=dict(offset=self.steps*25))
+            calls=[dict(tool='equipment_list',arguments_json=json.dumps(args),explanation='TEST ONLY scoped read')]
+            if boundary=='calls':calls.append(dict(tool='catalog_read',arguments_json='{}',explanation='TEST ONLY second read'))
+            return schema(answer='TEST ONLY intermediate, not a final result',calls=calls)
+    model=Bounded();app.state.assistant_provider_factory=lambda:model
+    try:
+        with engine.connect() as c:before=c.scalar(text('SELECT count(*) FROM equipment WHERE site_id=:site'),dict(site=ids['site']))
+        r=admin.post(B+'/conversations/'+t+'/messages',json=dict(idempotency_key=str(uuid4()),content='Кто самый результативный работник?'))
+        assert r.status_code==202
+        view=admin.get(B+'/conversations/'+t).json();turn=view['turns'][0]
+        assert turn['status']=='completed' and turn['error_code'] is None
+        assert 'предел шагов' not in turn['answer'].casefold() and 'intermediate' not in turn['answer']
+        assert model.final==1 and model.context['question']=='Кто самый результативный работник?'
+        assert model.context['history'][-1]['user']==model.context['question']
+        assert view['actions']==[]
+        if boundary=='final_failure':assert 'статистику' in turn['answer'] and 'не означает' in turn['answer']
+        else:assert turn['answer'].startswith('TEST ONLY:')
+        assert len(turn['trace'])==dict(steps=2,repeat=2,calls=1,empty=0,deadline=0,final_failure=2)[boundary]
+        assert len(model.context['verified_results'])==len(turn['trace'])
+        if turn['trace']:
+            source=model.context['verified_results'][0]['source_arguments']
+            assert source['query'].get('offset',0)==(25 if boundary=='steps' else 0)
+        with engine.connect() as c:assert c.scalar(text('SELECT count(*) FROM equipment WHERE site_id=:site'),dict(site=ids['site']))==before
+    finally:del app.state.assistant_provider_factory
+
+def test_timeout_after_reading_keeps_findings_and_explains_incomplete_check(assistant_case):
+    from ml_service.app.providers.aitunnel import AITunnelFailure
+    _,app,admin,_,_=assistant_case;t=thread(admin)
+    class Interrupted:
+        def __init__(self):self.steps=0
+        def chat(self,messages,schema,tokens):
+            if schema.__name__=='ToolSelection':return schema(tools=[])
+            self.steps+=1
+            if self.steps>1:raise AITunnelFailure('AITUNNEL_TIMEOUT')
+            return schema(answer='',calls=[dict(tool='catalog_read',arguments_json='{}',explanation='TEST ONLY read')])
+    app.state.assistant_provider_factory=Interrupted
+    try:
+        r=admin.post(B+'/conversations/'+t+'/messages',json=dict(idempotency_key=str(uuid4()),content='Проверь оборудование'))
+        assert r.status_code==202
+        turn=admin.get(B+'/conversations/'+t).json()['turns'][0]
+        assert turn['status']=='failed' and turn['error_code']=='AITUNNEL_TIMEOUT'
+        assert 'за отведённое время' in turn['answer'] and 'полученным сведениям' in turn['answer']
+        assert turn['trace'][0]['tool']=='catalog_read'
+    finally:del app.state.assistant_provider_factory

@@ -44,6 +44,14 @@ class AgentStep(Input):
 class ToolSelection(Input):
     tools:list[str]=Field(max_length=8)
 
+class FinalReply(Input):
+    answer:str=Field(min_length=1,max_length=12000)
+    @field_validator('answer')
+    @classmethod
+    def not_blank(cls,value):
+        if not value.strip():raise ValueError('A final answer is required')
+        return value.strip()
+
 class ResultView(Input):
     path:list[str]=Field(default_factory=list,max_length=6)
     offset:int=Field(default=0,ge=0)
@@ -52,4 +60,4 @@ class ResultView(Input):
     text_offset:int=Field(default=0,ge=0)
     text_limit:int=Field(default=6000,ge=1,le=6000)
 
-ASSISTANT_CONTRACTS=(ConversationCreate,MessageCreate,ConfirmAction,AgentStep,ResultView,ToolSelection)
+ASSISTANT_CONTRACTS=(ConversationCreate,MessageCreate,ConfirmAction,AgentStep,ResultView,ToolSelection,FinalReply)

@@ -107,6 +107,22 @@
       "title": "ConversationCreate",
       "type": "object"
     },
+    "FinalReply": {
+      "additionalProperties": false,
+      "properties": {
+        "answer": {
+          "maxLength": 12000,
+          "minLength": 1,
+          "title": "Answer",
+          "type": "string"
+        }
+      },
+      "required": [
+        "answer"
+      ],
+      "title": "FinalReply",
+      "type": "object"
+    },
     "MessageCreate": {
       "additionalProperties": false,
       "properties": {
