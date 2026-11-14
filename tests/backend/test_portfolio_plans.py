@@ -97,10 +97,10 @@ def test_roles_csrf_site_scope_and_publication_boundary(managed):
         assert other.get(BASE+'/'+identity).status_code==404
         assert other.post(PATH,json=command).status_code!=200
     response=admin.get(BASE+'/'+identity+'/publication-profiles?revision=1')
-    assert response.status_code==422 and 'PORTFOLIO_PUBLICATION_PENDING' in response.text
+    assert response.status_code==200 and response.json()['total']==0
     body=dict(expected_revision=1,idempotency_key=str(uuid4()),reason='TEST ONLY explicit boundary',scope_note='TEST ONLY',profiles=[dict(row_number=1,instructions='TEST ONLY',safety_notes='TEST ONLY',methodology_ref='TEST ONLY',checklist=[dict(text='TEST ONLY check')])])
     response=admin.post(BASE+'/'+identity+'/publication-proposals',json=body)
-    assert response.status_code==422 and 'PORTFOLIO_PUBLICATION_PENDING' in response.text
+    assert response.status_code==422
 
 
 def test_policy_versions_manual_cas_and_freshness_for_regulations(managed):

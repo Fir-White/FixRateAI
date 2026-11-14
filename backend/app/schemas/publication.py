@@ -36,6 +36,47 @@ class PreparePublication(Model):
         return self
 
 
+class RegulationSupplement(Model):
+    binding_id:UUID
+    safety_notes:str=Field(min_length=1,max_length=5000)
+    engineer_note:str=Field(default='',max_length=2000)
+
+
+class PreparePortfolioPublication(Model):
+    kind:Literal['portfolio']
+    expected_revision:int=Field(ge=1)
+    idempotency_key:UUID
+    reason:str=Field(min_length=1,max_length=2000)
+    scope_note:str=Field(min_length=1,max_length=2000)
+    profiles:list[ExecutionProfile]=Field(default_factory=list,max_length=1000)
+    regulations:list[RegulationSupplement]=Field(default_factory=list,max_length=500)
+
+    @model_validator(mode='after')
+    def distinct(self):
+        if len({p.row_number for p in self.profiles})!=len(self.profiles) or len({r.binding_id for r in self.regulations})!=len(self.regulations):
+            raise ValueError('Профили строк или привязок повторяются')
+        return self
+
+
+class RegulationExecutionProfile(Model):
+    binding_id:UUID
+    rule_id:UUID
+    regulation_id:UUID
+    instructions:str=Field(min_length=1,max_length=10000)
+    safety_notes:str=Field(min_length=1,max_length=5000)
+    methodology_ref:str=Field(min_length=1,max_length=2000)
+    engineer_note:str=Field(default='',max_length=2000)
+    checklist:list[ChecklistSetting]=Field(min_length=1,max_length=100)
+    checklist_ids:list[UUID]=Field(min_length=1,max_length=100)
+    measurement_requirements:list[dict]=Field(default_factory=list,max_length=100)
+    required_acts:list[str]=Field(default_factory=list,max_length=100)
+
+
+class RegulationPublicationChoices(Model):
+    items:list[dict]
+    total:int
+
+
 class PublicationDecision(Model):
     expected_digest:str=Field(pattern='^[a-f0-9]{64}$')
     reason:str=Field(min_length=1,max_length=2000)
@@ -57,6 +98,7 @@ class PublicationSummary(Model):
     selected_rows:int
     unselected_rows:int
     months:list[str]
+    regulation_occurrences:int=0
 
 
 class PublicationProposal(Model):
@@ -105,7 +147,8 @@ class PublicationChange(Model):
     occurrence_id:UUID
     segment_ids:list[UUID]
     depends_on_item_ids:list[UUID]
-    row_number:int
+    row_number:int|None
+    source_kind:Literal['catalog','regulation']='catalog'
     operation_code:str
     title:str
     equipment_ids:list[UUID]
@@ -115,7 +158,7 @@ class PublicationChange(Model):
     person_hours:Decimal
     kind:Literal['create']='create'
     previous:None=None
-    execution:ExecutionProfile
+    execution:ExecutionProfile|RegulationExecutionProfile
 
 
 class PublicationChangePage(Model):
@@ -130,5 +173,5 @@ class PublicationProfileChoices(Model):
     total:int
 
 
-PUBLICATION_CONTRACTS=(PreparePublication,PublicationDecision,PublishApproved,PublicationProposal,
-    PublicationProposalList,PublicationChangePage,PublicationProfileChoices)
+PUBLICATION_CONTRACTS=(PreparePublication,PreparePortfolioPublication,PublicationDecision,PublishApproved,PublicationProposal,
+    PublicationProposalList,PublicationChangePage,PublicationProfileChoices,RegulationPublicationChoices)

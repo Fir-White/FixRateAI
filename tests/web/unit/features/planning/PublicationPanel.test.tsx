@@ -60,3 +60,23 @@ it('shows blockers and supports explicit rejection with a reason',async()=>{
   vi.mocked(api.list).mockResolvedValue({items:[value],total:1});vi.mocked(api.get).mockResolvedValue(value);const user=userEvent.setup();mount();await user.click(await screen.findByRole('button',{name:/версия 3 ·/}));
   const panel=await screen.findByRole('region',{name:'Предложение публикации'});expect(panel).toHaveTextContent('Работа не размещена');await user.type(within(panel).getByLabelText('Основание решения главного инженера'),'Нужно исправить размещение');await user.click(within(panel).getByRole('button',{name:'Отклонить предложение'}));await waitFor(()=>expect(api.reject).toHaveBeenCalledTimes(1));
 });
+
+it('uses the frozen regulation procedure and sends only human safety supplements',async()=>{
+  vi.mocked(api.profiles).mockResolvedValue({items:[],total:0});
+  vi.spyOn(api,'regulations').mockResolvedValue({items:[{binding_id:'binding',rule_id:'rule',regulation_id:'edition',equipment_id:'asset',equipment_name:'Насос № 1',code:'ТО-Р',title:'Проверка насоса',instructions:'Утверждённая пошаговая инструкция',methodology_ref:'Регламент v3',safety_notes:'',checklist:[{text:'Проверить давление',answer_kind:'number',unit:'бар',required:true,photo_required:false,visual_verifiability:'not_verifiable'}],source_complete:true}],total:1});
+  const user=userEvent.setup();render(<MemoryRouter><PublicationPanel record={{...record,source_kind:'portfolio',import_id:null}} mayEdit mayApprove timezone="UTC"/></MemoryRouter>);
+  expect(api.prepare).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('button',{name:'Подготовить предложение к публикации'}));
+  await user.click(await screen.findByRole('button',{name:/ТО-Р · Проверка насоса/}));
+  expect(screen.getByText('Утверждённая пошаговая инструкция')).toBeVisible();
+  expect(screen.getByText(/Проверить давление/)).toHaveTextContent('бар');
+  expect(screen.queryByLabelText('Инструкция выполнения')).not.toBeInTheDocument();
+  await user.type(screen.getByLabelText('Меры безопасности для регламента'),'Проверить снятие напряжения по утверждённой процедуре');
+  await user.type(screen.getByLabelText('Примечание инженера для регламента'),'Сначала проверить маркировку');
+  await user.type(screen.getByLabelText('Состав и границы публикации'),'Одна работа, насос № 1');
+  await user.type(screen.getByLabelText('Основание предложения'),'Проверено инженером');
+  await user.click(screen.getByRole('button',{name:'Сохранить предложение на утверждение'}));
+  await waitFor(()=>expect(api.prepare).toHaveBeenCalled());
+  expect(vi.mocked(api.prepare).mock.calls[0][1]).toEqual(expect.objectContaining({kind:'portfolio',profiles:[],regulations:[{binding_id:'binding',safety_notes:'Проверить снятие напряжения по утверждённой процедуре',engineer_note:'Сначала проверить маркировку'}]}));
+  expect(api.approve).not.toHaveBeenCalled();expect(api.publish).not.toHaveBeenCalled();
+});

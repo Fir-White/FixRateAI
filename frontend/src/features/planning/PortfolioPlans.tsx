@@ -12,14 +12,14 @@ import { PlanningPages } from './PlanningChoices';
 import { SavedPlan } from './CatalogPlans';
 import { newPolicy,PolicyFields } from './PolicyFields';
 
-export function PortfolioPlans({workspace,timezone,mayEdit}:{workspace:CatalogWorkspace;timezone:string;mayEdit:boolean}) {
+export function PortfolioPlans({workspace,timezone,mayEdit,mayApprove=false}:{workspace:CatalogWorkspace;timezone:string;mayEdit:boolean;mayApprove?:boolean}) {
   const [offset,setOffset]=useState(0);
   const query=useApiQuery(()=>api.list(offset),[offset],undefined,`portfolio-plans:${offset}`);
-  if(workspace.draftId)return <section className="space-y-4" aria-label="Общий сохранённый план"><Button variant="ghost" onClick={()=>workspace.selectDraft(null)}>← Все общие планы</Button><LinkedPortfolio workspace={workspace} timezone={timezone} mayEdit={mayEdit}/></section>;
+  if(workspace.draftId)return <section className="space-y-4" aria-label="Общий сохранённый план"><Button variant="ghost" onClick={()=>workspace.selectDraft(null)}>← Все общие планы</Button><LinkedPortfolio workspace={workspace} timezone={timezone} mayEdit={mayEdit} mayApprove={mayApprove}/></section>;
   return <section className="space-y-3" aria-label="Сохранённые общие планы"><h2 className="text-lg font-semibold">Сохранённые общие планы</h2>{query.status==='loading'&&<LoadingState/>}{query.status==='error'&&<ErrorState description={query.error}/>}{query.status==='success'&&<><ul className="space-y-2">{query.data.items.map(x=><li key={x.draft_id}><Button variant="secondary" className="max-w-full whitespace-normal break-words text-left" onClick={()=>workspace.selectDraft(x)}>{x.title} · версия {x.revision} · {x.total_person_hours} чел.-ч</Button></li>)}</ul>{!query.data.total&&<p className="text-sm text-muted">Сохранённых общих планов пока нет. Рассчитайте состав ниже и сохраните новый черновик.</p>}<PlanningPages offset={offset} total={query.data.total} onPage={setOffset}/></>}</section>;
 }
 
-function LinkedPortfolio({workspace,timezone,mayEdit}:{workspace:CatalogWorkspace;timezone:string;mayEdit:boolean}) {
+function LinkedPortfolio({workspace,timezone,mayEdit,mayApprove=false}:{workspace:CatalogWorkspace;timezone:string;mayEdit:boolean;mayApprove?:boolean}) {
   const query=useApiQuery(async()=>{
     const versions=await draftPlansApi.versions(workspace.draftId,0),head=versions.items[0];
     if(!head||head.source_kind!=='portfolio')throw new Error('Общий план не найден. Вернитесь к списку.');
@@ -28,7 +28,7 @@ function LinkedPortfolio({workspace,timezone,mayEdit}:{workspace:CatalogWorkspac
   },[workspace.draftId,workspace.draftRevision],undefined,`linked-portfolio:${workspace.draftId}:${workspace.draftRevision}`);
   if(query.status==='loading')return <LoadingState label="Открытие общего плана"/>;
   if(query.status==='error')return <ErrorState description={query.error}/>;
-  return <SavedPlan key={`${query.data.record.draft_id}:${query.data.record.revision}`} record={query.data.record} timezone={timezone} mayEdit={mayEdit&&query.data.record.revision===query.data.head} mayApprove={false} onSaved={workspace.selectDraft} onPickVersion={workspace.selectDraft} workspace={workspace}/>;
+  return <SavedPlan key={`${query.data.record.draft_id}:${query.data.record.revision}`} record={query.data.record} timezone={timezone} mayEdit={mayEdit&&query.data.record.revision===query.data.head} mayApprove={mayApprove} onSaved={workspace.selectDraft} onPickVersion={workspace.selectDraft} workspace={workspace}/>;
 }
 
 export function SavePortfolio({requirements,timezone,onSaved}:{requirements:RequirementsRequest;timezone:string;onSaved:(r:DraftRecord)=>void}) {

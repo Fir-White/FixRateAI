@@ -17,7 +17,7 @@ import type { CatalogWorkspace } from '@/features/equipment/CatalogImports';
 const states:Record<RequirementState,string>={new:'Нужно запланировать',existing:'Задание уже создано',fulfilled:'Выполнено и принято',review:'Нужна проверка'};
 const flags:Record<string,string>={ROLLING_NEXT_OCCURRENCE_ONLY:'Только следующее ТО от принятого выполнения',SYNTHETIC_DATA:'Тестовые данные',OVERDUE_REQUIRES_REVIEW:'Срок уже прошёл: требуется решение инженера',EXISTING_OCCURRENCE_REVIEW:'Существующее вхождение требует сверки',COMPLETION_NOT_ACCEPTED:'Выполнение ещё не принято',PARTIAL_ALREADY_PUBLISHED:'Часть этого объёма уже выдана',SOURCE_EQUIVALENCE_REQUIRED:'Нужно сопоставить одинаковые работы из разных источников',NORM_UNIT_UNCONFIRMED:'Не подтверждена единица нормы',NORM_VALUE_MISSING:'Не указана трудоёмкость',DURATION_UNCONFIRMED:'Не подтверждена длительность',EQUIPMENT_OUT_OF_SERVICE:'Оборудование в ремонте',HISTORY_AFTER_CUTOFF_IGNORED:'Будущие факты не учтены'};
 
-export default function RequirementsPanel({timezone,catalogId,initialStart,initialEnd,mayConfigure,mayViewTasks=false,mayEdit=false,workspace,onCatalog,onCalculate,onPrepare}:{timezone:string;catalogId:string;initialStart?:string;initialEnd?:string;mayConfigure:boolean;mayViewTasks?:boolean;mayEdit?:boolean;workspace?:CatalogWorkspace;onCatalog:(id:string)=>void;onCalculate:(start:string,end:string)=>void;onPrepare:()=>void}) {
+export default function RequirementsPanel({timezone,catalogId,initialStart,initialEnd,mayConfigure,mayViewTasks=false,mayEdit=false,mayApprove=false,workspace,onCatalog,onCalculate,onPrepare}:{timezone:string;catalogId:string;initialStart?:string;initialEnd?:string;mayConfigure:boolean;mayViewTasks?:boolean;mayEdit?:boolean;mayApprove?:boolean;workspace?:CatalogWorkspace;onCatalog:(id:string)=>void;onCalculate:(start:string,end:string)=>void;onPrepare:()=>void}) {
   const year=todayAt(timezone).slice(0,4);
   const [start,setStart]=useState(initialStart||`${year}-01-01`),[end,setEnd]=useState(initialEnd||`${year}-12-31`),[regulations,setRegulations]=useState(true),[withCatalog,setWithCatalog]=useState(!!catalogId);
   const [rows,setRows]=useState<number[]>([]),[expansion,setExpansion]=useState<'source_january'|'confirmed_rule'>('confirmed_rule'),[policy,setPolicy]=useState<DraftPolicy>(newPolicy);
@@ -25,7 +25,7 @@ export default function RequirementsPanel({timezone,catalogId,initialStart,initi
   const body:RequirementsRequest={starts_on:start,ends_on:end,include_regulations:regulations,catalog:withCatalog&&catalogId?{import_id:catalogId,starts_on:start,ends_on:end,row_numbers:rows,expansion,policy}:null};
   const stale=submitted&&JSON.stringify(body)!==JSON.stringify(submitted.body);
   return <section className="space-y-5" aria-label="Обязательные работы из регламентов и Excel">
-    {workspace&&<PortfolioPlans workspace={workspace} timezone={timezone} mayEdit={mayEdit}/>}
+    {workspace&&<PortfolioPlans workspace={workspace} timezone={timezone} mayEdit={mayEdit} mayApprove={mayApprove}/>}
     <div hidden={!!workspace?.draftId} className="space-y-5">
     <div><h2 className="text-xl font-semibold">Что нужно обслужить в выбранном периоде</h2><p className="mt-2 text-sm text-muted">Общий состав по действующим регламентам и выбранным строкам Excel. Существующие задания учитываются отдельно.</p></div>
     <fieldset disabled={busy} className="min-w-0 space-y-4 rounded-xl border border-line p-4"><legend className="px-2 font-semibold">Период и источники</legend>

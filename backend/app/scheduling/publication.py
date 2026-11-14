@@ -4,7 +4,7 @@ from uuid import UUID,uuid5
 from app.scheduling.draft_validator import digest
 
 
-def additions(occurrences,segments,profiles):
+def additions(occurrences,segments,profiles,*,regulations=None,regulation_operations=None):
     by_root=defaultdict(list)
     for s in segments:by_root[s.occurrence_id].append(s)
     config={p.row_number:p.model_dump(mode='json') for p in profiles}
@@ -20,7 +20,13 @@ def additions(occurrences,segments,profiles):
                 row_number=root.source_row,operation_code=root.operation_code,title=root.title,
                 equipment_ids=sorted({str(a) for s in group for a in s.equipment_ids}),
                 worker_ids=sorted(map(str,ordered[0].worker_ids)),start_at=ordered[0].start_at,end_at=ordered[-1].end_at,
-                person_hours=str(sum(s.person_hours for s in group)),execution=config[root.source_row]))
+                person_hours=str(sum(s.person_hours for s in group)),execution=regulations[root.binding_id] if root.source_kind=='regulation' else config[root.source_row]))
+            if root.source_kind=='regulation':items[-1]['source_kind']='regulation'
+        if root.source_kind=='regulation':
+            for asset in root.equipment_ids:
+                key=digest(dict(source_kind='regulation',operation=regulation_operations[root.binding_id],asset=str(asset),source_date=root.source_date))
+                keys.append(dict(key=key,occurrence_id=str(root.occurrence_id),equipment_id=str(asset)))
+            continue
         for row_number in [root.source_row,*root.included_rows]:
             for asset in root.equipment_ids:
                 key=digest(dict(source_sha=root.source_sha256,row=row_number,source_date=root.source_date,slot=root.source_slot,asset=str(asset)))

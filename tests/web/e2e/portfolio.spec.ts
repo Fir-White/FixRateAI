@@ -52,9 +52,8 @@ for(const width of [1440,390,320])test(`real common plan save, policy, solver, h
     await balanced.getByRole('button',{name:'Применить в новую версию'}).click();
     await expect(page).toHaveURL(/portfolio_revision=3/);
     await steps.getByRole('button',{name:'Утверждение и выпуск',exact:true}).click();
-    await expect(saved).toContainText('Выпуск заданий с использованием действующих регламентов — следующий этап');
-    await expect(saved.getByRole('button',{name:/Подготовить предложение/})).toHaveCount(0);
-    await page.reload();await expect(saved).toContainText('Выпуск заданий с использованием действующих регламентов');
+    await expect(saved.getByRole('button',{name:'Подготовить предложение к публикации'})).toBeVisible();
+    await page.reload();await expect(saved.getByRole('button',{name:'Подготовить предложение к публикации'})).toBeVisible();
     await steps.getByRole('button',{name:'Состав работ',exact:true}).click();
     await expect(saved).toContainText(/Размещено 5(?:\.0+)? из 5(?:\.0+)?/);
     await saved.getByRole('button',{name:'История версий плана'}).click();
