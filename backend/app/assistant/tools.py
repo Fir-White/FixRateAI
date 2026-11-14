@@ -133,7 +133,7 @@ def validate_arguments(app,tool,arguments):
         result[kind]={}
         for field in fields:
             if field.name not in values:
-                if field.required:raise HTTPException(422,'Нужен параметр '+field.name)
+                if field.field_info.is_required():raise HTTPException(422,'Нужен параметр '+field.name)
                 continue
             validated,errors=field.validate(values[field.name],{},loc=(kind,field.name))
             if errors:raise HTTPException(422,'Проверьте параметр '+field.name)

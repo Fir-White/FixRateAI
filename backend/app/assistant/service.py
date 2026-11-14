@@ -1,5 +1,5 @@
 """Durable conversations and proposals. No model call owns a DB transaction."""
-import asyncio,json,threading
+import asyncio,json,threading,logging,traceback
 from datetime import datetime,timedelta,timezone
 from pathlib import Path
 from uuid import uuid4
@@ -12,6 +12,7 @@ from .tools import available,catalog,describe,validate_arguments,invoke,prefligh
 PROMPT_VERSION='fixrate-agents-v1'
 PROMPTS=Path(__file__).parent/'prompts'
 SLOTS=threading.BoundedSemaphore(2)
+logger=logging.getLogger(__name__)
 
 def now():return datetime.now(timezone.utc)
 def dump(value):return json.dumps(value,ensure_ascii=False,default=str)
@@ -98,7 +99,10 @@ async def agent_turn(app,principal,thread_id,turn_id,headers):
                 if calls_used>12:raise AITunnelFailure('ASSISTANT_TOOL_LIMIT')
                 try:
                     if call.tool=='describe_tool':
-                        name=call.arguments.get('name');tool=tools.get(name)
+                        name=call.arguments.get('name')
+                        if not isinstance(name,str) or not name or set(call.arguments)!={'name'}:
+                            raise HTTPException(422,'describe_tool принимает ровно одно строковое имя: {"name":"tool_name"}. Для нескольких инструментов используйте отдельные вызовы.')
+                        tool=tools.get(name)
                         if not tool:raise HTTPException(403,'Инструмент недоступен')
                         value=describe(app,tool)
                     else:
@@ -136,6 +140,9 @@ async def agent_turn(app,principal,thread_id,turn_id,headers):
             session.execute(text('UPDATE assistant_conversations SET updated_at=now() WHERE conversation_id=:id'),dict(id=thread_id))
             session.commit()
     except Exception as exc:
+        # Record locations and types only, never exception text, locals or model data.
+        logger.error('assistant_turn_failed turn=%s exception_type=%s frames=%s',turn_id,type(exc).__name__,
+            [(Path(f.filename).name,f.lineno,f.name) for f in traceback.extract_tb(exc.__traceback__)[-8:]])
         code=str(exc) if isinstance(exc,AITunnelFailure) else 'ASSISTANT_FAILED'
         if not __import__('re').fullmatch(r'[A-Z_]{3,80}',code):code='ASSISTANT_FAILED'
         with app.state.factory() as session:

@@ -6,7 +6,7 @@ import json
 import pytest
 from sqlalchemy import text
 from app.schemas.assistant import AgentStep
-from app.assistant.tools import TOOLS,available,describe
+from app.assistant.tools import TOOLS,available,describe,validate_arguments
 from tests.backend.test_management import managed
 from tests.backend.test_runtime_integration import runtime,login
 
@@ -62,6 +62,19 @@ def test_catalog_is_explicit_and_each_tool_has_real_typed_endpoint(assistant_cas
     assert all(t.mode=='read' for t in available(app,'director').values())
     assert 'photo_review' not in available(app,'executor','photo')
     assert 'equipment_create' not in available(app,'chief_engineer','photo')
+
+def test_optional_and_missing_required_parameters_follow_current_fastapi_fields(assistant_case):
+    from fastapi import HTTPException
+    _,app,_,_,_=assistant_case;tools=available(app,'chief_engineer')
+    assert validate_arguments(app,tools['equipment_list'],{})==dict(path={},query={})
+    assert validate_arguments(app,tools['equipment_list'],dict(query=dict(limit=25)))['query']==dict(limit=25)
+    assert validate_arguments(app,tools['draft_list'],dict(query=dict(import_id=str(uuid4()))))['query']['import_id']
+    assert validate_arguments(app,tools['calendar_read'],dict(query=dict(year=2026,month=11)))['query']==dict(year=2026,month=11)
+    with pytest.raises(HTTPException) as error:validate_arguments(app,tools['calendar_read'],{})
+    assert error.value.status_code==422
+    for tool in tools.values():
+        try:validate_arguments(app,tool,{})
+        except HTTPException as exc:assert exc.status_code==422
 
 def test_mcp_handshake_scoped_reads_and_unknown_tools(assistant_case):
     _,_,admin,_,ids=assistant_case
@@ -217,3 +230,21 @@ def test_mcp_rejects_cross_origin_invalid_arguments_and_confirmation_tool(assist
     assert rpc(admin,'tools/call',dict(name='confirm',arguments={})).json()['error']['code']==-32602
     result=rpc(admin,'tools/call',dict(name='equipment_read',arguments=dict(path=dict(equipment_id='../../secrets'),url='http://untrusted.test'))).json()['result']
     assert result['isError']
+
+def test_assignment_request_survives_multi_name_description_and_continues(assistant_case):
+    _,app,admin,_,_=assistant_case;admin=admin.chief;t=thread(admin)
+    script=Scripted([
+        dict(answer='',calls=[dict(tool='tasks_list',arguments={},explanation='Find nearest maintenance')]),
+        dict(answer='',calls=[dict(tool='describe_tool',arguments=dict(name=['assignment_context','assignment_preview']),explanation='Inspect assignment tools')]),
+        dict(answer='',calls=[dict(tool='describe_tool',arguments=dict(name='assignment_context'),explanation='Inspect one schema')]),
+        dict(answer='Для назначения сначала выберите задание с подтверждёнными условиями.',calls=[]),
+    ])
+    app.state.assistant_provider_factory=lambda:script
+    try:
+        response=admin.post(B+'/conversations/'+t+'/messages',json=dict(idempotency_key=str(uuid4()),content='Помоги распределить работников на ближайшее ТО'))
+        assert response.status_code==202
+        view=admin.get(B+'/conversations/'+t).json();turn=view['turns'][0]
+        assert turn['status']=='completed' and turn['error_code'] is None
+        assert [s['status'] for s in turn['trace']]==['completed','denied','completed']
+        assert not view['actions']
+    finally:del app.state.assistant_provider_factory
