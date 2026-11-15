@@ -3012,5 +3012,42 @@
         "disposition": "merged_exact"
       }
     ]
+  },
+  {
+    "branch": "qa/schedule-forecast-tests",
+    "source_sha": "9800ac6f36528829597f2a28db208903f5b2bdf8",
+    "comparison_base": "b8d96c33509a9c676118f9b5bea5029752cf076f",
+    "files": [
+      {
+        "source_path": "docs/service/INDEX.md",
+        "dev_path": "docs/service/INDEX.md",
+        "source_blob": "5076f8f5512330526cd1918aa526ebf8934079a0",
+        "disposition": "index_link_merged"
+      },
+      {
+        "source_path": "docs/service/schedule_forecast_audit.md",
+        "dev_path": "docs/service/schedule_forecast_audit.md",
+        "source_blob": "bfd310387a70d484748041a40311cbb7bb33634d",
+        "disposition": "historical_report_annotated"
+      },
+      {
+        "source_path": "tests/backend/test_assignment_audit.py",
+        "dev_path": "tests/backend/test_assignment_audit.py",
+        "source_blob": "5da47d0555c13e8f7195260af0f9c0edae711e90",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "tests/backend/test_forecast_audit.py",
+        "dev_path": "tests/backend/test_forecast_audit.py",
+        "source_blob": "6622915330e133e4e470de96ea8884c2f5b01039",
+        "disposition": "retained_exact_source_blob"
+      },
+      {
+        "source_path": "tests/backend/test_schedule_audit.py",
+        "dev_path": "tests/backend/test_schedule_audit.py",
+        "source_blob": "f14c7c12cfbaad8d06e8af39e8c8dfd478a67c8c",
+        "disposition": "retained_exact_source_blob"
+      }
+    ]
   }
 ]

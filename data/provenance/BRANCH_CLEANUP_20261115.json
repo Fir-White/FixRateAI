@@ -1,0 +1,104 @@
+{
+  "date": "2026-11-15",
+  "retained_branches": [
+    "archive/legacy-ai-estimator",
+    "dev",
+    "kran_dev",
+    "main"
+  ],
+  "source_dev": "6d1de401e1808d97a4f5de11249f77072a9f5aa8",
+  "branches": [
+    {
+      "branch": "archive/legacy-ai-estimator",
+      "sha": "03618ec9f7b1fe1c4259b2e24e5a3070e52a6ea2",
+      "disposition": "retained"
+    },
+    {
+      "branch": "dev",
+      "sha": "6d1de401e1808d97a4f5de11249f77072a9f5aa8",
+      "disposition": "retained"
+    },
+    {
+      "branch": "docs/tests-p0",
+      "sha": "bbe9802492f2633d2376c745bad2a34556489af0",
+      "disposition": "adapted_sources_verified"
+    },
+    {
+      "branch": "feat/frontend-redesign-v2",
+      "sha": "e56165db6b50ebb2e57cdb8ad90840c8370b87c0",
+      "disposition": "history_in_dev"
+    },
+    {
+      "branch": "feat/ml-forecasting-photo-review",
+      "sha": "9f7f8de2868ce10764449eacc9a501bd2374ceda",
+      "disposition": "adapted_sources_verified"
+    },
+    {
+      "branch": "feat/ml-work",
+      "sha": "c8715121d691397763a07d368bde7ab27463ad3d",
+      "disposition": "history_in_dev"
+    },
+    {
+      "branch": "feature/frontend-kran",
+      "sha": "3297c9824e49ac135a37e7b70d10a782daeb07d6",
+      "disposition": "adapted_sources_verified"
+    },
+    {
+      "branch": "feature/frontend-next",
+      "sha": "6dbe3247ba67d0d42deff8e1456373aa67130591",
+      "disposition": "history_in_dev"
+    },
+    {
+      "branch": "front/mvidy",
+      "sha": "e38e149a65bc4c8021fe6f480be47c13365e7c1f",
+      "disposition": "adapted_sources_verified"
+    },
+    {
+      "branch": "frontend_polished",
+      "sha": "422eacf94aadf0fc75e29ef8b1ee110abce78bd2",
+      "disposition": "history_in_dev"
+    },
+    {
+      "branch": "kran_dev",
+      "sha": "e757426ddbe38bfd4eca8d48e79490c2ba4d70b2",
+      "disposition": "retained"
+    },
+    {
+      "branch": "main",
+      "sha": "892b23addb66a523acfe1920ff52eaaca66fd923",
+      "disposition": "retained"
+    },
+    {
+      "branch": "new_backend",
+      "sha": "156d32aee98b46947e10a0c3902a94766eed1122",
+      "disposition": "adapted_sources_verified"
+    },
+    {
+      "branch": "qa/roles-contracts",
+      "sha": "5829dc355a883b5048a49a3867a4298c631b47c5",
+      "disposition": "adapted_sources_verified"
+    },
+    {
+      "branch": "qa/schedule-forecast-tests",
+      "sha": "9800ac6f36528829597f2a28db208903f5b2bdf8",
+      "disposition": "qa_imported"
+    },
+    {
+      "branch": "test/mvidy",
+      "sha": "b489abffadd214ff02c941601a8d30b53c769f2d",
+      "disposition": "history_in_dev"
+    }
+  ],
+  "qa": {
+    "source_commit": "9800ac6f36528829597f2a28db208903f5b2bdf8",
+    "passed": 41,
+    "strict_xfailed": 5
+  },
+  "worktree_policy": "Preserve all pending files in place and private backup; detach worktrees occupying deleted names. Pending drafts are not claimed as shipped application features.",
+  "history_policy": "After source audit, join previously adapted histories while preserving the verified current tree; do not reintroduce superseded runtime files.",
+  "retired_assets": {
+    "frontend/src/assets/favicons-visible/favicon-active-16.png": "frontend/src/assets/favicons-visible/favicon-aurora-16.png",
+    "frontend/src/assets/favicons-visible/favicon-active-32.png": "frontend/src/assets/favicons-visible/favicon-aurora-32.png",
+    "frontend/src/assets/favicons-visible/favicon-active.ico": "frontend/src/assets/favicons-visible/favicon-aurora.ico"
+  }
+}
