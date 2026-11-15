@@ -16,6 +16,12 @@ from app.integration import task_analytics as analytics
 URL='/api/v1/assistant/workspace/task-analysis'
 TODAY=datetime(2026,11,15,8,tzinfo=timezone.utc)
 
+def report_principal(case):
+    engine,_,_,_,ids=case
+    with engine.connect() as db:
+        row=db.execute(text('SELECT name,timezone FROM sites WHERE site_id=:site'),dict(site=ids['site'])).one()
+    return SimpleNamespace(site_name=row.name,timezone=row.timezone,site_id=ids['site'],role='admin')
+
 
 @pytest.fixture
 def clock(monkeypatch):
@@ -186,7 +192,7 @@ def test_report_faults_are_not_empty_or_full(assistant_case,monkeypatch,code,rea
     async def fault(*args):raise HTTPException(code,'injected failure')
     monkeypatch.setattr(read_transport,'invoke',fault)
     trace=[]
-    answer=asyncio.run(report(app,available(app,'admin')['tasks_analyze'],{},trace,lambda:None,'Проанализируй все задания',SimpleNamespace(site_name='Test')))
+    answer=asyncio.run(report(app,available(app,'admin')['tasks_analyze'],{},trace,lambda:None,'Проанализируй все задания',report_principal(assistant_case)))
     assert 'Полный анализ не выполнен' in answer and reason in answer and 'Заданий нет' not in answer
     assert len(trace)==1
 
@@ -252,7 +258,7 @@ def test_data_change_between_sections_never_yields_full_report(assistant_case,cl
         return value
     monkeypatch.setattr(read_transport,'invoke',changing)
     headers={'cookie':'; '.join(f'{k}={v}' for k,v in admin.cookies.items())}
-    answer=asyncio.run(report(app,available(app,'admin')['tasks_analyze'],headers,[],lambda:None,'Проанализируй все задания',SimpleNamespace(site_name='Test')))
+    answer=asyncio.run(report(app,available(app,'admin')['tasks_analyze'],headers,[],lambda:None,'Проанализируй все задания',report_principal(assistant_case)))
     assert 'Полный анализ не выполнен' in answer and 'Данные изменились' in answer
     assert 'Всего записей' not in answer
 

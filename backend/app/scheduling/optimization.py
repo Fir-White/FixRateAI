@@ -21,7 +21,7 @@ from app.schemas.optimization import OptimizationOptions
 from app.scheduling.draft_validator import validate,_parts,_hours,_contains,digest
 from app.scheduling.planning_policy import access_intervals,intersect
 
-MODEL_VERSION='placement-candidates-v2'
+MODEL_VERSION='placement-candidates-v3'
 OBJECTIVE_VERSION='coverage-then-segments-then-weighted-balance-v1'
 MAX_SEGMENTS=500
 MAX_CANDIDATES=20000
@@ -230,6 +230,10 @@ class Problem:
         result=self.initial()
         for index,(candidate,team) in chosen.items():
             for segment,(a,b) in zip(self.groups[index].segments,candidate.parts):
+                # Frozen records retain the original crew order and every field.
+                # Candidate/team enumeration uses sorted sets internally; writing
+                # that order back falsely trips the strict lock validator.
+                if self.frozen(segment):continue
                 result[segment.segment_id]=segment.model_copy(update={'start_at':a,'end_at':b,'worker_ids':list(team)})
         return [result[s.segment_id] for s in self.original]
 
@@ -266,7 +270,8 @@ class Problem:
                         if len(team)==group.root.crew_size: break
                     if len(team)==group.root.crew_size and fits(index,candidate,team):
                         chosen[index]=(candidate,tuple(team))
-                        for s,(a,b) in zip(group.segments,candidate.parts): working[s.segment_id]=s.model_copy(update={'start_at':a,'end_at':b,'worker_ids':team})
+                        for s,(a,b) in zip(group.segments,candidate.parts):
+                            working[s.segment_id]=s if self.frozen(s) else s.model_copy(update={'start_at':a,'end_at':b,'worker_ids':team})
                         progress=True;break
                 pending.remove(index) if index in chosen else None
             if not progress: break

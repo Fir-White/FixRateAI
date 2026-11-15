@@ -58,7 +58,7 @@ class FinalReply(Input):
         return value.strip()
 
 class ResultView(Input):
-    path:list[str]=Field(default_factory=list,max_length=6)
+    path:list[str]=Field(default_factory=list,max_length=6,description='Последовательный путь по ключам одного JSON-результата, не список полей и не поиск оборудования. Обычно []: сначала прочитайте корневой ответ. Не угадывайте ключи.')
     offset:int=Field(default=0,ge=0)
     limit:int=Field(default=25,ge=1,le=25)
     q:str=Field(default='',max_length=200)

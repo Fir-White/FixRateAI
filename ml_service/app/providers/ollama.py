@@ -117,7 +117,10 @@ class OllamaClient:
                 if not schema or attempt or reason in ('unexpected_model','content_too_large','invalid_envelope','incomplete_response'):
                     raise failure from None
                 # Retry inference only; never repeat a tool or action. Do not retain malformed output.
-                payload['messages']=[*converted,dict(role='system',content='The previous response did not match the required schema. Return a valid JSON object with all required fields and correct types.')]
+                feedback='The previous response did not match the required schema. Return a valid JSON object with all required fields and correct types. Validation fields/types: '+json.dumps(issues)
+                if any(e['path'].endswith('arguments_json') for e in issues):
+                    feedback+=' arguments_json must be a STRING containing a valid JSON OBJECT with double-quoted keys, never Python syntax, null or an array. For empty arguments use the string "{}". Example call: '+json.dumps(dict(tool='equipment_find',arguments_json=json.dumps(dict(query=dict(q='pump'))),explanation='Find equipment'))
+                payload['messages']=[*converted,dict(role='system',content=feedback)]
                 if reason=='token_limit':payload['options']['num_predict']=min(tokens*2,7000)
 
     def text(self,messages,tokens=8192):return self.chat(messages,None,tokens)

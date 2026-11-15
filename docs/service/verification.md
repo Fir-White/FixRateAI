@@ -1,5 +1,9 @@
 # Проверки и доказательства
 
+## Red-team агента в отдельном worktree, 15.11.2026
+
+[Область и протоколы](../agent-audit/README.md). Настоящий нативный PostgreSQL и OR-Tools, pinned Ollama; никакого повышения прав или cloud fallback. Восьми классам дефектов соответствуют воспроизведения и смежные тесты. Корпус 619 проверяет транспортные/ролевые границы; 21 live-эпизод последнего частного прогона прошёл, включая synthetic Excel/PNG (19 с inference). Общий frozen-source прогон и широкая backend/ML регрессия фиксируются после окончания; старые красные результаты сохраняются. Прежний SQL upgrade runner имеет ENV-001; --agent-only его не засчитывает. Frontend не менялся и заново не проверялся в этой задаче.
+
 ## Подготовка коммита итерации после 81df922, 15.11.2026
 
 [Полный состав, миграция, сценарии, требования MVP и ограничения](../releases/2026-11-15-assistant-iteration.md). Последний опубликованный SHA сверён по `git ls-remote` для dev/kran_dev в GitHub и GitVerse; этот этап создаёт локальный коммит, без push/merge. К предыдущим 194 backend/API/ML-регрессиям добавлена проверка профилей запуска, cloud и local vision: **37 passed / 7,27 с**, `reports/iteration-20261115-provider-check/pytest.log`; export/check capability (**167 tools**), fresh/repeated migrate/seed и pip check успешны.

@@ -1,4 +1,4 @@
-"""One bounded argument repair for GET reads. Never retries a dispatched write."""
+"""At most two repairs for GET reads. Never retries a dispatched write."""
 import hashlib,json,re
 from fastapi import HTTPException
 from .tools import validate_arguments,invoke,route_for
@@ -27,9 +27,14 @@ def result_summary(value):
     if isinstance(value,list):return dict(type='array',count=len(value))
     return dict(type=type(value).__name__)
 
-def repair(app,tool,args):
+def repair(app,tool,args,inspect_projection=False):
     if tool.mode!='read' or tool.method!='GET' or not isinstance(args,dict):return None
     fixed=json.loads(json.dumps(args));view=fixed.get('view',{})
+    # Omitted optional envelopes have no selector semantics. Null is never sent
+    # to the strict backend; mandatory fields are still checked on the retry.
+    for envelope in ('path','query'):
+        if fixed.get(envelope,False) is None:
+            fixed.pop(envelope);inspect_projection=True
     if not isinstance(view,dict):return None
     query_fields={f.name for f in route_for(app,tool).dependant.query_params}
     # Pagination accidentally put in the endpoint query/root belongs to projection.
@@ -40,13 +45,17 @@ def repair(app,tool,args):
                 if key in view:return None
                 view[key]=source.pop(key)
     if isinstance(view.get('limit'),int) and not isinstance(view['limit'],bool) and view['limit']>25:view['limit']=25
+    # A guessed projection is optional presentation, not an authorization filter.
+    # Inspect the authorized root on the single repair, preserving every query
+    # and path selector. This also handles compound null+projection failures.
+    if inspect_projection and view.get('path'):view['path']=[]
     if view:fixed['view']=view
     return fixed if fixed!=args else None
 
 async def read(app,tool,args,headers,trace,publish=lambda:None):
     if tool.mode!='read' or tool.method!='GET':raise ValueError('GET read required')
     current=args
-    for attempt in range(2):
+    for attempt in range(3):
         entry=dict(tool=tool.name,attempt=attempt+1,retry_count=attempt,arguments=safe_arguments(current))
         checked=None
         try:
@@ -59,7 +68,11 @@ async def read(app,tool,args,headers,trace,publish=lambda:None):
             entry['stage']='validation' if checked is None else 'backend_or_projection'
             if isinstance(exc.detail,dict) and exc.detail.get('code')=='INVALID_VIEW':entry['validation']=exc.detail
             trace.append(entry);publish()
-            fixed=repair(app,tool,current) if exc.status_code==422 and attempt==0 else None
+            projection_error=exc.detail=='Неизвестное поле результата. Используйте имена из прочитанного ответа.'
+            # One envelope/pagination repair, followed only by projection recovery.
+            # A normalization error and an unknown nested key may coexist.
+            allowed=attempt==0 or attempt==1 and projection_error
+            fixed=repair(app,tool,current,inspect_projection=projection_error) if exc.status_code==422 and allowed else None
             if fixed is None and attempt==0 and exc.status_code==422 and exc.detail=='Неизвестное поле результата. Используйте имена из прочитанного ответа.' and isinstance(current,dict) and isinstance(current.get('view'),dict) and current['view'].get('path'):
                 fixed={**current,'view':{**current['view'],'path':[]}}
                 entry['repair']='inspect_authorized_root_after_unknown_projection'

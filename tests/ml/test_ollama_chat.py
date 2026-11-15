@@ -129,3 +129,20 @@ def test_existing_photo_pipeline_accepts_the_same_pinned_native_host(monkeypatch
     from ml_service.app.cv.local_vision import LocalVisionConfig
     monkeypatch.setenv('OLLAMA_BASE_URL','http://host.docker.internal:11434');monkeypatch.setenv('OLLAMA_VISION_MODEL',MODEL);monkeypatch.setenv('OLLAMA_VISION_DIGEST',DIGEST)
     assert LocalVisionConfig.from_environment().base_url=='http://host.docker.internal:11434'
+
+
+@pytest.mark.parametrize('broken',['{query: {q: "PRIVATE_SECRET"}}','null','[]','','{"query":{"q":"PRIVATE_SECRET"'])
+def test_nested_argument_json_feedback_is_specific_bounded_and_does_not_echo_bad_output(endpoint,monkeypatch,broken):
+    from app.schemas.assistant import AgentStep
+    _,config=endpoint;client=OllamaClient(config);calls=[]
+    def request(path,payload=None):
+        if path=='/api/tags':return dict(models=[dict(name=MODEL,digest=DIGEST)])
+        calls.append(payload)
+        reply=dict(answer='',calls=[dict(tool='equipment_find',arguments_json=broken if len(calls)==1 else '{}',explanation='Read authorized equipment')])
+        return dict(model=MODEL,done=True,done_reason='stop',message=dict(content=json.dumps(reply)))
+    monkeypatch.setattr(client,'request',request)
+    answer=client.chat([dict(role='user',content='Read equipment')],AgentStep,3500)
+    assert answer.calls[0].arguments=={} and len(calls)==2
+    feedback=calls[-1]['messages'][-1]['content']
+    assert 'arguments_json' in feedback and 'valid JSON OBJECT' in feedback
+    assert 'PRIVATE_SECRET' not in json.dumps(calls[-1])

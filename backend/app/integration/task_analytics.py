@@ -62,7 +62,7 @@ def business_key(row, due_day, start_day):
     return (tuple(sorted(a['id'] for a in row['equipment'])),operation,occurrence_day.isoformat(),row['sequence_no'] or 1)
 
 
-def analyze(v, section='summary', offset=0, origin='all', starts_on=None, ends_on=None):
+def analyze(v, section='summary', offset=0, origin='all', starts_on=None, ends_on=None, cohort='unfinished'):
     if starts_on and ends_on and ends_on < starts_on:
         raise HTTPException(422, 'Конец периода раньше начала')
     clock = server_time(v.principal.timezone)
@@ -99,6 +99,8 @@ def analyze(v, section='summary', offset=0, origin='all', starts_on=None, ends_o
     selection=[]
     for row in rows:
         if row['status'] not in UNFINISHED: continue
+        if cohort=='execution_pending' and row['status'] not in PENDING:continue
+        if cohort=='in_review' and row['status']!='in_review':continue
         if origin != 'all' and row['origin'] != origin: continue
         due, planned, due_day, start_day = timing(row,instant,zone)
         ledger_day = start_day or due_day
@@ -149,7 +151,7 @@ def analyze(v, section='summary', offset=0, origin='all', starts_on=None, ends_o
     groups=[dict(equipment_ids=list(k[0]),operation=k[1],operation_title=duplicate_labels[k],source_or_due_date=k[2],sequence=k[3],task_ids=ids[:25],count=len(ids),task_ids_truncated=len(ids)>25) for k,ids in sorted(duplicates.items()) if len(ids)>1]
     scope=dict(site_id=str(v.principal.site_id),site_name=v.principal.site_name,role=v.principal.role,
         visibility='assigned_to_user' if v.principal.role=='executor' else 'whole_site',origin=origin,
-        starts_on=starts_on,ends_on=ends_on,date_filter_basis='planned_start_else_normative_due_day')
+        starts_on=starts_on,ends_on=ends_on,cohort=cohort,date_filter_basis='planned_start_else_normative_due_day')
     common=dict(**clock,scope=scope,complete=True,scanned_tasks=total,selected_tasks=len(selection),
         snapshot_id=hashlib.sha256(json.dumps([dict(r) for r in rows]+[scope,clock['local_date'],dict(due_counts)],sort_keys=True,default=str).encode()).hexdigest(),
         counters=dict(all_tasks=total,by_status=dict(sorted(counts.items())),

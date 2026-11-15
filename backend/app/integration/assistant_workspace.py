@@ -18,11 +18,12 @@ class AssignmentPreparation(BaseModel):
 def register_routes(app,views):
     @app.get(BASE+'/task-analysis')
     def task_analysis(request:Request,section:Literal['summary','dates','equipment','duplicates']='summary',offset:int=Query(0,ge=0),
-                      origin:Literal['all','scheduled','manual','incident']='all',starts_on:date|None=None,ends_on:date|None=None,v=Depends(views)):
+                      origin:Literal['all','scheduled','manual','incident']='all',starts_on:date|None=None,ends_on:date|None=None,
+                      cohort:Literal['unfinished','execution_pending','in_review']='unfinished',v=Depends(views)):
         from .task_analytics import analyze
-        if set(request.query_params)-{'section','offset','origin','starts_on','ends_on'}:
+        if set(request.query_params)-{'section','offset','origin','starts_on','ends_on','cohort'}:
             raise HTTPException(422,'Неизвестный параметр аналитического запроса')
-        return analyze(v,section,offset,origin,starts_on,ends_on)
+        return analyze(v,section,offset,origin,starts_on,ends_on,cohort)
 
     @app.get(BASE+'/draft-changes')
     def draft_changes(identity:UUID,before_revision:int=Query(...,ge=1),after_revision:int=Query(...,ge=1),offset:int=Query(0,ge=0),v=Depends(views)):
@@ -134,10 +135,16 @@ def register_routes(app,views):
         return result
 
     @app.get(BASE+'/equipment')
-    def equipment(q:str=Query('',max_length=200),offset:int=Query(0,ge=0),v=Depends(views)):
+    def equipment(q:str=Query('',max_length=200),offset:int=Query(0,ge=0),asset_code:str|None=Query(None,min_length=1,max_length=128),v=Depends(views)):
         cls=v.models['equipment'];filters=[cls.site_id==v.principal.site_id]
         if v.principal.role=='executor':filters.append(cls.equipment_id.in_(v.visible_equipment_ids()))
         if q.strip():filters.append(or_(cls.name.ilike('%'+q.strip()+'%'),cls.asset_code.ilike('%'+q.strip()+'%'),cls.location.ilike('%'+q.strip()+'%')))
+        if asset_code is not None:
+            # Literal exact code, including LIKE metacharacters. This is not a
+            # substring search on name/location and cannot miss an exact asset
+            # hidden beyond the first page of unrelated name matches.
+            literal=asset_code.replace('\\','\\\\').replace('%','\\%').replace('_','\\_')
+            filters.append(cls.asset_code.ilike(literal,escape='\\'))
         count=v.session.scalar(select(func.count()).select_from(cls).where(*filters))
         rows=v.session.scalars(select(cls).where(*filters).order_by(cls.asset_code,cls.equipment_id).offset(offset).limit(25)).all()
         return dict(items=[equipment_response(r) for r in rows],total=count,offset=offset,limit=25)

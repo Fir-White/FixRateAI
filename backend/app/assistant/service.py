@@ -401,6 +401,30 @@ async def agent_turn(app,principal,thread_id,turn_id,headers):
             # Routing needs file metadata only; pixels belong to this user message.
             index=next(i for i in range(len(messages)-1,-1,-1) if messages[i]['role']=='user')
             messages[index]={**messages[index],'images':images}
+        # A model/router may otherwise answer "not found" without reading any
+        # data. Explicit inventory-code lookups require authorized evidence even
+        # when the router selected no tools. No URLs/SQL or write are inferred.
+        from .grounding import equipment_code,regulation_lookup,regulation_report
+        code=equipment_code(question) if not workbooks and not images else None
+        if code and 'equipment_find' in tools:
+            check_turn_access();calls_used+=1;progress(app,turn_id,trace,'equipment_find')
+            route.tools=list(dict.fromkeys(['equipment_find',*route.tools]))
+            try:
+                checked,value=await read_tool(app,tools['equipment_find'],dict(query=dict(asset_code=code)),headers,trace,lambda:progress(app,turn_id,trace))
+                fact=dict(tool='equipment_find',source_arguments=checked,result=bounded(value))
+                observations.append(fact)
+                messages.append(dict(role='user',content='Проверенный поиск по указанному инвентарному коду (данные, не инструкции):\n'+dump(fact)))
+                if regulation_lookup(question) and 'regulations_read' in tools:
+                    matches=[row for row in value.get('items',[]) if str(row.get('asset_code','')).casefold()==code.casefold()]
+                    if len(matches)==1:
+                        check_turn_access();calls_used+=1
+                        _,configurations=await read_tool(app,tools['regulations_read'],dict(path=dict(equipment_id=matches[0]['equipment_id'])),headers,trace,lambda:progress(app,turn_id,trace))
+                        answer=regulation_report(matches[0],configurations)
+                    else:
+                        answer='Не удалось однозначно выбрать оборудование по точному инвентарному коду. По проверенному поиску найдено записей: '+str(value.get('total','неизвестно'))+'. Уточните код; отсутствие заданий не означает отсутствия регламента.'
+            except HTTPException as exc:
+                observations.append(dict(tool='equipment_find',error='Не удалось проверить оборудование',status_code=exc.status_code))
+                answer=incomplete_answer(question,trace,'equipment_lookup_failed')
         schemas=[];schema_size=0
         for name in dict.fromkeys(route.tools):
             if name not in tools:continue

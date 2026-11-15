@@ -17,10 +17,11 @@ ALLOWED={4:{'draft_save','portfolio_save','optimization_start','optimization_app
 @pytest.fixture
 def production_case(managed,monkeypatch):
     engine,app,admin,login,ids=managed
-    live=Path('/probe/provider.env').exists()
+    provider_file=Path(os.environ.get('FIXRATE_LIVE_PROVIDER_FILE','/probe/provider.env'))
+    live=provider_file.exists()
     if os.environ.get('FIXRATE_SCENARIOS_LIVE')=='1' and not live:raise RuntimeError('Live evaluation requires the pinned provider configuration')
     if live:
-        env=dict(line.split('=',1) for line in Path('/probe/provider.env').read_text().splitlines() if '=' in line)
+        env=dict(line.split('=',1) for line in provider_file.read_text().splitlines() if '=' in line)
         for key,value in env.items():monkeypatch.setenv(key,value)
         assert env.get('ASSISTANT_PROVIDER')=='ollama'
     else:

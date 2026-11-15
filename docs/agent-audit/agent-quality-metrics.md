@@ -1,0 +1,28 @@
+# Метрики качества агента
+
+Все значения — для синтетических одноразовых БД и pinned `qwen3.5:4b-q4_K_M`, digest `d8b0f5e9760cd1682034f292d7ef72ec46f432149be0df7574bf2d6e92e38c04`. Успех теста означает прохождение его oracle, а не отсутствие всех возможных галлюцинаций.
+
+| Прогон | Результат | Что считать |
+|---|---:|---|
+| offline-baseline | 112 passed / 53,95 с | Прежняя серверная регрессия, не число LLM-диалогов |
+| controls-repro → controls-after | 1 failed/18 passed → 57 passed | AG-001 и смежная регрессия |
+| provenance-before → evidence-after | 10 failed → 654 passed | 10 faults + 25 прежних analytics + 619 matrix |
+| scope-before → scope-final | 10 failed/1 passed → 73 passed | AG-003 плюс прежние P0/analytics/contracts |
+| planning-baseline | 94 passed / 109,94 с | Реальные PostgreSQL/CP-SAT/API |
+| production-run | 12 passed / 31,25 с | Сквозные typed workflows с включённым local provider; не 12 свободных LLM-планирований |
+| lock-order-before → lock-order-final | 6 failed → 98 passed | 90 свойства/locks + 8 core solver; фикс AG-006 |
+| live-baseline | 4/7 passed | 2 продуктовых сбоя чтения, 1 ошибочный oracle раннего guard |
+| live-json-repair | 7/7 passed / 105,53 с | 6/7 эпизодов действительно вызвали модель, 22 inference requests |
+| live-expanded | 15/15 passed / 248,89 с | 14/15 эпизодов с inference, 66 модельных вызовов, 1 ранний guard |
+
+Не суммируйте эти строки как уникальные случаи: часть наборов повторяется и входит друг в друга. Корпус границ MCP — 619 уникальных случаев, свободных live-эпизодов в последней расширенной выборке — 15. До/после для общих семи случаев сравнимы, расширение на восемь — holdout, не доказательство улучшения на той же выборке.
+
+Live-baseline: p50 **13,458 с**, p95/max **34,493 с**, 136 412 prompt tokens / 3 368 output tokens. Live-json-repair: p50 **12,085 с**, p95/max **29,083 с**, 141 316 / 2 711 tokens. Live-expanded: p50 **14,955 с**, p95/max **42,464 с**, 429 382 / 6 342 tokens. При 15 образцах p95 совпадает с максимумом; статистическая неопределённость велика, это не production SLA. Длинный контекст и несколько inference на запрос остаются причиной задержек.
+
+Денежная стоимость — **не измерена**, не 0: provider локальный, но энергозатраты/износ/занятость GPU не оценены. Не утверждается безгаллюцинаторность 4B. Повторы запросов, токены и границы parser считаются отдельно от бизнес-успеха. Отрицательный role guard не делает inference зря и считается корректной серверной защитой.
+
+Общий runner `agent-audit-integrated` проверяет объединённый срез; его итог и позднейшие ограничения фиксируются отдельно после окончания. Частичные ранние прогоны не выдаются за итоговую release-регрессию.
+
+Поздний `agent-audit-live-files`: **21/21 passed**, 19/21 с inference, 57 модельных запросов. p50 **8,728 с**, p95 **18,573 с**, max **31,956 с**, 342 259 prompt / 4 560 completion tokens. На этой выборке task oracle=21/21, логические tool calls completed/proposed=23/26 (88,46%), GET recovery=1/1, неожиданные proposals=0/21, cross-turn=2/2, create+replay=1/1; в среднем 1,238 логического вызова на эпизод. Сокращение времени не считается изолированным causal benchmark: изменились состав, typed paths и состояние кеша модели.
+
+Машинный расчёт: `scripts/summarize_agent_audit.py <каталог live JSON>`. Grounded Answer Rate и Hallucination Rate **не измерены целиком**: проверены опорные факты и неизменность домена, но не независимая разметка каждого утверждения. Unauthorized Execution Rate/Constraint Violation Rate для всей совокупности также не выводятся из 21 ответов — их отрицательные границы и отдельные solver-оракулы описаны в других наборах. Неизмеренное значение null, а не 0/100%.
