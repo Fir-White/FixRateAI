@@ -6,7 +6,7 @@
 
 Docker недоступен в текущем разрешении. Повышение прав не запрашивается. Доступен PostgreSQL 18 для отдельного нативного кластера и локальная Ollama с pinned qwen3.5:4b-q4_K_M. Загрузка OR-Tools/Hypothesis в отдельный venv была отклонена сетевым sandbox (WinError 10013). Затем совместимые Windows wheels OR-Tools 9.15 и всех solver dependencies найдены в существующем pip HTTP cache и установлены **офлайн только в отдельный venv**. ML-зависимости заимствуются чтением из ранее существовавшего окружения; системная среда не изменяется, запись pyc отключена. Hypothesis недоступен; воспроизводимые seeded/metamorphic/stateful проверки используют стандартную библиотеку, а не имитируют установку Hypothesis.
 
-Исторический срез 75a1fa9 прошёл широкую backend/ML-регрессию и первый frozen round, но второй дал 1 failed/1157 passed. После независимых holdout исправляются AG-016…018: ошибка/empty, employment metadata и ложная запись по фото. Новое состояние C4 проверяется отдельно; прежний зелёный результат не переносится на него автоматически. [Итоговый срез](final-report.md) и [изменённые файлы](changed-files.md) содержат доказательства и ограничения; это не сертификат завершения всего MVP или стопроцентной надёжности.
+Аудит начат 15.11 и продолжен 16.11.2026. Исправления AG-001…021 охватывают инструменты, достоверность аналитики, нормы, закреплённые бригады, сохранность карточек и составные команды. Повторные frozen C3/C4 прогоны выявили дополнительные ошибки после первых зелёных раундов; неуспешные результаты сохранены. Проверяемый срез C5 — fe39fb7. [Итоговый срез](final-report.md) и [изменённые файлы](changed-files.md) содержат доказательства и ограничения; это не сертификат завершения всего MVP или стопроцентной надёжности.
 
 Воспроизводимый запуск в подготовленном Python-окружении:
 
@@ -29,3 +29,5 @@ python scripts/agent_redteam.py --pg-bin 'C:\Program Files\PostgreSQL\18\bin' --
 - [Метрики](agent-quality-metrics.md)
 - [Ход работы](autonomous-progress.md)
 - [Итоговый срез и ограничения](final-report.md)
+
+Повтор только модели и production workflows: `python scripts/agent_redteam.py --pg-bin 'C:\Program Files\PostgreSQL\18\bin' --live --live-only --rounds 2`. Это 29 эпизодов чата и 12 typed production workflows на раунд. Широкая регрессия обязательна отдельно: `python scripts/verify.py --pg-bin 'C:\Program Files\PostgreSQL\18\bin' --agent-only --pytest-target tests/backend tests/ml`. Opt-in live tests в ней явно skipped. Штатный live runner задаёт output/provider environment сам; ручной запуск production tests без них может упасть на пути артефактов.
