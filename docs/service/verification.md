@@ -1,5 +1,7 @@
 # Проверки и доказательства
 
+15.11.2026, изолированный red-team C3: старый forecast/schedule `--runxfail` выявил 5 failed/39 passed. После исправления четырёх независимых дефектов: pure 157 passed/1 xfailed; native API `agent-audit-forecast-versioned` 210 passed/1 xfailed/12,03 с, полный pipeline; `agent-audit-policy-provenance` 64 passed/10,87 с, полный pipeline. Бизнес-ожидания прежних тестов сохранены; оставшийся xfail — конфликт demo/unknown, описанный в [реестре](../agent-audit/known-defects.md). Исходный worktree/БД не изменяются.
+
 ## Red-team агента в отдельном worktree, 15.11.2026
 
 [Область и протоколы](../agent-audit/README.md). Настоящий нативный PostgreSQL и OR-Tools, pinned Ollama; никакого повышения прав или cloud fallback. Восьми классам дефектов соответствуют воспроизведения и смежные тесты. Корпус 619 проверяет транспортные/ролевые границы; 21 live-эпизод последнего частного прогона прошёл, включая synthetic Excel/PNG (19 с inference). Общий frozen-source прогон и широкая backend/ML регрессия фиксируются после окончания; старые красные результаты сохраняются. Прежний SQL upgrade runner имеет ENV-001; --agent-only его не засчитывает. Frontend не менялся и заново не проверялся в этой задаче.

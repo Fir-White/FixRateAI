@@ -52,7 +52,8 @@ def live_case(assistant_case,monkeypatch):
                     except (ValueError,TypeError):reply={}
                     for call in reply.get('calls',[]) if isinstance(reply,dict) else []:
                         argument=call.get('arguments_json')
-                        try:json.loads(argument)
+                        try:
+                            if not isinstance(argument,dict):json.loads(argument)
                         except (ValueError,TypeError) as exc:
                             from hashlib import sha256
                             calls[-1].setdefault('malformed_arguments',[]).append(dict(type=type(argument).__name__,characters=len(str(argument)),sha256=sha256(str(argument).encode()).hexdigest(),error_type=type(exc).__name__))

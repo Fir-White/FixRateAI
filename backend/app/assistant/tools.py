@@ -214,8 +214,15 @@ def validate_arguments(app,tool,arguments):
             result['body']=body
         else:
             body,errors=route.body_field.validate(raw,{},loc=('body',))
-            if errors:raise HTTPException(422,'Аргументы не соответствуют схеме команды. Уточните обязательные поля.')
-            result['body']=jsonable_encoder(body)
+            if errors:
+                # Pydantic's full errors include raw input/ctx. Return only
+                # bounded field locations and error types, never body values.
+                issues=[dict(field='.'.join(str(p)[:80] for p in e.get('loc',())[:6]),type=e.get('type','invalid')) for e in errors[:16]]
+                raise HTTPException(422,dict(code='INVALID_COMMAND',issues=issues))
+            # Preserve PATCH field presence through validation -> proposal ->
+            # transport. Materializing defaults would turn omitted fields into
+            # explicit null resets and fail the second strict model validation.
+            result['body']=jsonable_encoder(body,exclude_unset=True)
     elif 'body' in arguments and arguments['body'] is not None:raise HTTPException(422,'Этот инструмент не принимает body')
     if len(json.dumps(result,ensure_ascii=False))>40000:raise HTTPException(413,'Слишком большая команда')
     return result

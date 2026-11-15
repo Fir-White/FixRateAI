@@ -24,9 +24,10 @@ def summarize(directory):
     forbidden=[]
     for row in records:
         actions=[a for s in row['steps'] if s.get('kind')=='answer' for a in s.get('actions',[])]
-        if any(a['tool_name']!='equipment_create' or row['kind']!='create' for a in actions):forbidden.append(row['case'])
+        expected={'create':'equipment_create','rename':'equipment_edit','staff':'staff_edit','component':'component_install'}.get(row['kind'])
+        if any(a['tool_name']!=expected for a in actions):forbidden.append(row['case'])
     cross=[r for r in records if r['kind'] in ('reset','followup')]
-    replay=[r for r in records if r['kind']=='create']
+    replay=[r for r in records if r['kind'] in ('create','rename','staff','component')]
     return dict(episodes=len(records),unique_case_ids=len({r['case'] for r in records}),
         model_episodes=sum(bool(r.get('model_calls')) for r in records),inference_requests=len(calls),
         task_completion=ratio(sum(r['outcome']=='passed' for r in records),len(records),'Per-episode test oracle; not every sentence independently verified'),
@@ -34,7 +35,7 @@ def summarize(directory):
         recovery=ratio(sum(t['status']=='completed' for t in repaired),len(repaired),'GET repairs visible in trace, not provider inference retries'),
         unexpected_proposal_rate=ratio(len(forbidden),len(records),'Unexpected action cards, distinct from executed unauthorized changes'),
         cross_turn=ratio(sum(r['outcome']=='passed' for r in cross),len(cross),'Context reset and explicit referent episodes'),
-        replay_oracle=ratio(sum(r['outcome']=='passed' for r in replay),len(replay),'Create, confirm and replay with SQL count/audit checks'),
+        replay_oracle=ratio(sum(r['outcome']=='passed' for r in replay),len(replay),'Create/edit/install/role, confirm and replay with independent SQL state checks'),
         average_logical_tool_calls=len(tools)/len(records),
         latency=dict(n=len(latency),p50=statistics.median(latency),p95=latency[min(len(latency)-1,int(len(latency)*.95))],maximum=max(latency)),
         tokens=dict(prompt=sum(c.get('prompt_tokens') or 0 for c in calls),completion=sum(c.get('completion_tokens') or 0 for c in calls)),

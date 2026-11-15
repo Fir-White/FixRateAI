@@ -66,6 +66,13 @@ def test_generation_persists_both_forecasts_task_and_replays_without_duplicates(
         row=next(row for row in result['items'] if row['operationTitle']=='DEMO — сквозное планирование')
         assert row['state']=='draft' and row['comparison']['algorithmic']['status']=='ok'
         assert row['comparison']['snapshotHash']
+        assert row['comparison']['decision']['policyVersion']=='maintenance-orchestrator-v1.1'
+        with engine.connect() as c:
+            policy=c.scalar(text("""SELECT p.source_snapshot->>'policy' FROM schedule_plans p
+                JOIN schedule_entries e ON e.schedule_plan_id=p.schedule_plan_id AND e.site_id=p.site_id
+                JOIN work_orders w ON w.schedule_entry_id=e.schedule_entry_id AND w.site_id=e.site_id
+                WHERE w.work_order_id=:id"""),{'id':row['taskId']})
+            assert policy=='maintenance-orchestrator-v1.1'
         assert row['assignment']['status']=='ok' and len(row['assignment']['selectedWorkers'])==2
         task_response=client.get(PREFIX+f"/ui/tasks/{row['taskId']}")
         assert task_response.status_code==200,task_response.text

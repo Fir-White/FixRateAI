@@ -24,7 +24,7 @@ def forecast_result(snapshot, run_id, method, *, status, day=None, error=None, e
         result_id=uuid4(), run_id=run_id, snapshot_id=snapshot.snapshot_id,
         snapshot_sha256=snapshot.content_sha256, equipment_id=snapshot.equipment.equipment_id,
         binding_id=snapshot.binding_id, as_of=snapshot.as_of, method=method,
-        method_version=METHOD_VERSION if method == "algorithmic" else "bounded-ai-v1", model_ref=model_ref,
+        method_version=METHOD_VERSION if method == "algorithmic" else "bounded-ai-v1.1", model_ref=model_ref,
         status=status, recommended_date=day, mandatory_due_date=snapshot.mandatory_due_date,
         runtime_due_at_hours=snapshot.runtime_due_at_hours,
         overdue=bool(snapshot.mandatory_due_date and snapshot.mandatory_due_date < today),
@@ -92,7 +92,11 @@ def bounded_ai(snapshot, run_id, provider, *, timeout_seconds=2):
                 or value.as_of.astimezone(timezone.utc) != snapshot.as_of.astimezone(timezone.utc)
                 or value.data_origin != snapshot.data_origin or value.mandatory_due_date != snapshot.mandatory_due_date):
             return failed("AI_SNAPSHOT_MISMATCH", "failed")
-        return value.model_copy(update={"run_id": run_id, "result_id": uuid4()})
+        today=snapshot.as_of.astimezone(ZoneInfo(snapshot.site.timezone)).date()
+        return value.model_copy(update={"run_id":run_id,"result_id":uuid4(),
+            "overdue":bool(snapshot.mandatory_due_date and snapshot.mandatory_due_date<today),
+            "runtime_due_at_hours":snapshot.runtime_due_at_hours,
+            "elapsed_ms":int((timer.monotonic()-started)*1000)})
     except (ValueError, TypeError, AttributeError):
         return failed("INVALID_AI_JSON", "failed")
 

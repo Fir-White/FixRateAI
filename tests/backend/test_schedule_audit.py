@@ -264,7 +264,6 @@ def test_empty_month_reports_missing_norm_inputs_instead_of_zero_values():
     assert "DURATION_UNCONFIRMED" in binding.warnings
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="BUG-04: empty month returns 0 instead of None for unconfirmed norm/duration")
 def test_empty_month_does_not_report_zero_when_norm_is_unknown():
     result = run(request(FIVE_PER_YEAR, OPERATIONS["1.4"], month=11))
     binding = result.bindings[0]

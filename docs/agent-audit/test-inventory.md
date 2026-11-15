@@ -12,6 +12,10 @@
 | properties.py | 90 | 60 валидатор + 24 CP-SAT + 6 locks, сохранение объёма/состава/времени |
 | grounding.py | 17 | Пустой router, обязательные чтения, правильные регламенты, точный код за страницей и literal/Unicode/длинные коды |
 | state.py | 6 | Отказ/истечение/чужой владелец/смена роли/удаление/устаревание → новая команда → approval/replay |
+| forecast_provenance.py | 25 | Часовые пояса/overdue, unknown uncertainty, подмена ALG02, серверные ресурс/таймер, unknown empty totals |
+| commit_loss.py | 5 | Настоящий backend commit → потеря ответа HTTP/timeout/connection → uncertain → повтор без второй записи |
+| command_feedback.py | 16 | 5 точных ошибок без raw input + revision control + 5 omission/nullable вариантов + 5 явных запрещённых null |
+| live_mutation_cases.json / live_mutations.py | 3 | Настоящие Ollama proposals: chief equipment rename/component install, admin staff role; SQL before/after и replay |
 | live_red_team_cases.json / live.py | 21 эпизод | Настоящая Ollama 4B → агент → API → PostgreSQL, synthetic XLSX/PNG; guard и typed-counter могут завершиться до inference |
 | production_scenarios.json | 12 | Настоящие версии, solver, allowlist подтверждений; активный план и locks сохранны |
 | прежние assistant/P0/task_analytics/capabilities | Регрессия | Реальные PostgreSQL-проверки отдельно от явно scripted provider/transport faults |

@@ -1,0 +1,5 @@
+[
+  {"id":"LIVE-M01","kind":"rename","role":"chief_engineer","tool":"equipment_edit"},
+  {"id":"LIVE-M02","kind":"staff","role":"admin","tool":"staff_edit"},
+  {"id":"LIVE-M03","kind":"component","role":"chief_engineer","tool":"component_install"}
+]

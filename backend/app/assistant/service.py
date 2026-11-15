@@ -13,7 +13,7 @@ from .tools import available,catalog,describe,validate_arguments,invoke,prefligh
 from .attachments import SCOPE,COOKIE_EFFECTS,HUMAN_SECRET,owned,public as public_file,image_inputs
 from .read_transport import read as read_tool,safe_arguments,result_summary
 
-PROMPT_VERSION='fixrate-agents-v11'
+PROMPT_VERSION='fixrate-agents-v12'
 PROMPTS=Path(__file__).parent/'prompts'
 SLOTS=threading.BoundedSemaphore(2)
 logger=logging.getLogger(__name__)
@@ -544,7 +544,10 @@ async def agent_turn(app,principal,thread_id,turn_id,headers):
                     if call.tool!='describe_tool' and tool.mode=='read':evidence['source_arguments']=args
                     responses.append(evidence)
                 except HTTPException as exc:
-                    trace.append(dict(tool=call.tool,status='denied',code=exc.status_code,at=now().isoformat(),arguments=safe_arguments(call.arguments),attempts=read_attempts))
+                    entry=dict(tool=call.tool,status='denied',code=exc.status_code,at=now().isoformat(),arguments=safe_arguments(call.arguments),attempts=read_attempts,
+                        error_type='argument_validation' if exc.status_code==422 else 'access_denied' if exc.status_code in (401,403) else 'not_found' if exc.status_code==404 else 'backend_unavailable' if exc.status_code>=500 else 'tool_error')
+                    if isinstance(exc.detail,dict) and exc.detail.get('code')=='INVALID_COMMAND':entry['validation']=exc.detail
+                    trace.append(entry)
                     feedback=dict(tool=call.tool,error=str(exc.detail)[:1500],status_code=exc.status_code)
                     if exc.status_code==404 and call.tool in ('task_read','task_assign','assignment_context','assignment_preview'):
                         feedback['hint']='Проверьте, что path.task_id — поле id задания из items ответа tasks_find, а не equipmentId. Не угадывайте идентификатор и не повторяйте тот же вызов.'

@@ -146,3 +146,24 @@ def test_nested_argument_json_feedback_is_specific_bounded_and_does_not_echo_bad
     feedback=calls[-1]['messages'][-1]['content']
     assert 'arguments_json' in feedback and 'valid JSON OBJECT' in feedback
     assert 'PRIVATE_SECRET' not in json.dumps(calls[-1])
+
+
+@pytest.mark.parametrize('arguments',[
+    {},
+    {'query':{'q':'TEST ONLY "quoted" value'}},
+    {'path':{'user_id':'12345678-1234-1234-1234-123456789abc'}},
+    {'path':{'equipment_id':'12345678-1234-1234-1234-123456789abc'},'body':{'expected_revision':2,'name':'TEST ONLY rename'}},
+    {'view':{'path':['items'],'limit':5}},
+])
+def test_local_native_object_arguments_roundtrip_without_nested_quoting(endpoint,arguments):
+    from app.schemas.assistant import AgentStep
+    state,config=endpoint
+    state['content']=json.dumps(dict(answer='',calls=[dict(tool='TEST_ONLY',arguments_json=arguments,explanation='Transport fixture, no domain invocation')]))
+    value=OllamaClient(config).chat([dict(role='user',content='Transport fixture')],AgentStep,3500)
+    assert value.calls[0].arguments==arguments
+    assert len([p for p,_ in state['calls'] if p=='/api/chat'])==1
+    wire=state['calls'][-1][1]['format']['$defs']['AgentCall']['properties']['arguments_json']
+    assert wire['type']=='object' and wire['additionalProperties'] is False
+    # Public/cloud DTO still requires a JSON string; native decoding is an
+    # explicit local adapter, not a relaxation of the canonical contract.
+    assert AgentStep.model_json_schema()['$defs']['AgentCall']['properties']['arguments_json']['type']=='string'

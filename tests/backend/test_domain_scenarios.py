@@ -53,7 +53,7 @@ def test_analyst_calendar_fixture(case):
     assert (case['expected_workers'],Decimal(case['raw_norm_value']))==(workers,Decimal(norm))
     assert case['norm_unit']=='unconfirmed'
     result=generate_month(CalendarGenerationRequest.model_validate_json(json.dumps(request)))
-    assert result.method_version=='calendar-rules-v3'
+    assert result.method_version=='calendar-rules-v3.1'
     assert [str(o.occurrence.occurrence_date) for o in result.bindings[0].occurrences]==case['expected_dates']
     assert all(str(row.operation_version_id)==operation['operation_version_id'] for row in result.calendar.items)
     assert all(row.crew_size==workers and row.raw_norm_value==Decimal(norm) for row in result.calendar.items)

@@ -161,7 +161,7 @@ def generate_tasks(v, year, month, key, token, forecaster, *, forecast_timeout_s
                 if plan is None:
                     revision = max((p.revision for p in v.rows("schedule_plans", period_year=year, period_month=month)), default=0)+1
                     plan = v.repo.add("schedule_plans", site_id=site.site_id, period_year=year, period_month=month, revision=revision,
-                        created_by=actor.user_id, source_snapshot={"planning_run_id":str(run_id), "token":token, "policy":"maintenance-orchestrator-v1"})
+                        created_by=actor.user_id, source_snapshot={"planning_run_id":str(run_id), "token":token, "policy":decision.policy_version})
                 occurrence_id = UUID(row["id"])
                 entry = v.repo.add("schedule_entries", schedule_entry_id=occurrence_id, source_occurrence_id=occurrence_id,
                     site_id=site.site_id, system_id=binding_row.system_id, schedule_plan_id=plan.schedule_plan_id,

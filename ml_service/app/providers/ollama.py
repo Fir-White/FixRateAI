@@ -9,6 +9,31 @@ from pydantic import ValidationError
 
 logger=logging.getLogger(__name__)
 
+
+def agent_wire_schema(schema):
+    """Native grammar encodes arguments as an object, not JSON inside JSON.
+
+    Public AgentStep and cloud wire compatibility remain unchanged. This local
+    adapter only removes a redundant serialization layer; tool schemas and all
+    backend validations still apply after decoding.
+    """
+    value=schema.model_json_schema()
+    if schema.__name__=='AgentStep' and 'AgentCall' in value.get('$defs',{}):
+        call=value['$defs']['AgentCall']
+        call['properties']['arguments_json']=dict(type='object',description='Tool arguments as a JSON OBJECT, never a string. Only use fields supported by the selected tool.',
+            properties={**{key:dict(type='object',additionalProperties=True) for key in ('path','query','body','view')},'name':dict(type='string')},additionalProperties=False)
+    return value
+
+
+def decode_agent_wire(schema,value):
+    if schema.__name__!='AgentStep':return schema.model_validate_json(value)
+    decoded=json.loads(value)
+    if isinstance(decoded,dict) and isinstance(decoded.get('calls'),list):
+        for call in decoded['calls']:
+            if isinstance(call,dict) and isinstance(call.get('arguments_json'),dict):
+                call['arguments_json']=json.dumps(call['arguments_json'],ensure_ascii=False,separators=(',',':'))
+    return schema.model_validate(decoded)
+
 class OllamaFailure(Exception):
     def __init__(self,code,*,reason='unspecified',attempt=0,validation=None):
         super().__init__(code)
@@ -88,7 +113,7 @@ class OllamaClient:
         payload=dict(model=self.config.model,messages=converted,stream=False,think=False,keep_alive='10m',
                      options=dict(temperature=0 if schema else .2,num_ctx=self.config.num_ctx,num_predict=tokens,repeat_penalty=1.05))
         if schema:
-            payload['format']=schema.model_json_schema()
+            payload['format']=agent_wire_schema(schema)
             converted=[*converted,dict(role='system',content='Return exactly one JSON object matching this schema. Use exact property names, include required fields. '+json.dumps(payload['format'],ensure_ascii=False))]
             payload['messages']=converted
         for attempt in range(2 if schema else 1):
@@ -101,7 +126,7 @@ class OllamaClient:
                 value=raw['message']['content']
                 if not isinstance(value,str) or not value.strip():raise OllamaFailure('OLLAMA_INVALID_RESPONSE',reason='empty_content')
                 if len(value)>200000:raise OllamaFailure('OLLAMA_INVALID_RESPONSE',reason='content_too_large')
-                if schema:result=schema.model_validate_json(value)
+                if schema:result=decode_agent_wire(schema,value)
                 else:
                     result=value.strip()
                     if len(result)>32000:raise OllamaFailure('OLLAMA_INVALID_RESPONSE',reason='content_too_large')
@@ -119,7 +144,7 @@ class OllamaClient:
                 # Retry inference only; never repeat a tool or action. Do not retain malformed output.
                 feedback='The previous response did not match the required schema. Return a valid JSON object with all required fields and correct types. Validation fields/types: '+json.dumps(issues)
                 if any(e['path'].endswith('arguments_json') for e in issues):
-                    feedback+=' arguments_json must be a STRING containing a valid JSON OBJECT with double-quoted keys, never Python syntax, null or an array. For empty arguments use the string "{}". Example call: '+json.dumps(dict(tool='equipment_find',arguments_json=json.dumps(dict(query=dict(q='pump'))),explanation='Find equipment'))
+                    feedback+=' arguments_json must be a valid JSON OBJECT with double-quoted keys, never Python syntax, a quoted string, null or an array. For empty arguments use {}. Example call: '+json.dumps(dict(tool='equipment_find',arguments_json=dict(query=dict(q='pump')),explanation='Find equipment'))
                 payload['messages']=[*converted,dict(role='system',content=feedback)]
                 if reason=='token_limit':payload['options']['num_predict']=min(tokens*2,7000)
 
