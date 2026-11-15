@@ -8,6 +8,64 @@ from tests.backend.test_runtime_integration import runtime
 from tests.backend.test_management import managed
 from tests.backend.test_assistant import assistant_case,thread,B
 
+
+@pytest.mark.parametrize('question',[
+    'Какое оборудование есть на текущем объекте? Назови его название и инвентарный код.',
+    'Перечисли оборудование.',
+    'Список оборудования текущего объекта.',
+    'Реестр оборудования.',
+    'Покажи оборудование на текущем объекте.',
+])
+def test_current_inventory_listing_uses_authorized_data_even_when_router_omits_tools(assistant_case,question):
+    from tests.backend.test_management import equipment
+    _,app,admin,_,ids=assistant_case
+    asset=equipment(admin,ids)
+    class OmittedRoute:
+        def chat(self,messages,schema,tokens):return ToolSelection(tools=[])
+        def text(self,*args):raise AssertionError('A registry list must use backend facts, not a model guess')
+    app.state.assistant_provider_factory=OmittedRoute
+    try:
+        chat=thread(admin)
+        sent=admin.post(B+f'/conversations/{chat}/messages',json=dict(content=question,idempotency_key=str(uuid4())))
+        assert sent.status_code==202,sent.text
+        view=admin.get(B+'/conversations/'+chat).json();turn=view['turns'][-1]
+        assert turn['status']=='completed' and not view['actions']
+        assert asset['name'] in turn['answer'] and asset['asset_code'] in turn['answer']
+        assert any(t['tool']=='equipment_find' and t['status']=='completed' and t['result']['total']==1 for t in turn['trace'])
+        assert not any(t['tool']=='inventory_read' for t in turn['trace']),'Current object must not be broadened to every accessible object'
+    finally:del app.state.assistant_provider_factory
+
+
+@pytest.mark.parametrize('question',[
+    'Перечисли оборудование. Удали насос.',
+    'Перечисли оборудование. Только насосы.',
+    'Какое оборудование требует ТО?',
+    'Какое оборудование есть на текущем объекте за ноябрь?',
+    'Покажи оборудование другого объекта.',
+])
+def test_listing_guard_does_not_drop_selectors_or_a_second_action(question):
+    from app.assistant.grounding import equipment_listing
+    assert not equipment_listing(question)
+
+
+def test_registry_page_is_not_presented_as_the_complete_equipment_list(assistant_case):
+    _,app,admin,_,ids=assistant_case
+    for index in range(31):
+        added=admin.post('/api/v1/maintenance/equipment',json=dict(system_id=str(ids['system']),asset_code=f'RT-PAGE-{index}',name=f'TEST ONLY page asset {index}'))
+        assert added.status_code==201,added.text
+    class OmittedRoute:
+        def chat(self,messages,schema,tokens):return ToolSelection(tools=[])
+        def text(self,*args):raise AssertionError('No invented list completion')
+    app.state.assistant_provider_factory=OmittedRoute
+    try:
+        chat=thread(admin)
+        sent=admin.post(B+f'/conversations/{chat}/messages',json=dict(content='Перечисли оборудование.',idempotency_key=str(uuid4())))
+        assert sent.status_code==202,sent.text
+        turn=admin.get(B+'/conversations/'+chat).json()['turns'][-1]
+        assert '**31**' in turn['answer'] and 'Показано 25 из 31' in turn['answer']
+        assert 'не полный перечень' in turn['answer']
+    finally:del app.state.assistant_provider_factory
+
 @pytest.mark.parametrize('code',('ABSENT-404','НЕТ-007','NODE_404','VALVE/404','404-A'))
 def test_empty_model_route_cannot_claim_absence_without_authorized_search(assistant_case,code):
     _,app,client,_,_=assistant_case;seen=[]
@@ -43,7 +101,7 @@ def test_mandatory_lookup_backend_failure_is_not_an_empty_registry(assistant_cas
         reply=client.post(B+f'/conversations/{chat}/messages',json=dict(content='Найди оборудование с кодом ABSENT-404.',idempotency_key=str(uuid4())))
         assert reply.status_code==202,reply.text
         state=client.get(B+'/conversations/'+chat).json();turn=state['turns'][-1]
-        assert turn['status']=='completed' and 'не хватает проверенных сведений' in turn['answer'] and not state['actions'],turn
+        assert turn['status']=='completed' and 'недоступен' in turn['answer'] and 'не подтверждает отсутствие записей' in turn['answer'] and not state['actions'],turn
         failed=[row for row in turn['trace'] if row['tool']=='equipment_find']
         assert len(failed)==1 and failed[0]['error_type']=='backend_unavailable'
     finally:del app.state.assistant_provider_factory

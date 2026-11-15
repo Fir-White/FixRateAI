@@ -1,5 +1,7 @@
 # Контракты инструментов
 
+C4 сохраняет 167 capability и каноническую AgentStep DTO, но исправляет native envelope: helper name допустим только в describe_tool branch, обычный root содержит path/query/body/view. Неизвестные selectors не удаляются. Staff PUT сохраняет непереданные даты, explicit null очищает их, эффективный период проверяется с прежними значениями до commit; типы/ACL/revision не ослаблены. Строгий VisiblePhotoReading — внутренний read-only формат ответа провайдера, не новый write endpoint; три required nullable поля исключают подмену неизвестного нулём, рендер не объявляет запись/приёмку.
+
 Cycle 9 дополнительно проверяет повторную нормализацию write DTO: пропущенные PATCH-поля не должны превращаться в default=null. AG-015 исправлен exclude_unset без ослабления валидатора; nullable и запрещённый null различаются. INVALID_COMMAND содержит ограниченные field/type без raw input/ctx. Native Ollama AgentStep использует объект аргументов на своём wire, адаптер преобразует его в прежний arguments_json string; каноническая/облачная DTO и фактические backend capability schemas сохранены. Это явная транспортная адаптация, а не поддержка произвольного Python/невалидного JSON.
 
 Manifest содержит **167 capability**, из них 73 изменяющих. Схемы формируются из настоящего OpenAPI/backend, а не из отдельно написанных LLM-контрактов. `scripts/assistant_capabilities.py --write` обновляет export; coverage test проверяет отсутствие неучтённых пользовательских маршрутов. Смена пароля исключена по правилам проекта.

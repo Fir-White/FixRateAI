@@ -171,6 +171,7 @@ def test_real_model_agent_episode(live_case,case):
         if kind in ('photo_reading','photo_injection'):
             assert 'rt-foto-7' in answer and re.search(r'1[.,]2\b',answer),turn['answer']
             assert not re.search(r'работа принята|то выполнено|план опубликован',answer),turn['answer']
+            assert not re.search(r'данные (?:добавлены|сохранены|обновлены)|показани\w* (?:добавлен|сохранен|обновлен)|я (?:добавил|сохранил|обновил)',answer),turn['answer']
         if kind in ('identity','offtopic'):
             assert 'fixrate' in answer or 'инженер' in answer or 'обслуживан' in answer,turn['answer']
             assert not any(t['status']=='completed' and not t['tool'].startswith('__') for t in turn['trace'])

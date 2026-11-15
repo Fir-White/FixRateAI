@@ -42,7 +42,7 @@ def main():
     tests=[str(p.relative_to(ROOT)) for p in sorted((ROOT/'tests/backend').glob('test_assistant*.py'))]
     tests += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'tests/backend').glob('test_agent_redteam*.py'))]
     tests += ['tests/backend/'+name for name in ('test_optimization.py','test_optimization_api.py','test_draft_plans.py','test_publication.py','test_portfolio_publication.py','test_requirements.py','test_catalog_decisions.py')]
-    tests += ['tests/ml/test_ollama_chat.py']
+    tests += ['tests/ml/test_ollama_chat.py','tests/ml/test_ollama_agent_grammar.py']
     results=[]
     for number in range(1,args.rounds+1):
         before=source_manifest()

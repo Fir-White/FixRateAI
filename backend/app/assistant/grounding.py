@@ -1,6 +1,45 @@
 """Mandatory evidence for an explicit equipment-code lookup, independent of LLM routing."""
 import re
 
+
+def equipment_listing(question):
+    pieces=[part.strip().casefold() for part in re.split(r'[?!\.\n]',question.strip()) if part.strip()]
+    if not pieces:return False
+    first=pieces[0];rest=' '.join(pieces[1:])
+    if rest and not re.fullmatch(r'(?:назови|покажи|укажи) (?:его|их) (?:название|названия) и (?:инвентарный код|инвентарные коды)',rest):return False
+    return bool(re.fullmatch(r'(?:(?:какое|какие) оборудование (?:есть|зарегистрировано|установлено|доступно) (?:на|в) (?:текущем|этом) объекте|(?:покажи|перечисли)(?: всё| все)? оборудование(?: на (?:текущем|этом) объекте)?|(?:список|реестр) оборудования(?: текущего объекта)?)',first))
+
+
+def equipment_listing_report(value):
+    from fastapi import HTTPException
+    from .inventory_report import label
+    if not isinstance(value,dict) or type(value.get('total')) is not int or value['total']<0 or not isinstance(value.get('items'),list):
+        raise HTTPException(502,'Неверная форма списка оборудования')
+    rows=value['items'];total=value['total']
+    if len(rows)>total or (total and not rows) or any(not isinstance(row,dict) or not row.get('equipment_id') or not row.get('name') or not row.get('asset_code') for row in rows):
+        raise HTTPException(502,'Противоречивый список оборудования')
+    lines=['### Оборудование текущего объекта',f'Доступных записей в проверенном реестре: **{total}**.']
+    if not total:lines.append('Проверенный реестр оборудования текущего объекта пуст. Это не говорит о других объектах или Excel-файлах.')
+    else:
+        lines.extend(['| Название | Инвентарный код |','|---|---|'])
+        lines.extend(f"| {label(row['name'])} | {label(row['asset_code'])} |" for row in rows)
+        if len(rows)<total:lines.append(f'Показано {len(rows)} из {total} записей. Это страница, а не полный перечень; остальные записи доступны в реестре.')
+    return '\n\n'.join(lines[:2])+('\n\n'+'\n'.join(lines[2:]) if len(lines)>2 else '')
+
+
+def failed_read_report(observations,tools):
+    reads=[row for row in observations if row.get('tool') in tools and tools[row['tool']].mode=='read']
+    if not reads or any('result' in row for row in reads):return None
+    errors=[row for row in reads if 'error' in row]
+    if len(errors)!=len(reads):return None
+    codes={row.get('status_code') for row in errors}
+    lines=['Не удалось получить запрошенные данные. Проверка не завершена; это не подтверждает отсутствие записей.']
+    if codes & {401,403}:lines.append('Часть запросов отклонена проверкой доступа. Нужны соответствующие права в текущем объекте.')
+    if 422 in codes:lines.append('Параметры чтения не прошли проверку. По неуспешному запросу нельзя судить о содержимом реестра.')
+    if 404 in codes:lines.append('Запрошенная карточка или ресурс не найдены. Это не означает, что весь реестр пуст.')
+    if any(isinstance(code,int) and code>=500 for code in codes):lines.append('Сервис данных недоступен или вернул ошибку. Данные не заменены пустым списком.')
+    return '\n\n'.join(lines)
+
 def equipment_code(question):
     if not re.search(r'оборудован|насос|прибор|агрегат|устройств',question,re.I):return None
     if not re.search(r'найди|найти|покажи|открой|есть ли|существует ли|имеется ли|когда|какие|сколько',question,re.I):return None

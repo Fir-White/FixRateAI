@@ -531,7 +531,16 @@ def register_workforce_routes(app,views,db):
             if SQL_ROLES.get(row.role)=='admin' and (command.role!='admin' or not command.is_active):
                 others=[m for m in v.rows('site_memberships') if m.user_id!=user_id and m.is_active and SQL_ROLES.get(m.role)=='admin' and v.one('users',user_id=m.user_id).is_active]
                 if not others: raise HTTPException(409,'Нельзя отозвать доступ последнего администратора объекта')
-            for key,value in command.model_dump(exclude={'expected_revision'}).items(): setattr(row,key,value)
+            changes=command.model_dump(exclude={'expected_revision'},exclude_unset=True)
+            try:
+                # Validate the effective period, including preserved fields.
+                # A role-only edit must not erase employment metadata.
+                EmploymentEdit.model_validate({**command.model_dump(exclude={'employed_from','employed_until'}),
+                    'employed_from':changes.get('employed_from',row.employed_from),
+                    'employed_until':changes.get('employed_until',row.employed_until)})
+            except ValidationError:
+                raise HTTPException(422,'Дата окончания трудоустройства не может быть раньше даты начала') from None
+            for key,value in changes.items():setattr(row,key,value)
             row.revision+=1;v.session.flush();_validate_bookings(v,{user_id})
             _audit(v,'site_memberships',user_id,'update',dict(role=row.role,is_active=row.is_active,revision=row.revision))
             return dict(revision=row.revision)

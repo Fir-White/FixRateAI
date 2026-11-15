@@ -162,7 +162,7 @@ def test_local_native_object_arguments_roundtrip_without_nested_quoting(endpoint
     value=OllamaClient(config).chat([dict(role='user',content='Transport fixture')],AgentStep,3500)
     assert value.calls[0].arguments==arguments
     assert len([p for p,_ in state['calls'] if p=='/api/chat'])==1
-    wire=state['calls'][-1][1]['format']['$defs']['AgentCall']['properties']['arguments_json']
+    wire=state['calls'][-1][1]['format']['$defs']['AgentCall']['anyOf'][0]['properties']['arguments_json']
     assert wire['type']=='object' and wire['additionalProperties'] is False
     # Public/cloud DTO still requires a JSON string; native decoding is an
     # explicit local adapter, not a relaxation of the canonical contract.

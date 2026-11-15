@@ -1,5 +1,11 @@
 # Проверки и доказательства
 
+C4 перед новым source checkpoint: свежий native core **139 passed, 117,86 с**, parser/photo/grammar **74 passed, 13,47 с**. Разработческий общий срез: **24/24 live**, но pytest **1 failed/127 passed** из-за старой ожидаемой фразы 503; oracle обновлён на явный backend_unavailable/не отсутствие данных, без изменения бизнес-ожидания. Новый полный frozen прогон будет измерен отдельно. Все непрошенные поля rename/staff SQL-строк сохранны в трёх live mutations.
+
+15.11.2026, продолжение C4: frozen 75a1fa9 round 2 **1 failed/1157 passed, 835,95 с**, source_stable=true; red не заменяется round 1 green. HTTP-fault/grammar repro **10 failed/7 passed**, employment repro **5 failed**, дополнительный live фото **1 failed/79 passed**. Реестр первопричин AG-016…018 и новые строгие oracle сохранены. Результат C4 не засчитывается заранее; следующие полные проверки идут после нового source checkpoint.
+
+15.11.2026, окончательный код audit 75a1fa9: backend+ML **2036 passed/36 skipped/1 xfailed, 780,36 с**; agent/live round 1 **1158 passed, 739,11 с**. Оба native pipeline exit0, source_stable=true с одним manifest SHA-256 71b335da775e5eaa438aa04ca14ebe235f735df8805702e33f8020784be9b8e4. Свежая схема, повтор migrate/seed, pytest, architecture/contracts, orchestration, compileall, pip check прошли. Round 2 пока не засчитывается; [финальный отчёт](../agent-audit/final-report.md) хранит точные артефакты/остаток. Отдельные новые положительные изменения + fault/native parser: 57 passed, весь pipeline. В original kran_dev и production данные ничего не переносилось.
+
 15.11.2026, изолированный red-team C3: старый forecast/schedule `--runxfail` выявил 5 failed/39 passed. После исправления четырёх независимых дефектов: pure 157 passed/1 xfailed; native API `agent-audit-forecast-versioned` 210 passed/1 xfailed/12,03 с, полный pipeline; `agent-audit-policy-provenance` 64 passed/10,87 с, полный pipeline. Бизнес-ожидания прежних тестов сохранены; оставшийся xfail — конфликт demo/unknown, описанный в [реестре](../agent-audit/known-defects.md). Исходный worktree/БД не изменяются.
 
 ## Red-team агента в отдельном worktree, 15.11.2026

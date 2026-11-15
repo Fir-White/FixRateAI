@@ -4,7 +4,8 @@ from fastapi import HTTPException
 from .read_transport import read
 
 def requested(question):
-    return bool(not re.search(r'excel|xlsx|таблиц|файл|фото',question,re.I) and re.search(r'анализ|обзор|покажи',question,re.I) and re.search(r'оборудован',question,re.I) and re.search(r'объект|доступн|все|всё',question,re.I))
+    from .grounding import equipment_listing
+    return bool(not equipment_listing(question) and not re.search(r'excel|xlsx|таблиц|файл|фото',question,re.I) and re.search(r'анализ|обзор|покажи',question,re.I) and re.search(r'оборудован',question,re.I) and re.search(r'объект|доступн|все|всё',question,re.I))
 
 def label(value):return str(value).replace('\n',' ').replace('|','/').replace('`','')[:200]
 

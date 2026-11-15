@@ -20,8 +20,15 @@ def agent_wire_schema(schema):
     value=schema.model_json_schema()
     if schema.__name__=='AgentStep' and 'AgentCall' in value.get('$defs',{}):
         call=value['$defs']['AgentCall']
-        call['properties']['arguments_json']=dict(type='object',description='Tool arguments as a JSON OBJECT, never a string. Only use fields supported by the selected tool.',
-            properties={**{key:dict(type='object',additionalProperties=True) for key in ('path','query','body','view')},'name':dict(type='string')},additionalProperties=False)
+        arguments=dict(type='object',description='Tool arguments as a JSON OBJECT, never a string. Only use fields supported by the selected tool.',
+            properties={key:dict(type='object',additionalProperties=True) for key in ('path','query','body','view')},additionalProperties=False)
+        regular={**call,'properties':{**call['properties'],'arguments_json':arguments}}
+        description={**call,'properties':{**call['properties'],
+            'tool':{**call['properties']['tool'],'const':'describe_tool'},
+            'arguments_json':dict(type='object',properties={'name':dict(type='string',minLength=1,maxLength=100)},required=['name'],additionalProperties=False)}}
+        # Helper metadata must never become a root argument of ordinary tools.
+        # In particular, name="" is not a harmless selector we may drop.
+        value['$defs']['AgentCall']=dict(anyOf=[regular,description])
     return value
 
 

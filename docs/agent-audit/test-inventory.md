@@ -10,9 +10,13 @@
 | scope.py | 20 | Четыре реальных заказа, независимые ожидаемые когорты/даты, терминальные и неподдержанные фильтры |
 | repairs.py | 10 | Подтверждённое оборудование после ограниченной коррекции; плохие селекторы не исчезают |
 | properties.py | 90 | 60 валидатор + 24 CP-SAT + 6 locks, сохранение объёма/состава/времени |
-| grounding.py | 17 | Пустой router, обязательные чтения, правильные регламенты, точный код за страницей и literal/Unicode/длинные коды |
+| grounding.py | 28 | Пустой router, current-object listing/селекторы/31 против 25, правильные регламенты, точный код за страницей и literal/Unicode/длинные коды |
 | state.py | 6 | Отказ/истечение/чужой владелец/смена роли/удаление/устаревание → новая команда → approval/replay |
 | forecast_provenance.py | 25 | Часовые пояса/overdue, unknown uncertainty, подмена ALG02, серверные ресурс/таймер, unknown empty totals |
+| failed_reads.py | 7 | Пять HTTP-fault состояний при непустой PostgreSQL + настоящие empty/nonempty controls; лживый model prose не считается результатом чтения |
+| staff_preservation.py | 6 | Omission/null/merged dates, rollback, настоящий proposal/approval/replay |
+| photo_reading.py | 31 | Строгие типы наблюдения, unknown != 0, readonly renderer и границы read/write/analysis intents; не live OCR |
+| test_ollama_agent_grammar.py | 10 | Изоляция root name/helper const по структурному set oracle, не полный JSON Schema engine |
 | commit_loss.py | 5 | Настоящий backend commit → потеря ответа HTTP/timeout/connection → uncertain → повтор без второй записи |
 | command_feedback.py | 16 | 5 точных ошибок без raw input + revision control + 5 omission/nullable вариантов + 5 явных запрещённых null |
 | live_mutation_cases.json / live_mutations.py | 3 | Настоящие Ollama proposals: chief equipment rename/component install, admin staff role; SQL before/after и replay |
