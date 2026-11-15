@@ -408,7 +408,8 @@ def workforce_view(v):
     for member in v.rows('site_memberships'):
         user=v.one('users',user_id=member.user_id)
         staff.append(dict(user_id=user.user_id,full_name=user.full_name,email=user.email,
-            role=SQL_ROLES.get(member.role,member.role),is_active=member.is_active and user.is_active,revision=member.revision,
+            role=SQL_ROLES.get(member.role,member.role),is_active=member.is_active and user.is_active,
+            membership_is_active=member.is_active,account_is_active=user.is_active,revision=member.revision,
             employed_from=member.employed_from,employed_until=member.employed_until,
             qualifications=[dict(skill_id=r.skill_id,verified_at=r.verified_at,valid_until=r.valid_until,revision=r.revision) for r in v.rows('user_skills',user_id=user.user_id)],
             shifts=[dict(shift_rule_id=r.shift_rule_id,label=r.label,pattern=r.calendar_pattern,valid_from=r.valid_from,

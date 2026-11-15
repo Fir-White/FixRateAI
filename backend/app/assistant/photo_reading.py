@@ -12,7 +12,8 @@ class VisiblePhotoReading(BaseModel):
 
 
 def requested(question):
-    if re.search(r'\b(?:сохрани|запиши|добавь|обнови|измени|прими|подтверди|удали|назначь|переименуй|опубликуй|отмени|замени|установи|очисти|сними|save|record|add|update|change|accept|confirm|publish|delete|assign)\b',question,re.I):return False
+    from .intents import mutation_requested
+    if mutation_requested(question):return False
     if re.search(r'\b(?:проанализируй|рассчитай|сравни|оцени|спланируй|предскажи|почему|зачем|кто|когда|сколько)\b',question,re.I):return False
     return bool(re.search(r'перепиши|прочитай|считай|распознай',question,re.I)
         and re.search(r'код|маркиров',question,re.I) and re.search(r'показани|давлен|значени',question,re.I)

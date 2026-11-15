@@ -18,9 +18,11 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--pg-bin',type=Path,required=True)
     parser.add_argument('--live',action='store_true',help='Also call the already installed pinned native Ollama model')
+    parser.add_argument('--live-only',action='store_true',help='Repeat only real-model episodes and typed production workflows; run the full regression separately')
     parser.add_argument('--rounds',type=int,default=1,choices=range(1,11))
     parser.add_argument('--output',type=Path)
     args=parser.parse_args()
+    if args.live_only and not args.live:parser.error('--live-only requires --live')
     output=(args.output or ROOT/'reports'/('agent-redteam-'+datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ'))).resolve()
     if not output.is_relative_to(ROOT/'reports'):parser.error('Audit artifacts must stay below this worktree/reports')
     output.mkdir(parents=True,exist_ok=False)
@@ -43,6 +45,7 @@ def main():
     tests += [str(p.relative_to(ROOT)) for p in sorted((ROOT/'tests/backend').glob('test_agent_redteam*.py'))]
     tests += ['tests/backend/'+name for name in ('test_optimization.py','test_optimization_api.py','test_draft_plans.py','test_publication.py','test_portfolio_publication.py','test_requirements.py','test_catalog_decisions.py')]
     tests += ['tests/ml/test_ollama_chat.py','tests/ml/test_ollama_agent_grammar.py']
+    if args.live_only:tests=['tests/backend/test_agent_redteam_live.py','tests/backend/test_agent_redteam_live_mutations.py','tests/backend/test_assistant_production_scenarios.py']
     results=[]
     for number in range(1,args.rounds+1):
         before=source_manifest()
@@ -53,7 +56,7 @@ def main():
         with (output/f'round-{number}.log').open('w',encoding='utf-8') as log:
             done=subprocess.run(command,cwd=ROOT,env=env,stdout=log,stderr=subprocess.STDOUT)
         after=source_manifest();stable=after['sha256']==before['sha256']
-        results.append(dict(round=number,exit_code=done.returncode,live_enabled=args.live,source_stable=stable,source_sha256=before['sha256'],source_head=before['head']))
+        results.append(dict(round=number,exit_code=done.returncode,live_enabled=args.live,scope='live-only' if args.live_only else 'agent-regression',source_stable=stable,source_sha256=before['sha256'],source_head=before['head']))
         (output/'summary.json').write_text(json.dumps(dict(rounds=results,complete=len(results)==args.rounds),indent=2),encoding='utf-8')
         # Keep failed evidence; a failed round is never silently retried to green.
         if done.returncode:return done.returncode

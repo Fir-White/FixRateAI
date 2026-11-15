@@ -10,6 +10,7 @@ def permits_envelope(wire,tool,arguments):
     for branch in call.get('anyOf',[call]):
         props=branch['properties']
         if props['tool'].get('const',tool)!=tool:continue
+        if 'enum' in props['tool'] and tool not in props['tool']['enum']:continue
         envelope=props['arguments_json']
         if envelope['type']=='object' and set(arguments)<=set(envelope['properties']) and set(envelope.get('required',()))<=set(arguments):return True
     return False
@@ -33,3 +34,18 @@ def test_describe_tool_retains_its_own_name_envelope(name):
     wire=agent_wire_schema(AgentStep)
     assert permits_envelope(wire,'describe_tool',{'name':name})
     assert decode_agent_wire(AgentStep,json.dumps(value)).calls[0].arguments=={'name':name}
+
+
+@pytest.mark.parametrize('name',['equipment_edit','staff_edit','rule_edit','task_assign','component_install'])
+def test_actual_write_modes_do_not_advertise_read_only_view(name):
+    modes={name:'write','equipment_find':'read'}
+    wire=agent_wire_schema(AgentStep,modes)
+    assert permits_envelope(wire,name,{'path':{},'body':{}})
+    assert not permits_envelope(wire,name,{'path':{},'body':{},'view':{}})
+    assert permits_envelope(wire,'equipment_find',{'view':{}})
+
+
+@pytest.mark.parametrize('name',['equipment_edit','staff_edit','rule_edit','task_assign','component_install'])
+def test_unavailable_tools_are_not_in_the_native_grammar(name):
+    wire=agent_wire_schema(AgentStep,{'equipment_find':'read'})
+    assert not permits_envelope(wire,name,{'body':{}})

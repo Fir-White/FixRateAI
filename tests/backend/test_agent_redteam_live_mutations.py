@@ -27,6 +27,7 @@ def test_local_model_confirmed_mutation(live_case,case):
         question=f'Измени роль только сотрудника user_id={identity} на engineer. Он остаётся активен. Я администратор текущего объекта. Подготовь предложение для подтверждения, не меняй других сотрудников.'
     else:
         question=f'Установи деталь на equipment_id={identity}, код оборудования RT-PUMP: position_code=bearing-rt, name=Подшипник AUDIT, installed_on={date.today().isoformat()}, usage_unit=hour, initial_usage=90, resource_limit=100, resource_basis=TEST ONLY паспорт детали раздел 4. Это явные тестовые исходные значения, не выводи их из других данных. Подготовь предложение для подтверждения.'
+    if case.get('read_first'):question=case['read_first']+' Затем '+question[0].lower()+question[1:]
     def state():
         with c['engine'].connect() as db:
             if kind=='rename':return db.execute(text('SELECT name,revision FROM equipment WHERE equipment_id=:id'),dict(id=identity)).one()._asdict()
@@ -50,6 +51,9 @@ def test_local_model_confirmed_mutation(live_case,case):
         view=client.get(B+'/conversations/'+chat).json();turn=view['turns'][-1]
         outcome['steps'].append(dict(kind='answer',question=question,status=turn['status'],answer=turn['answer'],trace=turn['trace'],actions=view['actions']))
         assert turn['status']=='completed',turn
+        if case.get('required_read'):
+            assert any(t['tool'] in case['required_read'] and t['status']=='completed' for t in turn['trace']),turn
+            assert 'Следующий этап' in turn['answer'],turn['answer']
         assert c['calls'],'Requires actual local-model inference'
         assert len(view['actions'])==1,view
         action=view['actions'][0]

@@ -7,6 +7,46 @@ from app.schemas.assistant import ToolSelection,AgentStep
 from tests.backend.test_runtime_integration import runtime
 from tests.backend.test_management import managed
 from tests.backend.test_assistant import assistant_case,thread,B
+from sqlalchemy import text
+
+
+@pytest.mark.parametrize('other_name,other_role,site_active,member_active',[
+    ('AAA OTHER BUILDING','admin',True,True),
+    ('ZZZ OTHER BUILDING','director',True,True),
+    ('AAA PRIVATE WORKER BUILDING','executor',True,True),
+    ('AAA INACTIVE BUILDING','admin',False,True),
+    ('AAA INACTIVE MEMBERSHIP','admin',True,False),
+])
+def test_current_inventory_scope_is_not_broadened_by_other_memberships(assistant_case,other_name,other_role,site_active,member_active):
+    from tests.backend.test_management import equipment
+    engine,app,admin,_,ids=assistant_case;asset=equipment(admin,ids)
+    other,system,other_equipment=uuid4(),uuid4(),uuid4()
+    with engine.begin() as db:
+        db.execute(text('INSERT INTO sites(site_id,name,is_active) VALUES (:id,:name,:active)'),dict(id=other,name=other_name,active=site_active))
+        db.execute(text('INSERT INTO site_memberships(site_id,user_id,role,is_active) VALUES (:site,:user,:role,:active)'),dict(site=other,user=ids['user'],role=other_role,active=member_active))
+        db.execute(text("INSERT INTO engineering_systems(system_id,site_id,code,name) VALUES (:id,:site,'OTHER','Other system')"),dict(id=system,site=other))
+        db.execute(text("INSERT INTO equipment(equipment_id,site_id,system_id,asset_code,name,properties) VALUES (:id,:site,:system,'OTHER-ASSET','OTHER DATA MUST NOT APPEAR','{\"data_origin\":\"customer\"}')"),dict(id=other_equipment,site=other,system=system))
+    class NoInference:
+        def chat(self,*args):raise AssertionError('The current-object report uses authorized backend data')
+    app.state.assistant_provider_factory=NoInference
+    try:
+        response=admin.get(B+'/workspace/inventory',params=dict(current_only=True))
+        assert response.status_code==200,response.text
+        data=response.json();assert data['site_total']==1 and data['site']['id']==str(ids['site']) and data['total']==1
+        assert data['items'][0]['id']==asset['equipment_id']
+        global_view=admin.get(B+'/workspace/inventory').json()
+        assert global_view['site_total']==(2 if site_active and member_active else 1)
+        chat=thread(admin)
+        sent=admin.post(B+f'/conversations/{chat}/messages',json=dict(content='Дай обзор оборудования текущего объекта.',idempotency_key=str(uuid4())))
+        assert sent.status_code==202,sent.text
+        turn=admin.get(B+'/conversations/'+chat).json()['turns'][-1]
+        assert turn['status']=='completed' and asset['name'] in turn['answer'],turn
+        assert other_name not in turn['answer'] and 'OTHER DATA MUST NOT APPEAR' not in turn['answer']
+    finally:
+        del app.state.assistant_provider_factory
+        with engine.begin() as db:
+            for table in ('equipment','engineering_systems','site_memberships'):db.execute(text('DELETE FROM '+table+' WHERE site_id=:site'),dict(site=other))
+            db.execute(text('DELETE FROM sites WHERE site_id=:site'),dict(site=other))
 
 
 @pytest.mark.parametrize('question',[

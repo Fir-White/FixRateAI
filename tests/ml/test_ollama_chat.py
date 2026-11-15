@@ -167,3 +167,17 @@ def test_local_native_object_arguments_roundtrip_without_nested_quoting(endpoint
     # Public/cloud DTO still requires a JSON string; native decoding is an
     # explicit local adapter, not a relaxation of the canonical contract.
     assert AgentStep.model_json_schema()['$defs']['AgentCall']['properties']['arguments_json']['type']=='string'
+
+
+@pytest.mark.parametrize('name',['Насос "A"','Насос \\ север','RT/Насос-1','Онлайн_%_Тест','simple'])
+def test_native_history_uses_objects_and_preserves_literal_values(endpoint,name):
+    from app.schemas.assistant import AgentStep
+    state,config=endpoint;client=OllamaClient(config)
+    client.set_tool_modes({'equipment_edit':'write','equipment_read':'read'})
+    args={'path':{'equipment_id':'12345678-1234-1234-1234-123456789abc'},'body':{'expected_revision':2,'name':name}}
+    prior=AgentStep(answer='',calls=[dict(tool='equipment_edit',arguments_json=json.dumps(args),explanation='TEST ONLY previous validated tool step')])
+    state['content']=json.dumps(dict(answer='',calls=[dict(tool='equipment_edit',arguments_json=args,explanation='TEST ONLY roundtrip')]))
+    result=client.chat([dict(role='assistant',content=prior.model_dump_json()),dict(role='user',content='TEST ONLY continue')],AgentStep,3500)
+    assistant=next(m for m in state['calls'][-1][1]['messages'] if m['role']=='assistant')
+    assert json.loads(assistant['content'])['calls'][0]['arguments_json']==args
+    assert result.calls[0].arguments==args

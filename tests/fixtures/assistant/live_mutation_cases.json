@@ -1,5 +1,10 @@
 [
   {"id":"LIVE-M01","kind":"rename","role":"chief_engineer","tool":"equipment_edit"},
   {"id":"LIVE-M02","kind":"staff","role":"admin","tool":"staff_edit"},
-  {"id":"LIVE-M03","kind":"component","role":"chief_engineer","tool":"component_install"}
+  {"id":"LIVE-M03","kind":"component","role":"chief_engineer","tool":"component_install"},
+  {"id":"LIVE-M04","kind":"rename","role":"chief_engineer","tool":"equipment_edit","read_first":"Покажи оборудование текущего объекта.","required_read":["equipment_find"]},
+  {"id":"LIVE-M05","kind":"rename","role":"chief_engineer","tool":"equipment_edit","read_first":"Покажи регламент насоса с кодом RT-PUMP.","required_read":["regulations_read"]},
+  {"id":"LIVE-M06","kind":"rename","role":"chief_engineer","tool":"equipment_edit","read_first":"Дай обзор оборудования текущего объекта.","required_read":["inventory_read"]},
+  {"id":"LIVE-M07","kind":"rename","role":"chief_engineer","tool":"equipment_edit","read_first":"Проанализируй все объекты и оборудование.","required_read":["inventory_read"]},
+  {"id":"LIVE-M08","kind":"rename","role":"chief_engineer","tool":"equipment_edit","read_first":"Покажи все незавершённые задания.","required_read":["tasks_analyze"]}
 ]

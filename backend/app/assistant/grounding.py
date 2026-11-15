@@ -3,11 +3,14 @@ import re
 
 
 def equipment_listing(question):
+    from .intents import mutation_requested
+    if mutation_requested(question):return False
     pieces=[part.strip().casefold() for part in re.split(r'[?!\.\n]',question.strip()) if part.strip()]
     if not pieces:return False
-    first=pieces[0];rest=' '.join(pieces[1:])
-    if rest and not re.fullmatch(r'(?:назови|покажи|укажи) (?:его|их) (?:название|названия) и (?:инвентарный код|инвентарные коды)',rest):return False
-    return bool(re.fullmatch(r'(?:(?:какое|какие) оборудование (?:есть|зарегистрировано|установлено|доступно) (?:на|в) (?:текущем|этом) объекте|(?:покажи|перечисли)(?: всё| все)? оборудование(?: на (?:текущем|этом) объекте)?|(?:список|реестр) оборудования(?: текущего объекта)?)',first))
+    first=pieces[0]
+    for part in pieces[1:]:
+        if not re.fullmatch(r'(?:(?:назови|покажи|укажи) (?:его|их) (?:название|названия) и (?:инвентарный код|инвентарные коды)|ничего не (?:меняй|изменяй)|не выполняй никаких действий)',part):return False
+    return bool(re.fullmatch(r'(?:(?:какое|какие) оборудование (?:есть|зарегистрировано|установлено|доступно) (?:на|в) (?:текущем|этом) объекте|(?:покажи|перечисли)(?: всё| все)? оборудование(?: на (?:текущем|этом) объекте| текущего объекта)?|(?:список|реестр) оборудования(?: текущего объекта)?)',first))
 
 
 def equipment_listing_report(value):
@@ -49,11 +52,12 @@ def equipment_code(question):
     if explicit:return explicit[1].rstrip('.')
     # Bare inventory labels such as ITP-01. A UUID is not guessed or fabricated.
     bare=re.search(r'\b[\w]+[-/][\w./-]+\b',question)
-    return bare[0] if bare and len(bare[0])<=128 and not re.fullmatch(r'\d{4}-\d{2}-\d{2}',bare[0]) else None
+    return bare[0] if bare and len(bare[0])<=128 and not re.fullmatch(r'\d{4}-\d{2}-\d{2}|[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}',bare[0]) else None
 
 def regulation_lookup(question):
+    from .intents import mutation_requested
     return bool(re.search(r'регламент|операци.{0,50}\bТО\b|\bТО\b.{0,50}операци',question,re.I)
-        and not re.search(r'создай|добавь|измени|удали|назначь|опубликуй|прими',question,re.I))
+        and not mutation_requested(question))
 
 def regulation_report(equipment,rows):
     from fastapi import HTTPException

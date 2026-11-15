@@ -9,13 +9,15 @@ from app.integration import task_analytics
 
 
 def requested(question):
+    from .intents import mutation_requested
+    if mutation_requested(question):return False
     q=question.casefold().replace('ё','е')
     if re.search(r'\b(?:завершенн|отмененн|принят)\w*\s+(?:задани|наряд)',q) and not re.search(r'незаверш|включая|сравни',q):return False
     if re.search(r'статус\w*\s+[«"\']?(?:completed|cancelled|заверш|отмен)',q) and not re.search(r'незаверш|сравни|включая',q):return False
     return bool(re.search(r'анализ|разбер|проверь|покажи',question,re.I)
         and re.search(r'задани|наряд',question,re.I)
         and re.search(r'незаверш|просроч|дубликат|нагрузк|трудо[её]мк|все|всех',question,re.I)
-        and not re.search(r'excel|xlsx|прикрепл[её]н|назначь|создай|отмени',question,re.I))
+        and not re.search(r'excel|xlsx|прикрепл[её]н',question,re.I))
 
 
 async def report(app,tool,headers,trace,check,question,principal):

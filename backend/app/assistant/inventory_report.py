@@ -5,16 +5,18 @@ from .read_transport import read
 
 def requested(question):
     from .grounding import equipment_listing
-    return bool(not equipment_listing(question) and not re.search(r'excel|xlsx|таблиц|файл|фото',question,re.I) and re.search(r'анализ|обзор|покажи',question,re.I) and re.search(r'оборудован',question,re.I) and re.search(r'объект|доступн|все|всё',question,re.I))
+    from .intents import mutation_requested
+    return bool(not mutation_requested(question) and not equipment_listing(question) and not re.search(r'excel|xlsx|таблиц|файл|фото',question,re.I) and re.search(r'анализ|обзор|покажи',question,re.I) and re.search(r'оборудован',question,re.I) and re.search(r'объект|доступн|все|всё',question,re.I))
 
 def label(value):return str(value).replace('\n',' ').replace('|','/').replace('`','')[:200]
 
-async def report(app,tool,headers,trace,check):
+async def report(app,tool,headers,trace,check,question=''):
     lines=[];site_offset=0;offset=0;calls=0;site_names=set()
+    current=bool(re.search(r'текущ\w*\s+(?:объект|здани)|(?:этом|выбранн\w*)\s+(?:объект|здани)',question,re.I))
     while calls<200:
         check();calls+=1
         try:
-            _,data=await read(app,tool,dict(query=dict(site_offset=site_offset,offset=offset)),headers,trace)
+            _,data=await read(app,tool,dict(query=dict(site_offset=site_offset,offset=offset,**({'current_only':True} if current else {}))),headers,trace)
         except HTTPException as exc:
             lines.append('Проверка не завершена: '+('нет доступа к данным.' if exc.status_code in (401,403) else 'backend недоступен или вернул ошибку. Это не означает, что объектов нет.'))
             break

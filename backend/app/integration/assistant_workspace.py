@@ -92,13 +92,14 @@ def register_routes(app,views):
             policy=policy.model_dump(mode='json'),portfolio_input=dict(kind='portfolio',requirements=request.model_dump(mode='json'),policy=policy.model_dump(mode='json')))
 
     @app.get(BASE+'/inventory')
-    def inventory(site_offset:int=Query(0,ge=0),offset:int=Query(0,ge=0),v=Depends(views)):
+    def inventory(site_offset:int=Query(0,ge=0),offset:int=Query(0,ge=0),current_only:bool=False,v=Depends(views)):
         from sqlalchemy import text
         from app.security.sessions import Principal
         from .projections import Views
         from .registry import registry_payload
+        scope=' AND s.site_id=:site' if current_only else ''
         sites=v.session.execute(text('''SELECT s.site_id,s.name,s.timezone,m.role FROM sites s JOIN site_memberships m USING(site_id)
-            WHERE m.user_id=:user AND m.is_active AND s.is_active ORDER BY s.name,s.site_id'''),dict(user=v.principal.user_id)).mappings().all()
+            WHERE m.user_id=:user AND m.is_active AND s.is_active'''+scope+' ORDER BY s.name,s.site_id'),dict(user=v.principal.user_id,site=v.principal.site_id)).mappings().all()
         if site_offset>=len(sites):return dict(site_total=len(sites),site=None,items=[],total=0,offset=offset)
         site=sites[site_offset];role=SQL_ROLES.get(site['role'])
         meta=dict(id=str(site['site_id']),name=site['name'],role=role)
@@ -164,7 +165,8 @@ def register_routes(app,views):
     def person(user_id:UUID,v=Depends(views)):
         if not has_role(v.principal.role,('director','admin','dispatcher','engineer')):raise HTTPException(403,'Нет доступа к сотруднику')
         member=v.one('site_memberships',user_id=user_id);user=v.one('users',user_id=user_id)
-        return dict(user_id=user_id,full_name=user.full_name,email=user.email,role=SQL_ROLES.get(member.role,member.role),is_active=member.is_active and user.is_active,revision=member.revision,
+        return dict(user_id=user_id,full_name=user.full_name,email=user.email,role=SQL_ROLES.get(member.role,member.role),is_active=member.is_active and user.is_active,
+            membership_is_active=member.is_active,account_is_active=user.is_active,revision=member.revision,
             employed_from=member.employed_from,employed_until=member.employed_until,
             qualifications=[dict(skill_id=r.skill_id,verified_at=r.verified_at,valid_until=r.valid_until,revision=r.revision) for r in v.rows('user_skills',user_id=user_id)],
             shifts=[dict(shift_rule_id=r.shift_rule_id,label=r.label,pattern=r.calendar_pattern,valid_from=r.valid_from,valid_until=r.valid_until,starts_local=r.starts_local,ends_local=r.ends_local,status=r.status,is_active=r.is_active,revision=r.revision) for r in v.rows('employee_shift_rules',user_id=user_id)],

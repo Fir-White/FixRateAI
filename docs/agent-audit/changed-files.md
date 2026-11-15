@@ -1,6 +1,6 @@
 # Changed files at the verified code checkpoint
 
-Base: `f817875`. Code checkpoint: `75a1fa9ee873c7791c6f3ec1691ed345049e159f`. Files: **68**.
+Base: `f817875`. Code checkpoint: `e323d4cfc87fadca3f214a91cc60de3354b891b0`. Files: **76**.
 
 This manifest describes the cumulative audit diff, not production deployment. Final evidence-only documentation is recorded in the subsequent documentation commit.
 
@@ -9,6 +9,8 @@ This manifest describes the cumulative audit diff, not production deployment. Fi
 - [backend/app/assistant/analysis_scope.py](../../backend/app/assistant/analysis_scope.py)
 - [backend/app/assistant/evidence.py](../../backend/app/assistant/evidence.py)
 - [backend/app/assistant/grounding.py](../../backend/app/assistant/grounding.py)
+- [backend/app/assistant/inventory_report.py](../../backend/app/assistant/inventory_report.py)
+- [backend/app/assistant/photo_reading.py](../../backend/app/assistant/photo_reading.py)
 - [backend/app/assistant/prompts/assistant.md](../../backend/app/assistant/prompts/assistant.md)
 - [backend/app/assistant/read_transport.py](../../backend/app/assistant/read_transport.py)
 - [backend/app/assistant/service.py](../../backend/app/assistant/service.py)
@@ -17,6 +19,7 @@ This manifest describes the cumulative audit diff, not production deployment. Fi
 - [backend/app/assistant/workbook_readiness.py](../../backend/app/assistant/workbook_readiness.py)
 - [backend/app/assistant/workbooks.py](../../backend/app/assistant/workbooks.py)
 - [backend/app/integration/assistant_workspace.py](../../backend/app/integration/assistant_workspace.py)
+- [backend/app/integration/management.py](../../backend/app/integration/management.py)
 - [backend/app/integration/planning.py](../../backend/app/integration/planning.py)
 - [backend/app/integration/task_analytics.py](../../backend/app/integration/task_analytics.py)
 - [backend/app/orchestrator/decision.py](../../backend/app/orchestrator/decision.py)
@@ -46,15 +49,18 @@ This manifest describes the cumulative audit diff, not production deployment. Fi
 - [tests/backend/test_agent_redteam_command_feedback.py](../../tests/backend/test_agent_redteam_command_feedback.py)
 - [tests/backend/test_agent_redteam_commit_loss.py](../../tests/backend/test_agent_redteam_commit_loss.py)
 - [tests/backend/test_agent_redteam_controls.py](../../tests/backend/test_agent_redteam_controls.py)
+- [tests/backend/test_agent_redteam_failed_reads.py](../../tests/backend/test_agent_redteam_failed_reads.py)
 - [tests/backend/test_agent_redteam_forecast_provenance.py](../../tests/backend/test_agent_redteam_forecast_provenance.py)
 - [tests/backend/test_agent_redteam_grounding.py](../../tests/backend/test_agent_redteam_grounding.py)
 - [tests/backend/test_agent_redteam_live.py](../../tests/backend/test_agent_redteam_live.py)
 - [tests/backend/test_agent_redteam_live_mutations.py](../../tests/backend/test_agent_redteam_live_mutations.py)
 - [tests/backend/test_agent_redteam_matrix.py](../../tests/backend/test_agent_redteam_matrix.py)
+- [tests/backend/test_agent_redteam_photo_reading.py](../../tests/backend/test_agent_redteam_photo_reading.py)
 - [tests/backend/test_agent_redteam_properties.py](../../tests/backend/test_agent_redteam_properties.py)
 - [tests/backend/test_agent_redteam_provenance.py](../../tests/backend/test_agent_redteam_provenance.py)
 - [tests/backend/test_agent_redteam_repairs.py](../../tests/backend/test_agent_redteam_repairs.py)
 - [tests/backend/test_agent_redteam_scope.py](../../tests/backend/test_agent_redteam_scope.py)
+- [tests/backend/test_agent_redteam_staff_preservation.py](../../tests/backend/test_agent_redteam_staff_preservation.py)
 - [tests/backend/test_agent_redteam_state.py](../../tests/backend/test_agent_redteam_state.py)
 - [tests/backend/test_agent_redteam_trace_privacy.py](../../tests/backend/test_agent_redteam_trace_privacy.py)
 - [tests/backend/test_agent_redteam_workbook_readiness.py](../../tests/backend/test_agent_redteam_workbook_readiness.py)
@@ -69,6 +75,7 @@ This manifest describes the cumulative audit diff, not production deployment. Fi
 - [tests/fixtures/assistant/live_mutation_cases.json](../../tests/fixtures/assistant/live_mutation_cases.json)
 - [tests/fixtures/assistant/live_red_team_cases.json](../../tests/fixtures/assistant/live_red_team_cases.json)
 - [tests/fixtures/assistant/red_team_cases.json](../../tests/fixtures/assistant/red_team_cases.json)
+- [tests/ml/test_ollama_agent_grammar.py](../../tests/ml/test_ollama_agent_grammar.py)
 - [tests/ml/test_ollama_chat.py](../../tests/ml/test_ollama_chat.py)
 
 ## Documentation
@@ -78,6 +85,7 @@ This manifest describes the cumulative audit diff, not production deployment. Fi
 - [docs/agent-audit/README.md](../../docs/agent-audit/README.md)
 - [docs/agent-audit/agent-quality-metrics.md](../../docs/agent-audit/agent-quality-metrics.md)
 - [docs/agent-audit/autonomous-progress.md](../../docs/agent-audit/autonomous-progress.md)
+- [docs/agent-audit/changed-files.md](../../docs/agent-audit/changed-files.md)
 - [docs/agent-audit/final-report.md](../../docs/agent-audit/final-report.md)
 - [docs/agent-audit/known-defects.md](../../docs/agent-audit/known-defects.md)
 - [docs/agent-audit/planning-evaluation.md](../../docs/agent-audit/planning-evaluation.md)

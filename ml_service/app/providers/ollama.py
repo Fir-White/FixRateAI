@@ -10,7 +10,7 @@ from pydantic import ValidationError
 logger=logging.getLogger(__name__)
 
 
-def agent_wire_schema(schema):
+def agent_wire_schema(schema,tool_modes=None):
     """Native grammar encodes arguments as an object, not JSON inside JSON.
 
     Public AgentStep and cloud wire compatibility remain unchanged. This local
@@ -28,8 +28,39 @@ def agent_wire_schema(schema):
             'arguments_json':dict(type='object',properties={'name':dict(type='string',minLength=1,maxLength=100)},required=['name'],additionalProperties=False)}}
         # Helper metadata must never become a root argument of ordinary tools.
         # In particular, name="" is not a harmless selector we may drop.
-        value['$defs']['AgentCall']=dict(anyOf=[regular,description])
+        variants=[regular]
+        if tool_modes is not None:
+            variants=[]
+            for mode in ('read','write'):
+                names=sorted(name for name,kind in tool_modes.items() if kind==mode)
+                if not names:continue
+                fields={key:field for key,field in arguments['properties'].items() if mode=='read' or key!='view'}
+                variants.append({**regular,'properties':{**regular['properties'],
+                    'tool':{**call['properties']['tool'],'enum':names},
+                    'arguments_json':{**arguments,'properties':fields}}})
+            if tool_modes:description['properties']['arguments_json']['properties']['name']['enum']=sorted(tool_modes)
+        value['$defs']['AgentCall']=dict(anyOf=[*variants,description])
     return value
+
+
+def agent_wire_messages(messages):
+    """Use the same native object representation in prior validated tool steps."""
+    result=[]
+    for message in messages:
+        replacement=message
+        if message.get('role')=='assistant' and isinstance(message.get('content'),str):
+            try:
+                value=json.loads(message['content'])
+                if isinstance(value,dict) and set(value)=={'answer','calls'} and isinstance(value['calls'],list):
+                    changed=False
+                    for call in value['calls']:
+                        if isinstance(call,dict) and set(call)=={'tool','arguments_json','explanation'} and isinstance(call['arguments_json'],str):
+                            arguments=json.loads(call['arguments_json'])
+                            if isinstance(arguments,dict):call['arguments_json']=arguments;changed=True
+                    if changed:replacement={**message,'content':json.dumps(value,ensure_ascii=False)}
+            except (ValueError,TypeError):pass
+        result.append(replacement)
+    return result
 
 
 def decode_agent_wire(schema,value):
@@ -89,6 +120,11 @@ class OllamaClient:
         self.config=config;self.deadline=time.monotonic()+config.timeout;self.response_model=None
         self.opener=build_opener(ProxyHandler({}),NoRedirect())
 
+    def set_tool_modes(self,modes):
+        if not isinstance(modes,dict) or any(not isinstance(name,str) or not 1<=len(name)<=100 or mode not in ('read','write') for name,mode in modes.items()):
+            raise ValueError('Invalid trusted tool metadata')
+        self.tool_modes=dict(modes)
+
     def request(self,path,payload=None):
         remaining=self.deadline-time.monotonic()
         if remaining<=0:raise OllamaFailure('OLLAMA_TIMEOUT')
@@ -117,10 +153,11 @@ class OllamaClient:
     def chat(self,messages,schema,tokens):
         self.check_model()
         converted=[{key:message[key] for key in ('role','content','images') if key in message} for message in messages]
+        if schema and schema.__name__=='AgentStep':converted=agent_wire_messages(converted)
         payload=dict(model=self.config.model,messages=converted,stream=False,think=False,keep_alive='10m',
                      options=dict(temperature=0 if schema else .2,num_ctx=self.config.num_ctx,num_predict=tokens,repeat_penalty=1.05))
         if schema:
-            payload['format']=agent_wire_schema(schema)
+            payload['format']=agent_wire_schema(schema,getattr(self,'tool_modes',None))
             converted=[*converted,dict(role='system',content='Return exactly one JSON object matching this schema. Use exact property names, include required fields. '+json.dumps(payload['format'],ensure_ascii=False))]
             payload['messages']=converted
         for attempt in range(2 if schema else 1):
