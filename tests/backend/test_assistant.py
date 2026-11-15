@@ -24,6 +24,122 @@ def assistant_case(managed):
 B='/api/v1/assistant'
 M=B+'/mcp'
 
+def test_stop_is_scoped_idempotent_and_prevents_late_proposals(assistant_case):
+    engine,app,admin,_,ids=assistant_case;chat=thread(admin);turn=uuid4()
+    with engine.begin() as c:
+        c.execute(text("INSERT INTO assistant_turns(turn_id,conversation_id,request_key,content,status,prompt_version) VALUES (:turn,:chat,:key,'TEST','running','TEST')"),dict(turn=turn,chat=chat,key=uuid4()))
+    url=B+f'/conversations/{chat}/turns/{turn}/stop'
+    assert admin.chief.post(url).status_code==404
+    assert admin.post(url).json()['stopped'] is True
+    assert admin.post(url).json()['stopped'] is False
+    saved=admin.get(B+'/conversations/'+chat).json()['turns'][0]
+    assert saved['status']=='failed' and saved['error_code']=='ASSISTANT_STOPPED'
+    from app.assistant.service import propose,conversation
+    from fastapi import HTTPException
+    import asyncio
+    with app.state.factory() as session:
+        principal=admin.app_principal if hasattr(admin,'app_principal') else None
+        # The proposal guard checks the locked turn before any downstream request.
+        with pytest.raises(HTTPException) as exc:
+            asyncio.run(propose(app,session,principal,{},available(app,'chief_engineer')['equipment_create'],{},'TEST',{},turn))
+        assert exc.value.status_code==409
+
+def test_delete_conversation_removes_owned_files_and_blocks_executing_action(assistant_case):
+    from app.storage import safe_storage_path
+    engine,app,admin,_,ids=assistant_case;chat=thread(admin)
+    response=admin.post(B+f'/conversations/{chat}/attachments',files={'file':('TEST.xlsx',b'PK TEST','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')})
+    assert response.status_code==201
+    file_id=response.json()['attachment_id']
+    with engine.connect() as c:key=c.scalar(text('SELECT storage_key FROM assistant_attachments WHERE attachment_id=:id'),dict(id=file_id))
+    path=safe_storage_path(app.state.settings.photo_storage_root,key);assert path.exists()
+    record=proposal(admin,chat,'equipment_create',dict(body=equipment_body(ids)))
+    with engine.begin() as c:c.execute(text("UPDATE assistant_actions SET status='executing' WHERE action_id=:id"),dict(id=record['action_id']))
+    assert admin.chief.delete(B+'/conversations/'+chat).status_code==404
+    assert admin.delete(B+'/conversations/'+chat).status_code==409 and path.exists()
+    with engine.begin() as c:c.execute(text("UPDATE assistant_actions SET status='rejected' WHERE action_id=:id"),dict(id=record['action_id']))
+    assert admin.delete(B+'/conversations/'+chat).json()['deleted']
+    assert admin.get(B+'/conversations/'+chat).status_code==404 and not path.exists()
+    assert admin.get(B+'/attachments/'+file_id).status_code==404
+
+@pytest.mark.parametrize('question',['ГОТОВ!','Да','Согласна.','Подтверждаю','назначай его'])
+def test_short_followup_keeps_conversation_context(question):
+    from app.assistant.service import needs_history
+    assert needs_history(question)
+
+def test_independent_identity_question_does_not_reuse_history():
+    from app.assistant.service import needs_history
+    assert not needs_history('Ты кто по жизни?')
+
+def test_short_task_choice_uses_prior_assignment_question():
+    from app.assistant.service import needs_history
+    assert needs_history('контроль приборов','Укажите конкретное задание, на которое назначить Морозова.')
+    assert not needs_history('контроль приборов','Назначение проверено.')
+    from app.assistant.service import selection_matches_title
+    assert selection_matches_title('контроль приборов','Контроль параметров показаний приборов')
+    assert not selection_matches_title('контроль приборов','Проверка управляющего модуля')
+    from app.assistant.service import matching_tasks
+    tasks=[dict(summary='Контроль приборов',scheduledStart='2026-11-16T09:00:00+05:00'),dict(summary='Контроль приборов',scheduledStart='2026-12-16T09:00:00+05:00')]
+    assert matching_tasks(tasks,'контроль приборов','Назначь на ближайшее ТО')==tasks[:1]
+    assert len(matching_tasks(tasks,'контроль приборов','Назначь на ТО'))==2
+    assert len(matching_tasks([tasks[0],tasks[0]],'контроль приборов','ближайшее ТО'))==2
+
+def test_failed_assignment_offers_real_task_ids_and_resolves_only_displayed_choice():
+    from app.assistant.service import task_choice_prompt,chosen_task_id
+    identity=str(uuid4());unlisted=str(uuid4())
+    records=[dict(tool='tasks_find',result=dict(items=[dict(id=identity,summary='Контроль приборов',equipmentName='ИТП',mandatoryDueDate='2026-11-16',state='draft')],total=51)),dict(tool='task_read',status_code=422,error='Нужен параметр')]
+    answer=task_choice_prompt(records)
+    assert identity in answer and 'Контроль приборов' in answer and 'Выберите задание' in answer
+    assert chosen_task_id('1',answer)==identity and chosen_task_id(identity,answer)==identity
+    assert chosen_task_id(unlisted,answer) is None and chosen_task_id('2',answer) is None
+    assert chosen_task_id('1',f'1. Заголовок (ID: {unlisted}) — работа (ID: {identity})')==identity
+    assert task_choice_prompt(records[:1]) is None
+
+def test_short_confirmation_includes_prior_question_and_does_not_create_action(assistant_case):
+    engine,app,admin,_,_=assistant_case;t=thread(admin)
+    class Provider:
+        def __init__(self):self.route=None;self.final=None
+        def chat(self,messages,schema,tokens):
+            self.route=messages
+            return schema(tools=[],workbook_ids=[])
+        def text(self,messages,tokens):
+            self.final=json.loads(messages[-1]['content'])
+            return 'Назначение не выполнено. Сначала проверьте график сотрудника.'
+    model=Provider();app.state.assistant_provider_factory=lambda:model
+    try:
+        with engine.begin() as c:
+            c.execute(text("INSERT INTO assistant_turns(turn_id,conversation_id,request_key,content,answer,status,prompt_version,created_at) VALUES (:id,:thread,:key,:content,:answer,'completed','TEST',now()-interval '1 minute')"),dict(id=uuid4(),thread=t,key=uuid4(),content='Назначь сотрудника',answer='Готовы подтвердить график?'))
+        response=admin.post(B+'/conversations/'+t+'/messages',json=dict(idempotency_key=str(uuid4()),content='ГОТОВ!'))
+        assert response.status_code==202
+        result=admin.get(B+'/conversations/'+t).json()
+        assert any(m.get('content')=='Назначь сотрудника' for m in model.route)
+        assert model.final['history'][0]['answer']=='Готовы подтвердить график?'
+        assert result['actions']==[] and 'не выполнено' in result['turns'][-1]['answer']
+    finally:del app.state.assistant_provider_factory
+
+def test_progress_facts_are_bounded_and_do_not_claim_full_page():
+    from app.assistant.service import progress_fact
+    assert progress_fact('tasks_find',{'total':30,'items':[{},{}]})=={'total':30,'shown':2}
+    assert progress_fact('tasks_find',{'total':0,'items':[]})=={'total':0,'shown':0}
+    assert progress_fact('tasks_find',{'total':'30','items':[]}) is None
+    assert progress_fact('assignment_preview',{'command':None})=={'ready':False}
+    assert progress_fact('assignment_preview',{'command':{'private':'not persisted'}})=={'ready':True}
+    assert progress_fact('staff_read',{'private':'not persisted'}) is None
+
+def test_unknown_search_parameters_give_specific_safe_feedback(assistant_case):
+    from fastapi import HTTPException
+    _,app,_,_,_=assistant_case
+    with pytest.raises(HTTPException) as exc:validate_arguments(app,available(app,'chief_engineer')['tasks_find'],{'query':{'invalid_key':True}})
+    assert exc.value.status_code==422 and 'invalid_key' in exc.value.detail and 'period' in exc.value.detail
+
+def test_readable_evidence_translates_only_known_fields_and_keeps_original():
+    from app.assistant.service import readable_evidence
+    source={'tool':'tasks_find','source_arguments':{'query':{'period':'upcoming','active_only':True}},'result':{'items':[{'equipment_id':'7222c0b4-80fb-48db-82e7-f5ddc20d6f10','name':'draft','status':'draft','dataOrigin':'synthetic_demo'}]}}
+    result=readable_evidence(source)
+    assert result['источник']!='tasks_find' and result['условия поиска']['параметры']['период']=='предстоящие'
+    item=result['результат']['items'][0]
+    assert 'equipment_id' not in item and item['name']=='draft' and item['статус']=='черновик'
+    assert item['происхождение данных']=='демонстрационные данные' and source['result']['items'][0]['status']=='draft'
+
 class Scripted:
     response_model='TEST-ONLY-scripted'
     def __init__(self,steps):self.steps=iter(steps);self.messages=[]
@@ -307,10 +423,13 @@ def test_bounded_search_finishes_with_an_honest_answer_and_no_writes(assistant_c
         r=admin.post(B+'/conversations/'+t+'/messages',json=dict(idempotency_key=str(uuid4()),content='Кто самый результативный работник?'))
         assert r.status_code==202
         view=admin.get(B+'/conversations/'+t).json();turn=view['turns'][0]
-        assert turn['status']=='completed' and turn['error_code'] is None
+        if boundary=='final_failure':
+            # Required failure semantics: a failed final inference must remain visible.
+            assert turn['status']=='failed' and turn['error_code']=='AITUNNEL_TIMEOUT'
+        else:assert turn['status']=='completed' and turn['error_code'] is None
         assert 'предел шагов' not in turn['answer'].casefold() and 'intermediate' not in turn['answer']
         assert model.final==1 and model.context['question']=='Кто самый результативный работник?'
-        assert model.context['history'][-1]['user']==model.context['question']
+        assert all(item['user']!=model.context['question'] for item in model.context['history'])
         assert view['actions']==[]
         if boundary=='final_failure':assert 'статистику' in turn['answer'] and 'не означает' in turn['answer']
         else:assert turn['answer'].startswith('TEST ONLY:')

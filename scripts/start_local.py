@@ -36,7 +36,8 @@ def read_runtime_values(path):
 
 
 AI_KEYS = ("AITUNNEL_API_KEY", "AI_TUNNEL_API_KEY", "AITUNNEL_BASE_URL", "AITUNNEL_VISION_MODEL",
-           "AITUNNEL_FORECAST_MODEL", "AITUNNEL_TIMEOUT_SECONDS", "AITUNNEL_REASONING_EFFORT", "FIXRATE_CLOUD_AI",
+           "ASSISTANT_PROVIDER", "OLLAMA_CHAT_BASE_URL", "OLLAMA_CHAT_MODEL", "OLLAMA_CHAT_DIGEST", "OLLAMA_CHAT_NUM_CTX", "OLLAMA_CHAT_TIMEOUT_SECONDS",
+           "AITUNNEL_CHAT_MODEL", "AITUNNEL_FORECAST_MODEL", "AITUNNEL_TIMEOUT_SECONDS", "AITUNNEL_REASONING_EFFORT", "FIXRATE_CLOUD_AI",
            "MAINTENANCE_SCHEDULER")
 
 
@@ -143,6 +144,8 @@ def main():
         base.extend(["-f",str(ROOT/"compose.vision.yaml")])
     if cloud_ai:
         base.extend(["-f",str(ROOT/"compose.cloud.yaml")])
+    if values.get('ASSISTANT_PROVIDER')=='ollama':
+        base.extend(["-f",str(ROOT/"compose.ollama.yaml")])
     logdir=ROOT/"logs/local"/datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     logdir.mkdir(parents=True,exist_ok=False)
     def command(name,*parts):

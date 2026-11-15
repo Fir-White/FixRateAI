@@ -27,8 +27,8 @@ def column(index):
     return result
 
 
-def read_workbook(data, *, provenance=False):
-    if not data or len(data) > MAX_FILE: raise ValueError('Размер Excel должен быть от 1 байта до 5 МБ')
+def read_workbook(data, *, provenance=False, max_file=MAX_FILE):
+    if not data or len(data) > max_file: raise ValueError(f'Размер Excel должен быть от 1 байта до {max_file//1048576} МиБ')
     try:
         with ZipFile(BytesIO(data)) as archive:
             files = archive.infolist()

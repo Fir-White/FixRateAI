@@ -4,16 +4,29 @@ import userEvent from '@testing-library/user-event';
 import {MemoryRouter} from 'react-router-dom';
 import {AssistantPage} from '@/pages/AssistantPage';
 import {assistantApi as api,type ChatCapabilities,type ChatView} from '@/shared/api/assistant';
+import {WorkspaceStateScope} from '@/shared/lib/workspaceState';
 vi.mock('@/shared/session/SessionContext',()=>({useSession:()=>({profile:{userId:'TEST',siteId:'TEST-SITE',role:'chief_engineer'}})}));
 const caps:ChatCapabilities={available:true,model_ref:'TEST',prompt_version:'TEST',agents:[{id:'assistant',title:'Ассистент',description:'Работа'},{id:'planner',title:'Планирование',description:'Планы'},{id:'photo',title:'Фотоанализ',description:'Фото'}],tools:{assistant:[],planner:[],photo:[]}};
 const chat={conversation_id:'chat',title:'Мой диалог',agent:'assistant' as const,created_at:'2026-11-14',updated_at:'2026-11-14'};
 const view:ChatView={conversation:chat,turns:[],total:0,actions:[]};
 beforeEach(()=>{vi.restoreAllMocks();vi.spyOn(api,'capabilities').mockResolvedValue(caps);vi.spyOn(api,'list').mockResolvedValue({items:[chat],total:1});vi.spyOn(api,'read').mockResolvedValue(view);vi.spyOn(api,'send').mockResolvedValue({turn_id:'new',status:'running'});});
-function show(path='/assistant?chat=chat'){render(<MemoryRouter initialEntries={[path]}><AssistantPage/></MemoryRouter>);}
+function show(path='/assistant?chat=chat'){return render(<WorkspaceStateScope.Provider value="TEST:TEST-SITE:chief_engineer"><MemoryRouter initialEntries={[path]}><AssistantPage/></MemoryRouter></WorkspaceStateScope.Provider>);}
 it('retains the composer when opening a new chat and returning through right-hand history',async()=>{
   const user=userEvent.setup();show();const input=await screen.findByLabelText('Сообщение помощнику');await user.type(input,'Сохранённый вопрос');
-  await user.click(screen.getAllByRole('button',{name:/Новый чат/})[0]);await user.click(screen.getByRole('button',{name:/Мой диалог/}));
+  await user.click(screen.getAllByRole('button',{name:/Новый чат/})[0]);await user.click(screen.getByRole('button',{name:/^Мой диалог/}));
   expect(await screen.findByLabelText('Сообщение помощнику')).toHaveValue('Сохранённый вопрос');
+});
+it('stops the active response without sending a new message',async()=>{
+  const user=userEvent.setup();const stop=vi.spyOn(api,'stop').mockResolvedValue({stopped:true});
+  vi.mocked(api.read).mockResolvedValue({...view,turns:[{turn_id:'running',content:'Вопрос',answer:'',status:'running',error_code:null,trace:[],created_at:'2026-11-14T08:15:00Z',model_ref:null}],total:1});show();
+  await user.click(await screen.findByRole('button',{name:'Остановить ответ'}));await waitFor(()=>expect(stop).toHaveBeenCalledWith('chat','running'));expect(api.send).not.toHaveBeenCalled();
+});
+it('requires confirmation before deleting a chat',async()=>{
+  const user=userEvent.setup();const remove=vi.spyOn(api,'remove').mockResolvedValue({deleted:true});show();
+  await user.click(await screen.findByRole('button',{name:'Удалить чат Мой диалог'}));expect(remove).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('button',{name:'Отмена'}));expect(remove).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('button',{name:'Удалить чат Мой диалог'}));await user.click(screen.getByRole('button',{name:'Удалить чат'}));
+  await waitFor(()=>expect(remove).toHaveBeenCalledWith('chat'));
 });
 it('opens a blank composer without creating a conversation and always starts the unified agent',async()=>{
   const user=userEvent.setup();vi.spyOn(api,'create').mockResolvedValue(chat);show('/assistant');
@@ -22,10 +35,46 @@ it('opens a blank composer without creating a conversation and always starts the
   await user.type(input,'Первая задача');await user.keyboard('{Enter}');await waitFor(()=>expect(api.send).toHaveBeenCalled());expect(api.create).toHaveBeenCalledWith('assistant');
 });
 it('shows server activity and local timestamps without exposing an unfinished answer',async()=>{
+  const user=userEvent.setup();
   const turn={turn_id:'t',content:'Проверь назначение',answer:'INTERNAL PARTIAL',status:'running' as const,error_code:null,trace:[{tool:'assignment_preview',status:'running'}],created_at:'2026-11-14T08:15:00Z',model_ref:null};
   vi.mocked(api.read).mockResolvedValue({...view,turns:[turn],total:1});show();
   expect(await screen.findByText(/Проверяю состав бригады, допуски и время/)).toHaveAttribute('role','status');expect(screen.queryByText('INTERNAL PARTIAL')).not.toBeInTheDocument();
+  const details=screen.getByText(/Проверяю состав бригады/).closest('details')!;expect(details).toHaveAttribute('open');
+  await user.click(details.querySelector('summary')!);expect(details).not.toHaveAttribute('open');
+  await user.click(details.querySelector('summary')!);expect(details).toHaveAttribute('open');
   expect(screen.getByText(/13:15/,{selector:'time'})).toHaveAttribute('datetime',turn.created_at);
+});
+it('collapses distinct progress stages and keeps the completed duration after reload',async()=>{
+  const user=userEvent.setup();
+  const turn={turn_id:'t',content:'Проверь',answer:'Готово',status:'completed' as const,error_code:null,trace:[{tool:'tasks_find',status:'completed'},{tool:'tasks_list',status:'completed'},{tool:'tasks_find',status:'completed'},{tool:'staff_find',status:'denied'}],created_at:'2026-11-14T08:15:00Z',finished_at:'2026-11-14T08:16:05Z',model_ref:null};
+  vi.mocked(api.read).mockResolvedValue({...view,turns:[turn],total:1});show();
+  const toggle=await screen.findByLabelText('Время выполнения: 1 мин 5 сек');expect(toggle).toHaveTextContent('Выполнено за 1 минуту 5 секунд');
+  expect(toggle.closest('details')).not.toHaveAttribute('open');
+  await user.click(toggle);expect(screen.getAllByText('Ищу подходящие задания и ближайшее ТО')).toHaveLength(1);
+  await user.click(toggle);expect(toggle.closest('details')).not.toHaveAttribute('open');
+});
+it('updates the elapsed time while the assistant is running',async()=>{
+  const turn={turn_id:'t',content:'Проверь',answer:'',status:'running' as const,error_code:null,trace:[],created_at:new Date().toISOString(),model_ref:null};
+  vi.mocked(api.read).mockResolvedValue({...view,turns:[turn],total:1});show();
+  expect(await screen.findByLabelText('Время выполнения: 0 мин 0 сек')).toBeInTheDocument();
+  await waitFor(()=>expect(screen.getByLabelText('Время выполнения: 0 мин 1 сек')).toBeInTheDocument(),{timeout:2500});
+});
+it('explains actual search results and distinguishes reasons an action failed',async()=>{
+  const user=userEvent.setup();
+  const turn={turn_id:'t',content:'Проверь',answer:'Результат',status:'completed' as const,error_code:null,trace:[{tool:'tasks_find',status:'completed',fact:{total:30,shown:25}},{tool:'task_assign',status:'denied',code:404},{tool:'staff_find',status:'denied',code:403}],created_at:'2026-11-14T08:15:00Z',finished_at:'2026-11-14T08:16:05Z',model_ref:null};
+  vi.mocked(api.read).mockResolvedValue({...view,turns:[turn],total:1});show();
+  await user.click(await screen.findByLabelText('Время выполнения: 1 мин 5 сек'));
+  expect(screen.getByText(/по условиям найдено 30, проверено на странице: 25/)).toBeVisible();
+  expect(screen.getByText(/указанная запись не найдена/)).toBeVisible();
+  expect(screen.getByText(/доступ к этому действию ограничен/)).toBeVisible();
+});
+it('keeps technical error codes available only after opening details',async()=>{
+  const user=userEvent.setup();
+  const turn={turn_id:'failed',content:'Вопрос',answer:'Не удалось ответить.',status:'failed' as const,error_code:'OLLAMA_TIMEOUT',trace:[],created_at:'2026-11-14T08:15:00Z',finished_at:'2026-11-14T08:16:05Z',model_ref:null};
+  vi.mocked(api.read).mockResolvedValue({...view,turns:[turn],total:1});show();
+  const toggle=await screen.findByText('Технические сведения');
+  expect(toggle.closest('details')).not.toHaveAttribute('open');
+  await user.click(toggle);expect(screen.getByText('Код: OLLAMA_TIMEOUT')).toBeVisible();
 });
 it('retries a lost first-send response without creating another conversation or request key',async()=>{
   const user=userEvent.setup();vi.spyOn(api,'create').mockResolvedValue(chat);vi.mocked(api.send).mockRejectedValue(new Error('Соединение потеряно'));show('/assistant');
@@ -53,4 +102,48 @@ it('uses a new turn key when the user repeats an already accepted message',async
   const user=userEvent.setup();show();
   for(let i=0;i<2;i++){const input=await screen.findByLabelText('Сообщение помощнику');await user.type(input,'Повторяемый запрос');await user.click(screen.getByRole('button',{name:'Отправить'}));await waitFor(()=>expect(input).toHaveValue(''));}
   expect(api.send).toHaveBeenCalledTimes(2);expect(vi.mocked(api.send).mock.calls[0][2]).not.toBe(vi.mocked(api.send).mock.calls[1][2]);
+});
+
+const file={attachment_id:'file',original_name:'TEST.xlsx',mime_type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',size_bytes:12,sha256:'TEST',created_at:'2026-11-14'};
+it('collapses the right history, retains the draft and restores the scoped preference',async()=>{
+  const user=userEvent.setup(),first=show();
+  await user.type(await screen.findByLabelText('Сообщение помощнику'),'Не потеряй текст');
+  await user.click(screen.getByRole('button',{name:'Свернуть историю чатов'}));
+  expect(screen.queryByRole('complementary',{name:'История диалогов'})).not.toBeInTheDocument();
+  expect(screen.getByLabelText('Сообщение помощнику')).toHaveValue('Не потеряй текст');
+  first.unmount();show();
+  const expand=await screen.findByRole('button',{name:'Развернуть историю чатов'});
+  expect(expand).toHaveAttribute('aria-expanded','false');await user.click(expand);
+  expect(screen.getByRole('complementary',{name:'История диалогов'})).toBeVisible();
+});
+it('sends an uploaded file without requiring text and clears only the submitted selection',async()=>{
+  const user=userEvent.setup();vi.spyOn(api,'upload').mockResolvedValue(file);show();
+  await user.upload(await screen.findByLabelText('Прикрепить файл'),new File(['TEST ONLY'],'TEST.xlsx',{type:file.mime_type}));
+  expect(api.send).not.toHaveBeenCalled();expect(screen.getByRole('button',{name:'Отправить'})).toBeEnabled();
+  expect(screen.queryByText(/Enter — отправить/)).not.toBeInTheDocument();
+  await user.click(screen.getByRole('button',{name:'Отправить'}));
+  await waitFor(()=>expect(api.send).toHaveBeenCalledWith('chat','',expect.any(String),['file']));
+  await waitFor(()=>expect(screen.queryByRole('list',{name:'Вложения к сообщению'})).not.toBeInTheDocument());
+  expect(screen.getByRole('button',{name:'Отправить'})).toBeDisabled();
+});
+it('carries a file from the welcome screen into a file-only message',async()=>{
+  const user=userEvent.setup();vi.spyOn(api,'create').mockResolvedValue(chat);vi.spyOn(api,'upload').mockResolvedValue(file);
+  vi.mocked(api.read).mockResolvedValue({...view,attachments:[file],pending_attachments:[file]});show('/assistant');
+  await user.upload(await screen.findByLabelText('Прикрепить файл'),new File(['TEST ONLY'],'TEST.xlsx',{type:file.mime_type}));
+  await screen.findByRole('list',{name:'Вложения к сообщению'});expect(api.create).toHaveBeenCalledTimes(1);expect(api.send).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('button',{name:'Отправить'}));
+  await waitFor(()=>expect(api.send).toHaveBeenCalledWith('chat','',expect.any(String),['file']));
+});
+it('keeps files and the same request key after a failed file-only send',async()=>{
+  const user=userEvent.setup();vi.spyOn(api,'upload').mockResolvedValue(file);vi.mocked(api.send).mockRejectedValue(new Error('Соединение потеряно'));show();
+  await user.upload(await screen.findByLabelText('Прикрепить файл'),new File(['TEST ONLY'],'TEST.xlsx',{type:file.mime_type}));
+  await user.click(screen.getByRole('button',{name:'Отправить'}));await screen.findByRole('alert');
+  await user.click(screen.getByRole('button',{name:'Отправить'}));await waitFor(()=>expect(api.send).toHaveBeenCalledTimes(2));
+  expect(vi.mocked(api.send).mock.calls[0]).toEqual(vi.mocked(api.send).mock.calls[1]);
+  expect(screen.getByRole('list',{name:'Вложения к сообщению'})).toHaveTextContent('TEST.xlsx');
+});
+it('does not attach files from previous messages to a new text-only message',async()=>{
+  const user=userEvent.setup();vi.mocked(api.read).mockResolvedValue({...view,attachments:[file],pending_attachments:[]});show();
+  await user.type(await screen.findByLabelText('Сообщение помощнику'),'Другой вопрос');await user.click(screen.getByRole('button',{name:'Отправить'}));
+  await waitFor(()=>expect(api.send).toHaveBeenCalledWith('chat','Другой вопрос',expect.any(String),[]));
 });

@@ -34,6 +34,12 @@ class Tool:
 # New capabilities must be reviewed here and tested through their existing endpoint.
 # Even an apparently read-only POST may save forecasts or start work: default is proposal.
 TOOLS=(
+ Tool('tasks_analyze','Полный серверный анализ незавершённых заданий: сроки, нагрузка, бизнес-дубли и единицы норм','GET','/api/v1/assistant/workspace/task-analysis',agents=('assistant','planner','photo')),
+ Tool('draft_changes','Фактические отличия двух версий черновика','GET','/api/v1/assistant/workspace/draft-changes',(*PLAN,'director')),
+ Tool('drafts_find','Все доступные черновики текущего объекта из регламентов и каталогов','GET','/api/v1/assistant/workspace/drafts',(*PLAN,'director')),
+ Tool('planning_context','Проверенные обязанности, регламенты, исходные пробелы и политика выбранного периода','GET','/api/v1/assistant/workspace/planning-context',(*PLAN,'director')),
+ Tool('inventory_read','Все доступные здания, оборудование, число операций ТО и пробелы подготовки','GET','/api/v1/assistant/workspace/inventory',agents=('assistant','planner','photo')),
+ Tool('attachment_read','Прочитать лист и строки прикреплённого Excel без импорта','GET','/api/v1/assistant/conversations/{identity}/attachments/{attachment_id}/content',agents=('assistant','planner','photo')),
  Tool('equipment_list','Найти оборудование объекта','GET',P+'/equipment',agents=('assistant','planner','photo')),
  Tool('equipment_read','Карточка оборудования','GET',P+'/equipment/{equipment_id}',agents=('assistant','planner','photo')),
  Tool('catalog_read','Системы и типы оборудования','GET',P+'/management/catalog',(*PLAN,'director')),
@@ -51,6 +57,7 @@ TOOLS=(
  Tool('task_read','Задание, инструкции и состояние отчёта','GET',P+'/ui/tasks/{task_id}',agents=('assistant','planner','photo')),
  Tool('calendar_read','Календарь работ','GET',P+'/ui/calendar',(*OPERATE,'director','executor')),
  Tool('assignment_context','Сотрудники и условия назначения','GET',P+'/ui/tasks/{task_id}/assignment-context',OPERATE),
+ Tool('assignment_prepare','Проверить назначение конкретных сотрудников на задание','POST','/api/v1/assistant/workspace/tasks/{task_id}/prepare-assignment',OPERATE),
  Tool('assignment_preview','Проверить вариант назначения','POST',P+'/tasks/{task_id}/assignment-preview',OPERATE),
  Tool('task_assign','Назначить бригаду и время','POST',P+'/tasks/{task_id}/assign',OPERATE,'write',before='task_read'),
  Tool('task_cancel','Отменить задание с причиной','POST',P+'/tasks/{task_id}/cancel',OPERATE,'write',before='task_read'),
@@ -156,15 +163,21 @@ def describe(app,tool):
         annotations=dict(readOnlyHint=tool.mode=='read',destructiveHint=tool.mode=='write',idempotentHint=tool.mode=='read',openWorldHint=False))
 
 def validate_arguments(app,tool,arguments):
-    if not isinstance(arguments,dict) or set(arguments)-{'path','query','body','view'}:raise HTTPException(422,'Неизвестные аргументы инструмента')
+    if not isinstance(arguments,dict):raise HTTPException(422,'Аргументы должны быть объектом с разделами path, query и body')
+    unknown=set(arguments)-{'path','query','body','view'}
+    if unknown:raise HTTPException(422,'Неизвестные разделы аргументов: '+', '.join(sorted(str(x)[:80] for x in unknown)[:10])+'. Используйте только path, query, body и view.')
     route=route_for(app,tool);result={}
     if 'view' in arguments:
         if tool.mode!='read':raise HTTPException(422,'Просмотр результата доступен только инструментам чтения')
         try:result['view']=ResultView.model_validate(arguments['view']).model_dump(mode='json')
-        except ValidationError:raise HTTPException(422,'Проверьте параметры просмотра результата') from None
+        except ValidationError as exc:
+            issues=[dict(field='view.'+'.'.join(map(str,e['loc'])),type=e['type']) for e in exc.errors(include_input=False,include_url=False)]
+            raise HTTPException(422,dict(code='INVALID_VIEW',issues=issues)) from None
     for kind,fields in (('path',route.dependant.path_params),('query',route.dependant.query_params)):
         values=arguments.get(kind,{})
-        if not isinstance(values,dict) or set(values)-{f.name for f in fields}:raise HTTPException(422,'Неизвестные параметры '+kind)
+        if not isinstance(values,dict):raise HTTPException(422,'Раздел '+kind+' должен быть объектом')
+        unknown=set(values)-{f.name for f in fields}
+        if unknown:raise HTTPException(422,'Неизвестные параметры '+kind+': '+', '.join(sorted(str(x)[:80] for x in unknown)[:10])+'. Допустимые: '+(', '.join(f.name for f in fields) or 'нет'))
         result[kind]={}
         for field in fields:
             if field.name not in values:
@@ -238,7 +251,8 @@ async def invoke(app,tool,args,headers):
         options.update(data=data,files=files or None)
     else:options['json']=args.get('body')
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app,raise_app_exceptions=False),base_url='http://assistant.internal',follow_redirects=False) as client:
-        response=await client.request(tool.method,path,**options)
+        try:response=await client.request(tool.method,path,**options)
+        except httpx.TransportError:raise HTTPException(502,'Backend инструмента недоступен') from None
     if response.status_code<300 and response.content and 'json' not in response.headers.get('content-type',''):
         if args.get('view'):raise HTTPException(422,'У файла нет JSON-полей просмотра. Получите ссылку без view.')
         if len(response.content)>20_971_520:raise HTTPException(413,'Слишком большой файл результата')

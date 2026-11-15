@@ -2,7 +2,7 @@
 from typing import Literal
 import json
 from uuid import UUID
-from pydantic import BaseModel,ConfigDict,Field,field_validator
+from pydantic import BaseModel,ConfigDict,Field,field_validator,model_validator
 
 class Input(BaseModel):
     model_config=ConfigDict(extra='forbid')
@@ -13,12 +13,16 @@ class ConversationCreate(Input):
 
 class MessageCreate(Input):
     idempotency_key:UUID
-    content:str=Field(min_length=1,max_length=12000)
-    @field_validator('content')
-    @classmethod
-    def not_blank(cls,value):
-        if not value.strip():raise ValueError('Введите сообщение')
-        return value.strip()
+    content:str=Field(default='',max_length=12000)
+    # None preserves old clients: their first message includes staged files.
+    # An explicit list selects exactly the files the user sent with this turn.
+    attachment_ids:list[UUID]|None=Field(default=None,max_length=20)
+    @model_validator(mode='after')
+    def has_message(self):
+        self.content=self.content.strip()
+        if not self.content and not self.attachment_ids:raise ValueError('Введите сообщение или прикрепите файл')
+        if self.attachment_ids and len(set(self.attachment_ids))!=len(self.attachment_ids):raise ValueError('Вложение указано повторно')
+        return self
 
 class ConfirmAction(Input):
     payload_sha256:str=Field(pattern=r'^[0-9a-f]{64}$')
@@ -43,6 +47,7 @@ class AgentStep(Input):
 
 class ToolSelection(Input):
     tools:list[str]=Field(max_length=8)
+    workbook_ids:list[UUID]=Field(default_factory=list,max_length=4,description='Previously sent XLSX attachments needed for this question; use only IDs from server context.')
 
 class FinalReply(Input):
     answer:str=Field(min_length=1,max_length=12000)

@@ -106,7 +106,7 @@ def excluded_routes():
     return {
       **{(m,'/api/v1/assistant'+p):'human chat transport; deliberately not callable as a model tool' for m,p in (
         ('GET','/capabilities'),('GET','/conversations'),('POST','/conversations'),
-        ('GET','/conversations/{identity}'),('POST','/conversations/{identity}/messages'),
+        ('GET','/conversations/{identity}'),('DELETE','/conversations/{identity}'),('POST','/conversations/{identity}/messages'),('POST','/conversations/{identity}/turns/{turn_id}/stop'),
         ('POST','/conversations/{identity}/attachments'),('GET','/attachments/{identity}'),
         ('POST','/actions/{identity}/reject'),('POST','/actions/{identity}/confirm'),('POST','/mcp'))},
       ('GET','/api/health'):'service health',

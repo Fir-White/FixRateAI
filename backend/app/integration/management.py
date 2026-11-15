@@ -395,6 +395,15 @@ def _validate_bookings(v,user_ids):
 
 def workforce_view(v):
     _guard(v,'director','admin','dispatcher','engineer')
+    # Read-only projection: batch rows instead of one query per employee.
+    members=v.prefetch('site_memberships','user_id')
+    applications=v.prefetch('employment_applications','user_id') if v.principal.role=='admin' else []
+    user_ids={m.user_id for m in members}|{a.user_id for a in applications if a.status=='pending'}
+    users=v.models['users']
+    records=v.session.scalars(select(users).where(users.user_id.in_(user_ids))).all()
+    v._task_rows[('users','user_id')]={r.user_id:[r] for r in records}
+    for table,key in (('user_skills','user_id'),('employee_shift_rules','user_id'),('availability_slots','user_id'),('crew_members','crew_id')):v.prefetch(table,key)
+    v.prefetch('crews');v.prefetch('skills')
     staff=[]
     for member in v.rows('site_memberships'):
         user=v.one('users',user_id=member.user_id)

@@ -77,7 +77,7 @@ class LocalVisionConfig:
     def from_environment(cls):
         base = os.environ.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
         parsed = urlsplit(base)
-        if (parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost", "::1", "vision"}
+        if (parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost", "::1", "vision", "host.docker.internal"}
                 or parsed.username or parsed.password or parsed.path not in ("", "/") or parsed.query or parsed.fragment):
             raise ValueError("OLLAMA_BASE_URL must point to the local vision service")
         model = os.environ.get("OLLAMA_VISION_MODEL", "")
@@ -112,7 +112,7 @@ class LocalVisionConfig:
     def resolve_model(cls, model_name: str, base_url: str | None = None) -> LocalVisionConfig:
         base = (base_url or os.environ.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434")).rstrip("/")
         parsed = urlsplit(base)
-        if (parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost", "::1", "vision"}
+        if (parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost", "::1", "vision", "host.docker.internal"}
                 or parsed.username or parsed.password or parsed.path not in ("", "/") or parsed.query or parsed.fragment):
             raise ValueError("OLLAMA_BASE_URL must point to the local vision service")
         if "cloud" in model_name.lower():
@@ -142,7 +142,7 @@ def scan_local_ollama_models(base_url: str | None = None) -> tuple[bool, list[di
     base = (base_url or os.environ.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434")).rstrip("/")
     try:
         parsed = urlsplit(base)
-        if (parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost", "::1", "vision"}
+        if (parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost", "::1", "vision", "host.docker.internal"}
                 or parsed.username or parsed.password or parsed.path not in ("", "/") or parsed.query or parsed.fragment):
             return False, [], "INVALID_OLLAMA_BASE_URL"
         url = f"{base}/api/tags"

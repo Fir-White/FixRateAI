@@ -132,15 +132,31 @@
           "type": "string"
         },
         "content": {
+          "default": "",
           "maxLength": 12000,
-          "minLength": 1,
           "title": "Content",
           "type": "string"
+        },
+        "attachment_ids": {
+          "anyOf": [
+            {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "maxItems": 20,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Attachment Ids"
         }
       },
       "required": [
-        "idempotency_key",
-        "content"
+        "idempotency_key"
       ],
       "title": "MessageCreate",
       "type": "object"
@@ -201,6 +217,16 @@
           },
           "maxItems": 8,
           "title": "Tools",
+          "type": "array"
+        },
+        "workbook_ids": {
+          "description": "Previously sent XLSX attachments needed for this question; use only IDs from server context.",
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 4,
+          "title": "Workbook Ids",
           "type": "array"
         }
       },
