@@ -19,7 +19,8 @@ The tests never import ``ml_service`` as a forecasting implementation; they use
 the pure orchestrator functions and a fixed snapshot hash, exactly as the
 existing ``tests/backend/test_orchestration.py`` does.
 """
-from datetime import date, datetime
+from datetime import date
+import json
 from uuid import uuid4
 
 import pytest
@@ -27,7 +28,7 @@ import pytest
 from app.orchestrator import decide
 from app.orchestrator.forecast import algorithmic_forecast, bounded_ai, forecast_result
 from app.schemas.maintenance import Uncertainty
-from scripts.verify_orchestration import ai_value, inputs
+from tests.fixtures.forecast_audit import ai_value, inputs, rehash
 
 
 def compare(snapshot, item, provider):
@@ -49,6 +50,24 @@ def test_both_forecasts_share_snapshot_hash_run_and_due_date_without_mutation():
     assert algorithmic.result_id != ai.result_id
     assert decision.algorithmic_result_id == algorithmic.result_id
     assert decision.ai_result_id == ai.result_id
+
+
+def test_current_snapshot_diagnostics_and_source_occurrence_reach_both_forecasts():
+    snapshot, item = inputs()
+    enriched = rehash(snapshot, source_occurrence_date='2026-11-10',
+                      diagnostic_comments=[{'text': 'TEST ONLY engineer note', 'source_ref': 'audit-v2'}])
+    assert enriched.content_sha256 != snapshot.content_sha256
+    received = []
+
+    def provider(value):
+        received.append(value)
+        return ai_value(value)
+
+    algorithmic, ai, decision = compare(enriched, item, provider)
+    assert received[0].diagnostic_comments == enriched.diagnostic_comments
+    assert received[0].source_occurrence_date == date(2026, 11, 10)
+    assert algorithmic.snapshot_sha256 == ai.snapshot_sha256 == enriched.content_sha256
+    assert decision.selected_date == enriched.mandatory_due_date
 
 
 def test_ai_unavailable_and_low_confidence_fall_back_to_the_confirmed_rule():
@@ -150,11 +169,7 @@ def test_missing_confirmed_rule_requires_input_and_ai_cannot_replace_it():
     snapshot, item = inputs()
     rule = item.rule.model_copy(update={"confirmed": False})
     item = item.model_copy(update={"rule": rule})
-    snapshot = snapshot.model_copy(update={"rule": rule})
-    from ml_service.app.forecast.synthetic import compute_snapshot_hash
-    import json
-    snapshot = snapshot.model_copy(
-        update={"content_sha256": compute_snapshot_hash(json.loads(snapshot.model_dump_json()))})
+    snapshot = rehash(snapshot, rule=json.loads(rule.model_dump_json()))
     algorithmic = algorithmic_forecast(snapshot, item, uuid4())
     ai = bounded_ai(snapshot, algorithmic.run_id, lambda value: ai_value(value))
     decision = decide(snapshot, algorithmic, ai)
@@ -164,12 +179,7 @@ def test_missing_confirmed_rule_requires_input_and_ai_cannot_replace_it():
 
 def test_passed_deadline_requires_manual_review_even_with_a_valid_ai_date():
     snapshot, item = inputs()
-    snapshot = snapshot.model_copy(
-        update={"as_of": datetime.fromisoformat("2026-11-11T08:00:00+05:00")})
-    from ml_service.app.forecast.synthetic import compute_snapshot_hash
-    import json
-    snapshot = snapshot.model_copy(
-        update={"content_sha256": compute_snapshot_hash(json.loads(snapshot.model_dump_json()))})
+    snapshot = rehash(snapshot, as_of="2026-11-11T08:00:00+05:00")
     algorithmic = algorithmic_forecast(snapshot, item, uuid4())
     ai = bounded_ai(snapshot, algorithmic.run_id, lambda value: ai_value(value))
     decision = decide(snapshot, algorithmic, ai)
@@ -189,7 +199,7 @@ def test_mismatched_result_identity_requires_manual_review():
     assert decision.reasons[0].startswith("SNAPSHOT_MISMATCH")
 
 
-@pytest.mark.xfail(strict=True, reason="BUG-01: unknown uncertainty with calibrated=True is accepted as early evidence")
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason="BUG-01: unknown uncertainty with calibrated=True is accepted as early evidence")
 def test_unknown_uncertainty_is_not_early_evidence():
     # docs/service/planning.md: "Неизвестная уверенность ... такой оценкой не являются."
     snapshot, item = inputs("customer")
@@ -206,7 +216,7 @@ def test_unknown_uncertainty_is_not_early_evidence():
     assert decision.selected_date == date(2026, 11, 10)
 
 
-@pytest.mark.xfail(strict=True, reason="BUG-02: a tampered earlier algorithmic date is trusted as the fallback")
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason="BUG-02: a tampered earlier algorithmic date is trusted as the fallback")
 def test_tampered_earlier_algorithmic_date_is_not_trusted():
     # The algorithmic result must come from ALG02 for this snapshot.  A date
     # that is inside the window but earlier than the real regulation date must
@@ -221,7 +231,7 @@ def test_tampered_earlier_algorithmic_date_is_not_trusted():
     assert decision.selected_date == algorithmic.recommended_date == date(2026, 11, 10)
 
 
-@pytest.mark.xfail(strict=True, reason="BUG-03: bounded_ai trusts the AI-provided overdue flag")
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason="BUG-03: bounded_ai trusts the AI-provided overdue flag")
 def test_ai_overdue_flag_is_recomputed_from_the_snapshot():
     # A future due date (2026-11-10) with as_of 2026-11-01 cannot be overdue.
     snapshot, item = inputs()
@@ -231,7 +241,7 @@ def test_ai_overdue_flag_is_recomputed_from_the_snapshot():
     assert ai.overdue is False
 
 
-@pytest.mark.xfail(strict=True, reason="BUG-05: synthetic_demo early date is rejected when AI reports unknown uncertainty")
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason="BUG-05: synthetic_demo early date is rejected when AI reports unknown uncertainty")
 def test_synthetic_demo_early_date_is_allowed_with_unknown_uncertainty():
     # docs/service/planning.md: for synthetic_demo an earlier in-window date is
     # allowed with an explicit demonstration explanation.  The default AI

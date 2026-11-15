@@ -22,10 +22,11 @@ The tests assert only facts defined by those policies.  Missing input must be
 reported as a diagnostic and must not create dates or numeric work.
 """
 from copy import deepcopy
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 import json
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 
@@ -153,6 +154,18 @@ def test_1_4_requires_two_workers_in_the_operation_contract():
     assert result.calendar.items[0].raw_norm_value == Decimal("60.0")
 
 
+def test_same_short_code_in_another_regulation_does_not_inherit_source_crew_size():
+    operation = dict(OPERATIONS['1.4'], crew_size=1,
+                     source_ref='TEST ONLY: independent regulation with the same short code')
+    data = request(FIVE_PER_YEAR, operation)
+    item = data['bindings'][0]
+    item['operation'].update(operation_id=str(uuid4()), operation_version_id=str(uuid4()))
+    item['binding']['operation_version_id'] = item['operation']['operation_version_id']
+    generated = run(data)
+    assert generated.bindings[0].status == 'ok'
+    assert generated.calendar.items[0].crew_size == 1
+
+
 def test_quarter_boundaries_are_real_calendar_quarters():
     pattern = CalendarPattern.model_validate_json(json.dumps(QUARTER["pattern"]))
     assert occurrence_dates(pattern, date(2026, 1, 1), date(2027, 3, 31)) == [
@@ -170,6 +183,33 @@ def test_month_interval_three_keeps_phase_across_the_year_boundary():
     assert occurrence_dates(pattern, date(2026, 7, 4), date(2027, 1, 4)) == [
         date(2026, 7, 4), date(2026, 10, 4), date(2027, 1, 4),
     ]
+
+
+def test_current_quarter_policy_distinguishes_calendar_edge_and_rolling_months():
+    settings = dict(QUARTER['pattern'], anchor_date='2026-07-04')
+    calendar = CalendarPattern.model_validate_json(json.dumps(settings))
+    rolling = CalendarPattern.model_validate_json(json.dumps(settings | {'quarter_policy': 'rolling_months'}))
+    assert occurrence_dates(calendar, date(2026, 10, 1), date(2027, 1, 31)) == [date(2026, 12, 31)]
+    assert occurrence_dates(rolling, date(2026, 10, 1), date(2027, 1, 31)) == [date(2026, 10, 4), date(2027, 1, 4)]
+
+
+def test_current_annual_policy_distinguishes_calendar_year_and_anchor_cycle():
+    settings = dict(FIVE_PER_YEAR['pattern'], anchor_date='2026-07-01')
+    calendar = CalendarPattern.model_validate_json(json.dumps(settings))
+    anchored = CalendarPattern.model_validate_json(json.dumps(settings | {'annual_policy': 'from_anchor'}))
+    calendar_dates = occurrence_dates(calendar, date(2026, 7, 1), date(2026, 12, 31))
+    anchored_dates = occurrence_dates(anchored, date(2026, 7, 1), date(2027, 6, 30))
+    assert calendar_dates == [date(2026, 8, 8), date(2026, 10, 20)]
+    assert len(anchored_dates) == len(set(anchored_dates)) == 5
+    assert anchored_dates[0] == date(2026, 7, 1)
+    assert anchored_dates[-1] <= date(2027, 6, 30)
+
+
+def test_current_iso_parity_keeps_consecutive_odd_weeks_53_and_1():
+    pattern = CalendarPattern.model_validate_json(json.dumps(dict(
+        frequency='day', anchor_date='2026-12-28', week_parity='odd')))
+    assert occurrence_dates(pattern, date(2026, 12, 28), date(2027, 1, 10)) == [
+        date(2026, 12, 28) + timedelta(days=index) for index in range(14)]
 
 
 def test_yearly_count_anchor_is_a_rule_start_and_is_not_backfilled():
@@ -224,7 +264,7 @@ def test_empty_month_reports_missing_norm_inputs_instead_of_zero_values():
     assert "DURATION_UNCONFIRMED" in binding.warnings
 
 
-@pytest.mark.xfail(strict=True, reason="BUG-04: empty month returns 0 instead of None for unconfirmed norm/duration")
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason="BUG-04: empty month returns 0 instead of None for unconfirmed norm/duration")
 def test_empty_month_does_not_report_zero_when_norm_is_unknown():
     result = run(request(FIVE_PER_YEAR, OPERATIONS["1.4"], month=11))
     binding = result.bindings[0]

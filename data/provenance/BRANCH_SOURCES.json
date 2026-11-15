@@ -171,9 +171,10 @@
       "document": "docs/service/branch-cleanup-2026-11-15.md",
       "not_included": [],
       "validation_limits": [
-        "41 passed and 5 strict xfailed on 2026-11-15; historical BUG-01..05 remain open, not marked fixed.",
+        "Adapted to current contracts on 2026-11-15: 183 related tests passed, 5 strict assertion-only xfailed; historical BUG-01..05 remain open.",
         "Unit/contract audit only; no fresh Docker/HTTP/PostgreSQL/real-model or browser execution in this cleanup."
-      ]
+      ],
+      "adaptation": "Current validated snapshot fixtures, explicit per-operation crew sizes, annual/quarter policy variants, ISO parity, diagnostic/source-date hash propagation; see cleanup document."
     }
   ]
 }

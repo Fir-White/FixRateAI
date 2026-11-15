@@ -3034,19 +3034,25 @@
         "source_path": "tests/backend/test_assignment_audit.py",
         "dev_path": "tests/backend/test_assignment_audit.py",
         "source_blob": "5da47d0555c13e8f7195260af0f9c0edae711e90",
-        "disposition": "retained_exact_source_blob"
+        "disposition": "adapted_to_current_contracts_without_weakening_assertions"
       },
       {
         "source_path": "tests/backend/test_forecast_audit.py",
         "dev_path": "tests/backend/test_forecast_audit.py",
         "source_blob": "6622915330e133e4e470de96ea8884c2f5b01039",
-        "disposition": "retained_exact_source_blob"
+        "disposition": "adapted_to_current_contracts_without_weakening_assertions"
       },
       {
         "source_path": "tests/backend/test_schedule_audit.py",
         "dev_path": "tests/backend/test_schedule_audit.py",
         "source_blob": "f14c7c12cfbaad8d06e8af39e8c8dfd478a67c8c",
-        "disposition": "retained_exact_source_blob"
+        "disposition": "adapted_to_current_contracts_without_weakening_assertions"
+      }
+    ],
+    "dev_adaptations": [
+      {
+        "dev_path": "tests/fixtures/forecast_audit.py",
+        "reason": "Replace CLI coupling with validated current-schema fixture and canonical hash handling; synthetic inputs only."
       }
     ]
   }

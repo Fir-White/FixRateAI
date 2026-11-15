@@ -92,7 +92,11 @@
   "qa": {
     "source_commit": "9800ac6f36528829597f2a28db208903f5b2bdf8",
     "passed": 41,
-    "strict_xfailed": 5
+    "strict_xfailed": 5,
+    "adapted_related_passed": 183,
+    "added_current_contract_cases": 8,
+    "strict_xfail_exception": "AssertionError only",
+    "runtime_changed": false
   },
   "worktree_policy": "Preserve all pending files in place and private backup; detach worktrees occupying deleted names. Pending drafts are not claimed as shipped application features.",
   "history_policy": "After source audit, join previously adapted histories while preserving the verified current tree; do not reintroduce superseded runtime files.",

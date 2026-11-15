@@ -1,10 +1,11 @@
 """QA audit: ALG03 impossible-assignment behavior for the two-worker operation.
 
-Operation 1.4 explicitly requires two workers
+Operation 1.4 in the historical source fixture explicitly requires two workers
 (``tests/fixtures/domain/maintenance_operations.json``).  A proposal is
 acceptable only when it contains the complete team on one common interval.
 Partial teams, borrowing workers from another crew, expired qualifications and
-a passed deadline must remain explicit refusals with no command.
+a passed deadline must remain explicit refusals with no command. This is a
+fixture-specific requirement, not a global constraint on the short code 1.4.
 """
 from copy import deepcopy
 from datetime import datetime
@@ -72,7 +73,7 @@ def operation_1_4():
     return next(row for row in operations if row["code"] == "1.4")
 
 
-def test_operation_1_4_contract_requires_two_workers():
+def test_source_fixture_operation_1_4_requires_two_workers():
     operation = operation_1_4()
     assert operation["required_workers"] == 2
     result = run(payload(crew_size=operation["required_workers"]))
@@ -89,6 +90,14 @@ def test_one_worker_cannot_be_doubled_for_operation_1_4():
     assert result.command is None
     assert result.planning_person_minutes is None
     assert ids(result) == []
+
+
+@pytest.mark.parametrize('crew_size', [1, 2, 3])
+def test_current_assignment_uses_explicit_crew_size_instead_of_a_source_default(crew_size):
+    result = run(payload(crew_size=crew_size))
+    assert result.status == 'ok'
+    assert ids(result) == list(range(1, crew_size + 1))
+    assert result.planning_person_minutes == 60 * crew_size
 
 
 def test_two_workers_without_a_common_interval_do_not_form_a_team():
