@@ -10,7 +10,8 @@ def safe_arguments(args):
         if isinstance(value,list):return [clean(v,key) for v in value[:25]]
         if isinstance(value,str):
             if key=='section' and value in ('summary','dates','equipment','duplicates') or key=='origin' and value in ('all','scheduled','manual','incident'):return value
-            if re.fullmatch(r'[0-9a-fA-F-]{36}',value) or key=='path' and value in ('items','systems','objects','sites','workers','applications','qualifications','shifts','availability') or key in ('period','state') and value in ('upcoming','overdue','all','undated','draft','assigned'):return value
+            resource_id=(key.endswith('_id') or key in ('id','identity')) and re.fullmatch(r'[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}',value)
+            if resource_id or key=='path' and value in ('items','systems','objects','sites','workers','applications','qualifications','shifts','availability') or key in ('period','state') and value in ('upcoming','overdue','all','undated','draft','assigned'):return value
             return dict(length=len(value),sha256=hashlib.sha256(value.encode()).hexdigest())
         return value if value is None or isinstance(value,(int,float,bool)) else '[redacted]'
     return clean(args)

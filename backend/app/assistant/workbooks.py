@@ -4,6 +4,7 @@ import re
 from fastapi import HTTPException
 from app.catalog_excel import read_workbook
 from .attachments import content,public,MAX_FILE
+from .workbook_readiness import quality,preserve_missing_norms
 
 MIME='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 CONTEXT_BUDGET=60000
@@ -72,7 +73,8 @@ def page(app,identity,sheet=None,offset=0,limit=25,q=''):
     row,sheets=load(app,identity)
     name=sheet or next(iter(sheets),'')
     if name not in sheets:raise HTTPException(422,'Лист не найден. Используйте точное имя из списка sheets')
-    rows=[dict(row=number,cells=cells(values)) for number,values in sheets[name]]
+    diagnostics=quality(sheets)
+    rows=[dict(row=number,cells=preserve_missing_norms(number,cells(values),diagnostics,name)) for number,values in sheets[name]]
     if q.strip():rows=[r for r in rows if q.casefold() in json.dumps(r['cells'],ensure_ascii=False).casefold()]
     selected=[];size=0
     for entry in rows[offset:offset+limit]:
@@ -84,7 +86,7 @@ def page(app,identity,sheet=None,offset=0,limit=25,q=''):
     return dict(attachment=public(row),sheets=summary(sheets),sheet=name,items=selected,total=len(rows),offset=offset,
                 next_offset=offset+len(selected) if offset+len(selected)<len(rows) else None,
                 truncated=len(selected)<min(limit,max(0,len(rows)-offset)),read_only=True,
-                note='Строки исходного файла, не импорт. Формулы не вычислялись; value — сохранённое в Excel значение.')
+                quality=diagnostics,note='Строки исходного файла, не импорт. Формулы не вычислялись; value — сохранённое в Excel значение. null в нормативном столбце означает отсутствие исходного значения, не ноль.')
 
 
 def context(app,files,budget=CONTEXT_BUDGET):
@@ -96,12 +98,12 @@ def context(app,files,budget=CONTEXT_BUDGET):
             item.update(status='deferred',note='Для остальных файлов используйте attachment_read по ID; они ещё не прочитаны.')
             result.append(item);continue
         try:
-            _,sheets=load(app,file['attachment_id']);item.update(status='read',sheets=summary(sheets),findings=findings(sheets),
+            _,sheets=load(app,file['attachment_id']);item.update(status='read',sheets=summary(sheets),findings=findings(sheets),quality=quality(sheets),
                 notation='В data: [номер строки Excel, колонки]. Ключ H:AL означает одинаковое значение во всех колонках H..AL этой строки. Findings — наблюдения над исходными ячейками, не инженерный вердикт.')
             for meta,(name,rows) in zip(item['sheets'],sheets.items()):
                 selected=[]
                 for number,values in rows:
-                    entry=[number,evidence_cells(values)]
+                    entry=[number,preserve_missing_norms(number,evidence_cells(values),item['quality'],name)]
                     width=len(json.dumps(entry,ensure_ascii=False,separators=(',',':')))
                     if width>remaining:break
                     selected.append(entry);remaining-=width
