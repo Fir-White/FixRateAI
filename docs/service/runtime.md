@@ -1,5 +1,15 @@
 # Запуск и эксплуатация
 
+## Локальный preview из audit-worktree, 16.11.2026
+
+По запросу владельца на `http://localhost:8010/assistant` запущен отдельный native preview: backend кодового среза fe39fb7, текущий frontend из этого worktree, локальная Ollama qwen3.5:4b-q4_K_M и собственные PostgreSQL/фотохранилище/демонстрационные данные ЖК «Сосновый парк». Шесть коммитов этого кода позднее перенесены в kran_dev; изменение Git-ветки не заменяет уже запущенные процессы и Docker-образы.
+
+Рабочая папка preview — `var/agent-red-team-20261115/worktree` относительно исходного integration-dev. Приватные настройки и подтверждения находятся внутри неё в `var/local-preview/runtime.json`, `verification.json` и `browser-verification.json`; реквизиты не публикуются. Этот адрес относится к конкретному локальному запуску, не появляется автоматически после клонирования репозитория. Для обычной установки используйте инструкции ниже; приватный launcher не является переносимым release runner.
+
+Frontend пересобран из актуальных исходников через `npm --prefix frontend run build`: первоначально переиспользованный старый dist не содержал чата и был заменён. Installed Chrome/Playwright проверил настоящий вход, `/assistant`, desktop/mobile и получение backend/SQL ответа без API stubs. localhost отделяет cookie preview от прежнего `127.0.0.1:8000`; после замены старой сборки может потребоваться Ctrl+F5. Подробные [доказательства и ограничения](../agent-audit/final-report.md) включают наблюдавшийся OLLAMA_TIMEOUT на длинном диалоге; функциональный smoke не подтверждает production SLA.
+
+Прежний Docker-стенд на 8000, его БД, файлы и настройки сохранены. Следующий раздел описывает именно этот ранее проверенный образ; это другой runtime, а не версия native preview на 8010.
+
 ## Текущий локальный срез: аналитика помощника, 15.11.2026
 
 Последний проверенный образ на `http://127.0.0.1:8000` — `fixrate-ai:kran-dev-assistantanalytics20261115`, WIP provenance `81df922-wip-3fa9c3a781f3`, протокол `fixrate-agents-v11`. Он следует после исторических установок Ollama/context/controls/production, описанных ниже. Health: status=ok/database=ready; API содержит `/api/v1/assistant/workspace/task-analysis`. Локальный Ollama provider/model/digest и остальные настройки сохранены; перенос на другую модель этой поставкой не выполняется.

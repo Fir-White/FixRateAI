@@ -108,13 +108,13 @@ This manifest describes the cumulative audit diff, not production deployment. Fi
 
 ## Comparison with the last known published ref
 
-Original origin/kran_dev locally tracks `81df9221527794fd6b1ec476999b0cf0d897e7d7`; it was read without fetching or pushing. `f817875` is the local pre-audit snapshot, not the published ref.
+Before this publication, the original origin/kran_dev tracking ref was `81df9221527794fd6b1ec476999b0cf0d897e7d7`; this historical comparison was read without fetching or pushing. `f817875` is the local pre-audit snapshot, not that published ref. Later documentation updates do not rewrite this checkpoint's file inventory.
 
 | Range | Files | Scope |
 |---|---:|---|
 | 81df922 to f817875 | 67 | Pre-existing local iteration, preserved unchanged by this audit |
-| f817875 to audited code/documentation | 81 | This isolated audit |
-| 81df922 to audit HEAD | 126 | Combined diff, overlapping paths counted once |
+| f817875 to bbfb7ed | 81 | Historical isolated audit checkpoint |
+| 81df922 to bbfb7ed | 126 | Combined checkpoint diff, overlapping paths counted once |
 
 The preceding iteration is documented in [its release](../releases/2026-11-15-assistant-iteration.md). It includes migration021, chat UI, message attachments, production workflows and earlier P0/analytics corrections; these are not presented as newly implemented by this audit. Its files:
 
