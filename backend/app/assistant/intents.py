@@ -6,8 +6,26 @@ _MUTATION=re.compile(r'\b(?:созда(?:й|йте|ть)|добав(?:ь|ьте|
 
 
 def mutation_requested(question):
+    # Explicit start is a state change; reading its card is only a prerequisite.
+    if re.search(r'^(?:please\s+)?start\b|\b(?:начни|начните)\b',question.strip(),re.I):return True
     for match in _MUTATION.finditer(question):
-        if not re.search(r"\b(?:не|not|don't)\s+$",question[max(0,match.start()-20):match.start()],re.I):return True
+        prefix=re.split(r'[.:!?;\n]|\b(?:but|then|instead|затем|но)\b',question[:match.start()],flags=re.I)[-1]
+        # A single negation scopes a coordinated prohibition: "Do not create,
+        # approve or edit". Sentence/contrast boundaries restore positive intent.
+        # This guard grants no authority; writes still require exact confirmation.
+        negators=list(re.finditer(r"\b(?:не|not|don't|never)\s+",prefix,re.I))
+        if not any(neg.end()==len(prefix) or _MUTATION.match(prefix,neg.end()) for neg in negators):return True
+    return False
+
+
+def mutation_command_requested(question):
+    """Recognize a direct command without treating an analysed future change as one."""
+    if not mutation_requested(question):return False
+    if re.search(r'^(?:please\s+)?start\b|\b(?:начни|начните)\b',question.strip(),re.I):return True
+    for match in _MUTATION.finditer(question):
+        prefix=re.split(r'[.!?;\n]',question[:match.start()])[-1]
+        if re.fullmatch(r'\s*(?:(?:please|пожалуйста|затем|then|теперь)\s*)?',prefix,re.I):return True
+        if re.search(r'\b(?:then|затем)\s+$',prefix,re.I):return True
     return False
 
 
@@ -18,6 +36,20 @@ def literal_rename(question):
     if len(matches)!=1:return None
     value=next(group for group in matches[0].groups() if group is not None).strip()
     return value or None
+
+
+def primary_document_requested(question):
+    """Conservative evidence safeguard, never a process/tool routing decision.
+
+    Explicit verification of a manufacturer's recommendation/document cannot be
+    satisfied by database history. This does not certify general NL coverage.
+    """
+    for clause in re.split(r'[.!?;\n]',question):
+        if not re.search(r'производител\w*|manufacturer',clause,re.I):continue
+        if not re.search(r'паспорт\w*|документ\w*|рекомендац\w*|manual|document|recommendation',clause,re.I):continue
+        for action in re.finditer(r'проверь|провер\w*|подтверд\w*|свер\w*|check|verify|confirm|validate|substantiate',clause,re.I):
+            if not re.search(r"\b(?:не|not|don't)\s+$",clause[:action.start()],re.I):return True
+    return False
 
 
 def explicit_revision(question):

@@ -1,6 +1,6 @@
-"""Independent unknown-norm oracle on genuine uploaded XLSX, with inference forbidden."""
+"""Independent unknown-norm oracle on genuine XLSX and scripted semantic plans."""
 from uuid import uuid4
-import re
+import re,json
 import pytest
 from app.catalog_excel import write_workbook
 from tests.backend.test_runtime_integration import runtime
@@ -8,6 +8,16 @@ from tests.backend.test_management import managed
 from tests.backend.test_assistant import assistant_case,B,thread
 from tests.backend.test_agent_redteam_matrix import fingerprint
 from tests.backend.test_catalog_imports import replace_xml
+from sqlalchemy import text
+
+
+def readiness_fact(engine,turn):
+    with engine.connect() as db:
+        state=db.scalar(text('SELECT workflow FROM assistant_turns WHERE turn_id=:id'),dict(id=turn['turn_id']))
+    results=[proof['result'] for proof in state['evidence'] if proof['tool']=='workbook_readiness']
+    assert len(results)==1 and results[0]['status']=='blocked'
+    assert turn['workflow']['outcome'] in ('partial','blocked')
+    return results[0]['fact']
 
 @pytest.mark.parametrize('kind,value',[
     ('missing',None),('zero','0'),('negative','-1'),('text','unknown'),('nonfinite','NaN'),('formula','2'),('positive_unconfirmed','3'),
@@ -21,7 +31,10 @@ def test_raw_quantity_is_not_a_confirmed_staffing_norm(assistant_case,kind,value
     assert uploaded.status_code==201,uploaded.text
     before=fingerprint(assistant_case[0])
     class NoInference:
-        def chat(self,*args):calls.append('chat');raise AssertionError('Source readiness must precede generated staffing')
+        def chat(self,messages,schema,tokens):
+            calls.append(schema.__name__)
+            assert schema.__name__=='ToolSelection','Source readiness cannot be replaced by generated staffing'
+            return schema(tools=['workbook_readiness'],goals=[dict(id='staffing',title='Проверить нормативы перед расчётом численности',tool='workbook_readiness')],workbook_ids=[uploaded.json()['attachment_id']])
         def text(self,*args):calls.append('text');raise AssertionError('Do not turn quantity into hours')
     app.state.assistant_provider_factory=NoInference
     try:
@@ -29,10 +42,10 @@ def test_raw_quantity_is_not_a_confirmed_staffing_norm(assistant_case,kind,value
         assert response.status_code==202,response.text
         view=client.get(B+'/conversations/'+chat).json();turn=view['turns'][-1]
         assert turn['status']=='completed',turn
-        assert 'Численность не рассчитана' in turn['answer'] and not view['actions'] and not calls
-        facts=[row for row in turn['trace'] if row['tool']=='__workbook_readiness']
-        assert len(facts)==1 and facts[0]['result']['can_calculate_real_staffing'] is False
-        assert facts[0]['result']['unknown_norm_fields']==(0 if kind=='positive_unconfirmed' else 1)
+        assert 'Численность не рассчитана' in turn['answer'] and not view['actions'] and calls==['ToolSelection']
+        facts=readiness_fact(assistant_case[0],turn)
+        assert facts['can_calculate_real_staffing'] is False
+        assert facts['unknown_norm_fields']==(0 if kind=='positive_unconfirmed' else 1)
         if kind!='positive_unconfirmed':assert 'Audit!B2' in turn['answer']
         clean=turn['answer'].replace('*','')
         assert not re.search(r'(?:нужно|требуется|потребуется)\s+[237]\s+(?:человек|сотрудник)',clean,re.I)
@@ -82,7 +95,7 @@ def test_old_workbook_readiness_is_enforced_after_router_selection(assistant_cas
     class RouterOnly:
         def chat(self,messages,schema,tokens):
             assert schema is ToolSelection
-            return ToolSelection(tools=[],workbook_ids=[uploaded['attachment_id']])
+            return ToolSelection(tools=['workbook_readiness'],workbook_ids=[uploaded['attachment_id']],goals=[dict(id='staffing',title='Проверить исходные нормы для расчёта численности',tool='workbook_readiness')])
         def text(self,*args):raise AssertionError('Direct-answer generation must not overwrite the readiness answer')
     app.state.assistant_provider_factory=RouterOnly
     try:
@@ -103,7 +116,11 @@ def test_explicit_prior_filename_wins_over_last_upload(assistant_case,chosen,exp
         assert uploaded.status_code==201
         files.append(uploaded.json()['attachment_id'])
     class NoInference:
-        def chat(self,*args):raise AssertionError('The explicitly named sent workbook is selected by server metadata')
+        def chat(self,messages,schema,tokens):
+            assert schema.__name__=='ToolSelection'
+            question=json.loads(messages[-1]['content'])['question']
+            selected=[files[0 if chosen=='first.xlsx' else 1]] if chosen in question else files
+            return schema(tools=['workbook_readiness'],workbook_ids=selected,goals=[dict(id='staffing',title='Проверить нормы выбранных исходных файлов',tool='workbook_readiness')])
     app.state.assistant_provider_factory=NoInference
     try:
         first=client.post(B+f'/conversations/{chat}/messages',json=dict(content='Сколько человек нужно для выполнения операций из файлов?',attachment_ids=files,idempotency_key=str(uuid4())))
@@ -112,6 +129,6 @@ def test_explicit_prior_filename_wins_over_last_upload(assistant_case,chosen,exp
         assert second.status_code==202
         turn=client.get(B+'/conversations/'+chat).json()['turns'][-1]
         assert turn['status']=='completed',turn
-        assert [r for r in turn['trace'] if r['tool']=='__workbook_readiness'][0]['result']['unknown_norm_fields']==expected_unknown
+        assert readiness_fact(assistant_case[0],turn)['unknown_norm_fields']==expected_unknown
         assert not client.get(B+'/conversations/'+chat).json()['actions']
     finally:del app.state.assistant_provider_factory

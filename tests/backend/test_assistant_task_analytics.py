@@ -158,26 +158,41 @@ def test_bounded_snapshot_fails_closed_and_query_count_does_not_scale(managed,cl
     assert response.status_code==413 and 'complete' not in response.json()
 
 
-def test_chat_repeats_original_request_without_inference_or_mutations(assistant_case,clock):
+def test_chat_repeats_original_request_with_server_analysis_and_no_mutations(assistant_case,clock):
     engine,app,admin,_,ids=assistant_case;add_orders(assistant_case,[dict(),dict(status='in_review')])
     def fingerprint():
         with engine.connect() as c:return c.scalar(text("SELECT md5(string_agg(to_jsonb(w)::text,',' ORDER BY work_order_id)) FROM work_orders w WHERE site_id=:site"),dict(site=ids['site']))
     before=fingerprint()
-    def no_provider():raise AssertionError('A deterministic report must not call the LLM')
-    app.state.assistant_provider_factory=no_provider
+    class SemanticPlan:
+        def chat(self,messages,schema,tokens):
+            if schema.__name__=='ToolSelection':
+                return schema(tools=[],goals=[dict(id='analysis',title='Проверить сроки, нагрузку и дубликаты незавершённых заданий',kind='read',tool='tasks_analyze',requires_full_list=True)])
+            assert schema.__name__=='AgentStep'
+            return schema(answer='',calls=[dict(tool='tasks_analyze',arguments_json=json.dumps(dict(query=dict(section='summary'))),explanation='TEST ONLY semantic analysis; server reads and reconciles all sections')])
+    app.state.assistant_provider_factory=SemanticPlan
     chat=thread(admin);question='Проанализируй незавершённые задания: сроки, нагрузку и дубликаты. Ничего не изменяй.'
     try:
-        answers=[]
+        answers=[];proofs=[]
         for _ in range(2):
             response=admin.post(B+f'/conversations/{chat}/messages',json=dict(content=question,idempotency_key=str(uuid4())))
             assert response.status_code==202,response.text
             turns=admin.get(B+f'/conversations/{chat}').json()['turns'];turn=turns[-1]
             assert turn['status']=='completed',turn
-            assert all(t['tool']=='tasks_analyze' and t['status']=='completed' for t in turn['trace'])
+            assert turn['workflow']['outcome']=='completed',turn
+            business=[entry for entry in turn['trace'] if not entry['tool'].startswith('__') and entry['status']!='running']
+            assert all(t['tool']=='tasks_analyze' and t['status']=='completed' for t in business)
+            with engine.connect() as db:saved=db.scalar(text('SELECT workflow FROM assistant_turns WHERE turn_id=:id'),dict(id=turn['turn_id']))
+            bundle=saved['evidence'][-1]['result']
+            assert bundle['complete'] and bundle['status']=='complete'
+            by_section={row['arguments']['query']['section']:row['result'] for row in saved['evidence']
+                        if isinstance(row['result'],dict) and 'counters' in row['result']}
+            assert set(by_section)=={'summary','equipment','dates','duplicates'}
+            assert all(result['counters']['unfinished']==2 and result['local_date']=='2026-11-15' for result in by_section.values())
+            proofs.append(by_section)
             assert '2026-11-15' in turn['answer'] and 'Незавершённых — **2**' in turn['answer']
             assert 'Источни' not in turn['answer'] or 'PostgreSQL' in turn['answer']
             answers.append(turn['answer'])
-        assert answers[0]==answers[1]
+        assert proofs[0]==proofs[1]
         assert admin.get(B+f'/conversations/{chat}').json()['actions']==[]
         assert fingerprint()==before
         print(json.dumps(dict(analytics_chat=dict(status=turn['status'],answer=turn['answer'],trace=turn['trace'],actions=[])),ensure_ascii=True))
@@ -266,18 +281,22 @@ def test_data_change_between_sections_never_yields_full_report(assistant_case,cl
 def test_final_prose_receives_server_clock_even_without_tools(assistant_case,clock):
     _,app,admin,_,_=assistant_case
     class ClockBoundary:
-        def chat(self,messages,schema,tokens):return schema(tools=[])
-        def text(self,messages,tokens):
+        def chat(self,messages,schema,tokens):
+            if schema.__name__=='ToolSelection':
+                return schema(tools=[],goals=[dict(id='clock',title='Назвать дату сервера',kind='conversation',tool='')])
+            assert schema.__name__=='FinalReply'
             context=json.loads(messages[-1]['content'])['server_context']
             assert context['local_date']=='2026-11-15' and context['timezone']
-            return 'TEST ONLY: server clock reached the final prompt'
+            return schema(answer='TEST ONLY: server clock reached the final prompt')
     app.state.assistant_provider_factory=ClockBoundary
     try:
         chat=thread(admin)
         response=admin.post(B+f'/conversations/{chat}/messages',json=dict(content='Какая сегодня дата в системе?',idempotency_key=str(uuid4())))
         assert response.status_code==202
-        turn=admin.get(B+f'/conversations/{chat}').json()['turns'][-1]
-        assert turn['status']=='completed' and turn['answer']=='TEST ONLY: server clock reached the final prompt'
+        view=admin.get(B+f'/conversations/{chat}').json();turn=view['turns'][-1]
+        assert turn['status']=='completed' and turn['workflow']['outcome']=='response_only'
+        assert turn['workflow']['goals'][0]['status']=='answered' and not view['actions']
+        assert 'TEST ONLY: server clock reached the final prompt' in turn['answer']
     finally:del app.state.assistant_provider_factory
 
 

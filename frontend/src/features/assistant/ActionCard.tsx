@@ -8,8 +8,22 @@ const labels:Record<string,string>={role:'Роль',user_id:'Сотрудник'
 const states:Record<ChatAction['status'],string>={proposed:'Нужно ваше подтверждение',rejected:'Отклонено',executing:'Выполняется',succeeded:'Выполнено',failed:'Действие отклонено системой',uncertain:'Результат требует проверки',stale:'Предложение устарело'};
 const values:Record<string,string>={director:'Руководитель',chief_engineer:'Главный инженер',admin:'Администратор',dispatcher:'Диспетчер',engineer:'Инженер',executor:'Исполнитель',before:'До работы',after:'После работы',active:'В работе',under_repair:'На ремонте',retired:'Выведено из эксплуатации',customer:'Данные заказчика',synthetic_demo:'Тестовые данные',accepted:'Принять',rejected:'Вернуть на доработку'};
 function value(v:unknown){return v===null?'Не задано':typeof v==='boolean'?v?'Да':'Нет':typeof v==='object'?JSON.stringify(v,null,2):values[String(v)]??String(v);}
+function protectedResource(data:unknown):{url:string;title:string}|null{
+  if(!data||typeof data!=='object')return null;
+  const resource=(data as {resource?:unknown}).resource;
+  if(!resource||typeof resource!=='object')return null;
+  const {url,title,protected:secured}=resource as {url?:unknown;title?:unknown;protected?:unknown};
+  if(secured!==true||typeof url!=='string'||!url.startsWith('/api/v1/')||/[\\\u0000-\u0020\u007f]/.test(url))return null;
+  try{
+    const parsed=new URL(url,'https://fixrate.invalid');
+    if(parsed.origin!=='https://fixrate.invalid'||!parsed.pathname.startsWith('/api/v1/'))return null;
+  }catch{return null;}
+  return {url,title:typeof title==='string'&&title.trim()?title.trim().slice(0,200):'Открыть защищённый просмотр'};
+}
 export const ActionCard=memo(function ActionCard({action:original,title,onChanged,attachments=[]}:{action:ChatAction;title:string;onChanged:()=>void;attachments?:ChatAttachment[]}){
-  const [resolved,setResolved]=useState<ChatAction|null>(null);const action=resolved??original;
+  const [resolved,setResolved]=useState<ChatAction|null>(null);
+  const phase=(status:ChatAction['status'])=>status==='proposed'?0:status==='executing'?1:2;
+  const action=resolved?.action_id===original.action_id&&phase(resolved.status)>phase(original.status)?resolved:original;
   const [secrets,setSecrets]=useState<Record<string,string>>({});
   const [consent,setConsent]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
   const expired=Date.parse(action.expires_at)<Date.now();
@@ -17,8 +31,12 @@ export const ActionCard=memo(function ActionCard({action:original,title,onChange
   const before=action.before_snapshot?.preview;
   const run=async(confirm:boolean)=>{setBusy(true);setError('');try{const result=confirm?(action.secret_fields?.length?await assistantApi.confirm(action,secrets):await assistantApi.confirm(action)):await assistantApi.reject(action.action_id);setResolved(result);setSecrets({});onChanged();const navigate=(result.result?.data as {navigate_to?:unknown}|undefined)?.navigate_to;if(navigate==='/assistant'||navigate==='/login'){notifyOtherTabs();window.location.assign(navigate);}}catch(e){setError(e instanceof Error?e.message:'Не удалось выполнить действие');onChanged();}finally{setBusy(false);}};
   const target=action.arguments.path?.equipment_id;
+  const verification=action.result?.verification;
+  const resource=action.status==='succeeded'?protectedResource(action.result?.data):null;
+  const stateLabel=action.status==='succeeded'&&verification?verification.status==='confirmed'?'Выполнено и проверено':'Запись выполнена; результат требует проверки':states[action.status];
   return <section className="min-w-0 space-y-4 rounded-2xl border border-accent/30 bg-surface p-4 sm:p-5" aria-label={`Предложение: ${title}`}>
-    <div className="flex flex-wrap items-start justify-between gap-2"><h3 className="font-semibold">{title}</h3><span role="status" className="text-xs text-muted">{states[action.status]}</span></div>
+    <div className="flex flex-wrap items-start justify-between gap-2"><h3 className="font-semibold">{title}</h3><span role="status" className="text-xs text-muted">{stateLabel}</span></div>
+    {verification&&<p className="text-sm whitespace-pre-wrap">{verification.summary}</p>}
     <p className="whitespace-pre-wrap text-sm">{action.explanation}</p>
     {typeof target==='string'&&<Link className="text-sm text-accent underline" to={`/equipment/${encodeURIComponent(target)}`}>Открыть оборудование</Link>}
     <dl className="space-y-2 text-sm">{fields.map(([key,v])=><div key={key} className="grid min-w-0 gap-1 border-t border-line pt-2 sm:grid-cols-[160px_minmax(0,1fr)]"><dt className="text-muted">{labels[key]??key}</dt><dd className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{attachments.find(a=>a.attachment_id===v)?.original_name??value(v)}</dd></div>)}</dl>
@@ -27,6 +45,7 @@ export const ActionCard=memo(function ActionCard({action:original,title,onChange
     {action.status==='proposed'&&<><p className="text-xs text-muted">Проверяйте объект, значения и причину. Подтверждение относится только к этому предложению; срок действия — 15 минут.</p>{expired?<Callout>Предложение истекло. Попросите подготовить новое.</Callout>:<fieldset disabled={busy} className="space-y-3">{action.secret_fields?.map(field=><label key={field} className="block text-sm">{field==='current_password'?'Текущий пароль':field==='api_key'?'Ключ провайдера':field}<input type="password" autoComplete={field==='current_password'?'current-password':'off'} className="mt-2 block w-full rounded-lg border border-line bg-transparent p-2" value={secrets[field]??''} onChange={e=>setSecrets(v=>({...v,[field]:e.target.value}))}/><span className="mt-1 block text-xs text-muted">Ввод передаётся только при подтверждении, без записи в историю и передачи ИИ.</span></label>)}<label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)} className="mt-1"/>Я проверил параметры и подтверждаю это изменение</label><div className="flex flex-wrap gap-2"><Button disabled={!consent||action.secret_fields?.some(field=>!secrets[field])} onClick={()=>void run(true)}>{busy?'Выполнение…':'Подтвердить и выполнить'}</Button><Button variant="secondary" onClick={()=>void run(false)}>Отклонить</Button></div></fieldset>}</>}
     {action.status==='uncertain'&&<Callout tone="warning">Ответ после выполнения потерян. Проверьте состояние в системе перед новой командой. Повторное подтверждение не запустит действие ещё раз.</Callout>}
     {action.result?.message&&<p className="text-sm whitespace-pre-wrap">{action.result.message}</p>}
+    {resource&&<a className="assistant-resource" href={resource.url} target="_blank" rel="noopener noreferrer">{resource.title}<span className="block text-xs text-muted">Защищённый просмотр · доступ проверяется при открытии</span></a>}
     {action.result?.data!==undefined&&<details className="text-sm"><summary className="cursor-pointer text-accent">Результат действия</summary><pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs [overflow-wrap:anywhere]">{JSON.stringify(action.result.data,null,2)}</pre></details>}
     {error&&<div role="alert"><Callout tone="danger">{error}</Callout></div>}
   </section>;

@@ -122,9 +122,10 @@ def test_inventory_matches_postgres_and_chat_never_needs_workbooks(assistant_cas
     assert {r['id'] for r in inventory['items']}=={r['equipment_id'] for r in registry['items'][:25]}
     for item,source in zip(inventory['items'],registry['items']):
         assert item['operations']==len(source['services'])
-    class NoModel:
-        def chat(self,*args):raise AssertionError('Facts must come from PostgreSQL')
-    app.state.assistant_provider_factory=NoModel
+    from tests.backend.test_assistant import Scripted
+    model=Scripted([dict(answer='',calls=[dict(tool='inventory_read',arguments={},explanation='TEST request authorized registry facts')])],
+                   goals=[dict(id='inventory',title='Проверить весь доступный реестр и регламенты',tool='inventory_read',requires_full_list=True)])
+    app.state.assistant_provider_factory=lambda:model
     try:
         chat=thread(client)
         sent=client.post(B+f'/conversations/{chat}/messages',json=dict(content='Проанализируй все доступные объекты и оборудование. Покажи, какие системы требуют технического обслуживания, сколько операций предусмотрено регламентами и по каким объектам не хватает данных для планирования.',idempotency_key=str(uuid4())))

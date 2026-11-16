@@ -7,6 +7,37 @@ from app.assistant.task_report import requested as tasks_requested
 from app.assistant.grounding import regulation_lookup,equipment_code,equipment_listing
 
 
+@pytest.mark.parametrize('question',[
+    'List saved operations. Do not create, approve or edit operations.',
+    'Show the crew. Do not assign tasks or edit the crew.',
+    'Read the profile. Never change roles and reset passwords.',
+    'Покажи оборудование. Не изменяй имя и удаляй оборудование.',
+])
+def test_coordinated_prohibitions_do_not_turn_reads_into_mutations(question):
+    assert not mutation_requested(question)
+
+
+@pytest.mark.parametrize('question',[
+    'Do not delete equipment; rename it.',
+    'Do not edit equipment. Publish the plan.',
+    'Do not rename it, but update its location.',
+    'Do not delete it, then edit its name.',
+    'This is not a read: rename equipment.',
+    'Насос не работает, переименуй его.',
+    'Not only edit the name but publish the plan.',
+])
+def test_positive_action_after_a_negative_clause_still_requires_mutation_handling(question):
+    assert mutation_requested(question)
+
+
+def test_analysing_needed_replacements_is_not_an_immediate_install_or_replace_command():
+    from app.assistant.intents import mutation_command_requested
+    assert not mutation_command_requested('Проанализируй ресурс. Определи, какие детали необходимо заменить, и предложи включить их в график.')
+    assert mutation_command_requested('Переименуй оборудование. Остальные поля не меняй.')
+    assert mutation_command_requested('Show the saved card, then rename equipment.')
+    assert mutation_command_requested('Start only my assigned task. Do not accept a report.')
+
+
 @pytest.mark.parametrize('prefix',[
     'Покажи оборудование текущего объекта.',
     'Покажи регламент насоса с кодом RT-PUMP.',

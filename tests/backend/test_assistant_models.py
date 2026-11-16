@@ -1,5 +1,6 @@
 """Real PostgreSQL/API preferences; explicitly fixture-based external catalog responses."""
 from uuid import uuid4
+import os
 from contextlib import closing
 import pytest
 from sqlalchemy import text
@@ -43,9 +44,11 @@ def test_actual_catalog_shape_filters_non_chat_and_remote_and_never_returns_key(
 def test_model_selection_is_durable_and_capabilities_use_the_selection(models_case):
     c=models_case;before=c['client'].get(B+'/model-preference').json();assert before['revision']==0 and before['selection']['provider']=='ollama'
     saved=choose(c);assert saved.status_code==200,saved.text
-    assert saved.json()==dict(selection=dict(provider='aitunnel',model='fixture-qwen'),revision=1,is_default=False,available=True)
+    assert saved.json()==dict(selection=dict(provider='aitunnel',model='fixture-qwen'),revision=1,is_default=False,available=os.environ.get('FIXRATE_LLM_LOCAL_ONLY')!='1')
     reread=c['client'].get(B+'/model-preference').json();assert reread==saved.json()
-    caps=c['client'].get(B+'/capabilities').json();assert caps['model_ref']=='aitunnel:fixture-qwen' and caps['model_preference']==reread
+    caps=c['client'].get(B+'/capabilities').json();assert caps['model_preference']==reread
+    if os.environ.get('FIXRATE_LLM_LOCAL_ONLY')=='1':assert caps['model_ref'] is None and caps['available'] is False
+    else:assert caps['model_ref']=='aitunnel:fixture-qwen'
     with c['engine'].connect() as db:
         row=db.execute(text('SELECT provider,model,digest,revision FROM assistant_model_preferences WHERE user_id=:id'),dict(id=c['ids']['user'])).one()
     assert tuple(row)==('aitunnel','fixture-qwen',None,1)
@@ -114,10 +117,13 @@ def test_catalog_cache_refresh_and_filter_do_not_requery_each_model(models_case)
     assert c['client'].get(B+'/models?refresh=true').status_code==200 and len(c['calls'])==count*2
 
 def test_turn_freezes_model_and_revision_and_replay_cannot_change_it(models_case,monkeypatch):
-    c=models_case;assert choose(c).status_code==200
+    c=models_case;assert choose(c,'ollama','fixture-a:latest').status_code==200
     captured=[]
     class ExplicitModelStub:
-        def chat(self,messages,schema,tokens):return ToolSelection(tools=[])
+        def chat(self,messages,schema,tokens):
+            if schema.__name__=='ToolSelection':return schema(tools=[],goals=[dict(id='identity',title='Рассказать о возможностях помощника',tool='',kind='conversation')])
+            assert schema.__name__=='FinalReply'
+            return schema(answer='Тестовый ответ провайдера; проверяется транспорт выбора модели, не качество генерации.')
         def text(self,*args):return 'Тестовый ответ провайдера; проверяется транспорт выбора модели, не качество генерации.'
     def factory(selection=None):
         captured.append(selection)
@@ -127,7 +133,7 @@ def test_turn_freezes_model_and_revision_and_replay_cannot_change_it(models_case
     monkeypatch.setattr(service,'provider',factory)
     chat=thread(c['client']);key=str(uuid4());body=dict(content='Кто ты?',idempotency_key=key,model_preference_revision=1)
     sent=c['client'].post(B+f'/conversations/{chat}/messages',json=body);assert sent.status_code==202,sent.text
-    assert captured==[dict(provider='aitunnel',model='fixture-qwen',preference_revision=1)]
+    assert captured==[dict(provider='ollama',model='fixture-a:latest',digest='sha256:'+'a'*64,preference_revision=1)]
     turn=c['client'].get(B+'/conversations/'+chat).json()['turns'][0]
     assert turn['model_selection']==captured[0] and turn['status']=='completed'
     assert c['client'].post(B+f'/conversations/{chat}/messages',json=body).status_code==202
@@ -152,8 +158,12 @@ def test_preference_does_not_cross_role_or_site(models_case):
     assert c['client'].get(B+'/model-preference').json()['selection']['model']=='fixture-qwen'
 
 def test_provider_config_uses_selected_model_without_secret_in_snapshot(models_case):
-    cloud=model_preferences.config(dict(provider='aitunnel',model='fixture-qwen'))
-    assert cloud.model=='fixture-qwen' and cloud.api_key=='catalog-secret-fixture' and 'catalog-secret-fixture' not in repr(cloud)
+    if os.environ.get('FIXRATE_LLM_LOCAL_ONLY')=='1':
+        with pytest.raises(ValueError,match='External LLM providers are disabled'):
+            model_preferences.config(dict(provider='aitunnel',model='fixture-qwen'))
+    else:
+        cloud=model_preferences.config(dict(provider='aitunnel',model='fixture-qwen'))
+        assert cloud.model=='fixture-qwen' and cloud.api_key=='catalog-secret-fixture' and 'catalog-secret-fixture' not in repr(cloud)
     local=model_preferences.config(dict(provider='ollama',model='fixture-b:latest',digest='sha256:'+'b'*64))
     assert local.model=='fixture-b:latest' and local.digest=='sha256:'+'b'*64
 
@@ -179,12 +189,13 @@ def test_preference_is_scoped_to_the_selected_site(models_case):
 
 def test_running_turn_keeps_its_captured_deadline_after_model_change(models_case,monkeypatch):
     c=models_case;assert choose(c,'ollama','fixture-b:latest').status_code==200
+    expected_budget=service.turn_timeout_seconds(c['client'].get(B+'/model-preference').json()['selection'])
     monkeypatch.setattr(service,'run_turn',lambda *args:service.SLOTS.release())
     chat=thread(c['client'])
     sent=c['client'].post(B+f'/conversations/{chat}/messages',json=dict(content='TEST ONLY delayed worker',idempotency_key=str(uuid4()),model_preference_revision=1));assert sent.status_code==202,sent.text
     with c['engine'].connect() as db:
         before=db.execute(text('SELECT model_selection,deadline_at-created_at AS budget FROM assistant_turns WHERE turn_id=:id'),dict(id=sent.json()['turn_id'])).mappings().one()
-    assert before['budget'].total_seconds()>240
+    assert expected_budget-5<=before['budget'].total_seconds()<=expected_budget+5
     assert choose(c,'aitunnel','fixture-qwen',1).status_code==200
     assert c['client'].get(B+'/conversations/'+chat).json()['turns'][0]['status']=='running'
     with c['engine'].begin() as db:db.execute(text("UPDATE assistant_turns SET deadline_at=now()-interval '1 minute' WHERE turn_id=:id"),dict(id=sent.json()['turn_id']))
@@ -205,7 +216,11 @@ def test_only_catalog_can_mark_cloud_presets_as_aliases(models_case):
     assert selected.status_code==200,selected.text
     selection=selected.json()['selection']
     assert selection==dict(provider='aitunnel',model='preset-test',is_alias=True)
-    assert model_preferences.config(selection).allow_model_alias
-    assert not model_preferences.config(dict(provider='aitunnel',model='fixture-qwen')).allow_model_alias
+    if os.environ.get('FIXRATE_LLM_LOCAL_ONLY')=='1':
+        for value in (selection,dict(provider='aitunnel',model='fixture-qwen')):
+            with pytest.raises(ValueError,match='External LLM providers are disabled'):model_preferences.config(value)
+    else:
+        assert model_preferences.config(selection).allow_model_alias
+        assert not model_preferences.config(dict(provider='aitunnel',model='fixture-qwen')).allow_model_alias
     forged=c['client'].post(B+'/model-preference',json=dict(provider='aitunnel',model='fixture-qwen',expected_revision=1,is_alias=True))
     assert forged.status_code==422

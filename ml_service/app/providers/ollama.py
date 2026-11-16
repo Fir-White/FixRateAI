@@ -10,6 +10,21 @@ from pydantic import ValidationError
 logger=logging.getLogger(__name__)
 
 
+def _string_choices(field,definitions):
+    """Read the Pydantic enum, including optional aliases and enum references."""
+    choices=[];seen=set()
+    def visit(node):
+        if not isinstance(node,dict):return
+        reference=node.get('$ref')
+        if reference and reference not in seen:
+            seen.add(reference);visit(definitions.get(reference.rsplit('/',1)[-1],{}))
+        choices.extend(item for item in node.get('enum',[]) if isinstance(item,str))
+        if isinstance(node.get('const'),str):choices.append(node['const'])
+        for branch in node.get('anyOf',[])+node.get('oneOf',[]):visit(branch)
+    visit(field)
+    return list(dict.fromkeys(choices))
+
+
 def agent_wire_schema(schema,tool_modes=None):
     """Native grammar encodes arguments as an object, not JSON inside JSON.
 
@@ -18,6 +33,52 @@ def agent_wire_schema(schema,tool_modes=None):
     backend validations still apply after decoding.
     """
     value=schema.model_json_schema()
+    if schema.__name__=='ToolSelection' and tool_modes is not None and 'GoalSpec' in value.get('$defs',{}):
+        goal=value['$defs']['GoalSpec']
+        outcomes=_string_choices(goal['properties'].get('outcome'),value['$defs'])
+        if not outcomes or 'other' not in outcomes:raise ValueError('Business outcome enum is required by the local planner')
+        properties={}
+        for key,field in goal['properties'].items():
+            if key=='outcome':continue
+            if key=='tool':properties['outcome']=dict(type='string',enum=outcomes,
+                description=goal['properties']['outcome'].get('description','Desired business result, selected before its tool.'))
+            properties[key]=field
+        # Local grammar implementations may ignore string maxLength. Opaque
+        # server workflow labels need no user/resource-derived text.
+        properties['id']=dict(type='string',enum=[f'g{index}' for index in range(1,13)],description='Opaque objective label: g1, g2, etc.; never a task UUID or the complete title.')
+        required_fields=set(goal.get('required',[]))|{'outcome','kind','selector','changes','required_evidence'}
+        required=[key for key in properties if key in required_fields]
+        variants=[]
+        generic=['saved_data','calendar_calculation','manufacturer_document','optimizer_result','file_content','user_decision']
+        def variant(kind,names,selected,evidence):
+            variants.append({**goal,'required':required,'properties':{**properties,
+                'kind':dict(type='string',const=kind),'tool':dict(type='string',enum=names) if names else dict(type='string',const=''),
+                'outcome':dict(properties['outcome'],**({'const':selected[0],'enum':selected} if len(selected)==1 else {'enum':selected})),
+                'required_evidence':dict(type='string',enum=evidence)}})
+        names=sorted(name for name,mode in tool_modes.items() if mode=='read')
+        if names:
+            # Business intent fixes the evidence contract independently of the
+            # guessed read tool. The server can rectify a wrong tool selection.
+            saved=[name for name in outcomes if name not in ('other','calendar_obligations','file_analysis')]
+            for selected,evidence in ((saved,['saved_data']),(['calendar_obligations'],['calendar_calculation']),
+                                      (['file_analysis'],['file_content'])):
+                selected=[name for name in selected if name in outcomes]
+                if selected:variant('read',names,selected,evidence)
+            typed_sources=set(goal['properties']['outcome'].get('x-read-outcome-tools',{}).values())
+            untyped=[name for name in names if name not in typed_sources]
+            if untyped:variant('read',untyped,['other'],generic)
+        names=sorted(name for name,mode in tool_modes.items() if mode=='write')
+        if names:variant('change',names,['other'],['saved_data','optimizer_result'])
+        variant('conversation',[],['other'],['conversation'])
+        variant('unavailable',[],['other'],generic)
+        for selected,evidence in (([item for item in outcomes if item not in ('other','calendar_obligations','file_analysis')],['saved_data']),
+                                  (['calendar_obligations'],['calendar_calculation']),(['file_analysis'],['file_content'])):
+            selected=[item for item in selected if item in outcomes]
+            if selected:variant('unavailable',[],selected,evidence)
+        value['$defs']['GoalSpec']=dict(anyOf=variants)
+        selector=value['$defs'].get('GoalSelector')
+        if selector:selector['required']=list(selector['properties'])
+        value['required']=list(dict.fromkeys([*value.get('required',[]),'goals']))
     if schema.__name__=='AgentStep' and 'AgentCall' in value.get('$defs',{}):
         call=value['$defs']['AgentCall']
         arguments=dict(type='object',description='Tool arguments as a JSON OBJECT, never a string. Only use fields supported by the selected tool.',
@@ -54,7 +115,7 @@ def agent_wire_messages(messages):
                 if isinstance(value,dict) and set(value)=={'answer','calls'} and isinstance(value['calls'],list):
                     changed=False
                     for call in value['calls']:
-                        if isinstance(call,dict) and set(call)=={'tool','arguments_json','explanation'} and isinstance(call['arguments_json'],str):
+                        if isinstance(call,dict) and {'tool','arguments_json','explanation'}<=set(call)<= {'tool','arguments_json','explanation','goal_id'} and isinstance(call['arguments_json'],str):
                             arguments=json.loads(call['arguments_json'])
                             if isinstance(arguments,dict):call['arguments_json']=arguments;changed=True
                     if changed:replacement={**message,'content':json.dumps(value,ensure_ascii=False)}
@@ -63,7 +124,21 @@ def agent_wire_messages(messages):
     return result
 
 
-def decode_agent_wire(schema,value):
+def decode_agent_wire(schema,value,tool_modes=None):
+    if schema.__name__=='ToolSelection' and tool_modes is not None:
+        decoded=json.loads(value)
+        variants=agent_wire_schema(schema,tool_modes)['$defs']['GoalSpec']['anyOf']
+        def matches(goal,variant):
+            if not isinstance(goal,dict) or not set(variant['required'])<=set(goal):return False
+            for key in ('kind','outcome','tool','required_evidence'):
+                field=variant['properties'][key];item=goal.get(key)
+                if 'const' in field and item!=field['const'] or 'enum' in field and item not in field['enum']:return False
+            return True
+        if not isinstance(decoded,dict) or 'goals' not in decoded or not isinstance(decoded['goals'],list):
+            raise ValueError('Local planner objectives are required')
+        if any(not any(matches(goal,variant) for variant in variants) for goal in decoded['goals']):
+            raise ValueError('Local planner objective does not match its business outcome evidence contract')
+        return schema.model_validate(decoded)
     if schema.__name__!='AgentStep':return schema.model_validate_json(value)
     decoded=json.loads(value)
     if isinstance(decoded,dict) and isinstance(decoded.get('calls'),list):
@@ -118,6 +193,7 @@ class OllamaConfig:
 class OllamaClient:
     def __init__(self,config):
         self.config=config;self.deadline=time.monotonic()+config.timeout;self.response_model=None
+        self.metrics=[]
         self.opener=build_opener(ProxyHandler({}),NoRedirect())
 
     def set_tool_modes(self,modes):
@@ -161,7 +237,15 @@ class OllamaClient:
             converted=[*converted,dict(role='system',content='Return exactly one JSON object matching this schema. Use exact property names, include required fields. '+json.dumps(payload['format'],ensure_ascii=False))]
             payload['messages']=converted
         for attempt in range(2 if schema else 1):
-            raw=self.request('/api/chat',payload)
+            started=time.monotonic()
+            try:raw=self.request('/api/chat',payload)
+            except Exception:
+                self.metrics.append(dict(seconds=round(time.monotonic()-started,4),schema=schema.__name__ if schema else 'text',status='failed'))
+                raise
+            metric=dict(seconds=round(time.monotonic()-started,4),schema=schema.__name__ if schema else 'text')
+            if isinstance(raw,dict):
+                metric.update({key:raw[key] for key in ('prompt_eval_count','eval_count') if type(raw.get(key)) is int and raw[key]>=0})
+            self.metrics.append(metric)
             try:
                 if not isinstance(raw,dict):raise OllamaFailure('OLLAMA_INVALID_RESPONSE',reason='invalid_envelope')
                 if raw.get('model')!=self.config.model:raise OllamaFailure('OLLAMA_INVALID_RESPONSE',reason='unexpected_model')
@@ -170,7 +254,7 @@ class OllamaClient:
                 value=raw['message']['content']
                 if not isinstance(value,str) or not value.strip():raise OllamaFailure('OLLAMA_INVALID_RESPONSE',reason='empty_content')
                 if len(value)>200000:raise OllamaFailure('OLLAMA_INVALID_RESPONSE',reason='content_too_large')
-                if schema:result=decode_agent_wire(schema,value)
+                if schema:result=decode_agent_wire(schema,value,getattr(self,'tool_modes',None))
                 else:
                     result=value.strip()
                     if len(result)>32000:raise OllamaFailure('OLLAMA_INVALID_RESPONSE',reason='content_too_large')

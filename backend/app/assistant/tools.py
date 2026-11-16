@@ -50,6 +50,9 @@ TOOLS=(
  Tool('equipment_edit','Изменить оборудование','PATCH',P+'/equipment/{equipment_id}',EDIT,'write',before='equipment_read'),
  Tool('equipment_retire','Вывести оборудование из эксплуатации','DELETE',P+'/equipment/{equipment_id}',EDIT,'write',before='equipment_read'),
  Tool('regulations_read','Регламенты и чек-листы оборудования','GET',P+'/equipment/{equipment_id}/service-configurations',agents=('assistant','planner','photo')),
+ Tool('calendar_evidence','Рассчитать календарную периодичность по сохранённому регламенту','GET','/api/v1/assistant/workspace/equipment/{equipment_id}/calendar-evidence',agents=('assistant','planner','photo')),
+ Tool('equipment_service_history','Фактическая история оборудования за период по отчётам и приёмке','GET','/api/v1/assistant/workspace/equipment/{equipment_id}/history',agents=('assistant','planner','photo')),
+ Tool('workbook_readiness','Проверить исходный XLSX для расчёта трудозатрат и численности без выдуманных нормативов','GET','/api/v1/assistant/workspace/workbook-readiness',agents=('assistant','planner','photo')),
  Tool('regulation_create','Добавить конфигурацию обслуживания','POST',P+'/equipment/{equipment_id}/service-configurations',('chief_engineer','admin'),'write'),
  Tool('regulation_edit','Изменить конфигурацию обслуживания','PUT',P+'/equipment/{equipment_id}/service-configurations/{binding_id}',('chief_engineer','admin'),'write',before='regulations_read'),
  Tool('tasks_list','Задания текущего объекта и пользователя','GET',P+'/ui/tasks',agents=('assistant','planner','photo')),
@@ -128,7 +131,14 @@ def file_fields(app,tool):
     return {f.name for f in route_for(app,tool).dependant.body_params if f.field_info.__class__.__name__=='File'}
 
 def catalog(app,role,agent):
-    return [dict(name=t.name,title=t.title,requires_confirmation=t.mode=='write') for t in available(app,role,agent).values()]
+    result=[]
+    for tool in available(app,role,agent).values():
+        entry=dict(name=tool.name,title=tool.title,requires_confirmation=tool.mode=='write')
+        if tool.mode=='write':
+            body=describe(app,tool)['inputSchema'].get('properties',{}).get('body',{})
+            entry['body_fields']=list(body.get('properties',{}))
+        result.append(entry)
+    return result
 
 def describe(app,tool):
     operation=app.openapi()['paths'][tool.path][tool.method.lower()]
@@ -241,6 +251,77 @@ def bounded(value,depth=0):
     if isinstance(value,str):return value if len(value)<=3000 else value[:3000]+' [текст сокращён; используйте view]'
     return value
 
+def enrollment_values(tool_name,value):
+    """Only known enrollment output shapes identify credential strings."""
+    if tool_name not in ('enrollment_read','enrollment_create'):return frozenset()
+    found=set()
+    def visit(node):
+        if not isinstance(node,dict):return
+        code=node.get('code')
+        if isinstance(code,str) and re.fullmatch(r'[A-Za-z0-9_-]{16,256}',code):found.add(code)
+        if node.get('source_path')==['code'] and isinstance(node.get('text_parts'),list):
+            joined=''.join(part for part in node['text_parts'] if isinstance(part,str))
+            if re.fullmatch(r'[A-Za-z0-9_-]{16,256}',joined):found.add(joined)
+        for key in ('data','preview','result'):
+            if isinstance(node.get(key),dict):visit(node[key])
+    visit(value)
+    return frozenset(found)
+
+
+def workflow_enrollment_values(state):
+    values=set()
+    for proof in (state or {}).get('evidence',[]):
+        values.update(enrollment_values(proof.get('tool'),proof.get('result')))
+    return frozenset(values)
+
+
+def mask_known_outputs(value,known):
+    """Exact known bearer strings only; ordinary business codes stay intact."""
+    if not known:return value
+    if isinstance(value,str):
+        for secret in sorted(known,key=len,reverse=True):value=value.replace(secret,'[защищённый код]')
+        return value
+    if isinstance(value,dict):return {key:mask_known_outputs(item,known) for key,item in value.items()}
+    if isinstance(value,list):return [mask_known_outputs(item,known) for item in value]
+    return value
+
+
+def conversation_enrollment_values(session,principal,conversation_id):
+    """One bounded owner/site/role scoped query; never reads or rotates live code."""
+    from sqlalchemy import text
+    rows=session.execute(text("""/* assistant_enrollment_private_values */
+        SELECT left(a.result->'data'->>'code',257) AS result_code,
+               left(a.result->>'code',257) AS root_code,
+               left(a.before_snapshot->'preview'->>'code',257) AS preview_code
+        FROM assistant_actions a JOIN assistant_conversations c USING(conversation_id)
+        WHERE c.conversation_id=:chat AND c.user_id=:user AND c.site_id=:site AND c.role=:role
+          AND a.tool_name IN ('enrollment_read','enrollment_create')
+          AND (a.result->'data'->>'code' IS NOT NULL OR a.result->>'code' IS NOT NULL
+               OR a.before_snapshot->'preview'->>'code' IS NOT NULL)
+        ORDER BY a.created_at DESC,a.action_id DESC LIMIT 64"""),
+        dict(chat=conversation_id,user=principal.user_id,site=principal.site_id,role=principal.role)).mappings()
+    values=set()
+    for row in rows:
+        for code in row.values():values.update(enrollment_values('enrollment_read',dict(code=code)))
+    return frozenset(values)
+
+
+def protected_result(tool_name,value):
+    """Credentials stay behind the current authenticated API, never in tools.
+
+    Context is deliberately tool-specific: operation and inventory codes are
+    ordinary business identifiers and must remain usable.
+    """
+    if tool_name not in ('enrollment_read','enrollment_create'):return value
+    present=None
+    if isinstance(value,dict):
+        if 'code' in value:present=isinstance(value['code'],str) and bool(value['code'])
+        elif type(value.get('code_present')) is bool:present=value['code_present']
+    return dict(code_present=present,protected_output=True,resource=dict(
+        url='/api/v1/maintenance/management/enrollment',title='Открыть код компании в защищённом просмотре',
+        mime='application/json',protected=True),
+        note='Код доступен только в защищённом просмотре с текущей проверкой прав; значение не передаётся модели и не сохраняется в диалоге.')
+
 async def invoke(app,tool,args,headers):
     # ASGI transport never opens a socket or forwards cookies to the model/provider.
     if tool.name in ('site_switch','session_logout') and COOKIE_EFFECTS.get() is None:raise HTTPException(403,'Изменение сессии требует подтверждения пользователя')
@@ -273,6 +354,8 @@ async def invoke(app,tool,args,headers):
     if response.status_code>=300:
         detail=payload.get('detail','Действие отклонено API') if isinstance(payload,dict) else 'Действие отклонено API'
         raise HTTPException(response.status_code,detail if isinstance(detail,str) else 'Проверьте поля команды')
+    # Filter secret output BEFORE any projection/text slicing or persistence.
+    payload=protected_result(tool.name,payload)
     if args.get('view'):
         view=args['view'];selected=payload
         for key in view['path']:

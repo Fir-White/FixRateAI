@@ -8,6 +8,8 @@ from ml_service.app.providers.ollama import OllamaConfig
 
 def config(selection=None):
     name=selection['provider'] if selection else os.environ.get('ASSISTANT_PROVIDER','aitunnel').strip().lower()
+    if os.environ.get('FIXRATE_LLM_LOCAL_ONLY')=='1' and name!='ollama':
+        raise ValueError('External LLM providers are disabled in local-only execution')
     if name=='ollama':
         values=dict(os.environ)
         if selection:values.update(OLLAMA_CHAT_MODEL=selection['model'],OLLAMA_CHAT_DIGEST=selection['digest'])
