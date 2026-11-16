@@ -256,6 +256,7 @@
             }
           ],
           "default": null,
+          "description": "True for the current/selected site. False ONLY if the user explicitly asks for all authorized sites; do not broaden an unspecified scope.",
           "title": "Current Only"
         },
         "draft_id": {
@@ -309,6 +310,49 @@
           ],
           "default": null,
           "title": "Component Id"
+        },
+        "operation_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Exact saved maintenance operation identity stated by the user or resolved by an authorized catalog read. Never a task or equipment ID.",
+          "title": "Operation Id"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Exact saved work task identity. Do not substitute the first task or an equipment UUID.",
+          "title": "Task Id"
+        },
+        "search": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Literal employee or equipment search text requested by the user, such as the exact email. Do not invent a search term.",
+          "title": "Search"
         }
       },
       "title": "GoalSelector",
@@ -330,6 +374,41 @@
           "minLength": 1,
           "title": "Title",
           "type": "string"
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "enum": [
+                "current_profile",
+                "staff_profile",
+                "staff_search",
+                "workforce",
+                "equipment_inventory",
+                "equipment_card",
+                "equipment_search",
+                "equipment_components",
+                "maintenance_catalog",
+                "maintenance_definition",
+                "reference_catalog",
+                "personal_notifications",
+                "protected_company_code",
+                "calendar_obligations",
+                "accepted_history",
+                "task_card",
+                "task_analysis",
+                "file_analysis",
+                "norm_readiness",
+                "other"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Choose the requested semantic result BEFORE choosing a tool. current_profile is only the signed-in person; staff_profile is the selected employee; equipment_components means installed parts/resources, not the equipment card; maintenance_catalog/definition means saved operations, not service history or work tasks. protected_company_code means an authorized protected link, never file content or a code in chat. Use other for changes, conversation or unavailable objectives.",
+          "title": "Outcome"
         },
         "tool": {
           "description": "REQUIRED exact final outcome tool name from the authorized catalog, not a prerequisite search. Use empty string ONLY when capability or required user decision is genuinely unavailable.",

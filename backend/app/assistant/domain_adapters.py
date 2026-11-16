@@ -9,7 +9,8 @@ from app.schemas.assistant import AgentStep
 import re
 
 
-SUPPORTED={'equipment_read','equipment_edit','regulations_read','calendar_evidence','equipment_service_history','inventory_read','staff_edit','attachment_read','workbook_readiness'}
+LEGACY_SUPPORTED={'equipment_read','equipment_edit','regulations_read','calendar_evidence','equipment_service_history','inventory_read','staff_edit','attachment_read','workbook_readiness'}
+SUPPORTED=LEGACY_SUPPORTED|{'equipment_find','staff_read','staff_find','workforce_read','operations_list','operation_read','components_read','catalog_read','profile_read','notifications_list','enrollment_read','task_read'}
 
 
 def equipment_context(goal, state):
@@ -39,13 +40,40 @@ def equipment_context(goal, state):
 def next_step(goal,state):
     target=goal['tool']
     if target not in SUPPORTED or goal.get('reason')=='plan_outcome_tool_mismatch':return None
+    if target not in LEGACY_SUPPORTED and goal.get('outcome') is None:return None
     selector=goal.get('selector',{})
+    # Bind a single user-provided UUID before accepting a model's wrong ID slot.
+    fields={'staff_profile':'user_id','maintenance_definition':'operation_id','task_card':'task_id','equipment_card':'equipment_id'}
+    identity_key=fields.get(goal.get('outcome'))
+    if identity_key:
+        pattern=r'\b[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}\b'
+        requested=set(re.findall(pattern,state.get('request','')))
+        named={value for value in requested if value.casefold() in goal.get('title','').casefold()}
+        selected=named if len(named)==1 else requested
+        if len(selected)==1:selector[identity_key]=next(iter(selected)).lower()
     def call(name,args):
         import json
         return AgentStep(answer='',calls=[dict(tool=name,arguments_json=json.dumps(args),goal_id=goal['id'],explanation='Подготовлено сервером по выбранному пункту и точным параметрам пользователя.')])
+    if target in ('workforce_read','operations_list','catalog_read','profile_read','notifications_list','enrollment_read'):
+        return call(target,{})
+    if target=='staff_read':
+        return call(target,dict(path=dict(user_id=selector['user_id']))) if selector.get('user_id') else None
+    if target=='staff_find':
+        return call(target,dict(query=dict(q=selector['search']))) if selector.get('search') else None
+    if target=='operation_read':
+        return call(target,dict(path=dict(operation_id=selector['operation_id']))) if selector.get('operation_id') else None
+    if target=='task_read':
+        return call(target,dict(path=dict(task_id=selector['task_id']))) if selector.get('task_id') else None
+    if target=='equipment_find':
+        query={}
+        if selector.get('equipment_code'):query['asset_code']=selector['equipment_code']
+        elif selector.get('search'):query['q']=selector['search']
+        elif goal.get('outcome') not in (None,'equipment_search'):return None
+        return call(target,dict(query=query))
     if target=='inventory_read':
         query={}
         if selector.get('current_only') is not None:query['current_only']=selector['current_only']
+        elif goal.get('outcome')=='equipment_inventory':query['current_only']=True
         return call(target,dict(query=query))
     if target=='staff_edit':
         if not selector.get('user_id') or not goal.get('changes'):return None

@@ -5,20 +5,88 @@
   "branch": "feature/agent-orchestrator-20261116",
   "policy": "Installed local Ollama only; no cloud fallback, weight downloads, production deployment or live preference changes",
   "tasks": [
-    {"id": "preserve-owner-slice", "status": "completed", "evidence": "8284c69 and private 35-file ZIP/hash manifest"},
-    {"id": "persisted-single-executor", "status": "in_progress", "evidence": "migration 023, workflow state, root action uniqueness; independent focused DB tests passed; integration continues"},
-    {"id": "authoritative-business-adapters", "status": "in_progress", "remaining": "File/analytics/planning adapters integrated; finish frozen overall acceptance and operation-specific postconditions for remaining writes"},
-    {"id": "engineering-facts", "status": "in_progress", "evidence": "Two frozen local4B rounds R7/R8 pass all calendar/history objectives and retain manufacturer blocker", "remaining": "Repeat on final follow-up source and complete broader operation acceptance"},
-    {"id": "all-operation-acceptance", "status": "open", "remaining": "173 operations, 708 allowed role-operation cells after workbook readiness export; positive E2E evidence is not implied by registration"},
-    {"id": "frozen-full-regression", "status": "in_progress", "evidence": "R3 source stable, deliberately interrupted after 1507 markers/9 failures and provider exhaustion hang. Follow-up focused154 actual native tests passed with stable source/corpus and full pipeline exit0", "remaining": "Complete uninterrupted frozen backend/ML after watchdog, atomic equipment snapshot and trace repairs"},
-    {"id": "live-baseline-comparison", "status": "in_progress", "remaining": "Strict same-corpus/same-model/source-stable repetitions; preserve failed runs and oracle corrections"},
-    {"id": "production-ui-performance", "status": "in_progress", "evidence": "46 targeted UI tests/typecheck/build and 48 production Chrome API-fixture checks in 6 profiles passed; sources pinned", "remaining": "Seven full-suite UI failures, CPU4 navigation 420-488ms, normal mobile reduced-motion 105.6ms and scroll p95 up to 19.6ms; physical touch/device benchmark not measured"},
-    {"id": "durable-operations", "status": "open", "remaining": "Automatic queue/lease recovery and read-only reconciliation; never replay uncertain writes"},
-    {"id": "clarification-continuation", "status": "open", "remaining": "Explicit resume preserves original request and static user-decision blockers. Add a validated amendment protocol for newly supplied choices without weakening immutable mutation/evidence constraints; a separate new message is not proof that the original blocked goal finished"},
-    {"id": "protected-credential-outputs", "status": "in_progress", "evidence": "Enrollment output filtered before projection/model/persistence; owned legacy structured values and linked text masked on read/resume; protected authenticated resource link; ten native boundary cases and 53 assistant UI cases passed", "remaining": "Real local-model protected-read acceptance and separate audit/cleanup of unlinked historical free text outside bounded 64 legacy structured outputs; live DB was not rewritten"},
-    {"id": "all-write-postconditions", "status": "open", "evidence": "9 of 74 writes now have dedicated action_outcomes checks including staff membership/date changes and replay", "remaining": "65 unsupported receipts remain explicitly unverified. Publication workflows add their own owned receipt/current-state proof; generic optimistic receipt verification is prohibited"},
-    {"id": "large-list-snapshots", "status": "in_progress", "evidence": "Atomic equipment_find count/page/context-bound SHA256 passes six DB cases including same-count mutation and executor revoke", "remaining": "Other multipage endpoints without stable snapshot remain partial; consistent snapshot/cursor and resumable coverage for large inventory still open"},
-    {"id": "result-delivery", "status": "in_progress", "evidence": "Nested server facts, instructions/units/diffs exposed with a shared bounded display budget; truncated delivery leaves goal partial", "remaining": "All-operation positive presentation acceptance and authorized saved-snapshot viewer"},
-    {"id": "publication", "status": "not_requested", "remaining": "No deploy or push; result remains isolated for review and safe integration"}
+    {
+      "id": "preserve-owner-slice",
+      "status": "completed",
+      "evidence": "8284c69 and private 35-file ZIP/hash manifest"
+    },
+    {
+      "id": "persisted-single-executor",
+      "status": "in_progress",
+      "evidence": "migration 023, workflow state, root action uniqueness; independent focused DB tests passed; integration continues"
+    },
+    {
+      "id": "authoritative-business-adapters",
+      "status": "in_progress",
+      "remaining": "File/analytics/planning adapters integrated; finish frozen overall acceptance and operation-specific postconditions for remaining writes"
+    },
+    {
+      "id": "engineering-facts",
+      "status": "in_progress",
+      "evidence": "Two frozen local4B rounds R7/R8 pass all calendar/history objectives and retain manufacturer blocker",
+      "remaining": "Repeat on final follow-up source and complete broader operation acceptance"
+    },
+    {
+      "id": "all-operation-acceptance",
+      "status": "open",
+      "remaining": "173 operations, 708 allowed role-operation cells after workbook readiness export; positive E2E evidence is not implied by registration"
+    },
+    {
+      "id": "frozen-full-regression",
+      "status": "in_progress",
+      "evidence": "Frozen 7490a41: 2659 passed/1 failed/55 skipped/1 xfailed, stable source/corpus. Only obsolete conversation-completion expectation failed; actual clock oracle passed. New intent-first native focused set: 229 passed, full pipeline exit0 and stable source/corpus.",
+      "remaining": "Uninterrupted full backend/ML repeat on intent-first and protected-output source"
+    },
+    {
+      "id": "live-baseline-comparison",
+      "status": "in_progress",
+      "remaining": "Strict same-corpus/same-model/source-stable repetitions; preserve failed runs and oracle corrections",
+      "evidence": "b3fd203 frozen R7/R8: 4/4 each vs baseline 1/4, same corpus/model. Additional 825bc21 reads R1: 6/11; all five semantic failures retained. New typed outcome source requires real reruns."
+    },
+    {
+      "id": "production-ui-performance",
+      "status": "in_progress",
+      "evidence": "Baseline 48 production Chrome checks and stress 21x140 lines retained. Offscreen prototypes rejected for first-scroll/native-End regressions. Native details plus server-facts renderer applied; current production profiles running.",
+      "remaining": "Seven full-suite UI failures, CPU4 navigation 420-488ms, normal mobile reduced-motion 105.6ms and scroll p95 up to 19.6ms; physical touch/device benchmark not measured"
+    },
+    {
+      "id": "durable-operations",
+      "status": "open",
+      "remaining": "Automatic queue/lease recovery and read-only reconciliation; never replay uncertain writes"
+    },
+    {
+      "id": "clarification-continuation",
+      "status": "open",
+      "remaining": "Explicit resume preserves original request and static user-decision blockers. Add a validated amendment protocol for newly supplied choices without weakening immutable mutation/evidence constraints; a separate new message is not proof that the original blocked goal finished"
+    },
+    {
+      "id": "protected-credential-outputs",
+      "status": "in_progress",
+      "evidence": "825bc21 masks tool/model/persistence/known legacy credential outputs; real protected-read R1 detected no leak but failed business completion because model chose file evidence. Typed outcome/evidence fix passed native focused set.",
+      "remaining": "Real local-model protected-read acceptance and separate audit/cleanup of unlinked historical free text outside bounded 64 legacy structured outputs; live DB was not rewritten"
+    },
+    {
+      "id": "all-write-postconditions",
+      "status": "open",
+      "evidence": "9 of 74 writes now have dedicated action_outcomes checks including staff membership/date changes and replay",
+      "remaining": "65 unsupported receipts remain explicitly unverified. Publication workflows add their own owned receipt/current-state proof; generic optimistic receipt verification is prohibited"
+    },
+    {
+      "id": "large-list-snapshots",
+      "status": "in_progress",
+      "evidence": "Atomic equipment_find count/page/context-bound SHA256 passes six DB cases including same-count mutation and executor revoke",
+      "remaining": "Other multipage endpoints without stable snapshot remain partial; consistent snapshot/cursor and resumable coverage for large inventory still open"
+    },
+    {
+      "id": "result-delivery",
+      "status": "in_progress",
+      "evidence": "Nested server facts, instructions/units/diffs exposed with a shared bounded display budget; truncated delivery leaves goal partial",
+      "remaining": "All-operation positive presentation acceptance and authorized saved-snapshot viewer"
+    },
+    {
+      "id": "publication",
+      "status": "not_requested",
+      "remaining": "No deploy or push; result remains isolated for review and safe integration"
+    }
   ]
 }

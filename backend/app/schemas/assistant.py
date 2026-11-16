@@ -61,15 +61,21 @@ class GoalSelector(Input):
     attachment_ids:list[UUID]=Field(default_factory=list,max_length=20)
     starts_on:date|None=None
     ends_on:date|None=None
-    current_only:bool|None=None
+    current_only:bool|None=Field(default=None,description='True for the current/selected site. False ONLY if the user explicitly asks for all authorized sites; do not broaden an unspecified scope.')
     draft_id:UUID|None=None
     run_id:UUID|None=None
     proposal_id:UUID|None=None
     component_id:UUID|None=None
+    operation_id:UUID|None=Field(default=None,description='Exact saved maintenance operation identity stated by the user or resolved by an authorized catalog read. Never a task or equipment ID.')
+    task_id:UUID|None=Field(default=None,description='Exact saved work task identity. Do not substitute the first task or an equipment UUID.')
+    search:str|None=Field(default=None,min_length=1,max_length=200,description='Literal employee or equipment search text requested by the user, such as the exact email. Do not invent a search term.')
+
+ReadOutcome=Literal['current_profile','staff_profile','staff_search','workforce','equipment_inventory','equipment_card','equipment_search','equipment_components','maintenance_catalog','maintenance_definition','reference_catalog','personal_notifications','protected_company_code','calendar_obligations','accepted_history','task_card','task_analysis','file_analysis','norm_readiness','other']
 
 class GoalSpec(Input):
     id:str=Field(min_length=1,max_length=40,pattern=r'^[a-zA-Z0-9_-]+$')
     title:str=Field(min_length=1,max_length=400,description='One independently verifiable user objective, preserving its exact scope and values.')
+    outcome:ReadOutcome|None=Field(default=None,description='Choose the requested semantic result BEFORE choosing a tool. current_profile is only the signed-in person; staff_profile is the selected employee; equipment_components means installed parts/resources, not the equipment card; maintenance_catalog/definition means saved operations, not service history or work tasks. protected_company_code means an authorized protected link, never file content or a code in chat. Use other for changes, conversation or unavailable objectives.')
     tool:str=Field(max_length=100,description='REQUIRED exact final outcome tool name from the authorized catalog, not a prerequisite search. Use empty string ONLY when capability or required user decision is genuinely unavailable.')
     kind:Literal['read','change','conversation','unavailable']|None=None
     selector:GoalSelector=Field(default_factory=GoalSelector,description='Business selectors stated by the user. Resolve technical UUIDs on the server; never invent them. Distinguish calendar cycle dates from actual-history year.')

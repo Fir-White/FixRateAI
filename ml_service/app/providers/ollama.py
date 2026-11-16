@@ -10,6 +10,21 @@ from pydantic import ValidationError
 logger=logging.getLogger(__name__)
 
 
+def _string_choices(field,definitions):
+    """Read the Pydantic enum, including optional aliases and enum references."""
+    choices=[];seen=set()
+    def visit(node):
+        if not isinstance(node,dict):return
+        reference=node.get('$ref')
+        if reference and reference not in seen:
+            seen.add(reference);visit(definitions.get(reference.rsplit('/',1)[-1],{}))
+        choices.extend(item for item in node.get('enum',[]) if isinstance(item,str))
+        if isinstance(node.get('const'),str):choices.append(node['const'])
+        for branch in node.get('anyOf',[])+node.get('oneOf',[]):visit(branch)
+    visit(field)
+    return list(dict.fromkeys(choices))
+
+
 def agent_wire_schema(schema,tool_modes=None):
     """Native grammar encodes arguments as an object, not JSON inside JSON.
 
@@ -20,18 +35,36 @@ def agent_wire_schema(schema,tool_modes=None):
     value=schema.model_json_schema()
     if schema.__name__=='ToolSelection' and tool_modes is not None and 'GoalSpec' in value.get('$defs',{}):
         goal=value['$defs']['GoalSpec']
-        required=list(dict.fromkeys([*goal.get('required',[]),'kind','selector','changes','required_evidence']))
+        outcomes=_string_choices(goal['properties'].get('outcome'),value['$defs'])
+        if not outcomes or 'other' not in outcomes:raise ValueError('Business outcome enum is required by the local planner')
+        properties={}
+        for key,field in goal['properties'].items():
+            if key=='outcome':continue
+            if key=='tool':properties['outcome']=dict(type='string',enum=outcomes,
+                description=goal['properties']['outcome'].get('description','Desired business result, selected before its tool.'))
+            properties[key]=field
+        required_fields=set(goal.get('required',[]))|{'outcome','kind','selector','changes','required_evidence'}
+        required=[key for key in properties if key in required_fields]
         variants=[]
-        for kind,mode in (('read','read'),('change','write')):
-            names=sorted(name for name,actual in tool_modes.items() if actual==mode)
-            if names:
-                variants.append({**goal,'required':required,'properties':{**goal['properties'],
-                    'kind':dict(type='string',const=kind),'tool':dict(type='string',enum=names),
-                    'required_evidence':dict(type='string',enum=['saved_data','optimizer_result'] if kind=='change' else ['saved_data','calendar_calculation','manufacturer_document','optimizer_result','file_content','user_decision'])}})
+        generic=['saved_data','calendar_calculation','manufacturer_document','optimizer_result','file_content','user_decision']
+        def variant(kind,names,selected,evidence):
+            variants.append({**goal,'required':required,'properties':{**properties,
+                'kind':dict(type='string',const=kind),'tool':dict(type='string',enum=names) if names else dict(type='string',const=''),
+                'outcome':dict(properties['outcome'],**({'const':selected[0],'enum':selected} if len(selected)==1 else {'enum':selected})),
+                'required_evidence':dict(type='string',enum=evidence)}})
+        names=sorted(name for name,mode in tool_modes.items() if mode=='read')
+        if names:
+            # Business intent fixes the evidence contract independently of the
+            # guessed read tool. The server can rectify a wrong tool selection.
+            saved=[name for name in outcomes if name not in ('other','calendar_obligations','file_analysis')]
+            for selected,evidence in ((saved,['saved_data']),(['calendar_obligations'],['calendar_calculation']),
+                                      (['file_analysis'],['file_content']),(['other'],generic)):
+                selected=[name for name in selected if name in outcomes]
+                if selected:variant('read',names,selected,evidence)
+        names=sorted(name for name,mode in tool_modes.items() if mode=='write')
+        if names:variant('change',names,['other'],['saved_data','optimizer_result'])
         for kind in ('conversation','unavailable'):
-            variants.append({**goal,'required':required,'properties':{**goal['properties'],
-                'kind':dict(type='string',const=kind),'tool':dict(type='string',const=''),
-                'required_evidence':dict(type='string',enum=['conversation'] if kind=='conversation' else ['saved_data','calendar_calculation','manufacturer_document','optimizer_result','file_content','user_decision'])}})
+            variant(kind,[],['other'] if kind=='conversation' else outcomes,['conversation'] if kind=='conversation' else generic)
         value['$defs']['GoalSpec']=dict(anyOf=variants)
         selector=value['$defs'].get('GoalSelector')
         if selector:selector['required']=list(selector['properties'])
@@ -81,7 +114,21 @@ def agent_wire_messages(messages):
     return result
 
 
-def decode_agent_wire(schema,value):
+def decode_agent_wire(schema,value,tool_modes=None):
+    if schema.__name__=='ToolSelection' and tool_modes is not None:
+        decoded=json.loads(value)
+        variants=agent_wire_schema(schema,tool_modes)['$defs']['GoalSpec']['anyOf']
+        def matches(goal,variant):
+            if not isinstance(goal,dict) or not set(variant['required'])<=set(goal):return False
+            for key in ('kind','outcome','tool','required_evidence'):
+                field=variant['properties'][key];item=goal.get(key)
+                if 'const' in field and item!=field['const'] or 'enum' in field and item not in field['enum']:return False
+            return True
+        if not isinstance(decoded,dict) or 'goals' not in decoded or not isinstance(decoded['goals'],list):
+            raise ValueError('Local planner objectives are required')
+        if any(not any(matches(goal,variant) for variant in variants) for goal in decoded['goals']):
+            raise ValueError('Local planner objective does not match its business outcome evidence contract')
+        return schema.model_validate(decoded)
     if schema.__name__!='AgentStep':return schema.model_validate_json(value)
     decoded=json.loads(value)
     if isinstance(decoded,dict) and isinstance(decoded.get('calls'),list):
@@ -197,7 +244,7 @@ class OllamaClient:
                 value=raw['message']['content']
                 if not isinstance(value,str) or not value.strip():raise OllamaFailure('OLLAMA_INVALID_RESPONSE',reason='empty_content')
                 if len(value)>200000:raise OllamaFailure('OLLAMA_INVALID_RESPONSE',reason='content_too_large')
-                if schema:result=decode_agent_wire(schema,value)
+                if schema:result=decode_agent_wire(schema,value,getattr(self,'tool_modes',None))
                 else:
                     result=value.strip()
                     if len(result)>32000:raise OllamaFailure('OLLAMA_INVALID_RESPONSE',reason='content_too_large')

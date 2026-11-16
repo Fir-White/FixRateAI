@@ -97,6 +97,11 @@
 .assistant-message-meta time{font-variant-numeric:tabular-nums}
 .assistant-reply{padding-top:24px;display:grid;gap:14px;min-width:0}
 .assistant-reply>.assistant-message-meta{margin:0}
+.assistant-saved-answer{min-width:0}
+.assistant-saved-answer>summary{cursor:pointer;color:var(--color-muted);font-size:12px;line-height:1.6;padding:8px 0}
+.assistant-saved-answer>summary:focus-visible{outline:2px solid var(--color-accent);outline-offset:3px;border-radius:3px}
+.assistant-saved-answer[open]>summary{margin-bottom:10px}
+.assistant-saved-plain{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.7}
 .assistant-author{display:inline-flex;align-items:center;gap:8px;color:var(--color-accent);font-size:12px;font-weight:550}
 .assistant-progress{color:var(--color-muted);font-size:13px;line-height:1.65;min-width:0}
 .assistant-progress summary{display:flex;align-items:center;gap:9px;width:fit-content;max-width:100%;min-height:32px;cursor:pointer;list-style:none;color:var(--color-ink-soft);font-size:13px}

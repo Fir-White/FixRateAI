@@ -245,6 +245,11 @@ def finalize_delivery(state):
         if goal.get('status')!='completed' or goal.get('mode')!='read' or goal.get('tool') in CUSTOM_FACTS or goal.get('response'):continue
         if goal['id'] in presentations and presentations[goal['id']].truncated:
             goal.update(status='partial',reason='result_delivery_truncated')
+    # Only the server's restricted factual grammar bypasses Markdown parsing.
+    # Model prose, file analysis and richer domain reports keep the old renderer.
+    if all(not goal.get('response') and goal.get('tool') not in CUSTOM_FACTS for goal in state['goals']):
+        state['answer_format']='facts'
+    else:state.pop('answer_format',None)
 
 
 def _render(state):
@@ -396,7 +401,7 @@ async def run(app, principal, thread_id, turn_id, headers):
                 repaired=await infer(ToolSelection,3000)
                 revised=wf.create_plan(repaired,question,tools,scope)
                 wf.bind_explicit(revised,question,tools)
-                if wf.preserve_constraints(state,revised):
+                if wf.preserve_constraints(state,revised,tools):
                     revised.update(root_turn_id=root_turn_id,metrics=state['metrics'],revision=state['revision'],workbook_ids=[str(identity) for identity in repaired.workbook_ids]);state=revised
                 wf.save(app,turn_id,state)
             # A planner's unavailable label is not a backend availability or
@@ -610,7 +615,7 @@ async def run(app, principal, thread_id, turn_id, headers):
                             # transactional contract, so cross-turn read caching
                             # cannot certify current business state.
                             read_args=call.arguments
-                            if tool.name=='attachment_read' and (goal.get('response_style')=='analysis' or goal.get('requires_full_list')):
+                            if tool.name=='attachment_read' and (goal.get('outcome')=='file_analysis' or goal.get('response_style')=='analysis' or goal.get('requires_full_list')):
                                 read_args={**read_args,'query':{**(read_args.get('query') or {}),'full_book':True}}
                             args, value = await _read_pages(app, tool, read_args, headers,
                                 full=(goal['requires_full_list'] or tool.name=='tasks_analyze') and call.tool == goal['tool'], check=check, trace=read_attempts,

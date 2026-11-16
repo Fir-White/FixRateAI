@@ -11,6 +11,7 @@ import json
 import re
 from sqlalchemy import text
 from .tools import fingerprint
+from .objective_scope import objective_scope
 
 VERSION = 1
 
@@ -80,7 +81,7 @@ def create_plan(selection, question, tools, scope):
     # Old providers remain readable, but an undecomposed business request is not
     # silently certified as complete from a prerequisite search.
     goals = [dict(id=g.id, title=g.title, tool=g.tool, depends_on=g.depends_on,
-                  requires_full_list=g.requires_full_list,kind=g.kind,selector=g.selector.model_dump(mode='json',exclude_none=True),changes=g.changes,response_style=g.response_style,workflow_kind=g.workflow_kind,required_evidence=g.required_evidence) for g in specs]
+                  outcome=g.outcome,requires_full_list=g.requires_full_list,kind=g.kind,selector=g.selector.model_dump(mode='json',exclude_none=True),changes=g.changes,response_style=g.response_style,workflow_kind=g.workflow_kind,required_evidence=g.required_evidence) for g in specs]
     if not goals:
         goals = [dict(id='request', title=question[:400], tool='', depends_on=[],
                       requires_full_list=False)]
@@ -116,6 +117,25 @@ def create_plan(selection, question, tools, scope):
                     reason=None if target else 'clarification_or_capability_required',
                     evidence_ids=[], action_id=None, attempts=0)
         goal['kind']=goal.get('kind') or ('change' if target and target.mode=='write' else 'read' if target else 'unavailable')
+        selector=goal.get('selector',{})
+        if goal.get('outcome')=='current_profile' and scope.get('user_id'):
+            title_ids=set(re.findall(r'\b[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}\b',goal['title']))
+            if any(identity.casefold()!=str(scope['user_id']).casefold() and identity.casefold() in question.casefold() for identity in title_ids):
+                goal.update(status='blocked',reason='plan_outcome_tool_mismatch')
+        if goal['tool'] in ('profile_read','staff_read') and goal['kind']=='read' and goal.get('outcome')!='current_profile' and not goal.get('changes'):
+            ids=set(re.findall(r'\b[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}\b',question))
+            named={identity for identity in ids if identity.casefold() in goal['title'].casefold()}
+            selected=named if len(named)==1 else ids
+            if len(selected)==1:selector['user_id']=next(iter(selected)).lower()
+        if goal['tool'] in ('profile_read','profile_edit') and selector.get('user_id') and scope.get('user_id') and str(selector['user_id'])!=str(scope['user_id']):
+            if goal.get('outcome')=='current_profile':goal.update(status='blocked',reason='plan_outcome_tool_mismatch')
+            elif goal['tool']=='profile_read' and goal['kind']=='read' and not goal.get('changes') and 'staff_read' in tools:
+                goal.update(tool='staff_read',outcome='staff_profile')
+            else:goal.update(status='blocked',reason='plan_outcome_tool_mismatch')
+        from .outcome_contracts import normalize_goal
+        normalized=normalize_goal(goal,tools);goal.clear();goal.update(normalized)
+        target=tools.get(goal['tool'])
+        goal.update(specialist=specialist(goal['tool']),mode=target.mode if target else 'clarification')
         if goal['kind']=='conversation' and not goal['tool']:
             goal.update(mode='conversation',status='planned',reason=None)
         if goal['kind']=='conversation' and (mutation_requested(question) or goal.get('changes') or goal.get('selector',{}).get('equipment_code') or goal.get('selector',{}).get('equipment_id') or goal.get('selector',{}).get('attachment_ids') or goal.get('response_style')=='analysis'):
@@ -152,7 +172,7 @@ def bind_explicit(state,question,tools):
     bound=dict(id=identity,title=question[:400],tool=spec['tool'],
                depends_on=previous['depends_on'] if previous else [],requires_full_list=False,kind='change',selector=selector,
                changes=spec['changes'],response_style='facts',specialist=specialist(spec['tool']),mode='write',status='planned',
-               required_evidence=previous.get('required_evidence') if previous else 'saved_data',
+               outcome='other',required_evidence=previous.get('required_evidence') if previous else 'saved_data',
                reason=None,evidence_ids=[],action_id=None,attempts=0)
     blocker=required_blocker(bound)
     if blocker:bound.update(status='blocked',reason=blocker)
@@ -161,7 +181,7 @@ def bind_explicit(state,question,tools):
     return state
 
 
-def preserve_constraints(previous, revised):
+def preserve_constraints(previous, revised,tools=None):
     """A repair may fix tools, never erase previously planned requirements."""
     old={goal['id']:goal for goal in previous['goals']}
     new={goal['id']:goal for goal in revised['goals']}
@@ -172,9 +192,13 @@ def preserve_constraints(previous, revised):
                     selector={**goal.get('selector',{}),**prior.get('selector',{})},
                     requires_full_list=prior.get('requires_full_list',False) or goal.get('requires_full_list',False))
         if prior.get('required_evidence') is not None:goal['required_evidence']=prior['required_evidence']
+        if prior.get('outcome') not in (None,'other'):goal['outcome']=prior['outcome']
         if prior.get('response_style')=='analysis':goal['response_style']='analysis'
         blocker=required_blocker(goal)
         if blocker:goal.update(status='blocked',reason=blocker)
+        if tools is not None:
+            from .outcome_contracts import normalize_goal
+            normalized=normalize_goal(goal,tools);goal.clear();goal.update(normalized)
     return True
 
 
@@ -216,7 +240,15 @@ def completeness(value):
 
 def record_result(state, goal, name, arguments, value, *, action_id=None, elapsed=0,count_call=True):
     complete, reasons = completeness(value)
-    if name=='attachment_read' and (goal.get('response_style')=='analysis' or goal.get('requires_full_list')):
+    if name=='notifications_list' and isinstance(value,list) and len(value)>=100:
+        complete=False;reasons.append('notification_limit_cannot_prove_full_list')
+    if name==goal.get('tool') and goal.get('mode')=='read':
+        from .outcome_contracts import validate_result
+        valid,reason=validate_result(goal,name,value)
+        if not valid:complete=False;reasons.append(reason)
+        reason=objective_scope(state,goal,name,arguments,value)
+        if reason:complete=False;reasons.append(reason)
+    if name=='attachment_read' and (goal.get('outcome')=='file_analysis' or goal.get('response_style')=='analysis' or goal.get('requires_full_list')):
         book=value.get('workbook') if isinstance(value,dict) else None
         if not isinstance(book,dict) or book.get('complete') is not True or book.get('status')!='read' or (arguments.get('query') or {}).get('full_book') is not True:
             complete=False;reasons.append('full_workbook_not_verified')
@@ -379,7 +411,9 @@ def resume(state):
 def public_state(state):
     if state is None:
         return None
-    return {key: state[key] for key in ('version', 'outcome', 'goals', 'metrics', 'stop_reason', 'revision')}
+    result={key: state[key] for key in ('version', 'outcome', 'goals', 'metrics', 'stop_reason', 'revision')}
+    if state.get('answer_format')=='facts':result['answer_format']='facts'
+    return result
 
 
 def unfinished_text(state):
