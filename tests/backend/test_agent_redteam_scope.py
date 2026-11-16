@@ -19,6 +19,17 @@ CASES=(
     ('scheduled','Проанализируй все незавершённые задания, только из календаря.',0),
 )
 
+# Independent interpretation fixture: actual inference is assessed by the live
+# corpus. These cases exercise execution of the exact scope under a typed plan.
+QUERIES={
+    'tomorrow':dict(starts_on='2026-11-16',ends_on='2026-11-16'),
+    'january':dict(starts_on='2027-01-01',ends_on='2027-01-31'),
+    'february':dict(starts_on='2027-02-01',ends_on='2027-02-28'),
+    'exact':dict(starts_on='2027-02-10',ends_on='2027-02-10'),
+    'review':dict(cohort='in_review'),'pending':dict(cohort='execution_pending'),
+    'manual':dict(origin='manual'),'scheduled':dict(origin='scheduled'),
+}
+
 @pytest.mark.parametrize('identity,question,expected',CASES,ids=[c[0] for c in CASES])
 def test_analysis_does_not_silently_drop_user_scope(assistant_case,clock,identity,question,expected):
     engine,app,client,_,ids=assistant_case
@@ -27,9 +38,15 @@ def test_analysis_does_not_silently_drop_user_scope(assistant_case,clock,identit
         dict(deadline=datetime(2027,1,10,10,tzinfo=timezone.utc)),
         dict(deadline=datetime(2027,2,10,10,tzinfo=timezone.utc)),
         dict(status='in_review',deadline=TODAY-timedelta(days=1))])
-    class NoInference:
-        def chat(self,*args):raise AssertionError('A typed cohort must be selected before response rendering')
-    app.state.assistant_provider_factory=NoInference
+    class CohortPlan:
+        def chat(self,messages,schema,tokens):
+            if schema.__name__=='ToolSelection':return schema(tools=['tasks_analyze'],goals=[dict(
+                id='cohort',title=question,tool='tasks_analyze',kind='read',
+                selector={key:value for key,value in QUERIES[identity].items() if key in ('starts_on','ends_on')})])
+            import json
+            return schema(answer='',calls=[dict(tool='tasks_analyze',arguments_json=json.dumps(dict(query=QUERIES[identity])),
+                                                explanation='TEST ONLY exact requested cohort')])
+    app.state.assistant_provider_factory=CohortPlan
     try:
         chat=thread(client)
         response=client.post(B+f'/conversations/{chat}/messages',json=dict(content=question,idempotency_key=str(uuid4())))
@@ -38,6 +55,7 @@ def test_analysis_does_not_silently_drop_user_scope(assistant_case,clock,identit
         assert turn['status']=='completed',turn
         reads=[row for row in turn['trace'] if row['tool']=='tasks_analyze' and row['status']=='completed']
         assert reads and reads[0]['result']['selected_tasks']==expected,turn
+        assert turn['workflow']['outcome']=='completed'
         assert not view['actions']
         with engine.connect() as db:assert db.scalar(text('SELECT count(*) FROM work_orders WHERE site_id=:site'),dict(site=ids['site']))==4
     finally:del app.state.assistant_provider_factory

@@ -16,6 +16,78 @@ class AssignmentPreparation(BaseModel):
     one_person_only:bool=False
 
 def register_routes(app,views):
+    @app.get(BASE+'/workbook-readiness')
+    def workbook_readiness(conversation_id:UUID,attachment_ids:list[UUID]=Query(...,min_length=1,max_length=20),v=Depends(views)):
+        from app.assistant.service import conversation
+        from app.assistant.attachments import SCOPE,owned
+        from app.assistant.workbooks import context
+        from app.assistant.workbook_readiness import fact,report
+        conversation(v.session,v.principal,conversation_id)
+        SCOPE.set((conversation_id,v.principal.user_id,v.principal.site_id,v.principal.role))
+        if len(set(attachment_ids))!=len(attachment_ids):raise HTTPException(422,'Файл указан повторно')
+        files=[owned(app,identity) for identity in attachment_ids]
+        if any(row['mime_type']!='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' for row in files):raise HTTPException(422,'Для проверки нормативов выберите XLSX')
+        books=context(app,files)
+        return dict(status='blocked',complete=all(book.get('complete') for book in books),fact=fact(books),report=report(books),workbooks=books)
+
+    @app.get(BASE+'/equipment/{equipment_id}/history')
+    def equipment_history(equipment_id:UUID,starts_on:date,ends_on:date,offset:int=Query(0,ge=0),only_accepted:bool=True,v=Depends(views)):
+        from sqlalchemy import text
+        from .management import _equipment
+        _equipment(v,equipment_id)
+        if v.principal.role=='executor' and equipment_id not in v.visible_equipment_ids():raise HTTPException(404,'Оборудование не найдено')
+        if ends_on<starts_on or (ends_on-starts_on).days>3660:raise HTTPException(422,'Выберите корректный период истории не более 3660 дней')
+        # Fixed-count SQL, filtering dates in the object's actual timezone. A
+        # report is a fact of submission; accepted_only additionally requires
+        # the explicit acceptance record for that exact report attempt.
+        def timestamp_sql(value):
+            return f"CASE WHEN {value} ~ '[Tt].*(Z|[+-][0-9]{{2}}:[0-9]{{2}})$' AND pg_input_is_valid({value},'timestamp with time zone') THEN ({value})::timestamptz END"
+        review_actual=timestamp_sql('a.performed_text')
+        report_actual=timestamp_sql("r.execution_context->>'performed_at'")
+        actual='COALESCE('+review_actual+','+report_actual+')'
+        conflict='('+review_actual+') IS NOT NULL AND ('+report_actual+') IS NOT NULL AND ('+review_actual+')<>('+report_actual+')'
+        period_filter='AND timezone(:timezone,COALESCE(f.actual_at,r.submitted_at))::date BETWEEN :start AND :end'
+        scope='''FROM work_reports r JOIN work_orders o USING(work_order_id)
+          JOIN work_order_equipment e ON e.site_id=o.site_id AND e.work_order_id=o.work_order_id AND e.equipment_id=:equipment
+          LEFT JOIN LATERAL (SELECT reviewed_at accepted_at,decision_context->>'performed_at' performed_text FROM acceptance_reviews a
+            WHERE a.site_id=r.site_id AND a.work_order_id=r.work_order_id AND a.work_report_id=r.work_report_id AND a.decision='accepted' ORDER BY reviewed_at DESC,acceptance_review_id DESC LIMIT 1) a ON true
+          CROSS JOIN LATERAL (SELECT '''+actual+''') f(actual_at)
+          WHERE o.site_id=:site AND r.site_id=:site
+          AND (:accepted=false OR a.accepted_at IS NOT NULL)
+          '''+period_filter
+        if v.principal.role=='executor':
+            scope+=''' AND EXISTS(SELECT 1 FROM work_assignments w WHERE w.site_id=o.site_id AND w.work_order_id=o.work_order_id
+                       AND w.user_id=:user AND w.status NOT IN ('cancelled','declined'))'''
+        params=dict(equipment=equipment_id,site=v.principal.site_id,timezone=v.principal.timezone,
+                    user=v.principal.user_id,start=starts_on,end=ends_on,accepted=only_accepted,offset=offset)
+        total=v.session.scalar(text('SELECT count(*) '+scope),params)
+        undated=v.session.scalar(text('SELECT count(*) '+scope.replace(period_filter,'AND COALESCE(f.actual_at,r.submitted_at) IS NULL')),params)
+        unknown_actual=v.session.scalar(text('SELECT count(*) '+scope.replace(period_filter,'AND f.actual_at IS NULL')),params)
+        rows=v.session.execute(text('''SELECT o.work_order_id task_id,r.work_report_id report_id,
+            f.actual_at performed_at,r.submitted_at,a.accepted_at,(f.actual_at IS NOT NULL) actual_date_verified,
+            CASE WHEN f.actual_at IS NULL THEN 'submission_only' ELSE 'actual_performed' END date_basis,
+            ('''+conflict+''') actual_date_conflict,r.status report_state,o.status task_state '''+
+            scope+' ORDER BY COALESCE(f.actual_at,r.submitted_at) DESC,r.work_report_id LIMIT 25 OFFSET :offset'),params).mappings().all()
+        return dict(equipment_id=str(equipment_id),starts_on=starts_on,ends_on=ends_on,only_accepted=only_accepted,
+                    items=[dict(row) for row in rows],total=total,offset=offset,limit=25,page_complete=offset==0 and len(rows)==total,
+                    undated_count=undated,actual_date_unknown_count=unknown_actual,complete=offset==0 and len(rows)==total and undated==0 and unknown_actual==0 and not any(row['actual_date_conflict'] for row in rows),
+                    checked_at=datetime.now(timezone.utc),timezone=v.principal.timezone,
+                    source='saved_work_reports_and_acceptance_reviews',date_basis='per_report_actual_or_explicit_submission_fallback',
+                    manufacturer_unverified=True)
+
+    @app.get(BASE+'/equipment/{equipment_id}/calendar-evidence')
+    def calendar_evidence(equipment_id:UUID,starts_on:date,ends_on:date,v=Depends(views)):
+        from .management import _equipment,service_configurations
+        from app.assistant.calendar_evidence import explain_configuration
+        _equipment(v,equipment_id)
+        if v.principal.role=='executor' and equipment_id not in v.visible_equipment_ids():raise HTTPException(404,'Оборудование не найдено')
+        rows=service_configurations(v,equipment_id)
+        try:
+            results=[explain_configuration(row,starts_on,ends_on,timezone=v.principal.timezone) for row in rows]
+        except ValueError:raise HTTPException(422,'Укажите корректный ограниченный период календаря') from None
+        return dict(equipment_id=str(equipment_id),configurations=results,complete=all(row['complete'] for row in results),
+                    manufacturer_unverified=True,source='saved_service_configurations',timezone=v.principal.timezone)
+
     @app.get(BASE+'/task-analysis')
     def task_analysis(request:Request,section:Literal['summary','dates','equipment','duplicates']='summary',offset:int=Query(0,ge=0),
                       origin:Literal['all','scheduled','manual','incident']='all',starts_on:date|None=None,ends_on:date|None=None,

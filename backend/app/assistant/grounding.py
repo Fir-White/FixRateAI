@@ -76,8 +76,9 @@ def regulation_report(equipment,rows):
         frequencies=dict(day='день',week='неделя',month='месяц',quarter='квартал',year='год',dates='точные даты',yearly_count='число раз в год')
         for row in published[:25]:
             pattern=row.get('pattern') or {};frequency=pattern.get('frequency');text=frequencies.get(frequency,'не подтверждена')
-            if pattern.get('interval'):text+=f", интервал {pattern['interval']}"
-            if frequency=='yearly_count':text+=f", {pattern.get('count_per_year','не указано')}"
+            if frequency=='yearly_count':
+                text=f"{pattern.get('count_per_year','не указано')} раз в активном годовом цикле; между началами циклов — {pattern.get('interval','не указано')} год(а)"
+            elif pattern.get('interval'):text+=f", интервал {pattern['interval']}"
             if frequency=='dates':text+=', '+', '.join(map(str,pattern.get('dates',[])[:12]))
             lines.append(f"| {label(row.get('title','Без названия'))} | {label(text)} | {label(row.get('valid_from') or 'не указано')} — {label(row.get('valid_until') or 'без конечной даты')} |")
         if len(published)>25:lines.append(f'Показаны первые 25 из {len(published)} конфигураций; количество рассчитано по всему прочитанному списку.')

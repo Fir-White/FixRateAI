@@ -54,12 +54,31 @@ def register_routes(app,views):
     def read(identity:UUID,response:Response,offset:int=Query(0,ge=0),v=Depends(views)):
         response.headers['Cache-Control']='private, no-store'
         thread=svc.conversation(v.session,v.principal,identity)
+        from app.assistant.action_outcomes import mark_interrupted_actions
+        mark_interrupted_actions(v.session,conversation_id=identity,cutoff=svc.now()-timedelta(minutes=3))
         # A lost process cannot leave the UI polling forever; read never retries model or action.
         v.session.execute(text("UPDATE assistant_turns SET status='failed',error_code='ASSISTANT_INTERRUPTED',answer='Ответ прерван. Сообщение сохранено; отправьте новый запрос.',finished_at=now() WHERE conversation_id=:id AND status='running' AND ((deadline_at IS NOT NULL AND deadline_at<:now) OR (deadline_at IS NULL AND created_at<:cutoff))"),dict(id=identity,now=svc.now(),cutoff=svc.now()-timedelta(seconds=svc.turn_timeout_seconds())))
         turns=v.session.execute(text('SELECT * FROM assistant_turns WHERE conversation_id=:id ORDER BY created_at DESC,turn_id DESC LIMIT 25 OFFSET :offset'),dict(id=identity,offset=offset)).mappings().all()
         count=v.session.scalar(text('SELECT count(*) FROM assistant_turns WHERE conversation_id=:id'),dict(id=identity))
         rows=v.session.execute(text('''SELECT * FROM assistant_actions WHERE conversation_id=:id AND
             (turn_id=ANY(CAST(:turns AS uuid[])) OR turn_id IS NULL) ORDER BY created_at LIMIT 100'''),dict(id=identity,turns=[r['turn_id'] for r in turns])).mappings().all()
+        from app.assistant import workflow as wf
+        public_turns=[]
+        workflow_roots=list({r['workflow']['root_turn_id'] for r in turns if r['workflow'] and r['workflow'].get('root_turn_id')})
+        workflow_actions=v.session.execute(text('SELECT action_id,status,result,workflow_goal_id,workflow_root_turn_id,expires_at FROM assistant_actions WHERE conversation_id=:chat AND workflow_root_turn_id=ANY(CAST(:roots AS uuid[]))'),dict(chat=identity,roots=workflow_roots)).mappings().all() if workflow_roots else []
+        for row in turns:
+            item=dict(row);state=item.get('workflow')
+            if state:
+                scoped_actions={str(a['action_id']):a for a in workflow_actions if str(a['workflow_root_turn_id'])==state.get('root_turn_id')}
+                wf.refresh_actions(v.session,state,scoped_actions)
+                if item['status']=='failed':
+                    for goal in state['goals']:
+                        if goal['status'] in ('running','planned'):
+                            goal.update(status='cancelled' if item['error_code']=='ASSISTANT_STOPPED' else 'blocked',reason=item['error_code'])
+                    state['stop_reason']=item['error_code'];wf.update_outcome(state)
+                item['workflow']=wf.public_state(state)
+            public_turns.append(item)
+        v.session.commit()
         files=v.session.execute(text('''SELECT a.*,EXISTS(SELECT 1 FROM assistant_turn_attachments f WHERE f.attachment_id=a.attachment_id) AS sent
             FROM assistant_attachments a WHERE a.conversation_id=:id ORDER BY a.created_at DESC,a.attachment_id LIMIT 20'''),dict(id=identity)).mappings().all()
         linked=v.session.execute(text('''SELECT a.*,f.turn_id FROM assistant_turn_attachments f
@@ -68,7 +87,7 @@ def register_routes(app,views):
             dict(id=identity,turns=[r['turn_id'] for r in turns])).mappings().all()
         by_turn={}
         for row in linked:by_turn.setdefault(row['turn_id'],[]).append(public_file(row))
-        return dict(conversation=thread,turns=list(reversed([dict(r,attachments=by_turn.get(r['turn_id'],[])) for r in turns])),total=count,
+        return dict(conversation=thread,turns=list(reversed([dict(r,attachments=by_turn.get(r['turn_id'],[])) for r in public_turns])),total=count,
             actions=[svc.public_action(r) for r in rows],attachments=[public_file(r) for r in files],pending_attachments=[public_file(r) for r in files if not r['sent']])
 
     @app.post(BASE+'/conversations/{identity}/turns/{turn_id}/stop')
@@ -146,11 +165,19 @@ def register_routes(app,views):
 
     @app.get(BASE+'/conversations/{identity}/attachments/{attachment_id}/content')
     def attachment_read(identity:UUID,attachment_id:UUID,response:Response,sheet:str|None=Query(None,max_length=255),
-                        offset:int=Query(0,ge=0),limit:int=Query(25,ge=1,le=25),q:str=Query('',max_length=200),v=Depends(views)):
+                        offset:int=Query(0,ge=0),limit:int=Query(25,ge=1,le=25),q:str=Query('',max_length=200),full_book:bool=False,v=Depends(views)):
         from app.assistant.workbooks import page
         svc.conversation(v.session,v.principal,identity)
         SCOPE.set((identity,v.principal.user_id,v.principal.site_id,v.principal.role))
         response.headers['Cache-Control']='private, no-store'
+        if full_book:
+            from app.assistant.attachments import owned
+            from app.assistant.workbooks import context
+            row=owned(app,attachment_id)
+            if row['mime_type']!='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':raise HTTPException(422,'Полное чтение книги доступно только для XLSX')
+            if sheet is not None or offset or q:raise HTTPException(422,'Для полного чтения книги не задавайте фильтр листа или страницы')
+            book=context(app,[row])[0]
+            return dict(workbook=book,attachment_id=str(attachment_id),complete=book.get('complete',False),source='private_attachment',status='blocked' if book.get('status')!='read' else 'complete' if book.get('complete') else 'partial')
         return page(app,attachment_id,sheet,offset,limit,q)
 
     @app.post(BASE+'/conversations/{identity}/messages',status_code=202)
@@ -164,7 +191,21 @@ def register_routes(app,views):
                 raise HTTPException(409,'Ключ повтора принадлежит другому сообщению или набору файлов')
             if command.model_preference_revision is not None and (previous['model_selection'] or {}).get('preference_revision')!=command.model_preference_revision:
                 raise HTTPException(409,'Ключ повтора принадлежит сообщению с другим выбором модели')
-            return dict(previous)
+            if previous['resume_turn_id']!=command.resume_turn_id:
+                raise HTTPException(409,'Ключ повтора принадлежит продолжению другого поручения')
+            return dict(turn_id=previous['turn_id'],status=previous['status'])
+        resumed_workflow=None
+        if command.resume_turn_id is not None:
+            from app.assistant import workflow as wf
+            source=v.session.execute(text('SELECT status,workflow FROM assistant_turns WHERE turn_id=:turn AND conversation_id=:chat'),dict(turn=command.resume_turn_id,chat=identity)).mappings().first()
+            if not source or not source['workflow']:raise HTTPException(404,'Сохранённое поручение не найдено в этом диалоге')
+            if source['status']=='running':raise HTTPException(409,'Поручение ещё выполняется')
+            root=source['workflow'].get('root_turn_id')
+            latest=v.session.execute(text("SELECT workflow FROM assistant_turns WHERE conversation_id=:chat AND workflow->>'root_turn_id'=:root ORDER BY created_at DESC,turn_id DESC LIMIT 1"),dict(chat=identity,root=root)).scalar()
+            if latest:source=dict(source,workflow=latest)
+            wf.refresh_actions(v.session,source['workflow'])
+            if source['workflow']['outcome'] in ('completed','cancelled'):raise HTTPException(409,'Это поручение уже завершено или остановлено')
+            resumed_workflow=wf.resume(source['workflow'])
         preference=model_preferences.read(v.session,v.principal)
         if command.model_preference_revision is not None and preference['revision']!=command.model_preference_revision:
             raise HTTPException(409,'Модель изменена в другом окне. Обновите выбор и повторите отправку.')
@@ -184,8 +225,8 @@ def register_routes(app,views):
         if not svc.SLOTS.acquire(blocking=False):raise HTTPException(429,'ИИ сейчас занят. Попробуйте через несколько секунд.')
         turn=uuid4()
         try:
-            v.session.execute(text("INSERT INTO assistant_turns(turn_id,conversation_id,request_key,content,status,prompt_version,model_selection,deadline_at) VALUES (:id,:conversation,:key,:content,'running',:prompt,CAST(:model AS jsonb),:deadline)"),
-                dict(id=turn,conversation=identity,key=command.idempotency_key,content=message_content,prompt=svc.PROMPT_VERSION,model=svc.dump(selected_model) if selected_model is not None else None,deadline=svc.now()+timedelta(seconds=svc.turn_timeout_seconds(preference['selection']))))
+            v.session.execute(text("INSERT INTO assistant_turns(turn_id,conversation_id,request_key,content,status,prompt_version,model_selection,deadline_at,workflow,resume_turn_id) VALUES (:id,:conversation,:key,:content,'running',:prompt,CAST(:model AS jsonb),:deadline,CAST(:workflow AS jsonb),:resume)"),
+                dict(id=turn,conversation=identity,key=command.idempotency_key,content=message_content,prompt=svc.PROMPT_VERSION,model=svc.dump(selected_model) if selected_model is not None else None,deadline=svc.now()+timedelta(seconds=svc.turn_timeout_seconds(preference['selection'])),workflow=svc.dump(resumed_workflow) if resumed_workflow else None,resume=command.resume_turn_id))
             if selected:
                 v.session.execute(text('INSERT INTO assistant_turn_attachments(turn_id,attachment_id,conversation_id,position) VALUES (:turn,:file,:conversation,:position)'),
                     [dict(turn=turn,file=file_id,conversation=identity,position=position) for position,file_id in enumerate(selected)])

@@ -25,8 +25,26 @@ def test_confirmed_assistant_proposal_assigns_exact_validated_workers(jobs):
             db.execute(text("INSERT INTO assistant_turns(turn_id,conversation_id,request_key,content,answer,status,prompt_version,created_at) VALUES (:turn,:chat,:key,:content,:answer,'completed','TEST',now()-interval '1 minute')"),dict(turn=uuid4(),chat=chat,key=uuid4(),content='Назначь сотрудников '+names,answer='Укажите конкретное задание для назначения.'))
             before=db.scalar(text('SELECT count(*) FROM work_assignments WHERE work_order_id=:id'),dict(id=task))
         class Provider:
+            def __init__(self):self.stage=0
             def chat(self,messages,schema,tokens):
-                raise AssertionError('The verified selection must not depend on the model')
+                if schema.__name__=='ToolSelection':
+                    payload=json.loads(messages[-1]['content'])
+                    assert payload['question']==title
+                    assert any(names in row['content'] for row in payload['context']['history'])
+                    return schema(tools=[],goals=[dict(id='assign',title='Назначить выбранных сотрудников на выбранное задание',kind='change',tool='task_assign')])
+                assert schema.__name__=='AgentStep'
+                self.stage+=1
+                if self.stage==1:
+                    tool='assignment_prepare';args=dict(path=dict(task_id=str(task)),body=dict(executor_ids=workers))
+                else:
+                    observed=next(json.loads(m['content'].split('\n',1)[1]) for m in reversed(messages)
+                                  if m['role']=='user' and m['content'].startswith('Результаты инструментов'))
+                    value=next(row['result'] for row in observed if row['tool']=='assignment_prepare')
+                    command=value['command'];assert set(command['executor_ids'])==set(workers)
+                    body={key:command[key] for key in ('expected_revision','executor_ids','start_at','end_at')}
+                    if command.get('crew_id'):body['crew_id']=command['crew_id']
+                    tool='task_assign';args=dict(path=dict(task_id=str(task)),body={**body,'reason':'TEST ONLY selected workers'})
+                return schema(answer='',calls=[dict(tool=tool,arguments_json=json.dumps(args),explanation='TEST ONLY semantic execution; server validates assignment')])
         app.state.assistant_provider_factory=Provider
         try:
             response=client.post(B+f'/conversations/{chat}/messages',json=dict(content=title,idempotency_key=str(uuid4())))

@@ -3,6 +3,7 @@ from contextlib import closing
 from concurrent.futures import ThreadPoolExecutor
 from uuid import uuid4
 import json
+from copy import deepcopy
 import pytest
 from sqlalchemy import text
 from app.schemas.assistant import AgentStep
@@ -98,13 +99,11 @@ def test_failed_assignment_offers_real_task_ids_and_resolves_only_displayed_choi
 def test_short_confirmation_includes_prior_question_and_does_not_create_action(assistant_case):
     engine,app,admin,_,_=assistant_case;t=thread(admin)
     class Provider:
-        def __init__(self):self.route=None;self.final=None
+        def __init__(self):self.context=None
         def chat(self,messages,schema,tokens):
-            self.route=messages
-            return schema(tools=[],workbook_ids=[])
-        def text(self,messages,tokens):
-            self.final=json.loads(messages[-1]['content'])
-            return 'Назначение не выполнено. Сначала проверьте график сотрудника.'
+            assert schema.__name__=='ToolSelection'
+            self.context=json.loads(messages[-1]['content'])
+            return schema(tools=[],goals=[dict(id='assignment',title='Уточнить график и подготовить отдельное назначение',tool='')])
     model=Provider();app.state.assistant_provider_factory=lambda:model
     try:
         with engine.begin() as c:
@@ -112,9 +111,12 @@ def test_short_confirmation_includes_prior_question_and_does_not_create_action(a
         response=admin.post(B+'/conversations/'+t+'/messages',json=dict(idempotency_key=str(uuid4()),content='ГОТОВ!'))
         assert response.status_code==202
         result=admin.get(B+'/conversations/'+t).json()
-        assert any(m.get('content')=='Назначь сотрудника' for m in model.route)
-        assert model.final['history'][0]['answer']=='Готовы подтвердить график?'
-        assert result['actions']==[] and 'не выполнено' in result['turns'][-1]['answer']
+        assert model.context['question']=='ГОТОВ!'
+        previous=model.context['context']['history'][0]
+        assert previous['content']=='Назначь сотрудника' and previous['answer']=='Готовы подтвердить график?'
+        turn=result['turns'][-1]
+        assert result['actions']==[] and turn['workflow']['outcome']=='blocked'
+        assert turn['workflow']['goals'][0]['status']=='blocked' and 'Незавершённые пункты' in turn['answer']
     finally:del app.state.assistant_provider_factory
 
 def test_progress_facts_are_bounded_and_do_not_claim_full_page():
@@ -143,10 +145,16 @@ def test_readable_evidence_translates_only_known_fields_and_keeps_original():
 
 class Scripted:
     response_model='TEST-ONLY-scripted'
-    def __init__(self,steps):self.steps=iter(steps);self.messages=[]
+    def __init__(self,steps,goals=None):
+        # Test setup supplies a semantic plan; production never infers a plan
+        # from a scripted call list. The default is this fixture's terminal call.
+        steps=deepcopy(steps)
+        terminal=next((call['tool'] for step in reversed(steps) for call in reversed(step['calls']) if call['tool']!='describe_tool'),'')
+        self.goals=goals if goals is not None else [dict(id='requested-outcome',title='TEST requested outcome',tool=terminal)]
+        self.steps=iter(steps);self.messages=[]
     def chat(self,messages,schema,tokens):
         self.messages.append(messages[:])
-        if schema.__name__=='ToolSelection':return schema.model_validate(dict(tools=[]))
+        if schema.__name__=='ToolSelection':return schema.model_validate(dict(tools=[],goals=self.goals))
         step=next(self.steps)
         for call in step['calls']:call['arguments_json']=json.dumps(call.pop('arguments'))
         return schema.model_validate(step)
@@ -265,8 +273,11 @@ def test_real_chat_runs_tools_and_saves_a_proposal_without_side_effects(assistan
         value=admin.get(B+'/conversations/'+t).json();turn=value['turns'][0]
         assert turn['status']=='completed',turn
         assert len(value['actions'])==1 and value['actions'][0]['status']=='proposed'
-        assert [r['tool'] for r in turn['trace']]==['catalog_read','equipment_create']
-        assert 'Подготовлено предложение' in turn['answer']
+        assert {r['tool'] for r in turn['trace']}=={'catalog_read','equipment_create'}
+        assert turn['workflow']['outcome']=='awaiting_confirmation'
+        assert turn['workflow']['goals'][0]['action_id']==value['actions'][0]['action_id']
+        with engine.connect() as c:
+            assert c.scalar(text('SELECT count(*) FROM equipment WHERE asset_code=:code'),dict(code=value['actions'][0]['arguments']['body']['asset_code']))==0
         assert admin.post(B+'/conversations/'+t+'/messages',json=command).json()['turn_id']==turn['turn_id']
         assert admin.post(B+'/conversations/'+t+'/messages',json=dict(command,content='different')).status_code==409
         assert 'fixrate_session' not in str(script.messages) and 'X-CSRF' not in str(script.messages)
@@ -300,8 +311,8 @@ def test_live_progress_is_durable_and_legacy_profiles_use_unified_role_tools(ass
         r=admin.post(B+'/conversations/'+t+'/messages',json=dict(idempotency_key=str(uuid4()),content='TEST ONLY unified legacy chat'))
         assert r.status_code==202
         view=admin.get(B+'/conversations/'+t).json();turn=view['turns'][0]
-        assert observed[0][-1]['tool']=='__routing' and observed[0][-1]['status']=='running'
-        assert observed[-1][0]['tool']=='catalog_read' and observed[-1][0]['status']=='completed'
+        assert observed[0][-1]['tool']=='__planning' and observed[0][-1]['status']=='running'
+        assert any(item['tool']=='catalog_read' and item['status']=='completed' for item in observed[-1])
         assert observed[-1][-1]['tool']=='__responding'
         assert all(s.get('at') for s in turn['trace']) and all(not s['tool'].startswith('__') for s in turn['trace'])
         assert view['actions'][0]['tool_name']=='equipment_create' and view['actions'][0]['status']=='proposed'
@@ -382,40 +393,41 @@ def test_assignment_request_survives_multi_name_description_and_continues(assist
         dict(answer='',calls=[dict(tool='describe_tool',arguments=dict(name=['assignment_context','assignment_preview']),explanation='Inspect assignment tools')]),
         dict(answer='',calls=[dict(tool='describe_tool',arguments=dict(name='assignment_context'),explanation='Inspect one schema')]),
         dict(answer='Для назначения сначала выберите задание с подтверждёнными условиями.',calls=[]),
-    ])
+    ],goals=[dict(id='assignment',title='Подготовить проверенное назначение после выбора задания',tool='task_assign')])
     app.state.assistant_provider_factory=lambda:script
     try:
         response=admin.post(B+'/conversations/'+t+'/messages',json=dict(idempotency_key=str(uuid4()),content='Помоги распределить работников на ближайшее ТО'))
         assert response.status_code==202
         view=admin.get(B+'/conversations/'+t).json();turn=view['turns'][0]
         assert turn['status']=='completed' and turn['error_code'] is None
-        assert [s['status'] for s in turn['trace']]==['completed','denied','completed']
-        assert not view['actions']
+        assert any(s['tool']=='tasks_list' and s['status']=='completed' for s in turn['trace'])
+        assert any(s['tool']=='describe_tool' and s['status']=='denied' for s in turn['trace'])
+        assert len(script.messages)>=5  # planning, read, invalid description, repair, honest stop
+        assert turn['workflow']['goals'][0]['status']=='partial' and turn['workflow']['outcome']=='partial'
+        assert not view['actions'] and 'Незавершённые пункты' in turn['answer']
     finally:del app.state.assistant_provider_factory
 
 @pytest.mark.parametrize('boundary',['steps','repeat','calls','empty','deadline','final_failure'])
 def test_bounded_search_finishes_with_an_honest_answer_and_no_writes(assistant_case,monkeypatch,boundary):
     import time
     from app.assistant import service
-    from ml_service.app.providers.aitunnel import AITunnelFailure
+    from ml_service.app.providers.ollama import OllamaFailure
     engine,app,admin,_,ids=assistant_case;t=thread(admin)
-    if boundary=='steps':monkeypatch.setattr(service,'MAX_STEPS',3)
     if boundary=='calls':monkeypatch.setattr(service,'MAX_TOOL_CALLS',1)
     class Bounded:
         response_model='TEST-ONLY-bounded'
-        def __init__(self):self.steps=0;self.final=0;self.context=None
+        def __init__(self):self.steps=0;self.context=None
         def chat(self,messages,schema,tokens):
             if schema.__name__=='ToolSelection':
+                self.context=json.loads(messages[-1]['content'])
                 if boundary=='deadline':self.deadline=time.monotonic()+5
-                return schema(tools=[])
-            if schema.__name__=='FinalReply':
-                self.final+=1;self.context=json.loads(messages[-1]['content'])
-                if boundary=='final_failure':raise AITunnelFailure('AITUNNEL_TIMEOUT')
-                return schema(answer='TEST ONLY: Не хватает сопоставимой статистики. За какой период сравниваем работников?')
+                return schema(tools=[],goals=[dict(id='worker',title='Проверить конкретного работника перед сравнением результативности',tool='staff_read')])
+            assert schema.__name__=='AgentStep'  # no generative final may certify an unfinished objective
             self.steps+=1
+            if boundary=='final_failure' and self.steps>1:raise OllamaFailure('OLLAMA_TIMEOUT')
             if boundary=='empty':return schema(answer='  ',calls=[])
             args={} if boundary in ('repeat','final_failure','calls') else dict(query=dict(offset=self.steps*25))
-            calls=[dict(tool='equipment_list',arguments_json=json.dumps(args),explanation='TEST ONLY scoped read')]
+            calls=[dict(tool='staff_find',arguments_json=json.dumps(args),explanation='TEST ONLY scoped prerequisite read')]
             if boundary=='calls':calls.append(dict(tool='catalog_read',arguments_json='{}',explanation='TEST ONLY second read'))
             return schema(answer='TEST ONLY intermediate, not a final result',calls=calls)
     model=Bounded();app.state.assistant_provider_factory=lambda:model
@@ -425,39 +437,47 @@ def test_bounded_search_finishes_with_an_honest_answer_and_no_writes(assistant_c
         assert r.status_code==202
         view=admin.get(B+'/conversations/'+t).json();turn=view['turns'][0]
         if boundary=='final_failure':
-            # Required failure semantics: a failed final inference must remain visible.
-            assert turn['status']=='failed' and turn['error_code']=='AITUNNEL_TIMEOUT'
+            # The last required execution inference failed; saved facts survive.
+            assert turn['status']=='failed' and turn['error_code']=='OLLAMA_TIMEOUT'
         else:assert turn['status']=='completed' and turn['error_code'] is None
         assert 'предел шагов' not in turn['answer'].casefold() and 'intermediate' not in turn['answer']
-        assert model.final==1 and model.context['question']=='Кто самый результативный работник?'
-        assert all(item['user']!=model.context['question'] for item in model.context['history'])
+        assert model.context['question']=='Кто самый результативный работник?'
+        assert all(item['content']!=model.context['question'] for item in model.context['context']['history'])
         assert view['actions']==[]
-        if boundary=='final_failure':assert 'статистику' in turn['answer'] and 'не означает' in turn['answer']
-        else:assert turn['answer'].startswith('TEST ONLY:')
-        assert len(turn['trace'])==dict(steps=2,repeat=2,calls=1,empty=0,deadline=0,final_failure=2)[boundary]
-        assert len(model.context['verified_results'])==len(turn['trace'])
-        if turn['trace']:
-            source=model.context['verified_results'][0]['source_arguments']
+        assert turn['workflow']['outcome'] in ('partial','blocked') and 'Незавершённые пункты' in turn['answer']
+        with engine.connect() as c:
+            state=c.scalar(text('SELECT workflow FROM assistant_turns WHERE turn_id=:id'),dict(id=turn['turn_id']))
+        expected_reads=dict(steps=6,repeat=2,calls=1,empty=0,deadline=0,final_failure=1)[boundary]
+        assert len(state['evidence'])==expected_reads
+        assert state['metrics']['tool_calls']==expected_reads
+        assert model.steps<=6
+        assert all(proof['tool']=='staff_find' for proof in state['evidence'])
+        if state['evidence']:
+            source=state['evidence'][0]['arguments']
             assert source['query'].get('offset',0)==(25 if boundary=='steps' else 0)
         with engine.connect() as c:assert c.scalar(text('SELECT count(*) FROM equipment WHERE site_id=:site'),dict(site=ids['site']))==before
     finally:del app.state.assistant_provider_factory
 
 def test_timeout_after_reading_keeps_findings_and_explains_incomplete_check(assistant_case):
-    from ml_service.app.providers.aitunnel import AITunnelFailure
-    _,app,admin,_,_=assistant_case;t=thread(admin)
+    from ml_service.app.providers.ollama import OllamaFailure
+    engine,app,admin,_,_=assistant_case;t=thread(admin)
     class Interrupted:
         def __init__(self):self.steps=0
         def chat(self,messages,schema,tokens):
-            if schema.__name__=='ToolSelection':return schema(tools=[])
+            if schema.__name__=='ToolSelection':return schema(tools=[],goals=[dict(id='equipment',title='Проверить карточку выбранного оборудования',tool='equipment_read')])
             self.steps+=1
-            if self.steps>1:raise AITunnelFailure('AITUNNEL_TIMEOUT')
+            if self.steps>1:raise OllamaFailure('OLLAMA_TIMEOUT')
             return schema(answer='',calls=[dict(tool='catalog_read',arguments_json='{}',explanation='TEST ONLY read')])
     app.state.assistant_provider_factory=Interrupted
     try:
         r=admin.post(B+'/conversations/'+t+'/messages',json=dict(idempotency_key=str(uuid4()),content='Проверь оборудование'))
         assert r.status_code==202
         turn=admin.get(B+'/conversations/'+t).json()['turns'][0]
-        assert turn['status']=='failed' and turn['error_code']=='AITUNNEL_TIMEOUT'
-        assert 'за отведённое время' in turn['answer'] and 'полученным сведениям' in turn['answer']
+        assert turn['status']=='failed' and turn['error_code']=='OLLAMA_TIMEOUT'
+        assert turn['workflow']['outcome']=='partial' and turn['workflow']['goals'][0]['status']=='partial'
+        assert 'Незавершённые пункты' in turn['answer']
         assert turn['trace'][0]['tool']=='catalog_read'
+        with engine.connect() as c:
+            state=c.scalar(text('SELECT workflow FROM assistant_turns WHERE turn_id=:id'),dict(id=turn['turn_id']))
+        assert state['evidence'][0]['tool']=='catalog_read' and state['evidence'][0]['result']
     finally:del app.state.assistant_provider_factory

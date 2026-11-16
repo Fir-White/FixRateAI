@@ -1,0 +1,267 @@
+"""Persisted user objectives, server evidence and independent action outcomes.
+
+The model may plan and suggest tools. Only this module advances objectives from
+authorized results; a final model answer never completes an unfinished objective.
+"""
+from __future__ import annotations
+
+from datetime import datetime, timezone
+import copy
+import json
+import re
+from sqlalchemy import text
+from .tools import fingerprint
+
+VERSION = 1
+
+
+def timestamp():
+    return datetime.now(timezone.utc).isoformat()
+
+
+def specialist(name):
+    if name.startswith(('equipment', 'regulation', 'component', 'inventory', 'calendar_evidence')):
+        return 'equipment'
+    if name.startswith(('task', 'assignment', 'report', 'photo', 'calendar_read')):
+        return 'operations'
+    if name.startswith(('draft', 'portfolio', 'optimization', 'publication', 'requirements', 'planning')):
+        return 'planning'
+    if name.startswith(('staff', 'workforce', 'qualification', 'shift', 'availability', 'membership', 'application')):
+        return 'workforce'
+    if name.startswith(('attachment', 'catalog', 'import', 'export','workbook')):
+        return 'documents'
+    return 'administration'
+
+
+def allowed_tools(target, tools):
+    """Responsibility-scoped tools; backend authorization remains authoritative."""
+    domain = specialist(target)
+    common = {'equipment_find', 'equipment_read', 'tasks_find', 'task_read',
+              'staff_find', 'staff_read', 'catalog_read', 'attachment_read'}
+    return {name: tool for name, tool in tools.items()
+            if specialist(name) == domain or name in common and tool.mode == 'read'}
+
+
+def create_plan(selection, question, tools, scope):
+    specs = selection.goals
+    # Old providers remain readable, but an undecomposed business request is not
+    # silently certified as complete from a prerequisite search.
+    goals = [dict(id=g.id, title=g.title, tool=g.tool, depends_on=g.depends_on,
+                  requires_full_list=g.requires_full_list,kind=g.kind,selector=g.selector.model_dump(mode='json',exclude_none=True),changes=g.changes,response_style=g.response_style,workflow_kind=g.workflow_kind) for g in specs]
+    if not goals:
+        goals = [dict(id='request', title=question[:400], tool='', depends_on=[],
+                      requires_full_list=False)]
+    ids = [goal['id'] for goal in goals]
+    if len(set(ids)) != len(ids):
+        raise ValueError('Duplicate objective IDs')
+    seen = set()
+    for goal in goals:
+        if not set(goal['depends_on']) <= seen:
+            raise ValueError('Objectives must be a dependency-ordered DAG')
+        seen.add(goal['id'])
+        target = tools.get(goal['tool'])
+        goal.update(specialist=specialist(goal['tool']),
+                    mode=target.mode if target else 'clarification',
+                    status='planned' if target else 'blocked',
+                    reason=None if target else 'clarification_or_capability_required',
+                    evidence_ids=[], action_id=None, attempts=0)
+        goal['kind']=goal.get('kind') or ('change' if target and target.mode=='write' else 'read' if target else 'unavailable')
+        if goal['kind']=='conversation' and not goal['tool']:
+            goal.update(mode='conversation',status='planned',reason=None)
+        from .intents import mutation_requested
+        if goal['kind']=='conversation' and (mutation_requested(question) or goal.get('changes') or goal.get('selector',{}).get('equipment_code') or goal.get('selector',{}).get('equipment_id') or goal.get('selector',{}).get('attachment_ids') or goal.get('response_style')=='analysis'):
+            goal.update(status='blocked',reason='plan_outcome_tool_mismatch')
+        if target and ((goal['kind']=='change')!=(target.mode=='write') or target.mode=='read' and mutation_requested(goal['title'])):
+            goal.update(status='blocked',reason='plan_outcome_tool_mismatch')
+    return dict(version=VERSION, scope=scope, request=question, goals=goals,
+                evidence=[], outcome='planned', revision=0, created_at=timestamp(),
+                metrics=dict(llm_calls=0, llm_seconds=0, tool_calls=0, tool_seconds=0),
+                stop_reason=None, decomposition_verified=bool(specs))
+
+
+def bind_explicit(state,question,tools):
+    """A strict single-command grammar is authoritative over model guesses.
+
+    The parser deliberately rejects multiple mutations, ambiguous selectors and
+    explicit revision conditions. It cannot capture a compound request and
+    finish it early: only its one fully specified mutation goal is replaced;
+    independent read goals remain in the same persisted plan.
+    """
+    from .explicit_draft import specification
+    from .intents import mutation_requested
+    spec=specification(question)
+    if not spec or spec['tool'] not in tools:return state
+    candidates=[goal for goal in state['goals'] if goal['mode']=='write' or mutation_requested(goal['title'])]
+    previous=candidates[0] if len(candidates)==1 else None
+    if len(candidates)>1:return state
+    identity=previous['id'] if previous else 'explicit-command'
+    selector=dict(spec['path'])
+    bound=dict(id=identity,title=question[:400],tool=spec['tool'],
+               depends_on=previous['depends_on'] if previous else [],requires_full_list=False,kind='change',selector=selector,
+               changes=spec['changes'],response_style='facts',specialist=specialist(spec['tool']),mode='write',status='planned',
+               reason=None,evidence_ids=[],action_id=None,attempts=0)
+    if previous:state['goals'][state['goals'].index(previous)]=bound
+    else:state['goals'].append(bound)
+    return state
+
+
+def safe_evidence(value):
+    """Private evidence can contain business data, never credentials or prompts."""
+    if isinstance(value, dict):
+        return {str(k): ('[redacted]' if re.search(r'password|secret|token|cookie|authorization|api.?key', str(k), re.I)
+                         else safe_evidence(v)) for k, v in value.items()}
+    if isinstance(value, list):
+        return [safe_evidence(v) for v in value]
+    return value
+
+
+def completeness(value):
+    """A successful page is evidence, but cannot prove a complete registry."""
+    reasons = []
+    def visit(node):
+        if isinstance(node, dict):
+            if node.get('complete') is False or node.get('has_more') is True or node.get('truncated') is True:
+                reasons.append('partial_result')
+            if node.get('status') in ('blocked', 'invalid_configuration', 'access_denied', 'unavailable'):
+                reasons.append('blocked_result')
+            if node.get('undated_count',0) or node.get('actual_date_unknown_count',0):
+                reasons.append('undated_facts')
+            if node.get('actual_date_conflict') is True:
+                reasons.append('conflicting_facts')
+            items = node.get('items')
+            total = node.get('total', node.get('total_count'))
+            if isinstance(items, list) and type(total) is int and total > len(items):
+                reasons.append('page_only')
+            for item in node.values():
+                visit(item)
+        elif isinstance(node, list):
+            for item in node:
+                visit(item)
+    visit(value)
+    return not reasons, sorted(set(reasons))
+
+
+def record_result(state, goal, name, arguments, value, *, action_id=None, elapsed=0):
+    complete, reasons = completeness(value)
+    proof = dict(id=f'e{len(state["evidence"])+1}', goal_id=goal['id'], tool=name,
+                 checked_at=timestamp(), scope=state['scope'],
+                 arguments=safe_evidence(arguments), sha256=fingerprint(value),
+                 complete=complete, retained=True, limitations=reasons, result=safe_evidence(value))
+    # Large reads stay explicitly incomplete, instead of losing rows silently.
+    encoded = json.dumps(proof, default=str, ensure_ascii=False)
+    if len(encoded) > 40000 or sum(len(json.dumps(e, default=str)) for e in state['evidence']) > 100000:
+        proof['result'] = {'retained': False, 'reason': 'evidence_budget'}
+        proof['retained'] = False
+        proof['complete'] = False
+        proof['limitations'].append('evidence_budget')
+    state['evidence'].append(proof)
+    goal['evidence_ids'].append(proof['id'])
+    state['metrics']['tool_calls'] += 1
+    state['metrics']['tool_seconds'] += round(elapsed, 4)
+    if action_id:
+        goal.update(action_id=str(action_id), status='awaiting_confirmation', reason='human_confirmation_required')
+    elif name == goal['tool'] and goal['mode'] == 'read':
+        # An explicit incomplete marker is always respected. For a requested
+        # full list, even a valid first page cannot settle the objective.
+        goal.update(status='completed' if proof['complete'] else 'partial',
+                    reason=None if proof['complete'] else ','.join(proof['limitations']))
+        if isinstance(value,dict) and value.get('status')=='blocked':goal.update(status='blocked',reason='domain_blocker')
+        if name=='attachment_read' and proof['complete']:
+            selected=set(goal.get('selector',{}).get('attachment_ids',[]))
+            read={item.get('arguments',{}).get('path',{}).get('attachment_id') for item in state['evidence']
+                  if item['goal_id']==goal['id'] and item['tool']==name and item.get('complete')}
+            if selected-read:goal.update(status='running',reason='remaining_files')
+    update_outcome(state)
+    return proof
+
+
+def update_outcome(state):
+    statuses = {goal['status'] for goal in state['goals']}
+    if statuses == {'completed'} and state.get('decomposition_verified'):
+        result = 'completed'
+    elif 'running' in statuses:
+        result = 'running'
+    elif 'awaiting_confirmation' in statuses or 'uncertain' in statuses:
+        result = 'awaiting_confirmation' if 'uncertain' not in statuses else 'partial'
+    elif statuses <= {'cancelled'}:
+        result = 'cancelled'
+    elif statuses & {'completed', 'partial'}:
+        result = 'partial'
+    elif 'planned' in statuses:
+        result = 'planned'
+    else:
+        result = 'blocked'
+    state['outcome'] = result
+    return result
+
+
+def save(app, turn_id, state, *, require_running=True):
+    state['revision'] += 1
+    update_outcome(state)
+    with app.state.factory() as session:
+        changed = session.execute(text("UPDATE assistant_turns SET workflow=CAST(:state AS jsonb) WHERE turn_id=:id" +
+                                  (" AND status='running'" if require_running else '')),
+                                  dict(id=turn_id, state=json.dumps(state, ensure_ascii=False, default=str))).rowcount
+        session.commit()
+    return bool(changed)
+
+
+def refresh_actions(session, state, rows=None):
+    """A transport-success receipt alone does not settle a mutation objective."""
+    ids = [goal['action_id'] for goal in state['goals'] if goal.get('action_id')]
+    if rows is None:
+        records = session.execute(text('SELECT action_id,status,result,workflow_goal_id,expires_at FROM assistant_actions WHERE action_id=ANY(CAST(:ids AS uuid[])) OR workflow_root_turn_id=CAST(:root AS uuid)'), dict(ids=ids, root=state.get('root_turn_id'))).mappings().all() if ids or state.get('root_turn_id') else []
+        rows = {str(row['action_id']): row for row in records}
+    by_goal = {row.get('workflow_goal_id'): row for row in rows.values() if row.get('workflow_goal_id')}
+    for goal in state['goals']:
+        recovered = by_goal.get(goal['id'])
+        if recovered and not goal.get('action_id'):
+            goal['action_id'] = str(recovered['action_id'])
+        if not goal.get('action_id'):
+            continue
+        row = rows.get(goal['action_id'])
+        if not row:
+            goal.update(status='blocked', reason='action_unavailable')
+            continue
+        status = row['status']
+        verification = (row['result'] or {}).get('verification', {})
+        if status == 'succeeded' and verification.get('status') == 'confirmed':
+            goal.update(status='completed', reason=None)
+        elif status == 'succeeded':
+            goal.update(status='partial', reason='postcondition_unverified')
+        elif status=='proposed' and row.get('expires_at') and row['expires_at']<datetime.now(timezone.utc):
+            goal.update(status='blocked',reason='action_expired_request_fresh_proposal')
+        elif status in ('proposed', 'executing'):
+            goal.update(status='awaiting_confirmation', reason='human_confirmation_required' if status == 'proposed' else 'action_executing')
+        elif status == 'uncertain':
+            goal.update(status='uncertain', reason='read_only_reconciliation_required')
+        else:
+            goal.update(status='blocked', reason='action_' + status)
+    return update_outcome(state)
+
+
+def resume(state):
+    state = copy.deepcopy(state)
+    for goal in state['goals']:
+        # Never recreate/replay an existing mutation, regardless of its result.
+        if not goal.get('action_id') and goal['status'] not in ('completed', 'cancelled'):
+            goal.update(status='planned' if goal['tool'] else 'blocked', reason=None)
+    state['stop_reason'] = None
+    update_outcome(state)
+    return state
+
+
+def public_state(state):
+    if state is None:
+        return None
+    return {key: state[key] for key in ('version', 'outcome', 'goals', 'metrics', 'stop_reason', 'revision')}
+
+
+def unfinished_text(state):
+    pending = [goal for goal in state['goals'] if goal['status'] != 'completed']
+    if not pending:
+        return ''
+    labels = {'awaiting_confirmation': 'ожидает подтверждения', 'uncertain': 'результат изменения требует проверки',
+              'blocked': 'есть препятствие', 'partial': 'проверено частично', 'cancelled': 'остановлено'}
+    return '\n\nНезавершённые пункты:\n' + '\n'.join(
+        '- ' + goal['title'] + ' — ' + labels.get(goal['status'], 'ещё не выполнено') + '.' for goal in pending)

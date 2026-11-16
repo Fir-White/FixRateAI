@@ -1,5 +1,6 @@
 """At most two repairs for GET reads. Never retries a dispatched write."""
-import hashlib,json,re
+import hashlib,json,re,time
+from datetime import datetime,timezone
 from fastapi import HTTPException
 from .tools import validate_arguments,invoke,route_for
 
@@ -57,15 +58,17 @@ async def read(app,tool,args,headers,trace,publish=lambda:None):
     if tool.mode!='read' or tool.method!='GET':raise ValueError('GET read required')
     current=args
     for attempt in range(3):
-        entry=dict(tool=tool.name,attempt=attempt+1,retry_count=attempt,arguments=safe_arguments(current))
+        started=time.monotonic()
+        entry=dict(tool=tool.name,attempt=attempt+1,retry_count=attempt,arguments=safe_arguments(current),at=datetime.now(timezone.utc).isoformat())
         checked=None
         try:
             checked=validate_arguments(app,tool,current)
             value=await invoke(app,tool,checked,headers)
-            entry.update(status='completed',result=result_summary(value),error_type=None);trace.append(entry);publish()
+            entry.update(status='completed',result=result_summary(value),error_type=None,seconds=round(time.monotonic()-started,4));trace.append(entry);publish()
             return checked,value
         except HTTPException as exc:
             entry.update(status='denied',code=exc.status_code,error_type='argument_validation' if exc.status_code==422 else 'access_denied' if exc.status_code in (401,403) else 'not_found' if exc.status_code==404 else 'backend_unavailable' if exc.status_code>=500 else 'tool_error')
+            entry['seconds']=round(time.monotonic()-started,4)
             entry['stage']='validation' if checked is None else 'backend_or_projection'
             if isinstance(exc.detail,dict) and exc.detail.get('code')=='INVALID_VIEW':entry['validation']=exc.detail
             trace.append(entry);publish()

@@ -11,9 +11,10 @@ from tests.backend.test_assistant import assistant_case,thread,B
 class ReadReply:
     def __init__(self,reply):self.reply=reply;self.steps=0
     def chat(self,messages,schema,tokens):
-        if schema.__name__=='ToolSelection':return schema(tools=['equipment_find'])
+        if schema.__name__=='ToolSelection':return schema(tools=['equipment_find'],goals=[dict(
+            id='registry',title='Перечислить оборудование',tool='equipment_find',kind='read',requires_full_list=True)])
         self.steps+=1
-        return schema(answer='',calls=[dict(tool='equipment_find',arguments_json='{}',explanation='TEST ONLY authorized read')] if self.steps==1 else [])
+        return schema(answer=self.reply,calls=[dict(tool='equipment_find',arguments_json='{}',explanation='TEST ONLY authorized read')] if self.steps==1 else [])
     def text(self,*args):return self.reply
 
 
@@ -31,10 +32,14 @@ def test_all_failed_reads_cannot_be_rendered_as_an_empty_registry(assistant_case
         assert sent.status_code==202,sent.text
         state=admin.get(B+'/conversations/'+chat).json();turn=state['turns'][-1]
         assert turn['status']=='completed' and not state['actions']
-        assert 'Не удалось получить запрошенные данные' in turn['answer'],turn
-        assert 'не подтверждает отсутствие записей' in turn['answer']
+        assert turn['workflow']['outcome']=='blocked',turn
+        assert turn['workflow']['goals'][0]['status']=='blocked'
+        assert turn['workflow']['goals'][0]['evidence_ids']==[]
+        assert 'Результат не получен.' in turn['answer'],turn
+        assert 'Список пуст.' not in turn['answer'] and 'Найдено: 0.' not in turn['answer']
         assert 'Оборудование не найдено в реестре.' not in turn['answer']
-        assert any(t['tool']=='__evidence_guard' and t['error_type']=='unverified_read_results' for t in turn['trace'])
+        assert any(t['tool']=='equipment_find' and t['status']=='denied' and t['code']==status for t in turn['trace'])
+        assert not any(t['tool']=='equipment_find' and t['status']=='completed' for t in turn['trace'])
         with engine.connect() as db:assert db.scalar(text('SELECT count(*) FROM equipment WHERE equipment_id=:id'),dict(id=asset['equipment_id']))==1
     finally:del app.state.assistant_provider_factory
 
@@ -50,7 +55,8 @@ def test_verified_empty_or_nonempty_read_is_not_overridden(assistant_case,has_as
         sent=admin.post(B+f'/conversations/{chat}/messages',json=dict(content='Перечисли оборудование.',idempotency_key=str(uuid4())))
         assert sent.status_code==202,sent.text
         turn=admin.get(B+'/conversations/'+chat).json()['turns'][-1]
-        assert f'**{int(has_asset)}**' in turn['answer']
+        assert f'Найдено: {int(has_asset)}.' in turn['answer']
+        assert turn['workflow']['outcome']=='completed'
         if asset:assert asset['name'] in turn['answer'] and asset['asset_code'] in turn['answer']
         assert not any(t['tool']=='__evidence_guard' for t in turn['trace'])
         assert any(t['tool']=='equipment_find' and t['status']=='completed' and t['result']['total']==int(has_asset) for t in turn['trace'])

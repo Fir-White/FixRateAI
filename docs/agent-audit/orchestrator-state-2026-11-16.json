@@ -1,0 +1,20 @@
+{
+  "status": "in_progress",
+  "objective": "One persisted assistant orchestrator with verified user-goal outcomes and positive acceptance for every available role operation except password change",
+  "baseline_commit": "8284c69",
+  "branch": "feature/agent-orchestrator-20261116",
+  "policy": "Installed local Ollama only; no cloud fallback, weight downloads, production deployment or live preference changes",
+  "tasks": [
+    {"id": "preserve-owner-slice", "status": "completed", "evidence": "8284c69 and private 35-file ZIP/hash manifest"},
+    {"id": "persisted-single-executor", "status": "in_progress", "evidence": "migration 023, workflow state, root action uniqueness; independent focused DB tests passed; integration continues"},
+    {"id": "authoritative-business-adapters", "status": "in_progress", "remaining": "Finish file, planning and complete analytics integration without weakening existing business/security oracles"},
+    {"id": "engineering-facts", "status": "in_progress", "remaining": "Frozen combined calendar/history/manufacturer acceptance and neighbouring period/scope cases"},
+    {"id": "all-operation-acceptance", "status": "open", "remaining": "173 operations, 708 allowed role-operation cells after workbook readiness export; positive E2E evidence is not implied by registration"},
+    {"id": "frozen-full-regression", "status": "open", "remaining": "Resolve all 98 exploratory failures, regenerate schemas/matrix, rerun complete backend/ML and critical native gates"},
+    {"id": "live-baseline-comparison", "status": "in_progress", "remaining": "Strict same-corpus/same-model/source-stable repetitions; preserve failed runs and oracle corrections"},
+    {"id": "production-ui-performance", "status": "open", "remaining": "Production build, desktop/mobile native scroll/input/navigation, reload/back/forward/reduced motion and measurements"},
+    {"id": "durable-operations", "status": "open", "remaining": "Automatic queue/lease recovery and read-only reconciliation; never replay uncertain writes"},
+    {"id": "all-write-postconditions", "status": "open", "remaining": "Unknown operation receipts remain explicitly unverified"},
+    {"id": "publication", "status": "not_requested", "remaining": "No deploy or push; result remains isolated for review and safe integration"}
+  ]
+}

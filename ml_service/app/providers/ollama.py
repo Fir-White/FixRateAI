@@ -18,6 +18,22 @@ def agent_wire_schema(schema,tool_modes=None):
     backend validations still apply after decoding.
     """
     value=schema.model_json_schema()
+    if schema.__name__=='ToolSelection' and tool_modes is not None and 'GoalSpec' in value.get('$defs',{}):
+        goal=value['$defs']['GoalSpec']
+        required=list(dict.fromkeys([*goal.get('required',[]),'kind','selector','changes']))
+        variants=[]
+        for kind,mode in (('read','read'),('change','write')):
+            names=sorted(name for name,actual in tool_modes.items() if actual==mode)
+            if names:
+                variants.append({**goal,'required':required,'properties':{**goal['properties'],
+                    'kind':dict(type='string',const=kind),'tool':dict(type='string',enum=names)}})
+        for kind in ('conversation','unavailable'):
+            variants.append({**goal,'required':required,'properties':{**goal['properties'],
+                'kind':dict(type='string',const=kind),'tool':dict(type='string',const='')}})
+        value['$defs']['GoalSpec']=dict(anyOf=variants)
+        selector=value['$defs'].get('GoalSelector')
+        if selector:selector['required']=list(selector['properties'])
+        value['required']=list(dict.fromkeys([*value.get('required',[]),'goals']))
     if schema.__name__=='AgentStep' and 'AgentCall' in value.get('$defs',{}):
         call=value['$defs']['AgentCall']
         arguments=dict(type='object',description='Tool arguments as a JSON OBJECT, never a string. Only use fields supported by the selected tool.',
@@ -54,7 +70,7 @@ def agent_wire_messages(messages):
                 if isinstance(value,dict) and set(value)=={'answer','calls'} and isinstance(value['calls'],list):
                     changed=False
                     for call in value['calls']:
-                        if isinstance(call,dict) and set(call)=={'tool','arguments_json','explanation'} and isinstance(call['arguments_json'],str):
+                        if isinstance(call,dict) and {'tool','arguments_json','explanation'}<=set(call)<= {'tool','arguments_json','explanation','goal_id'} and isinstance(call['arguments_json'],str):
                             arguments=json.loads(call['arguments_json'])
                             if isinstance(arguments,dict):call['arguments_json']=arguments;changed=True
                     if changed:replacement={**message,'content':json.dumps(value,ensure_ascii=False)}
@@ -118,6 +134,7 @@ class OllamaConfig:
 class OllamaClient:
     def __init__(self,config):
         self.config=config;self.deadline=time.monotonic()+config.timeout;self.response_model=None
+        self.metrics=[]
         self.opener=build_opener(ProxyHandler({}),NoRedirect())
 
     def set_tool_modes(self,modes):
@@ -161,7 +178,15 @@ class OllamaClient:
             converted=[*converted,dict(role='system',content='Return exactly one JSON object matching this schema. Use exact property names, include required fields. '+json.dumps(payload['format'],ensure_ascii=False))]
             payload['messages']=converted
         for attempt in range(2 if schema else 1):
-            raw=self.request('/api/chat',payload)
+            started=time.monotonic()
+            try:raw=self.request('/api/chat',payload)
+            except Exception:
+                self.metrics.append(dict(seconds=round(time.monotonic()-started,4),schema=schema.__name__ if schema else 'text',status='failed'))
+                raise
+            metric=dict(seconds=round(time.monotonic()-started,4),schema=schema.__name__ if schema else 'text')
+            if isinstance(raw,dict):
+                metric.update({key:raw[key] for key in ('prompt_eval_count','eval_count') if type(raw.get(key)) is int and raw[key]>=0})
+            self.metrics.append(metric)
             try:
                 if not isinstance(raw,dict):raise OllamaFailure('OLLAMA_INVALID_RESPONSE',reason='invalid_envelope')
                 if raw.get('model')!=self.config.model:raise OllamaFailure('OLLAMA_INVALID_RESPONSE',reason='unexpected_model')

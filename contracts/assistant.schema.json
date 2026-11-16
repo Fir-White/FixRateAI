@@ -9,6 +9,20 @@
           "title": "Tool",
           "type": "string"
         },
+        "goal_id": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "ID of the planned user objective served by this call.",
+          "title": "Goal Id"
+        },
         "arguments_json": {
           "description": "JSON object with tool arguments: path, query, body. For describe_tool: {\"name\":\"tool_name\"}.",
           "maxLength": 40000,
@@ -155,6 +169,279 @@
       "title": "FinalReply",
       "type": "object"
     },
+    "GoalSelector": {
+      "additionalProperties": false,
+      "properties": {
+        "equipment_code": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Equipment Code"
+        },
+        "equipment_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Equipment Id"
+        },
+        "user_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "User Id"
+        },
+        "attachment_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Attachment Ids",
+          "type": "array"
+        },
+        "starts_on": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Starts On"
+        },
+        "ends_on": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ends On"
+        },
+        "current_only": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Current Only"
+        },
+        "draft_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Draft Id"
+        },
+        "run_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Run Id"
+        },
+        "proposal_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Proposal Id"
+        },
+        "component_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Component Id"
+        }
+      },
+      "title": "GoalSelector",
+      "type": "object"
+    },
+    "GoalSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 40,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9_-]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "description": "One independently verifiable user objective, preserving its exact scope and values.",
+          "maxLength": 400,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "tool": {
+          "description": "REQUIRED exact final outcome tool name from the authorized catalog, not a prerequisite search. Use empty string ONLY when capability or required user decision is genuinely unavailable.",
+          "maxLength": 100,
+          "title": "Tool",
+          "type": "string"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "read",
+                "change",
+                "conversation",
+                "unavailable"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Kind"
+        },
+        "selector": {
+          "$ref": "#/$defs/GoalSelector",
+          "description": "Business selectors stated by the user. Resolve technical UUIDs on the server; never invent them. Distinguish calendar cycle dates from actual-history year."
+        },
+        "changes": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Only exact field values requested for this change, e.g. name. Empty for reads. Technical revisions are supplied by server code.",
+          "maxProperties": 12,
+          "title": "Changes",
+          "type": "object"
+        },
+        "depends_on": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "Depends On",
+          "type": "array"
+        },
+        "requires_full_list": {
+          "default": false,
+          "title": "Requires Full List",
+          "type": "boolean"
+        },
+        "response_style": {
+          "default": "facts",
+          "enum": [
+            "facts",
+            "analysis"
+          ],
+          "title": "Response Style",
+          "type": "string"
+        },
+        "workflow_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "readiness",
+                "calendar",
+                "materials",
+                "whatif",
+                "create",
+                "compare",
+                "optimize",
+                "prepare_approval",
+                "approve",
+                "publish",
+                "publication",
+                "impossible",
+                "bypass"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Workflow Kind"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "tool"
+      ],
+      "title": "GoalSpec",
+      "type": "object"
+    },
     "MessageCreate": {
       "additionalProperties": false,
       "properties": {
@@ -198,6 +485,19 @@
           ],
           "default": null,
           "title": "Model Preference Revision"
+        },
+        "resume_turn_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resume Turn Id"
         }
       },
       "required": [
@@ -263,6 +563,15 @@
           },
           "maxItems": 8,
           "title": "Tools",
+          "type": "array"
+        },
+        "goals": {
+          "description": "Every objective in the latest request, including unavailable and dependent objectives. Do not omit an objective after selecting a report tool.",
+          "items": {
+            "$ref": "#/$defs/GoalSpec"
+          },
+          "maxItems": 12,
+          "title": "Goals",
           "type": "array"
         },
         "workbook_ids": {

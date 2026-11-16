@@ -11,6 +11,20 @@ const chat={conversation_id:'chat',title:'Мой диалог',agent:'assistant'
 const view:ChatView={conversation:chat,turns:[],total:0,actions:[]};
 beforeEach(()=>{vi.restoreAllMocks();vi.spyOn(api,'capabilities').mockResolvedValue(caps);vi.spyOn(api,'list').mockResolvedValue({items:[chat],total:1});vi.spyOn(api,'read').mockResolvedValue(view);vi.spyOn(api,'send').mockResolvedValue({turn_id:'new',status:'running'});});
 function show(path='/assistant?chat=chat'){return render(<WorkspaceStateScope.Provider value="TEST:TEST-SITE:chief_engineer"><MemoryRouter initialEntries={[path]}><AssistantPage/></MemoryRouter></WorkspaceStateScope.Provider>);}
+it('resumes the saved task with a stable source and keeps the composer draft',async()=>{
+  const user=userEvent.setup();
+  vi.mocked(api.read).mockResolvedValue({...view,total:1,turns:[{turn_id:'saved-task',content:'Проверь два пункта',answer:'Первый проверен',status:'completed',error_code:null,trace:[],created_at:'2026-11-14T08:15:00Z',model_ref:null,workflow:{outcome:'partial',goals:[{id:'done',title:'Первый пункт',status:'completed'},{id:'pending',title:'Второй пункт',status:'blocked'}]}}]});
+  show();const input=await screen.findByLabelText('Сообщение помощнику');await user.type(input,'Другой черновик');
+  await user.click(screen.getByRole('button',{name:'Продолжить поручение'}));
+  await waitFor(()=>expect(api.send).toHaveBeenCalledWith('chat','Продолжить сохранённое поручение.',expect.any(String),[],undefined,'saved-task'));
+  expect(input).toHaveValue('Другой черновик');expect(screen.getByText(/Поручение не завершено/)).toBeVisible();
+});
+it('keeps a finished reply distinct from an unconfirmed business task',async()=>{
+  vi.mocked(api.read).mockResolvedValue({...view,total:1,turns:[{turn_id:'awaiting',content:'Подготовь изменение',answer:'Карточка подготовлена',status:'completed',error_code:null,trace:[],created_at:'2026-11-14T08:15:00Z',finished_at:'2026-11-14T08:16:05Z',model_ref:null,workflow:{outcome:'awaiting_confirmation',goals:[{id:'change',title:'Изменение оборудования',status:'awaiting_confirmation',action_id:'action'}]}}]});
+  show();expect(await screen.findByText(/Поручение ожидает подтверждения/)).toBeVisible();
+  expect(screen.getByText('Ответ завершён за 1 минуту 5 секунд')).toBeVisible();
+  expect(screen.queryByText('Поручение выполнено')).not.toBeInTheDocument();
+});
 it('keeps the draft while changing model and sends the saved preference revision',async()=>{
   const user=userEvent.setup();
   vi.mocked(api.capabilities).mockResolvedValue({...caps,model_preference:{selection:{provider:'aitunnel',model:'cloud-test'},revision:7,is_default:false,available:true}});
@@ -61,7 +75,7 @@ it('collapses distinct progress stages and keeps the completed duration after re
   const user=userEvent.setup();
   const turn={turn_id:'t',content:'Проверь',answer:'Готово',status:'completed' as const,error_code:null,trace:[{tool:'tasks_find',status:'completed'},{tool:'tasks_list',status:'completed'},{tool:'tasks_find',status:'completed'},{tool:'staff_find',status:'denied'}],created_at:'2026-11-14T08:15:00Z',finished_at:'2026-11-14T08:16:05Z',model_ref:null};
   vi.mocked(api.read).mockResolvedValue({...view,turns:[turn],total:1});show();
-  const toggle=await screen.findByLabelText('Время выполнения: 1 мин 5 сек');expect(toggle).toHaveTextContent('Выполнено за 1 минуту 5 секунд');
+    const toggle=await screen.findByLabelText('Время выполнения: 1 мин 5 сек');expect(toggle).toHaveTextContent('Ответ завершён за 1 минуту 5 секунд');
   expect(toggle.closest('details')).not.toHaveAttribute('open');
   await user.click(toggle);expect(screen.getAllByText('Ищу подходящие задания и ближайшее ТО')).toHaveLength(1);
   await user.click(toggle);expect(toggle.closest('details')).not.toHaveAttribute('open');

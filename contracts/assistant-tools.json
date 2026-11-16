@@ -347,6 +347,75 @@
       "optional_protected_inputs": []
     },
     {
+      "name": "calendar_evidence",
+      "title": "Рассчитать календарную периодичность по сохранённому регламенту",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/equipment/{equipment_id}/calendar-evidence",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner",
+        "photo"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "equipment_service_history",
+      "title": "Фактическая история оборудования за период по отчётам и приёмке",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/equipment/{equipment_id}/history",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner",
+        "photo"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "workbook_readiness",
+      "title": "Проверить исходный XLSX для расчёта трудозатрат и численности без выдуманных нормативов",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/workbook-readiness",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner",
+        "photo"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
       "name": "regulation_create",
       "title": "Добавить конфигурацию обслуживания",
       "method": "POST",

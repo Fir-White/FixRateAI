@@ -17,7 +17,9 @@ class InspectingModel:
         self.calls.append((schema.__name__,copy.deepcopy(messages)))
         if schema.__name__=='ToolSelection':
             if self.on_route:self.on_route()
-            return schema.model_validate(dict(tools=[]))
+            context=json.loads(messages[-1]['content'])['context']
+            goals=[dict(id='selected-attachment',title='Проверить выбранное личное вложение',tool='attachment_read')] if context['message_attachments'] else []
+            return schema.model_validate(dict(tools=[],goals=goals))
         return schema.model_validate(dict(answer='TEST ONLY: selected attachment inspected',calls=[]))
 
 
@@ -65,7 +67,7 @@ def test_only_selected_files_are_shared_and_old_images_are_not_resent(assistant_
     provider=InspectingModel();app.state.assistant_provider_factory=lambda:provider
     assert send(admin,chat,[selected['attachment_id']]).status_code==202
     route=provider.calls[0][1]
-    context=json.loads(route[0]['content'].rsplit('Контекст сервера:\n',1)[1])
+    context=json.loads(route[-1]['content'])['context']
     assert [f['attachment_id'] for f in context['message_attachments']]==[selected['attachment_id']]
     assert pending['attachment_id'] not in json.dumps(context)
     loaded=admin.get(B+'/conversations/'+chat).json()

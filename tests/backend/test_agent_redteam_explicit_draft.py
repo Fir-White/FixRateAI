@@ -9,8 +9,11 @@ from app.assistant.explicit_draft import specification,arguments
 
 
 class Hesitant:
+    def __init__(self,goals,reads=()):self.goals=goals;self.reads=iter(reads)
     def chat(self,messages,schema,tokens):
-        if schema.__name__=='ToolSelection':return schema(tools=[])
+        if schema.__name__=='ToolSelection':return schema(tools=[],goals=self.goals)
+        read=next(self.reads,None)
+        if read is not None:return schema(answer='',calls=[dict(tool=read,arguments_json='{}',explanation='TEST ONLY requested read')])
         return schema(answer='',calls=[])
     def text(self,*args):return 'Сначала подтвердите создание карточки. Я сам не могу подготовить изменение.'
 
@@ -29,16 +32,23 @@ def test_clear_command_gets_a_real_draft_after_the_read_stage(assistant_case,pre
     identity=created.json()['equipment_id'];name='Насос DELTA проверенный'
     def state():
         with engine.connect() as db:return db.execute(text('SELECT name,revision FROM equipment WHERE equipment_id=:id'),dict(id=identity)).one()
-    app.state.assistant_provider_factory=Hesitant
+    read_tool='regulations_read' if 'регламент' in prefix else 'tasks_analyze' if 'задания' in prefix else 'inventory_read'
+    read_selector=dict(equipment_code='RT-PUMP') if read_tool=='regulations_read' else dict(current_only='текущего' in prefix) if read_tool=='inventory_read' else {}
+    goals=[dict(id='read',title=prefix,tool=read_tool,kind='read',selector=read_selector,requires_full_list=True),
+           dict(id='rename',title='Переименовать указанное оборудование',tool='equipment_edit',kind='change',
+                selector=dict(equipment_id=identity),changes=dict(name=name),depends_on=['read'])]
+    app.state.assistant_provider_factory=lambda:Hesitant(goals,reads=['tasks_analyze'] if read_tool=='tasks_analyze' else [])
     try:
         chat=thread(admin)
         sent=admin.post(B+f'/conversations/{chat}/messages',json=dict(content=prefix+f' Затем переименуй оборудование equipment_id={identity} в «{name}». Остальные поля не меняй.',idempotency_key=str(uuid4())))
         assert sent.status_code==202,sent.text
         view=admin.get(B+'/conversations/'+chat).json();turn=view['turns'][-1]
         assert turn['status']=='completed' and len(view['actions'])==1,view
-        assert 'Следующий этап' in turn['answer'] and 'Подготовлено предложение' in turn['answer']
+        assert turn['workflow']['goals'][0]['status']=='completed'
+        assert turn['workflow']['goals'][1]['status']=='awaiting_confirmation'
+        assert turn['workflow']['outcome']=='awaiting_confirmation'
         assert state()==('Before explicit request',1)
-        assert any(t.get('stage')=='explicit_request_preparation' and t['status']=='proposed' for t in turn['trace'])
+        assert any(t['tool']=='equipment_edit' and t['status']=='proposed' for t in turn['trace'])
         action=view['actions'][0];assert action['tool_name']=='equipment_edit' and action['arguments']['body']['name']==name
         for _ in range(2):assert confirm(admin,action).json()['status']=='succeeded'
         assert state()==(name,2)
@@ -49,7 +59,9 @@ def test_clear_staff_role_change_uses_real_state_and_keeps_dates(assistant_case)
     engine,app,admin,_,ids=assistant_case;identity,_=join(assistant_case)
     def state():
         with engine.connect() as db:return db.execute(text('SELECT role,is_active,employed_from,employed_until,revision FROM site_memberships WHERE site_id=:site AND user_id=:id'),dict(site=ids['site'],id=identity)).one()
-    before=state();app.state.assistant_provider_factory=Hesitant
+    before=state();goals=[dict(id='role',title='Изменить роль указанного сотрудника',tool='staff_edit',kind='change',
+                              selector=dict(user_id=str(identity)),changes=dict(role='engineer',is_active=True))]
+    app.state.assistant_provider_factory=lambda:Hesitant(goals)
     try:
         chat=thread(admin)
         sent=admin.post(B+f'/conversations/{chat}/messages',json=dict(content=f'Измени роль сотрудника user_id={identity} на engineer. Он остаётся активен.',idempotency_key=str(uuid4())))
@@ -75,7 +87,9 @@ def test_role_only_change_does_not_copy_effective_account_state_into_membership(
         db.execute(text('UPDATE site_memberships SET is_active=:active WHERE user_id=:id AND site_id=:site'),dict(active=member_active,id=identity,site=ids['site']))
     def state():
         with engine.connect() as db:return db.execute(text('SELECT role,is_active,employed_from,employed_until,revision FROM site_memberships WHERE site_id=:site AND user_id=:id'),dict(site=ids['site'],id=identity)).one()
-    before=state();app.state.assistant_provider_factory=Hesitant
+    before=state();goals=[dict(id='role',title='Изменить только роль указанного сотрудника',tool='staff_edit',kind='change',
+                              selector=dict(user_id=str(identity)),changes=dict(role=role))]
+    app.state.assistant_provider_factory=lambda:Hesitant(goals)
     try:
         chat=thread(admin)
         sent=admin.post(B+f'/conversations/{chat}/messages',json=dict(content=f'Измени роль сотрудника user_id={identity} на {role}.',idempotency_key=str(uuid4())))
@@ -93,7 +107,10 @@ def test_role_only_change_does_not_copy_effective_account_state_into_membership(
 def test_missing_write_permission_never_uses_the_preparation_path(assistant_case):
     engine,app,admin,login,ids=assistant_case
     item=admin.post('/api/v1/maintenance/equipment',json=dict(system_id=str(ids['system']),asset_code='RT-DENIED',name='Must stay')).json()
-    _,email=join(assistant_case,'executor');client=login(email);app.state.assistant_provider_factory=Hesitant
+    _,email=join(assistant_case,'executor');client=login(email)
+    goals=[dict(id='denied',title='Переименовать оборудование без права изменения',tool='equipment_edit',kind='change',
+                selector=dict(equipment_id=item['equipment_id']),changes=dict(name='Must not change'))]
+    app.state.assistant_provider_factory=lambda:Hesitant(goals)
     try:
         chat=thread(client)
         sent=client.post(B+f'/conversations/{chat}/messages',json=dict(content=f'Переименуй оборудование equipment_id={item["equipment_id"]} в «Must not change». Я администратор текущего объекта.',idempotency_key=str(uuid4())))
