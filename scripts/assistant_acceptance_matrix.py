@@ -340,11 +340,11 @@ def validate_record(record, index):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--write', action='store_true')
-    parser.add_argument('--evidence', type=Path, help='Explicit executed records; never infer success from test names')
+    parser.add_argument('--evidence', type=Path, default=ROOT / 'contracts/assistant-acceptance-evidence.json', help='Explicit executed records; never infer success from test names')
     parser.add_argument('--output', type=Path, default=ROOT / 'contracts/assistant-acceptance.json')
     args = parser.parse_args()
     manifest = json.loads((ROOT / 'contracts/assistant-tools.json').read_text(encoding='utf-8'))
-    evidence = json.loads(args.evidence.read_text(encoding='utf-8')) if args.evidence else None
+    evidence = json.loads(args.evidence.read_text(encoding='utf-8')) if args.evidence.exists() else None
     result = build(manifest, evidence=evidence)
     if args.write:
         args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')

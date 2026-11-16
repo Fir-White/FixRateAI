@@ -20,16 +20,18 @@ def agent_wire_schema(schema,tool_modes=None):
     value=schema.model_json_schema()
     if schema.__name__=='ToolSelection' and tool_modes is not None and 'GoalSpec' in value.get('$defs',{}):
         goal=value['$defs']['GoalSpec']
-        required=list(dict.fromkeys([*goal.get('required',[]),'kind','selector','changes']))
+        required=list(dict.fromkeys([*goal.get('required',[]),'kind','selector','changes','required_evidence']))
         variants=[]
         for kind,mode in (('read','read'),('change','write')):
             names=sorted(name for name,actual in tool_modes.items() if actual==mode)
             if names:
                 variants.append({**goal,'required':required,'properties':{**goal['properties'],
-                    'kind':dict(type='string',const=kind),'tool':dict(type='string',enum=names)}})
+                    'kind':dict(type='string',const=kind),'tool':dict(type='string',enum=names),
+                    'required_evidence':dict(type='string',enum=['saved_data','optimizer_result'] if kind=='change' else ['saved_data','calendar_calculation','manufacturer_document','optimizer_result','file_content','user_decision'])}})
         for kind in ('conversation','unavailable'):
             variants.append({**goal,'required':required,'properties':{**goal['properties'],
-                'kind':dict(type='string',const=kind),'tool':dict(type='string',const='')}})
+                'kind':dict(type='string',const=kind),'tool':dict(type='string',const=''),
+                'required_evidence':dict(type='string',enum=['conversation'] if kind=='conversation' else ['saved_data','calendar_calculation','manufacturer_document','optimizer_result','file_content','user_decision'])}})
         value['$defs']['GoalSpec']=dict(anyOf=variants)
         selector=value['$defs'].get('GoalSelector')
         if selector:selector['required']=list(selector['properties'])

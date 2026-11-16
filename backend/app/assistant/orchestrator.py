@@ -29,7 +29,7 @@ def _check_access(app, principal, turn_id, headers):
     with app.state.factory() as session:
         who = authenticate(Request(dict(type='http', method='GET', path='/api/v1/assistant/conversations',
                                        headers=Headers(headers).raw)), session)
-        if (who.user_id, who.site_id, who.role) != (principal.user_id, principal.site_id, principal.role):
+        if (who.user_id, who.site_id, who.role,who.timezone) != (principal.user_id, principal.site_id, principal.role,principal.timezone):
             raise HTTPException(403, 'Контекст доступа изменился')
         if session.scalar(text('SELECT status FROM assistant_turns WHERE turn_id=:id'), dict(id=turn_id)) != 'running':
             raise HTTPException(409, 'Ответ остановлен')
@@ -60,60 +60,144 @@ async def _prepare(app, tool, arguments, headers):
     return validate_arguments(app, tool, args)
 
 
-async def _read_pages(app, tool, args, headers, *, full, check, trace):
-    """Bounded deterministic pagination; no extra inference for each page."""
+async def _read_pages(app, tool, args, headers, *, full, check, trace,principal=None,max_reads=20):
+    """Bound actual attempts and retain honest coverage across authorized pages.
+
+    Unversioned list APIs cannot certify an atomic snapshot across requests.
+    Such multi-page results retain observed rows but remain explicitly partial.
+    A stable server snapshot ID, consistent totals and unique identities are all
+    required before a merged result can claim completeness.
+    """
     from .tools import route_for
+    query=args.get('query') if isinstance(args.get('query'),dict) else {}
+    if tool.name=='tasks_analyze' and query.get('section','summary')=='summary' and full:
+        from .analysis_evidence import read_analysis
+        return await read_analysis(app,tool,args,headers,trace,check,principal,max_reads=max_reads)
+    budget=max(0,min(max_reads,320)) if type(max_reads) is int else 0
+    trace_start=len(trace)
+    class ReadBudget(Exception):pass
+    class Attempts:
+        def append(self,entry):
+            trace.append(entry)
+            # read_transport repairs 422s internally. Stop before its next
+            # attempt, including when the failed attempt was schema validation.
+            if entry.get('status')=='denied' and entry.get('code')==422:
+                if len(trace)-trace_start>=budget:raise ReadBudget()
+                check()
+    async def fetch(arguments):
+        if len(trace)-trace_start>=budget:raise ReadBudget()
+        check()
+        return await read_tool(app,tool,arguments,headers,Attempts())
+    def finish(value,reasons,pages,*,covered=False,snapshot=None):
+        result=dict(value)
+        reasons=list(dict.fromkeys(reasons))
+        result.update(complete=covered and not reasons,pagination=dict(
+            pages=pages,actual_reads=len(trace)-trace_start,coverage_complete=covered,
+            snapshot_verified=bool(snapshot) and not reasons,
+            limitations=reasons))
+        return result
     query_fields = {field.name for field in route_for(app, tool).dependant.query_params}
-    checked, value = await read_tool(app, tool, args, headers, trace)
+    try:checked,value=await fetch(args)
+    except ReadBudget:
+        return args,finish(dict(status='blocked'),['read_budget'],0)
     if not full or not isinstance(value, dict) or not isinstance(value.get('items'), list):
         return checked, value
-    if tool.name == 'inventory_read':
-        sites = []
-        pages = 1
-        first_args = checked
-        while True:
-            current = dict(value)
-            total = current.get('total')
-            while type(total) is int and len(current['items']) < total and pages < 16:
-                if not current['items']:
-                    break
-                check()
-                checked, page = await read_tool(app, tool,
-                    dict(query={**checked.get('query', {}), 'offset': len(current['items'])}), headers, trace)
-                pages += 1
-                if not isinstance(page, dict) or not page.get('items'):
-                    break
-                current['items'] += page['items']
-            current['complete'] = type(total) is int and len(current['items']) == total
-            sites.append(current)
-            site_index = checked.get('query', {}).get('site_offset', 0) + 1
-            if site_index >= value.get('site_total', 1) or pages >= 16:
-                break
-            check()
-            checked, value = await read_tool(app, tool,
-                dict(query={**first_args.get('query', {}), 'site_offset': site_index, 'offset': 0}), headers, trace)
-            pages += 1
-        return first_args, dict(sites=sites, complete=all(site['complete'] for site in sites)
-            and len(sites) == value.get('site_total', 1), returned_count=sum(len(site['items']) for site in sites))
-    total = value.get('total')
-    if type(total) is not int or 'offset' not in query_fields:
-        return checked, value
-    first_args = checked
-    combined = dict(value)
-    pages = 1
-    start = checked.get('query', {}).get('offset', 0)
-    while start + len(combined['items']) < total and pages < 16:
-        check()
-        checked, page = await read_tool(app, tool,
-            dict(query={**first_args.get('query', {}), 'offset': start + len(combined['items'])}), headers, trace)
-        pages += 1
-        if not isinstance(page, dict) or not page.get('items'):
-            break
-        combined['items'] += page['items']
-    combined['returned_count'] = len(combined['items'])
-    combined['complete'] = start == 0 and len(combined['items']) == total
-    combined['has_more'] = start + len(combined['items']) < total
-    return first_args, combined
+    first_args=checked
+    pages=1
+    def snapshot(page):
+        token=page.get('snapshot_id')
+        return token if isinstance(token,str) and token else None
+    def scope(page):
+        return {key:page.get(key) for key in ('site','site_total','timezone','period','filters')}
+    def identity(row):
+        if not isinstance(row,dict):return None
+        # Prefer the resource identity over referenced equipment or worker IDs.
+        keys=('id','report_id','work_report_id','taskId','work_order_id','task_id','draft_id','equipment_id','user_id')
+        return next(((key,str(row[key])) for key in keys if row.get(key) is not None),None)
+    async def collect(initial,arguments):
+        nonlocal pages
+        combined={**initial,'items':list(initial['items'])};reasons=[]
+        total=initial.get('total');start=arguments.get('query',{}).get('offset',0)
+        token=snapshot(initial);seen=set();missing_identity=False;initial_pages=pages
+        def inspect_rows(rows):
+            nonlocal missing_identity
+            for row in rows:
+                key=identity(row)
+                if key is None:
+                    # A row hash detects repeats but is not an identity proof.
+                    key=('row',fingerprint(row));missing_identity=True
+                if key in seen:reasons.append('duplicate_identity')
+                seen.add(key)
+        inspect_rows(combined['items'])
+        if type(total) is not int or total<0:reasons.append('total_unavailable')
+        if initial.get('complete') is False or initial.get('truncated') is True:reasons.append('source_partial')
+        if initial.get('offset',start)!=start:reasons.append('offset_changed')
+        while type(total) is int and start+len(combined['items'])<total:
+            if reasons and any(reason in reasons for reason in ('duplicate_identity','total_changed','snapshot_changed','page_scope_changed','offset_changed')):break
+            if not combined['items']:
+                reasons.append('empty_page');break
+            if pages>=16:
+                reasons.append('page_budget');break
+            if 'offset' not in query_fields:
+                reasons.append('pagination_unavailable');break
+            offset=start+len(combined['items'])
+            try:
+                _,page=await fetch({**arguments,'query':{**arguments.get('query',{}),'offset':offset}})
+            except ReadBudget:
+                reasons.append('read_budget');break
+            pages+=1
+            if not isinstance(page,dict) or not isinstance(page.get('items'),list):
+                reasons.append('invalid_page');break
+            if page.get('total')!=total:reasons.append('total_changed')
+            if snapshot(page)!=token:reasons.append('snapshot_changed')
+            if scope(page)!=scope(initial):reasons.append('page_scope_changed')
+            if page.get('offset',offset)!=offset:reasons.append('offset_changed')
+            if any(reason in reasons for reason in ('total_changed','snapshot_changed','page_scope_changed','offset_changed')):break
+            if page.get('complete') is False or page.get('truncated') is True:reasons.append('source_partial')
+            if not page['items']:
+                reasons.append('empty_page');break
+            inspect_rows(page['items']);combined['items']+=page['items']
+        covered=type(total) is int and start==0 and len(combined['items'])==total
+        if start:reasons.append('nonzero_start')
+        if type(total) is int and len(combined['items'])>total:reasons.append('count_exceeds_total')
+        # More than one request has no atomicity guarantee without a server token.
+        if pages>1 and not token:reasons.append('snapshot_unavailable')
+        if pages>initial_pages and missing_identity:reasons.append('identity_unavailable')
+        combined.update(returned_count=len(combined['items']),has_more=type(total) is int and start+len(combined['items'])<total)
+        return finish(combined,reasons,pages,covered=covered,snapshot=token)
+    if tool.name!='inventory_read':return first_args,await collect(value,checked)
+    sites=[];reasons=[];site_total=value.get('site_total',1);first_snapshot=snapshot(value)
+    site_start=checked.get('query',{}).get('site_offset',0);seen_sites=set()
+    if type(site_total) is not int or site_total<0:return first_args,finish(dict(sites=[]),['site_total_unavailable'],pages)
+    if site_total==0:
+        covered=site_start==0 and value.get('total')==0 and not value['items']
+        return first_args,finish(dict(sites=[],returned_count=0),[] if covered else ['invalid_empty_sites'],pages,covered=covered)
+    while True:
+        current=await collect(value,checked);sites.append(current)
+        site=value.get('site') or {};site_id=site.get('site_id',site.get('id')) if isinstance(site,dict) else None
+        if site_id is not None:
+            if str(site_id) in seen_sites:reasons.append('duplicate_site')
+            seen_sites.add(str(site_id))
+        elif site_total:reasons.append('site_identity_unavailable')
+        next_site=checked.get('query',{}).get('site_offset',0)+1
+        if next_site>=site_total:break
+        if pages>=16:
+            reasons.append('page_budget');break
+        try:checked,value=await fetch({**first_args,'query':{**first_args.get('query',{}),'site_offset':next_site,'offset':0}})
+        except ReadBudget:
+            reasons.append('read_budget');break
+        pages+=1
+        if not isinstance(value,dict) or not isinstance(value.get('items'),list):
+            reasons.append('invalid_page');break
+        if value.get('site_total')!=site_total:
+            reasons.append('site_total_changed');break
+        if snapshot(value)!=first_snapshot:
+            reasons.append('snapshot_changed');break
+    if site_start:reasons.append('nonzero_site_start')
+    if pages>1 and not first_snapshot:reasons.append('snapshot_unavailable')
+    if not all(site['complete'] for site in sites):reasons.append('partial_site')
+    return first_args,finish(dict(sites=sites,returned_count=sum(len(site['items']) for site in sites)),
+        reasons,pages,covered=len(sites)==site_total and site_start==0,snapshot=first_snapshot)
 
 
 def _render(state):
@@ -125,6 +209,8 @@ def _render(state):
     evidence = {proof['id']: proof for proof in state['evidence']}
     for goal in state['goals']:
         lines.append('### ' + label(goal['title']))
+        if goal.get('response_source')=='server_workflow':
+            lines.append(goal['response']);continue
         if goal.get('kind')=='conversation' and goal.get('response'):
             lines.append(goal['response']);continue
         if goal.get('response_style')=='analysis' and goal.get('response'):
@@ -169,10 +255,12 @@ def _render(state):
             from .grounding import regulation_report
             lines.append(regulation_report(dict(asset_code='', name='Оборудование выбранной конфигурации'), value))
         elif isinstance(value, dict) and goal['tool'] == 'tasks_analyze':
-            lines.append('Счётчики выбранного периода и области:')
-            for key, number in value.get('counters', {}).items():
-                if type(number) in (int, float):
-                    lines.append('- ' + label(key) + ': ' + str(number))
+            if isinstance(value.get('report'),str):lines.append(value['report'])
+            else:
+                if value.get('local_date'):lines.append('Дата снимка: '+value['local_date']+'; часовой пояс: '+str(value.get('timezone'))+'.')
+                lines.append('Счётчики выбранного периода и области:')
+                for key, number in value.get('counters', {}).items():
+                    if type(number) in (int, float):lines.append('- ' + label(key) + ': ' + str(number))
         else:
             rows = value.get('items', []) if isinstance(value, dict) else value if isinstance(value, list) else []
             if isinstance(value, dict) and 'total' in value:
@@ -191,6 +279,7 @@ def _render(state):
                     if isinstance(selected,dict):
                         for field,title in labels.items():
                             if selected.get(field) is not None:lines.append(title+': '+label(selected[field])+'.')
+                elif not isinstance(value,list):lines.append(label(value))
             if len(rows) > 25:
                 lines.append('В ответе показано 25 строк; полный прочитанный объём учтён в состоянии поручения.')
         lines.append('Источник: ' + goal['tool'] + '; проверено ' + proofs[-1]['checked_at'] + '.')
@@ -213,7 +302,7 @@ async def run(app, principal, thread_id, turn_id, headers):
         with app.state.factory() as session:
             thread = svc.conversation(session, principal, thread_id)
             turn = session.execute(text('SELECT * FROM assistant_turns WHERE turn_id=:id AND conversation_id=:chat'), dict(id=turn_id, chat=thread_id)).mappings().one()
-            history = session.execute(text('SELECT content,answer,workflow FROM assistant_turns WHERE conversation_id=:chat AND turn_id<>:id ORDER BY created_at DESC LIMIT 8'), dict(chat=thread_id, id=turn_id)).mappings().all()
+            history = session.execute(text('SELECT turn_id,status,content,answer,workflow FROM assistant_turns WHERE conversation_id=:chat AND turn_id<>:id ORDER BY created_at DESC LIMIT 8'), dict(chat=thread_id, id=turn_id)).mappings().all()
             files = session.execute(text('''SELECT a.* FROM assistant_attachments a JOIN assistant_turn_attachments t USING(attachment_id,conversation_id)
                 WHERE t.turn_id=:id ORDER BY t.position'''), dict(id=turn_id)).mappings().all()
             sent_files=session.execute(text('''SELECT a.* FROM assistant_attachments a WHERE a.conversation_id=:chat AND EXISTS(
@@ -233,7 +322,7 @@ async def run(app, principal, thread_id, turn_id, headers):
             set_modes({name: tool.mode for name, tool in tools.items()})
         clock = server_time(principal.timezone)
         context = dict({**scope, **clock}, tools=catalog(app, principal.role, 'assistant'),
-                       history=[dict(content=row['content'], answer=row['answer'][:5000], workflow=wf.public_state(row['workflow'])) for row in reversed(history)],
+                       history=[dict(turn_id=str(row['turn_id']),content=row['content'], answer=row['answer'][:5000], workflow=wf.public_state(row['workflow'])) for row in reversed(history)],
                        message_attachments=[public_file(row) for row in files],attachments=[public_file(row) for row in sent_files])
         from .workbooks import context as workbook_context
         books = workbook_context(app, files)
@@ -257,7 +346,9 @@ async def run(app, principal, thread_id, turn_id, headers):
             started = time.monotonic()
             selection = await infer(ToolSelection, 3000)
             root_turn_id=state['root_turn_id']
+            prior_revision=state['revision']
             state = wf.create_plan(selection, question, tools, scope)
+            state['revision']=prior_revision
             wf.bind_explicit(state,question,tools)
             state['workbook_ids']=[str(identity) for identity in selection.workbook_ids]
             state['root_turn_id']=root_turn_id
@@ -269,9 +360,35 @@ async def run(app, principal, thread_id, turn_id, headers):
                 repaired=await infer(ToolSelection,3000)
                 revised=wf.create_plan(repaired,question,tools,scope)
                 wf.bind_explicit(revised,question,tools)
-                if len(revised['goals'])>=len(state['goals']):
+                if wf.preserve_constraints(state,revised):
                     revised.update(root_turn_id=root_turn_id,metrics=state['metrics'],revision=state['revision'],workbook_ids=[str(identity) for identity in repaired.workbook_ids]);state=revised
                 wf.save(app,turn_id,state)
+            # A planner's unavailable label is not a backend availability or
+            # authorization result. Resolve only uncertain read capabilities,
+            # once, inside the same responsibility-scoped plan. Manufacturer
+            # documents and missing user decisions cannot be replaced by DB data.
+            for index,goal in enumerate(state['goals']):
+                if goal['tool'] or goal.get('kind')!='unavailable' or goal.get('required_evidence') in ('manufacturer_document','user_decision') or goal.get('workflow_kind'):
+                    continue
+                selector=goal.get('selector',{})
+                if not (selector.get('equipment_code') or selector.get('equipment_id')):continue
+                read_domain={name:tool for name,tool in wf.allowed_tools('equipment_read',tools).items() if tool.mode=='read'}
+                if callable(set_modes):set_modes({name:'read' for name in read_domain})
+                saved_messages=messages
+                messages=[dict(role='system',content=(svc.PROMPTS/'orchestrator.md').read_text(encoding='utf-8')+'\nПроверь ОДИН пункт по доступному каталогу чтений. Условие пользователя «если источник недоступен» не означает реальный отказ API. Не считай неизвестный UUID отсутствием функции. Выбери конечный read инструмент, если он существует; не меняй предмет, период или значения. Для паспорта производителя всё равно нужен именно первичный документ.'),
+                          dict(role='user',content=svc.dump(dict(request=question,current_goal=goal,tools=[dict(name=name,title=tool.title) for name,tool in read_domain.items()]))) ]
+                resolved=await infer(ToolSelection,1800)
+                messages=saved_messages
+                if len(resolved.goals)==1:
+                    candidate=wf.create_plan(resolved,question,read_domain,scope)['goals'][0]
+                    if candidate['tool'] in read_domain and candidate['mode']=='read' and not candidate.get('changes') and candidate.get('reason') not in ('plan_outcome_tool_mismatch','manufacturer_document_not_verified','user_decision_required'):
+                        candidate.update(id=goal['id'],title=goal['title'],depends_on=goal['depends_on'],selector={**candidate.get('selector',{}),**selector})
+                        if goal.get('required_evidence') is not None:candidate['required_evidence']=goal['required_evidence']
+                        candidate['requires_full_list']=goal.get('requires_full_list',False) or candidate.get('requires_full_list',False)
+                        candidate['response_style']=goal.get('response_style','facts')
+                        state['goals'][index]=candidate
+                wf.save(app,turn_id,state)
+            if callable(set_modes):set_modes({name:tool.mode for name,tool in tools.items()})
         elif state['scope'] != scope:
             raise HTTPException(403, 'Контекст поручения изменился')
         with app.state.factory() as session:
@@ -321,15 +438,56 @@ async def run(app, principal, thread_id, turn_id, headers):
         calls_used = 0
         attempts = {}
         for goal in state['goals']:
-            if goal.get('kind')=='conversation' and goal['status']!='completed' and goal.get('reason')!='plan_outcome_tool_mismatch':
+            blocker=wf.required_blocker(goal)
+            if blocker:
+                goal.update(status='blocked',reason=blocker);continue
+            if goal.get('kind')=='conversation' and goal['status'] not in ('completed','answered') and goal.get('reason')!='plan_outcome_tool_mismatch':
+                goal.update(status='running');wf.save(app,turn_id,state)
                 reply=await natural_reply([],[])
-                goal.update(status='completed',response=reply,reason=None)
+                goal.update(status='answered',response=reply,reason='prose_is_not_business_verification')
                 wf.save(app,turn_id,state);continue
-            if goal.get('action_id') or goal.get('reason') in ('plan_outcome_tool_mismatch','attachment_unavailable') or goal['status'] in ('completed', 'awaiting_confirmation', 'uncertain', 'cancelled') or not goal['tool']:
+            if goal.get('action_id') or goal.get('reason') in ('plan_outcome_tool_mismatch','attachment_unavailable','manufacturer_document_not_verified','user_decision_required') or goal['status'] in ('completed', 'awaiting_confirmation', 'uncertain', 'cancelled') or not goal['tool'] and not goal.get('workflow_kind'):
                 continue
             if any(next(g for g in state['goals'] if g['id'] == dependency)['status'] != 'completed' for dependency in goal['depends_on']):
                 goal.update(status='blocked', reason='dependency_not_completed')
                 continue
+            if goal.get('workflow_kind'):
+                if goal.get('pending_action_id') and str(goal.get('reason') or '').startswith('action_'):continue
+                from .production_workflow import run as run_workflow,WORKFLOW_TOOLS
+                kind=goal['workflow_kind'];subset={name:tool for name,tool in tools.items() if name in WORKFLOW_TOOLS[kind]}
+                goal.update(status='running',reason=None);wf.save(app,turn_id,state)
+                def workflow_check():
+                    check()
+                    if calls_used>=svc.MAX_TOOL_CALLS:raise HTTPException(413,'Достигнут бюджет инструментов поручения')
+                def observe(name,args,value):
+                    nonlocal calls_used
+                    calls_used+=1
+                    proof=wf.record_result(state,goal,name,args,value)
+                    wf.save(app,turn_id,state)
+                    return proof
+                async def suggest(tool,args,explanation):
+                    nonlocal calls_used
+                    workflow_check();calls_used+=1
+                    if tool.name not in subset or tool.mode!='write':raise HTTPException(403,'Операция вне ответственности специалиста')
+                    with app.state.factory() as session:
+                        proposal=await svc.propose(app,session,principal,thread,tool,args,explanation,headers,turn_id,
+                            workflow_goal_id=goal['id']+'::'+tool.name,workflow_root_turn_id=state['root_turn_id'])
+                    if proposal['status']!='proposed':raise HTTPException(409,'Этот этап уже имеет сохранённый исход. Повторная запись не запущена.')
+                    wf.record_result(state,goal,tool.name,args,dict(status='awaiting_confirmation',action_id=str(proposal['action_id'])))
+                    goal.update(status='awaiting_confirmation',pending_action_id=str(proposal['action_id']),reason='human_confirmation_required')
+                    wf.save(app,turn_id,state);return proposal
+                with app.state.factory() as session:
+                    outcomes=session.execute(text('''SELECT tool_name,status,result FROM assistant_actions WHERE conversation_id=:chat
+                        AND workflow_root_turn_id=CAST(:root AS uuid) AND left(workflow_goal_id,length(:prefix))=:prefix ORDER BY created_at DESC,action_id DESC'''),
+                        dict(chat=thread_id,root=state['root_turn_id'],prefix=goal['id']+'::')).mappings().all()
+                selector=goal.get('selector',{});dates=(selector['starts_on'],selector['ends_on']) if selector.get('starts_on') and selector.get('ends_on') else None
+                subject=goal['title']+' '+' '.join(str(selector[key]) for key in ('draft_id','run_id','proposal_id','component_id') if selector.get(key))
+                result=await run_workflow(app,principal,subject,[dict(content=question,answer=''),*[dict(row) for row in history]],
+                    [dict(row) for row in outcomes],headers,trace,workflow_check,suggest,kind=kind,date_range=dates,tool_subset=subset,observe=observe)
+                goal.update(response=result.answer,response_source='server_workflow',status=result.status,reason=result.reason)
+                if goal['status']=='completed' and not wf.can_complete(goal,state):goal.update(status='partial',reason='required_evidence_kind_not_verified')
+                if result.action_id:goal['pending_action_id']=result.action_id
+                wf.save(app,turn_id,state);continue
             goal_tools = wf.allowed_tools(goal['tool'], tools)
             if callable(set_modes):set_modes({name:tool.mode for name,tool in goal_tools.items()})
             goal.update(status='running', reason=None)
@@ -382,6 +540,7 @@ async def run(app, principal, thread_id, turn_id, headers):
                     calls_used += 1
                     started = time.monotonic()
                     read_attempts=[]
+                    recorded_calls=0
                     try:
                         if call.tool == 'describe_tool':
                             name = call.arguments.get('name')
@@ -414,18 +573,30 @@ async def run(app, principal, thread_id, turn_id, headers):
                             # invalidation across UI/MCP writes is not yet a
                             # transactional contract, so cross-turn read caching
                             # cannot certify current business state.
-                            args, value = await _read_pages(app, tool, call.arguments, headers,
-                                full=goal['requires_full_list'] and call.tool == goal['tool'], check=check, trace=read_attempts)
+                            read_args=call.arguments
+                            if tool.name=='attachment_read' and (goal.get('response_style')=='analysis' or goal.get('requires_full_list')):
+                                read_args={**read_args,'query':{**(read_args.get('query') or {}),'full_book':True}}
+                            args, value = await _read_pages(app, tool, read_args, headers,
+                                full=(goal['requires_full_list'] or tool.name=='tasks_analyze') and call.tool == goal['tool'], check=check, trace=read_attempts,
+                                principal=principal,max_reads=max(1,svc.MAX_TOOL_CALLS-calls_used+1))
                         else:
                             args = validate_arguments(app, tool, call.arguments)
                             value = await invoke(app, tool, args, headers)
-                        proof = wf.record_result(state, goal, tool.name, args, value, action_id=action_id, elapsed=time.monotonic()-started)
+                        aggregate=False
+                        if tool.name=='tasks_analyze' and isinstance(value,dict) and isinstance(value.get('reads'),list):
+                            reads=value['reads']
+                            for source in reads:wf.record_result(state,goal,tool.name,source['arguments'],source['result'])
+                            value={key:item for key,item in value.items() if key!='reads'};aggregate=True
+                        proof = wf.record_result(state, goal, tool.name, args, value, action_id=action_id, elapsed=time.monotonic()-started,count_call=not aggregate)
+                        recorded_calls=len(reads) if aggregate else 1
                         if tool.name in cacheable:cache.record(tool,args,proof,svc.now(),scope=scope)
                         if action_id:
                             proof.update(action_id=str(action_id), resource=[tool.before, args.get('path', {})])
                         responses.append(dict(tool=tool.name, result=bounded(value), goal_status=goal['status']))
                         trace.append(dict(tool=tool.name, status='proposed' if action_id else 'completed', at=svc.now().isoformat(),
                                           seconds=round(time.monotonic()-started, 4), arguments=safe_arguments(args), result=result_summary(value),attempts=read_attempts))
+                        if isinstance(value,dict) and isinstance(value.get('resource'),dict):
+                            trace[-1]['resource']=value['resource']
                     except HTTPException as exc:
                         goal['reason'] = 'tool_error_' + str(exc.status_code)
                         goal['message'] = str(exc.detail)[:1000]
@@ -433,6 +604,9 @@ async def run(app, principal, thread_id, turn_id, headers):
                                           seconds=round(time.monotonic()-started, 4),attempts=read_attempts))
                         responses.append(dict(tool=call.tool, error=str(exc.detail)[:1500], status_code=exc.status_code,
                                               expected_arguments=describe(app, goal_tools[call.tool])['inputSchema'] if call.tool in goal_tools and exc.status_code==422 else None))
+                    actual_reads=sum(row.get('status') in ('completed','denied') and row.get('tool')==call.tool for row in read_attempts)
+                    calls_used+=max(0,actual_reads-1)
+                    state['metrics']['tool_calls']+=max(0,actual_reads-recorded_calls)
                     wf.save(app, turn_id, state)
                     svc.progress(app, turn_id, trace)
                     if goal['status'] in ('completed', 'awaiting_confirmation','blocked'):

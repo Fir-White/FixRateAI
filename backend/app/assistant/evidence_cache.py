@@ -109,7 +109,7 @@ def _complete(value: Any) -> bool:
 
 def _has_mutation(state: Mapping[str, Any]) -> bool:
     for goal in state.get('goals', []):
-        if not isinstance(goal, dict) or goal.get('mode') == 'write' or goal.get('action_id'):
+        if not isinstance(goal, dict) or goal.get('mode') == 'write' or goal.get('action_id') or goal.get('pending_action_id') or goal.get('phase_action_ids'):
             return True
     for proof in state.get('evidence', []):
         if not isinstance(proof, dict) or proof.get('action_id') or _tool(proof.get('tool')) is None:

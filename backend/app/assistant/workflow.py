@@ -15,6 +15,39 @@ from .tools import fingerprint
 VERSION = 1
 
 
+def required_blocker(goal):
+    if goal.get('required_evidence')=='manufacturer_document':return 'manufacturer_document_not_verified'
+    if goal.get('required_evidence')=='user_decision':return 'user_decision_required'
+    if goal.get('kind')=='conversation' and goal.get('required_evidence') not in (None,'conversation'):return 'plan_evidence_kind_mismatch'
+    if goal.get('kind')!='conversation' and goal.get('required_evidence')=='conversation':return 'plan_evidence_kind_mismatch'
+    return None
+
+
+def verified_optimizer(value):
+    if not isinstance(value,dict):return False
+    result=value.get('result',value)
+    if not isinstance(result,dict):return False
+    optimized=result.get('optimized')
+    return isinstance(optimized,dict) and optimized.get('model_complete') is True and isinstance(optimized.get('validation'),dict) and optimized['validation'].get('status')=='valid'
+
+
+def evidence_required(goal):
+    if goal.get('required_evidence') is not None:return goal['required_evidence']
+    if goal.get('kind')=='conversation':return 'conversation'
+    if goal.get('tool')=='calendar_evidence':return 'calendar_calculation'
+    if goal.get('tool')=='attachment_read':return 'file_content'
+    return 'saved_data'
+
+
+def can_complete(goal,state):
+    if required_blocker(goal):return False
+    required=evidence_required(goal)
+    if required=='conversation':return goal.get('kind')=='conversation'
+    accepted={required,'calendar_calculation','optimizer_result'} if required=='saved_data' else {required}
+    return any(proof['id'] in goal.get('evidence_ids',[]) and proof.get('complete') and proof.get('retained')
+               and proof.get('evidence_kind') in accepted for proof in state['evidence'])
+
+
 def timestamp():
     return datetime.now(timezone.utc).isoformat()
 
@@ -47,7 +80,7 @@ def create_plan(selection, question, tools, scope):
     # Old providers remain readable, but an undecomposed business request is not
     # silently certified as complete from a prerequisite search.
     goals = [dict(id=g.id, title=g.title, tool=g.tool, depends_on=g.depends_on,
-                  requires_full_list=g.requires_full_list,kind=g.kind,selector=g.selector.model_dump(mode='json',exclude_none=True),changes=g.changes,response_style=g.response_style,workflow_kind=g.workflow_kind) for g in specs]
+                  requires_full_list=g.requires_full_list,kind=g.kind,selector=g.selector.model_dump(mode='json',exclude_none=True),changes=g.changes,response_style=g.response_style,workflow_kind=g.workflow_kind,required_evidence=g.required_evidence) for g in specs]
     if not goals:
         goals = [dict(id='request', title=question[:400], tool='', depends_on=[],
                       requires_full_list=False)]
@@ -60,6 +93,23 @@ def create_plan(selection, question, tools, scope):
             raise ValueError('Objectives must be a dependency-ordered DAG')
         seen.add(goal['id'])
         target = tools.get(goal['tool'])
+        from .intents import mutation_requested
+        # A read annotation cannot certify a typed requested patch. Compile its
+        # explicit changes to the single registered PATCH/PUT adapter, without
+        # selecting a process from words or inventing any field/value.
+        if target and target.mode=='read' and goal.get('changes') and mutation_requested(question):
+            patches=[(name,tool) for name,tool in tools.items() if tool.mode=='write' and getattr(tool,'before',None)==goal['tool'] and getattr(tool,'method',None) in ('PATCH','PUT')]
+            if len(patches)==1:
+                goal['tool'],target=patches[0];goal['kind']='change'
+        kind=goal.get('workflow_kind')
+        if kind:
+            from .production_workflow import WORKFLOW_TARGETS
+            targets={'create':{'portfolio_save','optimization_start','optimization_read','optimization_apply','draft_read'},
+                     'compare':{'optimization_start','optimization_read'},'optimize':{'optimization_start','optimization_read','optimization_apply','draft_changes'},
+                     'prepare_approval':{'optimization_start','optimization_read','optimization_apply','publication_prepare','publication_profiles'}}
+            if goal['tool'] not in targets.get(kind,{WORKFLOW_TARGETS[kind]}):
+                goal['workflow_kind']=None
+                goal.setdefault('plan_warnings',[]).append('ignored_incompatible_workflow_annotation')
         goal.update(specialist=specialist(goal['tool']),
                     mode=target.mode if target else 'clarification',
                     status='planned' if target else 'blocked',
@@ -68,11 +118,13 @@ def create_plan(selection, question, tools, scope):
         goal['kind']=goal.get('kind') or ('change' if target and target.mode=='write' else 'read' if target else 'unavailable')
         if goal['kind']=='conversation' and not goal['tool']:
             goal.update(mode='conversation',status='planned',reason=None)
-        from .intents import mutation_requested
         if goal['kind']=='conversation' and (mutation_requested(question) or goal.get('changes') or goal.get('selector',{}).get('equipment_code') or goal.get('selector',{}).get('equipment_id') or goal.get('selector',{}).get('attachment_ids') or goal.get('response_style')=='analysis'):
             goal.update(status='blocked',reason='plan_outcome_tool_mismatch')
-        if target and ((goal['kind']=='change')!=(target.mode=='write') or target.mode=='read' and mutation_requested(goal['title'])):
+        if target and ((goal['kind']=='change')!=(target.mode=='write') or target.mode=='read' and (mutation_requested(goal['title']) or bool(goal.get('changes')))):
             goal.update(status='blocked',reason='plan_outcome_tool_mismatch')
+        if goal.get('required_evidence')=='manufacturer_document':
+            goal.update(status='blocked',reason='manufacturer_document_not_verified',message='Соответствие рекомендации производителя не подтверждено: проверенный первичный документ с версией и страницей недоступен этому инструменту.')
+        elif goal.get('required_evidence')=='user_decision':goal.update(status='blocked',reason='user_decision_required')
     return dict(version=VERSION, scope=scope, request=question, goals=goals,
                 evidence=[], outcome='planned', revision=0, created_at=timestamp(),
                 metrics=dict(llm_calls=0, llm_seconds=0, tool_calls=0, tool_seconds=0),
@@ -94,15 +146,36 @@ def bind_explicit(state,question,tools):
     candidates=[goal for goal in state['goals'] if goal['mode']=='write' or mutation_requested(goal['title'])]
     previous=candidates[0] if len(candidates)==1 else None
     if len(candidates)>1:return state
+    if previous is None and any(required_blocker(goal) for goal in state['goals']):return state
     identity=previous['id'] if previous else 'explicit-command'
     selector=dict(spec['path'])
     bound=dict(id=identity,title=question[:400],tool=spec['tool'],
                depends_on=previous['depends_on'] if previous else [],requires_full_list=False,kind='change',selector=selector,
                changes=spec['changes'],response_style='facts',specialist=specialist(spec['tool']),mode='write',status='planned',
+               required_evidence=previous.get('required_evidence') if previous else 'saved_data',
                reason=None,evidence_ids=[],action_id=None,attempts=0)
+    blocker=required_blocker(bound)
+    if blocker:bound.update(status='blocked',reason=blocker)
     if previous:state['goals'][state['goals'].index(previous)]=bound
     else:state['goals'].append(bound)
     return state
+
+
+def preserve_constraints(previous, revised):
+    """A repair may fix tools, never erase previously planned requirements."""
+    old={goal['id']:goal for goal in previous['goals']}
+    new={goal['id']:goal for goal in revised['goals']}
+    if set(old)!=set(new):return False
+    for identity,goal in new.items():
+        prior=old[identity]
+        goal.update(title=prior['title'],depends_on=list(prior['depends_on']),
+                    selector={**goal.get('selector',{}),**prior.get('selector',{})},
+                    requires_full_list=prior.get('requires_full_list',False) or goal.get('requires_full_list',False))
+        if prior.get('required_evidence') is not None:goal['required_evidence']=prior['required_evidence']
+        if prior.get('response_style')=='analysis':goal['response_style']='analysis'
+        blocker=required_blocker(goal)
+        if blocker:goal.update(status='blocked',reason=blocker)
+    return True
 
 
 def safe_evidence(value):
@@ -141,12 +214,20 @@ def completeness(value):
     return not reasons, sorted(set(reasons))
 
 
-def record_result(state, goal, name, arguments, value, *, action_id=None, elapsed=0):
+def record_result(state, goal, name, arguments, value, *, action_id=None, elapsed=0,count_call=True):
     complete, reasons = completeness(value)
+    if name=='attachment_read' and (goal.get('response_style')=='analysis' or goal.get('requires_full_list')):
+        book=value.get('workbook') if isinstance(value,dict) else None
+        if not isinstance(book,dict) or book.get('complete') is not True or book.get('status')!='read' or (arguments.get('query') or {}).get('full_book') is not True:
+            complete=False;reasons.append('full_workbook_not_verified')
     proof = dict(id=f'e{len(state["evidence"])+1}', goal_id=goal['id'], tool=name,
                  checked_at=timestamp(), scope=state['scope'],
                  arguments=safe_evidence(arguments), sha256=fingerprint(value),
                  complete=complete, retained=True, limitations=reasons, result=safe_evidence(value))
+    kind='calendar_calculation' if name in ('calendar_evidence','planning_context') else 'file_content' if name=='attachment_read' else 'optimizer_result' if name=='optimization_read' and verified_optimizer(value) else 'saved_data'
+    proof['evidence_kind']=kind
+    if isinstance(value,dict) and value.get('status')=='awaiting_confirmation' and value.get('action_id'):
+        proof.update(evidence_kind='action_proposal',complete=False)
     # Large reads stay explicitly incomplete, instead of losing rows silently.
     encoded = json.dumps(proof, default=str, ensure_ascii=False)
     if len(encoded) > 40000 or sum(len(json.dumps(e, default=str)) for e in state['evidence']) > 100000:
@@ -156,7 +237,7 @@ def record_result(state, goal, name, arguments, value, *, action_id=None, elapse
         proof['limitations'].append('evidence_budget')
     state['evidence'].append(proof)
     goal['evidence_ids'].append(proof['id'])
-    state['metrics']['tool_calls'] += 1
+    state['metrics']['tool_calls'] += int(count_call)
     state['metrics']['tool_seconds'] += round(elapsed, 4)
     if action_id:
         goal.update(action_id=str(action_id), status='awaiting_confirmation', reason='human_confirmation_required')
@@ -166,6 +247,9 @@ def record_result(state, goal, name, arguments, value, *, action_id=None, elapse
         goal.update(status='completed' if proof['complete'] else 'partial',
                     reason=None if proof['complete'] else ','.join(proof['limitations']))
         if isinstance(value,dict) and value.get('status')=='blocked':goal.update(status='blocked',reason='domain_blocker')
+        required=evidence_required(goal)
+        if required and required!=kind and not (required=='saved_data' and kind in ('calendar_calculation','optimizer_result')):
+            goal.update(status='blocked',reason='required_evidence_kind_not_verified')
         if name=='attachment_read' and proof['complete']:
             selected=set(goal.get('selector',{}).get('attachment_ids',[]))
             read={item.get('arguments',{}).get('path',{}).get('attachment_id') for item in state['evidence']
@@ -176,9 +260,14 @@ def record_result(state, goal, name, arguments, value, *, action_id=None, elapse
 
 
 def update_outcome(state):
+    for goal in state['goals']:
+        blocker=required_blocker(goal)
+        if blocker:goal.update(status='blocked',reason=blocker)
     statuses = {goal['status'] for goal in state['goals']}
     if statuses == {'completed'} and state.get('decomposition_verified'):
         result = 'completed'
+    elif statuses == {'answered'}:
+        result = 'response_only'
     elif 'running' in statuses:
         result = 'running'
     elif 'awaiting_confirmation' in statuses or 'uncertain' in statuses:
@@ -210,10 +299,25 @@ def refresh_actions(session, state, rows=None):
     """A transport-success receipt alone does not settle a mutation objective."""
     ids = [goal['action_id'] for goal in state['goals'] if goal.get('action_id')]
     if rows is None:
-        records = session.execute(text('SELECT action_id,status,result,workflow_goal_id,expires_at FROM assistant_actions WHERE action_id=ANY(CAST(:ids AS uuid[])) OR workflow_root_turn_id=CAST(:root AS uuid)'), dict(ids=ids, root=state.get('root_turn_id'))).mappings().all() if ids or state.get('root_turn_id') else []
+        records = session.execute(text('SELECT action_id,status,result,workflow_goal_id,expires_at,created_at FROM assistant_actions WHERE action_id=ANY(CAST(:ids AS uuid[])) OR workflow_root_turn_id=CAST(:root AS uuid) ORDER BY created_at,action_id'), dict(ids=ids, root=state.get('root_turn_id'))).mappings().all() if ids or state.get('root_turn_id') else []
         rows = {str(row['action_id']): row for row in records}
     by_goal = {row.get('workflow_goal_id'): row for row in rows.values() if row.get('workflow_goal_id')}
     for goal in state['goals']:
+        blocker=required_blocker(goal)
+        if blocker:
+            goal.update(status='blocked',reason=blocker)
+            continue
+        if goal.get('workflow_kind'):
+            phases=sorted((row for row in rows.values() if str(row.get('workflow_goal_id') or '').startswith(goal['id']+'::')),key=lambda row:(row['created_at'],str(row['action_id'])))
+            if phases:
+                latest=phases[-1];goal['phase_action_ids']=[str(row['action_id']) for row in phases]
+                goal['pending_action_id']=str(latest['action_id'])
+                if latest['status']=='uncertain':goal.update(status='uncertain',reason='read_only_reconciliation_required')
+                elif latest['status'] in ('failed','rejected','stale'):goal.update(status='blocked',reason='action_'+latest['status'])
+                elif latest['status']=='proposed' and latest.get('expires_at') and latest['expires_at']<datetime.now(timezone.utc):goal.update(status='blocked',reason='action_expired_request_fresh_proposal')
+                elif latest['status'] in ('proposed','executing'):goal.update(status='awaiting_confirmation',reason='human_confirmation_required' if latest['status']=='proposed' else 'action_executing')
+                elif latest['status']=='succeeded' and goal['status']!='completed':goal.update(status='planned',reason='continue_workflow_from_verified_api')
+            continue
         recovered = by_goal.get(goal['id'])
         if recovered and not goal.get('action_id'):
             goal['action_id'] = str(recovered['action_id'])
@@ -225,7 +329,7 @@ def refresh_actions(session, state, rows=None):
             continue
         status = row['status']
         verification = (row['result'] or {}).get('verification', {})
-        if status == 'succeeded' and verification.get('status') == 'confirmed':
+        if status == 'succeeded' and verification.get('status') == 'confirmed' and goal.get('required_evidence') in (None,'saved_data'):
             goal.update(status='completed', reason=None)
         elif status == 'succeeded':
             goal.update(status='partial', reason='postcondition_unverified')
@@ -243,8 +347,11 @@ def refresh_actions(session, state, rows=None):
 def resume(state):
     state = copy.deepcopy(state)
     for goal in state['goals']:
+        blocker=required_blocker(goal)
+        if blocker:
+            goal.update(status='blocked',reason=blocker);continue
         # Never recreate/replay an existing mutation, regardless of its result.
-        if not goal.get('action_id') and goal['status'] not in ('completed', 'cancelled'):
+        if not goal.get('action_id') and goal['status'] not in ('completed', 'cancelled','uncertain') and not (goal.get('pending_action_id') and str(goal.get('reason') or '').startswith('action_')):
             goal.update(status='planned' if goal['tool'] else 'blocked', reason=None)
     state['stop_reason'] = None
     update_outcome(state)
@@ -258,7 +365,7 @@ def public_state(state):
 
 
 def unfinished_text(state):
-    pending = [goal for goal in state['goals'] if goal['status'] != 'completed']
+    pending = [goal for goal in state['goals'] if goal['status'] not in ('completed','answered')]
     if not pending:
         return ''
     labels = {'awaiting_confirmation': 'ожидает подтверждения', 'uncertain': 'результат изменения требует проверки',

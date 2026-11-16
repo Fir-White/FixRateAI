@@ -65,7 +65,7 @@ def register_routes(app,views):
         from app.assistant import workflow as wf
         public_turns=[]
         workflow_roots=list({r['workflow']['root_turn_id'] for r in turns if r['workflow'] and r['workflow'].get('root_turn_id')})
-        workflow_actions=v.session.execute(text('SELECT action_id,status,result,workflow_goal_id,workflow_root_turn_id,expires_at FROM assistant_actions WHERE conversation_id=:chat AND workflow_root_turn_id=ANY(CAST(:roots AS uuid[]))'),dict(chat=identity,roots=workflow_roots)).mappings().all() if workflow_roots else []
+        workflow_actions=v.session.execute(text('SELECT action_id,status,result,workflow_goal_id,workflow_root_turn_id,expires_at,created_at FROM assistant_actions WHERE conversation_id=:chat AND workflow_root_turn_id=ANY(CAST(:roots AS uuid[]))'),dict(chat=identity,roots=workflow_roots)).mappings().all() if workflow_roots else []
         for row in turns:
             item=dict(row);state=item.get('workflow')
             if state:

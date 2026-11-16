@@ -78,6 +78,7 @@ class GoalSpec(Input):
     requires_full_list:bool=False
     response_style:Literal['facts','analysis']='facts'
     workflow_kind:Literal['readiness','calendar','materials','whatif','create','compare','optimize','prepare_approval','approve','publish','publication','impossible','bypass']|None=None
+    required_evidence:Literal['saved_data','calendar_calculation','manufacturer_document','optimizer_result','file_content','user_decision','conversation']|None=None
 
 class ToolSelection(Input):
     tools:list[str]=Field(max_length=8)

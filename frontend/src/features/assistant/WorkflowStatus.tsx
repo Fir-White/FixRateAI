@@ -24,6 +24,7 @@ const labels: Record<string, string> = {
   planned: 'Запланировано',
   running: 'Выполняется',
   completed: 'Проверено и выполнено',
+  answered: 'Ответ подготовлен; результат не проверен',
   failed: 'Не выполнено',
   blocked: 'Есть препятствие',
   partial: 'Выполнено частично',
@@ -52,9 +53,10 @@ export const WorkflowStatus = memo(function WorkflowStatus({workflow, onResume, 
   const needsConfirmation = goals.some(goal => goal.status === 'awaiting_confirmation');
   const uncertain = goals.some(goal => goal.status === 'uncertain');
   const running = workflow.outcome === 'running' || goals.some(goal => goal.status === 'running');
+  const responseOnly = workflow.outcome === 'response_only' && goals.length > 0 && goals.every(goal => goal.status === 'answered');
   const canResume = !stopped && !finished && !running && goals.some(goal => resumable.has(goal.status));
   const summary = finished ? 'Поручение выполнено' : stopped ? 'Поручение остановлено' :
-    running ? 'Поручение выполняется' : needsConfirmation ? 'Поручение ожидает подтверждения' : 'Поручение не завершено';
+    running ? 'Поручение выполняется' : needsConfirmation ? 'Поручение ожидает подтверждения' : responseOnly ? 'Ответ подготовлен' : 'Поручение не завершено';
 
   return <section aria-labelledby={headingId} className="min-w-0 space-y-3 rounded-xl border border-line bg-surface p-3 text-sm sm:p-4">
     <h3 id={headingId} className="font-semibold">Состояние поручения</h3>

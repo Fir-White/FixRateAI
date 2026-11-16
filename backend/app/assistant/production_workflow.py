@@ -2,11 +2,11 @@
 import calendar,re
 from dataclasses import dataclass
 from decimal import Decimal
-from datetime import date
+from datetime import date,datetime
 import inspect
-from uuid import uuid4
+from uuid import UUID,uuid4
 from fastapi import HTTPException
-from .tools import available,validate_arguments,invoke
+from .tools import available,validate_arguments,invoke,fingerprint
 from .read_transport import read,result_summary,safe_arguments
 
 MONTHS=('январ','феврал','март','апрел','ма','июн','июл','август','сентябр','октябр','ноябр','декабр')
@@ -32,6 +32,25 @@ WORKFLOW_TARGETS={
     'publication':'','whatif':'','impossible':'','bypass':'',
 }
 
+PUBLICATION_TRANSITION_FIELDS=('proposal_id','draft_id','base_revision','state','proposal_digest','summary',
+    'expires_at','blocker_count','can_approve','decided_by','decided_at','approval_token','published_at','publication_id')
+
+
+def _publication_evidence(value):
+    """Retain the exact transition facts, not an unrelated full validation log.
+
+    The complete authorized response is still used by the verifier. This
+    declared server projection keeps those required facts recoverable within
+    the evidence budget and binds them to the original response digest.
+    """
+    if not isinstance(value,dict):return value
+    fields={key:value[key] for key in PUBLICATION_TRANSITION_FIELDS if key in value}
+    fields['source_projection']=dict(kind='publication_transition',fields=list(PUBLICATION_TRANSITION_FIELDS),
+                                     full_payload_sha256=fingerprint(value))
+    if isinstance(value.get('validation'),dict):fields['validation_status']=value['validation'].get('status')
+    if any(key not in value for key in PUBLICATION_TRANSITION_FIELDS):fields['complete']=False
+    return fields
+
 
 @dataclass(frozen=True)
 class WorkflowResult:
@@ -40,6 +59,42 @@ class WorkflowResult:
     reason:str|None=None
     action_id:str|None=None
     read_tools:tuple[str,...]=()
+
+
+def _publication_verified(kind,identity,receipt,current):
+    """Match an owned phase receipt to a fresh exact publication resource.
+
+    A prior succeeded HTTP dispatch is insufficient by itself. Approval and
+    publication identities, consent digest and immutable transition facts must
+    agree; a changed or malformed receipt remains unresolved without replay.
+    """
+    def uid(value):
+        try:return str(UUID(str(value)))
+        except (ValueError,TypeError,AttributeError):return None
+    def instant(value):
+        try:
+            parsed=datetime.fromisoformat(value.replace('Z','+00:00'))
+            return parsed if parsed.tzinfo is not None else None
+        except (ValueError,TypeError,AttributeError):return None
+    if not isinstance(receipt,dict) or not isinstance(current,dict):return False
+    target=uid(identity)
+    if not target or any(uid(row.get('proposal_id'))!=target for row in (receipt,current)):return False
+    digest=receipt.get('proposal_digest')
+    if not isinstance(digest,str) or not re.fullmatch('[0-9a-f]{64}',digest) or current.get('proposal_digest')!=digest:return False
+    if not uid(receipt.get('draft_id')) or uid(receipt.get('draft_id'))!=uid(current.get('draft_id')):return False
+    if type(receipt.get('base_revision')) is not int or type(current.get('base_revision')) is not int or receipt['base_revision']<1 or receipt['base_revision']!=current['base_revision']:return False
+    if not uid(receipt.get('decided_by')) or uid(receipt.get('decided_by'))!=uid(current.get('decided_by')):return False
+    if not instant(receipt.get('decided_at')) or instant(receipt['decided_at'])!=instant(current.get('decided_at')):return False
+    if not uid(receipt.get('approval_token')) or uid(receipt.get('approval_token'))!=uid(current.get('approval_token')):return False
+    if kind=='approve':
+        return receipt.get('state') in ('approved','published') and current.get('state') in ('approved','published')
+    if kind=='publish':
+        return (receipt.get('state')==current.get('state')=='published'
+            and uid(receipt.get('publication_id')) is not None
+            and uid(receipt['publication_id'])==uid(current.get('publication_id'))
+            and instant(receipt.get('published_at')) is not None
+            and instant(receipt['published_at'])==instant(current.get('published_at')))
+    return False
 
 def comparison(result):
     lines=['| Показатель | Базовый | CP-SAT |','|---|---:|---:|']
@@ -121,13 +176,13 @@ async def run(app,principal,question,history,outcomes,headers,trace,check,sugges
             if inspect.isawaitable(result):result=await result
             if isinstance(result,dict) and result.get('complete') is False:
                 incomplete=True
-    async def call(name,args=None):
+    async def call(name,args=None,*,publication_transition=False):
         check()
         if name not in tools:raise HTTPException(403,'Нет права на '+name)
         tool=tools[name];args=args or {}
         if tool.method=='GET':
             checked,value=await read(app,tool,args,headers,trace)
-            await observed(name,checked,value)
+            await observed(name,checked,_publication_evidence(value) if publication_transition else value)
             return value
         if tool.mode!='read':raise ValueError('A write requires a proposal')
         try:
@@ -170,7 +225,29 @@ async def run(app,principal,question,history,outcomes,headers,trace,check,sugges
             identities=re.findall(r'[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}',question)
             if len(set(identities))!=1:return finish('Укажите одно предложение из списка согласований. Отдельное подтверждение обязательно.','blocked','proposal_required_or_ambiguous')
             identity=identities[0]
-            found=await call('publication_read',dict(path=dict(identity=identity)))
+            found=await call('publication_read',dict(path=dict(identity=identity)),publication_transition=True)
+            phases=[row for row in outcomes if row.get('tool_name')==name]
+            matching=[]
+            for phase in phases:
+                result=phase.get('result')
+                receipt=result.get('data') if isinstance(result,dict) else None
+                if isinstance(receipt,dict) and str(receipt.get('proposal_id','')).casefold()==identity.casefold():
+                    matching.append((phase,receipt))
+            if matching:
+                phase,receipt=matching[0]
+                if phase.get('status')!='succeeded':
+                    return finish('Исход этапа требует проверки. Повторное изменение не подготовлено.',
+                                  'blocked','publication_phase_unverified')
+                if not _publication_verified(kind,identity,receipt,found):
+                    return finish('Завершение поручения не подтверждено: сохранённый исход этапа и актуальное предложение различаются. Повторная запись не запускается.',
+                                  'blocked','publication_postcondition_unverified')
+                return finish('Утверждение точного предложения подтверждено повторным чтением backend. Текущее состояние: '+
+                              ('опубликовано.' if found['state']=='published' else 'утверждено.') if kind=='approve' else
+                              'Предложение опубликовано; сохранённый выпуск и точный состав подтверждены повторным чтением backend.')
+            if any(row.get('status')!='succeeded' or not isinstance(row.get('result'),dict) or
+                   not isinstance(row['result'].get('data'),dict) for row in phases):
+                return finish('Исход этапа не подтверждён проверяемым результатом. Повторная запись не запускается.',
+                              'blocked','publication_phase_unverified')
             body=dict(expected_digest=found['proposal_digest'])
             if kind=='approve':body['reason']='Утверждение точного состава по поручению главного инженера'
             else:

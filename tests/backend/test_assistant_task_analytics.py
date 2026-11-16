@@ -164,13 +164,11 @@ def test_chat_repeats_original_request_with_server_analysis_and_no_mutations(ass
         with engine.connect() as c:return c.scalar(text("SELECT md5(string_agg(to_jsonb(w)::text,',' ORDER BY work_order_id)) FROM work_orders w WHERE site_id=:site"),dict(site=ids['site']))
     before=fingerprint()
     class SemanticPlan:
-        def __init__(self):self.sections=iter(('summary','equipment','dates','duplicates'))
         def chat(self,messages,schema,tokens):
             if schema.__name__=='ToolSelection':
-                return schema(tools=[],goals=[dict(id=section,title='Проверить '+section+' по незавершённым заданиям',kind='read',tool='tasks_analyze',requires_full_list=True)
-                    for section in ('summary','equipment','dates','duplicates')])
+                return schema(tools=[],goals=[dict(id='analysis',title='Проверить сроки, нагрузку и дубликаты незавершённых заданий',kind='read',tool='tasks_analyze',requires_full_list=True)])
             assert schema.__name__=='AgentStep'
-            return schema(answer='',calls=[dict(tool='tasks_analyze',arguments_json=json.dumps(dict(query=dict(section=next(self.sections)))),explanation='TEST ONLY semantic section; PostgreSQL calculates all values')])
+            return schema(answer='',calls=[dict(tool='tasks_analyze',arguments_json=json.dumps(dict(query=dict(section='summary'))),explanation='TEST ONLY semantic analysis; server reads and reconciles all sections')])
     app.state.assistant_provider_factory=SemanticPlan
     chat=thread(admin);question='Проанализируй незавершённые задания: сроки, нагрузку и дубликаты. Ничего не изменяй.'
     try:
@@ -184,7 +182,10 @@ def test_chat_repeats_original_request_with_server_analysis_and_no_mutations(ass
             business=[entry for entry in turn['trace'] if not entry['tool'].startswith('__') and entry['status']!='running']
             assert all(t['tool']=='tasks_analyze' and t['status']=='completed' for t in business)
             with engine.connect() as db:saved=db.scalar(text('SELECT workflow FROM assistant_turns WHERE turn_id=:id'),dict(id=turn['turn_id']))
-            by_section={p['arguments']['query']['section']:p['result'] for p in saved['evidence']}
+            bundle=saved['evidence'][-1]['result']
+            assert bundle['complete'] and bundle['status']=='complete'
+            by_section={row['arguments']['query']['section']:row['result'] for row in saved['evidence']
+                        if isinstance(row['result'],dict) and 'counters' in row['result']}
             assert set(by_section)=={'summary','equipment','dates','duplicates'}
             assert all(result['counters']['unfinished']==2 and result['local_date']=='2026-11-15' for result in by_section.values())
             proofs.append(by_section)

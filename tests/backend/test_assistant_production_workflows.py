@@ -95,7 +95,7 @@ def test_authorized_publication_requires_each_confirmation_and_writes_real_tasks
         def chat(self,messages,schema,tokens):
             assert schema.__name__=='ToolSelection','Publication metadata must be read by the server specialist'
             return schema(tools=[],goals=[dict(id='publication',title='TEST exact requested publication operation',kind='change',tool=self.target,
-                workflow_kind='approve' if self.target=='publication_approve' else 'publish')])
+                workflow_kind='approve' if self.target=='publication_approve' else 'publish',selector=dict(proposal_id=proposal['proposal_id']))])
     app.state.assistant_provider_factory=lambda:PublicationPlan('publication_approve')
     try:
         with engine.connect() as db:before=db.scalar(text('SELECT count(*) FROM work_orders WHERE site_id=:site'),dict(site=ids['site']))

@@ -108,7 +108,7 @@ def test_live_production_scenario(production_case,scenario):
                         time.sleep(.25)
                     events.append(dict(kind='solver',data=details))
             if not confirmed:break
-            sent=client.post(B+f'/conversations/{chat}/messages',json=dict(content='Продолжи исходную задачу после подтверждённого действия. Покажи фактический результат и подготовь следующий шаг, если он был запрошен.',idempotency_key=str(uuid4())))
+            sent=client.post(B+f'/conversations/{chat}/messages',json=dict(content='Продолжи исходную задачу после подтверждённого действия. Покажи фактический результат и подготовь следующий шаг, если он был запрошен.',idempotency_key=str(uuid4()),resume_turn_id=turn['turn_id']))
             assert sent.status_code==202,sent.text
             view=client.get(B+'/conversations/'+chat).json()
         after=snapshot(case)

@@ -38,8 +38,9 @@ def test_every_available_role_operation_has_an_explicit_positive_scenario(manife
     assert len({operation['positive_scenario']['postconditions'][0] for operation in matrix['operations']}) == len(matrix['operations'])
 
 
-def test_generated_contract_is_current_and_registration_is_not_a_pass(matrix):
-    assert json.loads((ROOT / 'contracts/assistant-acceptance.json').read_text(encoding='utf-8')) == matrix
+def test_generated_contract_is_current_and_registration_is_not_a_pass(matrix,manifest):
+    ledger=json.loads((ROOT / 'contracts/assistant-acceptance-evidence.json').read_text(encoding='utf-8'))
+    assert json.loads((ROOT / 'contracts/assistant-acceptance.json').read_text(encoding='utf-8')) == build(manifest,evidence=ledger)
     for cell in matrix['cells']:
         assert cell['registered'] is True
         assert all(value == {'status': 'not_run', 'records': []} for value in cell['verification'].values())

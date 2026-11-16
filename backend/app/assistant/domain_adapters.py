@@ -6,9 +6,34 @@ that objective's data. The shared executor still validates and authorizes every
 call and persists every prerequisite result.
 """
 from app.schemas.assistant import AgentStep
+import re
 
 
 SUPPORTED={'equipment_read','equipment_edit','regulations_read','calendar_evidence','equipment_service_history','inventory_read','staff_edit','attachment_read','workbook_readiness'}
+
+
+def equipment_context(goal, state):
+    """Reuse a verified identity explicitly named in this objective and request.
+
+    Only current-root, complete authorized equipment results supply identities;
+    arbitrary properties and model prose never do. This supplies a selector,
+    not a cached business result: the final operation still runs with fresh RBAC.
+    """
+    request=state.get('request','').casefold();title=goal.get('title','').casefold()
+    identities=set()
+    for proof in state.get('evidence',[]):
+        if not proof.get('complete') or not proof.get('retained') or proof.get('scope')!=state.get('scope'):continue
+        value=proof.get('result')
+        if proof.get('tool')=='equipment_find' and isinstance(value,dict):rows=value.get('items',[])
+        elif proof.get('tool')=='equipment_read' and isinstance(value,dict):rows=[value]
+        else:continue
+        for row in rows:
+            if not isinstance(row,dict):continue
+            code=row.get('asset_code');identity=row.get('equipment_id')
+            if not isinstance(code,str) or not code or not isinstance(identity,str):continue
+            pattern=r'(?<!\w)'+re.escape(code.casefold())+r'(?!\w)'
+            if re.search(pattern,request) and re.search(pattern,title):identities.add(identity)
+    return next(iter(identities)) if len(identities)==1 else None
 
 
 def next_step(goal,state):
@@ -57,6 +82,7 @@ def next_step(goal,state):
         inherited={proof.get('arguments',{}).get('path',{}).get('equipment_id') for proof in evidence
                    if proof['goal_id'] in goal['depends_on'] and proof.get('arguments',{}).get('path',{}).get('equipment_id')}
         if len(inherited)==1:identity=inherited.pop()
+    if not identity and not code:identity=equipment_context(goal,state)
     if not identity:return None
     args=dict(path=dict(equipment_id=identity))
     if target in ('calendar_evidence','equipment_service_history'):

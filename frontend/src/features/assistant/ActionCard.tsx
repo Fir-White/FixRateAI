@@ -9,7 +9,9 @@ const states:Record<ChatAction['status'],string>={proposed:'Нужно ваше 
 const values:Record<string,string>={director:'Руководитель',chief_engineer:'Главный инженер',admin:'Администратор',dispatcher:'Диспетчер',engineer:'Инженер',executor:'Исполнитель',before:'До работы',after:'После работы',active:'В работе',under_repair:'На ремонте',retired:'Выведено из эксплуатации',customer:'Данные заказчика',synthetic_demo:'Тестовые данные',accepted:'Принять',rejected:'Вернуть на доработку'};
 function value(v:unknown){return v===null?'Не задано':typeof v==='boolean'?v?'Да':'Нет':typeof v==='object'?JSON.stringify(v,null,2):values[String(v)]??String(v);}
 export const ActionCard=memo(function ActionCard({action:original,title,onChanged,attachments=[]}:{action:ChatAction;title:string;onChanged:()=>void;attachments?:ChatAttachment[]}){
-  const [resolved,setResolved]=useState<ChatAction|null>(null);const action=resolved??original;
+  const [resolved,setResolved]=useState<ChatAction|null>(null);
+  const phase=(status:ChatAction['status'])=>status==='proposed'?0:status==='executing'?1:2;
+  const action=resolved?.action_id===original.action_id&&phase(resolved.status)>phase(original.status)?resolved:original;
   const [secrets,setSecrets]=useState<Record<string,string>>({});
   const [consent,setConsent]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
   const expired=Date.parse(action.expires_at)<Date.now();

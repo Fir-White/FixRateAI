@@ -432,6 +432,27 @@
           ],
           "default": null,
           "title": "Workflow Kind"
+        },
+        "required_evidence": {
+          "anyOf": [
+            {
+              "enum": [
+                "saved_data",
+                "calendar_calculation",
+                "manufacturer_document",
+                "optimizer_result",
+                "file_content",
+                "user_decision",
+                "conversation"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required Evidence"
         }
       },
       "required": [

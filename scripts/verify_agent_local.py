@@ -12,6 +12,7 @@ import argparse
 import ast
 from datetime import datetime, timezone
 import hashlib
+from importlib.metadata import version, PackageNotFoundError
 import json
 import os
 from pathlib import Path
@@ -258,7 +259,12 @@ def main(argv=None) -> int:
     if args.live:
         validate_legacy_model_pin(root, targets, model)
     corpus = corpus_manifest(root, targets)
+    dependencies={}
+    for package in ('pytest','fastapi','pydantic','sqlalchemy','httpx','numpy','ortools'):
+        try:dependencies[package]=version(package)
+        except PackageNotFoundError:dependencies[package]=None
     manifest = dict(source_root=str(root), source_head=before['head'], source_sha256=before['sha256'],
+                    python_version=sys.version,dependencies=dependencies,
                     runner_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), corpus_files=corpus,
                     model=model, local_network_guard=True, environment_files_read=False,
                     automatic_downloads=False, live=args.live, check_only=args.check_only,

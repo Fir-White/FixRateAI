@@ -12,6 +12,7 @@ from uuid import uuid4
 import json
 import os
 import re
+import hashlib
 
 import pytest
 from sqlalchemy import text
@@ -42,6 +43,9 @@ def episode(case, identity):
     from app.assistant import service
     outcome = dict(case=identity, kind='compound-goal', at=datetime.now(timezone.utc).isoformat(),
                    model='qwen3.5:4b-q4_K_M', steps=[], imported_service_file=str(Path(service.__file__).resolve()))
+    outcome['fixture_sha256']=hashlib.sha256(json.dumps(fingerprint(case['engine']),sort_keys=True,default=str).encode()).hexdigest()
+    outcome['actual_dataset_snapshot_sha256']=outcome['fixture_sha256']
+    outcome['fixture_version']='orchestrator-compound-v3'
     started = perf_counter()
     try:
         if os.environ.get('FIXRATE_VERIFICATION_SOURCE_ROOT'):
@@ -111,6 +115,8 @@ def test_inventory_regulations_and_planning_gaps_include_equipment_without_tasks
         assert re.search(r'пробел|не хват|недостат|отсутств|не подтвержд', answer), turn['answer']
         assert not view['actions']
         assert fingerprint(c['engine']) == before
+        if turn.get('workflow'):
+            assert all(goal['status']=='completed' for goal in turn['workflow']['goals']), turn['workflow']
         outcome['expected_data'] = dict(equipment=equipment_count, orphan_tasks=0, published_operations=1, draft_operations=1)
 
 
@@ -187,6 +193,8 @@ def test_nc01_period_history_and_unverified_manufacturer_are_separate_goals(live
                        for goal in state['goals']), 'The actual-history user objective remains unfinished'
             assert any(goal['status']=='blocked' and re.search(r'паспорт|производител|passport|manufacturer',goal['title'].casefold())
                        for goal in state['goals']), 'Missing manufacturer evidence must remain an explicit blocked objective'
+            calendar_goals=[goal for goal in state['goals'] if goal.get('required_evidence')=='calendar_calculation' or goal.get('tool')=='calendar_evidence']
+            assert calendar_goals and all(goal['status']=='completed' for goal in calendar_goals), 'Every supported calendar objective must be completed'
         else:
             # Legacy baseline has no goal state: require an explicit statement
             # about actual work in2026, not an unrelated number or calendar gap.
@@ -247,6 +255,12 @@ def test_two_independent_changes_preserve_fields_and_confirm_individually(live_c
             outcome['steps'].append(dict(kind='confirmed-and-replayed', equipment_id=identity,
                                          expected_name=name, revision=after[identity]['revision']))
         assert all(state()[identity]['name'] == name for identity, name in desired.items())
+        final_view=c['client'].get(B+'/conversations/'+view['conversation']['conversation_id']).json()
+        final_turn=next(item for item in final_view['turns'] if item['turn_id']==turn['turn_id'])
+        if final_turn.get('workflow'):
+            assert final_turn['workflow']['outcome']=='completed', final_turn['workflow']
+            assert all(goal['status']=='completed' for goal in final_turn['workflow']['goals']), final_turn['workflow']
+        outcome['steps'].append(dict(kind='final-goal-state',goal_state=final_turn.get('workflow')))
         assert c['calls'], 'This case requires actual installed-model inference'
 
 

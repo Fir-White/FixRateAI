@@ -561,7 +561,11 @@
         "tests/backend/test_assistant_p0.py::test_report_backend_failure_is_not_empty_data",
         "tests/backend/test_assistant_p0.py::test_inventory_page_budget_and_full_count",
         "tests/backend/test_assistant_p0.py::test_inventory_matches_postgres_and_chat_never_needs_workbooks",
-        "tests/backend/test_assistant_workflow_security.py::test_document_injection_does_not_grant_cross_specialist_mutation_or_confirmation"
+        "tests/backend/test_assistant_pagination_evidence.py::test_inventory_respects_read_budget_within_first_site",
+        "tests/backend/test_assistant_pagination_evidence.py::test_inventory_site_transition_preserves_filters_and_stable_snapshot",
+        "tests/backend/test_assistant_pagination_evidence.py::test_unversioned_multiple_sites_are_observed_coverage_not_atomic_snapshot",
+        "tests/backend/test_assistant_pagination_evidence.py::test_inventory_changed_or_repeated_sites_never_complete",
+        "tests/backend/test_assistant_pagination_evidence.py::test_inventory_empty_authorized_site_collection_is_complete"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -623,6 +627,8 @@
         ]
       },
       "candidate_test_mentions": [
+        "tests/backend/test_assistant_domain_adapters.py::test_equipment_context_never_guesses_or_crosses_scope",
+        "tests/backend/test_assistant_domain_adapters.py::test_one_sheet_or_partial_book_cannot_complete_whole_workbook_analysis",
         "tests/backend/test_assistant_workbooks.py::test_complete_xlsx_is_read_before_routing_and_answer_is_unabridged_prose",
         "tests/backend/test_assistant_workbooks.py::test_followup_can_analyse_the_previously_sent_workbook_without_reupload"
       ],
@@ -750,6 +756,7 @@
         "tests/backend/test_assistant.py::test_timeout_after_reading_keeps_findings_and_explains_incomplete_check",
         "tests/backend/test_assistant_capabilities.py::test_full_search_and_projection_do_not_hide_items_after_first_page",
         "tests/backend/test_assistant_domain_adapters.py::test_equipment_identity_cannot_cross_undeclared_dependencies",
+        "tests/backend/test_assistant_domain_adapters.py::test_requested_patch_is_compiled_from_changes_despite_read_annotation",
         "tests/backend/test_assistant_evidence_cache.py::test_same_authorized_read_reuses_verbatim_proof_with_original_time",
         "tests/backend/test_assistant_evidence_cache.py::test_argument_fingerprint_is_order_independent_but_preserves_exact_values",
         "tests/backend/test_assistant_evidence_cache.py::test_python_equal_values_do_not_bypass_canonical_argument_identity",
@@ -775,7 +782,9 @@
         "tests/backend/test_assistant_evidence_cache.py::test_http_retrieval_does_not_extend_an_older_server_snapshot_ttl",
         "tests/backend/test_assistant_evidence_cache.py::test_invalid_or_future_underlying_snapshot_time_is_not_reused",
         "tests/backend/test_assistant_evidence_cache.py::test_oversized_retained_data_is_not_cached",
-        "tests/backend/test_assistant_orchestrator.py::test_denied_specialist_call_does_not_prevent_independent_goal"
+        "tests/backend/test_assistant_orchestrator.py::test_denied_specialist_call_does_not_prevent_independent_goal",
+        "tests/backend/test_assistant_workflow_phases.py::test_explicit_binding_preserves_source_gate_before_proposal_and_resume",
+        "tests/backend/test_assistant_workflow_phases.py::test_read_goal_with_explicit_patch_is_normalized_to_real_confirmed_mutation"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -1000,10 +1009,13 @@
         "tests/backend/test_assistant_domain_adapters.py::test_exact_code_is_resolved_before_preparing_requested_change",
         "tests/backend/test_assistant_domain_adapters.py::test_missing_resource_and_change_values_are_never_invented",
         "tests/backend/test_assistant_domain_adapters.py::test_local_planner_grammar_requires_outcomes_and_separates_read_and_change",
+        "tests/backend/test_assistant_domain_adapters.py::test_requested_patch_is_compiled_from_changes_despite_read_annotation",
         "tests/backend/test_assistant_evidence_cache.py::test_no_write_post_unknown_or_disguised_tool_is_cache_eligible",
         "tests/backend/test_assistant_orchestrator.py::test_plan_requires_dependency_order_and_never_completes_from_a_search",
         "tests/backend/test_assistant_orchestrator.py::test_two_independent_renames_keep_exact_values_and_separate_confirmations",
         "tests/backend/test_assistant_orchestrator.py::test_model_stop_after_prerequisite_preserves_unfinished_goal",
+        "tests/backend/test_assistant_workflow_phases.py::test_explicit_binding_preserves_source_gate_before_proposal_and_resume",
+        "tests/backend/test_assistant_workflow_phases.py::test_read_goal_with_explicit_patch_is_normalized_to_real_confirmed_mutation",
         "tests/backend/test_assistant_workflow_security.py::test_dependent_same_resource_change_can_continue_after_verified_confirmation"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
@@ -1124,6 +1136,7 @@
         "tests/backend/test_agent_redteam_explicit_draft.py::test_clear_command_gets_a_real_draft_after_the_read_stage",
         "tests/backend/test_agent_redteam_grounding.py::test_regulations_are_not_inferred_from_an_empty_task_calendar",
         "tests/backend/test_assistant_domain_adapters.py::test_equipment_identity_cannot_cross_undeclared_dependencies",
+        "tests/backend/test_assistant_domain_adapters.py::test_equipment_context_never_guesses_or_crosses_scope",
         "tests/backend/test_assistant_orchestrator_live.py::test_failed_regulation_read_preserves_independent_card_and_explicit_partial",
         "tests/backend/test_assistant_p0.py::test_llm_view_schema_matches_backend_validation"
       ],
@@ -1185,7 +1198,10 @@
       },
       "candidate_test_mentions": [
         "tests/backend/test_assistant_domain_adapters.py::test_history_and_calendar_keep_their_own_explicit_period",
-        "tests/backend/test_assistant_orchestrator.py::test_inventory_includes_orphans_and_can_continue_to_calendar"
+        "tests/backend/test_assistant_domain_adapters.py::test_secondary_workflow_annotation_cannot_override_registered_operation",
+        "tests/backend/test_assistant_orchestrator.py::test_inventory_includes_orphans_and_can_continue_to_calendar",
+        "tests/backend/test_assistant_orchestrator_live.py::test_nc01_period_history_and_unverified_manufacturer_are_separate_goals",
+        "tests/backend/test_orchestrator_eval_summary.py::test_reply_completion_and_supported_ns01_success_do_not_complete_manufacturer_goal"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -1245,7 +1261,9 @@
       },
       "candidate_test_mentions": [
         "tests/backend/test_assistant_domain_adapters.py::test_history_and_calendar_keep_their_own_explicit_period",
-        "tests/backend/test_assistant_orchestrator_live.py::test_nc01_period_history_and_unverified_manufacturer_are_separate_goals"
+        "tests/backend/test_assistant_domain_adapters.py::test_named_equipment_context_reuses_identity_but_still_reads_fresh_business_data",
+        "tests/backend/test_assistant_orchestrator_live.py::test_nc01_period_history_and_unverified_manufacturer_are_separate_goals",
+        "tests/backend/test_orchestrator_eval_summary.py::test_reply_completion_and_supported_ns01_success_do_not_complete_manufacturer_goal"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -1622,11 +1640,14 @@
         "tests/backend/test_agent_redteam_grounding.py::test_mandatory_lookup_backend_failure_is_not_an_empty_registry",
         "tests/backend/test_agent_redteam_grounding.py::test_regulations_are_not_inferred_from_an_empty_task_calendar",
         "tests/backend/test_assistant_domain_adapters.py::test_exact_code_is_resolved_before_preparing_requested_change",
+        "tests/backend/test_assistant_domain_adapters.py::test_named_equipment_context_reuses_identity_but_still_reads_fresh_business_data",
+        "tests/backend/test_assistant_domain_adapters.py::test_equipment_context_never_guesses_or_crosses_scope",
         "tests/backend/test_assistant_domain_adapters.py::test_a_search_cannot_certify_a_requested_change",
         "tests/backend/test_assistant_orchestrator.py::test_plan_requires_dependency_order_and_never_completes_from_a_search",
         "tests/backend/test_assistant_orchestrator.py::test_partial_evidence_cannot_complete_a_goal",
         "tests/backend/test_assistant_orchestrator.py::test_full_page_request_fetches_all_without_model_pagination",
-        "tests/backend/test_assistant_orchestrator.py::test_model_stop_after_prerequisite_preserves_unfinished_goal"
+        "tests/backend/test_assistant_orchestrator.py::test_model_stop_after_prerequisite_preserves_unfinished_goal",
+        "tests/backend/test_assistant_workflow_security.py::test_document_injection_does_not_grant_cross_specialist_mutation_or_confirmation"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -2876,7 +2897,8 @@
         ]
       },
       "candidate_test_mentions": [
-        "tests/backend/test_assistant_production_scenarios.py::test_live_production_scenario"
+        "tests/backend/test_assistant_production_scenarios.py::test_live_production_scenario",
+        "tests/backend/test_assistant_workflow_phases.py::test_committed_phase_with_lost_response_is_uncertain_and_never_replayed"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -4721,7 +4743,9 @@
           "Business state is unchanged by this read/preview."
         ]
       },
-      "candidate_test_mentions": [],
+      "candidate_test_mentions": [
+        "tests/backend/test_assistant_workflow_phases.py::test_real_publication_phase_completes_only_after_fresh_postcondition_read"
+      ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
     {
@@ -4848,7 +4872,8 @@
         ]
       },
       "candidate_test_mentions": [
-        "tests/backend/test_assistant_production_workflows.py::test_authorized_publication_requires_each_confirmation_and_writes_real_tasks"
+        "tests/backend/test_assistant_production_workflows.py::test_authorized_publication_requires_each_confirmation_and_writes_real_tasks",
+        "tests/backend/test_assistant_workflow_phases.py::test_real_publication_phase_completes_only_after_fresh_postcondition_read"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -4978,7 +5003,8 @@
       "candidate_test_mentions": [
         "tests/backend/test_assistant_action_outcomes.py::test_unknown_postconditions_remain_unverified_even_with_success_flag",
         "tests/backend/test_assistant_production_workflows.py::test_specialist_cannot_expand_its_static_tool_subset",
-        "tests/backend/test_assistant_production_workflows.py::test_authorized_publication_requires_each_confirmation_and_writes_real_tasks"
+        "tests/backend/test_assistant_production_workflows.py::test_authorized_publication_requires_each_confirmation_and_writes_real_tasks",
+        "tests/backend/test_assistant_workflow_phases.py::test_real_publication_phase_completes_only_after_fresh_postcondition_read"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -7039,7 +7065,8 @@
         ]
       },
       "candidate_test_mentions": [
-        "tests/backend/test_assistant_capabilities.py::test_excel_preview_import_export_use_same_file_and_explicit_approval"
+        "tests/backend/test_assistant_capabilities.py::test_excel_preview_import_export_use_same_file_and_explicit_approval",
+        "tests/backend/test_assistant_orchestrator_render.py::test_registry_export_link_survives_reload_and_downloads_actual_equipment"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
