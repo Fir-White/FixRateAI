@@ -1,0 +1,88 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_ref": "frai-cv-v0.1.0-demo",
+  "created_at": "2026-11-16T15:05:00Z",
+  "split_strategy": "group_split_by_equipment",
+  "split_rationale": "Строгое групповое разделение по физическим узлам (equipment_item_id) исключает утечку данных (Data Leakage) между выборкой настройки и контрольной выборкой.",
+  "integrity_constraints": {
+    "zero_equipment_intersection": true,
+    "zero_photo_hash_intersection": true,
+    "frozen_holdout_enforced": true
+  },
+  "summary": {
+    "total_cases_partitioned": 8,
+    "cross_eval_cases": 1,
+    "development_cases_count": 4,
+    "holdout_cases_count": 4,
+    "development_photos_count": 7,
+    "holdout_photos_count": 7
+  },
+  "partitions": {
+    "development": {
+      "purpose": "Выборка для экспериментов, калибровки порогов QualityGuard и настройки промптов VLM",
+      "equipment_ids": [
+        "eq-item-991",
+        "eq-item-992",
+        "eq-item-995"
+      ],
+      "equipment_classes": [
+        "pressure_gauge",
+        "control_cabinet"
+      ],
+      "case_ids": [
+        "CASE-01",
+        "CASE-03",
+        "CASE-05",
+        "CASE-NEG-02"
+      ],
+      "photo_ids": [
+        "9b1deb4d-3b7d-4ba6-9f3a-101000000001",
+        "9b1deb4d-3b7d-4ba6-9f3a-101000000002",
+        "9b1deb4d-3b7d-4ba6-9f3a-101000000005",
+        "9b1deb4d-3b7d-4ba6-9f3a-101000000006",
+        "9b1deb4d-3b7d-4ba6-9f3a-101000000009",
+        "9b1deb4d-3b7d-4ba6-9f3a-101000000010",
+        "9b1deb4d-3b7d-4ba6-9f3a-101000000014"
+      ]
+    },
+    "holdout": {
+      "purpose": "Замороженная независимая контрольная выборка для слепого тестирования и выбора baseline (MVP1-ML03)",
+      "equipment_ids": [
+        "eq-item-994",
+        "eq-item-996",
+        "eq-item-997"
+      ],
+      "equipment_classes": [
+        "heat_meter",
+        "mesh_filter",
+        "heating_manifold"
+      ],
+      "case_ids": [
+        "CASE-02",
+        "CASE-04",
+        "CASE-06",
+        "CASE-NEG-01"
+      ],
+      "photo_ids": [
+        "9b1deb4d-3b7d-4ba6-9f3a-101000000003",
+        "9b1deb4d-3b7d-4ba6-9f3a-101000000004",
+        "9b1deb4d-3b7d-4ba6-9f3a-101000000007",
+        "9b1deb4d-3b7d-4ba6-9f3a-101000000008",
+        "9b1deb4d-3b7d-4ba6-9f3a-101000000011",
+        "9b1deb4d-3b7d-4ba6-9f3a-101000000012",
+        "9b1deb4d-3b7d-4ba6-9f3a-101000000013"
+      ]
+    },
+    "cross_evaluation": {
+      "purpose": "Контрольная проверка на перекрёстное несовпадение классов (Object Mismatch check)",
+      "case_ids": [
+        "CASE-NEG-03"
+      ],
+      "photo_ids": [
+        "9b1deb4d-3b7d-4ba6-9f3a-101000000001",
+        "9b1deb4d-3b7d-4ba6-9f3a-101000000003"
+      ],
+      "notes": "Использует перекрестную пару манометр + счетчик для верификации отсечения несопоставимых классов."
+    }
+  }
+}

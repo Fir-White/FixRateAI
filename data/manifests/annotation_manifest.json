@@ -1,0 +1,334 @@
+{
+  "schema_version": "1.0.0",
+  "protocol_version": "ann-proto-v1.0",
+  "dataset_ref": "frai-cv-v0.1.0-demo",
+  "created_at": "2026-11-16T15:00:00Z",
+  "annotator_consensus": "expert_engineer_validated",
+  "description": "Экспертная эталонная разметка пар фотографий фотокорпуса v0.1.0 (9 кейсов: 6 позитивных, 3 негативных сценария) в соответствии с инструкцией ann-proto-v1.0 и политикой photo_review_policy.json.",
+  "cases": [
+    {
+      "case_id": "CASE-01",
+      "operation_id": "1.1",
+      "operation_name": "Контроль параметров показаний приборов (давление, температура)",
+      "equipment_item_id": "eq-item-991",
+      "equipment_class": "pressure_gauge",
+      "photo_before_ref": "9b1deb4d-3b7d-4ba6-9f3a-101000000001",
+      "photo_after_ref": "9b1deb4d-3b7d-4ba6-9f3a-101000000002",
+      "single_image_quality": {
+        "before": {
+          "acceptable": true,
+          "defect_type": "none",
+          "resolution": [1024, 682]
+        },
+        "after": {
+          "acceptable": true,
+          "defect_type": "none",
+          "resolution": [1024, 682]
+        }
+      },
+      "pair_comparability": {
+        "same_equipment": true,
+        "viewpoint_compatible": true,
+        "comparability_verdict": "compatible"
+      },
+      "visual_change_verdict": "visible_change",
+      "instrument_reading": {
+        "instrument_type": "analog_gauge",
+        "reading_before": 1.15,
+        "reading_after": 3.2,
+        "unit": "bar",
+        "roi_box": [0.15, 0.25, 0.85, 0.75]
+      },
+      "policy_compliance": {
+        "allowed_system_verdicts": ["rejected"],
+        "policy_rationale": "В оригинальном пакете аналитика выявлено расхождение манометров; строгая политика отклоняет несовпадение",
+        "engineer_review_required": true
+      },
+      "annotator_notes": "Стрелка на фото До смещена синтетически командой FixRate AI. На фото После — оригинальное положение. Оптическое изменение положения стрелки очевидно, но метрологический факт поверки фото не подтверждает."
+    },
+    {
+      "case_id": "CASE-02",
+      "operation_id": "1.2",
+      "operation_name": "Протоколирование показаний счетчиков (согласно инструкции)",
+      "equipment_item_id": "eq-item-994",
+      "equipment_class": "heat_meter",
+      "photo_before_ref": "9b1deb4d-3b7d-4ba6-9f3a-101000000003",
+      "photo_after_ref": "9b1deb4d-3b7d-4ba6-9f3a-101000000004",
+      "single_image_quality": {
+        "before": {
+          "acceptable": true,
+          "defect_type": "none",
+          "resolution": [800, 600]
+        },
+        "after": {
+          "acceptable": true,
+          "defect_type": "none",
+          "resolution": [1024, 576]
+        }
+      },
+      "pair_comparability": {
+        "same_equipment": true,
+        "viewpoint_compatible": true,
+        "comparability_verdict": "compatible"
+      },
+      "visual_change_verdict": "visible_change",
+      "instrument_reading": {
+        "instrument_type": "digital_lcd",
+        "reading_before": null,
+        "reading_after": 15056.0,
+        "unit": "kWh",
+        "roi_box": [0.3, 0.35, 0.6, 0.65]
+      },
+      "policy_compliance": {
+        "allowed_system_verdicts": ["manual_review", "rejected"],
+        "policy_rationale": "Требуется проверка привязки счетчика к квартире и протоколу",
+        "engineer_review_required": true
+      },
+      "annotator_notes": "Переход дисплея из спящего режима в активный подтвержден. Символы 15056 читаемы. Фото не подтверждает корректность внесения данных в журнал учета."
+    },
+    {
+      "case_id": "CASE-03",
+      "operation_id": "1.3",
+      "operation_name": "Проверка функционирования управляющего модуля",
+      "equipment_item_id": "eq-item-995",
+      "equipment_class": "control_cabinet",
+      "photo_before_ref": "9b1deb4d-3b7d-4ba6-9f3a-101000000005",
+      "photo_after_ref": "9b1deb4d-3b7d-4ba6-9f3a-101000000006",
+      "single_image_quality": {
+        "before": {
+          "acceptable": true,
+          "defect_type": "none",
+          "resolution": [2048, 1381]
+        },
+        "after": {
+          "acceptable": true,
+          "defect_type": "none",
+          "resolution": [1024, 576]
+        }
+      },
+      "pair_comparability": {
+        "same_equipment": true,
+        "viewpoint_compatible": true,
+        "comparability_verdict": "compatible"
+      },
+      "visual_change_verdict": "visible_change",
+      "instrument_reading": null,
+      "policy_compliance": {
+        "allowed_system_verdicts": ["manual_review", "rejected"],
+        "policy_rationale": "Индикация на лицевой панели не доказывает исправность внутренней логики АВР",
+        "engineer_review_required": true
+      },
+      "annotator_notes": "Смена световой индикации (красные аварийные лампы погашены, зеленые зажглись) зафиксирована. Внутренняя коммутация требует проверки по чек-листу."
+    },
+    {
+      "case_id": "CASE-04",
+      "operation_id": "1.4",
+      "operation_name": "Чистка всех узлов и агрегатов системы",
+      "equipment_item_id": "eq-item-996",
+      "equipment_class": "mesh_filter",
+      "photo_before_ref": "9b1deb4d-3b7d-4ba6-9f3a-101000000007",
+      "photo_after_ref": "9b1deb4d-3b7d-4ba6-9f3a-101000000008",
+      "single_image_quality": {
+        "before": {
+          "acceptable": true,
+          "defect_type": "none",
+          "resolution": [671, 880]
+        },
+        "after": {
+          "acceptable": true,
+          "defect_type": "none",
+          "resolution": [695, 900]
+        }
+      },
+      "pair_comparability": {
+        "same_equipment": true,
+        "viewpoint_compatible": true,
+        "comparability_verdict": "compatible"
+      },
+      "visual_change_verdict": "visible_change",
+      "instrument_reading": null,
+      "policy_compliance": {
+        "allowed_system_verdicts": ["manual_review", "rejected"],
+        "policy_rationale": "Очистка одной сетки не доказывает чистку всех агрегатов системы (60 н-ч)",
+        "engineer_review_required": true
+      },
+      "annotator_notes": "Очистка металлической сетки от черного шлама наглядна. Полнота операции по регламенту ТО2 принимается инженером по акту."
+    },
+    {
+      "case_id": "CASE-05",
+      "operation_id": "1.5",
+      "operation_name": "Проверка приборов измерения температуры и давления на повреждения и точность показаний",
+      "equipment_item_id": "eq-item-992",
+      "equipment_class": "pressure_gauge",
+      "photo_before_ref": "9b1deb4d-3b7d-4ba6-9f3a-101000000009",
+      "photo_after_ref": "9b1deb4d-3b7d-4ba6-9f3a-101000000010",
+      "single_image_quality": {
+        "before": {
+          "acceptable": true,
+          "defect_type": "none",
+          "resolution": [600, 270]
+        },
+        "after": {
+          "acceptable": true,
+          "defect_type": "none",
+          "resolution": [1024, 461]
+        }
+      },
+      "pair_comparability": {
+        "same_equipment": true,
+        "viewpoint_compatible": true,
+        "comparability_verdict": "compatible"
+      },
+      "visual_change_verdict": "visible_change",
+      "instrument_reading": {
+        "instrument_type": "analog_gauge",
+        "reading_before": 0.0,
+        "reading_after": 0.0,
+        "unit": "kgf_cm2",
+        "roi_box": [0.1, 0.2, 0.9, 0.8]
+      },
+      "policy_compliance": {
+        "allowed_system_verdicts": ["manual_review", "rejected"],
+        "policy_rationale": "Устранение трещины на фото синтетическое; метрологическая точность проверяется инструментально",
+        "engineer_review_required": true
+      },
+      "annotator_notes": "Трещина на стекле манометра ДМ8008А удалена графически (FixRate AI). Визуальный дефект устранен, но поверка точности хода стрелки не подтверждена."
+    },
+    {
+      "case_id": "CASE-06",
+      "operation_id": "1.6",
+      "operation_name": "Выпустить воздух из системы отопления/теплоснабжения",
+      "equipment_item_id": "eq-item-997",
+      "equipment_class": "heating_manifold",
+      "photo_before_ref": "9b1deb4d-3b7d-4ba6-9f3a-101000000011",
+      "photo_after_ref": "9b1deb4d-3b7d-4ba6-9f3a-101000000012",
+      "single_image_quality": {
+        "before": {
+          "acceptable": true,
+          "defect_type": "none",
+          "resolution": [1280, 720]
+        },
+        "after": {
+          "acceptable": true,
+          "defect_type": "none",
+          "resolution": [800, 360]
+        }
+      },
+      "pair_comparability": {
+        "same_equipment": true,
+        "viewpoint_compatible": true,
+        "comparability_verdict": "compatible"
+      },
+      "visual_change_verdict": "not_verifiable",
+      "instrument_reading": null,
+      "policy_compliance": {
+        "allowed_system_verdicts": ["manual_review", "rejected"],
+        "policy_rationale": "Процесс выпуска воздуха из закрытой системы физически невидим на фото",
+        "engineer_review_required": true
+      },
+      "annotator_notes": "Коллектор собран, потеков нет. Однако наличие или отсутствие воздуха внутри контура оптически неверифицируемо. Приемка строго по чек-листу."
+    },
+    {
+      "case_id": "CASE-NEG-01",
+      "operation_id": "1.2",
+      "operation_name": "Протоколирование показаний счетчиков (согласно инструкции)",
+      "equipment_item_id": "eq-item-994",
+      "equipment_class": "heat_meter",
+      "photo_before_ref": "9b1deb4d-3b7d-4ba6-9f3a-101000000003",
+      "photo_after_ref": "9b1deb4d-3b7d-4ba6-9f3a-101000000013",
+      "single_image_quality": {
+        "before": {
+          "acceptable": true,
+          "defect_type": "none",
+          "resolution": [800, 600]
+        },
+        "after": {
+          "acceptable": false,
+          "defect_type": "blur",
+          "resolution": [2048, 1152]
+        }
+      },
+      "pair_comparability": {
+        "same_equipment": true,
+        "viewpoint_compatible": true,
+        "comparability_verdict": "insufficient_evidence"
+      },
+      "visual_change_verdict": "uncertain",
+      "instrument_reading": null,
+      "policy_compliance": {
+        "allowed_system_verdicts": ["rejected"],
+        "policy_rationale": "Критический дефект качества кадра После: сильный смаз и засветка табло",
+        "engineer_review_required": true
+      },
+      "annotator_notes": "Негативный синтетический тест. На кадре После наложен Motion Blur и яркий блик вспышки. Кадр подлежит отбраковке QualityGuard до запуска OCR."
+    },
+    {
+      "case_id": "CASE-NEG-02",
+      "operation_id": "1.3",
+      "operation_name": "Проверка функционирования управляющего модуля",
+      "equipment_item_id": "eq-item-995",
+      "equipment_class": "control_cabinet",
+      "photo_before_ref": "9b1deb4d-3b7d-4ba6-9f3a-101000000005",
+      "photo_after_ref": "9b1deb4d-3b7d-4ba6-9f3a-101000000014",
+      "single_image_quality": {
+        "before": {
+          "acceptable": true,
+          "defect_type": "none",
+          "resolution": [2048, 1381]
+        },
+        "after": {
+          "acceptable": false,
+          "defect_type": "glare",
+          "resolution": [2047, 1535]
+        }
+      },
+      "pair_comparability": {
+        "same_equipment": true,
+        "viewpoint_compatible": false,
+        "comparability_verdict": "viewpoint_mismatch"
+      },
+      "visual_change_verdict": "uncertain",
+      "instrument_reading": null,
+      "policy_compliance": {
+        "allowed_system_verdicts": ["rejected"],
+        "policy_rationale": "Несовпадение ракурса (закрытая дверца vs открытый монтаж) и расфокус со вспышкой",
+        "engineer_review_required": true
+      },
+      "annotator_notes": "Негативный синтетический тест. Кадр После не сопоставим по ракурсу (дверца распахнута, индикаторы скрыты) и имеет сильное размытие."
+    },
+    {
+      "case_id": "CASE-NEG-03",
+      "operation_id": "1.1",
+      "operation_name": "Контроль параметров показаний приборов (давление, температура)",
+      "equipment_item_id": "eq-item-991",
+      "equipment_class": "pressure_gauge",
+      "photo_before_ref": "9b1deb4d-3b7d-4ba6-9f3a-101000000001",
+      "photo_after_ref": "9b1deb4d-3b7d-4ba6-9f3a-101000000003",
+      "single_image_quality": {
+        "before": {
+          "acceptable": true,
+          "defect_type": "none",
+          "resolution": [1024, 682]
+        },
+        "after": {
+          "acceptable": true,
+          "defect_type": "none",
+          "resolution": [800, 600]
+        }
+      },
+      "pair_comparability": {
+        "same_equipment": false,
+        "viewpoint_compatible": false,
+        "comparability_verdict": "equipment_mismatch"
+      },
+      "visual_change_verdict": "uncertain",
+      "instrument_reading": null,
+      "policy_compliance": {
+        "allowed_system_verdicts": ["rejected"],
+        "policy_rationale": "Подмена оборудования: кадр До — манометр, кадр После — теплосчетчики",
+        "engineer_review_required": true
+      },
+      "annotator_notes": "Контрольный тест на подмену оборудования (Cross-class mismatch). Система обязана отклонить отчет по причине Object Mismatch."
+    }
+  ]
+}
