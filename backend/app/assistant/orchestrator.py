@@ -423,11 +423,11 @@ async def run(app, principal, thread_id, turn_id, headers):
                 if len(resolved.goals)==1:
                     candidate=wf.create_plan(resolved,question,read_domain,scope)['goals'][0]
                     if candidate['tool'] in read_domain and candidate['mode']=='read' and not candidate.get('changes') and candidate.get('reason') not in ('plan_outcome_tool_mismatch','manufacturer_document_not_verified','user_decision_required'):
-                        candidate.update(id=goal['id'],title=goal['title'],depends_on=goal['depends_on'],selector={**candidate.get('selector',{}),**selector})
-                        if goal.get('required_evidence') is not None:candidate['required_evidence']=goal['required_evidence']
-                        candidate['requires_full_list']=goal.get('requires_full_list',False) or candidate.get('requires_full_list',False)
-                        candidate['response_style']=goal.get('response_style','facts')
-                        state['goals'][index]=candidate
+                        candidate['id']=goal['id']
+                        # Capability repair must pass the same immutable-outcome
+                        # gate as whole-plan repair, including canonical routing.
+                        if wf.preserve_constraints({'goals':[goal]},{'goals':[candidate]},read_domain):
+                            state['goals'][index]=candidate
                 wf.save(app,turn_id,state)
             if callable(set_modes):set_modes({name:tool.mode for name,tool in tools.items()})
         elif state['scope'] != scope:

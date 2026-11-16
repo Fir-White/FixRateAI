@@ -159,3 +159,33 @@ def test_one_sheet_or_partial_book_cannot_complete_whole_workbook_analysis(full,
     proof=record_result(state,goal,'attachment_read',dict(query=dict(full_book=full)),dict(items=[],total=0,workbook=dict(status='read',complete=book_complete)))
     assert not proof['complete'] and goal['status']!='completed'
     assert 'full_workbook_not_verified' in proof['limitations']
+
+
+def test_read_capability_repair_retains_component_outcome_and_canonical_source():
+    from app.assistant.workflow import preserve_constraints
+    tools={name:SimpleNamespace(mode='read') for name in ('equipment_service_history','components_read')}
+    prior=dict(goals=[objective('',kind='unavailable',outcome='equipment_components',required_evidence='saved_data',selector=dict(equipment_id=str(uuid4())))])
+    revised=create_plan(ToolSelection(tools=[],goals=[GoalSpec(id='g',title='History',tool='equipment_service_history',outcome='other',kind='read')]),'Read components',tools,{})
+    assert preserve_constraints(prior,revised,tools)
+    goal=revised['goals'][0]
+    assert goal['outcome']=='equipment_components' and goal['tool']=='components_read'
+    assert goal['selector']['equipment_id']==prior['goals'][0]['selector']['equipment_id'] and goal['mode']=='read'
+
+
+@pytest.mark.parametrize('replacement_tool',['equipment_read','equipment_edit'])
+def test_plan_repair_cannot_replace_original_patch_values_or_turn_change_into_read(replacement_tool):
+    from app.assistant.workflow import preserve_constraints
+    tools=dict(equipment_read=SimpleNamespace(mode='read'),equipment_edit=SimpleNamespace(mode='write'))
+    prior=dict(goals=[objective('equipment_edit',kind='change',changes=dict(name='Original exact value'),required_evidence='saved_data')])
+    revised=dict(goals=[objective(replacement_tool,kind='read',changes=dict(name='Different',description='Unrequested'),status='planned')])
+    assert preserve_constraints(prior,revised,tools)
+    goal=revised['goals'][0]
+    assert goal['kind']=='change' and goal['changes']==dict(name='Original exact value')
+    if replacement_tool=='equipment_read':assert goal['status']=='blocked' and goal['reason']=='plan_outcome_tool_mismatch'
+
+
+def test_plan_repair_cannot_replace_a_declared_business_workflow():
+    from app.assistant.workflow import preserve_constraints
+    prior=dict(goals=[objective('publication_prepare',workflow_kind='prepare_approval')])
+    revised=dict(goals=[objective('draft_read',workflow_kind=None)])
+    assert not preserve_constraints(prior,revised,{})

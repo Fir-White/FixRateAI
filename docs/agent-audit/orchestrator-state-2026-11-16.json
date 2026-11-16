@@ -46,8 +46,8 @@
     {
       "id": "production-ui-performance",
       "status": "in_progress",
-      "evidence": "Baseline 48 production Chrome checks and stress 21x140 lines retained. Offscreen prototypes rejected for first-scroll/native-End regressions. Native details plus server-facts renderer applied; current production profiles running.",
-      "remaining": "Seven full-suite UI failures, CPU4 navigation 420-488ms, normal mobile reduced-motion 105.6ms and scroll p95 up to 19.6ms; physical touch/device benchmark not measured"
+      "evidence": "Final actual production frontend: 48 named checks/6 profiles passed, 85 unit tests passed, source/assets pinned. Settled wheel p95 11.9-12.8ms; first Home/PageDown/wheel+input/native End no tasks >50ms; End distance0.",
+      "remaining": "Cold CPU4 mount up to506ms and explicit older Markdown expansion up to237ms; seven earlier full-suite UI failures await repeat; actual toolbar Ctrl+F, physical touch/device and field SLA unmeasured."
     },
     {
       "id": "durable-operations",

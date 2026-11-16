@@ -762,6 +762,7 @@
         "tests/backend/test_assistant_capabilities.py::test_full_search_and_projection_do_not_hide_items_after_first_page",
         "tests/backend/test_assistant_domain_adapters.py::test_equipment_identity_cannot_cross_undeclared_dependencies",
         "tests/backend/test_assistant_domain_adapters.py::test_requested_patch_is_compiled_from_changes_despite_read_annotation",
+        "tests/backend/test_assistant_domain_adapters.py::test_plan_repair_cannot_replace_original_patch_values_or_turn_change_into_read",
         "tests/backend/test_assistant_evidence_cache.py::test_same_authorized_read_reuses_verbatim_proof_with_original_time",
         "tests/backend/test_assistant_evidence_cache.py::test_argument_fingerprint_is_order_independent_but_preserves_exact_values",
         "tests/backend/test_assistant_evidence_cache.py::test_python_equal_values_do_not_bypass_canonical_argument_identity",
@@ -1023,6 +1024,7 @@
         "tests/backend/test_assistant_domain_adapters.py::test_missing_resource_and_change_values_are_never_invented",
         "tests/backend/test_assistant_domain_adapters.py::test_local_planner_grammar_requires_outcomes_and_separates_read_and_change",
         "tests/backend/test_assistant_domain_adapters.py::test_requested_patch_is_compiled_from_changes_despite_read_annotation",
+        "tests/backend/test_assistant_domain_adapters.py::test_plan_repair_cannot_replace_original_patch_values_or_turn_change_into_read",
         "tests/backend/test_assistant_evidence_cache.py::test_no_write_post_unknown_or_disguised_tool_is_cache_eligible",
         "tests/backend/test_assistant_orchestrator.py::test_plan_requires_dependency_order_and_never_completes_from_a_search",
         "tests/backend/test_assistant_orchestrator.py::test_two_independent_renames_keep_exact_values_and_separate_confirmations",
@@ -1279,7 +1281,9 @@
       "candidate_test_mentions": [
         "tests/backend/test_assistant_domain_adapters.py::test_history_and_calendar_keep_their_own_explicit_period",
         "tests/backend/test_assistant_domain_adapters.py::test_named_equipment_context_reuses_identity_but_still_reads_fresh_business_data",
+        "tests/backend/test_assistant_domain_adapters.py::test_read_capability_repair_retains_component_outcome_and_canonical_source",
         "tests/backend/test_assistant_objective_scope.py::test_history_of_arbitrary_first_equipment_does_not_prove_a_site_catalog_goal",
+        "tests/backend/test_assistant_objective_scope.py::test_actual_capability_repair_cannot_complete_components_from_another_read_source",
         "tests/backend/test_assistant_orchestrator_live.py::test_nc01_period_history_and_unverified_manufacturer_are_separate_goals",
         "tests/backend/test_assistant_outcome_contracts.py::test_typed_read_result_rectifies_wrong_tool_without_title_keywords",
         "tests/backend/test_assistant_outcome_contracts.py::test_wrong_source_shapes_cannot_claim_typed_goal_completion",
@@ -3088,7 +3092,9 @@
           "Business state is unchanged by this read/preview."
         ]
       },
-      "candidate_test_mentions": [],
+      "candidate_test_mentions": [
+        "tests/backend/test_assistant_domain_adapters.py::test_plan_repair_cannot_replace_a_declared_business_workflow"
+      ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
     {
@@ -4670,7 +4676,9 @@
           "No business mutation before the concrete human confirmation; repeated confirmation cannot duplicate the result."
         ]
       },
-      "candidate_test_mentions": [],
+      "candidate_test_mentions": [
+        "tests/backend/test_assistant_domain_adapters.py::test_plan_repair_cannot_replace_a_declared_business_workflow"
+      ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
     {
@@ -6789,6 +6797,8 @@
         ]
       },
       "candidate_test_mentions": [
+        "tests/backend/test_assistant_domain_adapters.py::test_read_capability_repair_retains_component_outcome_and_canonical_source",
+        "tests/backend/test_assistant_objective_scope.py::test_actual_capability_repair_cannot_complete_components_from_another_read_source",
         "tests/backend/test_assistant_orchestrator_live_reads.py::test_installed_components_show_real_resource_and_units",
         "tests/backend/test_assistant_outcome_contracts.py::test_component_resource_fields_are_not_replaceable_by_equipment_metadata",
         "tests/backend/test_assistant_outcome_contracts.py::test_explicit_unknown_resource_and_norm_are_valid_facts_not_invented_values",

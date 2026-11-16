@@ -89,3 +89,29 @@ def test_actual_http_employee_profile_never_substitutes_the_signed_in_account(as
         assert 'Исполнитель' in turn['answer'] and 'Test chief' not in turn['answer']
         assert not view['actions']
     finally:del app.state.assistant_provider_factory
+
+
+def test_actual_capability_repair_cannot_complete_components_from_another_read_source(assistant_case):
+    from tests.backend.test_assistant_orchestrator import equipment,send
+    _,app,client,_,ids=assistant_case
+    unit=equipment(client,ids)
+    selections=iter([
+        dict(id='parts',title='Installed components',tool='',kind='unavailable',outcome='equipment_components',
+            required_evidence='saved_data',selector=dict(equipment_id=unit['equipment_id'],starts_on='2026-01-01',ends_on='2026-12-31')),
+        dict(id='easier',title='Accepted history',tool='equipment_service_history',kind='read',outcome='other',
+            selector=dict(equipment_id=unit['equipment_id'],starts_on='2026-01-01',ends_on='2026-12-31')),
+    ])
+    class Repair:
+        response_model='TEST-ONLY-scripted-capability-repair'
+        def chat(self,messages,schema,tokens):
+            assert schema.__name__=='ToolSelection','Canonical server adapter should execute without another model step'
+            return schema.model_validate(dict(tools=[],goals=[next(selections)]))
+    app.state.assistant_provider_factory=Repair
+    try:
+        view=send(client,thread(client),'Show installed components of equipment '+unit['equipment_id']+'. Read only.')
+        turn=view['turns'][-1];goal=turn['workflow']['goals'][0]
+        assert turn['status']=='completed' and goal['status']=='completed'
+        assert goal['id']=='parts' and goal['outcome']=='equipment_components' and goal['tool']=='components_read'
+        assert not view['actions']
+        assert client.get('/api/v1/maintenance/equipment/'+unit['equipment_id']+'/components').json()==[]
+    finally:del app.state.assistant_provider_factory

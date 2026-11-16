@@ -193,12 +193,20 @@ def preserve_constraints(previous, revised,tools=None):
                     requires_full_list=prior.get('requires_full_list',False) or goal.get('requires_full_list',False))
         if prior.get('required_evidence') is not None:goal['required_evidence']=prior['required_evidence']
         if prior.get('outcome') not in (None,'other'):goal['outcome']=prior['outcome']
+        if prior.get('changes'):goal['changes']=copy.deepcopy(prior['changes'])
+        if prior.get('kind')=='change':goal['kind']='change'
+        if prior.get('workflow_kind'):
+            if goal.get('workflow_kind')!=prior['workflow_kind']:return False
         if prior.get('response_style')=='analysis':goal['response_style']='analysis'
         blocker=required_blocker(goal)
         if blocker:goal.update(status='blocked',reason=blocker)
         if tools is not None:
             from .outcome_contracts import normalize_goal
             normalized=normalize_goal(goal,tools);goal.clear();goal.update(normalized)
+            target=tools.get(goal.get('tool'))
+            goal.update(specialist=specialist(goal.get('tool')),mode=target.mode if target else 'clarification')
+            if (goal.get('kind')=='change' or goal.get('changes')) and (target is None or target.mode!='write'):
+                goal.update(status='blocked',reason='plan_outcome_tool_mismatch')
     return True
 
 
