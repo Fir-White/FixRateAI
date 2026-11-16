@@ -79,3 +79,10 @@ reports*.zip
 /FixRateAI_Iteration_Intelligent_Planning_Spec.md
 /docs/service/customer-start.md
 /start-fixrate.bat
+
+# Private customer data & raw photos (Policy TL04)
+/data/customer/photos/
+/data/private_storage/
+/data/raw_pilot/
+*.private.jpg
+*.private.png
