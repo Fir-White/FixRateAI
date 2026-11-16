@@ -34,8 +34,8 @@
     {
       "id": "frozen-full-regression",
       "status": "in_progress",
-      "evidence": "Frozen 7490a41: 2659 passed/1 failed/55 skipped/1 xfailed, stable source/corpus. Only obsolete conversation-completion expectation failed; actual clock oracle passed. New intent-first native focused set: 229 passed, full pipeline exit0 and stable source/corpus.",
-      "remaining": "Uninterrupted full backend/ML repeat on intent-first and protected-output source"
+      "evidence": "Frozen440dcd9 R5:2818 passed/3 failed/58 skipped/1 xfailed, source/corpus stable. Guard analysis false positive fixed; primary-document duplicate expectations strengthened. Follow-up87 native passed, complete pipeline exit0, stable.",
+      "remaining": "Repeat complete frozen backend/ML after the three failure repairs."
     },
     {
       "id": "live-baseline-comparison",
@@ -47,7 +47,7 @@
       "id": "production-ui-performance",
       "status": "in_progress",
       "evidence": "Final actual production frontend: 48 named checks/6 profiles passed, 85 unit tests passed, source/assets pinned. Settled wheel p95 11.9-12.8ms; first Home/PageDown/wheel+input/native End no tasks >50ms; End distance0.",
-      "remaining": "Cold CPU4 mount up to506ms and explicit older Markdown expansion up to237ms; seven earlier full-suite UI failures await repeat; actual toolbar Ctrl+F, physical touch/device and field SLA unmeasured."
+      "remaining": "Full UI653 passed/8 navigation failures; CPU4 cold mount up to506ms and old Markdown expansion237ms, toolbar Ctrl+F/touch/SLA unmeasured. Four role smoke profiles expose unsent text lost on tab reload."
     },
     {
       "id": "durable-operations",
@@ -93,6 +93,12 @@
       "status": "in_progress",
       "evidence": "Frozen47c123e mixed actual Ollama12/17: reads9/11, writes0/2, strict3/4. All failed raw records retained. Grounding follow-up292 native passed; final full/model reruns required.",
       "remaining": "Typed source and identity checks do not certify complete arbitrary-language decomposition. Prevent and test omitted user goals, wrong outcome categories and unrequested patch fields across the full operation matrix."
+    },
+    {
+      "id": "unsent-draft-reload",
+      "status": "open",
+      "evidence": "Four engineer/executor desktop/mobile production-browser fixtures: first3 checks pass, reload unsent draft assertion fails. Current draft map is React memory; first wrong-URL harness attempt retained separately.",
+      "remaining": "Persist/recover unsent text across reload with explicit privacy, user/site/role scoping and logout/expiry clearing; do not confuse saved resource reload with unsent draft recovery."
     }
   ]
 }

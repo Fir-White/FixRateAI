@@ -252,7 +252,11 @@ def test_explicit_binding_preserves_source_gate_before_proposal_and_resume(assis
         for resumed in (False,True):
             if resumed:send(client,chat,resume=root)
             saved=view(client,chat);workflow=saved['turns'][-1]['workflow']
-            assert saved['actions']==[] and len(workflow['goals'])==1
+            assert saved['actions']==[]
+            assert [goal['id'] for goal in workflow['goals'] if goal['id']=='source']==['source']
+            assert len(workflow['goals'])==(1 if required=='manufacturer_document' else 2)
+            assert all(goal['status']=='blocked' for goal in workflow['goals'])
+            assert any(goal['required_evidence']=='manufacturer_document' for goal in workflow['goals'])
             assert workflow['goals'][0]['required_evidence']==required
             assert workflow['goals'][0]['status']=='blocked' and workflow['outcome']=='blocked'
             assert planner.other_calls==0

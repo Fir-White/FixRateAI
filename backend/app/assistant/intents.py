@@ -18,6 +18,17 @@ def mutation_requested(question):
     return False
 
 
+def mutation_command_requested(question):
+    """Recognize a direct command without treating an analysed future change as one."""
+    if not mutation_requested(question):return False
+    if re.search(r'^(?:please\s+)?start\b|\b(?:начни|начните)\b',question.strip(),re.I):return True
+    for match in _MUTATION.finditer(question):
+        prefix=re.split(r'[.!?;\n]',question[:match.start()])[-1]
+        if re.fullmatch(r'\s*(?:(?:please|пожалуйста|затем|then|теперь)\s*)?',prefix,re.I):return True
+        if re.search(r'\b(?:then|затем)\s+$',prefix,re.I):return True
+    return False
+
+
 def literal_rename(question):
     """Copy one explicitly quoted target, never unescape a model-created name."""
     if not re.search(r'\b(?:переименуй|переименуйте|переименовать|переименование|rename)\b',question,re.I):return None

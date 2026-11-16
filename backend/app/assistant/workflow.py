@@ -154,7 +154,8 @@ def create_plan(selection, question, tools, scope):
         elif goal.get('required_evidence')=='user_decision':goal.update(status='blocked',reason='user_decision_required')
     # A plan containing only reads cannot fulfill an explicit mutation. This
     # detects missing work, never chooses or authorizes a write operation.
-    if specs and mutation_requested(question) and not any(goal.get('mode')=='write' or goal.get('kind')=='change' for goal in goals):
+    from .intents import mutation_command_requested
+    if specs and mutation_command_requested(question) and not any(goal.get('mode')=='write' or goal.get('kind')=='change' for goal in goals):
         for goal in goals:
             if goal.get('kind')=='read' and goal.get('status')=='planned':
                 goal.update(status='blocked',reason='plan_outcome_tool_mismatch')

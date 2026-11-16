@@ -30,6 +30,14 @@ def test_positive_action_after_a_negative_clause_still_requires_mutation_handlin
     assert mutation_requested(question)
 
 
+def test_analysing_needed_replacements_is_not_an_immediate_install_or_replace_command():
+    from app.assistant.intents import mutation_command_requested
+    assert not mutation_command_requested('Проанализируй ресурс. Определи, какие детали необходимо заменить, и предложи включить их в график.')
+    assert mutation_command_requested('Переименуй оборудование. Остальные поля не меняй.')
+    assert mutation_command_requested('Show the saved card, then rename equipment.')
+    assert mutation_command_requested('Start only my assigned task. Do not accept a report.')
+
+
 @pytest.mark.parametrize('prefix',[
     'Покажи оборудование текущего объекта.',
     'Покажи регламент насоса с кодом RT-PUMP.',
