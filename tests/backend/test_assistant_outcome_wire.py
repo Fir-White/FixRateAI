@@ -56,6 +56,12 @@ def test_actual_wire_requires_nonnull_outcome_before_tool_in_every_variant():
     assert offered==set(OUTCOMES)
 
 
+def test_native_goal_ids_are_bounded_opaque_labels_even_if_grammar_ignores_max_length():
+    for branch in branches():
+        assert branch['properties']['id']['enum']==[f'g{index}' for index in range(1,13)]
+        assert all(len(identity)<=40 for identity in branch['properties']['id']['enum'])
+
+
 @pytest.mark.parametrize('outcome',OUTCOMES[:-1])
 def test_concrete_read_outcome_fixes_evidence_without_restricting_correctable_read_tool(outcome):
     required='calendar_calculation' if outcome=='calendar_obligations' else 'file_content' if outcome=='file_analysis' else 'saved_data'

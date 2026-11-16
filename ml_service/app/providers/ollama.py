@@ -43,6 +43,9 @@ def agent_wire_schema(schema,tool_modes=None):
             if key=='tool':properties['outcome']=dict(type='string',enum=outcomes,
                 description=goal['properties']['outcome'].get('description','Desired business result, selected before its tool.'))
             properties[key]=field
+        # Local grammar implementations may ignore string maxLength. Opaque
+        # server workflow labels need no user/resource-derived text.
+        properties['id']=dict(type='string',enum=[f'g{index}' for index in range(1,13)],description='Opaque objective label: g1, g2, etc.; never a task UUID or the complete title.')
         required_fields=set(goal.get('required',[]))|{'outcome','kind','selector','changes','required_evidence'}
         required=[key for key in properties if key in required_fields]
         variants=[]

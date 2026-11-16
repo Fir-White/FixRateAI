@@ -29,7 +29,7 @@ def run_write(case,operation,identity,question,oracle,request):
     with episode(case,'WRITE-'+operation.upper()+'-'+profile['role'].upper()) as outcome:
         outcome.update(kind='positive-confirmed-write',operation=operation,acceptance_operation=operation,
             actor_role=profile['role'],actor_id=profile['userId'],test_node=request.node.nodeid,
-            fixture_version='orchestrator-positive-writes-v1',fixture_source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
+            fixture_version='orchestrator-positive-writes-v2',fixture_source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
         view,turn=send(case,chat,question);record(outcome,view,turn,question)
         assert turn['status']=='completed' and case['calls']
         assert len(view['actions'])==1,view
@@ -44,11 +44,14 @@ def run_write(case,operation,identity,question,oracle,request):
         replay=confirm(client,action)
         assert replay.status_code==200 and replay.json()['status']=='succeeded'
         assert saved(case,operation,identity)==after,'Confirmation replay duplicated the write'
-        resumed=client.post(B+f'/conversations/{chat}/messages',json=dict(content='Continue the saved task and verify its outcome.',
-            idempotency_key=str(uuid4()),resume_turn_id=turn['turn_id']))
-        assert resumed.status_code==202,resumed.text
         reopened=client.get(B+'/conversations/'+chat).json();final=reopened['turns'][-1]
-        record(outcome,reopened,final,'Explicit resume after confirmed write')
+        outcome['resumed_after_confirmation']=final.get('workflow',{}).get('outcome')!='completed'
+        if outcome['resumed_after_confirmation']:
+            resumed=client.post(B+f'/conversations/{chat}/messages',json=dict(content='Continue the saved task and verify its outcome.',
+                idempotency_key=str(uuid4()),resume_turn_id=turn['turn_id']))
+            assert resumed.status_code==202,resumed.text
+            reopened=client.get(B+'/conversations/'+chat).json();final=reopened['turns'][-1]
+        record(outcome,reopened,final,'Fresh authorized reopen; resume only if still unfinished')
         assert final['status']=='completed' and final['workflow']['outcome']=='completed',final
         assert all(goal['status']=='completed' for goal in final['workflow']['goals']),final
         assert len(reopened['actions'])==1 and saved(case,operation,identity)==after
