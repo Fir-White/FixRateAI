@@ -30,6 +30,34 @@ def test_model_guessed_actor_cannot_substitute_for_a_requested_crew_or_named_emp
     assert objective_scope(state,goal,'staff_read',dict(path=dict(user_id=ACTOR)),value) is None
 
 
+def test_arbitrary_operation_template_cannot_replace_a_requested_installed_regulation():
+    goal=dict(outcome='maintenance_definition',selector={})
+    value=dict(operation_id=OTHER,code='MONTHLY',title='Monthly inspection')
+    state=dict(request='Read the complete installed regulation of RT-PUMP')
+    assert objective_scope(state,goal,'operation_read',dict(path=dict(operation_id=OTHER)),value)=='requested_operation_reference_unverified'
+    state['request']='Read operation '+OTHER
+    assert objective_scope(state,goal,'operation_read',dict(path=dict(operation_id=OTHER)),value) is None
+
+
+def test_actual_typed_staff_date_patch_preserves_role_and_requires_confirmation(assistant_case):
+    from tests.backend.test_assistant_orchestrator import Planner,goal,send
+    from tests.backend.test_assistant import confirm
+    _,app,client,_,_=assistant_case;identity,_=join(assistant_case)
+    url='/api/v1/assistant/workspace/staff/'+str(identity);before=client.get(url).json()
+    app.state.assistant_provider_factory=lambda:Planner([dict(goal('date',''),outcome='other',kind='conversation',required_evidence='conversation',
+        selector=dict(user_id=str(identity)),changes=dict(employed_until='2028-04-05'))],[])
+    try:
+        view=send(client,thread(client),'Change only employment end date for user_id='+str(identity)+' to 2028-04-05.')
+        assert len(view['actions'])==1 and client.get(url).json()==before
+        action=view['actions'][0];assert action['tool_name']=='staff_edit'
+        done=confirm(client,action)
+        assert done.status_code==200 and done.json()['result']['verification']['status']=='confirmed'
+        after=client.get(url).json()
+        assert after['employed_until']=='2028-04-05' and after['role']==before['role'] and after['is_active']==before['is_active']
+        assert after['revision']==before['revision']+1
+    finally:del app.state.assistant_provider_factory
+
+
 @pytest.mark.parametrize('field',['equipment_id','operation_id','task_id'])
 def test_model_arguments_cannot_silently_replace_the_declared_target(field):
     tool={'equipment_id':'equipment_read','operation_id':'operation_read','task_id':'task_read'}[field]

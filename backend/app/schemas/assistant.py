@@ -70,11 +70,12 @@ class GoalSelector(Input):
     task_id:UUID|None=Field(default=None,description='Exact saved work task identity. Do not substitute the first task or an equipment UUID.')
     search:str|None=Field(default=None,min_length=1,max_length=200,description='Literal employee or equipment search text requested by the user, such as the exact email. Do not invent a search term.')
 
-ReadOutcome=Literal['current_profile','staff_profile','staff_search','workforce','equipment_inventory','equipment_card','equipment_search','equipment_components','maintenance_catalog','maintenance_definition','reference_catalog','personal_notifications','protected_company_code','calendar_obligations','accepted_history','task_card','task_analysis','file_analysis','norm_readiness','other']
+ReadOutcome=Literal['current_profile','staff_profile','staff_search','workforce','equipment_inventory','equipment_card','equipment_search','equipment_components','equipment_regulations','maintenance_catalog','maintenance_definition','reference_catalog','personal_notifications','protected_company_code','calendar_obligations','accepted_history','task_card','task_analysis','file_analysis','norm_readiness','other']
 READ_OUTCOME_TOOLS={
     'current_profile':'profile_read','staff_profile':'staff_read','staff_search':'staff_find',
     'workforce':'workforce_read','equipment_inventory':'inventory_read','equipment_card':'equipment_read',
     'equipment_search':'equipment_find','equipment_components':'components_read','maintenance_catalog':'operations_list',
+    'equipment_regulations':'regulations_read',
     'maintenance_definition':'operation_read','reference_catalog':'catalog_read','personal_notifications':'notifications_list',
     'protected_company_code':'enrollment_read','calendar_obligations':'calendar_evidence','accepted_history':'equipment_service_history',
     'task_card':'task_read','task_analysis':'tasks_analyze','file_analysis':'attachment_read','norm_readiness':'workbook_readiness',

@@ -22,6 +22,7 @@ READ_EVIDENCE = {outcome: 'calendar_calculation' if outcome == 'calendar_obligat
 REQUIRED_SELECTORS = {
     'staff_profile': ('user_id',), 'staff_search': ('search',),
     'equipment_card': ('equipment_id_or_code',), 'equipment_components': ('equipment_id_or_code',),
+    'equipment_regulations': ('equipment_id_or_code',),
     'maintenance_definition': ('operation_id',), 'calendar_obligations': ('equipment_id_or_code', 'starts_on', 'ends_on'),
     'accepted_history': ('equipment_id_or_code', 'starts_on', 'ends_on'), 'task_card': ('task_id',),
     'file_analysis': ('attachment_ids',), 'norm_readiness': ('attachment_ids',),
@@ -209,6 +210,14 @@ def _shape(outcome, value):
         return _all(value, _equipment)
     if outcome == 'equipment_components':
         return _all(value, _component)
+    if outcome == 'equipment_regulations':
+        return _all(value,lambda row:_uuid(row.get('binding_id')) and _uuid(row.get('operation_id'))
+            and _text(row.get('code')) and _text(row.get('title')) and _text(row.get('instructions'))
+            and isinstance(row.get('pattern'),dict) and _date(row.get('valid_from')) and 'valid_until' in row
+            and _date(row['valid_until'],nullable=True) and type(row.get('crew_size')) is int
+            and row['crew_size']>0 and 'norm_value' in row and _number(row['norm_value'],nullable=True)
+            and row.get('norm_unit') in ('person_hour','elapsed_hour','unconfirmed')
+            and isinstance(row.get('checklist'),list) and type(row.get('enabled')) is bool)
     if outcome == 'maintenance_catalog':
         return _all(value, _operation)
     if outcome == 'maintenance_definition':

@@ -219,3 +219,22 @@ def test_explicit_primary_document_verification_is_not_lost_when_planner_omits_i
 def test_primary_document_safeguard_does_not_invent_a_read_or_negated_document_request(question):
     from app.assistant.intents import primary_document_requested
     assert not primary_document_requested(question)
+
+
+@pytest.mark.parametrize('revision',[None,3])
+def test_typed_task_start_prepares_the_existing_confirmation_transport_without_model_repetition(revision):
+    identity=str(uuid4());goal=objective('task_start',outcome='other',selector=dict(task_id=identity),changes=dict(expected_revision=revision))
+    step=next_step(goal,dict(request='Start task '+identity,evidence=[]))
+    assert step.calls[0].tool=='task_start' and step.calls[0].arguments==dict(path=dict(task_id=identity),body={} if revision is None else dict(expected_revision=3))
+
+
+@pytest.mark.parametrize('required',['conversation','manufacturer_document','user_decision'])
+def test_literal_typed_staff_patch_is_bound_without_weakening_real_source_requirements(required):
+    identity=str(uuid4());tools=dict(staff_edit=SimpleNamespace(mode='write'))
+    selection=ToolSelection(tools=[],goals=[GoalSpec(id='g',title='Selected staff change',tool='',kind='conversation',outcome='other',
+        selector=dict(user_id=identity),changes=dict(employed_until='2028-04-05'),required_evidence=required)])
+    state=create_plan(selection,'Change only employment end date for user_id='+identity,tools,{})
+    goal=state['goals'][0]
+    assert goal['tool']=='staff_edit' and goal['kind']=='change' and goal['changes']==dict(employed_until='2028-04-05')
+    if required=='conversation':assert goal['required_evidence']=='saved_data' and goal['status']=='planned'
+    else:assert goal['required_evidence']==required and goal['status']=='blocked'

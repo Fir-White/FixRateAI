@@ -100,8 +100,17 @@ def create_plan(selection, question, tools, scope):
         if not set(goal['depends_on']) <= seen:
             raise ValueError('Objectives must be a dependency-ordered DAG')
         seen.add(goal['id'])
+        from .intents import mutation_requested,mutation_command_requested
+        if not goal['tool'] and goal.get('changes') and not goal.get('workflow_kind') and mutation_command_requested(question):
+            # Bind an explicit typed employee patch to its one registered entity
+            # adapter; never infer a person from the current actor or name alone.
+            from app.schemas.management import EmploymentEdit
+            identity=goal.get('selector',{}).get('user_id')
+            fields=set(EmploymentEdit.model_fields)-{'expected_revision'}
+            if identity and str(identity).casefold() in question.casefold() and set(goal['changes'])<=fields and 'staff_edit' in tools:
+                goal.update(tool='staff_edit',kind='change')
+                if goal.get('required_evidence') in (None,'conversation'):goal['required_evidence']='saved_data'
         target = tools.get(goal['tool'])
-        from .intents import mutation_requested
         # A read annotation cannot certify a typed requested patch. Compile its
         # explicit changes to the single registered PATCH/PUT adapter, without
         # selecting a process from words or inventing any field/value.

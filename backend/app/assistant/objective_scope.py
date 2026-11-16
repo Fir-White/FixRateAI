@@ -25,6 +25,10 @@ def objective_scope(state,goal,name,arguments,value):
     if wanted and str(actual)!=str(wanted):return 'requested_resource_mismatch'
     if result_key and isinstance(value,dict) and value.get(result_key) is not None and str(value[result_key])!=str(actual):return 'result_resource_mismatch'
     if name=='task_read' and isinstance(value,dict) and isinstance(value.get('task'),dict) and str(value['task'].get('id'))!=str(actual):return 'result_resource_mismatch'
+    if name=='operation_read' and goal.get('outcome')=='maintenance_definition':
+        request=state.get('request','').casefold()
+        references=[str(actual or ''),str(value.get('code','')),str(value.get('title',''))] if isinstance(value,dict) else []
+        if not any(len(item.strip())>=3 and re.search(r'(?<!\w)'+re.escape(item.casefold())+r'(?!\w)',request) for item in references):return 'requested_operation_reference_unverified'
     if name in ('calendar_evidence','equipment_service_history'):
         for field in ('starts_on','ends_on'):
             if selector.get(field) and str(query.get(field))!=str(selector[field]):return 'requested_period_mismatch'

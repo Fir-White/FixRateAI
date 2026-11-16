@@ -15,9 +15,9 @@ from ml_service.app.providers.ollama import (
 )
 
 MODES={'equipment_find':'read','attachment_read':'read','calendar_evidence':'read',
-       'profile_read':'read','regulations_read':'read','equipment_edit':'write'}
+       'profile_read':'read','regulations_read':'read','drafts_find':'read','equipment_edit':'write'}
 OUTCOMES=['current_profile','staff_profile','staff_search','workforce','equipment_inventory','equipment_card',
-          'equipment_search','equipment_components','maintenance_catalog','maintenance_definition',
+          'equipment_search','equipment_components','equipment_regulations','maintenance_catalog','maintenance_definition',
           'reference_catalog','personal_notifications','protected_company_code','calendar_obligations',
           'accepted_history','task_card','task_analysis','file_analysis','norm_readiness','other']
 GENERIC={'saved_data','calendar_calculation','manufacturer_document','optimizer_result','file_content','user_decision'}
@@ -72,7 +72,7 @@ def test_concrete_read_outcome_fixes_evidence_without_restricting_correctable_re
 @pytest.mark.parametrize('evidence',sorted(GENERIC))
 def test_other_retains_generic_compatibility_without_certifying_protected_sources(evidence):
     goal=objective('other',evidence)
-    goal['tool']='regulations_read'
+    goal['tool']='drafts_find'
     assert decode(goal).goals[0].required_evidence==evidence
     if evidence in ('manufacturer_document','user_decision'):
         assert required_blocker(goal) in ('manufacturer_document_not_verified','user_decision_required')
@@ -86,9 +86,16 @@ def test_native_other_cannot_bypass_a_concrete_source_contract(tool):
 
 @pytest.mark.parametrize('evidence',['manufacturer_document','user_decision'])
 def test_unavailable_primary_source_goals_remain_representable_and_server_blocked(evidence):
-    goal=objective('maintenance_definition',evidence)
+    goal=objective('other',evidence)
     goal.update(kind='unavailable',tool='')
     assert decode(goal).goals[0].tool=='' and required_blocker(goal)
+
+
+def test_unavailable_typed_staff_search_cannot_hallucinate_a_user_decision_requirement():
+    goal=objective('staff_profile','user_decision');goal.update(kind='unavailable',tool='')
+    with pytest.raises(ValueError):decode(goal)
+    goal['required_evidence']='saved_data'
+    assert decode(goal).goals[0].outcome=='staff_profile'
 
 
 @pytest.mark.parametrize('kind,evidence,tool',[

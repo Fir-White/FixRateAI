@@ -66,8 +66,12 @@ def agent_wire_schema(schema,tool_modes=None):
             if untyped:variant('read',untyped,['other'],generic)
         names=sorted(name for name,mode in tool_modes.items() if mode=='write')
         if names:variant('change',names,['other'],['saved_data','optimizer_result'])
-        for kind in ('conversation','unavailable'):
-            variant(kind,[],['other'] if kind=='conversation' else outcomes,['conversation'] if kind=='conversation' else generic)
+        variant('conversation',[],['other'],['conversation'])
+        variant('unavailable',[],['other'],generic)
+        for selected,evidence in (([item for item in outcomes if item not in ('other','calendar_obligations','file_analysis')],['saved_data']),
+                                  (['calendar_obligations'],['calendar_calculation']),(['file_analysis'],['file_content'])):
+            selected=[item for item in selected if item in outcomes]
+            if selected:variant('unavailable',[],selected,evidence)
         value['$defs']['GoalSpec']=dict(anyOf=variants)
         selector=value['$defs'].get('GoalSelector')
         if selector:selector['required']=list(selector['properties'])
