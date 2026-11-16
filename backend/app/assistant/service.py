@@ -107,14 +107,28 @@ def action(session,principal,identity,lock=False):
     return dict(row)
 
 def public_action(row):
+    from .tools import enrollment_values,mask_known_outputs
+    known=enrollment_values(row['tool_name'],row.get('result'))|enrollment_values(row['tool_name'],row.get('before_snapshot'))
     result=dict(row)
     from .tools import TOOLS
     tool=next((t for t in TOOLS if t.name==row['tool_name']),None)
     result['secret_fields']=list(tool.secrets)+[k for k in tool.optional_secrets if row['arguments'].get('body',{}).get(k)==HUMAN_SECRET] if tool else []
+    if row['tool_name'] in ('enrollment_read','enrollment_create'):
+        from .tools import protected_result
+        legacy=result.get('result')
+        if legacy is not None:
+            data=legacy.get('data') if isinstance(legacy,dict) and 'data' in legacy else legacy
+            result['result']=dict(data=protected_result(row['tool_name'],data),verification=dict(
+                status='unverified',reason='protected_output_requires_current_api_view',
+                summary='Откройте защищённый просмотр с текущей проверкой прав.',evidence={}))
+        if result.get('before_snapshot') is not None:
+            safe=protected_result(row['tool_name'],result['before_snapshot'].get('preview'))
+            result['before_snapshot']=dict(preview=safe,sha256=fingerprint(safe))
+
     # Crash after dispatch is deliberately not retried: the downstream API may have committed.
     if result['status']=='executing' and result['started_at'] and result['started_at']<now()-timedelta(minutes=3):
         result['status']='uncertain'
-    return result
+    return mask_known_outputs(result,known)
 
 def audit(session,principal,identity,event,details):
     session.execute(text('''INSERT INTO audit_events(site_id,actor_type,actor_user_id,entity_type,entity_id,action,after_snapshot)

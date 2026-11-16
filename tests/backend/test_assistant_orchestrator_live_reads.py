@@ -83,6 +83,7 @@ def contains(value, expected):
 
 
 def displayed(answer, *values):
+    answer=re.sub(r'\\([\\*_\[\]<>|`])',r'\1',answer)
     for value in values:
         assert str(value).casefold() in answer.casefold(), (value, answer)
 
@@ -251,6 +252,7 @@ def test_operation_detail_reports_saved_norm_without_inventing_it(live_case):
                                          'crew_size', 'raw_norm_value', 'norm_unit', 'planning_duration_minutes')}
     assert expected['crew_size'] == 2 and Decimal(str(expected['raw_norm_value'])) == Decimal('2')
     def answer(value):
+        value=re.sub(r'\\([\\*_\[\]<>|`])',r'\1',value)
         displayed(value, unit['code'], unit['title'], unit['instructions'])
         assert re.search(r'2(?:[.,]0+)?', value) and re.search(r'person.hour|чел|трудозатрат', value, re.I), value
         assert re.search(r'(?<!\d)60(?:[.,]0+)?(?!\d)', value), value
@@ -299,3 +301,123 @@ def test_installed_components_show_real_resource_and_units(live_case):
     read_episode(c, 'READ-COMPONENT-RESOURCE', 'components_read',
         'Show the installed components of RT-PUMP. For the bearing show its position, name, actual usage, confirmed resource limit and remaining resource with units. Read only.',
         expected, lambda proof: contains(proof, expected), answer)
+
+
+
+def test_admin_enrollment_read_delivers_protected_link_without_secret_in_model_or_history(live_case, monkeypatch, request):
+    """Real local planning may deliver a protected handoff, never the join code."""
+    from urllib.parse import urlsplit
+    from ml_service.app.providers.ollama import OllamaClient
+    c = live_case
+    protected_url = P + '/management/enrollment'
+    made = c['admin'].post(protected_url)
+    assert made.status_code == 200, 'Admin fixture could not create a join code'
+    private_code = made.json().get('code')
+    assert isinstance(private_code, str) and len(private_code) >= 16
+    # Keep these sentinels only in process memory, including on assertion failure.
+    banned = (private_code, sha256(private_code.encode()).hexdigest(),
+              sha256(json.dumps({'code': private_code}, sort_keys=True, ensure_ascii=False,
+                                separators=(',', ':')).encode()).hexdigest())
+    def secret_present(value):
+        encoded = json.dumps(value, ensure_ascii=False, default=str)
+        return any(item in encoded for item in banned)
+    def redact(value):
+        # Failed boundary tests still must not write the secret to audit files.
+        # This sanitizes test artifacts only; it never changes an API/model value.
+        if isinstance(value, str):
+            for item in banned:
+                value = value.replace(item, '[protected-output-leak-redacted]')
+            return value
+        if isinstance(value, list):
+            return [redact(item) for item in value]
+        if isinstance(value, dict):
+            return {redact(str(key)): redact(item) for key, item in value.items()}
+        return value
+    observed_payloads = []
+    native_request = OllamaClient.request
+    def inspect_before_real_request(provider, path, payload=None):
+        if path == '/api/chat':
+            forbidden = secret_present((payload or {}).get('messages', []))
+            observed_payloads.append(dict(messages_checked=True, protected_value_present=forbidden))
+            assert not forbidden, 'Protected join-code value or raw digest reached real Ollama messages'
+        return native_request(provider, path, payload)
+    monkeypatch.setattr(OllamaClient, 'request', inspect_before_real_request)
+    profile = get(c['admin'], P + '/users/me')
+    assert profile['role'] == 'admin'
+    admin_case = dict(c, client=c['admin'])
+    def snapshot():
+        result = domain_snapshot(c['engine'])
+        with c['engine'].connect() as db:
+            result['site_join_codes'] = db.scalar(text("SELECT md5(coalesce(string_agg(md5(to_jsonb(t)::text),'' ORDER BY md5(to_jsonb(t)::text)),'')) FROM site_join_codes t"))
+        return result
+    before = snapshot()
+    identity = 'READ-ADMIN-ENROLLMENT-PROTECTED'
+    question = ('Show me the existing company join code through a protected link that I can open as administrator. '
+                'Do not display the code in this conversation or change the existing code.')
+    with episode(admin_case, identity) as outcome:
+        outcome.update(kind='positive-protected-read', acceptance_operation='enrollment_read',
+            operation='enrollment_read', actor_role=profile['role'], actor_id=profile['userId'],
+            test_node=request.node.nodeid, fixture_version='orchestrator-positive-reads-protected-v1',
+            fixture_source_sha256=sha256(Path(__file__).read_bytes()).hexdigest(),
+            fixture_sha256=sha256(json.dumps(before, sort_keys=True).encode()).hexdigest(),
+            expected_data=dict(code_present=True, url=protected_url, role='admin'))
+        outcome['actual_dataset_snapshot_sha256'] = outcome['fixture_sha256']
+        try:
+            view, turn = send(admin_case, thread(c['admin']), question)
+            # Never put a failing leaked response into the audit episode unchanged.
+            record(outcome, redact(view), redact(turn), question)
+            leaked_view = secret_present(view)
+            assert not leaked_view, 'Protected join-code value or raw digest leaked through the public conversation'
+            assert turn['status'] == 'completed', 'Protected read response did not finish'
+            assert c['calls'] and observed_payloads, 'This case requires actual local model inference'
+            assert not view['actions'], 'Reading the existing code must not create a write proposal'
+            state = turn.get('workflow') or turn.get('task_state')
+            assert state and state.get('goals'), 'Protected read has no persisted goal state'
+            completed = [goal for goal in state['goals'] if goal['status'] == 'completed']
+            assert completed, 'The protected read user goal was not completed'
+            with c['engine'].connect() as db:
+                saved = db.scalar(text('SELECT workflow FROM assistant_turns WHERE turn_id=:id'), dict(id=turn['turn_id']))
+            leaked_private_state = secret_present(saved)
+            assert not leaked_private_state, 'Protected join-code value or raw digest leaked into private workflow evidence'
+            linked = {key for goal in completed for key in goal.get('evidence_ids', [])}
+            proofs = [proof for proof in saved.get('evidence', []) if proof['id'] in linked
+                      and proof.get('complete') is True and proof.get('retained') is True]
+            resources = [row['resource'] for proof in proofs for row in rows(proof.get('result'))
+                         if isinstance(row.get('resource'), dict)]
+            delivered = [resource for resource in resources if resource.get('url') == protected_url]
+            assert delivered, 'A completed goal must retain the authorized protected-resource handoff'
+            parsed = urlsplit(delivered[0]['url'])
+            assert not parsed.scheme and not parsed.netloc and not parsed.query and not parsed.fragment
+            assert parsed.path == protected_url
+            visible_link = protected_url in turn['answer'] or any(
+                row.get('resource', {}).get('url') == protected_url for row in turn.get('trace', [])
+                if isinstance(row.get('resource'), dict))
+            assert visible_link, 'User has no delivered protected URL to open'
+            authorized = c['admin'].get(protected_url)
+            assert authorized.status_code == 200, 'Admin cannot open the protected handoff'
+            same_saved_code = authorized.json().get('code') == private_code
+            assert same_saved_code, 'Protected resource did not return the originally saved code'
+            denied = c['admin'].chief.get(protected_url)
+            assert denied.status_code == 403, 'Chief engineer must not receive the admin-only join code'
+            assert snapshot() == before, 'Reading a protected code changed domain data or proposed a write'
+            outcome['workflow_outcome'] = state['outcome']
+            outcome['unfinished_goals'] = [goal for goal in state['goals'] if goal['status'] != 'completed']
+            outcome['accepted_goal_ids'] = [goal['id'] for goal in completed if linked.intersection(goal.get('evidence_ids', []))]
+            outcome['model_payload_checks'] = observed_payloads
+            outcome['acceptance'] = dict(operation='enrollment_read', actor_role='admin',
+                goal_achieved=True, data_verified=True, no_unconfirmed_writes=True,
+                provider='ollama', mocked=False, whole_request_completed=state['outcome'] == 'completed')
+        finally:
+            # Keep a failed security test reviewable without propagating its leak.
+            # Detect before redaction, retain the failure flag, and always fail it.
+            audit_leak = secret_present(dict(outcome=outcome, calls=c['calls'], evidence=c['evidence']))
+            safe_outcome = redact(outcome)
+            outcome.clear()
+            outcome.update(safe_outcome)
+            c['calls'][:] = redact(c['calls'])
+            c['evidence'][:] = redact(c['evidence'])
+            outcome['protected_audit_leak_detected'] = audit_leak
+            assert not audit_leak, 'Protected join-code value or raw digest reached audit data before redaction'
+    artifact = Path(os.environ['FIXRATE_AGENT_AUDIT_OUTPUT']) / (identity + '.json')
+    artifact_leak = secret_present(artifact.read_text(encoding='utf-8'))
+    assert not artifact_leak, 'Protected join-code value or raw digest reached the saved episode artifact'

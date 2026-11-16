@@ -63,6 +63,11 @@ def register_routes(app,views):
         rows=v.session.execute(text('''SELECT * FROM assistant_actions WHERE conversation_id=:id AND
             (turn_id=ANY(CAST(:turns AS uuid[])) OR turn_id IS NULL) ORDER BY created_at LIMIT 100'''),dict(id=identity,turns=[r['turn_id'] for r in turns])).mappings().all()
         from app.assistant import workflow as wf
+        from app.assistant.tools import conversation_enrollment_values,workflow_enrollment_values,mask_known_outputs
+        known=set(conversation_enrollment_values(v.session,v.principal,identity))
+        for prior in turns:known.update(workflow_enrollment_values(prior['workflow']))
+        turns=[mask_known_outputs(dict(prior,workflow=wf.sanitize_workflow(prior['workflow'])),known) for prior in turns]
+        rows=[mask_known_outputs(svc.public_action(prior),known) for prior in rows]
         public_turns=[]
         workflow_roots=list({r['workflow']['root_turn_id'] for r in turns if r['workflow'] and r['workflow'].get('root_turn_id')})
         workflow_actions=v.session.execute(text('SELECT action_id,status,result,workflow_goal_id,workflow_root_turn_id,expires_at,created_at FROM assistant_actions WHERE conversation_id=:chat AND workflow_root_turn_id=ANY(CAST(:roots AS uuid[]))'),dict(chat=identity,roots=workflow_roots)).mappings().all() if workflow_roots else []

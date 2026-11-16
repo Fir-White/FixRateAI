@@ -344,8 +344,26 @@ def refresh_actions(session, state, rows=None):
     return update_outcome(state)
 
 
+def sanitize_workflow(state):
+    """Remove known legacy structured credential outputs before model/history reuse.
+
+    Only exact credentials linked to known structured enrollment outputs are
+    masked in free text. Unlinked old disclosures still require an audit.
+    """
+    if state is None:return None
+    state=copy.deepcopy(state)
+    from .tools import protected_result,workflow_enrollment_values,mask_known_outputs
+    known=workflow_enrollment_values(state)
+    for proof in state.get('evidence',[]):
+        if proof.get('tool') in ('enrollment_read','enrollment_create'):
+            proof['result']=protected_result(proof['tool'],proof.get('result'))
+            # Never retain a digest of the old raw credential/projection.
+            proof['sha256']=fingerprint(proof['result'])
+    return mask_known_outputs(state,known)
+
+
 def resume(state):
-    state = copy.deepcopy(state)
+    state = sanitize_workflow(state)
     for goal in state['goals']:
         blocker=required_blocker(goal)
         if blocker:

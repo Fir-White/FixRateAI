@@ -337,7 +337,13 @@ async def run(app, principal, thread_id, turn_id, headers):
             sent_files=session.execute(text('''SELECT a.* FROM assistant_attachments a WHERE a.conversation_id=:chat AND EXISTS(
                 SELECT 1 FROM assistant_turn_attachments t JOIN assistant_turns u USING(turn_id) WHERE t.attachment_id=a.attachment_id
                 AND u.created_at<=:created) ORDER BY a.created_at DESC,a.attachment_id LIMIT 20'''),dict(chat=thread_id,created=turn['created_at'])).mappings().all()
-            state = turn['workflow']
+            from .tools import conversation_enrollment_values,workflow_enrollment_values,mask_known_outputs
+            known=set(conversation_enrollment_values(session,principal,thread_id))
+            known.update(workflow_enrollment_values(turn['workflow']))
+            for prior in history:known.update(workflow_enrollment_values(prior['workflow']))
+            history=[mask_known_outputs(dict(prior,workflow=wf.sanitize_workflow(prior['workflow'])),known) for prior in history]
+            turn=mask_known_outputs(dict(turn),known)
+            state = wf.sanitize_workflow(turn['workflow'])
         question = (state or {}).get('request') or turn['content']
         planning_required=state is None or not state.get('decomposition_verified')
         if state is None:

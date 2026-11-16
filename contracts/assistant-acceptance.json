@@ -852,7 +852,8 @@
         "tests/backend/test_assistant.py::test_live_progress_is_durable_and_legacy_profiles_use_unified_role_tools",
         "tests/backend/test_assistant.py::test_bounded_search_finishes_with_an_honest_answer_and_no_writes",
         "tests/backend/test_assistant.py::test_timeout_after_reading_keeps_findings_and_explains_incomplete_check",
-        "tests/backend/test_assistant_orchestrator_live_reads.py::test_catalog_lists_actual_system_and_equipment_type"
+        "tests/backend/test_assistant_orchestrator_live_reads.py::test_catalog_lists_actual_system_and_equipment_type",
+        "tests/backend/test_assistant_protected_outputs.py::test_no_secret_in_second_specialist_model_context_or_persisted_evidence"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -5546,7 +5547,13 @@
         ]
       },
       "candidate_test_mentions": [
-        "tests/backend/test_assistant_fact_presenter.py::test_nested_credentials_and_trace_are_omitted_with_visible_notice"
+        "tests/backend/test_assistant_fact_presenter.py::test_nested_credentials_and_trace_are_omitted_with_visible_notice",
+        "tests/backend/test_assistant_orchestrator_live_reads.py::test_admin_enrollment_read_delivers_protected_link_without_secret_in_model_or_history",
+        "tests/backend/test_assistant_protected_outputs.py::test_authorized_api_retains_current_code_but_mcp_returns_only_protected_link",
+        "tests/backend/test_assistant_protected_outputs.py::test_projection_cannot_extract_code_or_text_parts",
+        "tests/backend/test_assistant_protected_outputs.py::test_legacy_action_serializer_and_resume_scrub_secret_and_old_hash_without_mutating_input",
+        "tests/backend/test_assistant_protected_outputs.py::test_no_secret_in_second_specialist_model_context_or_persisted_evidence",
+        "tests/backend/test_assistant_protected_outputs.py::test_own_legacy_explanation_and_goal_response_mask_exact_known_code_only"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -5603,7 +5610,11 @@
           "No business mutation before the concrete human confirmation; repeated confirmation cannot duplicate the result."
         ]
       },
-      "candidate_test_mentions": [],
+      "candidate_test_mentions": [
+        "tests/backend/test_assistant_protected_outputs.py::test_confirm_create_never_persists_code_in_action_or_conversation",
+        "tests/backend/test_assistant_protected_outputs.py::test_legacy_action_serializer_and_resume_scrub_secret_and_old_hash_without_mutating_input",
+        "tests/backend/test_assistant_protected_outputs.py::test_own_legacy_explanation_and_goal_response_mask_exact_known_code_only"
+      ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
     {
@@ -10338,7 +10349,8 @@
       },
       "candidate_test_mentions": [
         "tests/backend/test_assistant_fact_presenter.py::test_global_row_budget_and_long_text_have_explicit_limits",
-        "tests/backend/test_assistant_orchestrator_live_reads.py::test_operation_detail_reports_saved_norm_without_inventing_it"
+        "tests/backend/test_assistant_orchestrator_live_reads.py::test_operation_detail_reports_saved_norm_without_inventing_it",
+        "tests/backend/test_assistant_protected_outputs.py::test_business_codes_are_not_globally_redacted"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },

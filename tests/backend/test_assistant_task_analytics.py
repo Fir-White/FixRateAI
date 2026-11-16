@@ -293,8 +293,9 @@ def test_final_prose_receives_server_clock_even_without_tools(assistant_case,clo
         chat=thread(admin)
         response=admin.post(B+f'/conversations/{chat}/messages',json=dict(content='Какая сегодня дата в системе?',idempotency_key=str(uuid4())))
         assert response.status_code==202
-        turn=admin.get(B+f'/conversations/{chat}').json()['turns'][-1]
-        assert turn['status']=='completed' and turn['workflow']['outcome']=='completed'
+        view=admin.get(B+f'/conversations/{chat}').json();turn=view['turns'][-1]
+        assert turn['status']=='completed' and turn['workflow']['outcome']=='response_only'
+        assert turn['workflow']['goals'][0]['status']=='answered' and not view['actions']
         assert 'TEST ONLY: server clock reached the final prompt' in turn['answer']
     finally:del app.state.assistant_provider_factory
 

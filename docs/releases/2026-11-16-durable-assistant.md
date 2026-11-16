@@ -12,4 +12,6 @@
 
 На `b3fd203` повторены два frozen local4B 4/4 против исходных 1/4. Следующий общий прогон обнаружил новый hang provider и был честно прерван; follow-up устраняет зависание, добавляет атомарный equipment snapshot, проверку staff изменений и раскрытие вложенных фактов. 154 focused native прошли стабильным полным pipeline. [Полный протокол и остающиеся gates](../agent-audit/orchestrator-2026-11-16.md#замороженное-сравнение-и-обнаруженные-общим-прогоном-дефекты).
 
+Frozen `7490a41`: 2659 passed/1 устаревшее conversation expectation/55 skipped/1 xfailed. Следующий privacy срез закрывает raw enrollment credential до model/projection/history и даёт защищённый admin-просмотр; 52 native и 53 UI passed, общий финальный повтор ещё требуется. Неизвестные исторические plaintext disclosures и large-history mount остаются открытыми. [Доказательства](../agent-audit/orchestrator-2026-11-16.md#защищённые-результаты-и-полный-повтор-7490a41).
+
 Полное описание и фактические промежуточные проверки: [архитектура/границы](../agent-audit/orchestrator-2026-11-16.md), [состояние оставшейся работы](../agent-audit/orchestrator-state-2026-11-16.json), [матрица приёмки](../agent-audit/operation-acceptance-2026-11-16.md), [журнал](../service/verification.md). Генеративные проверки — только реально установленная локальная Ollama, без внешнего LLM/fallback/pull.
