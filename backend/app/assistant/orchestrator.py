@@ -63,7 +63,7 @@ async def _prepare(app, tool, arguments, headers):
     schema = describe(app, tool)['inputSchema'].get('properties', {}).get('body', {})
     fields = schema.get('properties', {})
     needs_revision='expected_revision' in fields and 'expected_revision' not in args['body']
-    needs_membership=tool.name=='staff_edit' and 'is_active' not in args['body']
+    needs_membership=tool.name=='staff_edit' and ('is_active' not in args['body'] or 'role' not in args['body'])
     if (needs_revision or needs_membership) and tool.before:
         from .tools import TOOLS
         from .tools import route_for
@@ -74,7 +74,9 @@ async def _prepare(app, tool, arguments, headers):
         if needs_revision and isinstance(before, dict) and type(before.get('revision')) is int:
             args['body']['expected_revision'] = before['revision']
         if needs_membership and isinstance(before,dict) and type(before.get('membership_is_active')) is bool:
-            args['body']['is_active']=before['membership_is_active']
+            args['body'].setdefault('is_active',before['membership_is_active'])
+        if needs_membership and isinstance(before,dict) and isinstance(before.get('role'),str):
+            args['body'].setdefault('role',before['role'])
     if 'idempotency_key' in fields and 'idempotency_key' not in args['body']:
         args['body']['idempotency_key'] = str(uuid4())
     return validate_arguments(app, tool, args)

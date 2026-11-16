@@ -15,7 +15,7 @@ from ml_service.app.providers.ollama import (
 )
 
 MODES={'equipment_find':'read','attachment_read':'read','calendar_evidence':'read',
-       'profile_read':'read','equipment_edit':'write'}
+       'profile_read':'read','regulations_read':'read','equipment_edit':'write'}
 OUTCOMES=['current_profile','staff_profile','staff_search','workforce','equipment_inventory','equipment_card',
           'equipment_search','equipment_components','maintenance_catalog','maintenance_definition',
           'reference_catalog','personal_notifications','protected_company_code','calendar_obligations',
@@ -72,9 +72,16 @@ def test_concrete_read_outcome_fixes_evidence_without_restricting_correctable_re
 @pytest.mark.parametrize('evidence',sorted(GENERIC))
 def test_other_retains_generic_compatibility_without_certifying_protected_sources(evidence):
     goal=objective('other',evidence)
+    goal['tool']='regulations_read'
     assert decode(goal).goals[0].required_evidence==evidence
     if evidence in ('manufacturer_document','user_decision'):
         assert required_blocker(goal) in ('manufacturer_document_not_verified','user_decision_required')
+
+
+@pytest.mark.parametrize('tool',['equipment_find','attachment_read','calendar_evidence','profile_read'])
+def test_native_other_cannot_bypass_a_concrete_source_contract(tool):
+    goal=objective('other');goal['tool']=tool
+    with pytest.raises(ValueError):decode(goal)
 
 
 @pytest.mark.parametrize('evidence',['manufacturer_document','user_decision'])

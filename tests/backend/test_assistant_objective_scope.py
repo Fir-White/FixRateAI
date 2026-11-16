@@ -21,6 +21,15 @@ def test_self_profile_cannot_certify_requested_employee_even_if_http_succeeded()
     assert objective_scope(dict(scope=SCOPE),goal,'staff_read',dict(path=dict(user_id=OTHER)),dict(user_id=OTHER)) is None
 
 
+def test_model_guessed_actor_cannot_substitute_for_a_requested_crew_or_named_employee():
+    goal=dict(id='g',outcome='staff_profile',selector=dict(user_id=ACTOR))
+    value=dict(user_id=ACTOR,full_name='Test chief',email='chief@example.test')
+    state=dict(scope=SCOPE,request='Show the Quartz crew and its members')
+    assert objective_scope(state,goal,'staff_read',dict(path=dict(user_id=ACTOR)),value)=='requested_user_reference_unverified'
+    state['request']='Show saved employee chief@example.test'
+    assert objective_scope(state,goal,'staff_read',dict(path=dict(user_id=ACTOR)),value) is None
+
+
 @pytest.mark.parametrize('field',['equipment_id','operation_id','task_id'])
 def test_model_arguments_cannot_silently_replace_the_declared_target(field):
     tool={'equipment_id':'equipment_read','operation_id':'operation_read','task_id':'task_read'}[field]

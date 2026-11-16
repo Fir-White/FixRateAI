@@ -633,6 +633,7 @@
         "tests/backend/test_assistant_domain_adapters.py::test_one_sheet_or_partial_book_cannot_complete_whole_workbook_analysis",
         "tests/backend/test_assistant_outcome_contracts.py::test_typed_read_result_rectifies_wrong_tool_without_title_keywords",
         "tests/backend/test_assistant_outcome_contracts.py::test_typed_file_analysis_always_requires_the_complete_workbook",
+        "tests/backend/test_assistant_outcome_wire.py::test_native_other_cannot_bypass_a_concrete_source_contract",
         "tests/backend/test_assistant_outcome_wire.py::test_actual_client_can_return_wrong_read_tool_for_server_rectification_but_correct_evidence",
         "tests/backend/test_assistant_workbooks.py::test_complete_xlsx_is_read_before_routing_and_answer_is_unabridged_prose",
         "tests/backend/test_assistant_workbooks.py::test_followup_can_analyse_the_previously_sent_workbook_without_reupload"
@@ -763,6 +764,7 @@
         "tests/backend/test_assistant_domain_adapters.py::test_equipment_identity_cannot_cross_undeclared_dependencies",
         "tests/backend/test_assistant_domain_adapters.py::test_requested_patch_is_compiled_from_changes_despite_read_annotation",
         "tests/backend/test_assistant_domain_adapters.py::test_plan_repair_cannot_replace_original_patch_values_or_turn_change_into_read",
+        "tests/backend/test_assistant_domain_adapters.py::test_explicit_primary_document_verification_is_not_lost_when_planner_omits_it",
         "tests/backend/test_assistant_evidence_cache.py::test_same_authorized_read_reuses_verbatim_proof_with_original_time",
         "tests/backend/test_assistant_evidence_cache.py::test_argument_fingerprint_is_order_independent_but_preserves_exact_values",
         "tests/backend/test_assistant_evidence_cache.py::test_python_equal_values_do_not_bypass_canonical_argument_identity",
@@ -1156,6 +1158,7 @@
         "tests/backend/test_assistant_domain_adapters.py::test_equipment_context_never_guesses_or_crosses_scope",
         "tests/backend/test_assistant_inference_deadline.py::test_exhausted_provider_persists_an_unfinished_goal_instead_of_hanging",
         "tests/backend/test_assistant_orchestrator_live.py::test_failed_regulation_read_preserves_independent_card_and_explicit_partial",
+        "tests/backend/test_assistant_outcome_wire.py::test_other_retains_generic_compatibility_without_certifying_protected_sources",
         "tests/backend/test_assistant_p0.py::test_llm_view_schema_matches_backend_validation"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
@@ -1220,6 +1223,7 @@
         "tests/backend/test_assistant_objective_scope.py::test_the_calendar_period_cannot_be_replaced_by_a_different_valid_year",
         "tests/backend/test_assistant_orchestrator.py::test_inventory_includes_orphans_and_can_continue_to_calendar",
         "tests/backend/test_assistant_orchestrator_live.py::test_nc01_period_history_and_unverified_manufacturer_are_separate_goals",
+        "tests/backend/test_assistant_outcome_wire.py::test_native_other_cannot_bypass_a_concrete_source_contract",
         "tests/backend/test_orchestrator_eval_summary.py::test_reply_completion_and_supported_ns01_success_do_not_complete_manufacturer_goal"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
@@ -1681,6 +1685,7 @@
         "tests/backend/test_assistant_orchestrator.py::test_model_stop_after_prerequisite_preserves_unfinished_goal",
         "tests/backend/test_assistant_orchestrator_live_reads.py::test_equipment_search_returns_exact_inventory_code_and_name",
         "tests/backend/test_assistant_outcome_contracts.py::test_component_exact_code_resolution_never_selects_first_or_conflicting_unit",
+        "tests/backend/test_assistant_outcome_wire.py::test_native_other_cannot_bypass_a_concrete_source_contract",
         "tests/backend/test_assistant_workflow_security.py::test_document_injection_does_not_grant_cross_specialist_mutation_or_confirmation"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
@@ -1812,6 +1817,7 @@
         "tests/backend/test_assistant_fact_presenter.py::test_rendering_does_not_complete_pending_goal_or_mutate_evidence",
         "tests/backend/test_assistant_fact_presenter.py::test_compound_request_reuses_unspent_display_budget_for_independent_results",
         "tests/backend/test_assistant_objective_scope.py::test_self_profile_cannot_certify_requested_employee_even_if_http_succeeded",
+        "tests/backend/test_assistant_objective_scope.py::test_model_guessed_actor_cannot_substitute_for_a_requested_crew_or_named_employee",
         "tests/backend/test_assistant_objective_scope.py::test_profile_selection_remaps_only_with_actual_staff_read_permission",
         "tests/backend/test_assistant_objective_scope.py::test_current_profile_contract_never_silently_becomes_another_staff_subject",
         "tests/backend/test_assistant_objective_scope.py::test_actual_http_employee_profile_never_substitutes_the_signed_in_account",
@@ -1884,6 +1890,7 @@
         "tests/backend/test_assistant_capabilities.py::test_chat_lists_real_task_ids_after_missing_task_parameter",
         "tests/backend/test_assistant_capabilities.py::test_selection_by_number_checks_required_crew_without_guessing",
         "tests/backend/test_assistant_capabilities.py::test_deleted_selected_task_returns_honest_error_without_model_guessing",
+        "tests/backend/test_assistant_domain_adapters.py::test_read_only_plan_cannot_complete_an_explicit_start_request",
         "tests/backend/test_assistant_fact_presenter.py::test_task_delivers_instruction_norm_unit_assignees_and_actual_report_decision",
         "tests/backend/test_assistant_fact_presenter.py::test_missing_empty_and_unconfirmed_units_are_not_invented",
         "tests/backend/test_assistant_objective_scope.py::test_model_arguments_cannot_silently_replace_the_declared_target",
@@ -5310,7 +5317,8 @@
         "tests/backend/test_assistant_outcome_contracts.py::test_read_contract_cannot_erase_a_stronger_declared_evidence_requirement",
         "tests/backend/test_assistant_outcome_contracts.py::test_read_contract_never_downgrades_a_mutation_or_real_blocker",
         "tests/backend/test_assistant_outcome_contracts.py::test_missing_authorized_canonical_source_never_falls_back_to_wrong_profile",
-        "tests/backend/test_assistant_outcome_contracts.py::test_wrong_source_shapes_cannot_claim_typed_goal_completion"
+        "tests/backend/test_assistant_outcome_contracts.py::test_wrong_source_shapes_cannot_claim_typed_goal_completion",
+        "tests/backend/test_assistant_outcome_wire.py::test_native_other_cannot_bypass_a_concrete_source_contract"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -5786,6 +5794,7 @@
         "tests/backend/test_agent_redteam_proposal_sources.py::test_staff_revision_is_derived_without_changing_employment_metadata",
         "tests/backend/test_agent_redteam_staff_preservation.py::test_assistant_role_proposal_preserves_dates_and_replays_once",
         "tests/backend/test_assistant_capabilities.py::test_entire_authenticated_business_api_is_accounted_for",
+        "tests/backend/test_assistant_domain_adapters.py::test_schema_validation_error_hands_control_to_the_scoped_model_instead_of_repeating_invalid_adapter",
         "tests/backend/test_assistant_orchestrator_live_writes.py::test_admin_staff_date_change_preserves_other_fields_and_finishes_saved_goal",
         "tests/backend/test_assistant_outcome_contracts.py::test_read_contract_never_downgrades_a_mutation_or_real_blocker",
         "tests/backend/test_assistant_outcome_contracts.py::test_known_forbidden_write_is_not_downgraded_to_a_read_by_filtered_catalog",

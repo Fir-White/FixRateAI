@@ -131,7 +131,14 @@ def file_fields(app,tool):
     return {f.name for f in route_for(app,tool).dependant.body_params if f.field_info.__class__.__name__=='File'}
 
 def catalog(app,role,agent):
-    return [dict(name=t.name,title=t.title,requires_confirmation=t.mode=='write') for t in available(app,role,agent).values()]
+    result=[]
+    for tool in available(app,role,agent).values():
+        entry=dict(name=tool.name,title=tool.title,requires_confirmation=tool.mode=='write')
+        if tool.mode=='write':
+            body=describe(app,tool)['inputSchema'].get('properties',{}).get('body',{})
+            entry['body_fields']=list(body.get('properties',{}))
+        result.append(entry)
+    return result
 
 def describe(app,tool):
     operation=app.openapi()['paths'][tool.path][tool.method.lower()]

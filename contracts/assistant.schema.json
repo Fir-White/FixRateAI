@@ -407,8 +407,29 @@
             }
           ],
           "default": null,
-          "description": "Choose the requested semantic result BEFORE choosing a tool. current_profile is only the signed-in person; staff_profile is the selected employee; equipment_components means installed parts/resources, not the equipment card; maintenance_catalog/definition means saved operations, not service history or work tasks. protected_company_code means an authorized protected link, never file content or a code in chat. Use other for changes, conversation or unavailable objectives.",
-          "title": "Outcome"
+          "description": "Choose the requested semantic result BEFORE choosing a tool. workforce means crews, crew membership and staff roster, never one employee. current_profile is only the signed-in person; staff_profile is the selected employee; equipment_components means installed parts/resources, not the equipment card; maintenance_catalog/definition means saved operations, not equipment inventory, service history or work tasks. protected_company_code means an authorized protected link, never file content or a code in chat. Use other for changes, conversation or reads without a concrete declared outcome.",
+          "title": "Outcome",
+          "x-read-outcome-tools": {
+            "accepted_history": "equipment_service_history",
+            "calendar_obligations": "calendar_evidence",
+            "current_profile": "profile_read",
+            "equipment_card": "equipment_read",
+            "equipment_components": "components_read",
+            "equipment_inventory": "inventory_read",
+            "equipment_search": "equipment_find",
+            "file_analysis": "attachment_read",
+            "maintenance_catalog": "operations_list",
+            "maintenance_definition": "operation_read",
+            "norm_readiness": "workbook_readiness",
+            "personal_notifications": "notifications_list",
+            "protected_company_code": "enrollment_read",
+            "reference_catalog": "catalog_read",
+            "staff_profile": "staff_read",
+            "staff_search": "staff_find",
+            "task_analysis": "tasks_analyze",
+            "task_card": "task_read",
+            "workforce": "workforce_read"
+          }
         },
         "tool": {
           "description": "REQUIRED exact final outcome tool name from the authorized catalog, not a prerequisite search. Use empty string ONLY when capability or required user decision is genuinely unavailable.",

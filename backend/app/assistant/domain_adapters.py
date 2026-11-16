@@ -39,7 +39,7 @@ def equipment_context(goal, state):
 
 def next_step(goal,state):
     target=goal['tool']
-    if target not in SUPPORTED or goal.get('reason')=='plan_outcome_tool_mismatch':return None
+    if target not in SUPPORTED or goal.get('reason') in ('plan_outcome_tool_mismatch','tool_error_422'):return None
     if target not in LEGACY_SUPPORTED and goal.get('outcome') is None:return None
     selector=goal.get('selector',{})
     # Bind a single user-provided UUID before accepting a model's wrong ID slot.

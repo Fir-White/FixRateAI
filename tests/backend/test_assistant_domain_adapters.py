@@ -189,3 +189,33 @@ def test_plan_repair_cannot_replace_a_declared_business_workflow():
     prior=dict(goals=[objective('publication_prepare',workflow_kind='prepare_approval')])
     revised=dict(goals=[objective('draft_read',workflow_kind=None)])
     assert not preserve_constraints(prior,revised,{})
+
+
+def test_schema_validation_error_hands_control_to_the_scoped_model_instead_of_repeating_invalid_adapter():
+    goal=objective('staff_edit',changes=dict(employment_end_date='2028-04-05'),selector=dict(user_id=str(uuid4())),reason='tool_error_422')
+    assert next_step(goal,dict(evidence=[])) is None
+
+
+def test_read_only_plan_cannot_complete_an_explicit_start_request():
+    tools=dict(task_read=SimpleNamespace(mode='read'))
+    state=create_plan(ToolSelection(tools=[],goals=[GoalSpec(id='g',title='Read assigned task',tool='task_read',outcome='task_card',kind='read')]),
+        'Start only my assigned task. Do not submit or accept a report.',tools,{})
+    assert state['goals'][0]['status']=='blocked' and state['goals'][0]['reason']=='plan_outcome_tool_mismatch'
+
+
+def test_explicit_primary_document_verification_is_not_lost_when_planner_omits_it():
+    tools=dict(equipment_read=SimpleNamespace(mode='read'))
+    selection=ToolSelection(tools=[],goals=[GoalSpec(id='g',title='Read saved equipment',tool='equipment_read')])
+    state=create_plan(selection,'Read equipment and verify the manufacturer recommendation against its manual.',tools,{})
+    assert len(state['goals'])==2 and state['goals'][0]['id']=='g'
+    assert state['goals'][1]['required_evidence']=='manufacturer_document' and state['goals'][1]['status']=='blocked'
+
+
+@pytest.mark.parametrize('question',[
+    'Show the saved manufacturer field.',
+    'Do not verify the manufacturer manual. Show saved data only.',
+    'Не проверяй паспорт производителя. Покажи карточку.',
+])
+def test_primary_document_safeguard_does_not_invent_a_read_or_negated_document_request(question):
+    from app.assistant.intents import primary_document_requested
+    assert not primary_document_requested(question)

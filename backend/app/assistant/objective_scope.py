@@ -9,6 +9,10 @@ def objective_scope(state,goal,name,arguments,value):
             from .domain_adapters import staff_context
             identity,_=staff_context(goal,state)
             if not identity or not isinstance(value,dict) or str(value.get('user_id'))!=identity:return 'requested_staff_search_not_verified'
+        if name=='staff_read' and goal.get('outcome')=='staff_profile' and not selector.get('search'):
+            request=state.get('request','').casefold()
+            references=[str(value.get(key,'')) for key in ('user_id','email','full_name')] if isinstance(value,dict) else []
+            if not any(len(item.strip())>=3 and item.casefold() in request for item in references):return 'requested_user_reference_unverified'
         wanted=selector.get('user_id') or (state.get('scope',{}).get('user_id') if name=='profile_read' else None)
         if wanted:
             actual=value.get('user_id',value.get('userId')) if isinstance(value,dict) else None

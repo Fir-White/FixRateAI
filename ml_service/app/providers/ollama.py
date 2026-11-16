@@ -58,9 +58,12 @@ def agent_wire_schema(schema,tool_modes=None):
             # guessed read tool. The server can rectify a wrong tool selection.
             saved=[name for name in outcomes if name not in ('other','calendar_obligations','file_analysis')]
             for selected,evidence in ((saved,['saved_data']),(['calendar_obligations'],['calendar_calculation']),
-                                      (['file_analysis'],['file_content']),(['other'],generic)):
+                                      (['file_analysis'],['file_content'])):
                 selected=[name for name in selected if name in outcomes]
                 if selected:variant('read',names,selected,evidence)
+            typed_sources=set(goal['properties']['outcome'].get('x-read-outcome-tools',{}).values())
+            untyped=[name for name in names if name not in typed_sources]
+            if untyped:variant('read',untyped,['other'],generic)
         names=sorted(name for name,mode in tool_modes.items() if mode=='write')
         if names:variant('change',names,['other'],['saved_data','optimizer_result'])
         for kind in ('conversation','unavailable'):

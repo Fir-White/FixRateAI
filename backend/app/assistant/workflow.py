@@ -77,7 +77,14 @@ def allowed_tools(target, tools):
 
 
 def create_plan(selection, question, tools, scope):
-    specs = selection.goals
+    specs = list(selection.goals)
+    from .intents import primary_document_requested
+    if specs and primary_document_requested(question) and not any(goal.required_evidence=='manufacturer_document' for goal in specs):
+        from app.schemas.assistant import GoalSpec
+        ids={goal.id for goal in specs};identity='primary-document'
+        while identity in ids:identity+='-source'
+        specs.append(GoalSpec(id=identity,title='Проверить рекомендацию производителя по первичному документу',
+            tool='',kind='unavailable',outcome='other',required_evidence='manufacturer_document'))
     # Old providers remain readable, but an undecomposed business request is not
     # silently certified as complete from a prerequisite search.
     goals = [dict(id=g.id, title=g.title, tool=g.tool, depends_on=g.depends_on,
@@ -145,6 +152,12 @@ def create_plan(selection, question, tools, scope):
         if goal.get('required_evidence')=='manufacturer_document':
             goal.update(status='blocked',reason='manufacturer_document_not_verified',message='Соответствие рекомендации производителя не подтверждено: проверенный первичный документ с версией и страницей недоступен этому инструменту.')
         elif goal.get('required_evidence')=='user_decision':goal.update(status='blocked',reason='user_decision_required')
+    # A plan containing only reads cannot fulfill an explicit mutation. This
+    # detects missing work, never chooses or authorizes a write operation.
+    if specs and mutation_requested(question) and not any(goal.get('mode')=='write' or goal.get('kind')=='change' for goal in goals):
+        for goal in goals:
+            if goal.get('kind')=='read' and goal.get('status')=='planned':
+                goal.update(status='blocked',reason='plan_outcome_tool_mismatch')
     return dict(version=VERSION, scope=scope, request=question, goals=goals,
                 evidence=[], outcome='planned', revision=0, created_at=timestamp(),
                 metrics=dict(llm_calls=0, llm_seconds=0, tool_calls=0, tool_seconds=0),

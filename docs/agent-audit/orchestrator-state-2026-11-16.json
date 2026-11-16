@@ -87,6 +87,12 @@
       "id": "publication",
       "status": "not_requested",
       "remaining": "No deploy or push; result remains isolated for review and safe integration"
+    },
+    {
+      "id": "semantic-plan-coverage",
+      "status": "in_progress",
+      "evidence": "Frozen47c123e mixed actual Ollama12/17: reads9/11, writes0/2, strict3/4. All failed raw records retained. Grounding follow-up292 native passed; final full/model reruns required.",
+      "remaining": "Typed source and identity checks do not certify complete arbitrary-language decomposition. Prevent and test omitted user goals, wrong outcome categories and unrequested patch fields across the full operation matrix."
     }
   ]
 }

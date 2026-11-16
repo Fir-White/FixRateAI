@@ -6,6 +6,8 @@ _MUTATION=re.compile(r'\b(?:созда(?:й|йте|ть)|добав(?:ь|ьте|
 
 
 def mutation_requested(question):
+    # Explicit start is a state change; reading its card is only a prerequisite.
+    if re.search(r'^(?:please\s+)?start\b|\b(?:начни|начните)\b',question.strip(),re.I):return True
     for match in _MUTATION.finditer(question):
         prefix=re.split(r'[.:!?;\n]|\b(?:but|then|instead|затем|но)\b',question[:match.start()],flags=re.I)[-1]
         # A single negation scopes a coordinated prohibition: "Do not create,
@@ -23,6 +25,20 @@ def literal_rename(question):
     if len(matches)!=1:return None
     value=next(group for group in matches[0].groups() if group is not None).strip()
     return value or None
+
+
+def primary_document_requested(question):
+    """Conservative evidence safeguard, never a process/tool routing decision.
+
+    Explicit verification of a manufacturer's recommendation/document cannot be
+    satisfied by database history. This does not certify general NL coverage.
+    """
+    for clause in re.split(r'[.!?;\n]',question):
+        if not re.search(r'производител\w*|manufacturer',clause,re.I):continue
+        if not re.search(r'паспорт\w*|документ\w*|рекомендац\w*|manual|document|recommendation',clause,re.I):continue
+        for action in re.finditer(r'проверь|провер\w*|подтверд\w*|свер\w*|check|verify|confirm|validate|substantiate',clause,re.I):
+            if not re.search(r"\b(?:не|not|don't)\s+$",clause[:action.start()],re.I):return True
+    return False
 
 
 def explicit_revision(question):

@@ -12,20 +12,10 @@ from copy import deepcopy
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from uuid import UUID
+from app.schemas.assistant import READ_OUTCOME_TOOLS
 
 
-READ_TARGETS = {
-    'current_profile': 'profile_read', 'staff_profile': 'staff_read',
-    'staff_search': 'staff_find', 'workforce': 'workforce_read',
-    'equipment_inventory':'inventory_read',
-    'equipment_card': 'equipment_read', 'equipment_search': 'equipment_find',
-    'equipment_components': 'components_read', 'maintenance_catalog': 'operations_list',
-    'maintenance_definition': 'operation_read', 'reference_catalog': 'catalog_read',
-    'personal_notifications': 'notifications_list', 'protected_company_code': 'enrollment_read',
-    'calendar_obligations': 'calendar_evidence', 'accepted_history': 'equipment_service_history',
-    'task_card': 'task_read', 'task_analysis': 'tasks_analyze',
-    'file_analysis': 'attachment_read', 'norm_readiness': 'workbook_readiness',
-}
+READ_TARGETS = READ_OUTCOME_TOOLS
 READ_EVIDENCE = {outcome: 'calendar_calculation' if outcome == 'calendar_obligations'
                  else 'file_content' if outcome == 'file_analysis' else 'saved_data'
                  for outcome in READ_TARGETS}
