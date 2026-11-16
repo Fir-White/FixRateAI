@@ -22,6 +22,26 @@ from .tools import (EXPECTED_PRINCIPAL, available, catalog, describe,
 from .read_transport import read as read_tool, safe_arguments, result_summary
 
 
+class InferenceFailure(RuntimeError):
+    pass
+
+
+async def infer_client(client, messages, schema, budget, deadline):
+    """Bound provider waiting independently of its transport implementation."""
+    remaining=deadline-time.monotonic()
+    provider_deadline=getattr(client,'deadline',None)
+    if isinstance(provider_deadline,(int,float)):remaining=min(remaining,provider_deadline-time.monotonic())
+    if remaining<=0:raise InferenceFailure('ASSISTANT_TIMEOUT')
+    def request():
+        try:return client.text(messages,budget) if schema is None else client.chat(messages,schema,budget)
+        except StopIteration as exc:
+            # asyncio Futures cannot carry StopIteration: forwarding it from
+            # a thread leaves the await pending instead of reaching our catch.
+            raise InferenceFailure('ASSISTANT_PROVIDER_EXHAUSTED') from exc
+    try:return await asyncio.wait_for(asyncio.to_thread(request),timeout=remaining)
+    except asyncio.TimeoutError as exc:raise InferenceFailure('ASSISTANT_TIMEOUT') from exc
+
+
 def _check_access(app, principal, turn_id, headers):
     from app.security.sessions import authenticate
     from starlette.requests import Request
@@ -200,12 +220,40 @@ async def _read_pages(app, tool, args, headers, *, full, check, trace,principal=
         reasons,pages,covered=len(sites)==site_total and site_start==0,snapshot=first_snapshot)
 
 
+CUSTOM_FACTS={'inventory_read','calendar_evidence','equipment_service_history','workbook_readiness','regulations_read','tasks_analyze'}
+
+
+def _fact_presentations(state):
+    from .fact_presenter import present_facts
+    budget=dict(nodes=140,rows=25,compact_rows=50,characters=12000);result={}
+    for goal in state['goals']:
+        if goal.get('tool') in CUSTOM_FACTS or goal.get('response') or goal.get('action_id'):continue
+        proofs=[proof for proof in state['evidence'] if proof.get('id') in goal.get('evidence_ids',[]) and proof.get('tool')==goal.get('tool')]
+        if not proofs:continue
+        proof=proofs[-1]
+        presentation=present_facts(proof['result'],tool=goal['tool'],arguments=proof.get('arguments'),
+            max_nodes=budget['nodes'],max_rows=budget['rows'],max_compact_rows=min(budget['compact_rows'],budget['nodes']),max_characters=budget['characters'])
+        result[goal['id']]=presentation
+        for key in budget:budget[key]=max(0,budget[key]-getattr(presentation,key))
+    return result
+
+
+def finalize_delivery(state):
+    """A successful source read cannot certify an undelivered whole result."""
+    presentations=_fact_presentations(state)
+    for goal in state['goals']:
+        if goal.get('status')!='completed' or goal.get('mode')!='read' or goal.get('tool') in CUSTOM_FACTS or goal.get('response'):continue
+        if goal['id'] in presentations and presentations[goal['id']].truncated:
+            goal.update(status='partial',reason='result_delivery_truncated')
+
+
 def _render(state):
     """Render server facts. Engineering statements are never free model prose."""
     from .inventory_report import label
     if len(state['goals'])==1 and state['goals'][0].get('response') and (state['goals'][0].get('response_style')=='analysis' or state['goals'][0].get('kind')=='conversation'):
         return state['goals'][0]['response']+wf.unfinished_text(state)
     lines = []
+    presentations=_fact_presentations(state)
     evidence = {proof['id']: proof for proof in state['evidence']}
     for goal in state['goals']:
         lines.append('### ' + label(goal['title']))
@@ -262,26 +310,7 @@ def _render(state):
                 for key, number in value.get('counters', {}).items():
                     if type(number) in (int, float):lines.append('- ' + label(key) + ': ' + str(number))
         else:
-            rows = value.get('items', []) if isinstance(value, dict) else value if isinstance(value, list) else []
-            if isinstance(value, dict) and 'total' in value:
-                lines.append('Найдено: ' + str(value['total']) + '. Прочитано: ' + str(len(rows)) + '.')
-            for row in rows[:25]:
-                if isinstance(row, dict):
-                    fields = [row.get(key) for key in ('asset_code', 'name', 'summary', 'title', 'full_name', 'state', 'commissioned_on', 'scheduledStart', 'mandatoryDueDate') if row.get(key) is not None]
-                    lines.append('- ' + '; '.join(label(field) for field in fields))
-            if not rows:
-                lines.append('Получен проверенный ответ сервера. ' + ('Список пуст.' if isinstance(value,list) or isinstance(value,dict) and isinstance(value.get('items'),list) else ''))
-                if isinstance(value,dict):
-                    selected=value.get('task',value)
-                    labels={'asset_code':'Инвентарный код','name':'Название','summary':'Работа','title':'Название','state':'Состояние','status':'Состояние',
-                            'commissioned_on':'Дата ввода','scheduledStart':'Назначенное начало','scheduledEnd':'Назначенное окончание',
-                            'mandatoryDueDate':'Нормативный срок','completed_at':'Фактическое завершение','revision':'Версия'}
-                    if isinstance(selected,dict):
-                        for field,title in labels.items():
-                            if selected.get(field) is not None:lines.append(title+': '+label(selected[field])+'.')
-                elif not isinstance(value,list):lines.append(label(value))
-            if len(rows) > 25:
-                lines.append('В ответе показано 25 строк; полный прочитанный объём учтён в состоянии поручения.')
+            lines.extend(presentations[goal['id']].lines)
         lines.append('Источник: ' + goal['tool'] + '; проверено ' + proofs[-1]['checked_at'] + '.')
     return '\n\n'.join(lines) + wf.unfinished_text(state)
 
@@ -317,6 +346,7 @@ async def run(app, principal, thread_id, turn_id, headers):
             wf.save(app,turn_id,state)
         check()
         client = app.state.assistant_provider_factory() if hasattr(app.state, 'assistant_provider_factory') else svc.provider(turn['model_selection'])
+        execution_deadline=time.monotonic()+max(0,(turn['deadline_at']-svc.now()).total_seconds()) if turn.get('deadline_at') else time.monotonic()+svc.turn_timeout_seconds(turn.get('model_selection'))
         set_modes = getattr(client, 'set_tool_modes', None)
         if callable(set_modes):
             set_modes({name: tool.mode for name, tool in tools.items()})
@@ -332,7 +362,7 @@ async def run(app, principal, thread_id, turn_id, headers):
         async def infer(schema, budget):
             check()
             started = time.monotonic()
-            try:return await asyncio.to_thread(client.chat, messages, schema, budget)
+            try:return await infer_client(client,messages,schema,budget,execution_deadline)
             finally:
                 if state is not None:
                     state['metrics']['llm_calls'] += 1
@@ -431,7 +461,7 @@ async def run(app, principal, thread_id, turn_id, headers):
             if images:messages[-1]['images']=images
             if callable(getattr(client,'text',None)):
                 check();started=time.monotonic()
-                try:return await asyncio.to_thread(client.text,messages,8192)
+                try:return await infer_client(client,messages,None,8192,execution_deadline)
                 finally:
                     state['metrics']['llm_calls']+=1;state['metrics']['llm_seconds']+=round(time.monotonic()-started,4)
             return (await infer(FinalReply,6000)).answer
@@ -629,6 +659,7 @@ async def run(app, principal, thread_id, turn_id, headers):
                         goal['response']=await natural_reply(sources,[])
                         goal['status']=prior_status
             wf.save(app, turn_id, state)
+        finalize_delivery(state)
         state['stop_reason'] = state['stop_reason'] or 'reply_finished'
         metrics=getattr(client,'metrics',[])
         if metrics:state['metrics'].update(llm_requests=len(metrics),prompt_tokens=sum(m.get('prompt_eval_count',0) for m in metrics),completion_tokens=sum(m.get('eval_count',0) for m in metrics))
@@ -641,7 +672,7 @@ async def run(app, principal, thread_id, turn_id, headers):
             session.execute(text('UPDATE assistant_conversations SET updated_at=now() WHERE conversation_id=:id'), dict(id=thread_id))
             session.commit()
     except Exception as exc:
-        code = str(exc) if isinstance(exc, svc.PROVIDER_FAILURES) else 'ASSISTANT_FAILED'
+        code = str(exc) if isinstance(exc, (*svc.PROVIDER_FAILURES,InferenceFailure)) else 'ASSISTANT_FAILED'
         if state is not None:
             state['stop_reason'] = code
             for goal in state['goals']:

@@ -7,14 +7,16 @@
   "tasks": [
     {"id": "preserve-owner-slice", "status": "completed", "evidence": "8284c69 and private 35-file ZIP/hash manifest"},
     {"id": "persisted-single-executor", "status": "in_progress", "evidence": "migration 023, workflow state, root action uniqueness; independent focused DB tests passed; integration continues"},
-    {"id": "authoritative-business-adapters", "status": "in_progress", "remaining": "Finish file, planning and complete analytics integration without weakening existing business/security oracles"},
-    {"id": "engineering-facts", "status": "in_progress", "remaining": "Frozen combined calendar/history/manufacturer acceptance and neighbouring period/scope cases"},
+    {"id": "authoritative-business-adapters", "status": "in_progress", "remaining": "File/analytics/planning adapters integrated; finish frozen overall acceptance and operation-specific postconditions for remaining writes"},
+    {"id": "engineering-facts", "status": "in_progress", "evidence": "Two frozen local4B rounds R7/R8 pass all calendar/history objectives and retain manufacturer blocker", "remaining": "Repeat on final follow-up source and complete broader operation acceptance"},
     {"id": "all-operation-acceptance", "status": "open", "remaining": "173 operations, 708 allowed role-operation cells after workbook readiness export; positive E2E evidence is not implied by registration"},
-    {"id": "frozen-full-regression", "status": "open", "remaining": "Resolve all 98 exploratory failures, regenerate schemas/matrix, rerun complete backend/ML and critical native gates"},
+    {"id": "frozen-full-regression", "status": "in_progress", "evidence": "R3 source stable, deliberately interrupted after 1507 markers/9 failures and provider exhaustion hang. Follow-up focused154 actual native tests passed with stable source/corpus and full pipeline exit0", "remaining": "Complete uninterrupted frozen backend/ML after watchdog, atomic equipment snapshot and trace repairs"},
     {"id": "live-baseline-comparison", "status": "in_progress", "remaining": "Strict same-corpus/same-model/source-stable repetitions; preserve failed runs and oracle corrections"},
-    {"id": "production-ui-performance", "status": "open", "remaining": "Production build, desktop/mobile native scroll/input/navigation, reload/back/forward/reduced motion and measurements"},
+    {"id": "production-ui-performance", "status": "in_progress", "evidence": "46 targeted UI tests/typecheck/build and 48 production Chrome API-fixture checks in 6 profiles passed; sources pinned", "remaining": "Seven full-suite UI failures, CPU4 navigation 420-488ms, normal mobile reduced-motion 105.6ms and scroll p95 up to 19.6ms; physical touch/device benchmark not measured"},
     {"id": "durable-operations", "status": "open", "remaining": "Automatic queue/lease recovery and read-only reconciliation; never replay uncertain writes"},
-    {"id": "all-write-postconditions", "status": "open", "remaining": "Unknown operation receipts remain explicitly unverified"},
+    {"id": "all-write-postconditions", "status": "open", "evidence": "9 of 74 writes now have dedicated action_outcomes checks including staff membership/date changes and replay", "remaining": "65 unsupported receipts remain explicitly unverified. Publication workflows add their own owned receipt/current-state proof; generic optimistic receipt verification is prohibited"},
+    {"id": "large-list-snapshots", "status": "in_progress", "evidence": "Atomic equipment_find count/page/context-bound SHA256 passes six DB cases including same-count mutation and executor revoke", "remaining": "Other multipage endpoints without stable snapshot remain partial; consistent snapshot/cursor and resumable coverage for large inventory still open"},
+    {"id": "result-delivery", "status": "in_progress", "evidence": "Nested server facts, instructions/units/diffs exposed with a shared bounded display budget; truncated delivery leaves goal partial", "remaining": "All-operation positive presentation acceptance and authorized saved-snapshot viewer"},
     {"id": "publication", "status": "not_requested", "remaining": "No deploy or push; result remains isolated for review and safe integration"}
   ]
 }

@@ -23,7 +23,8 @@ def result_summary(value):
         if isinstance(value.get('site'),dict) and value['site'].get('status') in ('ok','access_denied'):result['site_status']=value['site']['status']
         if isinstance(value.get('complete'),bool):result['complete']=value['complete']
         for key in ('selected_tasks','scanned_tasks'):
-            if isinstance(value.get(key),int):result[key]=value[key]
+            source=value.get('summary') if isinstance(value.get('summary'),dict) else value
+            if isinstance(source.get(key),int):result[key]=source[key]
         if isinstance(value.get('snapshot_id'),str) and re.fullmatch('[0-9a-f]{64}',value['snapshot_id']):result['snapshot_id']=value['snapshot_id']
         return result
     if isinstance(value,list):return dict(type='array',count=len(value))

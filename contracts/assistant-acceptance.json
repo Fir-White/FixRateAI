@@ -359,7 +359,9 @@
           "Business state is unchanged by this read/preview."
         ]
       },
-      "candidate_test_mentions": [],
+      "candidate_test_mentions": [
+        "tests/backend/test_assistant_fact_presenter.py::test_draft_changes_preserves_distinct_before_after_and_zero_values"
+      ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
     {
@@ -783,6 +785,7 @@
         "tests/backend/test_assistant_evidence_cache.py::test_invalid_or_future_underlying_snapshot_time_is_not_reused",
         "tests/backend/test_assistant_evidence_cache.py::test_oversized_retained_data_is_not_cached",
         "tests/backend/test_assistant_orchestrator.py::test_denied_specialist_call_does_not_prevent_independent_goal",
+        "tests/backend/test_assistant_orchestrator_live_reads.py::test_equipment_card_exposes_saved_commissioning_and_location",
         "tests/backend/test_assistant_workflow_phases.py::test_explicit_binding_preserves_source_gate_before_proposal_and_resume",
         "tests/backend/test_assistant_workflow_phases.py::test_read_goal_with_explicit_patch_is_normalized_to_real_confirmed_mutation"
       ],
@@ -848,7 +851,8 @@
         "tests/backend/test_assistant.py::test_real_chat_runs_tools_and_saves_a_proposal_without_side_effects",
         "tests/backend/test_assistant.py::test_live_progress_is_durable_and_legacy_profiles_use_unified_role_tools",
         "tests/backend/test_assistant.py::test_bounded_search_finishes_with_an_honest_answer_and_no_writes",
-        "tests/backend/test_assistant.py::test_timeout_after_reading_keeps_findings_and_explains_incomplete_check"
+        "tests/backend/test_assistant.py::test_timeout_after_reading_keeps_findings_and_explains_incomplete_check",
+        "tests/backend/test_assistant_orchestrator_live_reads.py::test_catalog_lists_actual_system_and_equipment_type"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -1137,6 +1141,7 @@
         "tests/backend/test_agent_redteam_grounding.py::test_regulations_are_not_inferred_from_an_empty_task_calendar",
         "tests/backend/test_assistant_domain_adapters.py::test_equipment_identity_cannot_cross_undeclared_dependencies",
         "tests/backend/test_assistant_domain_adapters.py::test_equipment_context_never_guesses_or_crosses_scope",
+        "tests/backend/test_assistant_inference_deadline.py::test_exhausted_provider_persists_an_unfinished_goal_instead_of_hanging",
         "tests/backend/test_assistant_orchestrator_live.py::test_failed_regulation_read_preserves_independent_card_and_explicit_partial",
         "tests/backend/test_assistant_p0.py::test_llm_view_schema_matches_backend_validation"
       ],
@@ -1643,10 +1648,18 @@
         "tests/backend/test_assistant_domain_adapters.py::test_named_equipment_context_reuses_identity_but_still_reads_fresh_business_data",
         "tests/backend/test_assistant_domain_adapters.py::test_equipment_context_never_guesses_or_crosses_scope",
         "tests/backend/test_assistant_domain_adapters.py::test_a_search_cannot_certify_a_requested_change",
+        "tests/backend/test_assistant_equipment_snapshot.py::test_mutation_between_pages_same_total_is_detected_by_real_orchestrator",
+        "tests/backend/test_assistant_fact_presenter.py::test_compound_request_reuses_unspent_display_budget_for_independent_results",
+        "tests/backend/test_assistant_fact_presenter.py::test_equipment_full_list_delivers_all_31_actual_names_without_expanding_cards",
+        "tests/backend/test_assistant_fact_presenter.py::test_equipment_over_50_has_explicit_partial_delivery_and_actual_counts",
+        "tests/backend/test_assistant_fact_presenter.py::test_equipment_compact_summary_keeps_zero_false_none_and_empty_date_visible",
+        "tests/backend/test_assistant_fact_presenter.py::test_equipment_compact_character_budget_never_silently_cuts_an_identity",
+        "tests/backend/test_assistant_fact_presenter.py::test_equipment_compact_budget_can_shrink_but_cannot_expand_past_50",
         "tests/backend/test_assistant_orchestrator.py::test_plan_requires_dependency_order_and_never_completes_from_a_search",
         "tests/backend/test_assistant_orchestrator.py::test_partial_evidence_cannot_complete_a_goal",
         "tests/backend/test_assistant_orchestrator.py::test_full_page_request_fetches_all_without_model_pagination",
         "tests/backend/test_assistant_orchestrator.py::test_model_stop_after_prerequisite_preserves_unfinished_goal",
+        "tests/backend/test_assistant_orchestrator_live_reads.py::test_equipment_search_returns_exact_inventory_code_and_name",
         "tests/backend/test_assistant_workflow_security.py::test_document_injection_does_not_grant_cross_specialist_mutation_or_confirmation"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
@@ -1708,7 +1721,8 @@
         ]
       },
       "candidate_test_mentions": [
-        "tests/backend/test_assistant.py::test_bounded_search_finishes_with_an_honest_answer_and_no_writes"
+        "tests/backend/test_assistant.py::test_bounded_search_finishes_with_an_honest_answer_and_no_writes",
+        "tests/backend/test_assistant_orchestrator_live_reads.py::test_staff_search_resolves_exact_email_and_real_role"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -1770,7 +1784,13 @@
       },
       "candidate_test_mentions": [
         "tests/backend/test_assistant.py::test_progress_facts_are_bounded_and_do_not_claim_full_page",
-        "tests/backend/test_assistant.py::test_bounded_search_finishes_with_an_honest_answer_and_no_writes"
+        "tests/backend/test_assistant.py::test_bounded_search_finishes_with_an_honest_answer_and_no_writes",
+        "tests/backend/test_assistant_fact_presenter.py::test_staff_delivers_actual_identity_effective_flags_dates_and_qualifications",
+        "tests/backend/test_assistant_fact_presenter.py::test_nested_credentials_and_trace_are_omitted_with_visible_notice",
+        "tests/backend/test_assistant_fact_presenter.py::test_rendering_does_not_complete_pending_goal_or_mutate_evidence",
+        "tests/backend/test_assistant_fact_presenter.py::test_compound_request_reuses_unspent_display_budget_for_independent_results",
+        "tests/backend/test_assistant_orchestrator_live_reads.py::test_staff_profile_distinguishes_membership_and_account_activity",
+        "tests/backend/test_assistant_staff_postconditions.py::test_staff_uses_actual_authorized_readback_and_does_not_bypass_revoked_rights"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -1831,7 +1851,9 @@
         "tests/backend/test_assistant_action_outcomes.py::test_verify_action_reads_authorized_resource_and_handles_readback_failure",
         "tests/backend/test_assistant_capabilities.py::test_chat_lists_real_task_ids_after_missing_task_parameter",
         "tests/backend/test_assistant_capabilities.py::test_selection_by_number_checks_required_crew_without_guessing",
-        "tests/backend/test_assistant_capabilities.py::test_deleted_selected_task_returns_honest_error_without_model_guessing"
+        "tests/backend/test_assistant_capabilities.py::test_deleted_selected_task_returns_honest_error_without_model_guessing",
+        "tests/backend/test_assistant_fact_presenter.py::test_task_delivers_instruction_norm_unit_assignees_and_actual_report_decision",
+        "tests/backend/test_assistant_fact_presenter.py::test_missing_empty_and_unconfirmed_units_are_not_invented"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -2630,7 +2652,11 @@
         ]
       },
       "candidate_test_mentions": [
-        "tests/backend/test_assistant_capabilities.py::test_full_search_and_projection_do_not_hide_items_after_first_page"
+        "tests/backend/test_assistant_capabilities.py::test_full_search_and_projection_do_not_hide_items_after_first_page",
+        "tests/backend/test_assistant_fact_presenter.py::test_workforce_nested_names_dates_and_empty_crews_are_visible",
+        "tests/backend/test_assistant_fact_presenter.py::test_global_row_budget_and_long_text_have_explicit_limits",
+        "tests/backend/test_assistant_fact_presenter.py::test_successful_read_with_undelivered_rows_stays_an_unfinished_objective",
+        "tests/backend/test_assistant_orchestrator_live_reads.py::test_workforce_preserves_real_crew_members_and_employment"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -5519,7 +5545,9 @@
           "Business state is unchanged by this read/preview."
         ]
       },
-      "candidate_test_mentions": [],
+      "candidate_test_mentions": [
+        "tests/backend/test_assistant_fact_presenter.py::test_nested_credentials_and_trace_are_omitted_with_visible_notice"
+      ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
     {
@@ -5696,7 +5724,10 @@
         "tests/backend/test_agent_redteam_explicit_draft.py::test_role_only_change_does_not_copy_effective_account_state_into_membership",
         "tests/backend/test_agent_redteam_proposal_sources.py::test_staff_revision_is_derived_without_changing_employment_metadata",
         "tests/backend/test_agent_redteam_staff_preservation.py::test_assistant_role_proposal_preserves_dates_and_replays_once",
-        "tests/backend/test_assistant_capabilities.py::test_entire_authenticated_business_api_is_accounted_for"
+        "tests/backend/test_assistant_capabilities.py::test_entire_authenticated_business_api_is_accounted_for",
+        "tests/backend/test_assistant_staff_postconditions.py::test_staff_success_prose_and_missing_preflight_cannot_prove_completion",
+        "tests/backend/test_assistant_staff_postconditions.py::test_staff_uses_actual_authorized_readback_and_does_not_bypass_revoked_rights",
+        "tests/backend/test_assistant_staff_postconditions.py::test_staff_role_dates_confirm_replay_and_completed_workflow"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -6707,7 +6738,9 @@
           "Business state is unchanged by this read/preview."
         ]
       },
-      "candidate_test_mentions": [],
+      "candidate_test_mentions": [
+        "tests/backend/test_assistant_orchestrator_live_reads.py::test_installed_components_show_real_resource_and_units"
+      ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
     {
@@ -9672,7 +9705,9 @@
           "Business state is unchanged by this read/preview."
         ]
       },
-      "candidate_test_mentions": [],
+      "candidate_test_mentions": [
+        "tests/backend/test_assistant_orchestrator_live_reads.py::test_personal_notifications_show_real_messages_without_marking_read"
+      ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
     {
@@ -10241,7 +10276,9 @@
           "Business state is unchanged by this read/preview."
         ]
       },
-      "candidate_test_mentions": [],
+      "candidate_test_mentions": [
+        "tests/backend/test_assistant_orchestrator_live_reads.py::test_operation_catalog_lists_real_code_and_title"
+      ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
     {
@@ -10299,7 +10336,10 @@
           "Business state is unchanged by this read/preview."
         ]
       },
-      "candidate_test_mentions": [],
+      "candidate_test_mentions": [
+        "tests/backend/test_assistant_fact_presenter.py::test_global_row_budget_and_long_text_have_explicit_limits",
+        "tests/backend/test_assistant_orchestrator_live_reads.py::test_operation_detail_reports_saved_norm_without_inventing_it"
+      ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
     {

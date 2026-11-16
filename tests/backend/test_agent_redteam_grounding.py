@@ -124,8 +124,8 @@ def test_registry_page_is_not_presented_as_the_complete_equipment_list(assistant
         proof=saved_workflow(engine,turn)['evidence'][-1]
         assert proof['complete'] and proof['result']['total']==31 and len(proof['result']['items'])==31
         assert len({item['equipment_id'] for item in proof['result']['items']})==31
-        assert '31' in turn['answer'] and '25' in turn['answer']
-        assert 'полный прочитанный объём' in turn['answer']
+        assert '31' in turn['answer']
+        assert all(f'RT-PAGE-{index}' in turn['answer'] for index in range(31))
     finally:del app.state.assistant_provider_factory
 
 @pytest.mark.parametrize('code',('ABSENT-404','НЕТ-007','NODE_404','VALVE/404','404-A'))

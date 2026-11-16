@@ -209,18 +209,44 @@ def register_routes(app,views):
 
     @app.get(BASE+'/equipment')
     def equipment(q:str=Query('',max_length=200),offset:int=Query(0,ge=0),asset_code:str|None=Query(None,min_length=1,max_length=128),v=Depends(views)):
+        import json
+        from sqlalchemy import cast,Text,literal
+        from sqlalchemy.dialects.postgresql import JSONB,aggregate_order_by
         cls=v.models['equipment'];filters=[cls.site_id==v.principal.site_id]
-        if v.principal.role=='executor':filters.append(cls.equipment_id.in_(v.visible_equipment_ids()))
+        if v.principal.role=='executor':
+            # Assignment visibility belongs to the same MVCC snapshot.
+            assignments=v.models['work_assignments'];links=v.models['work_order_equipment']
+            visible=select(links.equipment_id).join(assignments,and_(
+                assignments.work_order_id==links.work_order_id,assignments.site_id==links.site_id)).where(
+                links.site_id==v.principal.site_id,assignments.site_id==v.principal.site_id,
+                assignments.user_id==v.principal.user_id,assignments.status.not_in(('cancelled','declined')))
+            filters.append(cls.equipment_id.in_(visible))
         if q.strip():filters.append(or_(cls.name.ilike('%'+q.strip()+'%'),cls.asset_code.ilike('%'+q.strip()+'%'),cls.location.ilike('%'+q.strip()+'%')))
         if asset_code is not None:
-            # Literal exact code, including LIKE metacharacters. This is not a
-            # substring search on name/location and cannot miss an exact asset
-            # hidden beyond the first page of unrelated name matches.
-            literal=asset_code.replace('\\','\\\\').replace('%','\\%').replace('_','\\_')
-            filters.append(cls.asset_code.ilike(literal,escape='\\'))
-        count=v.session.scalar(select(func.count()).select_from(cls).where(*filters))
-        rows=v.session.scalars(select(cls).where(*filters).order_by(cls.asset_code,cls.equipment_id).offset(offset).limit(25)).all()
-        return dict(items=[equipment_response(r) for r in rows],total=count,offset=offset,limit=25)
+            literal_code=asset_code.replace('\\','\\\\').replace('%','\\%').replace('_','\\_')
+            filters.append(cls.asset_code.ilike(literal_code,escape='\\'))
+        # Exactly equipment_response fields. Count, complete digest and selected
+        # page use one statement, with no ORM hydration or per-row SQL.
+        fields=('equipment_id','site_id','system_id','parent_equipment_id','equipment_type_id',
+                'asset_code','name','serial_number','commissioned_on','location','properties','status','revision')
+        authorized=select(*(getattr(cls,key) for key in fields)).where(*filters).cte('authorized_equipment').prefix_with('MATERIALIZED')
+        payload=func.jsonb_build_object(*(item for key in fields for item in (literal(key),authorized.c[key])))
+        projected=select(authorized.c.equipment_id,authorized.c.asset_code,payload.label('payload')).cte('projected_equipment')
+        empty=cast(literal('[]'),JSONB)
+        summary=select(func.count().label('total'),func.coalesce(func.jsonb_agg(
+            aggregate_order_by(projected.c.payload,projected.c.equipment_id)),empty).label('rows')).cte('equipment_summary')
+        selected=select(projected).order_by(projected.c.asset_code,projected.c.equipment_id).offset(offset).limit(25).cte('equipment_page')
+        items=select(func.coalesce(func.jsonb_agg(aggregate_order_by(selected.c.payload,
+            selected.c.asset_code,selected.c.equipment_id)),empty)).scalar_subquery()
+        scope=dict(user_id=str(v.principal.user_id),site_id=str(v.principal.site_id),role=v.principal.role,timezone=v.principal.timezone)
+        applied=dict(q=q.strip(),asset_code=asset_code)
+        context=func.jsonb_build_object('scope',cast(literal(json.dumps(scope)),JSONB),
+                                      'filters',cast(literal(json.dumps(applied)),JSONB))
+        document=func.jsonb_build_object('context',context,'rows',summary.c.rows)
+        digest=func.encode(func.sha256(func.convert_to(cast(document,Text),'UTF8')),'hex')
+        result=v.session.execute(select(summary.c.total,items.label('items'),digest.label('snapshot_id'))).mappings().one()
+        return dict(items=result['items'],total=result['total'],offset=offset,limit=25,
+                    snapshot_id=result['snapshot_id'],scope=scope,filters=applied,timezone=v.principal.timezone)
 
     @app.get(BASE+'/staff')
     def staff(q:str=Query('',max_length=200),offset:int=Query(0,ge=0),v=Depends(views)):

@@ -21,7 +21,7 @@ def factual_state(value):
                                checked_at='2026-11-16T12:00:00+00:00')])
 
 
-@pytest.mark.parametrize('value, expected', [(0, '0'), (False, 'False'),
+@pytest.mark.parametrize('value, expected', [(0, '0'), (False, 'нет'),
                                            (12.75, '12.75'), ('READY', 'READY')])
 def test_verified_scalar_fact_is_visible_in_answer(value, expected):
     state = factual_state(value)

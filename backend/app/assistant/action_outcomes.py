@@ -16,7 +16,7 @@ from sqlalchemy import text
 
 EQUIPMENT = {'equipment_create', 'equipment_edit'}
 TASKS = {'task_assign', 'task_cancel', 'task_start', 'report_save', 'report_submit', 'report_review'}
-SUPPORTED = EQUIPMENT | TASKS
+SUPPORTED = EQUIPMENT | TASKS | {'staff_edit'}
 _SUMMARIES = {
     'confirmed': 'Изменение проверено по сохранённому состоянию.',
     'failed': 'Сохранённое состояние не подтверждает запрошенное изменение.',
@@ -80,7 +80,7 @@ def _facts(value):
     task = value.get('task') if isinstance(value.get('task'), dict) else value
     execution = value.get('execution') if isinstance(value.get('execution'), dict) else {}
     decision = value.get('decision') if isinstance(value.get('decision'), dict) else {}
-    facts = {'id': _uuid(task.get('equipment_id') or task.get('id')),
+    facts = {'id': _uuid(task.get('equipment_id') or task.get('id') or task.get('user_id')),
              'revision': _revision(task.get('revision'))}
     states = {'active', 'under_repair', 'retired', 'draft', 'assigned', 'in_progress',
               'submitted', 'accepted', 'rework_required', 'cancelled'}
@@ -227,6 +227,58 @@ def _task_checks(name, body, before, value):
     return checks
 
 
+def _staff_postcondition(arguments, receipt, before, after):
+    """Membership PUT has a revision-only receipt, never a resource identity.
+
+    Bind the actual scoped read to the validated path and preflight snapshot.
+    The account flag and the membership flag are independent server facts.
+    """
+    def result(status, reason, checks=()):
+        return _outcome(status, reason, before, receipt, after, checks)
+    body = arguments['body']
+    path = arguments.get('path', {})
+    identity = _uuid(path.get('user_id')) if isinstance(path, dict) else None
+    if not identity:
+        return result('unverified', 'command_identity_missing')
+    if not isinstance(before, dict):
+        return result('unverified', 'before_snapshot_required')
+    if _uuid(before.get('user_id')) != identity:
+        return result('unverified', 'before_identity_missing_or_mismatched')
+    if _uuid(after.get('user_id')) != identity:
+        return result('unverified', 'readback_identity_missing_or_mismatched')
+    revision = _revision(body.get('expected_revision'))
+    if revision is None:
+        return result('unverified', 'expected_revision_missing')
+    if _revision(before.get('revision')) != revision:
+        return result('unverified', 'before_revision_mismatch')
+    if _revision(receipt.get('revision')) != revision + 1:
+        return result('unverified', 'receipt_revision_mismatch')
+    if _revision(after.get('revision')) != revision + 1:
+        return result('unverified', 'readback_revision_changed')
+    from app.schemas.management import EmploymentEdit
+    try:
+        wanted = EmploymentEdit.model_validate_json(json.dumps(body, default=str)).model_dump(mode='json', exclude_unset=True)
+    except (ValueError, TypeError):
+        return result('unverified', 'invalid_command')
+    fields = ('role', 'membership_is_active', 'account_is_active', 'is_active',
+              'employed_from', 'employed_until', 'full_name', 'email')
+    flags = ('membership_is_active', 'account_is_active', 'is_active')
+    if any(field not in value for value in (before, after) for field in fields) or any(
+            type(value[field]) is not bool for value in (before, after) for field in flags):
+        return result('unverified', 'unsupported_result_shape')
+    checks = [after['role'] == wanted['role'],
+              after['membership_is_active'] is wanted['is_active'],
+              after['is_active'] is (after['membership_is_active'] and after['account_is_active']),
+              before['is_active'] is (before['membership_is_active'] and before['account_is_active'])]
+    for field in ('employed_from', 'employed_until'):
+        checks.append(_equal(after[field], wanted[field] if field in wanted else before[field], field))
+    checks.extend(_equal(after[field], before[field], field)
+                  for field in ('full_name', 'email', 'account_is_active'))
+    if not all(checks):
+        return result('failed', 'postcondition_mismatch', checks)
+    return result('confirmed', 'postcondition_verified', checks)
+
+
 def verify_postcondition(tool_name, arguments, receipt, before=None, after=None):
     """Verify known operation semantics from validated server data, never text.
 
@@ -243,6 +295,8 @@ def verify_postcondition(tool_name, arguments, receipt, before=None, after=None)
         return result('unverified', 'invalid_command')
     if not receipt or not after:
         return result('unverified', 'readback_or_receipt_missing')
+    if tool_name == 'staff_edit':
+        return _staff_postcondition(arguments, receipt, before, after)
     body = arguments['body']
     equipment = tool_name in EQUIPMENT
     key = 'equipment_id' if equipment else 'task_id'
@@ -289,6 +343,8 @@ async def verify_action(app, tool, arguments, receipt, headers, before=None):
             value = _unwrap(receipt)
             identity = arguments.get('path', {}).get('equipment_id') if tool.name == 'equipment_edit' else value.get('equipment_id') if value else None
             name, path = 'equipment_read', {'equipment_id': identity}
+        elif tool.name == 'staff_edit':
+            name, path = 'staff_read', arguments.get('path', {})
         else:
             name, path = 'task_read', arguments.get('path', {})
         read = next(item for item in TOOLS if item.name == name)
