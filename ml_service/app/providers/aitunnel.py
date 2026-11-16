@@ -32,6 +32,7 @@ class AITunnelConfig:
     base_url: str = "https://api.aitunnel.ru/v1"
     timeout: float = 90.0
     reasoning_effort: str = "none"
+    allow_model_alias: bool = False
 
     @classmethod
     def from_environment(cls, tool="vision", environment=None):
@@ -56,7 +57,7 @@ class AITunnelConfig:
         effort = values.get("AITUNNEL_REASONING_EFFORT", "none").strip()
         if effort not in ("none", "low", "medium", "high"):
             raise ValueError("Invalid AITUNNEL_REASONING_EFFORT")
-        return cls(model=model, api_key=key, base_url=base, timeout=timeout, reasoning_effort=effort)
+        return cls(model=model, api_key=key, base_url=base, timeout=timeout, reasoning_effort=effort,allow_model_alias=model=='auto')
 
     @property
     def model_ref(self):
@@ -131,7 +132,7 @@ class AITunnelClient:
                 raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE")
             if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,199}", actual_model):
                 raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE")
-            if actual_model != self.config.model and not actual_model.startswith(self.config.model + "-"):
+            if not self.config.allow_model_alias and actual_model != self.config.model and not actual_model.startswith(self.config.model + "-"):
                 raise AITunnelFailure("AITUNNEL_MODEL_MISMATCH")
             diagnostic["stage"] = "schema"
             if schema:result = schema.model_validate_json(message["content"])

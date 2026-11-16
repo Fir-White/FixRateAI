@@ -2,6 +2,72 @@
   "format_version": 1,
   "tools": [
     {
+      "name": "chat_models",
+      "title": "Доступные локальные и облачные модели чата",
+      "method": "GET",
+      "path": "/api/v1/assistant/models",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "chat_model_preference",
+      "title": "Мой сохранённый выбор модели чата",
+      "method": "GET",
+      "path": "/api/v1/assistant/model-preference",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "chat_model_select",
+      "title": "Выбрать мою модель чата для следующих сообщений",
+      "method": "POST",
+      "path": "/api/v1/assistant/model-preference",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
       "name": "tasks_analyze",
       "title": "Полный серверный анализ незавершённых заданий: сроки, нагрузка, бизнес-дубли и единицы норм",
       "method": "GET",

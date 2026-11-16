@@ -5,6 +5,150 @@
   "scope": "Real authenticated MCP and schema boundaries; these are not LLM generations",
   "cases": [
     {
+      "id": "C-invalid_root-chat_models",
+      "group": "C",
+      "surface": "mcp-api",
+      "kind": "invalid_root",
+      "tool": "chat_models",
+      "role": "chief_engineer",
+      "expected": "Reject an undeclared root property without dispatch or domain mutation",
+      "requirement_ids": [
+        "PLN-12",
+        "PLN-15",
+        "AT-10",
+        "AT-17"
+      ],
+      "independence": "A distinct capability and contract/security boundary; not a reworded prompt"
+    },
+    {
+      "id": "C-schema_refs-chat_models",
+      "group": "C",
+      "surface": "exposed-schema",
+      "kind": "schema_refs",
+      "tool": "chat_models",
+      "role": "chief_engineer",
+      "expected": "Every local JSON reference in the exposed schema resolves against that schema",
+      "requirement_ids": [
+        "PLN-12",
+        "PLN-15",
+        "AT-10",
+        "AT-17"
+      ],
+      "independence": "A distinct capability and contract/security boundary; not a reworded prompt"
+    },
+    {
+      "id": "C-invalid_query-chat_models",
+      "group": "C",
+      "surface": "mcp-api",
+      "kind": "invalid_query",
+      "tool": "chat_models",
+      "role": "chief_engineer",
+      "expected": "An undeclared query filter is rejected; required path values are supplied",
+      "requirement_ids": [
+        "PLN-12",
+        "PLN-15",
+        "AT-10",
+        "AT-17"
+      ],
+      "independence": "A distinct capability and contract/security boundary; not a reworded prompt"
+    },
+    {
+      "id": "C-invalid_root-chat_model_preference",
+      "group": "C",
+      "surface": "mcp-api",
+      "kind": "invalid_root",
+      "tool": "chat_model_preference",
+      "role": "chief_engineer",
+      "expected": "Reject an undeclared root property without dispatch or domain mutation",
+      "requirement_ids": [
+        "PLN-12",
+        "PLN-15",
+        "AT-10",
+        "AT-17"
+      ],
+      "independence": "A distinct capability and contract/security boundary; not a reworded prompt"
+    },
+    {
+      "id": "C-schema_refs-chat_model_preference",
+      "group": "C",
+      "surface": "exposed-schema",
+      "kind": "schema_refs",
+      "tool": "chat_model_preference",
+      "role": "chief_engineer",
+      "expected": "Every local JSON reference in the exposed schema resolves against that schema",
+      "requirement_ids": [
+        "PLN-12",
+        "PLN-15",
+        "AT-10",
+        "AT-17"
+      ],
+      "independence": "A distinct capability and contract/security boundary; not a reworded prompt"
+    },
+    {
+      "id": "C-invalid_query-chat_model_preference",
+      "group": "C",
+      "surface": "mcp-api",
+      "kind": "invalid_query",
+      "tool": "chat_model_preference",
+      "role": "chief_engineer",
+      "expected": "An undeclared query filter is rejected; required path values are supplied",
+      "requirement_ids": [
+        "PLN-12",
+        "PLN-15",
+        "AT-10",
+        "AT-17"
+      ],
+      "independence": "A distinct capability and contract/security boundary; not a reworded prompt"
+    },
+    {
+      "id": "C-invalid_root-chat_model_select",
+      "group": "C",
+      "surface": "mcp-api",
+      "kind": "invalid_root",
+      "tool": "chat_model_select",
+      "role": "chief_engineer",
+      "expected": "Reject an undeclared root property without dispatch or domain mutation",
+      "requirement_ids": [
+        "PLN-12",
+        "PLN-15",
+        "AT-10",
+        "AT-17"
+      ],
+      "independence": "A distinct capability and contract/security boundary; not a reworded prompt"
+    },
+    {
+      "id": "C-schema_refs-chat_model_select",
+      "group": "C",
+      "surface": "exposed-schema",
+      "kind": "schema_refs",
+      "tool": "chat_model_select",
+      "role": "chief_engineer",
+      "expected": "Every local JSON reference in the exposed schema resolves against that schema",
+      "requirement_ids": [
+        "PLN-12",
+        "PLN-15",
+        "AT-10",
+        "AT-17"
+      ],
+      "independence": "A distinct capability and contract/security boundary; not a reworded prompt"
+    },
+    {
+      "id": "G-foreign_conversation-chat_model_select",
+      "group": "G",
+      "surface": "mcp-api",
+      "kind": "foreign_conversation",
+      "tool": "chat_model_select",
+      "role": "chief_engineer",
+      "expected": "Even an authorized operation cannot use another owner or role conversation",
+      "requirement_ids": [
+        "PLN-12",
+        "PLN-15",
+        "AT-10",
+        "AT-17"
+      ],
+      "independence": "A distinct capability and contract/security boundary; not a reworded prompt"
+    },
+    {
       "id": "C-invalid_root-tasks_analyze",
       "group": "C",
       "surface": "mcp-api",

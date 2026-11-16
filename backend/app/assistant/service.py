@@ -164,25 +164,23 @@ async def propose(app,session,principal,thread,tool,args,explanation,headers,tur
     session.commit()
     return public_action(action(session,principal,identity))
 
-def provider_config():
-    name=os.environ.get('ASSISTANT_PROVIDER','aitunnel').strip().lower()
-    if name=='ollama':return OllamaConfig.from_environment()
-    if name=='aitunnel':return AITunnelConfig.from_environment('chat')
-    raise ValueError('ASSISTANT_PROVIDER must be aitunnel or ollama')
+def provider_config(selection=None):
+    from .model_preferences import config
+    return config(selection)
 
-def provider():
-    config=provider_config()
+def provider(selection=None):
+    config=provider_config(selection)
     return OllamaClient(config) if isinstance(config,OllamaConfig) else AITunnelClient(config)
 
-def turn_timeout_seconds():
+def turn_timeout_seconds(selection=None):
     try:
-        config=provider_config()
+        config=provider_config(selection)
         return max(180,config.timeout+30)
     except ValueError:return 180
 
-def configured():
+def configured(selection=None):
     try:
-        config=provider_config()
+        config=provider_config(selection)
         return dict(available=True if isinstance(config,OllamaConfig) else bool(config.api_key),model_ref=config.model_ref)
     except ValueError:return dict(available=False,model_ref=None)
 
@@ -271,6 +269,7 @@ async def agent_turn(app,principal,thread_id,turn_id,headers):
     SCOPE.set((thread_id,principal.user_id,principal.site_id,principal.role))
     with app.state.factory() as session:
         thread=conversation(session,principal,thread_id)
+        model_selection=session.scalar(text('SELECT model_selection FROM assistant_turns WHERE turn_id=:id AND conversation_id=:conversation'),dict(id=turn_id,conversation=thread_id))
         turns=list(reversed(session.execute(text('''SELECT content,answer,status,turn_id FROM assistant_turns
             WHERE conversation_id=:id ORDER BY created_at DESC,turn_id DESC LIMIT 12'''),dict(id=thread_id)).mappings().all()))
         outcomes=session.execute(text('''SELECT tool_name,status,result FROM assistant_actions WHERE conversation_id=:id
@@ -375,7 +374,7 @@ async def agent_turn(app,principal,thread_id,turn_id,headers):
                 session.execute(text("UPDATE assistant_turns SET status='completed',answer=:answer,trace=CAST(:trace AS jsonb),finished_at=now() WHERE turn_id=:id AND status='running'"),dict(id=turn_id,answer=answer,trace=dump(trace)))
                 session.execute(text('UPDATE assistant_conversations SET updated_at=now() WHERE conversation_id=:id'),dict(id=thread_id));session.commit()
             return
-        client=app.state.assistant_provider_factory() if hasattr(app.state,'assistant_provider_factory') else provider()
+        client=app.state.assistant_provider_factory() if hasattr(app.state,'assistant_provider_factory') else provider(model_selection)
         set_modes=getattr(client,'set_tool_modes',None)
         if callable(set_modes):set_modes({name:tool.mode for name,tool in tools.items()})
         async def complete(reason):

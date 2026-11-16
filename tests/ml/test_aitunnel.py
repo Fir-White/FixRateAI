@@ -95,6 +95,23 @@ def test_missing_key_does_not_contact_provider(endpoint):
     assert not state["calls"]
 
 
+def test_catalog_alias_accepts_resolved_model_but_records_actual_provenance(endpoint):
+    state, config = endpoint
+    state['payload'] = {'model': 'resolved-real-model', 'choices': [
+        {'finish_reason': 'stop', 'message': {'content': 'Answer'}}]}
+    with pytest.raises(AITunnelFailure):
+        AITunnelClient(config).text([])
+    client = AITunnelClient(replace(config, model='preset-test', allow_model_alias=True))
+    assert client.text([]) == 'Answer'
+    assert client.response_model == 'resolved-real-model'
+    assert state['calls'][-1][2]['model'] == 'preset-test'
+
+
+def test_auto_is_an_explicit_provider_alias():
+    assert AITunnelConfig.from_environment('chat',environment={'AITUNNEL_CHAT_MODEL': 'auto'}).allow_model_alias
+    assert not CONFIG.allow_model_alias
+
+
 def test_text_reply_is_plain_markdown_without_json_constraints_and_keeps_images(endpoint):
     state,config=endpoint
     answer='## Разбор таблицы\n\n'+('Подробное объяснение по данным. '*150)

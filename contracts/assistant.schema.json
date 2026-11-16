@@ -54,6 +54,38 @@
       "title": "AgentStep",
       "type": "object"
     },
+    "ChatModelPreference": {
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "enum": [
+            "ollama",
+            "aitunnel"
+          ],
+          "title": "Provider",
+          "type": "string"
+        },
+        "model": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._][A-Za-z0-9._:/-]*$",
+          "title": "Model",
+          "type": "string"
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "provider",
+        "model",
+        "expected_revision"
+      ],
+      "title": "ChatModelPreference",
+      "type": "object"
+    },
     "ConfirmAction": {
       "additionalProperties": false,
       "properties": {
@@ -153,6 +185,19 @@
           ],
           "default": null,
           "title": "Attachment Ids"
+        },
+        "model_preference_revision": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Preference Revision"
         }
       },
       "required": [

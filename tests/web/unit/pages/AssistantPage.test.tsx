@@ -11,6 +11,19 @@ const chat={conversation_id:'chat',title:'Мой диалог',agent:'assistant'
 const view:ChatView={conversation:chat,turns:[],total:0,actions:[]};
 beforeEach(()=>{vi.restoreAllMocks();vi.spyOn(api,'capabilities').mockResolvedValue(caps);vi.spyOn(api,'list').mockResolvedValue({items:[chat],total:1});vi.spyOn(api,'read').mockResolvedValue(view);vi.spyOn(api,'send').mockResolvedValue({turn_id:'new',status:'running'});});
 function show(path='/assistant?chat=chat'){return render(<WorkspaceStateScope.Provider value="TEST:TEST-SITE:chief_engineer"><MemoryRouter initialEntries={[path]}><AssistantPage/></MemoryRouter></WorkspaceStateScope.Provider>);}
+it('keeps the draft while changing model and sends the saved preference revision',async()=>{
+  const user=userEvent.setup();
+  vi.mocked(api.capabilities).mockResolvedValue({...caps,model_preference:{selection:{provider:'aitunnel',model:'cloud-test'},revision:7,is_default:false,available:true}});
+  vi.spyOn(api,'models').mockResolvedValue({providers:[{id:'ollama',name:'Локальные',status:'ready',error_code:null,models:[{id:'local-test',name:'local-test',description:'Установлена локально',selectable:true}]}]});
+  vi.spyOn(api,'selectModel').mockResolvedValue({selection:{provider:'ollama',model:'local-test',digest:'sha256:fixture'},revision:8,is_default:false,available:true});
+  show();const input=await screen.findByLabelText('Сообщение помощнику');await user.type(input,'Мой запрос');
+  await user.click(screen.getByRole('button',{name:'Выбрать модель: cloud-test'}));
+  await user.click(await screen.findByRole('button',{name:/local-test/}));
+  expect(input).toHaveValue('Мой запрос');
+  expect(await screen.findByRole('button',{name:'Выбрать модель: local-test'})).toBeVisible();
+  await user.click(screen.getByRole('button',{name:'Отправить'}));
+  await waitFor(()=>expect(api.send).toHaveBeenCalledWith('chat','Мой запрос',expect.any(String),[],8));
+});
 it('retains the composer when opening a new chat and returning through right-hand history',async()=>{
   const user=userEvent.setup();show();const input=await screen.findByLabelText('Сообщение помощнику');await user.type(input,'Сохранённый вопрос');
   await user.click(screen.getAllByRole('button',{name:/Новый чат/})[0]);await user.click(screen.getByRole('button',{name:/^Мой диалог/}));

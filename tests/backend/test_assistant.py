@@ -16,6 +16,7 @@ def assistant_case(managed):
     engine,_,_,_,ids=managed
     with engine.begin() as c:
         p=dict(site=ids['site'])
+        c.execute(text('DELETE FROM assistant_model_preferences WHERE site_id=:site'),p)
         c.execute(text('DELETE FROM assistant_attachments WHERE conversation_id IN (SELECT conversation_id FROM assistant_conversations WHERE site_id=:site)'),p)
         c.execute(text('DELETE FROM assistant_actions WHERE conversation_id IN (SELECT conversation_id FROM assistant_conversations WHERE site_id=:site)'),p)
         c.execute(text('DELETE FROM assistant_turns WHERE conversation_id IN (SELECT conversation_id FROM assistant_conversations WHERE site_id=:site)'),p)
@@ -177,7 +178,7 @@ def test_catalog_is_explicit_and_each_tool_has_real_typed_endpoint(assistant_cas
         schema=describe(app,tool)
         assert schema['inputSchema']['additionalProperties'] is False
         assert schema['annotations']['readOnlyHint']==(tool.mode=='read')
-    personal={'site_switch','session_logout','profile_email','notifications_read_all','notifications_clear','notification_delete','notification_read'}
+    personal={'site_switch','session_logout','profile_email','notifications_read_all','notifications_clear','notification_delete','notification_read','chat_model_select'}
     assert all(t.mode=='read' or t.name in personal for t in available(app,'director').values())
     assert 'photo_review' not in available(app,'executor','photo')
     assert 'equipment_create' not in available(app,'chief_engineer','photo')
@@ -313,7 +314,7 @@ def test_director_can_chat_but_only_personal_mutations_are_exposed(runtime):
         t=thread(client)
         assert client.get(B+'/conversations/'+t).status_code==200
         tools=rpc(client,'tools/list').json()['result']['tools']
-        personal={'site_switch','session_logout','profile_email','notifications_read_all','notifications_clear','notification_delete','notification_read'}
+        personal={'site_switch','session_logout','profile_email','notifications_read_all','notifications_clear','notification_delete','notification_read','chat_model_select'}
         assert tools and all(t['annotations']['readOnlyHint'] or t['name'] in personal for t in tools)
         assert rpc(client,'tools/call',dict(name='equipment_create',arguments={})).json()['error']['code']==-32602
 

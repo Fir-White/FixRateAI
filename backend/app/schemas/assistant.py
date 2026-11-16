@@ -17,12 +17,18 @@ class MessageCreate(Input):
     # None preserves old clients: their first message includes staged files.
     # An explicit list selects exactly the files the user sent with this turn.
     attachment_ids:list[UUID]|None=Field(default=None,max_length=20)
+    model_preference_revision:int|None=Field(default=None,ge=0)
     @model_validator(mode='after')
     def has_message(self):
         self.content=self.content.strip()
         if not self.content and not self.attachment_ids:raise ValueError('Введите сообщение или прикрепите файл')
         if self.attachment_ids and len(set(self.attachment_ids))!=len(self.attachment_ids):raise ValueError('Вложение указано повторно')
         return self
+
+class ChatModelPreference(Input):
+    provider:Literal['ollama','aitunnel']
+    model:str=Field(min_length=1,max_length=128,pattern=r'^[A-Za-z0-9._][A-Za-z0-9._:/-]*$')
+    expected_revision:int=Field(ge=0)
 
 class ConfirmAction(Input):
     payload_sha256:str=Field(pattern=r'^[0-9a-f]{64}$')
@@ -65,4 +71,4 @@ class ResultView(Input):
     text_offset:int=Field(default=0,ge=0)
     text_limit:int=Field(default=6000,ge=1,le=6000)
 
-ASSISTANT_CONTRACTS=(ConversationCreate,MessageCreate,ConfirmAction,AgentStep,ResultView,ToolSelection,FinalReply)
+ASSISTANT_CONTRACTS=(ConversationCreate,MessageCreate,ChatModelPreference,ConfirmAction,AgentStep,ResultView,ToolSelection,FinalReply)

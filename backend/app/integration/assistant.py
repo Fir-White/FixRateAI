@@ -23,10 +23,14 @@ def forwarded(request):
 def register_routes(app,views):
     from .assistant_workspace import register_routes as register_workspace
     register_workspace(app,views)
+    from .assistant_models import register_routes as register_models
+    from app.assistant import model_preferences
+    register_models(app,views)
     @app.get(BASE+'/capabilities')
     def capabilities(response:Response,v=Depends(views)):
         response.headers['Cache-Control']='private, no-store'
-        return dict(**svc.configured(),prompt_version=svc.PROMPT_VERSION,agents=AGENTS,
+        preference=model_preferences.read(v.session,v.principal)
+        return dict(**svc.configured(preference['selection']),model_preference=preference,prompt_version=svc.PROMPT_VERSION,agents=AGENTS,
             tools={a['id']:catalog(app,v.principal.role,a['id']) for a in AGENTS})
 
     @app.get(BASE+'/conversations')
@@ -51,7 +55,7 @@ def register_routes(app,views):
         response.headers['Cache-Control']='private, no-store'
         thread=svc.conversation(v.session,v.principal,identity)
         # A lost process cannot leave the UI polling forever; read never retries model or action.
-        v.session.execute(text("UPDATE assistant_turns SET status='failed',error_code='ASSISTANT_INTERRUPTED',answer='Ответ прерван. Сообщение сохранено; отправьте новый запрос.',finished_at=now() WHERE conversation_id=:id AND status='running' AND created_at<:cutoff"),dict(id=identity,cutoff=svc.now()-timedelta(seconds=svc.turn_timeout_seconds())))
+        v.session.execute(text("UPDATE assistant_turns SET status='failed',error_code='ASSISTANT_INTERRUPTED',answer='Ответ прерван. Сообщение сохранено; отправьте новый запрос.',finished_at=now() WHERE conversation_id=:id AND status='running' AND ((deadline_at IS NOT NULL AND deadline_at<:now) OR (deadline_at IS NULL AND created_at<:cutoff))"),dict(id=identity,now=svc.now(),cutoff=svc.now()-timedelta(seconds=svc.turn_timeout_seconds())))
         turns=v.session.execute(text('SELECT * FROM assistant_turns WHERE conversation_id=:id ORDER BY created_at DESC,turn_id DESC LIMIT 25 OFFSET :offset'),dict(id=identity,offset=offset)).mappings().all()
         count=v.session.scalar(text('SELECT count(*) FROM assistant_turns WHERE conversation_id=:id'),dict(id=identity))
         rows=v.session.execute(text('''SELECT * FROM assistant_actions WHERE conversation_id=:id AND
@@ -158,7 +162,13 @@ def register_routes(app,views):
             previous_files=list(v.session.scalars(text('SELECT attachment_id FROM assistant_turn_attachments WHERE turn_id=:id ORDER BY position'),dict(id=previous['turn_id'])))
             if previous['content']!=message_content or (command.attachment_ids is not None and previous_files!=command.attachment_ids):
                 raise HTTPException(409,'Ключ повтора принадлежит другому сообщению или набору файлов')
+            if command.model_preference_revision is not None and (previous['model_selection'] or {}).get('preference_revision')!=command.model_preference_revision:
+                raise HTTPException(409,'Ключ повтора принадлежит сообщению с другим выбором модели')
             return dict(previous)
+        preference=model_preferences.read(v.session,v.principal)
+        if command.model_preference_revision is not None and preference['revision']!=command.model_preference_revision:
+            raise HTTPException(409,'Модель изменена в другом окне. Обновите выбор и повторите отправку.')
+        selected_model=model_preferences.snapshot(preference)
         selected=command.attachment_ids
         if selected is None:
             selected=list(v.session.scalars(text('''SELECT a.attachment_id FROM assistant_attachments a WHERE a.conversation_id=:id
@@ -168,14 +178,14 @@ def register_routes(app,views):
             dict(id=identity,files=selected)).mappings().all()
         if len(files)!=len(selected):raise HTTPException(404,'Вложение не найдено в этом диалоге')
         if sum(row['mime_type'].startswith('image/') for row in files)>4:raise HTTPException(422,'К одному сообщению можно отправить не больше четырёх изображений')
-        if v.session.scalar(text("SELECT EXISTS(SELECT 1 FROM assistant_turns WHERE conversation_id=:id AND status='running' AND created_at>:cutoff)"),dict(id=identity,cutoff=svc.now()-timedelta(seconds=svc.turn_timeout_seconds()))):
+        if v.session.scalar(text("SELECT EXISTS(SELECT 1 FROM assistant_turns WHERE conversation_id=:id AND status='running' AND ((deadline_at IS NOT NULL AND deadline_at>:now) OR (deadline_at IS NULL AND created_at>:cutoff)))"),dict(id=identity,now=svc.now(),cutoff=svc.now()-timedelta(seconds=svc.turn_timeout_seconds()))):
             raise HTTPException(409,'Дождитесь ответа на предыдущее сообщение')
-        if not svc.configured()['available'] and not hasattr(app.state,'assistant_provider_factory'):raise HTTPException(503,'ИИ не настроен. Проверьте провайдер и модель чата на сервере.')
+        if not svc.configured(preference['selection'])['available'] and not hasattr(app.state,'assistant_provider_factory'):raise HTTPException(503,'ИИ не настроен. Проверьте провайдер и модель чата на сервере.')
         if not svc.SLOTS.acquire(blocking=False):raise HTTPException(429,'ИИ сейчас занят. Попробуйте через несколько секунд.')
         turn=uuid4()
         try:
-            v.session.execute(text("INSERT INTO assistant_turns(turn_id,conversation_id,request_key,content,status,prompt_version) VALUES (:id,:conversation,:key,:content,'running',:prompt)"),
-                dict(id=turn,conversation=identity,key=command.idempotency_key,content=message_content,prompt=svc.PROMPT_VERSION))
+            v.session.execute(text("INSERT INTO assistant_turns(turn_id,conversation_id,request_key,content,status,prompt_version,model_selection,deadline_at) VALUES (:id,:conversation,:key,:content,'running',:prompt,CAST(:model AS jsonb),:deadline)"),
+                dict(id=turn,conversation=identity,key=command.idempotency_key,content=message_content,prompt=svc.PROMPT_VERSION,model=svc.dump(selected_model) if selected_model is not None else None,deadline=svc.now()+timedelta(seconds=svc.turn_timeout_seconds(preference['selection']))))
             if selected:
                 v.session.execute(text('INSERT INTO assistant_turn_attachments(turn_id,attachment_id,conversation_id,position) VALUES (:turn,:file,:conversation,:position)'),
                     [dict(turn=turn,file=file_id,conversation=identity,position=position) for position,file_id in enumerate(selected)])

@@ -25,7 +25,7 @@ def test_entire_authenticated_business_api_is_accounted_for(assistant_case):
         schema=describe(app,tool)
         if file_fields(app,tool):
             for name in file_fields(app,tool):assert schema['inputSchema']['properties']['body']['properties'][name]['format']=='uuid'
-    assert all(t.mode=='read' or t.name.startswith(('notification','profile_email','site_switch','session_logout')) for t in available(app,'director').values())
+    assert all(t.mode=='read' or t.name=='chat_model_select' or t.name.startswith(('notification','profile_email','site_switch','session_logout')) for t in available(app,'director').values())
     assert 'staff_edit' in available(app,'admin') and 'staff_edit' not in available(app,'engineer')
     assert 'operation_edit' in available(app,'chief_engineer') and 'operation_edit' not in available(app,'executor')
     assert 'photo_upload' in available(app,'executor') and 'photo_upload' not in available(app,'director')

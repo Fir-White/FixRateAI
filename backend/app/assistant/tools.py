@@ -34,6 +34,9 @@ class Tool:
 # New capabilities must be reviewed here and tested through their existing endpoint.
 # Even an apparently read-only POST may save forecasts or start work: default is proposal.
 TOOLS=(
+ Tool('chat_models','Доступные локальные и облачные модели чата','GET','/api/v1/assistant/models',ALL),
+ Tool('chat_model_preference','Мой сохранённый выбор модели чата','GET','/api/v1/assistant/model-preference',ALL),
+ Tool('chat_model_select','Выбрать мою модель чата для следующих сообщений','POST','/api/v1/assistant/model-preference',ALL,'write',before='chat_model_preference'),
  Tool('tasks_analyze','Полный серверный анализ незавершённых заданий: сроки, нагрузка, бизнес-дубли и единицы норм','GET','/api/v1/assistant/workspace/task-analysis',agents=('assistant','planner','photo')),
  Tool('draft_changes','Фактические отличия двух версий черновика','GET','/api/v1/assistant/workspace/draft-changes',(*PLAN,'director')),
  Tool('drafts_find','Все доступные черновики текущего объекта из регламентов и каталогов','GET','/api/v1/assistant/workspace/drafts',(*PLAN,'director')),

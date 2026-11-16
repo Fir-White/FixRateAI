@@ -144,11 +144,16 @@ def test_upgrade_from_020_preserves_history_and_does_not_resend_historical_files
             for identity,chat,clock in ((old_file,first,'11:00'),(pending,first,'13:00'),(foreign,other,'11:00')):
                 c.execute(text('''INSERT INTO assistant_attachments(attachment_id,conversation_id,original_name,mime_type,size_bytes,sha256,storage_key,created_at)
                     VALUES (:id,:chat,:name,'application/octet-stream',1,:sha,:key,CAST(:at AS timestamptz))'''),dict(id=identity,chat=chat,name=str(identity)+'.xlsx',sha='a'*64,key='TEST/'+str(identity),at='2026-10-01T'+clock+':00Z'))
+        with engine.connect() as c:
+            original_columns={table:list(c.scalars(text('SELECT column_name FROM information_schema.columns WHERE table_schema=\'public\' AND table_name=:table ORDER BY ordinal_position'),dict(table=table))) for table in ('assistant_conversations','assistant_turns','assistant_attachments')}
         def snapshot():
             with engine.connect() as c:
-                return {table:c.scalar(text(f"SELECT md5(coalesce(jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text)::text,'[]')) FROM {table} t")) for table in ('assistant_conversations','assistant_turns','assistant_attachments')}
+                # Freeze every original column before migration. Additive nullable
+                # columns must not change the hash of the preserved old history.
+                return {table:c.scalar(text(f"SELECT md5(coalesce(jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text)::text,'[]')) FROM (SELECT "+','.join('"'+name.replace('"','""')+'"' for name in columns)+f" FROM {table}) t")) for table,columns in original_columns.items()}
         before=snapshot();migrate(engine);migrate(engine);assert snapshot()==before
         with engine.connect() as c:
+            assert c.execute(text('SELECT model_selection,deadline_at FROM assistant_turns WHERE turn_id=:id'),dict(id=turn)).one()==(None,None)
             rows=c.execute(text('SELECT turn_id,attachment_id,conversation_id,inferred_legacy FROM assistant_turn_attachments')).all()
             assert rows==[(turn,old_file,first,True)]
         with pytest.raises(IntegrityError),engine.begin() as c:
