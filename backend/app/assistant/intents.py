@@ -7,7 +7,12 @@ _MUTATION=re.compile(r'\b(?:созда(?:й|йте|ть)|добав(?:ь|ьте|
 
 def mutation_requested(question):
     for match in _MUTATION.finditer(question):
-        if not re.search(r"\b(?:не|not|don't)\s+$",question[max(0,match.start()-20):match.start()],re.I):return True
+        prefix=re.split(r'[.:!?;\n]|\b(?:but|then|instead|затем|но)\b',question[:match.start()],flags=re.I)[-1]
+        # A single negation scopes a coordinated prohibition: "Do not create,
+        # approve or edit". Sentence/contrast boundaries restore positive intent.
+        # This guard grants no authority; writes still require exact confirmation.
+        negators=list(re.finditer(r"\b(?:не|not|don't|never)\s+",prefix,re.I))
+        if not any(neg.end()==len(prefix) or _MUTATION.match(prefix,neg.end()) for neg in negators):return True
     return False
 
 

@@ -7,6 +7,29 @@ from app.assistant.task_report import requested as tasks_requested
 from app.assistant.grounding import regulation_lookup,equipment_code,equipment_listing
 
 
+@pytest.mark.parametrize('question',[
+    'List saved operations. Do not create, approve or edit operations.',
+    'Show the crew. Do not assign tasks or edit the crew.',
+    'Read the profile. Never change roles and reset passwords.',
+    'Покажи оборудование. Не изменяй имя и удаляй оборудование.',
+])
+def test_coordinated_prohibitions_do_not_turn_reads_into_mutations(question):
+    assert not mutation_requested(question)
+
+
+@pytest.mark.parametrize('question',[
+    'Do not delete equipment; rename it.',
+    'Do not edit equipment. Publish the plan.',
+    'Do not rename it, but update its location.',
+    'Do not delete it, then edit its name.',
+    'This is not a read: rename equipment.',
+    'Насос не работает, переименуй его.',
+    'Not only edit the name but publish the plan.',
+])
+def test_positive_action_after_a_negative_clause_still_requires_mutation_handling(question):
+    assert mutation_requested(question)
+
+
 @pytest.mark.parametrize('prefix',[
     'Покажи оборудование текущего объекта.',
     'Покажи регламент насоса с кодом RT-PUMP.',

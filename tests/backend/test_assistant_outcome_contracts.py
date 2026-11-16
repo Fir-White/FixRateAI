@@ -80,7 +80,7 @@ def test_typed_file_analysis_always_requires_the_complete_workbook():
     assert validate_result(fixed,'attachment_read',dict(workbook=dict(status='read',complete=True)))==(True,None)
 
 
-@pytest.mark.parametrize('changes', [dict(kind='change'),dict(kind='conversation'),dict(kind='unavailable'),
+@pytest.mark.parametrize('changes', [dict(kind='change'),dict(kind='conversation'),
     dict(mode='write'),dict(changes=dict(role='engineer')),dict(workflow_kind='approve'),
     dict(required_evidence='manufacturer_document'),dict(required_evidence='user_decision'),dict(tool='staff_edit')])
 def test_read_contract_never_downgrades_a_mutation_or_real_blocker(changes):
@@ -94,6 +94,15 @@ def test_read_contract_never_downgrades_a_mutation_or_real_blocker(changes):
 def test_missing_authorized_canonical_source_never_falls_back_to_wrong_profile():
     result=normalize_goal(goal('staff_profile','profile_read'),{'profile_read':TOOLS['profile_read']})
     assert result['status']=='blocked' and result['reason']=='read_outcome_source_not_authorized'
+
+
+def test_model_unavailable_label_cannot_hide_an_existing_authorized_typed_read():
+    original=goal('staff_profile','',kind='unavailable',reason='clarification_or_capability_required',status='blocked')
+    result=normalize_goal(original,TOOLS)
+    assert result['tool']=='staff_read' and result['kind']=='read' and result['status']=='planned'
+    assert result['required_evidence']=='saved_data' and result['reason'] is None
+    denied=normalize_goal(original,{})
+    assert denied['status']=='blocked' and denied['reason']=='read_outcome_source_not_authorized'
 
 
 def test_known_forbidden_write_is_not_downgraded_to_a_read_by_filtered_catalog():

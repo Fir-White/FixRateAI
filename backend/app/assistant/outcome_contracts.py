@@ -63,7 +63,7 @@ def resolve_read_contract(goal, authorized_tools):
     if chosen is None and goal.get('tool'):
         from .tools import TOOLS
         chosen = next((tool for tool in TOOLS if tool.name == goal['tool']), None)
-    if (goal.get('kind') in ('change', 'conversation', 'unavailable') or goal.get('mode') == 'write'
+    if (goal.get('kind') in ('change', 'conversation') or goal.get('mode') == 'write'
             or goal.get('changes') or goal.get('workflow_kind')
             or goal.get('required_evidence') in ('manufacturer_document', 'user_decision')
             or chosen is not None and _mode(chosen) != 'read'):
@@ -87,6 +87,8 @@ def normalize_goal(goal, authorized_tools):
     result['outcome_contract'] = contract
     if contract['status'] == 'applied':
         result.update(tool=contract['target'], kind='read', required_evidence=goal.get('required_evidence') or contract['required_evidence'])
+        if goal.get('kind')=='unavailable' and goal.get('reason') in (None,'clarification_or_capability_required'):
+            result.update(status='planned',reason=None)
         if goal.get('outcome')=='equipment_inventory':result['requires_full_list']=True
         if goal.get('outcome')=='file_analysis':result.update(response_style='analysis',requires_full_list=True)
     elif contract['status'] == 'blocked':

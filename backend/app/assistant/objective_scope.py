@@ -5,6 +5,10 @@ import re
 def objective_scope(state,goal,name,arguments,value):
     selector=goal.get('selector',{});path=arguments.get('path') or {};query=arguments.get('query') or {}
     if name in ('profile_read','staff_read'):
+        if goal.get('selector',{}).get('search') and name=='staff_read':
+            from .domain_adapters import staff_context
+            identity,_=staff_context(goal,state)
+            if not identity or not isinstance(value,dict) or str(value.get('user_id'))!=identity:return 'requested_staff_search_not_verified'
         wanted=selector.get('user_id') or (state.get('scope',{}).get('user_id') if name=='profile_read' else None)
         if wanted:
             actual=value.get('user_id',value.get('userId')) if isinstance(value,dict) else None

@@ -57,6 +57,14 @@ def next_step(goal,state):
     if target in ('workforce_read','operations_list','catalog_read','profile_read','notifications_list','enrollment_read'):
         return call(target,{})
     if target=='staff_read':
+        search=selector.get('search')
+        if search:
+            identity,searched=staff_context(goal,state)
+            if not searched:return call('staff_find',dict(query=dict(q=search)))
+            if not identity:return None
+            declared=selector.get('user_id')
+            if declared and declared.casefold() in state.get('request','').casefold() and declared!=identity:return None
+            selector['user_id']=identity
         return call(target,dict(path=dict(user_id=selector['user_id']))) if selector.get('user_id') else None
     if target=='staff_find':
         return call(target,dict(query=dict(q=selector['search']))) if selector.get('search') else None
@@ -120,3 +128,19 @@ def next_step(goal,state):
         if not goal.get('changes'):return None
         args['body']=dict(goal['changes'])
     return call(target,args)
+
+
+def staff_context(goal,state):
+    """Resolve one literal requested identity from complete scoped API evidence."""
+    search=(goal.get('selector',{}).get('search') or '').strip().casefold()
+    if not search or search not in state.get('request','').casefold():return None,True
+    for proof in reversed(state.get('evidence',[])):
+        if proof.get('goal_id') not in [goal['id'],*goal.get('depends_on',[])]:continue
+        if proof.get('tool')!='staff_find' or (proof.get('arguments',{}).get('query') or {}).get('q','').strip().casefold()!=search:continue
+        if not proof.get('complete') or not proof.get('retained') or proof.get('scope')!=state.get('scope'):return None,True
+        value=proof.get('result',{});rows=value.get('items',[]) if isinstance(value,dict) else []
+        matches=[row for row in rows if isinstance(row,dict) and row.get('user_id')
+            and (str(row.get('email','')).casefold()==search if '@' in search
+                 else search in (str(row.get('full_name',''))+' '+str(row.get('email',''))).casefold())]
+        return (str(matches[0]['user_id']) if len(matches)==1 else None),True
+    return None,False

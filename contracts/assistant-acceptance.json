@@ -1743,6 +1743,7 @@
       },
       "candidate_test_mentions": [
         "tests/backend/test_assistant.py::test_bounded_search_finishes_with_an_honest_answer_and_no_writes",
+        "tests/backend/test_assistant_objective_scope.py::test_incomplete_foreign_or_ambiguous_staff_resolution_cannot_certify_a_profile",
         "tests/backend/test_assistant_orchestrator_live_reads.py::test_staff_search_resolves_exact_email_and_real_role"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
@@ -1814,7 +1815,10 @@
         "tests/backend/test_assistant_objective_scope.py::test_profile_selection_remaps_only_with_actual_staff_read_permission",
         "tests/backend/test_assistant_objective_scope.py::test_current_profile_contract_never_silently_becomes_another_staff_subject",
         "tests/backend/test_assistant_objective_scope.py::test_actual_http_employee_profile_never_substitutes_the_signed_in_account",
+        "tests/backend/test_assistant_objective_scope.py::test_actual_email_lookup_resolves_the_employee_instead_of_a_model_guessed_actor",
+        "tests/backend/test_assistant_objective_scope.py::test_incomplete_foreign_or_ambiguous_staff_resolution_cannot_certify_a_profile",
         "tests/backend/test_assistant_orchestrator_live_reads.py::test_staff_profile_distinguishes_membership_and_account_activity",
+        "tests/backend/test_assistant_outcome_contracts.py::test_model_unavailable_label_cannot_hide_an_existing_authorized_typed_read",
         "tests/backend/test_assistant_outcome_contracts.py::test_known_forbidden_write_is_not_downgraded_to_a_read_by_filtered_catalog",
         "tests/backend/test_assistant_outcome_contracts.py::test_backward_none_and_other_do_not_change_scripted_routing",
         "tests/backend/test_assistant_outcome_contracts.py::test_staff_profile_requires_complete_membership_and_account_facts",
@@ -2324,7 +2328,8 @@
         "tests/backend/test_assistant_action_outcomes.py::test_task_receipt_identity_and_revision_are_not_inferred",
         "tests/backend/test_assistant_action_outcomes.py::test_newer_readback_does_not_falsely_claim_failure_or_success",
         "tests/backend/test_assistant_action_outcomes.py::test_start_checks_new_report_identity_and_draft_state",
-        "tests/backend/test_assistant_action_outcomes.py::test_verify_action_reads_authorized_resource_and_handles_readback_failure"
+        "tests/backend/test_assistant_action_outcomes.py::test_verify_action_reads_authorized_resource_and_handles_readback_failure",
+        "tests/backend/test_assistant_orchestrator_live_writes.py::test_executor_start_creates_one_report_and_finishes_saved_goal"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -5781,6 +5786,7 @@
         "tests/backend/test_agent_redteam_proposal_sources.py::test_staff_revision_is_derived_without_changing_employment_metadata",
         "tests/backend/test_agent_redteam_staff_preservation.py::test_assistant_role_proposal_preserves_dates_and_replays_once",
         "tests/backend/test_assistant_capabilities.py::test_entire_authenticated_business_api_is_accounted_for",
+        "tests/backend/test_assistant_orchestrator_live_writes.py::test_admin_staff_date_change_preserves_other_fields_and_finishes_saved_goal",
         "tests/backend/test_assistant_outcome_contracts.py::test_read_contract_never_downgrades_a_mutation_or_real_blocker",
         "tests/backend/test_assistant_outcome_contracts.py::test_known_forbidden_write_is_not_downgraded_to_a_read_by_filtered_catalog",
         "tests/backend/test_assistant_staff_postconditions.py::test_staff_success_prose_and_missing_preflight_cannot_prove_completion",

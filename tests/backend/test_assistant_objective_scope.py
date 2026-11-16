@@ -91,6 +91,33 @@ def test_actual_http_employee_profile_never_substitutes_the_signed_in_account(as
     finally:del app.state.assistant_provider_factory
 
 
+def test_actual_email_lookup_resolves_the_employee_instead_of_a_model_guessed_actor(assistant_case):
+    from tests.backend.test_assistant_orchestrator import Planner,goal,send
+    _,app,client,_,_=assistant_case
+    identity,address=join(assistant_case)
+    actor=client.get('/api/v1/maintenance/users/me').json()['userId']
+    app.state.assistant_provider_factory=lambda:Planner([dict(goal('person',''),
+        outcome='staff_profile',kind='unavailable',selector=dict(search=address,user_id=actor))],[])
+    try:
+        view=send(client,thread(client),'Show the saved employee with exact email '+address+'. Read only.')
+        turn=view['turns'][-1];goal=turn['workflow']['goals'][0]
+        assert turn['status']=='completed' and goal['status']=='completed'
+        assert goal['tool']=='staff_read' and goal['selector']['user_id']==str(identity)
+        assert address in turn['answer'] and 'Test chief' not in turn['answer'] and not view['actions']
+    finally:del app.state.assistant_provider_factory
+
+
+@pytest.mark.parametrize('complete,retained,foreign,ambiguous',[(False,True,False,False),(True,False,False,False),(True,True,True,False),(True,True,False,True)])
+def test_incomplete_foreign_or_ambiguous_staff_resolution_cannot_certify_a_profile(complete,retained,foreign,ambiguous):
+    email='worker@example.test';rows=[dict(user_id=OTHER,email=email)]
+    if ambiguous:rows.append(dict(user_id=UNIT,email=email))
+    state=dict(request='Show '+email,scope=SCOPE,evidence=[dict(goal_id='g',tool='staff_find',
+        complete=complete,retained=retained,scope={} if foreign else SCOPE,
+        arguments=dict(query=dict(q=email)),result=dict(items=rows,total=len(rows)))])
+    goal=dict(id='g',selector=dict(search=email,user_id=OTHER),depends_on=[])
+    assert objective_scope(state,goal,'staff_read',dict(path=dict(user_id=OTHER)),dict(user_id=OTHER))=='requested_staff_search_not_verified'
+
+
 def test_actual_capability_repair_cannot_complete_components_from_another_read_source(assistant_case):
     from tests.backend.test_assistant_orchestrator import equipment,send
     _,app,client,_,ids=assistant_case
