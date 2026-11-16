@@ -1,5 +1,8 @@
 # Проверки и доказательства
 
+16.11.2026, итог рабочего бюджета: [отчёт A–J](../agent-audit/orchestrator-final-2026-11-16.md). Полный8b9d1a2:2831 passed/58 skipped/1 xfailed; последний9f7ac7d:68 focused и8 actual local-model passed, дополнительный full прерван. Матрица17 latest PASS/708, только9 на final SHA;691 not_run. Промышленная цель остаётся in_progress; UI navigation, draft reload, recovery и65 write postconditions открыты.
+
+
 16.11.2026, frozen440dcd9 backend/ML: **2818 passed/3 failed/58 skipped/1 xfailed**, source/corpus stable, exit1. Исправлены ложный write guard для анализа будущей замены и ожидание единственного blocker; независимые data/source/security oracles сохранены. Follow-up **87 native passed**, stable complete pipeline exit0; полный повтор ещё нужен. Полный frontend **653 passed/8 failed** в навигации; assistant85 и production48 считаются отдельно, не заменяют красный общий gate. Четыре role smoke подтверждают потерю unsent draft при reload; это открытое ограничение. [Полный протокол](../agent-audit/orchestrator-2026-11-16.md#основание-и-сохранность).
 
 16.11.2026, следующий intent-first срез: реальная Ollama на `825bc21` — **6/11 passed**, пять предметных подмен сохранены как отказы; credential не утекал. Введены тип результата перед tool, канонические разрешённые источники и серверные проверки identity/period/shape. **229 focused native passed**, stable source/corpus, pipeline exit0; это не генеративная приёмка нового кода. Повторы local-model и полный backend/ML ещё требуются. [Условия и UI follow-up](../agent-audit/orchestrator-2026-11-16.md#контракты-предметного-результата-следующий-проверяемый-срез).

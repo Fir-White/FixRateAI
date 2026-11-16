@@ -1,5 +1,8 @@
 # План проекта
 
+16.11.2026, итог рабочего бюджета: [отчёт A–J](agent-audit/orchestrator-final-2026-11-16.md). Полный8b9d1a2:2831 passed/58 skipped/1 xfailed; последний9f7ac7d:68 focused и8 actual local-model passed, дополнительный full прерван. Матрица17 latest PASS/708, только9 на final SHA;691 not_run. Промышленная цель остаётся in_progress; UI navigation, draft reload, recovery и65 write postconditions открыты.
+
+
 MVP-11 остаётся в работе: local-model чтения на `825bc21` дали 6/11, предметные подмены теперь закрываются типизированными outcome/identity/period/shape gates; 229 focused native passed. Добавлен нативный просмотр старых длинных ответов и быстрый ограниченный renderer backend facts. Финальная общая регрессия, production UI и реальные LLM-повторы нового среза ещё обязательны; доступность 173 операций не равна положительной приёмке 708 role cells. [Протокол](agent-audit/orchestrator-2026-11-16.md#контракты-предметного-результата-следующий-проверяемый-срез).
 
 Privacy follow-up после `7490a41`: закрывается P0 enrollment output до проекций/LLM/history; защищённая ссылка сохраняет реальные admin-права. 52 native и 53 UI проверки прошли. Полный предшествующий frozen прогон: 2659 passed/1 устаревшее conversation expectation; повтор после исправления и positive local-model корпус обязательны. Большая история всё ещё имеет mount debt, lazy-прототип со scroll regression не применяется. [Протокол/ограничения](agent-audit/orchestrator-2026-11-16.md#защищённые-результаты-и-полный-повтор-7490a41).
