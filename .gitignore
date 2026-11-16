@@ -44,6 +44,7 @@ playwright-report/
 *.sql.gz
 /reports/**
 !/reports/ml/
+!/reports/ml/photo_model_benchmark.json
 !/reports/ml/archive/
 !/reports/ml/archive/clip_experiment.json
 !/reports/ml/archive/clip_default_experiment.json
