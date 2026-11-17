@@ -110,6 +110,8 @@ def excluded_routes():
         ('POST','/conversations/{identity}/attachments'),('GET','/attachments/{identity}'),
         ('POST','/actions/{identity}/reject'),('POST','/actions/{identity}/confirm'),('POST','/mcp'))},
       ('GET','/api/health'):'service health',
+      ('GET','/api/setup'):'installation infrastructure before the first authenticated user',
+      ('POST','/api/setup'):'one-time installation infrastructure; requires OS-provisioned secret and has no authenticated model principal',
       ('POST','/api/v1/auth/login'):'sign-in precedes the authenticated chat',
       ('POST','/api/v1/auth/sites'):'pre-login membership lookup',
       ('POST','/api/v1/auth/register'):'registration precedes a session',

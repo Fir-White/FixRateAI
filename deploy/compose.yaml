@@ -1,0 +1,118 @@
+name: ${FIXRATE_PROJECT:?Set installation project}
+x-application: &application
+  platform: linux/amd64
+  image: ${FIXRATE_APP_IMAGE:?Use a release manifest image}
+  init: true
+  restart: unless-stopped
+  environment: &environment
+    DATABASE_URL: postgresql+psycopg://fixrate:${POSTGRES_PASSWORD:?Set installation secret}@db:5432/fixrate
+    PHOTO_STORAGE_ROOT: /app/var/photos
+    COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    FIXRATE_BOOTSTRAP_TOKEN_SHA256: ${FIXRATE_BOOTSTRAP_TOKEN_SHA256:?Set installation secret hash}
+    OPTIMIZATION_WORKER: 'false'
+    MAINTENANCE_SCHEDULER: 'false'
+    FIXRATE_TRUSTED_PROXIES: '*'
+    ASSISTANT_PROVIDER: ollama
+    OLLAMA_CHAT_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+    OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+    OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-not-configured}
+    OLLAMA_CHAT_DIGEST: ${OLLAMA_CHAT_DIGEST:-}
+    OLLAMA_VISION_MODEL: ${OLLAMA_VISION_MODEL:-not-configured}
+    OLLAMA_VISION_DIGEST: ${OLLAMA_VISION_DIGEST:-}
+    PHOTO_REVIEW_PROVIDER: ${PHOTO_REVIEW_PROVIDER:-clip}
+    FORECAST_PROVIDER: rf
+    HF_HUB_OFFLINE: '1'
+    TRANSFORMERS_OFFLINE: '1'
+    FIXRATE_LLM_LOCAL_ONLY: '1'
+    AITUNNEL_API_KEY: ''
+    AI_TUNNEL_API_KEY: ''
+  extra_hosts: ['host.docker.internal:host-gateway']
+  volumes: ['files:/app/var/photos']
+  networks: [internal, egress]
+  security_opt: ['no-new-privileges:true']
+  cap_drop: [ALL]
+  tmpfs: ['/tmp:rw,noexec,nosuid,size=256m']
+services:
+  db:
+    platform: linux/amd64
+    image: ${FIXRATE_DB_IMAGE:?Use pinned PostgreSQL image}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: fixrate
+      POSTGRES_USER: fixrate
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set installation secret}
+    volumes: ['database:/var/lib/postgresql']
+    networks: [internal]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U fixrate -d fixrate']
+      interval: 5s
+      timeout: 3s
+      retries: 30
+  migrate:
+    <<: *application
+    restart: 'no'
+    command: [python, scripts/release_runtime.py, migrate]
+    depends_on:
+      db: {condition: service_healthy}
+  api:
+    <<: *application
+    command: [python, scripts/release_runtime.py, api]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health',timeout=3)"]
+      interval: 5s
+      timeout: 4s
+      retries: 30
+      start_period: 30s
+  worker:
+    <<: *application
+    command: [python, scripts/release_runtime.py, worker]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, scripts/release_runtime.py, worker-health]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+  web:
+    platform: linux/amd64
+    image: ${FIXRATE_WEB_IMAGE:?Use pinned frontend image}
+    restart: unless-stopped
+    environment:
+      FIXRATE_ADDRESS: ${FIXRATE_ADDRESS:-:8080}
+    ports:
+      - '${FIXRATE_BIND:-127.0.0.1}:${FIXRATE_PORT:-8080}:8080'
+      - '${FIXRATE_BIND:-127.0.0.1}:${FIXRATE_HTTPS_PORT:-0}:443'
+      - '${FIXRATE_BIND:-127.0.0.1}:${FIXRATE_HTTP_PORT:-0}:80'
+    volumes: ['caddy_data:/data', 'caddy_config:/config']
+    networks: [internal, egress]
+    depends_on:
+      api: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:8090/health']
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    security_opt: ['no-new-privileges:true']
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+  ollama:
+    platform: linux/amd64
+    image: ${FIXRATE_OLLAMA_IMAGE:-ollama/ollama:0.34.2@sha256:da6e0dc5651df159e45686fd663c4dbe1624a52c44d7280eeac1551d8f865532}
+    profiles: [ollama]
+    restart: unless-stopped
+    environment: {OLLAMA_NO_CLOUD: '1'}
+    volumes: ['ollama:/root/.ollama']
+    networks: [internal]
+    # No host ports, model pull or automatic model selection.
+volumes:
+  database:
+  files:
+  caddy_data:
+  caddy_config:
+  ollama:
+networks:
+  internal: {internal: true}
+  egress:

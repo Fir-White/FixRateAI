@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "catalog_sha256": "a85493953342c370d672aa94a0e6b661bb0251297168b472f365cccc13005541",
+  "catalog_sha256": "64de0e8c968148a4a6cfdfda815f44ee6bb316e052a5bf93980b3a9c0052c0f4",
   "acceptance_rule": "A finished response, registered tool, HTTP 200, negative boundary test, mocked completion or successful individual call does not prove the user goal. Positive acceptance requires an independently verified final result and data state for this exact role/operation.",
   "generative_policy": "Installed local Ollama only; no external LLM/fallback, weight downloads or runtime user preference changes.",
   "summary": {
@@ -33510,6 +33510,11 @@
     },
     {
       "method": "GET",
+      "path": "/api/setup",
+      "reason": "installation infrastructure before the first authenticated user"
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/assistant/attachments/{identity}",
       "reason": "human chat transport; deliberately not callable as a model tool"
     },
@@ -33562,6 +33567,11 @@
       "method": "PATCH",
       "path": "/api/v1/maintenance_jobs/{job_id}",
       "reason": "compatibility alias"
+    },
+    {
+      "method": "POST",
+      "path": "/api/setup",
+      "reason": "one-time installation infrastructure; requires OS-provisioned secret and has no authenticated model principal"
     },
     {
       "method": "POST",

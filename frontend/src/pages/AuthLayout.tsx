@@ -20,13 +20,14 @@ export function AuthLayout() {
   const contentRef = useRef<HTMLDivElement>(null);
   const transition = useAuthTransition(pathname, outlet, contentRef, mainRef, key, navigationType);
   const registration = /^\/register\/?$/.test(transition.view.pathname);
+  const setup = /^\/setup\/?$/.test(transition.view.pathname);
   const initial = useInitialReveal(mainRef);
   const [reducedMotion, setReducedMotion] = useState(false);
 
   return (
     <AuthMotionContext.Provider value={{ leaveAfterSuccess: transition.leaveAfterSuccess }}>
     <main ref={mainRef} tabIndex={-1} data-reveal={initial.revealing ? "initial" : undefined} data-transition={transition.phase} className={`auth-page${registration ? " auth-page--registration" : ""}`} onPointerDownCapture={initial.press} onFocusCapture={initial.focus}>
-      <section className="auth-panel" aria-labelledby={registration ? "register-title" : "login-title"}>
+      <section className="auth-panel" aria-labelledby={setup ? "setup-title" : registration ? "register-title" : "login-title"}>
         <div className="auth-brand">
           <img src={logoMark} className="auth-brand__mark" alt="" width="44" height="44" />
           <img src={logoWordmark} className="auth-brand__wordmark" alt="FixRate AI" width="157" height="24" />

@@ -1,0 +1,225 @@
+#requires -Version 5.1
+[CmdletBinding()]
+param(
+  [ValidateSet('install','status','doctor','backup','restore','upgrade','verify')][string]$Action='install',
+  [string]$InstallDir=(Join-Path $env:LOCALAPPDATA 'FixRateAI'),
+  [int]$Port=8080,
+  [string]$PublicHost='',
+  [string]$BackupPath='',
+  [switch]$ConfirmDataReplacement,
+  [switch]$InstallPrerequisites,
+  [switch]$UseLocalImages,
+  [switch]$OpenBrowser
+)
+$ErrorActionPreference='Stop'
+Set-StrictMode -Version Latest
+$script:InstallerFile=$PSCommandPath
+$script:ComposeArgs=@()
+$installationLock=$null
+function Hex-Random([int]$Count) {
+  $bytes=New-Object byte[] $Count
+  $rng=[Security.Cryptography.RandomNumberGenerator]::Create()
+  try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
+  return [BitConverter]::ToString($bytes).Replace('-','').ToLowerInvariant()
+}
+function Hash-Bytes([byte[]]$Bytes) {
+  $sha=[Security.Cryptography.SHA256]::Create()
+  try { return [BitConverter]::ToString($sha.ComputeHash($Bytes)).Replace('-','').ToLowerInvariant() } finally { $sha.Dispose() }
+}
+function Private-Directory([string]$Path) {
+  [void][IO.Directory]::CreateDirectory($Path)
+  if ((Get-Item -LiteralPath $Path).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Installation directory cannot be a junction or symlink.' }
+  $acl=New-Object Security.AccessControl.DirectorySecurity
+  $acl.SetAccessRuleProtection($true,$false)
+  foreach($sid in @([Security.Principal.WindowsIdentity]::GetCurrent().User.Value,'S-1-5-18','S-1-5-32-544')) {
+    $identity=New-Object Security.Principal.SecurityIdentifier($sid)
+    $rule=New-Object Security.AccessControl.FileSystemAccessRule($identity,'FullControl','ContainerInherit,ObjectInherit','None','Allow')
+    $acl.AddAccessRule($rule)
+  }
+  Set-Acl -LiteralPath $Path -AclObject $acl
+}
+function DC {
+  param([Parameter(ValueFromRemainingArguments=$true)][string[]]$Arguments)
+  & docker @script:ComposeArgs @Arguments
+  if ($LASTEXITCODE -ne 0) { throw 'Docker Compose operation failed. No data volumes were removed.' }
+}
+function Binary-Docker([string[]]$Arguments,[string]$File,[switch]$InputFile) {
+  # PS 5.1 text redirection corrupts binary dumps: copy raw process streams instead.
+  $info=New-Object Diagnostics.ProcessStartInfo
+  $info.FileName=(Get-Command docker -ErrorAction Stop).Source
+  $info.Arguments=(@($script:ComposeArgs)+$Arguments | ForEach-Object {'"'+$_.Replace('"','\"')+'"'}) -join ' '
+  $info.UseShellExecute=$false; $info.CreateNoWindow=$true
+  $info.RedirectStandardInput=$InputFile.IsPresent
+  $info.RedirectStandardOutput=-not $InputFile.IsPresent
+  $process=[Diagnostics.Process]::Start($info)
+  try {
+    if($InputFile) {
+      $stream=[IO.File]::OpenRead($File)
+      try {$stream.CopyTo($process.StandardInput.BaseStream)} finally {$stream.Dispose();$process.StandardInput.Close()}
+    } else {
+      $stream=[IO.File]::Create($File)
+      try {$process.StandardOutput.BaseStream.CopyTo($stream)} finally {$stream.Dispose()}
+    }
+    $process.WaitForExit()
+    if($process.ExitCode -ne 0){throw 'Backup/restore stream failed.'}
+  } finally {$process.Dispose()}
+}
+function Use-Installation {
+  foreach($name in @('infrastructure.env','secrets.env','images.env','compose.yaml','release.json')) {
+    if(-not (Test-Path -LiteralPath (Join-Path $InstallDir $name))){throw "Missing installation file: $name"}
+  }
+  $script:ComposeArgs=@('compose','--env-file',(Join-Path $InstallDir 'infrastructure.env'),'--env-file',(Join-Path $InstallDir 'secrets.env'),'--env-file',(Join-Path $InstallDir 'images.env'),'-f',(Join-Path $InstallDir 'compose.yaml'))
+}
+function Check-Docker {
+  if(-not(Get-Command docker -ErrorAction SilentlyContinue)) {
+    if($InstallPrerequisites) {
+      if((Read-Host 'Install Docker Desktop using winget? Type INSTALL') -ne 'INSTALL'){throw 'System installation cancelled.'}
+      & winget install --exact --id Docker.DockerDesktop --source winget
+      if($LASTEXITCODE -notin @(0,3010)){throw 'Docker Desktop installation failed.'}
+      throw 'Start Docker Desktop with the WSL2 backend; reboot if requested, then rerun this installer. No application data was changed.'
+    }
+    throw 'Docker Desktop with Linux containers and WSL2 is required. Rerun with -InstallPrerequisites to explicitly install it.'
+  }
+  & wsl --status *> $null
+  if($LASTEXITCODE -ne 0){throw 'WSL2 is not ready. An administrator must enable WSL2 and virtualization, reboot if required, then start Docker Desktop.'}
+  $server=& docker info --format '{{.OSType}}/{{.Architecture}}'
+  if($LASTEXITCODE -ne 0 -or $server -ne 'linux/x86_64'){throw 'Start Docker Desktop: a Linux amd64 engine is required.'}
+  $composeVersion=(& docker compose version --short).TrimStart('v')
+  if($LASTEXITCODE -ne 0 -or [version]$composeVersion -lt [version]'2.24.0'){throw 'Docker Compose v2.24+ is required.'}
+  $disk=Get-PSDrive -Name ([IO.Path]::GetPathRoot([IO.Path]::GetFullPath($InstallDir)).Substring(0,1))
+  if($disk.Free -lt 10GB){throw 'At least 10 GB free disk space is required.'}
+}
+function Extract-Bundle([string]$Destination) {
+  $content=[IO.File]::ReadAllText($script:InstallerFile)
+  $encoded=($content -split "(?m)^# PAYLOAD_BEGIN\r?$",2)[1] -replace '(?m)^#','' -replace '\s',''
+  $bytes=[Convert]::FromBase64String($encoded)
+  if((Hash-Bytes $bytes) -ne '@@PAYLOAD_SHA256@@'){throw 'Installer payload checksum mismatch.'}
+  Add-Type -AssemblyName System.IO.Compression.FileSystem
+  $zip=Join-Path $Destination 'bundle.zip';[IO.File]::WriteAllBytes($zip,$bytes)
+  [IO.Compression.ZipFile]::ExtractToDirectory($zip,$Destination)
+  Remove-Item -LiteralPath $zip
+  $manifest=Get-Content -LiteralPath (Join-Path $Destination 'bundle-checksums.json') -Raw | ConvertFrom-Json
+  foreach($property in $manifest.PSObject.Properties) {
+    $path=Join-Path $Destination $property.Name
+    if((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $property.Value){throw 'Bundle file checksum mismatch.'}
+  }
+}
+function Copy-Bundle([string]$Source) {
+  foreach($name in @('compose.yaml','images.env','release.json','bundle-checksums.json','bundle.sha256','compatible-from.txt')) {Copy-Item -LiteralPath (Join-Path $Source $name) -Destination (Join-Path $InstallDir $name) -Force}
+}
+function Pull-Images {
+  if($UseLocalImages){
+    Get-Content -LiteralPath (Join-Path $InstallDir 'images.env') | ForEach-Object {
+      $image=($_ -split '=',2)[1]; & docker image inspect $image --format '{{.Id}}' | Out-Null
+      if($LASTEXITCODE -ne 0){throw 'Required preloaded image is missing.'}
+    }
+  } else {DC @('pull','api','worker','web','db')}
+}
+function Start-Stack {
+  DC @('up','-d','--wait','db')
+  DC @('run','--rm','--no-deps','migrate')
+  DC @('up','-d','--wait','--wait-timeout','180','api','worker','web')
+}
+function Save-Backup {
+  $path=Join-Path $InstallDir ('backups/'+[DateTime]::UtcNow.ToString('yyyyMMddTHHmmssffffZ'))
+  Private-Directory $path
+  DC @('stop','web','api','worker')
+  $backupComplete=$false
+  try {
+    Binary-Docker -Arguments @('exec','-T','db','pg_dump','-U','fixrate','-d','fixrate','-Fc') -File (Join-Path $path 'database.dump')
+    Binary-Docker -Arguments @('run','--rm','--no-deps','-T','api','python','scripts/release_runtime.py','files-export') -File (Join-Path $path 'files.tar.gz')
+    foreach($name in @('compose.yaml','images.env','release.json','infrastructure.env','secrets.env','bundle-checksums.json','bundle.sha256','compatible-from.txt')){Copy-Item -LiteralPath (Join-Path $InstallDir $name) -Destination (Join-Path $path $name)}
+    $hashes=@{}
+    Get-ChildItem -LiteralPath $path -File | ForEach-Object {$hashes[$_.Name]=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}
+    [IO.File]::WriteAllText((Join-Path $path 'backup-checksums.json'),($hashes | ConvertTo-Json))
+    [IO.File]::WriteAllLines((Join-Path $path 'backup.sha256'),@($hashes.Keys | Sort-Object | ForEach-Object {$hashes[$_]+'  '+$_}))
+    Binary-Docker -Arguments @('exec','-T','db','pg_restore','--list') -File (Join-Path $path 'database.dump') -InputFile
+    Binary-Docker -Arguments @('run','--rm','--no-deps','-T','api','python','scripts/release_runtime.py','files-check') -File (Join-Path $path 'files.tar.gz') -InputFile
+    Write-Host "Verified backup: $path"
+    $backupComplete=$true
+    return $path
+  } finally {if($Action -eq 'backup' -or -not $backupComplete){Start-Stack}}
+}
+
+$stage=Join-Path ([IO.Path]::GetTempPath()) ('fixrate-package-'+(Hex-Random 8))
+try {
+  Private-Directory $stage
+  Extract-Bundle $stage
+  if($Action -eq 'verify'){Write-Host 'Installer payload and bundle checksums: PASS';exit 0}
+  Check-Docker
+  $InstallDir=[IO.Path]::GetFullPath($InstallDir)
+  if($Action -eq 'doctor') {
+    $drive=(Get-Item -LiteralPath $stage).PSDrive
+    if($drive.Free -lt 10GB){throw 'At least 10 GB free disk space is required.'}
+    if(Test-Path -LiteralPath (Join-Path $InstallDir 'release.json')){Use-Installation;DC @('config','--quiet');DC @('ps')}
+    if(Test-Path -LiteralPath (Join-Path $InstallDir 'release.json')){DC @('run','--rm','--no-deps','-T','api','python','scripts/release_runtime.py','doctor')}
+    Write-Host 'Docker/Compose/architecture checks passed. No application data was changed.';exit 0
+  }
+  $exists=Test-Path -LiteralPath (Join-Path $InstallDir 'release.json')
+  if($Action -in @('install','upgrade','backup','restore')) {
+    if(-not $exists -and (Test-Path -LiteralPath $InstallDir) -and @(Get-ChildItem -LiteralPath $InstallDir -Force | Where-Object Name -ne '.install.lock').Count){throw 'Choose an empty installation directory.'}
+    Private-Directory $InstallDir
+    $installationLock=[IO.File]::Open((Join-Path $InstallDir '.install.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+  }
+  if($Action -eq 'install' -and -not $exists) {
+    if(Test-Path -LiteralPath $InstallDir){if(@(Get-ChildItem -LiteralPath $InstallDir -Force | Where-Object Name -ne '.install.lock').Count){throw 'Choose an empty installation directory.'}}
+    Private-Directory $InstallDir
+    if($Port -lt 1024 -or $Port -gt 65535){throw 'Choose a loopback port between 1024 and 65535.'}
+    $listener=New-Object Net.Sockets.TcpListener([Net.IPAddress]::Loopback,$Port)
+    try{$listener.Start()}finally{$listener.Stop()}
+    $dbSecret=Hex-Random 32;$setupToken=Hex-Random 32
+    $address=':8080';$bind='127.0.0.1';$secure='false';$https=0;$http=0
+    if($PublicHost){if($PublicHost -notmatch '^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'){throw 'PublicHost must be a DNS hostname.'};$address=$PublicHost;$bind='0.0.0.0';$secure='true';$https=443;$http=80}
+    [IO.File]::WriteAllText((Join-Path $InstallDir 'infrastructure.env'),"FIXRATE_PROJECT=fixrate_$(Hex-Random 8)`nFIXRATE_PORT=$Port`nFIXRATE_BIND=$bind`nFIXRATE_ADDRESS=$address`nFIXRATE_HTTPS_PORT=$https`nFIXRATE_HTTP_PORT=$http`nCOOKIE_SECURE=$secure`n")
+    [IO.File]::WriteAllText((Join-Path $InstallDir 'secrets.env'),"POSTGRES_PASSWORD=$dbSecret`nFIXRATE_BOOTSTRAP_TOKEN_SHA256=$(Hash-Bytes ([Text.Encoding]::UTF8.GetBytes($setupToken)))`n")
+    [IO.File]::WriteAllText((Join-Path $InstallDir 'bootstrap-token.txt'),$setupToken)
+    Copy-Bundle $stage
+  } elseif(-not $exists){throw 'Installation not found.'}
+  Use-Installation
+  switch($Action) {
+    'status' {DC @('ps');break}
+    'backup' {[void](Save-Backup);break}
+    'restore' {
+      if(-not $ConfirmDataReplacement -or -not $BackupPath){throw 'Restore requires -BackupPath and -ConfirmDataReplacement.'}
+      $hashes=Get-Content -LiteralPath (Join-Path $BackupPath 'backup-checksums.json') -Raw | ConvertFrom-Json
+      foreach($name in @('database.dump','files.tar.gz','compose.yaml','images.env','release.json','bundle-checksums.json','bundle.sha256','compatible-from.txt')){if($hashes.PSObject.Properties.Name -notcontains $name){throw 'Incomplete backup manifest.'}}
+      foreach($p in $hashes.PSObject.Properties){if($p.Name -notmatch '^[a-zA-Z0-9._-]+$'){throw 'Unsafe backup filename.'};if((Get-FileHash -LiteralPath (Join-Path $BackupPath $p.Name)).Hash.ToLowerInvariant() -ne $p.Value){throw 'Backup checksum mismatch.'}}
+      DC @('stop','web','api','worker')
+      Copy-Bundle $BackupPath;Use-Installation
+      Pull-Images;DC @('up','-d','--wait','db')
+      Binary-Docker -Arguments @('exec','-T','db','pg_restore','--list') -File (Join-Path $BackupPath 'database.dump') -InputFile
+      Binary-Docker -Arguments @('run','--rm','--no-deps','-T','api','python','scripts/release_runtime.py','files-check') -File (Join-Path $BackupPath 'files.tar.gz') -InputFile
+      Binary-Docker -Arguments @('exec','-T','db','pg_restore','-U','fixrate','-d','fixrate','--clean','--if-exists','--exit-on-error','--single-transaction') -File (Join-Path $BackupPath 'database.dump') -InputFile
+      Binary-Docker -Arguments @('run','--rm','--no-deps','-T','api','python','scripts/release_runtime.py','files-restore','--confirm-data-replacement') -File (Join-Path $BackupPath 'files.tar.gz') -InputFile
+      Start-Stack;break
+    }
+    'upgrade' {
+      $old=Get-Content -LiteralPath (Join-Path $InstallDir 'release.json') -Raw | ConvertFrom-Json
+      $next=Get-Content -LiteralPath (Join-Path $stage 'release.json') -Raw | ConvertFrom-Json
+      if($next.source_sha -eq $old.source_sha -and $next.version -eq $old.version){Write-Host 'This exact release is already installed.';break}
+      if($next.compatible_from -notcontains $old.version){throw 'No declared upgrade compatibility; keep the existing installation.'}
+      if($next.database_major -ne $old.database_major){throw 'A database major-version upgrade requires a separate procedure.'}
+      [void](Save-Backup)
+      Copy-Bundle $stage;Use-Installation
+      Pull-Images;Start-Stack;break
+    }
+    'install' {
+      $old=Get-Content -LiteralPath (Join-Path $InstallDir 'release.json') -Raw | ConvertFrom-Json
+      $next=Get-Content -LiteralPath (Join-Path $stage 'release.json') -Raw | ConvertFrom-Json
+      if((Get-FileHash -LiteralPath (Join-Path $InstallDir 'release.json')).Hash -ne (Get-FileHash -LiteralPath (Join-Path $stage 'release.json')).Hash){throw 'A different release is installed; use upgrade.'}
+      DC @('config','--quiet');Pull-Images;Start-Stack
+      Write-Host "Ready. First administrator: /setup. One-time code file: $(Join-Path $InstallDir 'bootstrap-token.txt')"
+      if($OpenBrowser){$url="http://127.0.0.1:$Port/setup";if($PublicHost){$url="https://$PublicHost/setup"};Start-Process $url}
+    }
+  }
+} catch {Write-Error $_.Exception.Message;exit 1}
+finally {
+  if($installationLock){$installationLock.Dispose()}
+  $resolvedStage=[IO.Path]::GetFullPath($stage)
+  $tempRoot=[IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')+'\'
+  if($resolvedStage.StartsWith($tempRoot,[StringComparison]::OrdinalIgnoreCase) -and [IO.Path]::GetFileName($resolvedStage).StartsWith('fixrate-package-')) {
+    if(Test-Path -LiteralPath $resolvedStage){Remove-Item -LiteralPath $resolvedStage -Recurse -Force}
+  }
+}
+# PAYLOAD_BEGIN
+@@PAYLOAD@@

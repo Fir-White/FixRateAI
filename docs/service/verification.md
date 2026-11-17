@@ -1,5 +1,57 @@
 # Проверки и доказательства
 
+## 17.11.2026 — сохранение полного среза перед редизайном
+
+Основание — запрос владельца сохранить **все рабочие исходники/документы** и опубликовать их в GitHub kran_dev до дизайнерских изменений. Live `git ls-remote` подтвердил опубликованный `kran_dev=13841cd3c3fb047a6bfe8de55c70de2de818aed5`, локальный исходный HEAD `1ef11e7d34579686a07236bba25a0095ad9c6db3`; 15 локальных коммитов/117 файлов рассматриваются вместе с текущим diff, а не как уже опубликованная база. [Полное описание реализованного и открытого](../releases/2026-11-17-kran-dev-publication.md), [опись файлов](../releases/2026-11-17-kran-dev-files.json).
+
+Свежий объединённый native-набор из 17 файлов (оркестратор/фазы/security/wire/readback/адаптеры/snapshot/protected outputs, capabilities/matrix, bootstrap/distribution, maintenance/runtime/storage/transactions и локальная test-policy): **296 passed / 105,09 с pytest**, весь изолированный pipeline **exit0 / 137,08 с**. PostgreSQL 18/Python 3.11.9/OR-Tools 9.15; fresh migrations/seed повторно, artifacts/schema, orchestration, compileall и pip check успешны. Реальная генерация/внешние сокеты в выбранном детерминированном профиле запрещены, рабочая БД/модельные настройки не использовались.
+
+Первоначальный прогон **295 passed / 1 failed** показал stale `assistant-acceptance.json`: bootstrap exclusions уже были в tools manifest, в матрице ещё оставались старые catalog hash/exclusions. Выполнен `assistant_acceptance_matrix.py --write`. Отдельное сравнение подтверждает **неизменные cells, evidence и summary**: 173 операции/708 клеток, 17 последних positive PASS/691 NOT_RUN; изменены только hash и две infrastructure exclusions. Второй native pipeline действительно выполнен заново и прошёл; исходный красный лог сохранён.
+
+Frontend: **87 passed / 10 файлов / 27,07 с** — assistant features, AssistantPage, SetupPage. TypeScript и Vite production build успешны, Vite **3,39 с**, initial JS **123,76 KiB gzip**. Это не полный frontend suite: последний полный результат **657 passed / 6 failed** остаётся открытым. Desktop/mobile browser evidence прошлого установочного среза не переименовывается в новый настоящий backend/LLM E2E.
+
+Статические проверки: ruff E9/F63/F7/F82 и actionlint 1.7.12 успешны. Для HTML-досье декодированы/проверены **42 base64-блока**, **31 исходный файл** и **14 встроенных JPEG**; исходники аналитика побайтно совпадают. Проверка candidate sources на high-confidence private/API keys не нашла реальных ключей; найденные password-like строки разобраны как CI fixture, crypto generator, UI labels и тестовые маркеры. Env/var/logs/private reports/БД/веса не включаются в публикацию.
+
+Staged whitespace-check обнаруживает исходные Markdown hard-break/trailing spaces внутри дословного HTML-досье. Досье и исходники сохранены без форматирования; это явно учтённое исключение одного документа, не успешный полный whitespace gate. Остальные файлы проверяются `git diff --cached --check` с исключением этого HTML. Опись сверена с Git-нормализованными staged blob bytes: 148 файлов плюс сама опись, приватных runtime-путей нет.
+
+Локальные raw evidence: `reports/publication-20261117-native/` (исходный отказ), `reports/publication-20261117-native-r2/summary.json`, `logs/publication-20261117-native-r2/run/pytest.log`, `reports/publication-20261117-frontend.log`, `reports/publication-20261117-build.log`, `var/publication-20261117/{source-audit,dossier-validation}.json`. Запись результатов, коммит, GitHub push, автоматическая синхронизация, main CI и production deploy — разные события. Нативный PASS не закрывает Docker/Windows/tag/registry acceptance, 65 неподдержанных write postconditions, промышленный recovery и новую ещё не реализованную двухролевую/RAG/TG постановку.
+
+## 17.11.2026 — кандидат установки и выпуска
+
+Проверен локальный diff поверх **kran_dev `1ef11e7d34579686a07236bba25a0095ad9c6db3`**, текущая ветка worktree называется `kran_dev`, несмотря на имя каталога integration-dev. Это незакоммиченный кандидат, не проверка опубликованного main. [Единая инструкция и аудит](installation.md); [объём передачи и блокеры](../releases/2026-11-17-installation-candidate.md).
+
+Изолированный PostgreSQL 18/Python 3.11.9: финальный повтор **68 passed / 77,83 с pytest**, весь pipeline exit 0 / 116,56 с. Семь файлов: `test_installation_bootstrap`, `test_release_distribution`, `test_assistant_capabilities`, `test_maintenance_api`, `test_qa02_runtime_contracts`, `test_storage`, `test_transactions`. Проверены одноразовый admin, конкурентные запросы, rollback при отказе audit, запрет для существующих пользователей, заполненная схема 023→024, настоящий HTTP login/enrollment/назначение роли, отзыв сессий при operator recovery, реальный pg_dump/pg_restore в другую БД и побайтовое восстановление файлов. Нативный restore не был skipped. Дополнительно прошли artifact/schema, orchestration scenarios, compileall и pip check. Это ограниченная приёмка, не весь backend suite и не Python 3.12 контейнер.
+
+Первый прогон: **58 passed / 1 failed** — мигратор оставлял `autocommit=True` в pooled connection, из-за чего блокировка bootstrap не обеспечивала транзакционность. Исправлены migrate/seed; следующий прогон 65 passed, затем 67 с populated upgrade/реальным restore, 68 с восстановлением доступа. Красный исходный лог сохранён, промежуточные числа не суммируются. Повтор r5 после защитных проверок scheduler/recovery и усиления installer/smoke снова дал 68 passed; контейнерное исполнение scheduler/upgrade остаётся открытым. Последующая правка bash disk check проверена синтаксически и повторной проверкой payload.
+
+Генерация не выполнялась: inference запрещён локальным guard, внешние сокеты/LLM и model pull запрещены. Ollama на loopback недоступна. Рабочие настройки пользователей и БД не менялись. Для **всех 38** закреплённых Core зависимостей разрешены Linux amd64/Python 3.12 wheels без незакреплённых дополнительных пакетов; это проверка resolver, не запуск Linux runtime.
+
+Frontend: новые SetupPage unit **2 passed**; полный suite **657 passed / 6 failed**, 74/76 файлов успешно, 379,05 с. Пять отказов `app/router.test.tsx` (equipment, home director/engineer, Back, background/logout), один `role-navigation.test.tsx` (executor/calendar). Не установлено, что все отказы вызваны этим diff; сравнение с исходным HEAD отдельно не выполнялось. Отказы не подавлены, CI остаётся красным до их разрешения. Typecheck и production build прошли; начальный JS **123,76 KiB gzip** при бюджете 150 KiB.
+
+Production Chrome с явно указанными API fixtures: desktop 1440×900, mobile 390×844, mobile reduced motion и compact 390×600. Во всех четырёх проверены открытие setup, сохранение полей после 403, одноразовый secret только в header, очистка password/token после успеха, переход к login, Back/reload/Forward, отсутствие горизонтального overflow и pageerror. Ввод→следующий rAF p95: **12,2 / 12,5 / 0,3 / 12,5 мс**; 60 rAF при wheel-прокрутке p95 **14,1 мс**, задач >50 мс в наблюдаемом установившемся участке нет. Compact viewport фактически прокручен на 195 px. Это headless wheel и viewport, не физический телефон/touch и не подтверждение постоянных 60 FPS. Первая проба desktop во время начальной анимации дала p95 190 мс; повтор измерял ввод после 1,2 с стабилизации. Начальная задержка не скрывается этим повтором.
+
+Проверки без Docker Engine: `docker compose ... config --quiet` exit 0; официальный actionlint 1.7.12 exit 0; ruff E9/F63/F7/F82 exit 0; bash -n exit 0; фактический PowerShell 5.1 и Git Bash `verify` обоих сгенерированных payload PASS; unit проверяет детерминированность и отклонение повреждённого пакета. Покрытие assistant API: **173 tools, no unaccounted user routes**, setup — явная preprincipal infrastructure exception. Проверка статических файлов не называется чистой установкой.
+
+| Испытание | Статус на локальной машине | Доказательство / остаток |
+|---|---|---|
+| TEST-01 чистая установка | BLOCKED | Docker Desktop engine pipe отсутствует; Windows 11 и Ubuntu installation не запускались |
+| TEST-02 повтор installer | PARTIAL | Сохранение admin/token при migrate проверено в PostgreSQL; повтор настоящего installer с контейнерами не выполнен |
+| TEST-03 первый admin | PASS, native HTTP/БД | Настоящие таблицы/хеши/сессия; не приёмка всей установки |
+| TEST-04 запрет повторного bootstrap | PASS, native HTTP/БД | Повтор 409, конкурентный запрос 409, единственный admin |
+| TEST-05 сотрудник/роль/здание | PASS, native HTTP/БД | Существующая enrollment/pending application и принятие executor в объекте admin |
+| TEST-06 перезапуск контейнеров | BLOCKED | Файловый roundtrip выполнен отдельно; Docker restart не выполнен |
+| TEST-07 Core без Ollama | PARTIAL | Native API работает при недоступной Ollama и запрещённой генерации; контейнерная установка не выполнена |
+| TEST-08 существующая Ollama | BLOCKED | Локальный сервис недоступен; модели/веса не скачивались |
+| TEST-09 обновление установки | PARTIAL | Заполненная схема 023→024 проверена; контейнерный upgrade не выполнен, production compatibility allowlist пока пуст |
+| TEST-10 restore в другой среде | PASS, native PostgreSQL/файлы | Реальный custom dump восстановлен в отдельную БД + отдельный каталог; Docker wrappers не проверены |
+| TEST-11 ошибка миграции | BLOCKED, Docker acceptance | В release_smoke есть fault image/SQL rollback и проверка остановленных consumers; сценарий не запускался |
+| TEST-12 повтор CI на SHA | NOT_RUN | Нет нового CI-run; локальная детерминированность пакетов — отдельный PASS |
+| TEST-13 main artifact build | NOT_RUN | Workflow реализован/проверен статически, в main не внесён |
+| TEST-14 tag release | BLOCKED | Нет отдельного разрешения, protected release environment и согласованного публичного GHCR |
+| TEST-15 скачанный installer | PARTIAL | Локальные payload/hash/tamper проверки PASS; скачать опубликованный пакет ещё нельзя |
+
+Raw evidence не содержит рабочие данные и остаётся private/ignored: `reports/release-installation-native-20261117-r5/run/results.json`, `logs/release-installation-native-20261117-r5/run/pytest.log`, предыдущие r2/r3/r4 и первоначальный красный `logs/release-installation-native-20261117/run/pytest.log`, `reports/release-installation-frontend-full.log`, `reports/release-installation-build.log`, `reports/release-installation-browser.json` и четыре screenshot. Локальный test bundle — `var/release-installation-20261117/package-final/`; image refs там тестовые, не поставка заказчику. Полная текущая установка и release acceptance **не завершены**. Невыполненные пункты остаются в этом реестре и плане.
+
 ## 17.11.2026 — устойчивость GitHub / GitVerse sync
 
 Изучены реальные [failed Actions 43829871430](https://github.com/Fir-White/FixRateAI/actions/runs/43829871430), последующие успешные запуски и даты обновления секретов без чтения их значений. На момент диагностики оба хостинга имели одинаковые SHA опубликованных веток; секреты после сбоя не менялись. Исходный `HTTP 403 / expected flush after ref listing` рассматривается как неоднозначный HTTP-отказ GitVerse, а не доказанное истечение токена. [Поведение и ограничения](git-hosting.md#восстановление-после-временных-http-ошибок-17112026).

@@ -7,6 +7,7 @@ import { LoadingState } from "@/shared/ui/States";
 import { AppShell } from "@/layouts/AppShell";
 import { ExecutorLayout } from "@/layouts/ExecutorLayout";
 import { LoginPage } from "@/pages/LoginPage";
+const SetupPage = lazy(() => import("@/pages/SetupPage").then(module => ({ default: module.SetupPage })));
 import { AuthLayout } from "@/pages/AuthLayout";
 import { HomeRedirect } from "@/pages/HomeRedirect";
 import { NotFoundPage } from "@/pages/NotFoundPage";
@@ -39,6 +40,7 @@ export function AppRouter() {
   return (
     <Routes>
       <Route element={<AuthLayout />}>
+        <Route path="/setup" element={<Suspense fallback={<LoadingState />}><SetupPage /></Suspense>} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegistrationPage />} />
       </Route>

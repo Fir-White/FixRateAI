@@ -3526,6 +3526,11 @@
     },
     {
       "method": "GET",
+      "path": "/api/setup",
+      "reason": "installation infrastructure before the first authenticated user"
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/assistant/attachments/{identity}",
       "reason": "human chat transport; deliberately not callable as a model tool"
     },
@@ -3578,6 +3583,11 @@
       "method": "PATCH",
       "path": "/api/v1/maintenance_jobs/{job_id}",
       "reason": "compatibility alias"
+    },
+    {
+      "method": "POST",
+      "path": "/api/setup",
+      "reason": "one-time installation infrastructure; requires OS-provisioned secret and has no authenticated model principal"
     },
     {
       "method": "POST",
