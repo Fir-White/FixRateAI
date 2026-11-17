@@ -395,11 +395,21 @@ def _validate_bookings(v,user_ids):
 
 def workforce_view(v):
     _guard(v,'director','admin','dispatcher','engineer')
+    # Read-only projection: batch rows instead of one query per employee.
+    members=v.prefetch('site_memberships','user_id')
+    applications=v.prefetch('employment_applications','user_id') if v.principal.role=='admin' else []
+    user_ids={m.user_id for m in members}|{a.user_id for a in applications if a.status=='pending'}
+    users=v.models['users']
+    records=v.session.scalars(select(users).where(users.user_id.in_(user_ids))).all()
+    v._task_rows[('users','user_id')]={r.user_id:[r] for r in records}
+    for table,key in (('user_skills','user_id'),('employee_shift_rules','user_id'),('availability_slots','user_id'),('crew_members','crew_id')):v.prefetch(table,key)
+    v.prefetch('crews');v.prefetch('skills')
     staff=[]
     for member in v.rows('site_memberships'):
         user=v.one('users',user_id=member.user_id)
         staff.append(dict(user_id=user.user_id,full_name=user.full_name,email=user.email,
-            role=SQL_ROLES.get(member.role,member.role),is_active=member.is_active and user.is_active,revision=member.revision,
+            role=SQL_ROLES.get(member.role,member.role),is_active=member.is_active and user.is_active,
+            membership_is_active=member.is_active,account_is_active=user.is_active,revision=member.revision,
             employed_from=member.employed_from,employed_until=member.employed_until,
             qualifications=[dict(skill_id=r.skill_id,verified_at=r.verified_at,valid_until=r.valid_until,revision=r.revision) for r in v.rows('user_skills',user_id=user.user_id)],
             shifts=[dict(shift_rule_id=r.shift_rule_id,label=r.label,pattern=r.calendar_pattern,valid_from=r.valid_from,
@@ -522,7 +532,16 @@ def register_workforce_routes(app,views,db):
             if SQL_ROLES.get(row.role)=='admin' and (command.role!='admin' or not command.is_active):
                 others=[m for m in v.rows('site_memberships') if m.user_id!=user_id and m.is_active and SQL_ROLES.get(m.role)=='admin' and v.one('users',user_id=m.user_id).is_active]
                 if not others: raise HTTPException(409,'Нельзя отозвать доступ последнего администратора объекта')
-            for key,value in command.model_dump(exclude={'expected_revision'}).items(): setattr(row,key,value)
+            changes=command.model_dump(exclude={'expected_revision'},exclude_unset=True)
+            try:
+                # Validate the effective period, including preserved fields.
+                # A role-only edit must not erase employment metadata.
+                EmploymentEdit.model_validate({**command.model_dump(exclude={'employed_from','employed_until'}),
+                    'employed_from':changes.get('employed_from',row.employed_from),
+                    'employed_until':changes.get('employed_until',row.employed_until)})
+            except ValidationError:
+                raise HTTPException(422,'Дата окончания трудоустройства не может быть раньше даты начала') from None
+            for key,value in changes.items():setattr(row,key,value)
             row.revision+=1;v.session.flush();_validate_bookings(v,{user_id})
             _audit(v,'site_memberships',user_id,'update',dict(role=row.role,is_active=row.is_active,revision=row.revision))
             return dict(revision=row.revision)

@@ -32,6 +32,7 @@ class AITunnelConfig:
     base_url: str = "https://api.aitunnel.ru/v1"
     timeout: float = 90.0
     reasoning_effort: str = "none"
+    allow_model_alias: bool = False
 
     @classmethod
     def from_environment(cls, tool="vision", environment=None):
@@ -56,7 +57,7 @@ class AITunnelConfig:
         effort = values.get("AITUNNEL_REASONING_EFFORT", "none").strip()
         if effort not in ("none", "low", "medium", "high"):
             raise ValueError("Invalid AITUNNEL_REASONING_EFFORT")
-        return cls(model=model, api_key=key, base_url=base, timeout=timeout, reasoning_effort=effort)
+        return cls(model=model, api_key=key, base_url=base, timeout=timeout, reasoning_effort=effort,allow_model_alias=model=='auto')
 
     @property
     def model_ref(self):
@@ -73,7 +74,7 @@ class AITunnelClient:
         self.response_diagnostics = []
 
     def chat(self, messages, schema, tokens):
-        diagnostic = {"schema": schema.__name__, "max_tokens": tokens, "stage": "request"}
+        diagnostic = {"schema": schema.__name__ if schema else "text", "max_tokens": tokens, "stage": "request"}
         self.response_diagnostics.append(diagnostic)
         if not self.config.api_key:
             raise AITunnelFailure("AITUNNEL_NOT_CONFIGURED")
@@ -91,16 +92,18 @@ class AITunnelClient:
             converted.append({"role": message["role"], "content": content})
         instructions = "\n\n".join(message["content"] for message in converted if message["role"] == "system")
         converted = [message for message in converted if message["role"] != "system"]
-        converted.insert(0, {"role": "system", "content": instructions + "\n\n" +
+        output_instructions = ("\n\n" +
             "Return exactly ONE JSON OBJECT matching this schema. Never return a JSON array or Markdown. "
             "Use exactly the property names from the schema; never translate property names. "
             "Include every required field. Empty lists must be [], not null. "
-            "Respond in Russian only for descriptive string VALUES. JSON schema: " + json.dumps(schema.model_json_schema(), ensure_ascii=False)})
+            "Respond in Russian only for descriptive string VALUES. JSON schema: " + json.dumps(schema.model_json_schema(), ensure_ascii=False)) if schema else ""
+        converted.insert(0, {"role": "system", "content": instructions + output_instructions})
         payload = {"model": self.config.model, "messages": converted, "stream": False,
                    "max_tokens": tokens, "include_reasoning": False,
-                   "reasoning": {"effort": self.config.reasoning_effort},
-                   "response_format": {"type": "json_schema", "json_schema": {
-                       "name": schema.__name__, "strict": True, "schema": schema.model_json_schema()}}}
+                   "reasoning": {"effort": self.config.reasoning_effort}}
+        if schema:
+            payload["response_format"] = {"type": "json_schema", "json_schema": {
+                "name": schema.__name__, "strict": True, "schema": schema.model_json_schema()}}
         request = Request(self.config.base_url + "/chat/completions",
                           data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
                           headers={"Content-Type": "application/json", "Authorization": "Bearer " + self.config.api_key})
@@ -129,10 +132,13 @@ class AITunnelClient:
                 raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE")
             if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9._:/-]{0,199}", actual_model):
                 raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE")
-            if actual_model != self.config.model and not actual_model.startswith(self.config.model + "-"):
+            if not self.config.allow_model_alias and actual_model != self.config.model and not actual_model.startswith(self.config.model + "-"):
                 raise AITunnelFailure("AITUNNEL_MODEL_MISMATCH")
             diagnostic["stage"] = "schema"
-            result = schema.model_validate_json(message["content"])
+            if schema:result = schema.model_validate_json(message["content"])
+            else:
+                result = message["content"].strip()
+                if not result or len(result)>32000:raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE")
             diagnostic["stage"] = "validated"
             self.response_model = actual_model
             return result
@@ -157,6 +163,11 @@ class AITunnelClient:
             ]
             diagnostic["error_code"] = "AITUNNEL_INVALID_RESPONSE"
             raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE") from None
+
         except (ValueError, TypeError, KeyError, IndexError, AttributeError):
             diagnostic["error_code"] = "AITUNNEL_INVALID_RESPONSE"
             raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE") from None
+
+    def text(self, messages, tokens=8192):
+        """User-facing prose shares the same deadline, envelope checks and privacy rules."""
+        return self.chat(messages, None, tokens)

@@ -742,6 +742,8 @@ def create_app(engine=None):
         v.session.commit()
         return result
 
+    from app.installation import register_installation_routes
+    register_installation_routes(app)
     from app.integration.assistant import register_routes as register_assistant
     register_assistant(app,views)
     from app.integration.management import register_routes

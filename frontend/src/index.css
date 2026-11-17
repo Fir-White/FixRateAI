@@ -1,6 +1,13 @@
 @import "tailwindcss";
 @import "./shared/motion/motion.css";
 
+@layer base {
+  :where(button,a[href],summary,select,[role="button"],input[type="button"],input[type="submit"],input[type="reset"],input[type="checkbox"],input[type="radio"],label[for]):not(:disabled):not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  :where(button,select,input):disabled { cursor: not-allowed; }
+}
+
 @theme static {
   --default-transition-duration: var(--motion-fast);
   --default-transition-timing-function: var(--ease-standard);

@@ -2,6 +2,204 @@
   "format_version": 1,
   "tools": [
     {
+      "name": "chat_models",
+      "title": "Доступные локальные и облачные модели чата",
+      "method": "GET",
+      "path": "/api/v1/assistant/models",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "chat_model_preference",
+      "title": "Мой сохранённый выбор модели чата",
+      "method": "GET",
+      "path": "/api/v1/assistant/model-preference",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "chat_model_select",
+      "title": "Выбрать мою модель чата для следующих сообщений",
+      "method": "POST",
+      "path": "/api/v1/assistant/model-preference",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "tasks_analyze",
+      "title": "Полный серверный анализ незавершённых заданий: сроки, нагрузка, бизнес-дубли и единицы норм",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/task-analysis",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner",
+        "photo"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "draft_changes",
+      "title": "Фактические отличия двух версий черновика",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/draft-changes",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "drafts_find",
+      "title": "Все доступные черновики текущего объекта из регламентов и каталогов",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/drafts",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "planning_context",
+      "title": "Проверенные обязанности, регламенты, исходные пробелы и политика выбранного периода",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/planning-context",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "inventory_read",
+      "title": "Все доступные здания, оборудование, число операций ТО и пробелы подготовки",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/inventory",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner",
+        "photo"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "attachment_read",
+      "title": "Прочитать лист и строки прикреплённого Excel без импорта",
+      "method": "GET",
+      "path": "/api/v1/assistant/conversations/{identity}/attachments/{attachment_id}/content",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner",
+        "photo"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
       "name": "equipment_list",
       "title": "Найти оборудование объекта",
       "method": "GET",
@@ -130,6 +328,75 @@
       "title": "Регламенты и чек-листы оборудования",
       "method": "GET",
       "path": "/api/v1/maintenance/equipment/{equipment_id}/service-configurations",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner",
+        "photo"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "calendar_evidence",
+      "title": "Рассчитать календарную периодичность по сохранённому регламенту",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/equipment/{equipment_id}/calendar-evidence",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner",
+        "photo"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "equipment_service_history",
+      "title": "Фактическая история оборудования за период по отчётам и приёмке",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/equipment/{equipment_id}/history",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner",
+        "photo"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "workbook_readiness",
+      "title": "Проверить исходный XLSX для расчёта трудозатрат и численности без выдуманных нормативов",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/workbook-readiness",
       "roles": [
         "director",
         "chief_engineer",
@@ -344,6 +611,25 @@
       "title": "Сотрудники и условия назначения",
       "method": "GET",
       "path": "/api/v1/maintenance/ui/tasks/{task_id}/assignment-context",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "assignment_prepare",
+      "title": "Проверить назначение конкретных сотрудников на задание",
+      "method": "POST",
+      "path": "/api/v1/assistant/workspace/tasks/{task_id}/prepare-assignment",
       "roles": [
         "chief_engineer",
         "engineer",
@@ -3229,9 +3515,19 @@
   ],
   "excluded": [
     {
+      "method": "DELETE",
+      "path": "/api/v1/assistant/conversations/{identity}",
+      "reason": "human chat transport; deliberately not callable as a model tool"
+    },
+    {
       "method": "GET",
       "path": "/api/health",
       "reason": "service health"
+    },
+    {
+      "method": "GET",
+      "path": "/api/setup",
+      "reason": "installation infrastructure before the first authenticated user"
     },
     {
       "method": "GET",
@@ -3290,6 +3586,11 @@
     },
     {
       "method": "POST",
+      "path": "/api/setup",
+      "reason": "one-time installation infrastructure; requires OS-provisioned secret and has no authenticated model principal"
+    },
+    {
+      "method": "POST",
       "path": "/api/v1/assistant/actions/{identity}/confirm",
       "reason": "human chat transport; deliberately not callable as a model tool"
     },
@@ -3311,6 +3612,11 @@
     {
       "method": "POST",
       "path": "/api/v1/assistant/conversations/{identity}/messages",
+      "reason": "human chat transport; deliberately not callable as a model tool"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/assistant/conversations/{identity}/turns/{turn_id}/stop",
       "reason": "human chat transport; deliberately not callable as a model tool"
     },
     {

@@ -199,7 +199,6 @@ def test_mismatched_result_identity_requires_manual_review():
     assert decision.reasons[0].startswith("SNAPSHOT_MISMATCH")
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="BUG-01: unknown uncertainty with calibrated=True is accepted as early evidence")
 def test_unknown_uncertainty_is_not_early_evidence():
     # docs/service/planning.md: "Неизвестная уверенность ... такой оценкой не являются."
     snapshot, item = inputs("customer")
@@ -216,7 +215,6 @@ def test_unknown_uncertainty_is_not_early_evidence():
     assert decision.selected_date == date(2026, 11, 10)
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="BUG-02: a tampered earlier algorithmic date is trusted as the fallback")
 def test_tampered_earlier_algorithmic_date_is_not_trusted():
     # The algorithmic result must come from ALG02 for this snapshot.  A date
     # that is inside the window but earlier than the real regulation date must
@@ -231,7 +229,6 @@ def test_tampered_earlier_algorithmic_date_is_not_trusted():
     assert decision.selected_date == algorithmic.recommended_date == date(2026, 11, 10)
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="BUG-03: bounded_ai trusts the AI-provided overdue flag")
 def test_ai_overdue_flag_is_recomputed_from_the_snapshot():
     # A future due date (2026-11-10) with as_of 2026-11-01 cannot be overdue.
     snapshot, item = inputs()

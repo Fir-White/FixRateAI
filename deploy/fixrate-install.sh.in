@@ -1,0 +1,151 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+action="${1:-install}"; if (($#)); then shift; fi
+install_dir="${XDG_DATA_HOME:-$HOME/.local/share}/fixrateai"
+port=8080; public_host=''; backup_path=''; confirm=0; install_prerequisites=0;use_local_images=0
+while (($#)); do
+  case "$1" in
+    --install-dir) install_dir="$2"; shift 2;;
+    --port) port="$2"; shift 2;;
+    --public-host) public_host="$2"; shift 2;;
+    --backup-path) backup_path="$2"; shift 2;;
+    --confirm-data-replacement) confirm=1; shift;;
+    --install-prerequisites) install_prerequisites=1; shift;;
+    --local-images) use_local_images=1;shift;;
+    *) echo 'Unknown option.' >&2; exit 2;;
+  esac
+done
+case "$action" in install|status|doctor|backup|restore|upgrade|verify) ;; *) echo 'Use install/status/doctor/backup/restore/upgrade/verify.' >&2;exit 2;; esac
+stage="$(mktemp -d "${TMPDIR:-/tmp}/fixrate-package.XXXXXXXX")"
+safe_resume=0
+cleanup(){
+  result=$?
+  if ((result && safe_resume));then start_stack || true;fi
+  rm -rf -- "$stage"
+}
+trap cleanup EXIT
+sed -n '/^__FIXRATE_PAYLOAD_BELOW__$/,$p' "$0" | tail -n +2 | base64 --decode > "$stage/bundle.tar.gz"
+printf '%s  %s\n' '@@PAYLOAD_SHA256@@' "$stage/bundle.tar.gz" | sha256sum --check --status
+tar -xzf "$stage/bundle.tar.gz" -C "$stage"
+(cd "$stage" && sha256sum --check --status bundle.sha256)
+if [[ "$action" == verify ]]; then echo 'Installer payload and bundle checksums: PASS';exit 0;fi
+# First supported distribution: Ubuntu 24.04 LTS on amd64. No speculative OS support.
+if [[ ! -f /etc/os-release ]]; then echo 'Ubuntu 24.04 LTS required.' >&2;exit 1;fi
+. /etc/os-release
+if [[ "$ID" != ubuntu || "$VERSION_ID" != 24.04 || "$(uname -m)" != x86_64 ]]; then
+  echo 'Supported platform: Ubuntu 24.04 LTS amd64.' >&2;exit 1
+fi
+if ! command -v docker >/dev/null; then
+  if ((install_prerequisites)); then
+    read -r -p 'Install Ubuntu Docker Engine/Compose packages? Type INSTALL: ' answer
+    [[ "$answer" == INSTALL ]] || exit 1
+    if ((EUID)); then sudo apt-get update;sudo apt-get install docker.io docker-compose-v2
+    else apt-get update;apt-get install docker.io docker-compose-v2;fi
+    echo 'Ensure the Docker service is running and your account has access. Rerun the installer.';exit 1
+  fi
+  echo 'Docker Engine and Compose v2.24+ are required. Use --install-prerequisites for a confirmed package installation.' >&2;exit 1
+fi
+[[ "$(docker info --format '{{.OSType}}/{{.Architecture}}')" == linux/x86_64 ]] || { echo 'Linux amd64 Docker access required.' >&2;exit 1; }
+compose_version="$(docker compose version --short | sed 's/^v//')"
+major="${compose_version%%.*}"; rest="${compose_version#*.}"; minor="${rest%%.*}"
+((major>2 || (major==2 && minor>=24))) || { echo 'Compose v2.24+ required.' >&2;exit 1; }
+[[ "$install_dir" = /* && ! -L "$install_dir" ]] || { echo 'Choose an absolute installation directory without a symlink.' >&2;exit 1; }
+space_path="$install_dir"
+while [[ ! -d "$space_path" ]];do space_path="$(dirname "$space_path")";done
+[[ "$(df -Pk "$space_path" | awk 'NR==2 {print $4}')" -ge 10485760 ]] || { echo 'At least 10 GB free disk required on the installation filesystem.' >&2;exit 1; }
+random_hex(){ od -An -N32 -tx1 /dev/urandom | tr -d ' \n'; }
+use_installation(){
+  for name in infrastructure.env secrets.env images.env compose.yaml release.json; do [[ -f "$install_dir/$name" ]] || { echo "Missing $name" >&2;exit 1; };done
+  dc=(docker compose --env-file "$install_dir/infrastructure.env" --env-file "$install_dir/secrets.env" --env-file "$install_dir/images.env" -f "$install_dir/compose.yaml")
+}
+copy_bundle(){ for name in compose.yaml images.env release.json bundle-checksums.json bundle.sha256 compatible-from.txt; do cp -- "$1/$name" "$install_dir/$name";done; }
+pull_images(){
+  if ((use_local_images));then
+    while IFS='=' read -r key image;do docker image inspect "$image" --format '{{.Id}}' >/dev/null;done < "$install_dir/images.env"
+  else "${dc[@]}" pull api worker web db;fi
+}
+start_stack(){ "${dc[@]}" up -d --wait db;"${dc[@]}" run --rm --no-deps migrate;"${dc[@]}" up -d --wait --wait-timeout 180 api worker web; }
+save_backup(){
+  saved_backup="$install_dir/backups/$(date -u +%Y%m%dT%H%M%S)-${RANDOM}"
+  mkdir -m 700 -p "$saved_backup"
+  "${dc[@]}" stop web api worker
+  safe_resume=1
+  "${dc[@]}" exec -T db pg_dump -U fixrate -d fixrate -Fc > "$saved_backup/database.dump"
+  "${dc[@]}" run --rm --no-deps -T api python scripts/release_runtime.py files-export > "$saved_backup/files.tar.gz"
+  for name in compose.yaml images.env release.json infrastructure.env secrets.env bundle-checksums.json bundle.sha256 compatible-from.txt; do cp -- "$install_dir/$name" "$saved_backup/$name";done
+  (cd "$saved_backup" && sha256sum -- database.dump files.tar.gz compose.yaml images.env release.json infrastructure.env secrets.env bundle-checksums.json bundle.sha256 compatible-from.txt > backup.sha256 && sha256sum --check --status backup.sha256)
+  { printf '{\n'; first=1;while read -r digest name;do if ((first));then first=0;else printf ',\n';fi;printf '  "%s": "%s"' "$name" "$digest";done < "$saved_backup/backup.sha256";printf '\n}\n';} > "$saved_backup/backup-checksums.json"
+  "${dc[@]}" exec -T db pg_restore --list < "$saved_backup/database.dump" >/dev/null
+  "${dc[@]}" run --rm --no-deps -T api python scripts/release_runtime.py files-check < "$saved_backup/files.tar.gz"
+  echo "Verified backup: $saved_backup"
+}
+if [[ "$action" == doctor ]]; then
+  if [[ -f "$install_dir/release.json" ]];then use_installation;"${dc[@]}" config --quiet;"${dc[@]}" ps;fi
+  if [[ -f "$install_dir/release.json" ]];then "${dc[@]}" run --rm --no-deps -T api python scripts/release_runtime.py doctor;fi
+  echo 'Docker/Compose/platform checks passed. No application data changed.';exit 0
+fi
+case "$action" in
+  install|upgrade|backup|restore)
+    if [[ ! -f "$install_dir/release.json" && -d "$install_dir" && -n "$(find "$install_dir" -mindepth 1 -maxdepth 1 ! -name .install.lock -print -quit)" ]];then echo 'Choose an empty installation directory.' >&2;exit 1;fi
+    mkdir -m 700 -p "$install_dir"
+    exec 9>"$install_dir/.install.lock"
+    flock -n 9 || { echo 'Another installer/backup/restore process owns this installation.' >&2;exit 1; };;
+esac
+if [[ "$action" == install && ! -f "$install_dir/release.json" ]]; then
+  [[ -z "$(find "$install_dir" -mindepth 1 -maxdepth 1 ! -name .install.lock -print -quit)" ]] || { echo 'Choose an empty installation directory.' >&2;exit 1; }
+  [[ "$port" =~ ^[0-9]+$ ]] && ((port>=1024 && port<=65535)) || { echo 'Choose port 1024..65535.' >&2;exit 1; }
+  if (echo >/dev/tcp/127.0.0.1/"$port") >/dev/null 2>&1; then echo 'Requested port is in use.' >&2;exit 1;fi
+  mkdir -m 700 -p "$install_dir";chmod 700 "$install_dir"
+  db_secret="$(random_hex)"; setup_token="$(random_hex)"
+  address=':8080'; bind='127.0.0.1'; secure=false; https=0; http=0
+  if [[ -n "$public_host" ]];then
+    [[ "$public_host" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]] || { echo 'Public host must be a DNS name.' >&2;exit 1; }
+    address="$public_host";bind=0.0.0.0;secure=true;https=443;http=80
+  fi
+  project_entropy="$(random_hex)"
+  printf 'FIXRATE_PROJECT=fixrate_%s\nFIXRATE_PORT=%s\nFIXRATE_BIND=%s\nFIXRATE_ADDRESS=%s\nFIXRATE_HTTPS_PORT=%s\nFIXRATE_HTTP_PORT=%s\nCOOKIE_SECURE=%s\n' "${project_entropy:0:16}" "$port" "$bind" "$address" "$https" "$http" "$secure" > "$install_dir/infrastructure.env"
+  printf 'POSTGRES_PASSWORD=%s\nFIXRATE_BOOTSTRAP_TOKEN_SHA256=%s\n' "$db_secret" "$(printf %s "$setup_token" | sha256sum | cut -d' ' -f1)" > "$install_dir/secrets.env"
+  printf %s "$setup_token" > "$install_dir/bootstrap-token.txt"
+  unset db_secret setup_token
+  copy_bundle "$stage"
+fi
+use_installation
+case "$action" in
+  status) "${dc[@]}" ps;;
+  backup) save_backup;start_stack;;
+  restore)
+    ((confirm)) && [[ -n "$backup_path" ]] || { echo 'Restore requires --backup-path and --confirm-data-replacement.' >&2;exit 1; }
+    (cd "$backup_path" && sha256sum --check --status backup.sha256)
+    for name in database.dump files.tar.gz compose.yaml images.env release.json bundle-checksums.json bundle.sha256 compatible-from.txt;do grep -Fq "  $name" "$backup_path/backup.sha256" || { echo 'Incomplete backup manifest.' >&2;exit 1; };done
+    "${dc[@]}" stop web api worker
+    copy_bundle "$backup_path";use_installation
+    pull_images;"${dc[@]}" up -d --wait db
+    "${dc[@]}" exec -T db pg_restore --list < "$backup_path/database.dump" >/dev/null
+    "${dc[@]}" run --rm --no-deps -T api python scripts/release_runtime.py files-check < "$backup_path/files.tar.gz"
+    "${dc[@]}" exec -T db pg_restore -U fixrate -d fixrate --clean --if-exists --exit-on-error --single-transaction < "$backup_path/database.dump"
+    "${dc[@]}" run --rm --no-deps -T api python scripts/release_runtime.py files-restore --confirm-data-replacement < "$backup_path/files.tar.gz"
+    start_stack;;
+  upgrade)
+    # Compatibility is an explicit exact-version list in the signed-off package.
+    old_version="$(sed -n 's/.*"version": "\([^"]*\)".*/\1/p' "$install_dir/release.json" | head -n1)"
+    grep -Fqx "$old_version" "$stage/compatible-from.txt" || { echo 'No declared upgrade compatibility.' >&2;exit 1; }
+    old_major="$(sed -n 's/.*"database_major": \([0-9]*\).*/\1/p' "$install_dir/release.json")"
+    new_major="$(sed -n 's/.*"database_major": \([0-9]*\).*/\1/p' "$stage/release.json")"
+    [[ "$old_major" == "$new_major" ]] || { echo 'Database major upgrade requires a separate procedure.' >&2;exit 1; }
+    save_backup
+    safe_resume=0
+    copy_bundle "$stage";use_installation
+    pull_images;start_stack;;
+  install)
+    cmp -s "$stage/release.json" "$install_dir/release.json" || { echo 'A different release is installed; use upgrade.' >&2;exit 1; }
+    "${dc[@]}" config --quiet;pull_images;start_stack
+    installed_port="$(sed -n 's/^FIXRATE_PORT=//p' "$install_dir/infrastructure.env")"
+    installed_address="$(sed -n 's/^FIXRATE_ADDRESS=//p' "$install_dir/infrastructure.env")"
+    browser_url="http://127.0.0.1:$installed_port/setup"
+    if [[ "$installed_address" != :8080 ]];then browser_url="https://$installed_address/setup";fi
+    echo "Ready. Open $browser_url in your browser. One-time code: $install_dir/bootstrap-token.txt";;
+esac
+exit 0
+__FIXRATE_PAYLOAD_BELOW__
+@@PAYLOAD@@

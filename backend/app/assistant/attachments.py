@@ -1,5 +1,6 @@
 """Private immutable staging; model arguments contain IDs, never local paths or bytes."""
 from contextvars import ContextVar
+import base64,io
 from hashlib import sha256
 from uuid import UUID
 from fastapi import HTTPException
@@ -32,3 +33,26 @@ def content(app,identity):
     return row,blob
 
 def public(row):return {k:row[k] for k in ('attachment_id','original_name','mime_type','size_bytes','sha256','created_at')}
+
+
+def image_inputs(app,files):
+    """Read only explicitly sent images, strip metadata and bound provider payloads."""
+    from PIL import Image,ImageOps,UnidentifiedImageError
+    result=[]
+    for row in files:
+        if not row['mime_type'].startswith('image/'):continue
+        _,blob=content(app,row['attachment_id'])
+        try:
+            with Image.open(io.BytesIO(blob)) as source:
+                if source.width*source.height>20_000_000:raise HTTPException(422,'Слишком большое изображение')
+                picture=ImageOps.exif_transpose(source)
+                picture.thumbnail((1280,1280))
+                if picture.mode in ('RGBA','LA') or 'transparency' in picture.info:
+                    rgba=picture.convert('RGBA');background=Image.new('RGB',rgba.size,'white');background.paste(rgba,mask=rgba.getchannel('A'));picture=background
+                else:picture=picture.convert('RGB')
+                buffer=io.BytesIO();picture.save(buffer,format='JPEG',quality=85)
+        except (UnidentifiedImageError,OSError,Image.DecompressionBombError) as exc:
+            raise HTTPException(422,'Не удалось прочитать прикреплённое изображение') from exc
+        result.append(base64.b64encode(buffer.getvalue()).decode('ascii'))
+    if len(result)>4:raise HTTPException(422,'К сообщению можно отправить не больше четырёх изображений')
+    return result

@@ -35,6 +35,8 @@ def main():
     parser.add_argument("--pg-bin", type=Path, default=Path("C:/Program Files/PostgreSQL/16/bin") if os.name == "nt" else Path("/usr/lib/postgresql/16/bin"))
     parser.add_argument("--output", type=Path, help="New reports directory; defaults to reports/verification/<run-id>")
     parser.add_argument("--browser", action="store_true", help="Also run built-SPA browser tests")
+    parser.add_argument('--backend-only',action='store_true',help='Run Python/API/contracts checks without installing or building the frontend')
+    parser.add_argument('--agent-only',action='store_true',help='Provision fresh current-schema databases for agent/API tests; do not run legacy SQL upgrade assertions or frontend')
     parser.add_argument('--pytest-target',nargs='+',help='Run selected pytest paths while developing; omit for the full release check')
     args = parser.parse_args()
     output, log_output = prepare_run(args.output)
@@ -112,42 +114,49 @@ def main():
         orm_url = create_db("fixrate_test_orm")
         runtime_url = create_db("fixrate_test_runtime")
         upgrade_url = create_db("fixrate_test_upgrade")
-        # Upgrade a populated 001–004 database; every imported SQL assertion remains intact.
-        for file in sorted((ROOT / "database/migrations").glob("00[1-4]*.sql")):
-            sql("fixrate_test_upgrade", file, "upgrade_" + file.stem)
-        for file in sorted((ROOT / "tests/sql").glob("00[1-4]*.sql")):
-            sql("fixrate_test_upgrade", file, "sql_" + file.stem)
-        sql("fixrate_test_upgrade", ROOT / "tests/sql/test_maintenance_schema.sql", "sql_qa_schema", variables={"qa03_keep_fixtures": "true"})
-        sql("fixrate_test_upgrade", ROOT / "database/seeds/001_customer_schedule_demo.sql", "seed_source")
-        sql("fixrate_test_upgrade", ROOT / "database/seeds/001_customer_schedule_demo.sql", "seed_source_rerun")
-        sql("fixrate_test_upgrade", ROOT / "tests/sql/005_demo_seed.sql", "sql_demo_seed")
         from app.manage import migrate, seed_demo
         from app.db.session import make_engine
-        engine = make_engine(upgrade_url)
-        sql("fixrate_test_upgrade", ROOT / "tests/sql/test_maintenance_history_upgrade.sql", "history_before_upgrade", variables={"qa03_capture": "true"})
-        migrate(engine, adopt_existing=True)
-        migrate(engine)
-        sql("fixrate_test_upgrade", ROOT / "tests/sql/test_maintenance_history_upgrade.sql", "history_after_upgrade")
-        sql("fixrate_test_upgrade", ROOT / "tests/sql/test_runtime_schema.sql", "upgraded_runtime_schema")
-        engine.dispose()
-        results.append(dict(check="upgrade_004_to_008_and_idempotence", command="app.manage.migrate(adopt_existing=True); migrate(); compare all original fields across eight nonempty history tables", status="Пройдено"))
+        if not args.agent_only:
+            # Upgrade a populated 001–004 database; every imported SQL assertion remains intact.
+            for file in sorted((ROOT / "database/migrations").glob("00[1-4]*.sql")):
+                sql("fixrate_test_upgrade", file, "upgrade_" + file.stem)
+            for file in sorted((ROOT / "tests/sql").glob("00[1-4]*.sql")):
+                sql("fixrate_test_upgrade", file, "sql_" + file.stem)
+            sql("fixrate_test_upgrade", ROOT / "tests/sql/test_maintenance_schema.sql", "sql_qa_schema", variables={"qa03_keep_fixtures": "true"})
+            sql("fixrate_test_upgrade", ROOT / "database/seeds/001_customer_schedule_demo.sql", "seed_source")
+            sql("fixrate_test_upgrade", ROOT / "database/seeds/001_customer_schedule_demo.sql", "seed_source_rerun")
+            sql("fixrate_test_upgrade", ROOT / "tests/sql/005_demo_seed.sql", "sql_demo_seed")
+            engine = make_engine(upgrade_url)
+            sql("fixrate_test_upgrade", ROOT / "tests/sql/test_maintenance_history_upgrade.sql", "history_before_upgrade", variables={"qa03_capture": "true"})
+            migrate(engine, adopt_existing=True)
+            migrate(engine)
+            sql("fixrate_test_upgrade", ROOT / "tests/sql/test_maintenance_history_upgrade.sql", "history_after_upgrade")
+            sql("fixrate_test_upgrade", ROOT / "tests/sql/test_runtime_schema.sql", "upgraded_runtime_schema")
+            engine.dispose()
+            results.append(dict(check="upgrade_004_to_008_and_idempotence", command="app.manage.migrate(adopt_existing=True); migrate(); compare all original fields across eight nonempty history tables", status="Пройдено"))
         # Independent fresh installation, then seed twice without resetting history or passwords.
         engine = make_engine(runtime_url)
         migrate(engine)
-        sql("fixrate_test_runtime", ROOT / "tests/sql/test_maintenance_schema.sql", "fresh_base_schema")
-        sql("fixrate_test_runtime", ROOT / "tests/sql/test_runtime_schema.sql", "fresh_runtime_schema")
+        migrate(engine)
+        if not args.agent_only:
+            sql("fixrate_test_runtime", ROOT / "tests/sql/test_maintenance_schema.sql", "fresh_base_schema")
+            sql("fixrate_test_runtime", ROOT / "tests/sql/test_runtime_schema.sql", "fresh_runtime_schema")
         password = "Verification-" + os.urandom(12).hex()
         seed_demo(engine, password)
         seed_demo(engine, password)
         engine.dispose()
-        results.append(dict(check="fresh_001_to_008_and_seed_rerun", command="app.manage.migrate(); seed_demo(); seed_demo()", status="Пройдено"))
+        results.append(dict(check="fresh_current_schema_and_seed_rerun", command="app.manage.migrate(); seed_demo(); seed_demo()", status="Пройдено"))
         test_env = dict(env, TEST_DATABASE_URL=orm_url, INTEGRATION_DATABASE_URL=runtime_url, FIXRATE_TEST_PASSWORD=password,
                         PHOTO_STORAGE_ROOT=str(scratch / "photos"))
+        if args.agent_only:
+            test_env['FIXRATE_AGENT_AUDIT_OUTPUT']=str(output/'agent-audit')
         run("pytest", [sys.executable, "-B", "-m", "pytest", "-q",*(args.pytest_target or [])], variables=test_env)
         run("architecture", [sys.executable, "-B", "scripts/validate_artifacts.py"])
         run("orchestration_scenarios", [sys.executable, "-B", "scripts/verify_orchestration.py", "--output", str(output / "orchestration")])
         run("compileall", [sys.executable, "-m", "compileall", "-q", "backend/app", "ml_service", "tests"])
         run("pip_check", [sys.executable, "-m", "pip", "check"])
+        if args.backend_only or args.agent_only:
+            return
         npm = shutil.which("npm.cmd" if os.name == "nt" else "npm")
         run("frontend_build", [npm, "run", "build"], cwd=ROOT / "frontend")
         run("frontend_tests", [npm, "test"], cwd=ROOT / "frontend")

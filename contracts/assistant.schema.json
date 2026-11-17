@@ -9,6 +9,20 @@
           "title": "Tool",
           "type": "string"
         },
+        "goal_id": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "ID of the planned user objective served by this call.",
+          "title": "Goal Id"
+        },
         "arguments_json": {
           "description": "JSON object with tool arguments: path, query, body. For describe_tool: {\"name\":\"tool_name\"}.",
           "maxLength": 40000,
@@ -52,6 +66,38 @@
         "calls"
       ],
       "title": "AgentStep",
+      "type": "object"
+    },
+    "ChatModelPreference": {
+      "additionalProperties": false,
+      "properties": {
+        "provider": {
+          "enum": [
+            "ollama",
+            "aitunnel"
+          ],
+          "title": "Provider",
+          "type": "string"
+        },
+        "model": {
+          "maxLength": 128,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._][A-Za-z0-9._:/-]*$",
+          "title": "Model",
+          "type": "string"
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "provider",
+        "model",
+        "expected_revision"
+      ],
+      "title": "ChatModelPreference",
       "type": "object"
     },
     "ConfirmAction": {
@@ -123,6 +169,402 @@
       "title": "FinalReply",
       "type": "object"
     },
+    "GoalSelector": {
+      "additionalProperties": false,
+      "properties": {
+        "equipment_code": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Equipment Code"
+        },
+        "equipment_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Equipment Id"
+        },
+        "user_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "User Id"
+        },
+        "attachment_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Attachment Ids",
+          "type": "array"
+        },
+        "starts_on": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Starts On"
+        },
+        "ends_on": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ends On"
+        },
+        "current_only": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "True for the current/selected site. False ONLY if the user explicitly asks for all authorized sites; do not broaden an unspecified scope.",
+          "title": "Current Only"
+        },
+        "draft_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Draft Id"
+        },
+        "run_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Run Id"
+        },
+        "proposal_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Proposal Id"
+        },
+        "component_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Component Id"
+        },
+        "operation_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Exact saved maintenance operation identity stated by the user or resolved by an authorized catalog read. Never a task or equipment ID.",
+          "title": "Operation Id"
+        },
+        "task_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Exact saved work task identity. Do not substitute the first task or an equipment UUID.",
+          "title": "Task Id"
+        },
+        "search": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Literal employee or equipment search text requested by the user, such as the exact email. Do not invent a search term.",
+          "title": "Search"
+        }
+      },
+      "title": "GoalSelector",
+      "type": "object"
+    },
+    "GoalSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 40,
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9_-]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "description": "One independently verifiable user objective, preserving its exact scope and values.",
+          "maxLength": 400,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "enum": [
+                "current_profile",
+                "staff_profile",
+                "staff_search",
+                "workforce",
+                "equipment_inventory",
+                "equipment_card",
+                "equipment_search",
+                "equipment_components",
+                "equipment_regulations",
+                "maintenance_catalog",
+                "maintenance_definition",
+                "reference_catalog",
+                "personal_notifications",
+                "protected_company_code",
+                "calendar_obligations",
+                "accepted_history",
+                "task_card",
+                "task_analysis",
+                "file_analysis",
+                "norm_readiness",
+                "other"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Choose the requested semantic result BEFORE choosing a tool. workforce means crews, crew membership and staff roster, never one employee. current_profile is only the signed-in person; staff_profile is the selected employee; equipment_components means installed parts/resources, not the equipment card; maintenance_catalog/definition means saved operations, not equipment inventory, service history or work tasks. protected_company_code means an authorized protected link, never file content or a code in chat. Use other for changes, conversation or reads without a concrete declared outcome.",
+          "title": "Outcome",
+          "x-read-outcome-tools": {
+            "accepted_history": "equipment_service_history",
+            "calendar_obligations": "calendar_evidence",
+            "current_profile": "profile_read",
+            "equipment_card": "equipment_read",
+            "equipment_components": "components_read",
+            "equipment_inventory": "inventory_read",
+            "equipment_regulations": "regulations_read",
+            "equipment_search": "equipment_find",
+            "file_analysis": "attachment_read",
+            "maintenance_catalog": "operations_list",
+            "maintenance_definition": "operation_read",
+            "norm_readiness": "workbook_readiness",
+            "personal_notifications": "notifications_list",
+            "protected_company_code": "enrollment_read",
+            "reference_catalog": "catalog_read",
+            "staff_profile": "staff_read",
+            "staff_search": "staff_find",
+            "task_analysis": "tasks_analyze",
+            "task_card": "task_read",
+            "workforce": "workforce_read"
+          }
+        },
+        "tool": {
+          "description": "REQUIRED exact final outcome tool name from the authorized catalog, not a prerequisite search. Use empty string ONLY when capability or required user decision is genuinely unavailable.",
+          "maxLength": 100,
+          "title": "Tool",
+          "type": "string"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "read",
+                "change",
+                "conversation",
+                "unavailable"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Kind"
+        },
+        "selector": {
+          "$ref": "#/$defs/GoalSelector",
+          "description": "Business selectors stated by the user. Resolve technical UUIDs on the server; never invent them. Distinguish calendar cycle dates from actual-history year."
+        },
+        "changes": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": "Only exact field values requested for this change, e.g. name. Empty for reads. Technical revisions are supplied by server code.",
+          "maxProperties": 12,
+          "title": "Changes",
+          "type": "object"
+        },
+        "depends_on": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "Depends On",
+          "type": "array"
+        },
+        "requires_full_list": {
+          "default": false,
+          "title": "Requires Full List",
+          "type": "boolean"
+        },
+        "response_style": {
+          "default": "facts",
+          "enum": [
+            "facts",
+            "analysis"
+          ],
+          "title": "Response Style",
+          "type": "string"
+        },
+        "workflow_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "readiness",
+                "calendar",
+                "materials",
+                "whatif",
+                "create",
+                "compare",
+                "optimize",
+                "prepare_approval",
+                "approve",
+                "publish",
+                "publication",
+                "impossible",
+                "bypass"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Workflow Kind"
+        },
+        "required_evidence": {
+          "anyOf": [
+            {
+              "enum": [
+                "saved_data",
+                "calendar_calculation",
+                "manufacturer_document",
+                "optimizer_result",
+                "file_content",
+                "user_decision",
+                "conversation"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Required Evidence"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "tool"
+      ],
+      "title": "GoalSpec",
+      "type": "object"
+    },
     "MessageCreate": {
       "additionalProperties": false,
       "properties": {
@@ -132,15 +574,57 @@
           "type": "string"
         },
         "content": {
+          "default": "",
           "maxLength": 12000,
-          "minLength": 1,
           "title": "Content",
           "type": "string"
+        },
+        "attachment_ids": {
+          "anyOf": [
+            {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "maxItems": 20,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Attachment Ids"
+        },
+        "model_preference_revision": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Preference Revision"
+        },
+        "resume_turn_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resume Turn Id"
         }
       },
       "required": [
-        "idempotency_key",
-        "content"
+        "idempotency_key"
       ],
       "title": "MessageCreate",
       "type": "object"
@@ -149,6 +633,7 @@
       "additionalProperties": false,
       "properties": {
         "path": {
+          "description": "Последовательный путь по ключам одного JSON-результата, не список полей и не поиск оборудования. Обычно []: сначала прочитайте корневой ответ. Не угадывайте ключи.",
           "items": {
             "type": "string"
           },
@@ -201,6 +686,25 @@
           },
           "maxItems": 8,
           "title": "Tools",
+          "type": "array"
+        },
+        "goals": {
+          "description": "Every objective in the latest request, including unavailable and dependent objectives. Do not omit an objective after selecting a report tool.",
+          "items": {
+            "$ref": "#/$defs/GoalSpec"
+          },
+          "maxItems": 12,
+          "title": "Goals",
+          "type": "array"
+        },
+        "workbook_ids": {
+          "description": "Previously sent XLSX attachments needed for this question; use only IDs from server context.",
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 4,
+          "title": "Workbook Ids",
           "type": "array"
         }
       },

@@ -106,10 +106,12 @@ def excluded_routes():
     return {
       **{(m,'/api/v1/assistant'+p):'human chat transport; deliberately not callable as a model tool' for m,p in (
         ('GET','/capabilities'),('GET','/conversations'),('POST','/conversations'),
-        ('GET','/conversations/{identity}'),('POST','/conversations/{identity}/messages'),
+        ('GET','/conversations/{identity}'),('DELETE','/conversations/{identity}'),('POST','/conversations/{identity}/messages'),('POST','/conversations/{identity}/turns/{turn_id}/stop'),
         ('POST','/conversations/{identity}/attachments'),('GET','/attachments/{identity}'),
         ('POST','/actions/{identity}/reject'),('POST','/actions/{identity}/confirm'),('POST','/mcp'))},
       ('GET','/api/health'):'service health',
+      ('GET','/api/setup'):'installation infrastructure before the first authenticated user',
+      ('POST','/api/setup'):'one-time installation infrastructure; requires OS-provisioned secret and has no authenticated model principal',
       ('POST','/api/v1/auth/login'):'sign-in precedes the authenticated chat',
       ('POST','/api/v1/auth/sites'):'pre-login membership lookup',
       ('POST','/api/v1/auth/register'):'registration precedes a session',

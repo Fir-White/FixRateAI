@@ -25,7 +25,7 @@ def test_entire_authenticated_business_api_is_accounted_for(assistant_case):
         schema=describe(app,tool)
         if file_fields(app,tool):
             for name in file_fields(app,tool):assert schema['inputSchema']['properties']['body']['properties'][name]['format']=='uuid'
-    assert all(t.mode=='read' or t.name.startswith(('notification','profile_email','site_switch','session_logout')) for t in available(app,'director').values())
+    assert all(t.mode=='read' or t.name=='chat_model_select' or t.name.startswith(('notification','profile_email','site_switch','session_logout')) for t in available(app,'director').values())
     assert 'staff_edit' in available(app,'admin') and 'staff_edit' not in available(app,'engineer')
     assert 'operation_edit' in available(app,'chief_engineer') and 'operation_edit' not in available(app,'executor')
     assert 'photo_upload' in available(app,'executor') and 'photo_upload' not in available(app,'director')
@@ -133,6 +133,70 @@ def test_assignment_proposal_is_rechecked_by_real_preview_without_writing_assign
         assert result['isError']
         with engine.connect() as c:assert c.scalar(text('SELECT count(*) FROM work_assignments WHERE work_order_id=:id'),dict(id=ASSIGNMENT_TASK))==before
 
+def test_assistant_prepares_specific_assignment_using_real_context(runtime):
+    from tests.backend.test_runtime_integration import login,assignment_search,ASSIGNMENT_TASK
+    engine,app=runtime
+    with closing(login(app,'chief_engineer')) as client:
+        _,body=assignment_search(client)
+        original=client.post(P+f'/tasks/{ASSIGNMENT_TASK}/assignment-preview',json=body).json()
+        assert original['command']
+        workers=original['command']['executor_ids']
+        with engine.connect() as c:before=c.scalar(text('SELECT count(*) FROM work_assignments WHERE work_order_id=:id'),dict(id=ASSIGNMENT_TASK))
+        response=client.post(B+f'/workspace/tasks/{ASSIGNMENT_TASK}/prepare-assignment',json=dict(executor_ids=workers))
+        assert response.status_code==200,response.text
+        prepared=response.json();assert prepared['command'],prepared
+        assert set(prepared['command']['executor_ids'])==set(workers)
+        auto=client.post(B+f'/workspace/tasks/{ASSIGNMENT_TASK}/prepare-assignment',json={})
+        assert auto.status_code==200 and auto.json()['command']
+        one=client.post(B+f'/workspace/tasks/{ASSIGNMENT_TASK}/prepare-assignment',json={'one_person_only':True})
+        assert one.status_code==200 and one.json()['command'] is None and 'одного недостаточно' in one.json()['explanation']
+        with engine.connect() as c:assert c.scalar(text('SELECT count(*) FROM work_assignments WHERE work_order_id=:id'),dict(id=ASSIGNMENT_TASK))==before
+        invalid=client.post(B+f'/workspace/tasks/{ASSIGNMENT_TASK}/prepare-assignment',json=dict(executor_ids=[str(uuid4()) for _ in workers]))
+        assert invalid.status_code==404
+    with closing(login(app,'executor')) as client:
+        denied=client.post(B+f'/workspace/tasks/{ASSIGNMENT_TASK}/prepare-assignment',json=dict(executor_ids=workers))
+        assert denied.status_code==403
+
+def test_task_choice_creates_reviewable_proposal_from_validated_preview(runtime):
+    from tests.backend.test_runtime_integration import login,assignment_search,ASSIGNMENT_TASK
+    engine,app=runtime
+    with closing(login(app,'chief_engineer')) as client:
+        _,body=assignment_search(client)
+        preview=client.post(P+f'/tasks/{ASSIGNMENT_TASK}/assignment-preview',json=body).json()
+        workers=preview['command']['executor_ids'];chat=thread(client)
+        class Model:
+            def __init__(self):self.step=0
+            def chat(self,messages,schema,tokens):
+                if schema.__name__=='ToolSelection':
+                    context=json.loads(messages[-1]['content'])['context']
+                    assert any('Укажите конкретное задание' in turn['answer'] for turn in context['history'])
+                    return schema(tools=['assignment_prepare','task_assign'],goals=[dict(id='assign',title='Назначить выбранных сотрудников на выбранную работу',tool='task_assign')])
+                self.step+=1
+                if self.step==1:
+                    return schema(answer='',calls=[dict(tool='assignment_prepare',arguments_json=json.dumps(dict(path=dict(task_id=str(ASSIGNMENT_TASK)),body=dict(executor_ids=workers))),explanation='TEST validated preparation')])
+                assert self.step==2
+                actual=json.loads(messages[-1]['content'].split('\n',1)[1])[0]['result']
+                assert actual['command'] and set(actual['command']['executor_ids'])==set(workers)
+                command={key:actual['command'][key] for key in ('expected_revision','executor_ids','start_at','end_at')}
+                command['reason']='TEST ONLY explicit assignment from actual preparation'
+                return schema(answer='',calls=[dict(tool='task_assign',arguments_json=json.dumps(dict(path=dict(task_id=str(ASSIGNMENT_TASK)),body=command)),explanation='TEST reviewed assignment proposal')])
+        app.state.assistant_provider_factory=Model
+        try:
+            with engine.begin() as c:
+                c.execute(text("INSERT INTO assistant_turns(turn_id,conversation_id,request_key,content,answer,status,prompt_version,created_at) VALUES (:turn,:chat,:key,:content,:answer,'completed','TEST',now()-interval '1 minute')"),dict(turn=uuid4(),chat=chat,key=uuid4(),content='Назначь сотрудников на работу',answer='Укажите конкретное задание для назначения.'))
+            with engine.connect() as c:
+                before=c.scalar(text('SELECT count(*) FROM work_assignments WHERE work_order_id=:id'),dict(id=ASSIGNMENT_TASK))
+                title=c.scalar(text('SELECT operation_snapshot FROM work_orders WHERE work_order_id=:id'),dict(id=ASSIGNMENT_TASK))['label']
+            response=client.post(B+f'/conversations/{chat}/messages',json=dict(content=title,idempotency_key=str(uuid4())))
+            assert response.status_code==202,response.text
+            result=client.get(B+'/conversations/'+chat).json()
+            assert len(result['actions'])==1 and result['actions'][0]['status']=='proposed'
+            assert result['actions'][0]['tool_name']=='task_assign'
+            assert set(result['actions'][0]['arguments']['body']['executor_ids'])==set(workers)
+            assert result['turns'][-1]['workflow']['outcome']=='awaiting_confirmation'
+            with engine.connect() as c:assert c.scalar(text('SELECT count(*) FROM work_assignments WHERE work_order_id=:id'),dict(id=ASSIGNMENT_TASK))==before
+        finally:del app.state.assistant_provider_factory
+
 def test_nearest_tasks_are_scoped_sorted_and_bounded(runtime):
     from tests.backend.test_runtime_integration import login
     from datetime import datetime
@@ -145,6 +209,110 @@ def test_nearest_tasks_are_scoped_sorted_and_bounded(runtime):
             dates=[datetime.fromisoformat(item['scheduledStart']) for item in data['items'] if item['scheduledStart']]
             if period=='upcoming':assert dates==sorted(dates)
             if period=='overdue':assert dates==sorted(dates,reverse=True)
+
+def test_chat_lists_real_task_ids_after_missing_task_parameter(runtime):
+    from tests.backend.test_runtime_integration import login
+    engine,app=runtime
+    class Provider:
+        def __init__(self):self.step=0
+        def chat(self,messages,schema,tokens):
+            if schema.__name__=='ToolSelection':return schema(tools=['tasks_find','task_read'],goals=[dict(id='assign',title='Назначить одного работника после однозначного выбора работы',tool='task_assign')])
+            self.step+=1
+            if self.step==1:return schema(answer='',calls=[dict(tool='tasks_find',arguments_json='{}',explanation='TEST')])
+            if self.step==2:return schema(answer='',calls=[dict(tool='task_read',arguments_json='{}',explanation='TEST')])
+            return schema(answer='',calls=[])
+        def text(self,*args):raise AssertionError('IDs must come from verified task results')
+    with closing(login(app,'chief_engineer')) as client:
+        chat=thread(client);app.state.assistant_provider_factory=Provider
+        try:
+            sent=client.post(B+f'/conversations/{chat}/messages',json=dict(content='Назначь одного работника на ближайшее ТО',idempotency_key=str(uuid4())))
+            assert sent.status_code==202
+            turn=client.get(B+'/conversations/'+chat).json()['turns'][-1]
+            tasks=client.get(B+'/workspace/tasks').json()['items']
+            assert turn['status']=='completed' and turn['workflow']['outcome']=='partial'
+            assert any(step['tool']=='task_read' and step['status']=='denied' and step['code']==422 for step in turn['trace'])
+            # Structured saved evidence replaces the old keyword handler's
+            # generated choice text; IDs must still be real authorized records.
+            with engine.connect() as c:
+                state=c.scalar(text('SELECT workflow FROM assistant_turns WHERE turn_id=:id'),dict(id=turn['turn_id']))
+            proof=next(proof for proof in state['evidence'] if proof['tool']=='tasks_find')
+            assert {item['id'] for item in proof['result']['items']}=={item['id'] for item in tasks}
+            assert not client.get(B+'/conversations/'+chat).json()['actions']
+            assert 'Незавершённые пункты' in turn['answer']
+        finally:del app.state.assistant_provider_factory
+
+def test_selection_by_number_checks_required_crew_without_guessing(runtime):
+    from tests.backend.test_runtime_integration import login,ASSIGNMENT_TASK
+    from app.assistant.service import task_choice_prompt
+    engine,app=runtime
+    with closing(login(app,'chief_engineer')) as client:
+        tasks=client.get(B+'/workspace/tasks').json()['items']
+        target=next(item for item in tasks if item['id']==str(ASSIGNMENT_TASK))
+        prompt=task_choice_prompt([dict(tool='tasks_find',result=dict(items=[target])),dict(tool='task_read',status_code=422)])
+        chat=thread(client)
+        with engine.begin() as c:
+            c.execute(text("INSERT INTO assistant_turns(turn_id,conversation_id,request_key,content,answer,status,prompt_version,created_at) VALUES (:turn,:chat,:key,:content,:answer,'completed','TEST',now()-interval '1 minute')"),dict(turn=uuid4(),chat=chat,key=uuid4(),content='Назначь одного работника на ближайшее ТО',answer=prompt))
+        class Provider:
+            def __init__(self):self.step=0;self.task=None
+            def chat(self,messages,schema,tokens):
+                if schema.__name__=='ToolSelection':
+                    from app.assistant.service import chosen_task_id
+                    context=json.loads(messages[-1]['content'])
+                    self.task=chosen_task_id(context['question'],context['context']['history'][-1]['answer'])
+                    assert self.task==str(ASSIGNMENT_TASK)
+                    return schema(tools=['assignment_prepare'],goals=[dict(id='assign',title='Проверить возможность назначения одного человека на выбранную работу',tool='task_assign')])
+                self.step+=1
+                if self.step==1:
+                    return schema(answer='',calls=[dict(tool='assignment_prepare',arguments_json=json.dumps(dict(path=dict(task_id=self.task),body=dict(one_person_only=True))),explanation='TEST required crew check')])
+                checked=json.loads(messages[-1]['content'].split('\n',1)[1])[0]['result']
+                assert checked['command'] is None and 'одного недостаточно' in checked['explanation']
+                return schema(answer='Одного недостаточно; назначение не подготовлено.',calls=[])
+        app.state.assistant_provider_factory=Provider
+        try:
+            sent=client.post(B+f'/conversations/{chat}/messages',json=dict(content='1',idempotency_key=str(uuid4())))
+            assert sent.status_code==202
+            result=client.get(B+'/conversations/'+chat).json()
+            turn=result['turns'][-1]
+            assert turn['status']=='completed' and turn['workflow']['outcome']=='partial' and result['actions']==[]
+            with engine.connect() as c:
+                state=c.scalar(text('SELECT workflow FROM assistant_turns WHERE turn_id=:id'),dict(id=turn['turn_id']))
+            proof=next(proof for proof in state['evidence'] if proof['tool']=='assignment_prepare')
+            assert proof['arguments']['path']['task_id']==str(ASSIGNMENT_TASK)
+            assert proof['result']['command'] is None and 'одного недостаточно' in proof['result']['explanation']
+        finally:del app.state.assistant_provider_factory
+
+def test_deleted_selected_task_returns_honest_error_without_model_guessing(runtime):
+    from tests.backend.test_runtime_integration import login
+    from app.assistant.service import task_choice_prompt
+    engine,app=runtime;missing=str(uuid4())
+    with closing(login(app,'chief_engineer')) as client:
+        prompt=task_choice_prompt([dict(tool='tasks_find',result=dict(items=[dict(id=missing,summary='Работа',equipmentName='Объект')])),dict(tool='task_read',status_code=422)])
+        chat=thread(client)
+        with engine.begin() as c:
+            c.execute(text("INSERT INTO assistant_turns(turn_id,conversation_id,request_key,content,answer,status,prompt_version,created_at) VALUES (:turn,:chat,:key,:content,:answer,'completed','TEST',now()-interval '1 minute')"),dict(turn=uuid4(),chat=chat,key=uuid4(),content='Назначь одного работника на ближайшее ТО',answer=prompt))
+        class Provider:
+            def __init__(self):self.step=0;self.task=None
+            def chat(self,messages,schema,tokens):
+                if schema.__name__=='ToolSelection':
+                    from app.assistant.service import chosen_task_id
+                    context=json.loads(messages[-1]['content'])
+                    self.task=chosen_task_id(context['question'],context['context']['history'][-1]['answer'])
+                    assert self.task==missing
+                    return schema(tools=['task_read'],goals=[dict(id='assign',title='Проверить выбранную работу перед назначением',tool='task_assign')])
+                self.step+=1
+                if self.step==1:return schema(answer='',calls=[dict(tool='task_read',arguments_json=json.dumps(dict(path=dict(task_id=self.task))),explanation='TEST selected identity only')])
+                failure=json.loads(messages[-1]['content'].split('\n',1)[1])[0]
+                assert failure['status_code']==404
+                return schema(answer='Выбранная работа не найдена; другие работы не подставляю.',calls=[])
+        app.state.assistant_provider_factory=Provider
+        try:
+            assert client.post(B+f'/conversations/{chat}/messages',json=dict(content='1',idempotency_key=str(uuid4()))).status_code==202
+            result=client.get(B+'/conversations/'+chat).json()
+            turn=result['turns'][-1]
+            assert turn['status']=='completed' and turn['workflow']['outcome']=='blocked' and not result['actions']
+            assert any(step['tool']=='task_read' and step['code']==404 for step in turn['trace'])
+            assert 'Незавершённые пункты' in turn['answer']
+        finally:del app.state.assistant_provider_factory
 
 def test_executor_stages_and_uploads_real_photo_only_after_confirmation(runtime):
     from tests.backend.test_runtime_integration import login,isolated_order,image_bytes
