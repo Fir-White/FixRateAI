@@ -27,3 +27,18 @@ GitHub использует прежние repository secrets и read-only GITHU
 Actionlint и bash syntax check успешны. Реальные provider-запуски и окончательное равенство refs проверяются после публикации отдельной записью журнала; локальные тесты их не заменяют. Прикладные API, миграции и frontend не меняются.
 
 Официальные ограничения: [GitHub schedule](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule), [GitVerse workflow и schedule](https://gitverse.ru/docs/cicd/docs/workflow/), [GitVerse secrets](https://gitverse.ru/docs/cicd/docs/secrets-and-variables/).
+
+## Публикация и реальные события
+
+После явного согласия владельца [PR #1](https://github.com/Fir-White/FixRateAI/pull/1) объединён в контрольную main коммитом `c38a67d`. Подготовленное слияние в dev `f5707a9` дополнено историей опубликованной main (`3718f45`) и отправлено обычным non-force push. Приложение и release deployment не менялись.
+
+- [GitHub push-run 44143645320](https://github.com/Fir-White/FixRateAI/actions/runs/44143645320) — **success**: перенесены main и инфраструктурная ветка в GitVerse.
+- [GitHub push-run 44143787863](https://github.com/Fir-White/FixRateAI/actions/runs/44143787863) — **success**: dev `3718f45` перенесён в GitVerse, `refs_equal=true`.
+- [GitVerse push-run 67, API id 2135173](https://gitverse.ru/firewhite/FixRate_AI/actions/runs/67) — **success**: созданная только на GitVerse контрольная ветка автоматически перенесена на GitHub. Отчёт содержит `source=gitverse`, `target=github`, исходный SHA `c38a67d`, `refs_equal=true`; ручного dispatch не было.
+- Встречные GitHub push/create-runs `44144175764` и `44144180198` завершились success без нового переноса; бесконечного цикла не возникло. GitVerse jobs `2135153`, `2135154`, `2135158` также success вместо прежнего skipped.
+
+Контрольная `sync-check/gitverse-20261117` удалена с обеих площадок после завершения проверок; её коммит сохранён в main. Независимый `ls-remote --refs --heads --tags` подтвердил равенство всех **6 веток / 0 тегов**. Остаётся исходная ветка PR; прежние пять прикладных/архивных веток сохранены. На слитом dev прошёл artifact gate: **1354 ссылки**, 31 неизменённый исходник аналитика, схемы и чек-листы; прикладной regression suite повторно не запускался.
+
+Два первоначальных пробных запуска feature-ветки `44142294184` и `44142299032` завершились exit127: до применения PR в main ещё отсутствовал новый shell entrypoint. Они не объявляются зелёными и не выдаются за сетевой отказ GitVerse. Первый снимок старого успешного run во время создания контрольной ветки имел текущее `refs_equal=false`; это промежуточное ожидаемое расхождение, позднее закрытое успешным обратным событием. Финальные снимки обоих направлений отдельно подтверждают равенство.
+
+Необязательное для Git локальное evidence: `var/git-host-sync-20261117/{github-44143787863,gitverse-2135173}.{json,log}`. Секреты не включены в публикуемую документацию. Фактическая доставка по push подтверждена на main/dev/контрольной ветке с новым workflow; старые личные ветки без него по-прежнему зависят от резервного опроса до наследования актуального dev. Наблюдение будущих cron-интервалов и работа при недоступности самого провайдера не подменяются этим проверочным прогоном.
