@@ -269,3 +269,11 @@ def test_task_assign_adapter_stops_when_prepare_needs_input():
         dict(goal_id='g',tool='assignment_prepare',arguments=dict(path=dict(task_id=task_id),body=dict(one_person_only=True)),result=dict(status='needs_input',explanation='Нужно 2 исполнителей')),
     ])
     assert next_step(goal,state) is None
+
+
+def test_tasks_find_adapter_uses_upcoming_or_all_period():
+    goal=objective('tasks_find',title='Ближайшие ТО',outcome='other',selector=dict(search='ближайшие'))
+    step1=next_step(goal,dict(request='какие ТО будут в ближайшее время?',evidence=[])).calls[0]
+    assert step1.tool=='tasks_find' and step1.arguments==dict(query=dict(period='upcoming'))
+    step2=next_step(goal,dict(request='покажи все просроченные ТО',evidence=[])).calls[0]
+    assert step2.tool=='tasks_find' and step2.arguments==dict(query=dict(period='all'))

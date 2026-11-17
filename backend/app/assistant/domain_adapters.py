@@ -9,7 +9,7 @@ from app.schemas.assistant import AgentStep
 import re
 
 
-LEGACY_SUPPORTED={'equipment_read','equipment_edit','regulations_read','calendar_evidence','equipment_service_history','inventory_read','staff_edit','attachment_read','workbook_readiness','task_assign'}
+LEGACY_SUPPORTED={'equipment_read','equipment_edit','regulations_read','calendar_evidence','equipment_service_history','inventory_read','staff_edit','attachment_read','workbook_readiness','task_assign','tasks_find'}
 SUPPORTED=LEGACY_SUPPORTED|{'equipment_find','staff_read','staff_find','workforce_read','operations_list','operation_read','components_read','catalog_read','profile_read','notifications_list','enrollment_read','task_read','task_start'}
 
 
@@ -73,6 +73,13 @@ def next_step(goal,state):
         return call(target,dict(path=dict(operation_id=selector['operation_id']))) if selector.get('operation_id') else None
     if target=='task_read':
         return call(target,dict(path=dict(task_id=selector['task_id']))) if selector.get('task_id') else None
+    if target=='tasks_find':
+        query={}
+        search=(selector.get('search') or '').strip()
+        if search and not re.fullmatch(r'(?:ближайш\w*|предстоящ\w*|активн\w*|просрочен\w*|все|то|работ\w*|задан\w*|план\w*|список)',search,re.I):
+            query['q']=search
+        query['period']='all' if re.search(r'\b(?:все|просрочен\w*|истори\w*|прошл\w*)\b',state.get('request',''),re.I) else 'upcoming'
+        return call(target,dict(query=query))
     if target=='task_start':
         changes=goal.get('changes') or {}
         if not selector.get('task_id') or set(changes)-{'expected_revision'}:return None

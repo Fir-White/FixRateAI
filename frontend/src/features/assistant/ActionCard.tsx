@@ -88,7 +88,7 @@ export const ActionCard=memo(function ActionCard({action:original,title,onChange
     {action.result?.message&&<p className="text-sm whitespace-pre-wrap">{action.result.message}</p>}
     {resource&&<a className="assistant-resource" href={resource.url} target="_blank" rel="noopener noreferrer">{resource.title}<span className="block text-xs text-muted">Защищённый просмотр · доступ проверяется при открытии</span></a>}
     {summaryRows.length>0&&<dl className="space-y-2 rounded-xl border border-line/70 bg-surface-elevated/40 p-3 text-sm">{summaryRows.map(([k,v])=><div key={k} className="grid min-w-0 gap-1 sm:grid-cols-[160px_minmax(0,1fr)]"><dt className="text-muted">{k}</dt><dd className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{v}</dd></div>)}</dl>}
-    {action.result?.data!==undefined&&<details className="text-sm"><summary className="cursor-pointer text-muted">Технические данные (JSON)</summary><pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs [overflow-wrap:anywhere]">{JSON.stringify(action.result.data,null,2)}</pre></details>}
+    {action.result?.data!==undefined&&<details className="text-sm"><summary className="cursor-pointer text-muted">Результат действия</summary><pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs [overflow-wrap:anywhere]">{JSON.stringify(action.result.data,null,2)}</pre></details>}
     {error&&<div role="alert"><Callout tone="danger">{error}</Callout></div>}
   </section>;
 });
