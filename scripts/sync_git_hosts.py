@@ -5,15 +5,75 @@ import argparse
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import re
 import subprocess
 import tempfile
+import time
+
+
+READ_ATTEMPTS = 3
+READ_BACKOFF_SECONDS = (2, 5)
+
+
+def safe_error(message: str) -> str:
+    """Never include URL credentials in an Actions report or retry record."""
+    message = re.sub(r"(https?://)[^\s/@]+(?::[^\s/@]*)?@", r"\1[redacted]@", message)
+    return re.sub(r"(?i)([?&](?:access_token|token|key)=)[^&\s]+", r"\1[redacted]", message)
+
+
+class RemoteOperationError(RuntimeError):
+    def __init__(self, host: str, operation: str, attempts: int, message: str):
+        self.details = dict(host=host, operation=operation, attempts=attempts,
+                            error=safe_error(message))
+        super().__init__(f"{host}/{operation} failed after {attempts} attempt(s): {self.details['error']}")
+
+
+def transient_read_failure(host: str, message: str) -> bool:
+    message = message.lower()
+    if any(marker in message for marker in (
+            "authentication failed", "permission denied", "repository not found",
+            "access denied", "could not read username", "host key verification failed",
+            "certificate problem", "remote host identification has changed")):
+        return False
+    # GitVerse occasionally denies a smart-HTTP read with this exact RPC error.
+    # It is not proof of an expired token: the same unchanged credentials have
+    # completed later jobs. Retry only this read signature, never arbitrary 403s.
+    if host == "gitverse" and "rpc failed" in message and "http 403" in message and "expected flush after ref listing" in message:
+        return True
+    if re.search(r"(?:http |returned error: |error: )(?:408|429|500|502|503|504)\b", message):
+        return True
+    return any(marker in message for marker in (
+        "could not resolve host", "could not resolve hostname", "couldn't connect",
+        "could not connect", "failed to connect", "connection timed out",
+        "connection reset", "connection was reset", "remote end hung up unexpectedly",
+        "temporary failure in name resolution", "tls connection was non-properly terminated",
+        "empty reply from server", "git command timed out",
+    ))
+
+
+def remote_read(report: dict, host: str, operation: str, action):
+    for attempt in range(1, READ_ATTEMPTS + 1):
+        try:
+            return action()
+        except (RuntimeError, OSError) as failure:
+            error = safe_error(str(failure))
+            if attempt == READ_ATTEMPTS or not transient_read_failure(host, error):
+                raise RemoteOperationError(host, operation, attempt, error) from failure
+            delay = READ_BACKOFF_SECONDS[attempt - 1]
+            report["retries"].append(dict(host=host, operation=operation, attempt=attempt,
+                                          next_attempt=attempt + 1, delay_seconds=delay,
+                                          error=error))
+            time.sleep(delay)
 
 
 def git(*args: str, cwd: Path | None = None) -> str:
-    result = subprocess.run(["git", *args], cwd=cwd, text=True, encoding="utf-8",
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        result = subprocess.run(["git", *args], cwd=cwd, text=True, encoding="utf-8",
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
+    except subprocess.TimeoutExpired as failure:
+        raise RuntimeError("Git command timed out after 120 seconds") from failure
     if result.returncode:
-        raise RuntimeError(result.stderr.strip() or result.stdout.strip())
+        raise RuntimeError(safe_error(result.stderr.strip() or result.stdout.strip()))
     return result.stdout
 
 
@@ -48,9 +108,10 @@ def synchronize(github: str, gitverse: str, *, dry_run: bool = False,
                 work_dir: Path | None = None) -> dict:
     urls = {"github": github, "gitverse": gitverse}
     report = {"time_utc": datetime.now(timezone.utc).isoformat(), "dry_run": dry_run,
-              "updates": [], "conflicts": [], "errors": []}
+              "updates": [], "conflicts": [], "errors": [], "retries": []}
     try:
-        before = {host: inventory(url) for host, url in urls.items()}
+        before = {host: remote_read(report, host, "inventory", lambda url=url: inventory(url))
+                  for host, url in urls.items()}
         if before["github"] == before["gitverse"]:
             report.update(status="up_to_date", refs_equal=True)
             return report
@@ -64,9 +125,10 @@ def synchronize(github: str, gitverse: str, *, dry_run: bool = False,
             git("config", "core.hooksPath", str(hooks), cwd=repo)
             refs = {}
             for host, url in urls.items():
-                git("fetch", "--quiet", "--no-tags", "--no-write-fetch-head", url,
+                remote_read(report, host, "fetch", lambda host=host, url=url: git(
+                    "fetch", "--quiet", "--no-tags", "--no-write-fetch-head", url,
                     f"+refs/heads/*:refs/sync/{host}/heads/*",
-                    f"+refs/tags/*:refs/sync/{host}/tags/*", cwd=repo)
+                    f"+refs/tags/*:refs/sync/{host}/tags/*", cwd=repo))
                 refs[host] = fetched_refs(repo, host)
             for ref in sorted(refs["github"].keys() | refs["gitverse"].keys()):
                 gh, gv = refs["github"].get(ref), refs["gitverse"].get(ref)
@@ -94,9 +156,15 @@ def synchronize(github: str, gitverse: str, *, dry_run: bool = False,
                     updates = [item for item in report["updates"] if item["target"] == target]
                     if updates:
                         # Atomic non-force pushes reject concurrent divergence too.
-                        git("push", "--atomic", "--porcelain", url,
-                            *(f"{item['sha']}:{item['ref']}" for item in updates), cwd=repo)
-                after = {host: inventory(url) for host, url in urls.items()}
+                        try:
+                            git("push", "--atomic", "--porcelain", url,
+                                *(f"{item['sha']}:{item['ref']}" for item in updates), cwd=repo)
+                        except (RuntimeError, OSError) as failure:
+                            # A timed-out push may have succeeded remotely. Do not
+                            # blindly replay it; a later run starts from new refs.
+                            raise RemoteOperationError(target, "push", 1, str(failure)) from failure
+                after = {host: remote_read(report, host, "verify_refs", lambda url=url: inventory(url))
+                         for host, url in urls.items()}
                 report["refs_equal"] = after["github"] == after["gitverse"]
                 if not report["refs_equal"] and not report["conflicts"]:
                     report["errors"].append("Remote refs changed during synchronization; retry.")
@@ -104,7 +172,9 @@ def synchronize(github: str, gitverse: str, *, dry_run: bool = False,
                             "failed" if report["errors"] else
                             "dry_run" if dry_run else "synchronized")
     except (RuntimeError, OSError) as failure:
-        report["errors"].append(str(failure))
+        report["errors"].append(safe_error(str(failure)))
+        if isinstance(failure, RemoteOperationError):
+            report["failed_operation"] = failure.details
         report["status"] = "failed"
     return report
 
