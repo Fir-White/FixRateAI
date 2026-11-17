@@ -1,5 +1,13 @@
 # Проверки и доказательства
 
+## 17.11.2026 — независимая автосинхронизация GitHub и GitVerse
+
+[Состав и границы](../releases/2026-11-17-git-host-sync-automation.md). Диагностика: GitHub schedule с пятичасовыми/многочасовыми промежутками вместо заданных пяти минут; унаследованные GitVerse jobs skipped по условию GitHub repository. Подготовлены два event-workflow с независимыми резервными расписаниями и общим кодом из main; постоянный доступ GitVerse настроен после явного согласия владельца.
+
+`python -m pytest -q tests/automation/test_git_host_sync.py`: **31 passed / 81,06 с**. Начальный 30/1 выявил потерю причины reject в stdout `git push --porcelain`; после её включения полный повтор прошёл. Actionlint GitHub workflow и bash syntax PASS. Сценарии: обе стороны, refs/tags, потерянный ответ, частичная доставка, сетевые повторы, изменение при verification, гонка двух авторов, auth/лимиты. Provider-прогоны после публикации проверяются отдельно, не подменяются локальными тестами. Приложение/API/БД не затронуты.
+
+Полный `validate_artifacts.py` на прежней базе main остановился на отсутствующей исторической ссылке `CONTRACT_AUDIT.md → source/FixRateAI-phase2-visual-design-2026-11-06/concepts/director-desktop.png`. Этот документ/ресурс инфраструктурная правка не меняет; полный зелёный artifact gate main не заявляется. Новые ссылки проверяются отдельно, затем проверка повторяется на интеграционном dev.
+
 ## 17.11.2026 — слияние mvidy_dev в dev
 
 [Полный протокол](../releases/2026-11-17-mvidy-dev-to-dev.md): dev `33d696b` + mvidy_dev `7cd729f`, три коммита, семь входящих файлов, конфликтов нет. Свежие результаты: **backend 95 passed / 3 failed** на временном PostgreSQL 18; **Ollama 58 passed**, **UI 85 passed**, **production Chrome 8 passed** (desktop/mobile, reduced motion), TypeScript/build PASS, начальный JS 123,76 kB gzip. Три отказа в `test_assistant_capabilities.py` затрагивают отсутствие параметра задания, выбор по номеру с требуемым составом и удалённое выбранное задание; последние два дают `awaiting_confirmation` вместо ожидаемого отказа/уточнения. Assertions не изменялись; приёмка назначения открыта.

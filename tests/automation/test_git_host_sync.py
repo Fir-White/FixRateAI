@@ -305,3 +305,135 @@ def test_git_command_has_a_timeout(monkeypatch):
     monkeypatch.setattr(sync.subprocess, "run", timeout)
     with pytest.raises(RuntimeError, match="Git command timed out after 120 seconds"):
         sync.git("ls-remote", "https://example.test/repo")
+
+
+def test_reconcile_lost_push_response_checks_refs_without_second_push(hosts, monkeypatch):
+    work, gh, gv = hosts
+    commit(work, 'github-ahead')
+    command(work, 'push', '--quiet', str(gh), 'HEAD:refs/heads/dev')
+    original = sync.git
+    pushes = []
+    def lost_response(*args, **kwargs):
+        result = original(*args, **kwargs)
+        if args[0] == 'push':
+            pushes.append(args)
+            raise RuntimeError('Git command timed out after 120 seconds')
+        return result
+    monkeypatch.setattr(sync, 'git', lost_response)
+    monkeypatch.setattr(sync.time, 'sleep', lambda _: None)
+    report = sync.reconcile(str(gh), str(gv))
+    assert report['status'] == 'up_to_date' and report['refs_equal']
+    assert report['reconciliation_attempts'] == 2 and len(pushes) == 1
+    assert report['rounds'][0]['failed_operation']['operation'] == 'push'
+
+
+def test_reconcile_recovers_push_transport_failure_from_new_plan(hosts, monkeypatch):
+    work, gh, gv = hosts
+    commit(work, 'gitverse-ahead')
+    command(work, 'push', '--quiet', str(gv), 'HEAD:refs/heads/dev')
+    original = sync.git
+    pushes = []
+    def disconnected(*args, **kwargs):
+        if args[0] == 'push':
+            pushes.append(args)
+            if len(pushes) == 1:
+                raise RuntimeError('Connection reset by peer')
+        return original(*args, **kwargs)
+    monkeypatch.setattr(sync, 'git', disconnected)
+    monkeypatch.setattr(sync.time, 'sleep', lambda _: None)
+    report = sync.reconcile(str(gh), str(gv))
+    assert report['status'] == 'synchronized' and report['refs_equal']
+    assert report['reconciliation_attempts'] == 2
+    assert sync.inventory(str(gh)) == sync.inventory(str(gv))
+
+
+def test_reconcile_change_during_verification_is_picked_up(hosts, monkeypatch):
+    work, gh, gv = hosts
+    commit(work, 'first')
+    command(work, 'push', '--quiet', str(gh), 'HEAD:refs/heads/dev')
+    original = sync.inventory
+    gh_reads = []
+    def changed(url):
+        if url == str(gh):
+            gh_reads.append(url)
+            if len(gh_reads) == 2:
+                commit(work, 'second', base='first')
+                command(work, 'push', '--quiet', str(gh), 'HEAD:refs/heads/dev')
+        return original(url)
+    monkeypatch.setattr(sync, 'inventory', changed)
+    monkeypatch.setattr(sync.time, 'sleep', lambda _: None)
+    report = sync.reconcile(str(gh), str(gv))
+    assert report['status'] == 'synchronized' and report['refs_equal']
+    assert report['reconciliation_attempts'] == 2
+    assert sync.inventory(str(gv))['refs/heads/dev'] == command(work, 'rev-parse', 'second')
+
+
+def test_reconcile_concurrent_writer_is_not_overwritten(hosts, monkeypatch):
+    work, gh, gv = hosts
+    first = commit(work, 'github-ahead')
+    command(work, 'push', '--quiet', str(gh), 'HEAD:refs/heads/dev')
+    original = sync.git
+    races = []
+    def raced(*args, **kwargs):
+        if args[0] == 'push' and not races:
+            races.append(commit(work, 'concurrent-gitverse'))
+            command(work, 'push', '--quiet', str(gv), 'HEAD:refs/heads/dev')
+        return original(*args, **kwargs)
+    monkeypatch.setattr(sync, 'git', raced)
+    monkeypatch.setattr(sync.time, 'sleep', lambda _: None)
+    report = sync.reconcile(str(gh), str(gv))
+    assert report['status'] == 'conflict', report['errors']
+    assert report['reconciliation_attempts'] == 2
+    assert sync.inventory(str(gh))['refs/heads/dev'] == first
+    assert sync.inventory(str(gv))['refs/heads/dev'] == races[0]
+
+
+def test_reconcile_partial_two_host_delivery_recovers_without_duplicate_push(hosts, monkeypatch):
+    work, gh, gv = hosts
+    commit(work, 'gh-only')
+    command(work, 'push', '--quiet', str(gh), 'HEAD:refs/heads/from-gh')
+    commit(work, 'gv-only')
+    command(work, 'push', '--quiet', str(gv), 'HEAD:refs/heads/from-gv')
+    original = sync.git
+    pushes = []
+    def interrupted(*args, **kwargs):
+        if args[0] == 'push':
+            pushes.append(args[3])
+            if len(pushes) == 2:
+                raise RuntimeError('Connection reset by peer')
+        return original(*args, **kwargs)
+    monkeypatch.setattr(sync, 'git', interrupted)
+    monkeypatch.setattr(sync.time, 'sleep', lambda _: None)
+    report = sync.reconcile(str(gh), str(gv))
+    assert report['refs_equal'] and report['reconciliation_attempts'] == 2
+    assert pushes == [str(gh), str(gv), str(gv)]
+    assert sync.inventory(str(gh)) == sync.inventory(str(gv))
+
+
+def test_reconcile_permanent_auth_failure_is_not_retried(hosts, monkeypatch):
+    _, gh, gv = hosts
+    original = sync.git
+    def denied(*args, **kwargs):
+        if args[0] == 'ls-remote' and args[-1] == str(gv):
+            raise RuntimeError('Authentication failed')
+        return original(*args, **kwargs)
+    monkeypatch.setattr(sync, 'git', denied)
+    monkeypatch.setattr(sync.time, 'sleep', lambda _: pytest.fail('Permanent auth failure must stop'))
+    report = sync.reconcile(str(gh), str(gv))
+    assert report['status'] == 'failed' and report['reconciliation_attempts'] == 1
+
+
+def test_reconcile_transport_outage_is_bounded(hosts, monkeypatch):
+    _, gh, gv = hosts
+    original = sync.git
+    failures = []
+    def unavailable(*args, **kwargs):
+        if args[0] == 'ls-remote' and args[-1] == str(gv):
+            failures.append(args)
+            raise RuntimeError(RPC_403)
+        return original(*args, **kwargs)
+    monkeypatch.setattr(sync, 'git', unavailable)
+    monkeypatch.setattr(sync.time, 'sleep', lambda _: None)
+    report = sync.reconcile(str(gh), str(gv))
+    assert report['status'] == 'failed' and report['reconciliation_attempts'] == 3
+    assert len(failures) == 9 and len(report['rounds']) == 3
