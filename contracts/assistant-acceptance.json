@@ -1601,6 +1601,9 @@
         "tests/backend/test_assistant_capabilities.py::test_chat_lists_real_task_ids_after_missing_task_parameter",
         "tests/backend/test_assistant_capabilities.py::test_selection_by_number_checks_required_crew_without_guessing",
         "tests/backend/test_assistant_capabilities.py::test_deleted_selected_task_returns_honest_error_without_model_guessing",
+        "tests/backend/test_assistant_domain_adapters.py::test_task_assign_adapter_resolves_nearest_task_and_prepares_assignment",
+        "tests/backend/test_assistant_domain_adapters.py::test_task_assign_adapter_stops_when_prepare_needs_input",
+        "tests/backend/test_assistant_domain_adapters.py::test_tasks_find_adapter_uses_upcoming_or_all_period",
         "tests/backend/test_assistant_orchestrator_live.py::test_nc01_period_history_and_unverified_manufacturer_are_separate_goals"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
@@ -2082,6 +2085,8 @@
         "tests/backend/test_assistant_assignment_endtoend.py::test_confirmed_assistant_proposal_assigns_exact_validated_workers",
         "tests/backend/test_assistant_capabilities.py::test_task_choice_creates_reviewable_proposal_from_validated_preview",
         "tests/backend/test_assistant_capabilities.py::test_selection_by_number_checks_required_crew_without_guessing",
+        "tests/backend/test_assistant_domain_adapters.py::test_task_assign_adapter_resolves_nearest_task_and_prepares_assignment",
+        "tests/backend/test_assistant_domain_adapters.py::test_task_assign_adapter_stops_when_prepare_needs_input",
         "tests/backend/test_assistant_evidence_cache.py::test_no_write_post_unknown_or_disguised_tool_is_cache_eligible"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
@@ -2213,6 +2218,8 @@
         "tests/backend/test_assistant_capabilities.py::test_chat_lists_real_task_ids_after_missing_task_parameter",
         "tests/backend/test_assistant_capabilities.py::test_selection_by_number_checks_required_crew_without_guessing",
         "tests/backend/test_assistant_capabilities.py::test_deleted_selected_task_returns_honest_error_without_model_guessing",
+        "tests/backend/test_assistant_domain_adapters.py::test_task_assign_adapter_resolves_nearest_task_and_prepares_assignment",
+        "tests/backend/test_assistant_domain_adapters.py::test_task_assign_adapter_stops_when_prepare_needs_input",
         "tests/backend/test_assistant_p0.py::test_no_retry_for_denied_or_backend_error_or_write"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."

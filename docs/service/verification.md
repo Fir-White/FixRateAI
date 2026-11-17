@@ -1,5 +1,11 @@
 # Проверки и доказательства
 
+## 17.11.2026 — слияние mvidy_dev в dev
+
+[Полный протокол](../releases/2026-11-17-mvidy-dev-to-dev.md): dev `33d696b` + mvidy_dev `7cd729f`, три коммита, семь входящих файлов, конфликтов нет. Свежие результаты: **backend 95 passed / 3 failed** на временном PostgreSQL 18; **Ollama 58 passed**, **UI 85 passed**, **production Chrome 8 passed** (desktop/mobile, reduced motion), TypeScript/build PASS, начальный JS 123,76 kB gzip. Три отказа в `test_assistant_capabilities.py` затрагивают отсутствие параметра задания, выбор по номеру с требуемым составом и удалённое выбранное задание; последние два дают `awaiting_confirmation` вместо ожидаемого отказа/уточнения. Assertions не изменялись; приёмка назначения открыта.
+
+Capabilities PASS: 173 tools. Матрица первоначально stale из-за новых названий тестов; штатная генерация обновила только `candidate_test_mentions` трёх операций, без изменения cells/evidence/summary. Согласованность PASS: 708 клеток, исторические 17 positive PASS / 691 NOT_RUN. Ошибки неполных Python-сред и ограничения evidence сохранены в протоколе; backend runner exit1, полного зелёного pipeline нет.
+
 ## 17.11.2026 — объединение kran_dev в общую dev
 
 [Протокол merge](../releases/2026-11-17-kran-dev-to-dev.md): первый родитель dev `d90fed3`, второй — опубликованный kran_dev `8049174`. Из 19 уникальных путей трёх ML-коммитов 18 полностью совпадают с dev; добавленная строка TL04 в общем INDEX сохранена. Git-сравнение подтвердило совпадение runtime, backend/web-тестов и sync-скрипта с проверенным `8049174`. Результаты 296 native/87 UI/build ниже относятся к исходному срезу; новый полный прогон на merge SHA не заявляется.

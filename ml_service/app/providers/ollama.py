@@ -190,6 +190,13 @@ class OllamaConfig:
     def model_ref(self):return 'ollama:'+self.model+'@'+self.digest
 
 
+def _merge_system_messages(messages):
+    """Keep a single system message at index 0 for strict Jinja chat templates."""
+    systems=[m['content'] for m in messages if m.get('role')=='system' and isinstance(m.get('content'),str) and m['content']]
+    rest=[m for m in messages if m.get('role')!='system']
+    return ([dict(role='system',content='\n\n'.join(systems)),*rest] if systems else rest)
+
+
 class OllamaClient:
     def __init__(self,config):
         self.config=config;self.deadline=time.monotonic()+config.timeout;self.response_model=None
@@ -234,8 +241,8 @@ class OllamaClient:
                      options=dict(temperature=0 if schema else .2,num_ctx=self.config.num_ctx,num_predict=tokens,repeat_penalty=1.05))
         if schema:
             payload['format']=agent_wire_schema(schema,getattr(self,'tool_modes',None))
-            converted=[*converted,dict(role='system',content='Return exactly one JSON object matching this schema. Use exact property names, include required fields. '+json.dumps(payload['format'],ensure_ascii=False))]
-            payload['messages']=converted
+            converted=[*converted,dict(role='system',content='Return exactly one JSON object matching the required output schema. Use exact property names, include required fields.')]
+        payload['messages']=_merge_system_messages(converted)
         for attempt in range(2 if schema else 1):
             started=time.monotonic()
             try:raw=self.request('/api/chat',payload)
@@ -273,7 +280,7 @@ class OllamaClient:
                 feedback='The previous response did not match the required schema. Return a valid JSON object with all required fields and correct types. Validation fields/types: '+json.dumps(issues)
                 if any(e['path'].endswith('arguments_json') for e in issues):
                     feedback+=' arguments_json must be a valid JSON OBJECT with double-quoted keys, never Python syntax, a quoted string, null or an array. For empty arguments use {}. Example call: '+json.dumps(dict(tool='equipment_find',arguments_json=dict(query=dict(q='pump')),explanation='Find equipment'))
-                payload['messages']=[*converted,dict(role='system',content=feedback)]
+                payload['messages']=[*_merge_system_messages(converted),dict(role='user',content=feedback)]
                 if reason=='token_limit':payload['options']['num_predict']=min(tokens*2,7000)
 
     def text(self,messages,tokens=8192):return self.chat(messages,None,tokens)

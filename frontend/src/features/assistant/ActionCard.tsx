@@ -6,8 +6,43 @@ import {Callout} from '@/shared/ui/Callout';
 import {notifyOtherTabs} from '@/shared/session/SessionContext';
 const labels:Record<string,string>={role:'Роль',user_id:'Сотрудник',is_active:'Доступ активен',file:'Файл',photo:'Фотография',payload:'Показание и основание',email:'Новый email',site_id:'Здание',preview_token:'Контроль предпросмотра',name:'Название',asset_code:'Инвентарный код',location:'Расположение',status:'Состояние',reason:'Причина',title:'Название плана',expected_revision:'Исходная версия',system_id:'Система',equipment_type_id:'Тип оборудования',equipment_id:'Оборудование',task_id:'Задание',identity:'План',serial_number:'Серийный номер',commissioned_on:'Дата ввода',start_at:'Начало',end_at:'Окончание',start_local:'Начало (время объекта)',end_local:'Окончание (время объекта)',executor_ids:'Исполнители',worker_ids:'Исполнители',comparability_confirmed:'Сопоставимость фото подтверждена',locked:'Закрепить',unlock:'Разрешить снятие закрепления',narrative:'Описание выполнения',verdict:'Решение',policy:'Условия расчёта',input:'Исходные данные',answers:'Ответы чек-листа',readings:'Показания',actual:'Фактическое выполнение',parent_equipment_id:'Родительское оборудование',properties:'Свойства',data_origin:'Происхождение',idempotency_key:'Ключ защиты от повтора'};
 const states:Record<ChatAction['status'],string>={proposed:'Нужно ваше подтверждение',rejected:'Отклонено',executing:'Выполняется',succeeded:'Выполнено',failed:'Действие отклонено системой',uncertain:'Результат требует проверки',stale:'Предложение устарело'};
-const values:Record<string,string>={director:'Руководитель',chief_engineer:'Главный инженер',admin:'Администратор',dispatcher:'Диспетчер',engineer:'Инженер',executor:'Исполнитель',before:'До работы',after:'После работы',active:'В работе',under_repair:'На ремонте',retired:'Выведено из эксплуатации',customer:'Данные заказчика',synthetic_demo:'Тестовые данные',accepted:'Принять',rejected:'Вернуть на доработку'};
-function value(v:unknown){return v===null?'Не задано':typeof v==='boolean'?v?'Да':'Нет':typeof v==='object'?JSON.stringify(v,null,2):values[String(v)]??String(v);}
+const values:Record<string,string>={director:'Руководитель',chief_engineer:'Главный инженер',admin:'Администратор',dispatcher:'Диспетчер',engineer:'Инженер',executor:'Исполнитель',before:'До работы',after:'После работы',active:'В работе',under_repair:'На ремонте',retired:'Выведено из эксплуатации',customer:'Данные заказчика',synthetic_demo:'Тестовые данные',accepted:'Принять',rejected:'Вернуть на доработку',draft:'Черновик',assigned:'Назначено',in_progress:'В работе',submitted:'На проверке',rework:'На доработке',rework_required:'На доработке',cancelled:'Отменено'};
+function formatWhen(raw:unknown):string|null{
+  if(typeof raw!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(raw))return null;
+  const ms=Date.parse(raw);
+  if(Number.isNaN(ms))return null;
+  return new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(ms);
+}
+function value(v:unknown){return v===null?'Не задано':typeof v==='boolean'?v?'Да':'Нет':typeof v==='object'?JSON.stringify(v,null,2):formatWhen(v)??values[String(v)]??String(v);}
+function resultSummaryRows(data:unknown):Array<[string,string]>{
+  if(!data||typeof data!=='object'||Array.isArray(data))return [];
+  const obj=data as Record<string,unknown>;
+  const task=obj.task&&typeof obj.task==='object'?obj.task as Record<string,unknown>:null;
+  if(task){
+    const rows:Array<[string,string]>=[];
+    const title=typeof task.title==='string'?task.title:'';
+    const code=typeof task.code==='string'?task.code:'';
+    if(title||code)rows.push(['Задание',code&&title?`${title} (${code})`:title||code]);
+    if(typeof task.state==='string')rows.push(['Статус',values[task.state]??task.state]);
+    if(typeof task.equipmentName==='string'&&task.equipmentName)rows.push(['Оборудование',task.equipmentName]);
+    if(Array.isArray(task.assignees)){
+      const names=task.assignees.map(a=>a&&typeof a==='object'&&typeof (a as {name?:unknown}).name==='string'?(a as {name:string}).name:'').filter(Boolean);
+      rows.push(['Исполнители',names.length?names.join(', '):'Не назначены']);
+    }
+    const start=formatWhen(task.scheduledStart);
+    const end=formatWhen(task.scheduledEnd);
+    if(start)rows.push(['Плановое время',end?`${start} — ${end}`:start]);
+    return rows;
+  }
+  if(typeof obj.name==='string'&&(typeof obj.asset_code==='string'||typeof obj.equipment_id==='string'||typeof obj.location==='string')){
+    const rows:Array<[string,string]>=[['Оборудование',obj.name]];
+    if(typeof obj.asset_code==='string'&&obj.asset_code)rows.push(['Инвентарный код',obj.asset_code]);
+    if(typeof obj.location==='string'&&obj.location)rows.push(['Расположение',obj.location]);
+    if(typeof obj.status==='string')rows.push(['Состояние',values[obj.status]??obj.status]);
+    return rows;
+  }
+  return [];
+}
 function protectedResource(data:unknown):{url:string;title:string}|null{
   if(!data||typeof data!=='object')return null;
   const resource=(data as {resource?:unknown}).resource;
@@ -31,14 +66,20 @@ export const ActionCard=memo(function ActionCard({action:original,title,onChange
   const before=action.before_snapshot?.preview;
   const run=async(confirm:boolean)=>{setBusy(true);setError('');try{const result=confirm?(action.secret_fields?.length?await assistantApi.confirm(action,secrets):await assistantApi.confirm(action)):await assistantApi.reject(action.action_id);setResolved(result);setSecrets({});onChanged();const navigate=(result.result?.data as {navigate_to?:unknown}|undefined)?.navigate_to;if(navigate==='/assistant'||navigate==='/login'){notifyOtherTabs();window.location.assign(navigate);}}catch(e){setError(e instanceof Error?e.message:'Не удалось выполнить действие');onChanged();}finally{setBusy(false);}};
   const target=action.arguments.path?.equipment_id;
+  const resultData=action.result?.data as {task?:{id?:unknown}} | undefined;
+  const taskTarget=typeof action.arguments.path?.task_id==='string'?action.arguments.path.task_id:typeof resultData?.task?.id==='string'?resultData.task.id:null;
   const verification=action.result?.verification;
   const resource=action.status==='succeeded'?protectedResource(action.result?.data):null;
+  const summaryRows=action.status==='succeeded'?resultSummaryRows(action.result?.data):[];
   const stateLabel=action.status==='succeeded'&&verification?verification.status==='confirmed'?'Выполнено и проверено':'Запись выполнена; результат требует проверки':states[action.status];
   return <section className="min-w-0 space-y-4 rounded-2xl border border-accent/30 bg-surface p-4 sm:p-5" aria-label={`Предложение: ${title}`}>
     <div className="flex flex-wrap items-start justify-between gap-2"><h3 className="font-semibold">{title}</h3><span role="status" className="text-xs text-muted">{stateLabel}</span></div>
     {verification&&<p className="text-sm whitespace-pre-wrap">{verification.summary}</p>}
     <p className="whitespace-pre-wrap text-sm">{action.explanation}</p>
-    {typeof target==='string'&&<Link className="text-sm text-accent underline" to={`/equipment/${encodeURIComponent(target)}`}>Открыть оборудование</Link>}
+    <div className="flex flex-wrap gap-3">
+      {typeof target==='string'&&<Link className="text-sm text-accent underline" to={`/equipment/${encodeURIComponent(target)}`}>Открыть оборудование</Link>}
+      {taskTarget&&<Link className="text-sm text-accent underline" to={`/tasks/${encodeURIComponent(taskTarget)}`}>Открыть задание</Link>}
+    </div>
     <dl className="space-y-2 text-sm">{fields.map(([key,v])=><div key={key} className="grid min-w-0 gap-1 border-t border-line pt-2 sm:grid-cols-[160px_minmax(0,1fr)]"><dt className="text-muted">{labels[key]??key}</dt><dd className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{attachments.find(a=>a.attachment_id===v)?.original_name??value(v)}</dd></div>)}</dl>
     <details className="text-sm"><summary className="cursor-pointer text-muted">Все параметры команды</summary><pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs [overflow-wrap:anywhere]">{JSON.stringify(action.arguments,null,2)}</pre></details>
     {before!==null&&before!==undefined&&<details className="text-sm"><summary className="cursor-pointer text-muted">Данные до изменения</summary><pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs [overflow-wrap:anywhere]">{JSON.stringify(before,null,2)}</pre></details>}
@@ -46,7 +87,8 @@ export const ActionCard=memo(function ActionCard({action:original,title,onChange
     {action.status==='uncertain'&&<Callout tone="warning">Ответ после выполнения потерян. Проверьте состояние в системе перед новой командой. Повторное подтверждение не запустит действие ещё раз.</Callout>}
     {action.result?.message&&<p className="text-sm whitespace-pre-wrap">{action.result.message}</p>}
     {resource&&<a className="assistant-resource" href={resource.url} target="_blank" rel="noopener noreferrer">{resource.title}<span className="block text-xs text-muted">Защищённый просмотр · доступ проверяется при открытии</span></a>}
-    {action.result?.data!==undefined&&<details className="text-sm"><summary className="cursor-pointer text-accent">Результат действия</summary><pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs [overflow-wrap:anywhere]">{JSON.stringify(action.result.data,null,2)}</pre></details>}
+    {summaryRows.length>0&&<dl className="space-y-2 rounded-xl border border-line/70 bg-surface-elevated/40 p-3 text-sm">{summaryRows.map(([k,v])=><div key={k} className="grid min-w-0 gap-1 sm:grid-cols-[160px_minmax(0,1fr)]"><dt className="text-muted">{k}</dt><dd className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{v}</dd></div>)}</dl>}
+    {action.result?.data!==undefined&&<details className="text-sm"><summary className="cursor-pointer text-muted">Результат действия</summary><pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs [overflow-wrap:anywhere]">{JSON.stringify(action.result.data,null,2)}</pre></details>}
     {error&&<div role="alert"><Callout tone="danger">{error}</Callout></div>}
   </section>;
 });
