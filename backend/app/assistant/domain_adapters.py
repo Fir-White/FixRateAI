@@ -9,7 +9,7 @@ from app.schemas.assistant import AgentStep
 import re
 
 
-LEGACY_SUPPORTED={'equipment_read','equipment_edit','regulations_read','calendar_evidence','equipment_service_history','inventory_read','staff_edit','attachment_read','workbook_readiness'}
+LEGACY_SUPPORTED={'equipment_read','equipment_edit','regulations_read','calendar_evidence','equipment_service_history','inventory_read','staff_edit','attachment_read','workbook_readiness','task_assign'}
 SUPPORTED=LEGACY_SUPPORTED|{'equipment_find','staff_read','staff_find','workforce_read','operations_list','operation_read','components_read','catalog_read','profile_read','notifications_list','enrollment_read','task_read','task_start'}
 
 
@@ -79,6 +79,47 @@ def next_step(goal,state):
         revision=changes.get('expected_revision')
         if revision is not None and type(revision) is not int:return None
         return call(target,dict(path=dict(task_id=selector['task_id']),body={} if revision is None else dict(expected_revision=revision)))
+    if target=='task_assign':
+        evidence=[proof for proof in state.get('evidence',[]) if proof['goal_id']==goal['id'] or proof['goal_id'] in goal.get('depends_on',[])]
+        task_id=selector.get('task_id')
+        found_in_goal=any(proof.get('tool')=='tasks_find' and proof.get('goal_id')==goal['id'] for proof in evidence)
+        if task_id and not found_in_goal:
+            return None
+        if not task_id:
+            finds=[proof for proof in evidence if proof.get('tool')=='tasks_find']
+            if not finds:
+                return call('tasks_find',dict(query=dict(period='upcoming')))
+            last_find=finds[-1]
+            last_result=last_find.get('result') if isinstance(last_find.get('result'),dict) else {}
+            items=last_result.get('items') if isinstance(last_result.get('items'),list) else []
+            if not items and (last_find.get('arguments',{}).get('query') or {}).get('period','upcoming')!='all':
+                return call('tasks_find',dict(query=dict(period='all')))
+            if not items:
+                return None
+            drafts=[item for item in items if isinstance(item,dict) and item.get('state')=='draft' and item.get('id')]
+            active=[item for item in items if isinstance(item,dict) and item.get('state') in ('draft','assigned','rework') and item.get('id')]
+            candidates=drafts or active
+            if not candidates:
+                return None
+            if len(candidates)==1 or re.search(r'ближайш',state.get('request',''),re.I):
+                task_id=str(candidates[0]['id'])
+            else:
+                return None
+        prep=next((proof for proof in reversed(evidence) if proof.get('tool')=='assignment_prepare' and (proof.get('arguments',{}).get('path') or {}).get('task_id')==task_id),None)
+        if prep is None:
+            request_text=state.get('request','')
+            one_person=bool(re.search(r'\b(?:одного|1\s+человек\w*|самого\s+\w+\s+работника|одного\s+работника|одного\s+исполнителя)\b',request_text,re.I)
+                            and not re.search(r'\b(?:бригад\w*|сотрудников|работников|исполнителей)\b',request_text,re.I))
+            body=dict(one_person_only=True) if one_person else {}
+            return call('assignment_prepare',dict(path=dict(task_id=task_id),body=body))
+        prep_result=prep.get('result') if isinstance(prep.get('result'),dict) else {}
+        if prep_result.get('status')=='ready' and isinstance(prep_result.get('command'),dict):
+            cmd=prep_result['command']
+            body={key:cmd[key] for key in ('expected_revision','executor_ids','start_at','end_at') if key in cmd}
+            if cmd.get('crew_id'):body['crew_id']=cmd['crew_id']
+            body['reason']=str((goal.get('changes') or {}).get('reason') or goal.get('title') or 'Назначение исполнителей')[:500]
+            return call('task_assign',dict(path=dict(task_id=task_id),body=body))
+        return None
     if target=='equipment_find':
         query={}
         if selector.get('equipment_code'):query['asset_code']=selector['equipment_code']

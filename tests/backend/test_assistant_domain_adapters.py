@@ -238,3 +238,34 @@ def test_literal_typed_staff_patch_is_bound_without_weakening_real_source_requir
     assert goal['tool']=='staff_edit' and goal['kind']=='change' and goal['changes']==dict(employed_until='2028-04-05')
     if required=='conversation':assert goal['required_evidence']=='saved_data' and goal['status']=='planned'
     else:assert goal['required_evidence']==required and goal['status']=='blocked'
+
+
+def test_task_assign_adapter_resolves_nearest_task_and_prepares_assignment():
+    goal=objective('task_assign',title='Назначить самого малозагруженного работника на ближайшее ТО',outcome='other')
+    state=dict(request='привет, назначь самого малозагруженного работника на ближайшее ТО',evidence=[])
+    step1=next_step(goal,state).calls[0]
+    assert step1.tool=='tasks_find' and step1.arguments==dict(query=dict(period='upcoming'))
+    state['evidence'].append(dict(goal_id='g',tool='tasks_find',arguments=step1.arguments,result=dict(items=[],total=0)))
+    step2=next_step(goal,state).calls[0]
+    assert step2.tool=='tasks_find' and step2.arguments==dict(query=dict(period='all'))
+    task_id=str(uuid4());worker_id=str(uuid4())
+    state['evidence'].append(dict(goal_id='g',tool='tasks_find',arguments=step2.arguments,result=dict(items=[dict(id=task_id,state='draft')],total=1)))
+    step3=next_step(goal,state).calls[0]
+    assert step3.tool=='assignment_prepare' and step3.arguments==dict(path=dict(task_id=task_id),body=dict(one_person_only=True))
+    command=dict(expected_revision=1,executor_ids=[worker_id],start_at='2026-11-18T09:00:00+05:00',end_at='2026-11-18T10:00:00+05:00')
+    state['evidence'].append(dict(goal_id='g',tool='assignment_prepare',arguments=step3.arguments,result=dict(status='ready',command=command)))
+    step4=next_step(goal,state).calls[0]
+    assert step4.tool=='task_assign'
+    assert step4.arguments['path']==dict(task_id=task_id)
+    assert step4.arguments['body']['executor_ids']==[worker_id]
+    assert step4.arguments['body']['expected_revision']==1
+
+
+def test_task_assign_adapter_stops_when_prepare_needs_input():
+    goal=objective('task_assign',title='Назначить одного работника',outcome='other')
+    task_id=str(uuid4())
+    state=dict(request='назначь одного работника на ближайшее ТО',evidence=[
+        dict(goal_id='g',tool='tasks_find',arguments=dict(query=dict(period='upcoming')),result=dict(items=[dict(id=task_id,state='draft')],total=1)),
+        dict(goal_id='g',tool='assignment_prepare',arguments=dict(path=dict(task_id=task_id),body=dict(one_person_only=True)),result=dict(status='needs_input',explanation='Нужно 2 исполнителей')),
+    ])
+    assert next_step(goal,state) is None
