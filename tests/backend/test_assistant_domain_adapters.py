@@ -253,7 +253,7 @@ def test_task_assign_adapter_resolves_nearest_task_and_prepares_assignment():
     step3=next_step(goal,state).calls[0]
     assert step3.tool=='assignment_prepare' and step3.arguments==dict(path=dict(task_id=task_id),body=dict(one_person_only=True))
     command=dict(expected_revision=1,executor_ids=[worker_id],start_at='2026-11-18T09:00:00+05:00',end_at='2026-11-18T10:00:00+05:00')
-    state['evidence'].append(dict(goal_id='g',tool='assignment_prepare',arguments=step3.arguments,result=dict(status='ready',command=command)))
+    state['evidence'].append(dict(goal_id='g',tool='assignment_prepare',arguments=step3.arguments,result=dict(status='ok',command=command)))
     step4=next_step(goal,state).calls[0]
     assert step4.tool=='task_assign'
     assert step4.arguments['path']==dict(task_id=task_id)

@@ -113,7 +113,7 @@ def next_step(goal,state):
             body=dict(one_person_only=True) if one_person else {}
             return call('assignment_prepare',dict(path=dict(task_id=task_id),body=body))
         prep_result=prep.get('result') if isinstance(prep.get('result'),dict) else {}
-        if prep_result.get('status')=='ready' and isinstance(prep_result.get('command'),dict):
+        if prep_result.get('status') in ('ok','ready') and isinstance(prep_result.get('command'),dict):
             cmd=prep_result['command']
             body={key:cmd[key] for key in ('expected_revision','executor_ids','start_at','end_at') if key in cmd}
             if cmd.get('crew_id'):body['crew_id']=cmd['crew_id']
