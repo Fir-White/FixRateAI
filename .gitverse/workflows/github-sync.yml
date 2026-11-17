@@ -1,0 +1,44 @@
+name: Sync GitVerse and GitHub
+
+on:
+  push:
+    branches: ['**']
+    tags: ['**']
+  workflow_dispatch:
+  schedule:
+    # GitVerse hosted runners require at least fifteen minutes.
+    - cron: '7,22,37,52 * * * *'
+
+jobs:
+  sync:
+    if: gitverse.repository == 'firewhite/FixRate_AI'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Load trusted control code from GitHub main
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GIT_TERMINAL_PROMPT=0
+          control="$(mktemp -d "${RUNNER_TEMP:-/tmp}/sync-control.XXXXXX")"
+          trap 'rm -rf -- "$control"' EXIT
+          git init --bare --quiet "$control/repo.git"
+          for attempt in 1 2 3; do
+            if git -c credential.helper= -C "$control/repo.git" fetch --quiet --depth=1 \
+                https://github.com/Fir-White/FixRateAI.git refs/heads/main; then
+              break
+            fi
+            test "$attempt" -lt 3 || exit 1
+            sleep 10
+          done
+          mkdir -p sync-control
+          for file in sync_git_hosts.py run_git_host_sync.sh; do
+            git -C "$control/repo.git" show "FETCH_HEAD:scripts/$file" > "sync-control/$file"
+          done
+      - name: Reconcile branches and tags in both directions
+        shell: bash
+        env:
+          GITVERSE_USERNAME: ${{ secrets.MIRROR_GV_USERNAME }}
+          GITVERSE_TOKEN: ${{ secrets.MIRROR_GV_TOKEN }}
+          GH_MIRROR_SSH_KEY: ${{ secrets.MIRROR_GH_SSH_KEY }}
+        run: bash sync-control/run_git_host_sync.sh

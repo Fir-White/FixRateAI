@@ -1,5 +1,7 @@
 # Узлы сервиса
 
+[Автосинхронизация GitHub ↔ GitVerse, 17.11.2026](../releases/2026-11-17-git-host-sync-automation.md) — два event-workflow, независимые расписания и восстановление по свежим refs.
+
 [Текущий прогон и аудит frontend_polished](verification.md#06112026-frontend_polished--роли-сессии-и-аудит-документации) · [сводка исправлений 04.11.2026](verification.md#04112026-сводка-изменений-в-dev).
 
 | Документ | Область |
