@@ -1,5 +1,6 @@
 """Real local bare repositories; no external services or credentials."""
 import importlib.util
+import json
 from pathlib import Path
 import subprocess
 
@@ -137,3 +138,170 @@ def test_concurrent_divergence_rejected_by_non_force_push(hosts, monkeypatch):
     assert report["status"] == "failed"
     assert sync.inventory(str(gh))["refs/heads/dev"] == concurrent[0]
     assert sync.inventory(str(gv))["refs/heads/dev"] == gv_sha
+
+
+RPC_403 = "error: RPC failed; HTTP 403 curl 22 The requested URL returned error: 403\nfatal: expected flush after ref listing"
+
+
+@pytest.mark.parametrize("operation", ["inventory", "fetch", "verify_refs"])
+def test_transient_gitverse_read_recovers_without_replaying_push(hosts, monkeypatch, operation):
+    work, gh, gv = hosts
+    commit(work, "gitverse-ahead")
+    command(work, "push", "--quiet", str(gv), "HEAD:refs/heads/dev")
+    original = sync.git
+    failed = []
+    reads = []
+    pushes = []
+    sleeps = []
+
+    def flaky(*args, **kwargs):
+        is_inventory = args[0] == "ls-remote" and args[-1] == str(gv)
+        if is_inventory:
+            reads.append(args)
+        if args[0] == "push":
+            pushes.append(args)
+        matches = (operation == "inventory" and is_inventory and len(reads) == 1
+                   or operation == "verify_refs" and is_inventory and len(reads) == 2
+                   or operation == "fetch" and args[0] == "fetch" and str(gv) in args)
+        if matches and not failed:
+            failed.append(True)
+            raise RuntimeError(RPC_403)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(sync, "git", flaky)
+    monkeypatch.setattr(sync.time, "sleep", sleeps.append)
+    report = sync.synchronize(str(gh), str(gv))
+    assert report["status"] == "synchronized", report
+    assert report["refs_equal"] is True
+    assert len(pushes) == 1
+    assert sleeps == [2]
+    assert report["retries"] == [dict(host="gitverse", operation=operation,
+        attempt=1, next_attempt=2, delay_seconds=2, error=RPC_403)]
+    assert sync.inventory(str(gh)) == sync.inventory(str(gv))
+
+
+def test_repeated_gitverse_rpc_403_fails_with_bounded_attempts_and_context(hosts, monkeypatch):
+    _, gh, gv = hosts
+    original = sync.git
+    failed = []
+    sleeps = []
+
+    def unavailable(*args, **kwargs):
+        if args[0] == "ls-remote" and args[-1] == str(gv):
+            failed.append(True)
+            raise RuntimeError(RPC_403)
+        assert args[0] != "push", "No writes may occur after failed inventory"
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(sync, "git", unavailable)
+    monkeypatch.setattr(sync.time, "sleep", sleeps.append)
+    report = sync.synchronize(str(gh), str(gv))
+    assert report["status"] == "failed"
+    assert len(failed) == 3
+    assert sleeps == [2, 5]
+    assert report["updates"] == []
+    assert report["failed_operation"] == dict(host="gitverse", operation="inventory",
+        attempts=3, error=RPC_403)
+    assert "gitverse/inventory failed after 3" in report["errors"][0]
+
+
+@pytest.mark.parametrize("error", [
+    "fatal: Authentication failed for 'https://user:private-token@gitverse.ru/project'",
+    "fatal: unable to access 'https://gitverse.ru/project': The requested URL returned error: 403",
+    "Permission denied (publickey).",
+    "fatal: SSL certificate problem: certificate has expired",
+    "fatal: repository not found",
+])
+def test_permanent_auth_and_security_errors_fail_without_retry_or_secret_leak(hosts, monkeypatch, error):
+    _, gh, gv = hosts
+    original = sync.git
+    calls = []
+
+    def denied(*args, **kwargs):
+        if args[0] == "ls-remote" and args[-1] == str(gv):
+            calls.append(True)
+            raise RuntimeError(error)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(sync, "git", denied)
+    monkeypatch.setattr(sync.time, "sleep", lambda _: pytest.fail("Permanent failures must not retry"))
+    report = sync.synchronize(str(gh), str(gv))
+    assert report["status"] == "failed"
+    assert len(calls) == 1
+    assert report["retries"] == []
+    assert report["failed_operation"]["attempts"] == 1
+    assert "private-token" not in json.dumps(report)
+
+
+def test_gitverse_rpc_exception_does_not_retry_arbitrary_github_403(hosts, monkeypatch):
+    _, gh, gv = hosts
+    original = sync.git
+
+    def denied(*args, **kwargs):
+        if args[0] == "ls-remote" and args[-1] == str(gh):
+            raise RuntimeError(RPC_403)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(sync, "git", denied)
+    monkeypatch.setattr(sync.time, "sleep", lambda _: pytest.fail("Unclassified 403 must not retry"))
+    report = sync.synchronize(str(gh), str(gv))
+    assert report["status"] == "failed"
+    assert report["failed_operation"]["host"] == "github"
+    assert report["failed_operation"]["attempts"] == 1
+
+
+@pytest.mark.parametrize("error", ["HTTP 502 Bad Gateway", "Could not resolve host: github.com", "Git command timed out after 120 seconds"])
+def test_temporary_transport_failure_recovers_on_github_read(hosts, monkeypatch, error):
+    _, gh, gv = hosts
+    original = sync.git
+    failed = []
+    sleeps = []
+
+    def flaky(*args, **kwargs):
+        if args[0] == "ls-remote" and args[-1] == str(gh) and not failed:
+            failed.append(True)
+            raise RuntimeError(error)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(sync, "git", flaky)
+    monkeypatch.setattr(sync.time, "sleep", sleeps.append)
+    report = sync.synchronize(str(gh), str(gv))
+    assert report["status"] == "up_to_date"
+    assert report["refs_equal"] is True
+    assert sleeps == [2]
+    assert report["retries"][0]["host"] == "github"
+
+
+def test_push_with_lost_response_is_not_replayed_and_next_run_reconciles(hosts, monkeypatch):
+    work, gh, gv = hosts
+    commit(work, "github-ahead")
+    command(work, "push", "--quiet", str(gh), "HEAD:refs/heads/dev")
+    original = sync.git
+    pushes = []
+
+    def lost_response(*args, **kwargs):
+        if args[0] == "push":
+            pushes.append(args)
+            original(*args, **kwargs)
+            raise RuntimeError("Git command timed out after 120 seconds")
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(sync, "git", lost_response)
+    monkeypatch.setattr(sync.time, "sleep", lambda _: pytest.fail("A push must never be replayed blindly"))
+    report = sync.synchronize(str(gh), str(gv))
+    assert report["status"] == "failed"
+    assert report["failed_operation"] == dict(host="gitverse", operation="push", attempts=1,
+                                             error="Git command timed out after 120 seconds")
+    assert len(pushes) == 1
+    assert sync.inventory(str(gh)) == sync.inventory(str(gv))
+    assert sync.synchronize(str(gh), str(gv))["status"] == "up_to_date"
+    assert len(pushes) == 1
+
+
+def test_git_command_has_a_timeout(monkeypatch):
+    def timeout(*args, **kwargs):
+        assert kwargs["timeout"] == 120
+        raise subprocess.TimeoutExpired(args[0], kwargs["timeout"])
+    monkeypatch.setattr(sync.subprocess, "run", timeout)
+    with pytest.raises(RuntimeError, match="Git command timed out after 120 seconds"):
+        sync.git("ls-remote", "https://example.test/repo")
