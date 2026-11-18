@@ -1,5 +1,13 @@
 # Проверки и доказательства
 
+## 18.11.2026 — HTTP 403 при запуске синхронизации
+
+В [GitHub Actions 44264773922](https://github.com/Fir-White/FixRateAI/actions/runs/44264773922) на `c38a67d` checkout прошёл. Следующий шаг четыре раза получил HTTP 403 от анонимного вызова `api.github.com/meta` и завершился с exit 22 до запуска `sync_git_hosts.py`. Лог не сохранил заголовки ответа, точная серверная политика отказа не установлена. [Следующий запуск 44356651514](https://github.com/Fir-White/FixRateAI/actions/runs/44356651514) на том же SHA прошёл. Повторы REST-запроса с одного runner не устраняют зависимость от доступности метаданных.
+
+Исправление использует опубликованные открытые ключи хоста с проверенными отпечатками. Регрессия запускает общий Bash-скрипт при имитации HTTP 403 для любого вызова `curl` и проверяет достижение reconcile, используемые отпечатки, строгие параметры SSH и очистку временной папки. Остальные тесты используют локальные bare-репозитории для повтора, гонок и проверки равенства refs. [Ротация ключей](git-hosting.md#проверка-github-ssh-хоста-18112026), [отпечатки GitHub](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints).
+
+Локально `python -B -m pytest -o addopts= -q tests/automation/test_git_host_sync.py` дал **32 passed / 94,53 с**. Bash syntax, actionlint 1.7.12 и whitespace-check прошли. Общий `validate_artifacts.py` на main ранее останавливался и повторно остановился на отсутствующей исторической иллюстрации `CONTRACT_AUDIT.md → source/FixRateAI-phase2-visual-design-2026-11-06/concepts/director-desktop.png`. [Предыдущий протокол](../releases/2026-11-17-git-host-sync-automation.md).
+
 ## 17.11.2026 — независимая автосинхронизация GitHub и GitVerse
 
 [Состав и границы](../releases/2026-11-17-git-host-sync-automation.md). Диагностика: GitHub schedule с пятичасовыми/многочасовыми промежутками вместо заданных пяти минут; унаследованные GitVerse jobs skipped по условию GitHub repository. Подготовлены два event-workflow с независимыми резервными расписаниями и общим кодом из main; постоянный доступ GitVerse настроен после явного согласия владельца.

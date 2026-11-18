@@ -10,17 +10,17 @@ credentials="$(mktemp -d "${RUNNER_TEMP:-/tmp}/git-sync-auth.XXXXXX")"
 trap 'rm -rf -- "$credentials"' EXIT
 printf '%s\n' "$GH_MIRROR_SSH_KEY" > "$credentials/key"
 unset GH_MIRROR_SSH_KEY
-curl --fail --silent --show-error --retry 3 --retry-all-errors --connect-timeout 15 --max-time 60 \
-  https://api.github.com/meta > "$credentials/meta.json"
-python3 - "$credentials" <<'PY'
-import json, pathlib, sys
-directory = pathlib.Path(sys.argv[1])
-keys = json.loads((directory / 'meta.json').read_text())['ssh_keys']
-if not keys or not all(isinstance(key, str) and key.startswith(('ssh-', 'ecdsa-')) and '\n' not in key for key in keys):
-    raise ValueError('Invalid GitHub SSH host metadata')
-(directory / 'known_hosts').write_text(''.join('github.com ' + key + '\n' for key in keys))
-PY
-export GIT_SSH_COMMAND="ssh -i \"$credentials/key\" -o IdentitiesOnly=yes -o BatchMode=yes -o UserKnownHostsFile=\"$credentials/known_hosts\" -o StrictHostKeyChecking=yes -o ConnectTimeout=20"
+# Reviewed pins from https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints
+# Keep these in the shared entrypoint so existing sparse checkouts can run it
+# without a new file or an anonymous REST request from either provider.
+cat > "$credentials/known_hosts" <<'KNOWN_HOSTS'
+github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
+github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=
+KNOWN_HOSTS
+export GIT_SSH_COMMAND="ssh -F /dev/null -i \"$credentials/key\" \
+  -o IdentitiesOnly=yes -o BatchMode=yes -o UserKnownHostsFile=\"$credentials/known_hosts\" \
+  -o GlobalKnownHostsFile=/dev/null -o StrictHostKeyChecking=yes -o UpdateHostKeys=no -o ConnectTimeout=20"
 export GIT_ASKPASS="$credentials/askpass.sh"
 cat > "$GIT_ASKPASS" <<'ASKPASS'
 #!/usr/bin/env bash

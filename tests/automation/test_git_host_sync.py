@@ -1,7 +1,9 @@
 """Real local bare repositories; no external services or credentials."""
 import importlib.util
 import json
+import os
 from pathlib import Path
+import shutil
 import subprocess
 
 import pytest
@@ -9,6 +11,77 @@ import pytest
 spec = importlib.util.spec_from_file_location("git_host_sync", Path(__file__).parents[2] / "scripts/sync_git_hosts.py")
 sync = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(sync)
+
+
+def test_entrypoint_reaches_reconciliation_without_external_host_key_lookup(tmp_path):
+    if os.name == "nt":
+        # System32/bash.exe starts WSL. Git for Windows supplies a native Bash.
+        git = shutil.which("git")
+        bash = Path(git).resolve().parents[1] / "bin" / "bash.exe" if git else None
+        if not bash or not bash.is_file():
+            pytest.skip("Git for Windows Bash is unavailable")
+    else:
+        bash = shutil.which("bash")
+        if not bash:
+            pytest.skip("Bash is unavailable")
+    keygen = shutil.which("ssh-keygen")
+    if not keygen:
+        pytest.skip("OpenSSH ssh-keygen is unavailable")
+    runner_temp = tmp_path / "runner temp"
+    runner_temp.mkdir()
+    env = dict(os.environ, RUNNER_TEMP=runner_temp.as_posix(),
+               GITVERSE_USERNAME="test-user", GITVERSE_TOKEN="test-token",
+               GH_MIRROR_SSH_KEY="TEST-only credential")
+    entrypoint = Path(__file__).parents[2] / "scripts/run_git_host_sync.sh"
+    harness = r"""
+set -eu
+mkdir "$RUNNER_TEMP/bin"
+cat > "$RUNNER_TEMP/bin/curl" <<'HTTP_403'
+#!/usr/bin/env bash
+echo 'curl: (22) The requested URL returned error: 403' >&2
+exit 22
+HTTP_403
+cat > "$RUNNER_TEMP/bin/ssh-keyscan" <<'KEYSCAN'
+#!/usr/bin/env bash
+exit 97
+KEYSCAN
+cat > "$RUNNER_TEMP/bin/python3" <<'RECONCILE'
+#!/usr/bin/env bash
+set -eu
+[[ $1 == */sync_git_hosts.py ]]
+[[ -z ${GH_MIRROR_SSH_KEY+x} ]]
+eval "set -- $GIT_SSH_COMMAND"
+printf '%s\n' "$@" > "$RUNNER_TEMP/ssh-args.used"
+for argument in "$@"; do
+  case "$argument" in
+    UserKnownHostsFile=*) cp "${argument#*=}" "$RUNNER_TEMP/known-hosts.used" ;;
+  esac
+done
+RECONCILE
+chmod +x "$RUNNER_TEMP/bin/"*
+shim_dir="$RUNNER_TEMP/bin"
+if command -v cygpath >/dev/null; then
+  shim_dir="$(cygpath -u "$shim_dir")"
+fi
+export PATH="$shim_dir:$PATH"
+unset GITHUB_STEP_SUMMARY GITVERSE_STEP_SUMMARY SYNC_REPORT_PATH
+exec bash "$1"
+"""
+    result = subprocess.run([str(bash), "--noprofile", "--norc", "-c", harness, "_",
+                             entrypoint.as_posix()], env=env, capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stderr
+    args = (runner_temp / "ssh-args.used").read_text().splitlines()
+    assert args[:3] == ["ssh", "-F", "/dev/null"]
+    assert {"StrictHostKeyChecking=yes", "GlobalKnownHostsFile=/dev/null", "UpdateHostKeys=no"} <= set(args)
+    known_hosts = runner_temp / "known-hosts.used"
+    assert {line.split()[0] for line in known_hosts.read_text().splitlines()} == {"github.com"}
+    fingerprints = subprocess.check_output([keygen, "-lf", str(known_hosts)], text=True)
+    assert {line.split()[1] for line in fingerprints.splitlines()} == {
+        "SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU",
+        "SHA256:p2QAMXNIC1TJYWeIOttrVc98/R1BUFWu3/LiyKgUfQM",
+        "SHA256:uNiVztksCsDhcc0u9e8BujQXVUpKZIDTMczCvj3tD2s",
+    }
+    assert not list(runner_temp.glob("git-sync-auth.*"))
 
 
 def command(repo, *args):
