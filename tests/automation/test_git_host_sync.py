@@ -1,14 +1,93 @@
 """Real local bare repositories; no external services or credentials."""
 import importlib.util
 import json
+import os
 from pathlib import Path
+import shutil
 import subprocess
+from types import SimpleNamespace
 
 import pytest
 
 spec = importlib.util.spec_from_file_location("git_host_sync", Path(__file__).parents[2] / "scripts/sync_git_hosts.py")
 sync = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(sync)
+
+
+def test_entrypoint_reaches_reconciliation_without_external_host_key_lookup(tmp_path):
+    if os.name == "nt":
+        # System32/bash.exe starts WSL. Git for Windows supplies a native Bash.
+        git = shutil.which("git")
+        bash = Path(git).resolve().parents[1] / "bin" / "bash.exe" if git else None
+        if not bash or not bash.is_file():
+            pytest.skip("Git for Windows Bash is unavailable")
+    else:
+        bash = shutil.which("bash")
+        if not bash:
+            pytest.skip("Bash is unavailable")
+    keygen = shutil.which("ssh-keygen")
+    if not keygen:
+        pytest.skip("OpenSSH ssh-keygen is unavailable")
+    runner_temp = tmp_path / "runner temp"
+    runner_temp.mkdir()
+    env = dict(os.environ, RUNNER_TEMP=runner_temp.as_posix(),
+               GITVERSE_USERNAME="test-user", GITVERSE_TOKEN="test-token",
+               GH_MIRROR_SSH_KEY="TEST-only credential")
+    entrypoint = Path(__file__).parents[2] / "scripts/run_git_host_sync.sh"
+    harness = r"""
+set -eu
+mkdir "$RUNNER_TEMP/bin"
+cat > "$RUNNER_TEMP/bin/curl" <<'HTTP_403'
+#!/usr/bin/env bash
+echo 'curl: (22) The requested URL returned error: 403' >&2
+exit 22
+HTTP_403
+cat > "$RUNNER_TEMP/bin/ssh-keyscan" <<'KEYSCAN'
+#!/usr/bin/env bash
+exit 97
+KEYSCAN
+cat > "$RUNNER_TEMP/bin/python3" <<'RECONCILE'
+#!/usr/bin/env bash
+set -eu
+[[ $1 == */sync_git_hosts.py ]]
+[[ -z ${GH_MIRROR_SSH_KEY+x} ]]
+eval "set -- $GIT_SSH_COMMAND"
+printf '%s\n' "$@" > "$RUNNER_TEMP/ssh-args.used"
+for argument in "$@"; do
+  case "$argument" in
+    UserKnownHostsFile=*) cp "${argument#*=}" "$RUNNER_TEMP/known-hosts.used" ;;
+  esac
+done
+RECONCILE
+chmod +x "$RUNNER_TEMP/bin/"*
+shim_dir="$RUNNER_TEMP/bin"
+if command -v cygpath >/dev/null; then
+  shim_dir="$(cygpath -u "$shim_dir")"
+fi
+export PATH="$shim_dir:$PATH"
+unset GITHUB_STEP_SUMMARY GITVERSE_STEP_SUMMARY SYNC_REPORT_PATH
+exec bash "$1"
+"""
+    result = subprocess.run([str(bash), "--noprofile", "--norc", "-c", harness, "_",
+                             entrypoint.as_posix()], env=env, capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stderr
+    args = (runner_temp / "ssh-args.used").read_text().splitlines()
+    assert args[:3] == ["ssh", "-F", "/dev/null"]
+    assert {"StrictHostKeyChecking=yes", "GlobalKnownHostsFile=/dev/null", "UpdateHostKeys=no"} <= set(args)
+    known_hosts = runner_temp / "known-hosts.used"
+    assert {line.split()[0] for line in known_hosts.read_text().splitlines()} == {"github.com"}
+    fingerprints = subprocess.check_output([keygen, "-lf", str(known_hosts)], text=True)
+    assert {line.split()[1] for line in fingerprints.splitlines()} == {
+        "SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU",
+        "SHA256:p2QAMXNIC1TJYWeIOttrVc98/R1BUFWu3/LiyKgUfQM",
+        "SHA256:uNiVztksCsDhcc0u9e8BujQXVUpKZIDTMczCvj3tD2s",
+    }
+    assert not list(runner_temp.glob("git-sync-auth.*"))
+
+
+def stub_retry_sleep(monkeypatch, sleeper):
+    # Keep subprocess timeout polling on the real time module.
+    monkeypatch.setattr(sync, "time", SimpleNamespace(sleep=sleeper))
 
 
 def command(repo, *args):
@@ -169,7 +248,7 @@ def test_transient_gitverse_read_recovers_without_replaying_push(hosts, monkeypa
         return original(*args, **kwargs)
 
     monkeypatch.setattr(sync, "git", flaky)
-    monkeypatch.setattr(sync.time, "sleep", sleeps.append)
+    stub_retry_sleep(monkeypatch, sleeps.append)
     report = sync.synchronize(str(gh), str(gv))
     assert report["status"] == "synchronized", report
     assert report["refs_equal"] is True
@@ -194,7 +273,7 @@ def test_repeated_gitverse_rpc_403_fails_with_bounded_attempts_and_context(hosts
         return original(*args, **kwargs)
 
     monkeypatch.setattr(sync, "git", unavailable)
-    monkeypatch.setattr(sync.time, "sleep", sleeps.append)
+    stub_retry_sleep(monkeypatch, sleeps.append)
     report = sync.synchronize(str(gh), str(gv))
     assert report["status"] == "failed"
     assert len(failed) == 3
@@ -224,7 +303,7 @@ def test_permanent_auth_and_security_errors_fail_without_retry_or_secret_leak(ho
         return original(*args, **kwargs)
 
     monkeypatch.setattr(sync, "git", denied)
-    monkeypatch.setattr(sync.time, "sleep", lambda _: pytest.fail("Permanent failures must not retry"))
+    stub_retry_sleep(monkeypatch, lambda _: pytest.fail("Permanent failures must not retry"))
     report = sync.synchronize(str(gh), str(gv))
     assert report["status"] == "failed"
     assert len(calls) == 1
@@ -243,7 +322,7 @@ def test_gitverse_rpc_exception_does_not_retry_arbitrary_github_403(hosts, monke
         return original(*args, **kwargs)
 
     monkeypatch.setattr(sync, "git", denied)
-    monkeypatch.setattr(sync.time, "sleep", lambda _: pytest.fail("Unclassified 403 must not retry"))
+    stub_retry_sleep(monkeypatch, lambda _: pytest.fail("Unclassified 403 must not retry"))
     report = sync.synchronize(str(gh), str(gv))
     assert report["status"] == "failed"
     assert report["failed_operation"]["host"] == "github"
@@ -264,7 +343,7 @@ def test_temporary_transport_failure_recovers_on_github_read(hosts, monkeypatch,
         return original(*args, **kwargs)
 
     monkeypatch.setattr(sync, "git", flaky)
-    monkeypatch.setattr(sync.time, "sleep", sleeps.append)
+    stub_retry_sleep(monkeypatch, sleeps.append)
     report = sync.synchronize(str(gh), str(gv))
     assert report["status"] == "up_to_date"
     assert report["refs_equal"] is True
@@ -287,7 +366,7 @@ def test_push_with_lost_response_is_not_replayed_and_next_run_reconciles(hosts, 
         return original(*args, **kwargs)
 
     monkeypatch.setattr(sync, "git", lost_response)
-    monkeypatch.setattr(sync.time, "sleep", lambda _: pytest.fail("A push must never be replayed blindly"))
+    stub_retry_sleep(monkeypatch, lambda _: pytest.fail("A push must never be replayed blindly"))
     report = sync.synchronize(str(gh), str(gv))
     assert report["status"] == "failed"
     assert report["failed_operation"] == dict(host="gitverse", operation="push", attempts=1,
@@ -320,7 +399,7 @@ def test_reconcile_lost_push_response_checks_refs_without_second_push(hosts, mon
             raise RuntimeError('Git command timed out after 120 seconds')
         return result
     monkeypatch.setattr(sync, 'git', lost_response)
-    monkeypatch.setattr(sync.time, 'sleep', lambda _: None)
+    stub_retry_sleep(monkeypatch, lambda _: None)
     report = sync.reconcile(str(gh), str(gv))
     assert report['status'] == 'up_to_date' and report['refs_equal']
     assert report['reconciliation_attempts'] == 2 and len(pushes) == 1
@@ -340,7 +419,7 @@ def test_reconcile_recovers_push_transport_failure_from_new_plan(hosts, monkeypa
                 raise RuntimeError('Connection reset by peer')
         return original(*args, **kwargs)
     monkeypatch.setattr(sync, 'git', disconnected)
-    monkeypatch.setattr(sync.time, 'sleep', lambda _: None)
+    stub_retry_sleep(monkeypatch, lambda _: None)
     report = sync.reconcile(str(gh), str(gv))
     assert report['status'] == 'synchronized' and report['refs_equal']
     assert report['reconciliation_attempts'] == 2
@@ -361,7 +440,7 @@ def test_reconcile_change_during_verification_is_picked_up(hosts, monkeypatch):
                 command(work, 'push', '--quiet', str(gh), 'HEAD:refs/heads/dev')
         return original(url)
     monkeypatch.setattr(sync, 'inventory', changed)
-    monkeypatch.setattr(sync.time, 'sleep', lambda _: None)
+    stub_retry_sleep(monkeypatch, lambda _: None)
     report = sync.reconcile(str(gh), str(gv))
     assert report['status'] == 'synchronized' and report['refs_equal']
     assert report['reconciliation_attempts'] == 2
@@ -380,7 +459,7 @@ def test_reconcile_concurrent_writer_is_not_overwritten(hosts, monkeypatch):
             command(work, 'push', '--quiet', str(gv), 'HEAD:refs/heads/dev')
         return original(*args, **kwargs)
     monkeypatch.setattr(sync, 'git', raced)
-    monkeypatch.setattr(sync.time, 'sleep', lambda _: None)
+    stub_retry_sleep(monkeypatch, lambda _: None)
     report = sync.reconcile(str(gh), str(gv))
     assert report['status'] == 'conflict', report['errors']
     assert report['reconciliation_attempts'] == 2
@@ -403,7 +482,7 @@ def test_reconcile_partial_two_host_delivery_recovers_without_duplicate_push(hos
                 raise RuntimeError('Connection reset by peer')
         return original(*args, **kwargs)
     monkeypatch.setattr(sync, 'git', interrupted)
-    monkeypatch.setattr(sync.time, 'sleep', lambda _: None)
+    stub_retry_sleep(monkeypatch, lambda _: None)
     report = sync.reconcile(str(gh), str(gv))
     assert report['refs_equal'] and report['reconciliation_attempts'] == 2
     assert pushes == [str(gh), str(gv), str(gv)]
@@ -418,7 +497,7 @@ def test_reconcile_permanent_auth_failure_is_not_retried(hosts, monkeypatch):
             raise RuntimeError('Authentication failed')
         return original(*args, **kwargs)
     monkeypatch.setattr(sync, 'git', denied)
-    monkeypatch.setattr(sync.time, 'sleep', lambda _: pytest.fail('Permanent auth failure must stop'))
+    stub_retry_sleep(monkeypatch, lambda _: pytest.fail('Permanent auth failure must stop'))
     report = sync.reconcile(str(gh), str(gv))
     assert report['status'] == 'failed' and report['reconciliation_attempts'] == 1
 
@@ -433,7 +512,7 @@ def test_reconcile_transport_outage_is_bounded(hosts, monkeypatch):
             raise RuntimeError(RPC_403)
         return original(*args, **kwargs)
     monkeypatch.setattr(sync, 'git', unavailable)
-    monkeypatch.setattr(sync.time, 'sleep', lambda _: None)
+    stub_retry_sleep(monkeypatch, lambda _: None)
     report = sync.reconcile(str(gh), str(gv))
     assert report['status'] == 'failed' and report['reconciliation_attempts'] == 3
     assert len(failures) == 9 and len(report['rounds']) == 3
