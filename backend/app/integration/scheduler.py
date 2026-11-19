@@ -22,6 +22,11 @@ def skipped_ai(snapshot):
 
 def tick(app):
     from .planning import generate_tasks,source_token,catalog_token
+    from .source_revision_worker import process_pending_revisions
+    try:
+        process_pending_revisions(app)
+    except Exception as exc:
+        log.error('source_revision_worker_failed type=%s',type(exc).__name__)
     with app.state.factory() as session:
         sites=app.state.models['sites'];members=app.state.models['site_memberships'];users=app.state.models['users']
         for site in session.scalars(select(sites).where(sites.is_active)).all():

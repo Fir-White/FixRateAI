@@ -38,6 +38,7 @@ class SourceWorkbook:
     content_sha256: str
     sheet: str
     rows: tuple[SourceRow, ...]
+    content: bytes = b""
 
 
 def _column_reference(reference: str) -> str:
@@ -117,7 +118,7 @@ def parse_workbook(data: bytes) -> SourceWorkbook:
         ))
     if not parsed:
         raise ValueError("В XLSX не найдено ни одной строки каталога")
-    return SourceWorkbook(digest, sheet_name, tuple(parsed))
+    return SourceWorkbook(digest, sheet_name, tuple(parsed), data)
 
 
 def preview(workbook: SourceWorkbook) -> dict:
@@ -248,23 +249,70 @@ def enqueue_revision(session, *, site_id: UUID, actor_id: UUID, scope: str,
     return event_id
 
 
-def next_revision(session, *, site_id: UUID, scope: str) -> int:
+def next_revision(session, *, site_id: UUID, scope: str | None = None) -> int:
     return session.execute(text("""
-        SELECT COALESCE(MAX(source_revision), 0) + 1
-        FROM source_revision_events
-        WHERE site_id=:site AND scope=:scope
-    """), {"site": site_id, "scope": scope}).scalar_one()
+        SELECT COALESCE(MAX(catalog_revision), 0) + 1
+        FROM catalog_revisions
+        WHERE site_id=:site
+    """), {"site": site_id}).scalar_one()
 
 
 def import_workbook(session, principal, workbook: SourceWorkbook, system_id: UUID,
                     effective_from: date, source_name: str):
+    session.execute(text("""
+        SELECT pg_advisory_xact_lock(
+            hashtextextended(:key, 0)
+        )
+    """), {"key": f"maintenance_catalog:{principal.site_id}"})
     existing = session.execute(text("""
-        SELECT source_import_id, source_revision, status, row_count
+        SELECT source_import_id, source_revision, status, row_count,
+               system_id, effective_from, source_workbook
         FROM source_imports
         WHERE site_id=:site AND source_sha256=:sha
     """), {"site": principal.site_id, "sha": workbook.content_sha256}).mappings().first()
     if existing:
-        return dict(existing, sourceSha256=workbook.content_sha256, repeated=True)
+        target_unknown = (
+            existing["system_id"] is None
+            or existing["effective_from"] is None
+        )
+        if not target_unknown and (
+            existing["system_id"] != system_id
+            or existing["effective_from"] != effective_from
+        ):
+            raise HTTPException(
+                409,
+                "Повторный SHA требует те же system_id и effective_from",
+            )
+        if target_unknown:
+            session.execute(text("""
+                UPDATE source_imports
+                SET system_id=:system,
+                    effective_from=:effective,
+                    source_workbook=COALESCE(source_workbook,:workbook)
+                WHERE source_import_id=:import_id
+            """), {
+                "system": system_id,
+                "effective": effective_from,
+                "workbook": workbook.content,
+                "import_id": existing["source_import_id"],
+            })
+        elif existing["source_workbook"] is None:
+            session.execute(text("""
+                UPDATE source_imports
+                SET source_workbook=:workbook
+                WHERE source_import_id=:import_id
+            """), {
+                "workbook": workbook.content,
+                "import_id": existing["source_import_id"],
+            })
+        return {
+            "sourceImportId": str(existing["source_import_id"]),
+            "sourceRevision": existing["source_revision"],
+            "status": existing["status"],
+            "rowCount": existing["row_count"],
+            "sourceSha256": workbook.content_sha256,
+            "repeated": True,
+        }
 
     system = session.execute(text("""
         SELECT system_id FROM engineering_systems
@@ -274,25 +322,41 @@ def import_workbook(session, principal, workbook: SourceWorkbook, system_id: UUI
     if system is None:
         raise HTTPException(404, "Инженерная система не найдена")
 
-    source_revision = session.execute(text("""
-        SELECT COALESCE(MAX(source_revision), 0) + 1
-        FROM source_imports WHERE site_id=:site
-    """), {"site": principal.site_id}).scalar_one()
+    source_revision = next_revision(
+        session,
+        site_id=principal.site_id,
+    )
+    catalog_revision = source_revision
+    session.execute(text("""
+        INSERT INTO catalog_revisions
+            (site_id,catalog_revision,source_sha256,change_type)
+        VALUES (:site,:revision,:sha,'source_import')
+    """), {
+        "site": principal.site_id,
+        "revision": catalog_revision,
+        "sha": workbook.content_sha256,
+    })
     document_id = uuid4()
     import_id = uuid4()
 
     session.execute(text("""
         INSERT INTO source_imports
             (source_import_id,site_id,source_sha256,source_name,source_revision,
-             status,row_count,source_rows,created_by)
+             status,row_count,source_rows,created_by,system_id,effective_from,
+             source_workbook,catalog_revision)
         VALUES (:id,:site,:sha,:name,:revision,'imported',:count,
-                CAST(:rows AS jsonb),:actor)
+                CAST(:rows AS jsonb),:actor,:system,:effective,
+                CAST(:workbook AS bytea),:catalog_revision)
     """), {
         "id": import_id, "site": principal.site_id, "sha": workbook.content_sha256,
         "name": source_name[:512], "revision": source_revision,
         "count": len(workbook.rows),
         "rows": json.dumps(preview(workbook), ensure_ascii=False),
         "actor": principal.user_id,
+        "system": system_id,
+        "effective": effective_from,
+        "workbook": workbook.content,
+        "catalog_revision": catalog_revision,
     })
     session.execute(text("""
         INSERT INTO regulation_documents
@@ -316,17 +380,45 @@ def import_workbook(session, principal, workbook: SourceWorkbook, system_id: UUI
 
     for row in workbook.rows:
         period_unit, period_count, occurrences = _frequency(row.frequency)
+        maintenance_code = "ТО1" if row.maintenance_type == "ТО1" else "ТО2"
+        type_id = session.execute(text("""
+            SELECT maintenance_type_id
+            FROM maintenance_types
+            WHERE code=:code OR name=:name
+            ORDER BY CASE WHEN code=:code THEN 0 ELSE 1 END
+            LIMIT 1
+        """), {
+            "code": maintenance_code,
+            "name": row.maintenance_type,
+        }).scalar()
+        if type_id is None:
+            type_id = uuid4()
+            session.execute(text("""
+                INSERT INTO maintenance_types
+                    (maintenance_type_id,code,name,description)
+                VALUES (:id,:code,:name,'Канонический тип из согласованного XLSX')
+                ON CONFLICT (code) DO NOTHING
+            """), {
+                "id": type_id,
+                "code": maintenance_code,
+                "name": row.maintenance_type,
+            })
+            type_id = session.execute(text("""
+                SELECT maintenance_type_id FROM maintenance_types
+                WHERE code=:code
+            """), {"code": maintenance_code}).scalar()
+        if type_id is None:
+            raise HTTPException(422, f"Не найден тип обслуживания: {row.maintenance_type}")
         operation_id = session.execute(text("""
             INSERT INTO operation_templates
                 (site_id,system_id,code,title,description,maintenance_type_id)
-            SELECT :site,:system,:code,:title,:title,maintenance_type_id
-            FROM maintenance_types WHERE name=:kind
+            VALUES (:site,:system,:code,:title,:title,:type_id)
             ON CONFLICT (site_id,system_id,code) DO UPDATE
                 SET title=EXCLUDED.title, description=EXCLUDED.description
             RETURNING operation_template_id
         """), {
             "site": principal.site_id, "system": system_id,
-            "code": row.code, "title": row.title, "kind": row.maintenance_type,
+            "code": row.code, "title": row.title, "type_id": type_id,
         }).scalar_one()
         version = session.execute(text("""
             SELECT COALESCE(MAX(rule_version), 0) + 1
@@ -359,6 +451,31 @@ def import_workbook(session, principal, workbook: SourceWorkbook, system_id: UUI
             "people": row.required_people, "hours": row.norm_hours,
             "effective": effective_from,
         })
+        search_text = "\n".join(filter(None, (
+            row.code,
+            row.title,
+            row.maintenance_type,
+            row.frequency,
+            str(row.norm_hours or ""),
+        )))
+        session.execute(text("""
+            INSERT INTO source_catalog_index
+                (site_id,source_revision,source_sha256,source_ref,
+                 search_text,search_vector)
+            VALUES (:site,:revision,:sha,:ref,:text,
+                    to_tsvector('russian',:text))
+            ON CONFLICT (site_id,source_sha256,source_ref)
+            DO UPDATE SET
+                source_revision=EXCLUDED.source_revision,
+                search_text=EXCLUDED.search_text,
+                search_vector=EXCLUDED.search_vector
+        """), {
+            "site": principal.site_id,
+            "revision": source_revision,
+            "sha": workbook.content_sha256,
+            "ref": row.source_ref,
+            "text": search_text,
+        })
 
     session.execute(text("""
         INSERT INTO audit_events
@@ -385,8 +502,9 @@ def import_workbook(session, principal, workbook: SourceWorkbook, system_id: UUI
     )
     return {
         "sourceImportId": str(import_id),
-        "sourceSha256": workbook.content_sha256,
         "sourceRevision": source_revision,
+        "status": "imported",
         "rowCount": len(workbook.rows),
+        "sourceSha256": workbook.content_sha256,
         "repeated": False,
     }
