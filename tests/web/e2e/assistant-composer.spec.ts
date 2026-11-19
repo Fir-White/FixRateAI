@@ -40,6 +40,8 @@ for(const width of [1440,390,320])test(`history controls and message attachments
   await expect(page.getByRole('button',{name:'Отправить',exact:true})).toBeDisabled();
   if(width>=1280){
     const history=page.getByRole('complementary',{name:'История диалогов'}),canvas=page.locator('.workspace-aurora canvas');
+    await expect(page.getByRole('heading',{name:'Недавние диалоги'})).toBeVisible();
+    await page.getByRole('button',{name:'Развернуть историю чатов'}).click();
     await expect(history).toBeVisible();await input.fill('QA draft');
     const before=await canvas.boundingBox(),reads=listReads;
     await page.getByRole('button',{name:'Свернуть историю чатов'}).click();
@@ -54,10 +56,15 @@ for(const width of [1440,390,320])test(`history controls and message attachments
     await page.keyboard.press('Escape');await expect(open).toBeFocused();
   }
   await page.screenshot({path:info.outputPath(`welcome-${width}.png`)});
+  await page.goto(width===390?'/executor':'/chief-engineer');
+  await page.getByRole('button',{name:width===390?'Инструкция по ТО':'Разобрать просрочки',exact:true}).click();
+  await expect(input).not.toHaveValue('');
+  await input.fill('QA draft with a workday attachment');
   await page.getByLabel('Прикрепить файл').setInputFiles({name:'photo.png',mimeType:'image/png',buffer:Buffer.from('fixture; upload body is explicitly mocked')});
   await expect(page).toHaveURL(new RegExp(`chat=${id}`));
   await expect(page.getByRole('list',{name:'Вложения к сообщению'})).toContainText('photo.png');
-  await expect(input).toHaveValue('');
+  await expect(input).toHaveValue('QA draft with a workday attachment');
+  await input.fill('');
   await page.getByRole('button',{name:'Отправить',exact:true}).click();
   await expect(page.getByRole('list',{name:'Отправленные файлы'})).toContainText('photo.png');
   const composer=page.getByRole('form',{name:'Написать помощнику'});
@@ -82,7 +89,7 @@ for(const width of [1440,390,320])test(`history controls and message attachments
   await expect(region.locator('article')).toHaveCount(25);
   await expect.poll(()=>region.evaluate(el=>el.scrollHeight-el.clientHeight-el.scrollTop)).toBeLessThan(3);
   const progress=region.locator('article').last().locator('.assistant-progress');
-  await expect(progress.locator('summary')).toContainText('Выполнено за 0 секунд');
+  await expect(progress.locator('summary')).toContainText('Ответ завершён за 0 секунд');
   await progress.locator('summary').focus();await page.keyboard.press('Enter');
   await expect(progress.getByText(/по условиям найдено 30, проверено на странице: 25/)).toBeVisible();
   await expect(progress.getByText(/содержал неверные параметры/)).toBeVisible();

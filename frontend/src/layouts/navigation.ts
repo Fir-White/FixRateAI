@@ -16,7 +16,7 @@ export interface NavigationItem {
 export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
   { to: "/assistant", label: "ИИ-помощник", icon: "assistant", roles: ["director","chief_engineer","engineer","dispatcher","admin","executor"], group: "Помощник" },
   { to: "/dispatcher", label: "Рабочий день", icon: "dashboard", roles: SECTION_ROLES.dispatcher, group: "Работа" },
-  { to: "/executor", label: "Мои задания", icon: "tasks", roles: SECTION_ROLES.executor, group: "Моя работа" },
+  { to: "/executor", label: "Рабочий день", icon: "tasks", roles: SECTION_ROLES.executor, group: "Моя работа" },
   { to: "/planning", label: "Планирование ТО", icon: "calendar", roles: SECTION_ROLES.planning, group: "Работа", activePaths: ["/calendar", "/comparisons"] },
   { to: "/calendar", label: "Мой календарь", icon: "calendar", roles: SECTION_ROLES.executor, group: "Моя работа" },
   { to: "/tasks", label: "Задания", icon: "tasks", roles: SECTION_ROLES.tasks, group: "Работа" },

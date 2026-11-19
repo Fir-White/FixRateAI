@@ -30,11 +30,11 @@ const routes = [
   ["/assistant", "ИИ-помощник"],
   ["/planning", "Планирование ТО"],
   ["/profile", "Мой профиль"],
-  ["/director", "Панель диспетчера"],
-  ["/chief-engineer", "Панель диспетчера"],
-  ["/engineer", "Панель диспетчера"],
-  ["/admin", "Панель диспетчера"],
-  ["/dispatcher", "Панель диспетчера"],
+  ["/director", "Обзор объекта"],
+  ["/chief-engineer", "С чего начнём рабочий день?"],
+  ["/engineer", "Рабочий день инженера"],
+  ["/admin", "Рабочее пространство"],
+  ["/dispatcher", "Рабочий день диспетчера"],
   ["/equipment", "Оборудование"],
   ["/equipment/e1000000-0000-4000-8000-000000000001", "Тепловой пункт №1"],
   ["/calendar", "График ТО и ППР"],
@@ -43,11 +43,16 @@ const routes = [
   ["/comparisons", "Сравнение прогнозов"],
   ["/reports", "Отчёты"],
   ["/comparisons/c1000000-0000-4000-8000-000000000001", "Учебный узел очистки"],
-  ["/quality", "Контроль качества и приёмка"],
+  ["/quality", "Приёмка работ"],
   ["/quality/b1000000-0000-4000-8000-000000000004", "Очистка учебного узла"],
   ["/executor", "Мои задания"],
   ["/executor/tasks/b1000000-0000-4000-8000-000000000004", "Очистка учебного узла"],
 ];
+
+const overviewHeading: Partial<Record<Role,string>> = {
+  director: "Обзор объекта", chief_engineer: "С чего начнём рабочий день?",
+  engineer: "Рабочий день инженера", admin: "Рабочее пространство",
+};
 
 describe("role access and links on every screen", () => {
   it.each(roles.flatMap(role => routes.map(([path, heading]) => ({role, path, heading}))))(
@@ -55,7 +60,8 @@ describe("role access and links on every screen", () => {
       window.localStorage.setItem("fixrate.demo.role", role);
       render(<SessionProvider><MemoryRouter initialEntries={[path]}><AppRouter /></MemoryRouter></SessionProvider>);
       const allowed = access[path.split("/")[1]].includes(role);
-      await screen.findByRole("heading", {name: allowed ? heading : "Раздел недоступен для текущей роли"}, {timeout: 5000});
+      const expected = path==="/dispatcher" ? overviewHeading[role]??heading : heading;
+      await screen.findByRole("heading", {name: allowed ? expected : "Раздел недоступен"}, {timeout: 5000});
       await waitFor(() => expect(screen.queryByRole("status", {hidden: true})).not.toBeInTheDocument());
       // Permission checks include every rendered link, even in collapsed regions.
       // Avoid jsdom's expensive ancestor visibility walk for each calendar link;
@@ -87,6 +93,7 @@ describe("required business navigation, independently of direct route access", (
     render(<SessionProvider><MemoryRouter initialEntries={[role === "executor" ? "/executor" : "/dispatcher"]}><AppRouter /></MemoryRouter></SessionProvider>);
     const menu = await screen.findByRole("navigation", {name: "Основная навигация"});
     const actual = within(menu).getAllByRole("link").map(link => link.getAttribute("href"));
+    actual.push(screen.getByRole("link",{name:"ИИ-помощник"}).getAttribute("href"));
     expect(actual.sort()).toEqual([...paths].sort());
   });
 });

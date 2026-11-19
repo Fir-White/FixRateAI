@@ -1,0 +1,133 @@
+# Local design workspace, derived from penpot/penpot docker/images/docker-compose.yaml.
+# Supply secrets from an ignored runtime env file. No FixRate application services are referenced.
+name: fixrate-design-penpot
+
+x-flags: &flags
+  PENPOT_FLAGS: disable-email-verification enable-smtp enable-prepl-server disable-secure-session-cookies enable-mcp disable-onboarding disable-google-fonts-provider
+  PENPOT_PUBLIC_URI: http://localhost:${PENPOT_PORT:-9001}
+
+x-database: &database
+  PENPOT_DATABASE_URI: postgresql://penpot-postgres/penpot
+  PENPOT_DATABASE_USERNAME: penpot
+  PENPOT_DATABASE_PASSWORD: ${PENPOT_DB_PASSWORD:?Set private PENPOT_DB_PASSWORD}
+
+services:
+  penpot-frontend:
+    image: penpotapp/frontend:${PENPOT_VERSION:?Pin PENPOT_VERSION}
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:${PENPOT_PORT:-9001}:8080
+    volumes:
+      - assets:/opt/data/assets
+    environment:
+      <<: *flags
+      PENPOT_ADMIN_CONSOLE_URI: http://penpot-admin-console:3000
+      PENPOT_MCP_URI: http://penpot-mcp:4401
+      PENPOT_MCP_URI_WS: http://penpot-mcp:4402
+    depends_on:
+      - penpot-backend
+      - penpot-admin-console
+      - penpot-mcp
+      - penpot-exporter
+    mem_limit: 256m
+
+  penpot-backend:
+    image: penpotapp/backend:${PENPOT_VERSION}
+    restart: unless-stopped
+    volumes:
+      - assets:/opt/data/assets
+    environment:
+      <<: [*flags, *database]
+      PENPOT_SECRET_KEY: ${PENPOT_SECRET_KEY:?Set private PENPOT_SECRET_KEY}
+      PENPOT_ADMIN_CONSOLE_URI: http://penpot-admin-console:3000
+      PENPOT_REDIS_URI: redis://penpot-valkey/0
+      PENPOT_OBJECTS_STORAGE_BACKEND: fs
+      PENPOT_OBJECTS_STORAGE_FS_DIRECTORY: /opt/data/assets
+      PENPOT_TELEMETRY_ENABLED: "false"
+      # Container-aware JVM defaults use only ~25% of this limit; large SVG/Fressian saves need more.
+      JVM_OPTS: -Xms256m -Xmx1536m
+      PENPOT_SMTP_DEFAULT_FROM: design@example.test
+      PENPOT_SMTP_DEFAULT_REPLY_TO: design@example.test
+      PENPOT_SMTP_HOST: penpot-mailpit
+      PENPOT_SMTP_PORT: 1025
+      PENPOT_SMTP_TLS: "false"
+      PENPOT_SMTP_SSL: "false"
+    depends_on:
+      penpot-postgres:
+        condition: service_healthy
+      penpot-valkey:
+        condition: service_healthy
+    mem_limit: 2048m
+
+  penpot-admin-console:
+    image: penpotapp/admin-console:${PENPOT_VERSION}
+    restart: unless-stopped
+    environment:
+      <<: [*database]
+      PENPOT_PUBLIC_URI: http://localhost:${PENPOT_PORT:-9001}
+      PENPOT_SECRET_KEY: ${PENPOT_SECRET_KEY}
+      PENPOT_INTERNAL_URI: http://penpot-frontend:8080
+    depends_on:
+      penpot-postgres:
+        condition: service_healthy
+    mem_limit: 512m
+
+  penpot-exporter:
+    image: penpotapp/exporter:${PENPOT_VERSION}
+    restart: unless-stopped
+    environment:
+      <<: *flags
+      PENPOT_SECRET_KEY: ${PENPOT_SECRET_KEY}
+      PENPOT_INTERNAL_URI: http://penpot-frontend:8080
+      PENPOT_REDIS_URI: redis://penpot-valkey/0
+      PENPOT_EXPORTER_MAX_CONCURRENT_JOBS: 1
+      PENPOT_WASM_WORKER_POOL_MAX: 1
+    depends_on:
+      penpot-valkey:
+        condition: service_healthy
+    mem_limit: 1024m
+
+  penpot-mcp:
+    image: penpotapp/mcp:${PENPOT_VERSION}
+    restart: unless-stopped
+    mem_limit: 768m
+
+  penpot-postgres:
+    image: postgres:15
+    restart: unless-stopped
+    stop_signal: SIGINT
+    environment:
+      POSTGRES_INITDB_ARGS: --data-checksums
+      POSTGRES_DB: penpot
+      POSTGRES_USER: penpot
+      POSTGRES_PASSWORD: ${PENPOT_DB_PASSWORD}
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U penpot]
+      interval: 2s
+      timeout: 10s
+      retries: 20
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    mem_limit: 512m
+
+  penpot-valkey:
+    image: valkey/valkey:8.1
+    restart: unless-stopped
+    command: [valkey-server, --maxmemory, 128mb, --maxmemory-policy, volatile-lfu]
+    healthcheck:
+      test: [CMD, valkey-cli, ping]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    mem_limit: 192m
+
+  penpot-mailpit:
+    image: axllent/mailpit:v1
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:${PENPOT_MAIL_PORT:-9025}:8025
+    mem_limit: 128m
+
+volumes:
+  postgres:
+  assets:

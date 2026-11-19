@@ -22,14 +22,15 @@ def absent(secret,value):
     leaked=secret in json.dumps(value,default=str,ensure_ascii=False)
     assert not leaked,'Protected credential entered a tool/model/persistence boundary'
 
-def test_authorized_api_retains_current_code_but_mcp_returns_only_protected_link(assistant_case):
-    secret=create_secret(assistant_case);_,_,client,_,_=assistant_case
+@pytest.mark.parametrize('role',['admin','chief_engineer'])
+def test_authorized_api_retains_current_code_but_mcp_returns_only_protected_link(assistant_case,role):
+    secret=create_secret(assistant_case);_,_,admin,_,_=assistant_case
+    client=admin if role=='admin' else admin.chief
     direct=client.get(PATH);matches=direct.json()['code']==secret;assert matches
     result=rpc(client,'tools/call',dict(name='enrollment_read',arguments={})).json()['result']
     assert not result['isError'];absent(secret,result)
     safe=json.loads(result['content'][0]['text'])
     assert safe['code_present'] is True and safe['resource']['url']==PATH and safe['resource']['protected'] is True
-    assert client.chief.get(PATH).status_code==403
 
 @pytest.mark.parametrize('path',[['code'],['code','anything']])
 def test_projection_cannot_extract_code_or_text_parts(assistant_case,path):
@@ -37,8 +38,11 @@ def test_projection_cannot_extract_code_or_text_parts(assistant_case,path):
     result=rpc(client,'tools/call',dict(name='enrollment_read',arguments=dict(view=dict(path=path)))).json()['result']
     assert result['isError'];absent(secret,result)
 
-def test_confirm_create_never_persists_code_in_action_or_conversation(assistant_case):
-    engine,_,client,_,_=assistant_case;secret=create_secret(assistant_case);chat=thread(client)
+@pytest.mark.parametrize('role',['admin','chief_engineer'])
+def test_confirm_create_never_persists_code_in_action_or_conversation(assistant_case,role):
+    engine,_,admin,_,_=assistant_case;secret=create_secret(assistant_case)
+    client=admin if role=='admin' else admin.chief
+    chat=thread(client)
     record=proposal(client,chat,'enrollment_create',{})
     confirmed=confirm(client,record);assert confirmed.status_code==200;absent(secret,confirmed.json())
     replay=confirm(client,record);assert replay.status_code==200;absent(secret,replay.json())

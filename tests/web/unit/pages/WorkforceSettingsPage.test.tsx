@@ -27,7 +27,7 @@ beforeEach(() => {
 async function openExisting() {
   const user = userEvent.setup();
   render(<MemoryRouter><WorkforceSettingsPage /></MemoryRouter>);
-  await user.selectOptions(await screen.findByLabelText("Сотрудник"), "worker");
+  await user.click(await screen.findByRole("button", {name:"Открыть сотрудника: Тестовый исполнитель"}));
   await user.click(screen.getByRole("button", { name: "Изменить смену" }));
   return user;
 }

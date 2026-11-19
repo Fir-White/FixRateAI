@@ -14,7 +14,7 @@ for(const width of [1440,390]) {
     await page.getByRole('button',{name:'Войти',exact:true}).click();
     await expect(page).not.toHaveURL(/\/login$/);
     await page.goto('/equipment');
-    await expect(page.getByRole('heading',{name:'Работы + реестр оборудования',exact:true})).toBeVisible();
+    await expect(page.getByRole('heading',{name:'Оборудование',exact:true})).toBeVisible();
     await page.getByRole('link',{name:'Добавить оборудование',exact:true}).click();
     const asset='REG-'+randomUUID().slice(0,8), name='Насос '+asset;
     await page.getByLabel('Инвентарный номер',{exact:true}).fill(asset);

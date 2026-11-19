@@ -16,22 +16,25 @@
   --font-mono:
     "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 
-  --color-canvas: #101516;
-  --color-canvas-soft: #131b1c;
-  --color-surface: #151d1e;
-  --color-surface-raised: #1c2729;
-  --color-line: #283435;
-  --color-line-strong: #405052;
-  --color-ink: #eef3ef;
-  --color-ink-soft: #c2ceca;
-  --color-muted: #9baea8;
-  --color-accent: #9de2c7;
-  --color-accent-strong: #b5eed8;
-  --color-accent-ink: #122b22;
-  --color-success: #9de2c7;
-  --color-warning: #e1c28e;
-  --color-danger: #f1a6a2;
+  --color-canvas: #050d12;
+  --color-canvas-soft: #081219;
+  --color-surface: #0b171d;
+  --color-surface-raised: #142630;
+  --color-surface-hover: #1a333d;
+  --color-line: #30464e;
+  --color-line-strong: #425e66;
+  --color-ink: #ecf3f3;
+  --color-ink-soft: #bdced0;
+  --color-muted: #91a5ab;
+  --color-accent: #74e4d4;
+  --color-accent-strong: #8ceddc;
+  --color-accent-ink: #062e2d;
+  --color-success: #74e4d4;
+  --color-warning: #dec08c;
+  --color-danger: #e7aa99;
   --color-info: #9ccbdc;
+  --action-fill: linear-gradient(105deg, #77e5d0, #55d6d0);
+  --action-hover: linear-gradient(105deg, #8ceddc, #71e2dc);
 
   --text-hero: clamp(2.5rem, 6vw, 4.5rem);
   --text-page: clamp(1.75rem, 3.5vw, 2.35rem);

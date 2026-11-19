@@ -1686,7 +1686,7 @@
     },
     {
       "name": "user_roles",
-      "title": "Своя роль; администратору — роль сотрудника",
+      "title": "Своя роль; главному инженеру и администратору — роль сотрудника",
       "method": "GET",
       "path": "/api/v1/maintenance/users/{user_id}/roles",
       "roles": [
@@ -1712,7 +1712,8 @@
       "method": "GET",
       "path": "/api/v1/maintenance/users",
       "roles": [
-        "admin"
+        "admin",
+        "chief_engineer"
       ],
       "agents": [
         "assistant",
@@ -1729,7 +1730,8 @@
       "method": "GET",
       "path": "/api/v1/maintenance/management/enrollment",
       "roles": [
-        "admin"
+        "admin",
+        "chief_engineer"
       ],
       "agents": [
         "assistant",
@@ -1746,7 +1748,8 @@
       "method": "POST",
       "path": "/api/v1/maintenance/management/enrollment",
       "roles": [
-        "admin"
+        "admin",
+        "chief_engineer"
       ],
       "agents": [
         "assistant",
@@ -1763,7 +1766,8 @@
       "method": "POST",
       "path": "/api/v1/maintenance/management/applications/{application_id}/decision",
       "roles": [
-        "admin"
+        "admin",
+        "chief_engineer"
       ],
       "agents": [
         "assistant",
@@ -1780,7 +1784,8 @@
       "method": "PUT",
       "path": "/api/v1/maintenance/management/staff/{user_id}",
       "roles": [
-        "admin"
+        "admin",
+        "chief_engineer"
       ],
       "agents": [
         "assistant",
@@ -2038,9 +2043,8 @@
       "method": "POST",
       "path": "/api/v1/maintenance/management/equipment-types",
       "roles": [
-        "chief_engineer",
-        "dispatcher",
-        "admin"
+        "admin",
+        "chief_engineer"
       ],
       "agents": [
         "assistant",

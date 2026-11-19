@@ -16,6 +16,7 @@ SQL_ROLES['technician'] = 'executor'
 # Compatibility for previously provisioned data until migration 010 is applied.
 SQL_ROLES['executive'] = 'director'
 API_ROLES = {role: role for role in SQL_ROLES if role not in ('technician', 'executive')}
+SITE_ACCESS_MANAGERS = ("admin", "chief_engineer")
 
 
 def has_role(role, roles):

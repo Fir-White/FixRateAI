@@ -349,7 +349,7 @@ test("keyboard access, errors, pending state, password visibility and login retu
   await password.fill(PASSWORD);
   await password.press("Enter");
   await expect(page).toHaveURL(new URL("/dispatcher", process.env.FIXRATE_BASE_URL!).href);
-  await expect(page.getByRole("heading", { name: "Панель диспетчера", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Рабочий день диспетчера", exact: true })).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -447,7 +447,7 @@ test("mobile reload reveals the brand and the bounded moving background covers l
   }
 });
 
-test("phone auth shares its brand anchor and compact heading rhythm while long forms remain scrollable",async({browser})=>{
+test("phone auth shares its brand anchor and gives shorter forms the available space",async({browser})=>{
   const context=await browser.newContext({hasTouch:true,isMobile:true});
   await mockLocalApi(context);
   const page=await context.newPage();
@@ -462,11 +462,14 @@ test("phone auth shares its brand anchor and compact heading rhythm while long f
       await page.goto(`${process.env.FIXRATE_BASE_URL}/login`);
       await page.getByLabel("Email",{exact:true}).focus();
       const login=await placement();
-      expect(login.gap).toBeGreaterThanOrEqual(24);expect(login.gap).toBeLessThanOrEqual(32);
+      expect(login.gap).toBeGreaterThanOrEqual(24);
       await page.getByRole("link",{name:"Регистрация",exact:true}).tap();
       await expect(page.getByRole("heading",{name:"Регистрация",exact:true})).toBeFocused();
       await expect(page.locator(".auth-page")).toHaveAttribute("data-transition","idle");
-      expect(await placement()).toEqual(login);
+      const registration=await placement();
+      expect(registration.brand).toBe(login.brand);
+      expect(registration.gap).toBeGreaterThanOrEqual(24);
+      expect(registration.gap).toBeLessThanOrEqual(login.gap);
       await page.getByRole("button",{name:"Зарегистрироваться",exact:true}).tap();
       await expect(page.getByRole("alert")).toHaveCount(5);
       await expect(page.getByLabel("Имя и фамилия")).toBeFocused();
@@ -530,7 +533,7 @@ test("confirmed phone login from a scrolled form reveals and focuses its safe ap
     await expect(page).toHaveURL(new URL("/dispatcher",process.env.FIXRATE_BASE_URL!).href);
     await expect(page.locator("#main-content")).toBeFocused();
     expect(await page.evaluate(()=>window.scrollY)).toBe(0);
-    const heading=page.getByRole("heading",{name:"Панель диспетчера",exact:true});
+    const heading=page.getByRole("heading",{name:"Рабочий день диспетчера",exact:true});
     await expect(heading).toBeVisible();
     await expect.poll(()=>heading.evaluate(element=>{const box=element.getBoundingClientRect();return box.top>=0&&box.bottom<=window.innerHeight;})).toBe(true);
   } finally {await context.close();}

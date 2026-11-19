@@ -37,7 +37,7 @@ def managed(runtime):
             c.execute(text("INSERT INTO users(user_id,full_name,email,password_hash) VALUES (:id,'Test chief',:email,:password)"),dict(id=chief_id,email=chief_email,password=password))
             c.execute(text("INSERT INTO site_memberships(site_id,user_id,role) VALUES (:site,:id,'chief_engineer')"),dict(site=site,id=chief_id))
         admin.chief=login(chief_email)
-        yield engine,app,admin,login,dict(site=site,system=system,type=typ,marker=marker,user=user)
+        yield engine,app,admin,login,dict(site=site,system=system,type=typ,marker=marker,user=user,chief=chief_id)
     finally:
         if hasattr(admin,"chief"):admin.chief.close()
         admin.close()
@@ -52,15 +52,16 @@ def managed(runtime):
             for identity in users: c.execute(text('DELETE FROM users WHERE user_id=:id'),dict(id=identity))
 
 
-def join(managed,role='executor'):
-    engine,app,admin,login,ids=managed
-    code=admin.post(PREFIX+'/management/enrollment').json()['code']
+def join(managed,role='executor',manager=None):
+    _,_,admin,_,_=managed
+    manager=admin if manager is None else manager
+    code=manager.post(PREFIX+'/management/enrollment').json()['code']
     address=f'worker-{uuid4().hex}@example.test'
-    response=admin.post('/api/v1/auth/register',json=dict(full_name='Managed worker',email=address,password=os.environ['FIXRATE_TEST_PASSWORD'],company_code=code))
+    response=manager.post('/api/v1/auth/register',json=dict(full_name='Managed worker',email=address,password=os.environ['FIXRATE_TEST_PASSWORD'],company_code=code))
     assert response.status_code==201,response.text
-    requests=admin.get(PREFIX+'/management/workforce').json()['applications']
+    requests=manager.get(PREFIX+'/management/workforce').json()['applications']
     request=next(r for r in requests if r['email']==address)
-    response=admin.post(PREFIX+f"/management/applications/{request['application_id']}/decision",json=dict(expected_revision=1,role=role,is_active=True,employed_from=date.today().isoformat()))
+    response=manager.post(PREFIX+f"/management/applications/{request['application_id']}/decision",json=dict(expected_revision=1,role=role,is_active=True,employed_from=date.today().isoformat()))
     assert response.status_code==200,response.text
     return request['user_id'],address
 
@@ -77,9 +78,12 @@ def config(day,**values):
         norm_value='2.000',norm_unit='person_hour',duration_minutes=60,qualification_ids=[],checklist=[dict(text='Inspect pump')],allowed_lead_days=0,enabled=True,methodology_ref='TEST ONLY: approved fixture methodology') | values
 
 
-def test_registration_waits_for_role_and_rejects_privilege_injection(managed):
+@pytest.mark.parametrize("manager_role", ["admin", "chief_engineer"])
+def test_registration_waits_for_role_and_rejects_privilege_injection(managed,manager_role):
     _,app,admin,login,ids=managed
-    code=admin.post(PREFIX+'/management/enrollment').json()['code']
+    manager=admin if manager_role=="admin" else admin.chief
+    code=manager.post(PREFIX+'/management/enrollment').json()['code']
+    assert manager.get(PREFIX+'/management/enrollment').json()['code']==code
     address=f'worker-{uuid4().hex}@example.test'
     payload=dict(full_name='Registered worker',email=address,password=os.environ['FIXRATE_TEST_PASSWORD'],company_code=code)
     invalid=admin.post('/api/v1/auth/register',json=dict(payload,role='admin'))
@@ -89,13 +93,16 @@ def test_registration_waits_for_role_and_rejects_privilege_injection(managed):
     assert admin.post('/api/v1/auth/register',json=payload).status_code==201
     assert TestClient(app).post('/api/v1/auth/login',json=dict(email=address,password=os.environ['FIXRATE_TEST_PASSWORD'])).status_code==403
     assert admin.post('/api/v1/auth/register',json=payload).status_code==409
-    request=admin.get(PREFIX+'/management/workforce').json()['applications'][0]
-    approve=admin.post(PREFIX+f"/management/applications/{request['application_id']}/decision",json=dict(expected_revision=1,role='executor',is_active=True))
+    request=manager.get(PREFIX+'/management/workforce').json()['applications'][0]
+    approve=manager.post(PREFIX+f"/management/applications/{request['application_id']}/decision",json=dict(expected_revision=1,role='executor',is_active=True))
     assert approve.status_code==200,approve.text
+    assert any(row['user_id']==request['user_id'] for row in manager.get(PREFIX+'/users').json())
+    assert manager.get(PREFIX+f"/users/{request['user_id']}/roles").json()[0]['role']=='executor'
     with closing(login(address)) as worker:
         assert worker.get('/api/v1/auth/session').json()['profile']['role']=='executor'
         assert worker.get(PREFIX+'/management/workforce').status_code==403
         assert worker.get(PREFIX+'/users').status_code==403
+        assert worker.get(PREFIX+'/management/enrollment').status_code==403
         assert worker.get(PREFIX+'/users/me').status_code==200
 
 
@@ -179,14 +186,39 @@ def test_configured_calendar_shifts_proposal_confirmation_and_conflict_protectio
             assert c.scalar(text("SELECT count(*) FROM work_assignments WHERE work_order_id=:id AND status='cancelled' AND released_at IS NOT NULL"),dict(id=row['taskId']))==2
 
 
-def test_last_admin_and_stale_staff_edit_are_protected(managed):
-    _,_,admin,_,ids=managed
+def test_last_access_manager_and_staff_scope_are_protected(managed):
+    engine,_,admin,login,ids=managed
     command=dict(expected_revision=1,role='executor',is_active=True)
-    assert admin.put(PREFIX+f"/management/staff/{ids['user']}",json=command).status_code==409
-    identity,_=join(managed)
-    response=admin.put(PREFIX+f'/management/staff/{identity}',json=dict(command,role='engineer'))
+    chief=admin.chief
+    assert chief.put(PREFIX+f"/management/staff/{ids['user']}",json=command).status_code==200
+    assert chief.put(PREFIX+f"/management/staff/{ids['chief']}",json=command).status_code==409
+    identity,address=join(managed,manager=chief)
+    response=chief.put(PREFIX+f'/management/staff/{identity}',json=dict(command,role='engineer'))
     assert response.status_code==200,response.text
-    assert admin.put(PREFIX+f'/management/staff/{identity}',json=command).status_code==409
+    assert chief.put(PREFIX+f'/management/staff/{identity}',json=command).status_code==409
+    with closing(login(address)) as engineer:
+        assert engineer.get(PREFIX+'/management/enrollment').status_code==403
+        assert engineer.get(PREFIX+'/management/workforce').json()['applications']==[]
+    with engine.connect() as db:
+        foreign=db.scalar(text("""SELECT m.user_id FROM site_memberships m WHERE m.site_id<>:site
+            AND NOT EXISTS (SELECT 1 FROM site_memberships own WHERE own.site_id=:site AND own.user_id=m.user_id)
+            LIMIT 1"""), {"site":ids['site']})
+    assert foreign
+    assert chief.get(PREFIX+f'/users/{foreign}/roles').status_code==404
+    assert chief.put(PREFIX+f'/management/staff/{foreign}',json=command).status_code==404
+
+
+def test_chief_engineer_can_extend_equipment_type_reference(managed):
+    engine,_,admin,_,ids=managed
+    code='CHIEF-'+ids['marker']
+    try:
+        result=admin.chief.post(PREFIX+'/management/equipment-types',json=dict(code=code,name='Test reference type'))
+        assert result.status_code==201,result.text
+        data=admin.chief.get(PREFIX+'/management/catalog').json()
+        assert result.json() in data['equipment_types']
+    finally:
+        with engine.begin() as db:
+            db.execute(text('DELETE FROM equipment_types WHERE code=:code'), {'code':code})
 
 
 def test_crew_membership_is_independent_from_shifts_and_individual_assignment(managed):

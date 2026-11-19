@@ -20,7 +20,7 @@ export function RequireRole({
   roles,
   children,
 }: {
-  roles: Role[];
+  roles?: readonly Role[];
   children: ReactNode;
 }) {
   const { profile, loading } = useSession();
@@ -31,8 +31,8 @@ export function RequireRole({
     return <Navigate to="/login" replace />;
   }
 
-  if (!roles.includes(profile.role)) {
-    return <AccessDeniedPage allowedRoles={roles} />;
+  if (roles && !roles.includes(profile.role)) {
+    return <AccessDeniedPage />;
   }
 
   return children;

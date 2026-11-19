@@ -79,3 +79,20 @@ reports*.zip
 /FixRateAI_Iteration_Intelligent_Planning_Spec.md
 /docs/service/customer-start.md
 /start-fixrate.bat
+
+# Local Penpot review package and exports containing restricted evidence photos.
+/docs/design/concepts/e3-all-pages/review.html
+/docs/design/concepts/e3-all-pages/contacts/09-executor.png
+/docs/design/concepts/e3-all-pages/contacts/10-quality.png
+/docs/design/concepts/e3-all-pages/renders/executor-photos--*.png
+/docs/design/concepts/e3-all-pages/renders/photo-viewer--*.png
+/docs/design/concepts/e3-all-pages/renders/quality-review--*.png
+/docs/design/concepts/e3-core-workflows/photo-provenance.json
+/docs/design/concepts/e3-core-workflows/renders/overview.png
+/docs/design/concepts/e3-core-workflows/renders/review.png
+/docs/design/concepts/e3-core-workflows/renders/review-photos-100.png
+/docs/design/concepts/e3-core-workflows/renders/review-decision-100.png
+/docs/design/concepts/e3-core-workflows/renders/review-mobile*.png
+/docs/design/concepts/e3-core-workflows/renders/executor.png
+/docs/design/concepts/e3-core-workflows/renders/executor-report-100.png
+/docs/design/concepts/e3-core-workflows/renders/executor-mobile*.png

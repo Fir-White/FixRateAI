@@ -1,0 +1,144 @@
+{
+  "label": "Error screens ? Access palette ? 2026-11-18",
+  "revision": 268,
+  "frames": [
+    {
+      "key": "not-found--desktop",
+      "id": "a27ef1c6-05d8-806c-8008-f5caeaf8a39f",
+      "pageId": "a27ef1c6-05d8-806c-8008-f5cad639421f",
+      "width": 1440,
+      "height": 900,
+      "nodes": 22,
+      "texts": 4,
+      "removed": 0,
+      "ellipses": 0,
+      "palette": {
+        "canvas": "#050d12",
+        "code": "#70ddd3",
+        "button": [
+          "#77e5d0",
+          "#55d6d0"
+        ]
+      },
+      "centerError": 1.52587890625e-05,
+      "brandCenterError": 0,
+      "overflow": [],
+      "outside": [],
+      "action": {
+        "id": "63d83be6-908a-8013-8008-f6a651006c7c",
+        "w": 156,
+        "h": 48,
+        "url": "http://localhost:9001/?screen=viewer&file-id=13ac3151-58c1-801c-8008-f58dd579cd50&page-id=5d5eb894-14d3-80f0-8008-f5c133728c40&section=interactions&frame-id=31c51317-a944-80fc-8008-f5c6470183eb"
+      }
+    },
+    {
+      "key": "not-found--mobile",
+      "id": "a27ef1c6-05d8-806c-8008-f5caebfda91b",
+      "pageId": "a27ef1c6-05d8-806c-8008-f5cad639421f",
+      "width": 390,
+      "height": 844,
+      "nodes": 23,
+      "texts": 5,
+      "removed": 2,
+      "ellipses": 0,
+      "palette": {
+        "canvas": "#050d12",
+        "code": "#70ddd3",
+        "button": [
+          "#77e5d0",
+          "#55d6d0"
+        ]
+      },
+      "centerError": 7.62939453125e-06,
+      "brandCenterError": 0,
+      "overflow": [],
+      "outside": [],
+      "action": {
+        "id": "63d83be6-908a-8013-8008-f6a651fd3ca7",
+        "w": 156,
+        "h": 48,
+        "url": "http://localhost:9001/?screen=viewer&file-id=13ac3151-58c1-801c-8008-f58dd579cd50&page-id=5d5eb894-14d3-80f0-8008-f5c133728c40&section=interactions&frame-id=5d5eb894-14d3-80f0-8008-f5c2ea374ffb"
+      }
+    },
+    {
+      "key": "access-denied--desktop",
+      "id": "a27ef1c6-05d8-806c-8008-f5caecc6a515",
+      "pageId": "a27ef1c6-05d8-806c-8008-f5cad639421f",
+      "width": 1440,
+      "height": 900,
+      "nodes": 23,
+      "texts": 5,
+      "removed": 2,
+      "ellipses": 0,
+      "palette": {
+        "canvas": "#050d12",
+        "code": "#70ddd3",
+        "button": [
+          "#77e5d0",
+          "#55d6d0"
+        ]
+      },
+      "centerError": 1.52587890625e-05,
+      "brandCenterError": 0,
+      "overflow": [],
+      "outside": [],
+      "action": {
+        "id": "63d83be6-908a-8013-8008-f6a6531367af",
+        "w": 186,
+        "h": 48,
+        "url": "http://localhost:9001/?screen=viewer&file-id=13ac3151-58c1-801c-8008-f58dd579cd50&page-id=5d5eb894-14d3-80f0-8008-f5c133728c40&section=interactions&frame-id=a27ef1c6-05d8-806c-8008-f5de3c44d4c0"
+      }
+    },
+    {
+      "key": "access-denied--mobile",
+      "id": "a27ef1c6-05d8-806c-8008-f5caef5d1983",
+      "pageId": "a27ef1c6-05d8-806c-8008-f5cad639421f",
+      "width": 390,
+      "height": 844,
+      "nodes": 24,
+      "texts": 6,
+      "removed": 2,
+      "ellipses": 0,
+      "palette": {
+        "canvas": "#050d12",
+        "code": "#70ddd3",
+        "button": [
+          "#77e5d0",
+          "#55d6d0"
+        ]
+      },
+      "centerError": 1.1444091796875e-05,
+      "brandCenterError": 0,
+      "overflow": [],
+      "outside": [],
+      "action": {
+        "id": "63d83be6-908a-8013-8008-f6a654b7a245",
+        "w": 186,
+        "h": 48,
+        "url": "http://localhost:9001/?screen=viewer&file-id=13ac3151-58c1-801c-8008-f58dd579cd50&page-id=5d5eb894-14d3-80f0-8008-f5c133728c40&section=interactions&frame-id=a27ef1c6-05d8-806c-8008-f5de426a151a"
+      }
+    }
+  ],
+  "viewerChecks": [
+    {
+      "key": "not-found--desktop",
+      "target": "31c51317-a944-80fc-8008-f5c6470183eb",
+      "status": "PASS"
+    },
+    {
+      "key": "not-found--mobile",
+      "target": "5d5eb894-14d3-80f0-8008-f5c2ea374ffb",
+      "status": "PASS"
+    },
+    {
+      "key": "access-denied--desktop",
+      "target": "a27ef1c6-05d8-806c-8008-f5de3c44d4c0",
+      "status": "PASS"
+    },
+    {
+      "key": "access-denied--mobile",
+      "target": "a27ef1c6-05d8-806c-8008-f5de426a151a",
+      "status": "PASS"
+    }
+  ]
+}

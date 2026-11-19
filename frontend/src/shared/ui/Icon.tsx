@@ -30,7 +30,7 @@ export type IconName =
   | "trash";
 
 const PATHS: Record<IconName, ReactNode> = {
-  assistant: <><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H5l-3 2V11.5a8.5 8.5 0 1 1 19 0Z"/><path d="m12 6 1.2 3.3L16.5 11l-3.3 1.4L12 16l-1.3-3.6L7.5 11l3.2-1.7L12 6Z"/></>,
+  assistant: <path d="M12 2.5c1.5 5.9 3.6 8 9.5 9.5-5.9 1.5-8 3.6-9.5 9.5-1.5-5.9-3.6-8-9.5-9.5 5.9-1.5 8-3.6 9.5-9.5Z"/>,
   sidebar: <><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></>,
   trash: <><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5"/></>,
   bell: <><path d="M5 17.5h14l-1.2-1.7a4 4 0 0 1-.8-2.4V10a5 5 0 0 0-10 0v3.4a4 4 0 0 1-.8 2.4L5 17.5Z"/><path d="M10 20a2.2 2.2 0 0 0 4 0M12 3v2"/></>,

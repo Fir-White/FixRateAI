@@ -20,14 +20,14 @@ it("keeps the draft and latest photo revision available to document uploads with
   let finish!: (value: TaskBundle) => void;
   vi.mocked(maintenanceApi.upload).mockImplementation(() => new Promise(resolve => { finish = resolve; }));
   render(<MemoryRouter initialEntries={["/executor/tasks/task"]}><Routes><Route path="/executor/tasks/:taskId" element={<ExecutorTaskPage />} /></Routes></MemoryRouter>);
-  fireEvent.click(await screen.findByRole('button',{name:'Проверить и сдать'}));
+  fireEvent.click(await screen.findByRole('button',{name:'Итоговый отчёт'}));
   fireEvent.change(await screen.findByLabelText("Что выполнено и какие замечания остались"), { target: { value: "Сохранённый комментарий" } });
   fireEvent.click(screen.getByRole('button',{name:'Добавить фотографии'}));
   fireEvent.change(screen.getByLabelText("Фото до: Поверхность очищена"), { target: { files: [new File(["photo"], "before.png", { type: "image/png" })] } });
   await waitFor(() => expect(maintenanceApi.upload).toHaveBeenCalled());
   expect(maintenanceApi.saveReport).toHaveBeenCalledWith("task", 2, "Сохранённый комментарий", { item: "done" }, expect.anything());
   expect(maintenanceApi.upload).toHaveBeenCalledWith("task", 3, "item", "before", "front", expect.any(File));
-  fireEvent.click(screen.getByRole('button',{name:'Проверить и сдать'}));
+  fireEvent.click(screen.getByRole('button',{name:'Итоговый отчёт'}));
   expect(screen.getByRole("button", { name: "Загрузить скан" })).toBeDisabled();
   finish({ ...bundle, task: { ...task, revision: 4 } });
   await waitFor(() => expect(screen.queryByText("Загружаем…")).not.toBeInTheDocument());

@@ -16,7 +16,7 @@ export function ChatModelPicker({preference,disabled,onChange,onBusy}:Props){
   const close=()=>{if(!saving)setOpen(false);};
   useEffect(()=>{if(disabled)setOpen(false);},[disabled]);
   const focus=useDialogFocus<HTMLDivElement>(open,close);
-  const name=selected?.model??'Модель';
+  const name=selected?.model??'Выбрать модель';
   function toggle(){
     if(open){close();return;}
     const rect=trigger.current?.getBoundingClientRect();if(!rect)return;
@@ -32,7 +32,7 @@ export function ChatModelPicker({preference,disabled,onChange,onBusy}:Props){
     finally{setSaving(false);onBusy(false);}
   }
   return <div className="assistant-model-picker">
-    <button type="button" ref={trigger} className="assistant-model-trigger" aria-label={`Выбрать модель: ${name}`} aria-haspopup="dialog" aria-expanded={open} aria-controls={id} disabled={disabled||saving} onClick={toggle} title={selected?`${selected.provider==='ollama'?'Локальная':'AI Tunnel'} · ${name}`:'Выбрать модель чата'}>
+    <button type="button" ref={trigger} className="assistant-model-trigger" aria-label={selected?`Выбрать модель: ${name}`:"Выбрать модель"} aria-haspopup="dialog" aria-expanded={open} aria-controls={id} disabled={disabled||saving} onClick={toggle} title={selected?`${selected.provider==='ollama'?'Локальная':'AI Tunnel'} · ${name}`:'Выбрать модель чата'}>
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="4"/><path d="M9 1v4m6-4v4M9 19v4m6-4v4M1 9h4m-4 6h4m14-6h4m-4 6h4"/></svg>
       <span className="assistant-model-name">{saving?'Сохраняю…':name}</span><span aria-hidden="true">⌄</span>
     </button>

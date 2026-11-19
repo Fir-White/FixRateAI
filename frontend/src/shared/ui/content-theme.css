@@ -1,40 +1,50 @@
 /* Phase II: owned by mutable route content and explicitly opted-in portals only. */
 .fr-content-v2 {
-  --fr2-bg: #101516;
-  --fr2-surface: #151d1e;
-  --fr2-raised: #1c2729;
-  --fr2-interactive: #22312f;
-  --fr2-accent-surface: #1b302b;
-  --fr2-critical-surface: #352526;
-  --fr2-text: #eef3ef;
-  --fr2-secondary: #c2ceca;
-  --fr2-muted: #9baea8;
-  --fr2-line: #283435;
-  --fr2-line-strong: #405052;
-  --fr2-control: #617872;
-  --fr2-accent: #9de2c7;
-  --fr2-accent-hover: #b5eed8;
-  --fr2-on-accent: #122b22;
-  --fr2-warning: #e1c28e;
-  --fr2-danger: #f1a6a2;
-  --fr2-info: #9ccbdc;
+  --fr2-bg: var(--color-canvas-soft);
+  --fr2-surface: var(--color-surface);
+  --fr2-raised: var(--color-surface-raised);
+  --fr2-interactive: var(--color-surface-hover);
+  --fr2-accent-surface: #0e2b2c;
+  --fr2-critical-surface: #302026;
+  --fr2-text: var(--color-ink);
+  --fr2-secondary: var(--color-ink-soft);
+  --fr2-muted: var(--color-muted);
+  --fr2-line: var(--color-line);
+  --fr2-line-strong: var(--color-line-strong);
+  --fr2-control: var(--color-line-strong);
+  --fr2-accent: var(--color-accent);
+  --fr2-accent-hover: var(--color-accent-strong);
+  --fr2-on-accent: var(--color-accent-ink);
+  --fr2-warning: var(--color-warning);
+  --fr2-danger: var(--color-danger);
+  --fr2-info: var(--color-info);
   color: var(--fr2-text);
   font-size: 14px;
   line-height: 1.5;
   min-width: 0;
   container: work-content / inline-size;
 }
-.fr-content-v2 .fr-page-title { font-size: 28px; line-height: 34px; overflow-wrap: anywhere; }
+.fr-content-v2 .fr-page-title { font-size: clamp(28px, 2.65vw, 38px); font-weight: 400; line-height: 1.16; overflow-wrap: anywhere; }
 .fr-content-v2 .fr-page-description { color: var(--fr2-secondary); max-width: 840px; }
-.fr-content-v2 .ui-card { border-radius: 16px; background: var(--fr2-surface); border-color: var(--fr2-line); }
+.fr-content-v2 .ops-page-header { border-bottom-color: transparent; padding-block-end: 6px; }
+.fr-content-v2 .ui-card { border-radius: 14px; background: var(--fr2-surface); border-color: var(--fr2-line); }
 .fr-content-v2 .ui-card-header { border-color: var(--fr2-line); }
 .fr-content-v2 .ui-card-header h2 { font-size: 20px; line-height: 28px; }
 .fr-content-v2 .ui-control { border-color: var(--fr2-control); border-radius: 10px; color: var(--fr2-text); background-color: var(--fr2-bg); }
 .fr-content-v2 .ui-control:focus { border-color: var(--fr2-accent); }
 .fr-content-v2 .ui-control::placeholder { color: var(--fr2-muted); opacity: 1; }
 .fr-content-v2 .motion-button { min-height: 40px; height: auto; padding-block: 10px; border-radius: 10px; white-space: normal; }
-.fr-content-v2 .motion-button.bg-accent { background: var(--fr2-accent); color: var(--fr2-on-accent); }
-.fr-content-v2 .motion-button.bg-accent:hover { background: var(--fr2-accent-hover); }
+.fr-content-v2 .motion-button.bg-accent { background: var(--action-fill); color: var(--fr2-on-accent); }
+.fr-content-v2 .motion-button.bg-accent:hover { background: var(--action-hover); }
+.fr-content-v2 .motion-button:not(.bg-accent) { overflow-wrap: anywhere; }
+.fr-content-v2 .motion-button[aria-pressed="true"] { background: var(--fr2-accent-surface); color: var(--fr2-accent); }
+.fr-content-v2 .fr-modal { background: var(--fr2-raised); }
+.fr-content-v2 .fr-modal > :first-child h2 { font-size: clamp(20px, 2vw, 30px); line-height: 1.22; font-weight: 400; }
+.fr-content-v2 :where(.fr-register,.ops-register) { background: transparent; border-color: transparent; }
+.fr-content-v2 :where(.fr-register,.ops-register) .ops-register-tools { padding-inline: 0; }
+.fr-content-v2 .ops-report-metric strong { color: var(--fr2-accent); font-weight: 400; }
+.fr-content-v2 .ops-report-track { height: 2px; background: var(--fr2-line); }
+.fr-content-v2 .ops-report-track > span { background: var(--fr2-accent); }
 .fr-content-v2 :where(a, button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--fr2-accent); outline-offset: 2px; }
 .fr-content-v2 .text-muted { color: var(--fr2-muted); }
 .fr-content-v2 .text-ink-soft { color: var(--fr2-secondary); }
@@ -52,7 +62,7 @@
 }
 @media (max-width: 767px) {
   .fr-content-v2 { font-size: 15px; line-height: 22px; }
-  .fr-content-v2 .fr-page-title { font-size: 24px; line-height: 32px; }
+  .fr-content-v2 .fr-page-title { font-size: 27px; line-height: 32px; }
   .fr-content-v2 .ui-card-header h2 { font-size: 18px; line-height: 26px; }
   .fr-content-v2 .ui-card-header, .fr-content-v2 .ui-card > .p-5 { padding: 16px; }
   .fr-content-v2 .ui-control, .fr-content-v2 .motion-button { min-height: 44px; }

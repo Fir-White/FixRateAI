@@ -1,0 +1,485 @@
+{
+  "fileId": "13ac3151-58c1-801c-8008-f58dd579cd50",
+  "pageId": "582936bd-dbb0-8088-8008-f5a1cedb5ec8",
+  "pageName": "E3 · Core Workflows",
+  "revision": 66,
+  "frames": [
+    {
+      "key": "planning",
+      "id": "582936bd-dbb0-8088-8008-f5a1d08a1df6",
+      "name": "01 · Планирование · Действующий календарь · 1440×900",
+      "width": 1440,
+      "height": 900,
+      "texts": 94,
+      "nodes": 176,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "equipment",
+      "id": "582936bd-dbb0-8088-8008-f5a1f45add04",
+      "name": "02 · Оборудование и регламенты · 1440×900",
+      "width": 1440,
+      "height": 900,
+      "texts": 49,
+      "nodes": 95,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "review",
+      "id": "582936bd-dbb0-8088-8008-f5a1ffa8466a",
+      "name": "03 · Приёмка · Главный инженер · 1440×900",
+      "width": 1440,
+      "height": 900,
+      "texts": 36,
+      "nodes": 81,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "executor",
+      "id": "582936bd-dbb0-8088-8008-f5a271a896ab",
+      "name": "04 · Исполнение · Итоговый отчёт · 1440×900",
+      "width": 1440,
+      "height": 900,
+      "texts": 46,
+      "nodes": 102,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "review-mobile",
+      "id": "582936bd-dbb0-8088-8008-f5a27da748f2",
+      "name": "05 · Приёмка · Mobile · 390×844",
+      "width": 390,
+      "height": 844,
+      "texts": 18,
+      "nodes": 51,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "executor-mobile",
+      "id": "582936bd-dbb0-8088-8008-f5a2871cc3fd",
+      "name": "06 · Исполнение · Mobile · 390×844",
+      "width": 390,
+      "height": 844,
+      "texts": 19,
+      "nodes": 52,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "proposal",
+      "id": "582936bd-dbb0-8088-8008-f5a28f56627e",
+      "name": "07 · Планирование · Предложение → новая версия · 1440×900",
+      "width": 1440,
+      "height": 900,
+      "texts": 46,
+      "nodes": 81,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "ai-context",
+      "id": "582936bd-dbb0-8088-8008-f5a3a4ed154d",
+      "name": "08 · Единый AI-диалог · Контекст приёмки · 1440×900",
+      "width": 1440,
+      "height": 900,
+      "texts": 30,
+      "nodes": 65,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "review-facts",
+      "id": "582936bd-dbb0-8088-8008-f5a3bbcfdbc8",
+      "name": "90 · review-facts",
+      "width": 900,
+      "height": 760,
+      "texts": 24,
+      "nodes": 40,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "review-facts-mobile",
+      "id": "582936bd-dbb0-8088-8008-f5a3c2eab6f8",
+      "name": "90 · review-facts-mobile",
+      "width": 350,
+      "height": 680,
+      "texts": 20,
+      "nodes": 24,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "return-confirm",
+      "id": "582936bd-dbb0-8088-8008-f5a3c7b178fc",
+      "name": "90 · return-confirm",
+      "width": 350,
+      "height": 350,
+      "texts": 6,
+      "nodes": 11,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "apply-confirm",
+      "id": "582936bd-dbb0-8088-8008-f5a3cba34eec",
+      "name": "90 · apply-confirm",
+      "width": 350,
+      "height": 374,
+      "texts": 6,
+      "nodes": 10,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "executor-finish",
+      "id": "582936bd-dbb0-8088-8008-f5a3cf0ced20",
+      "name": "90 · executor-finish",
+      "width": 350,
+      "height": 680,
+      "texts": 15,
+      "nodes": 29,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "verify-document-mobile",
+      "id": "582936bd-dbb0-8088-8008-f5a8e7e18d67",
+      "name": "90 · verify-document-mobile",
+      "width": 350,
+      "height": 460,
+      "texts": 8,
+      "nodes": 13,
+      "outside": [],
+      "overflow": []
+    }
+  ],
+  "tokens": [
+    {
+      "name": "e3.color.canvas",
+      "type": "color",
+      "value": "#0C1D18"
+    },
+    {
+      "name": "e3.color.nav",
+      "type": "color",
+      "value": "#091611"
+    },
+    {
+      "name": "e3.color.surface",
+      "type": "color",
+      "value": "#142B22"
+    },
+    {
+      "name": "e3.color.raised",
+      "type": "color",
+      "value": "#1D382D"
+    },
+    {
+      "name": "e3.color.line",
+      "type": "color",
+      "value": "#304C3F"
+    },
+    {
+      "name": "e3.color.text",
+      "type": "color",
+      "value": "#EDF1E7"
+    },
+    {
+      "name": "e3.color.muted",
+      "type": "color",
+      "value": "#ACBDB0"
+    },
+    {
+      "name": "e3.color.faint",
+      "type": "color",
+      "value": "#8FA697"
+    },
+    {
+      "name": "e3.color.accent",
+      "type": "color",
+      "value": "#C6DEC0"
+    },
+    {
+      "name": "e3.color.ink",
+      "type": "color",
+      "value": "#12291D"
+    },
+    {
+      "name": "e3.color.danger",
+      "type": "color",
+      "value": "#E7AA99"
+    },
+    {
+      "name": "e3.color.warning",
+      "type": "color",
+      "value": "#DEC08C"
+    },
+    {
+      "name": "e3.color.warnBg",
+      "type": "color",
+      "value": "#302C1E"
+    },
+    {
+      "name": "e3.color.dangerBg",
+      "type": "color",
+      "value": "#37271F"
+    },
+    {
+      "name": "e3.color.disabled",
+      "type": "color",
+      "value": "#6E8678"
+    },
+    {
+      "name": "e3.font.size.12",
+      "type": "fontSizes",
+      "value": "12px"
+    },
+    {
+      "name": "e3.font.size.13",
+      "type": "fontSizes",
+      "value": "13px"
+    },
+    {
+      "name": "e3.font.size.14",
+      "type": "fontSizes",
+      "value": "14px"
+    },
+    {
+      "name": "e3.font.size.15",
+      "type": "fontSizes",
+      "value": "15px"
+    },
+    {
+      "name": "e3.font.size.16",
+      "type": "fontSizes",
+      "value": "16px"
+    },
+    {
+      "name": "e3.font.size.18",
+      "type": "fontSizes",
+      "value": "18px"
+    },
+    {
+      "name": "e3.font.size.20",
+      "type": "fontSizes",
+      "value": "20px"
+    },
+    {
+      "name": "e3.font.size.22",
+      "type": "fontSizes",
+      "value": "22px"
+    },
+    {
+      "name": "e3.font.size.24",
+      "type": "fontSizes",
+      "value": "24px"
+    },
+    {
+      "name": "e3.font.size.28",
+      "type": "fontSizes",
+      "value": "28px"
+    },
+    {
+      "name": "e3.font.size.36",
+      "type": "fontSizes",
+      "value": "36px"
+    },
+    {
+      "name": "e3.font.size.40",
+      "type": "fontSizes",
+      "value": "40px"
+    },
+    {
+      "name": "e3.space.4",
+      "type": "spacing",
+      "value": "4px"
+    },
+    {
+      "name": "e3.space.8",
+      "type": "spacing",
+      "value": "8px"
+    },
+    {
+      "name": "e3.space.12",
+      "type": "spacing",
+      "value": "12px"
+    },
+    {
+      "name": "e3.space.16",
+      "type": "spacing",
+      "value": "16px"
+    },
+    {
+      "name": "e3.space.20",
+      "type": "spacing",
+      "value": "20px"
+    },
+    {
+      "name": "e3.space.24",
+      "type": "spacing",
+      "value": "24px"
+    },
+    {
+      "name": "e3.space.32",
+      "type": "spacing",
+      "value": "32px"
+    },
+    {
+      "name": "e3.space.48",
+      "type": "spacing",
+      "value": "48px"
+    },
+    {
+      "name": "e3.space.64",
+      "type": "spacing",
+      "value": "64px"
+    },
+    {
+      "name": "e3.radius.7",
+      "type": "borderRadius",
+      "value": "7px"
+    },
+    {
+      "name": "e3.radius.8",
+      "type": "borderRadius",
+      "value": "8px"
+    },
+    {
+      "name": "e3.radius.12",
+      "type": "borderRadius",
+      "value": "12px"
+    },
+    {
+      "name": "e3.radius.14",
+      "type": "borderRadius",
+      "value": "14px"
+    },
+    {
+      "name": "e3.radius.16",
+      "type": "borderRadius",
+      "value": "16px"
+    },
+    {
+      "name": "e3.radius.20",
+      "type": "borderRadius",
+      "value": "20px"
+    },
+    {
+      "name": "e3.radius.24",
+      "type": "borderRadius",
+      "value": "24px"
+    },
+    {
+      "name": "e3.font.family",
+      "type": "fontFamilies",
+      "value": [
+        "IBM Plex Sans"
+      ]
+    },
+    {
+      "name": "e3.control.height",
+      "type": "sizing",
+      "value": "44px"
+    }
+  ],
+  "components": [
+    {
+      "name": "Danger",
+      "id": "582936bd-dbb0-8088-8008-f5a6ce54b956"
+    },
+    {
+      "name": "Disabled",
+      "id": "582936bd-dbb0-8088-8008-f5a6ce74a11a"
+    },
+    {
+      "name": "Secondary",
+      "id": "582936bd-dbb0-8088-8008-f5a6cd45c720"
+    },
+    {
+      "name": "Context AI",
+      "id": "582936bd-dbb0-8088-8008-f5a6cefad1f6"
+    },
+    {
+      "name": "Primary",
+      "id": "582936bd-dbb0-8088-8008-f5a5fd9981f2"
+    }
+  ],
+  "interactions": 37,
+  "componentCopyNodes": 64,
+  "originalPages": {
+    "pages": 13,
+    "untouchedPages": 12,
+    "differences": [
+      {
+        "page": "E · Visual Exploration · Chief Engineer",
+        "boardId": "ecd29d2d-0751-800b-8008-f598c0372d0b",
+        "reason": "Selected E3 home polished as explicitly requested; E1/E2 and other archives unchanged"
+      }
+    ]
+  },
+  "reopen": "PASS · browser reload and independent official MCP readback",
+  "versionLabel": "E3 · Full visual polish · 2026-11-17",
+  "productCodeChanged": false,
+  "reactImplementation": "Not started; awaiting design approval",
+  "polish": {
+    "underlines": 7,
+    "objectChevrons": 7,
+    "compactLinkArrows": 25,
+    "backLinks": 4,
+    "informationalArrowsRemoved": 3,
+    "scanArrows": 0,
+    "messageTimestamps": 2,
+    "tabLabels": 23,
+    "aiButtonGroups": 5,
+    "disabledBoundaries": 7,
+    "buttonLabels": 29,
+    "fullPass": true
+  },
+  "selectedHome": {
+    "key": "home",
+    "id": "ecd29d2d-0751-800b-8008-f598c0372d0b",
+    "name": "E3 · Fluid Intelligence · 1440×900",
+    "width": 1440,
+    "height": 900,
+    "texts": 44,
+    "nodes": 100,
+    "outside": [],
+    "overflow": [],
+    "textOverlaps": [],
+    "lineClashes": [],
+    "smallTargets": [],
+    "underline": {
+      "label": "Рабочий день",
+      "centerDelta": 0,
+      "widthDelta": 0
+    },
+    "tabCenters": [],
+    "buttonCenters": [
+      {
+        "label": "Разобрать просрочки",
+        "x": -0.008,
+        "y": 0
+      },
+      {
+        "label": "Проверить загрузку",
+        "x": 0,
+        "y": 0
+      },
+      {
+        "label": "Найти оборудование",
+        "x": 0,
+        "y": 0
+      }
+    ],
+    "flatUI": 0,
+    "interactions": 0,
+    "pageId": "ecd29d2d-0751-800b-8008-f5988773752e"
+  },
+  "fullAudit": "full-polish-qa.json"
+}

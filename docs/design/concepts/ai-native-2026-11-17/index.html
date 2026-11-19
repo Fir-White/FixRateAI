@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FixRate AI · AI-native concept</title><link rel="stylesheet" href="fonts/fonts.css"><link rel="stylesheet" href="style.css"></head>
+<body>
+ <div class="demo-bar"><span>КОНЦЕПТ · демонстрационные данные</span><div><label>Роль <select id="role"><option value="chief">Главный инженер</option><option value="executor">Исполнитель</option></select></label><button id="reset">Начать заново</button><label><input type="checkbox" id="reduce"> Без движения</label></div></div>
+ <div class="app">
+  <aside class="sidebar"><a href="#home" class="brand">FixRate AI</a><span class="eyebrow">ИНЖЕНЕРНАЯ СРЕДА</span><nav id="nav" aria-label="Разделы"></nav><section class="history"><div class="history-label">ДИАЛОГИ</div><button id="new">+ Новый диалог</button><label class="sr" for="history-search">Поиск по диалогам</label><input type="search" id="history-search" placeholder="Поиск по диалогам"><div id="history-list"></div></section><div class="profile"><strong id="role-name">Главный инженер</strong><button data-gui="Профиль и настройки">Профиль и настройки</button></div></aside>
+  <div class="workspace" id="workspace" data-mode="home">
+   <header><button class="menu" id="menu" aria-label="Открыть навигацию" aria-expanded="false">☰</button><div><strong>ЖК «Сосновый парк»</strong><span id="breadcrumb">Главная</span></div><span class="date">17 ноября 2026 · Вт</span></header>
+   <main id="main">
+    <section class="home" id="home"><div class="intro"><span class="eyebrow mobile-role"></span><h1>С чего начнём<br class="mobile-br"> рабочий день?</h1><p id="subtitle">Планы, оборудование и команда — в одном рабочем контексте.</p></div><div class="prompt-space" aria-hidden="true"></div><div class="suggestions" id="suggestions"></div><section class="context"><div class="section-head"><span>РАБОЧИЙ КОНТЕКСТ</span><span>Все разделы доступны в навигации</span></div><div class="context-grid" id="context-grid"></div><p class="data-note">Демонстрационный срез · Категории пересекаются и не суммируются</p></section></section>
+    <section class="conversation" id="conversation" aria-label="Диалог" hidden><div class="chat-head"><button class="mobile-dialogues" id="dialogues">Диалоги</button><h1 id="chat-title">Новый диалог</h1><p>Личный диалог · Текущий объект: ЖК «Сосновый парк»</p></div><div class="messages" id="messages" aria-live="polite" aria-relevant="additions"></div></section>
+    <form class="composer" id="composer"><label class="sr" for="prompt">Сообщение AI-помощнику</label><textarea id="prompt" rows="2" placeholder="Опишите задачу или задайте вопрос"></textarea><div class="attachments" id="attachments"></div><div class="composer-tools"><label class="file-button" tabindex="0" role="button" id="file-label">＋ <span>Файл или фото</span><input id="file" type="file" accept="image/*,.pdf,.xlsx,.xls,.csv,.docx,.txt" multiple hidden></label><span class="composer-context">Текущий объект · <span id="composer-role">Главный инженер</span></span><button class="send" type="submit" aria-label="Отправить сообщение">↑</button></div></form>
+    <p class="chat-notice">Предложение AI не меняет данные. Запись — после проверки и подтверждения.</p>
+   </main>
+  </div>
+ </div>
+ <dialog id="gui"><div class="dialog-top"><span class="eyebrow">ПРЕДПРОСМОТР GUI · КОНЦЕПТ</span><button id="close-dialog" aria-label="Закрыть">×</button></div><div id="gui-body"></div></dialog>
+ <div class="toast" id="toast" role="status" hidden></div>
+ <script src="app.js"></script>
+</body></html>

@@ -18,6 +18,10 @@ export function canOpenSection(role: Role | undefined, section: string): boolean
   return !!role && !!SECTION_ROLES[section]?.includes(role);
 }
 
+export function canManageSiteAccess(role: Role | undefined): boolean {
+  return role === "chief_engineer" || role === "admin";
+}
+
 export function taskPathForRole(role: Role | undefined, taskId: string): string | null {
   if (role === "executor") return `/executor/tasks/${taskId}`;
   return canOpenSection(role, "tasks") ? `/tasks/${taskId}` : null;
@@ -34,7 +38,7 @@ export const ROLE_LABELS: Record<Role, string> = {
 };
 
 export const ROLE_DESCRIPTIONS: Record<Role, string> = {
-  director:"Просмотр графика и показателей доступных объектов.",chief_engineer:"Утверждение регламентов, планов и исключений; контроль приёмки.",
+  director:"Просмотр графика и показателей доступных объектов.",chief_engineer:"Регламенты, планирование, назначения, приёмка и доступы сотрудников.",
   admin: "Справочники и доступы. Приёмка требует отдельной роли инженера.",
   dispatcher: "Очередь работ, назначения и контроль просрочек.",
   engineer: "Оперативное планирование, назначения, прогнозы и приёмка работ.",

@@ -10,7 +10,7 @@ import { useApiQuery } from "@/shared/lib/useApiQuery";
 import { formatDate, todayAt } from "@/shared/lib/format";
 import { unitLabel } from "@/shared/lib/presentation";
 import { FormErrors, RuleSection, revealField, sectionErrors, type FieldError } from "@/features/settings/SectionForm";
-import { canOpenSection } from "@/shared/lib/roles";
+import { canManageSiteAccess, canOpenSection } from "@/shared/lib/roles";
 import { useSession } from "@/shared/session/SessionContext";
 import { patternDefaults } from "@/shared/types/management";
 import type { EquipmentInput, EquipmentRecord, ManagementCatalog, ServiceConfiguration,ChecklistSetting } from "@/shared/types/management";
@@ -32,7 +32,7 @@ function LiveServiceSettingsPage() {
   const [refresh,setRefresh]=useState(0);
   const [notice,setNotice]=useState("");
   const query=useApiQuery(readQueries.serviceIndex.load,[refresh],undefined,readQueries.serviceIndex.key);
-  const mayEdit=profile?.role==="admin"||profile?.role==="chief_engineer";
+  const mayEdit=canManageSiteAccess(profile?.role);
   const today=todayAt(profile?.timezone??"Asia/Yekaterinburg");
 
   if(query.status==="loading") return <LoadingState label="Загрузка настроек обслуживания"/>;
@@ -47,7 +47,7 @@ function LiveServiceSettingsPage() {
         {equipment.map(item=><option key={item.id} value={item.id}>{item.inventoryCode} · {item.name}</option>)}
       </Select>
     </label><p className="text-xs text-muted">Время объекта: {profile?.timezone}. Нормативная дата относится к целым местным суткам.</p></Card>
-    {mayEdit&&<details className="fr-rule-section"><summary>Справочники систем и типов оборудования</summary><ReferenceForms catalog={catalog} mayCreateTypes={profile?.role==="admin"} onSaved={()=>setRefresh(value=>value+1)}/></details>}
+    {mayEdit&&<details className="fr-rule-section"><summary>Справочники систем и типов оборудования</summary><ReferenceForms catalog={catalog} onSaved={()=>setRefresh(value=>value+1)}/></details>}
     {(selected||mayEdit)&&<details className="fr-rule-section" open={!selected}><summary><span>{selected ? "Паспорт оборудования" : "Новое оборудование"}</span><small>Отдельное сохранение свойств оборудования</small></summary><EquipmentSettings key={selected} equipmentId={selected} catalog={catalog} mayEdit={mayEdit}
       onSaved={key=>{setNotice("Оборудование сохранено");setParams({equipment:key});setRefresh(value=>value+1);}}/></details>}
     {selected&&<ServiceList key={`${selected}:${refresh}`} equipmentId={selected} catalog={catalog} today={today} mayEdit={mayEdit}/>}
@@ -179,10 +179,10 @@ function ChecklistEditor({value,onChange}:{value:ChecklistSetting[];onChange:(va
   </div></details>)}<Button type="button" variant="secondary" disabled={value.length>=100} onClick={()=>onChange([...value,newCheck()])}>Добавить пункт чек-листа</Button></fieldset>;
 }
 
-function ReferenceForms({catalog,mayCreateTypes,onSaved}: {catalog:ManagementCatalog;mayCreateTypes:boolean;onSaved:()=>void}) {
+function ReferenceForms({catalog,onSaved}: {catalog:ManagementCatalog;onSaved:()=>void}) {
   const [kind,setKind]=useState<"systems"|"equipment-types">("systems");const [code,setCode]=useState("");const [name,setName]=useState("");const [busy,setBusy]=useState(false);const [error,setError]=useState("");
   return <Disclosure title="Добавить систему или тип оборудования"><form className="mt-4 space-y-3" onSubmit={async event=>{event.preventDefault();if(busy)return;setBusy(true);setError("");try{await managementApi.createReference(kind,{code,name});onSaved();}catch(failure){setError(failure instanceof Error?failure.message:"Ошибка справочника");}finally{setBusy(false);}}}>
-    <fieldset disabled={busy} className="grid gap-3 sm:grid-cols-3"><label className="text-sm"><FieldCaption>Справочник</FieldCaption><Select aria-label="Справочник" value={kind} onChange={e=>setKind(e.target.value as "systems"|"equipment-types")}><option value="systems">Инженерная система</option>{mayCreateTypes&&<option value="equipment-types">Тип оборудования</option>}</Select></label><label className="text-sm"><FieldCaption>Код справочника</FieldCaption><Input aria-label="Код справочника" required value={code} onChange={e=>setCode(e.target.value)}/></label><label className="text-sm"><FieldCaption>Название справочника</FieldCaption><Input aria-label="Название справочника" required value={name} onChange={e=>setName(e.target.value)}/></label></fieldset>
+    <fieldset disabled={busy} className="grid gap-3 sm:grid-cols-3"><label className="text-sm"><FieldCaption>Справочник</FieldCaption><Select aria-label="Справочник" value={kind} onChange={e=>setKind(e.target.value as "systems"|"equipment-types")}><option value="systems">Инженерная система</option><option value="equipment-types">Тип оборудования</option></Select></label><label className="text-sm"><FieldCaption>Код справочника</FieldCaption><Input aria-label="Код справочника" required value={code} onChange={e=>setCode(e.target.value)}/></label><label className="text-sm"><FieldCaption>Название справочника</FieldCaption><Input aria-label="Название справочника" required value={name} onChange={e=>setName(e.target.value)}/></label></fieldset>
     {!catalog.systems.length&&<p className="text-sm text-amber-200">Сначала добавьте инженерную систему.</p>}{error&&<div role="alert">{error}</div>}<Button type="submit" variant="secondary" disabled={busy}>Добавить в справочник</Button>
   </form></Disclosure>;
 }

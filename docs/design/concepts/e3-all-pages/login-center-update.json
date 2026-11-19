@@ -1,0 +1,88 @@
+{
+  "revision": 252,
+  "label": "Centered sign-in forms · 2026-11-18",
+  "layout": [
+    {
+      "key": "login--desktop",
+      "id": "a27ef1c6-05d8-806c-8008-f5cad66f1111",
+      "pageId": "a27ef1c6-05d8-806c-8008-f5cad639421f",
+      "delta": 125,
+      "headingY": 240,
+      "centerY": 450.125,
+      "nextGap": 142.75
+    },
+    {
+      "key": "login--mobile",
+      "id": "a27ef1c6-05d8-806c-8008-f5cad7dd5fde",
+      "pageId": "a27ef1c6-05d8-806c-8008-f5cad639421f",
+      "delta": 123,
+      "headingY": 220,
+      "centerY": 422.375,
+      "nextGap": 122.25
+    }
+  ],
+  "frames": [
+    {
+      "key": "login--desktop",
+      "width": 1440,
+      "height": 900,
+      "artwork": {
+        "x": 460,
+        "y": 0,
+        "width": 980,
+        "height": 900,
+        "asset": "d0926f7c-cfba-8122-8008-f692bfd6281b"
+      },
+      "mark": {
+        "x": 52,
+        "y": 46,
+        "width": 44,
+        "height": 44
+      },
+      "wordmark": {
+        "x": 108,
+        "y": 55.875,
+        "width": 157,
+        "height": 24.25
+      },
+      "targets": [
+        {
+          "name": "Регистрация",
+          "id": "a27ef1c6-05d8-806c-8008-f5cad8db1a09"
+        }
+      ],
+      "outside": []
+    },
+    {
+      "key": "login--mobile",
+      "width": 390,
+      "height": 844,
+      "artwork": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 844,
+        "asset": "d0926f7c-cfba-8122-8008-f692db71a7e6"
+      },
+      "mark": {
+        "x": 24,
+        "y": 28,
+        "width": 40,
+        "height": 40
+      },
+      "wordmark": {
+        "x": 76,
+        "y": 36.796875,
+        "width": 145,
+        "height": 22.390625
+      },
+      "targets": [
+        {
+          "name": "Регистрация",
+          "id": "a27ef1c6-05d8-806c-8008-f5cadb701bb6"
+        }
+      ],
+      "outside": []
+    }
+  ]
+}

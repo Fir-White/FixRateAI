@@ -12,6 +12,7 @@ import { Card, CardBody, CardHeader } from "@/shared/ui/Card";
 import { FormField, Input } from "@/shared/ui/Form";
 import { Icon } from "@/shared/ui/Icon";
 import { PageHeader } from "@/shared/ui/PageHeader";
+import { Modal } from "@/shared/ui/Modal";
 import "./profile.css";
 
 const AI_PROVIDER_LABELS: Record<string, string> = {
@@ -58,6 +59,8 @@ export function ProfilePage() {
     try { await logout(); navigate("/login", {replace:true}); }
     catch (failure) { setLogoutError(failure instanceof Error ? failure.message : "Не удалось выйти"); setPending(null); }
   };
+  const closeEmail=()=>{if(pending)return;setEmailOpen(false);setEmail(profile.email);setEmailPassword("");setEmailError("");emailValidation.reset();};
+  const closePassword=()=>{if(pending)return;setPasswordOpen(false);setCurrentPassword("");setPassword("");setConfirmation("");setPasswordError("");passwordValidation.reset();};
   return <div className="profile-page">
     <PageHeader title="Мой профиль" description="Управление личными данными, безопасностью и настройками" />
     <div className="profile-grid">
@@ -65,7 +68,8 @@ export function ProfilePage() {
       <div className="profile-content"><Card><CardHeader title="Учётная запись" description="Почта используется для входа в систему."/><CardBody>
         <div className="profile-setting"><div><span>Email</span><strong>{profile.email}</strong></div><Button variant="secondary" aria-expanded={emailOpen} aria-controls="profile-email-form" disabled={!!pending || DEMO_MODE} onClick={() => {setEmailOpen(!emailOpen); setEmail(profile.email); setEmailPassword(""); setEmailError(""); emailValidation.reset();}}>{emailOpen ? "Закрыть" : "Изменить"}</Button></div>
         {emailNotice && <p className="profile-notice" role="status">{emailNotice}</p>}
-        {emailOpen && <form id="profile-email-form" className="profile-form" aria-label="Изменить email" noValidate onSubmit={async event => {
+        <Modal open={emailOpen} onClose={closeEmail} title="Изменить email">
+        <form id="profile-email-form" className="profile-form" aria-label="Изменить email" noValidate onSubmit={async event => {
           event.preventDefault(); if (pending) return; setEmailError(""); setEmailNotice("");
           if (!emailValidation.validate(event.currentTarget)) return;
           if (!emailPassword) {setEmailError("Введите текущий пароль"); event.currentTarget.querySelector<HTMLInputElement>("#profile-email-password")?.focus(); return;}
@@ -75,12 +79,14 @@ export function ProfilePage() {
           <FormField label="Email" htmlFor="profile-email" error={emailValidation.errors.email}><Input id="profile-email" name="email" type="email" autoComplete="email" value={email} maxLength={320} disabled={!!pending || DEMO_MODE} onBlur={event=>emailValidation.blur("email",event)} onChange={event=>{setEmail(event.target.value);emailValidation.change("email");setEmailError("");setEmailNotice("");}} /></FormField>
           <FormField label="Текущий пароль" htmlFor="profile-email-password" hint="Для подтверждения смены почты"><AuthPasswordInput id="profile-email-password" name="current_password" autoComplete="current-password" value={emailPassword} disabled={!!pending || DEMO_MODE} onChange={event=>{setEmailPassword(event.target.value);setEmailError("");}} /></FormField>
           {emailError && <p className="profile-error" role="alert">{emailError}</p>}
-          <div className="profile-form-actions"><Button type="submit" disabled={!!pending || DEMO_MODE || email.trim().toLowerCase() === profile.email.toLowerCase()}>{pending === "email" ? "Сохраняем…" : "Сохранить"}</Button><Button variant="ghost" disabled={!!pending} onClick={() => {setEmailOpen(false);setEmail(profile.email);setEmailPassword("");setEmailError("");emailValidation.reset();}}>Отмена</Button></div>
-        </form>}
+          <div className="profile-form-actions"><Button type="submit" disabled={!!pending || DEMO_MODE || email.trim().toLowerCase() === profile.email.toLowerCase()}>{pending === "email" ? "Сохраняем…" : "Сохранить"}</Button><Button variant="ghost" disabled={!!pending} onClick={closeEmail}>Отмена</Button></div>
+        </form>
+        </Modal>
       </CardBody></Card><Card><CardHeader title="Безопасность" description="Управляйте паролем и защитой учётной записи"/><CardBody>
         <div className="profile-setting"><div><span>Пароль</span><strong>••••••••••••</strong></div><Button variant="secondary" disabled={!!pending || DEMO_MODE} aria-expanded={passwordOpen} aria-controls="profile-password-form" onClick={() => {setPasswordOpen(!passwordOpen);setCurrentPassword("");setPassword("");setConfirmation("");setPasswordError("");passwordValidation.reset();}}>{passwordOpen ? "Закрыть" : "Изменить пароль"}</Button></div>
         {passwordNotice && <p className="profile-notice" role="status">{passwordNotice}</p>}
-        {passwordOpen && <form id="profile-password-form" className="profile-form" aria-label="Изменить пароль" noValidate onSubmit={async event=>{
+        <Modal open={passwordOpen} onClose={closePassword} title="Изменить пароль">
+        <form id="profile-password-form" className="profile-form" aria-label="Изменить пароль" noValidate onSubmit={async event=>{
           event.preventDefault();if(pending)return;setPasswordError("");setPasswordNotice("");
           if(!currentPassword){setPasswordError("Введите текущий пароль");event.currentTarget.querySelector<HTMLInputElement>("#profile-current-password")?.focus();return;}
           if(!passwordValidation.validate(event.currentTarget))return;
@@ -92,11 +98,14 @@ export function ProfilePage() {
           <FormField label="Новый пароль" htmlFor="profile-new-password" error={passwordValidation.errors.password}><AuthPasswordInput id="profile-new-password" name="password" visibilityLabel="новый пароль" autoComplete="new-password" value={password} maxLength={64} disabled={!!pending || DEMO_MODE} onBlur={e=>passwordValidation.blur("password",e)} onChange={e=>{setPassword(e.target.value);passwordValidation.change("password");setPasswordError("");setPasswordNotice("");}} /></FormField>
           <FormField label="Подтвердите новый пароль" htmlFor="profile-confirm-password" error={passwordValidation.errors.password_confirmation}><AuthPasswordInput id="profile-confirm-password" name="password_confirmation" visibilityLabel="подтверждение пароля" autoComplete="new-password" value={confirmation} maxLength={64} disabled={!!pending || DEMO_MODE} onBlur={e=>passwordValidation.blur("password_confirmation",e)} onChange={e=>{setConfirmation(e.target.value);passwordValidation.change("password_confirmation");setPasswordError("");}} /></FormField>
           {passwordError && <p className="profile-error" role="alert">{passwordError}</p>}
-          <p className={`profile-requirement${password.length >= 12 ? " is-met" : ""}`}>От 12 до 64 символов</p><div className="profile-form-actions"><Button type="submit" disabled={!!pending || DEMO_MODE}>{pending === "password" ? "Сохраняем…" : "Сохранить пароль"}</Button><Button variant="ghost" disabled={!!pending} onClick={() => {setPasswordOpen(false);setCurrentPassword("");setPassword("");setConfirmation("");setPasswordError("");passwordValidation.reset();}}>Отмена</Button></div>
-        </form>}
+          <p className={`profile-requirement${password.length >= 12 ? " is-met" : ""}`}>От 12 до 64 символов</p><div className="profile-form-actions"><Button type="submit" disabled={!!pending || DEMO_MODE}>{pending === "password" ? "Сохраняем…" : "Сохранить пароль"}</Button><Button variant="ghost" disabled={!!pending} onClick={closePassword}>Отмена</Button></div>
+        </form>
+        </Modal>
       </CardBody></Card><Card><CardHeader title="Нейросети и анализ фото (AI / LLM)" description="Выбор модели для проверки фотоотчётов и детекции дефектов"/><CardBody>
         <div className="profile-setting"><div><span>Активная модель</span><strong>{AI_PROVIDER_LABELS[aiSettings.provider] ?? aiSettings.provider}{aiSettings.model ? ` · ${aiSettings.model}` : ""}</strong></div><Button variant="secondary" aria-expanded={aiOpen} aria-controls="profile-ai-form" onClick={() => setAiOpen(!aiOpen)}>{aiOpen ? "Закрыть" : "Настроить"}</Button></div>
-        {aiOpen && <div id="profile-ai-form" className="profile-form"><AiModelSelector variant="card" autoFetch={aiOpen} /></div>}
+        <Modal open={aiOpen} onClose={()=>setAiOpen(false)} title="Настройки фотоанализа">
+          <div id="profile-ai-form"><AiModelSelector variant="card" autoFetch={aiOpen} /></div>
+        </Modal>
       </CardBody></Card><Card><CardBody><div className="profile-session"><div><h2>Текущий сеанс</h2><p>Завершить работу на этом устройстве.</p></div><Button variant="danger" disabled={!!pending} onClick={() => void signOut()}><Icon name="logout" size={16}/>{pending === "logout" ? "Выходим…" : "Выйти из аккаунта"}</Button></div>{logoutError && <p className="profile-error" role="alert">{logoutError}</p>}</CardBody></Card></div>
     </div>
   </div>;

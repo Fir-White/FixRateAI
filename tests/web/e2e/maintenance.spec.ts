@@ -36,7 +36,7 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
   await executor.getByRole("button", {name: "Приступить к работе"}).click();
   await executor.getByRole("checkbox", {name: /Поверхность очищена/}).check();
   await checkpoint(executor,'executor-active');
-  await executor.getByRole('button',{name:'Проверить и сдать',exact:true}).click();
+  await executor.getByRole('button',{name:'Итоговый отчёт',exact:true}).click();
   await executor.getByLabel("Что выполнено и какие замечания остались").fill("Проверка полного процесса в браузере");
   // Upload must preserve the currently edited checklist and narrative without a manual save.
   await executor.getByRole('button',{name:'Добавить фотографии',exact:true}).click();
@@ -54,7 +54,7 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
   await expect(executor.locator(".evidence-photo img")).toHaveCount(2);
   await executor.locator('.evidence-photo').first().scrollIntoViewIfNeeded();
   await checkpoint(executor,'executor-uploaded');
-  await executor.getByRole('button',{name:'Проверить и сдать',exact:true}).click();
+  await executor.getByRole('button',{name:'Итоговый отчёт',exact:true}).click();
   const submit = executor.waitForResponse(r => r.url().endsWith("/submit"));
   await executor.getByLabel("Что выполнено и какие замечания остались").fill("Последние изменения перед сдачей");
   await executor.getByRole("button", {name: "Сдать работу"}).click();
@@ -96,7 +96,7 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
     expect((await uploaded).status()).toBe(200);
     await expect(executor.locator(".evidence-photo img")).toHaveCount(phase === "before" ? 1 : 2);
   }
-  await executor.getByRole('button',{name:'Проверить и сдать',exact:true}).click();
+  await executor.getByRole('button',{name:'Итоговый отчёт',exact:true}).click();
   const resubmit = executor.waitForResponse(r => r.url().endsWith("/submit"));
   await executor.getByRole("button", {name: "Сдать работу"}).click();
   await executor.getByRole("dialog", {name: "Передать отчёт инженеру?"}).getByRole("button", {name: "Подтвердить сдачу"}).click();

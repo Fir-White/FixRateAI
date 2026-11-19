@@ -1,0 +1,16 @@
+// Read-only measured layout audit, all canonical E3 section frames.
+const round=n=>Math.round(n*1000)/1000;
+const frames=penpot.currentFile.pages.filter(p=>p.getPluginData('suite-section')).flatMap(p=>p.root.children.filter(r=>r.getPluginData('suite-screen')).map(r=>{
+ const all=penpotUtils.findShapes(s=>true,r),ts=all.filter(s=>s.type==='text'),q=ts.map(s=>s.textBounds);
+ const outside=all.filter(s=>s.x<r.x-.6||s.y<r.y-.6||s.x+s.width>r.x+r.width+.6||s.y+s.height>r.y+r.height+.6).map(s=>({id:s.id,name:s.name,x:round(s.x-r.x),y:round(s.y-r.y),w:s.width,h:s.height}));
+ const overflow=ts.filter((s,i)=>q[i].width>s.width+1||q[i].height>s.height+1).map(s=>({id:s.id,value:s.characters,w:s.width,h:s.height,bounds:s.textBounds}));
+ const unmeasured=ts.filter((s,i)=>!q[i].width||!q[i].height).map(s=>s.id),overlaps=[];
+ for(let i=0;i<ts.length;i++)for(let j=i+1;j<ts.length;j++){const a=q[i],b=q[j],dx=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x),dy=Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y);if(dx>3&&dy>3)overlaps.push({ids:[ts[i].id,ts[j].id],values:[ts[i].characters,ts[j].characters],dx:round(dx),dy:round(dy)});}
+ const lineClashes=all.filter(s=>s.type==='rectangle'&&s.height<=2&&s.width>50).flatMap(l=>ts.filter((t,i)=>{const b=q[i];return Math.min(b.x+b.width,l.x+l.width)-Math.max(b.x,l.x)>2&&Math.min(b.y+b.height,l.y+l.height)-Math.max(b.y,l.y)>.5;}).map(t=>({line:l.id,text:t.id,value:t.characters})));
+ const smallTargets=all.filter(s=>(s.interactions.length||s.getPluginData('suite-destination')||s.getPluginData('action'))&&(s.width<43.5||s.height<43.5)).map(s=>({id:s.id,name:s.name,w:s.width,h:s.height}));
+ const badCenters=JSON.parse(r.getPluginData('centering')||'[]').flatMap(e=>{const t=p.getShapeById(e.id);if(!t)return [];const b=t.textBounds,x=e.cx===undefined?0:b.x+b.width/2-e.cx,y=e.cy===undefined?0:b.y+b.height/2-e.cy;return Math.abs(x)>.6||Math.abs(y)>.6?[{id:t.id,value:t.characters,x:round(x),y:round(y)}]:[];});
+ const underlines=all.filter(s=>s.getPluginData('underline-for')).map(u=>{const t=p.getShapeById(u.getPluginData('underline-for')),b=t.textBounds;return {label:t.characters,x:round(u.x+u.width/2-b.x-b.width/2),w:round(u.width-b.width)};});
+ return {key:r.getPluginData('suite-screen'),id:r.id,pageId:p.id,section:p.getPluginData('suite-section'),name:r.name,width:r.width,height:r.height,texts:ts.length,nodes:all.length,outside,overflow,unmeasured,overlaps,lineClashes,smallTargets,badCenters,underlines,flatUI:all.filter(s=>s.type==='svg-raw').length,interactions:all.reduce((n,s)=>n+s.interactions.length,0)};
+}));
+const hashes=penpot.currentFile.pages.filter(p=>!p.getPluginData('suite-section')).map(p=>{const ss=penpotUtils.findShapes(s=>true,p.root).map(s=>({id:s.id,type:s.type,name:s.name,x:s.x,y:s.y,w:s.width,h:s.height,text:s.type==='text'?s.characters:undefined,fills:s.fills,strokes:s.strokes,font:s.type==='text'?{id:s.fontId,size:s.fontSize,weight:s.fontWeight}:undefined}));let h=2166136261;for(const ch of JSON.stringify(ss))h=Math.imul(h^ch.charCodeAt(0),16777619)>>>0;return {id:p.id,name:p.name,hash:h.toString(16)};});
+return {revision:penpot.currentFile.revn,frames,protectedPages:hashes,components:penpot.library.local.components.filter(s=>s.path==='E3 · Controls').length};

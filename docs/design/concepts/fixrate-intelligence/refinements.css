@@ -1,0 +1,4 @@
+/* Second visual pass: explicit controls and complete mobile task summary. */
+.button:not(.primary),.history>input,dialog input,dialog select,.drawer input{border-color:#627f6b}
+.drawer input{background:var(--bg);color:var(--text);padding:12px;border:1px solid #627f6b;border-radius:8px;min-height:44px;width:100%;font-size:16px;margin-bottom:12px}
+@media(max-width:900px){.current-card>div:first-child>.desktop-copy{display:none}.current-card>div:first-child>.mobile-copy{display:inline}.executor-home .current-card h3{display:block;overflow:visible}.current-card>div:first-child>span:last-child{font-size:16px;max-width:none;overflow:visible}.schedule .section-title h2{max-width:240px}}
