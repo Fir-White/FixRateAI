@@ -22,7 +22,7 @@ from app.schemas.management import (ApplicationDecision,AvailabilityInput,CrewIn
     EmploymentEdit,EquipmentCreate,EquipmentEdit,NamedReference,QualificationInput,
     Registration,ServiceConfiguration,ShiftInput,ShiftEdit,SkillInput,Revision,PatternPreview,AccountEmailUpdate,AccountPasswordUpdate)
 from app.schemas.registry import SystemCreate
-from app.security.sessions import SQL_ROLES,hash_password,verify_password,COOKIE,digest
+from app.security.sessions import SQL_ROLES,hash_password,role_is_enabled,verify_password,COOKIE,digest
 from app.scheduling.recurrence import pattern_description,occurrence_dates,occurrence_pairs
 from app.scheduling.shifts import expand_shift,employment_availability
 from .assignments import _lock
@@ -128,6 +128,14 @@ def save_equipment(v,data,identity=None,*,_locked=False):
             row=v.repo.add('equipment',site_id=v.principal.site_id,**values)
         v.session.flush()
         _audit(v,'equipment',row.equipment_id,'update' if identity else 'create',dict(revision=row.revision,status=row.status))
+        from .source_import import enqueue_revision, next_revision
+        enqueue_revision(
+            v.session, site_id=v.principal.site_id, actor_id=v.principal.user_id,
+            scope='maintenance_catalog',
+            source_revision=next_revision(v.session, site_id=v.principal.site_id, scope='maintenance_catalog'),
+            source_sha256=None, entity_type='equipment', entity_id=row.equipment_id,
+            change_type='text_change', payload=dict(name=row.name, status=row.status),
+        )
         return equipment_response(row)
 
 
@@ -267,6 +275,15 @@ def save_service(v,equipment_id,data,binding_id=None,*,_locked=False):
         eq.revision+=1
         v.session.flush()
         _audit(v,'rule_equipment',new.binding_id,'configure',dict(equipment_id=equipment_id,version=version,previous_binding_id=binding_id))
+        from .source_import import enqueue_revision, next_revision
+        enqueue_revision(
+            v.session, site_id=v.principal.site_id, actor_id=v.principal.user_id,
+            scope='maintenance_catalog',
+            source_revision=next_revision(v.session, site_id=v.principal.site_id, scope='maintenance_catalog'),
+            source_sha256=None, entity_type='rule_equipment', entity_id=new.binding_id,
+            change_type='text_change',
+            payload=dict(title=data.title, instructions=data.instructions, code=data.code),
+        )
         return next(r for r in service_configurations(v,equipment_id) if r['binding_id']==new.binding_id)
 
 
@@ -518,6 +535,8 @@ def register_workforce_routes(app,views,db):
             if row.status!='pending': raise HTTPException(409,'Заявка уже рассмотрена')
             if command.decision=='accepted':
                 if v.rows('site_memberships',user_id=row.user_id): raise HTTPException(409,'Сотрудник уже добавлен')
+                if not role_is_enabled(command.role):
+                    raise HTTPException(403,'Роль отключена серверным профилем')
                 v.repo.add('site_memberships',site_id=row.site_id,user_id=row.user_id,role=command.role,is_active=command.is_active,
                     employed_from=command.employed_from,employed_until=command.employed_until)
             row.status=command.decision;row.revision+=1;row.decided_at=datetime.now(timezone.utc);row.decided_by=v.principal.user_id
@@ -533,6 +552,8 @@ def register_workforce_routes(app,views,db):
                 others=[m for m in v.rows('site_memberships') if m.user_id!=user_id and m.is_active and SQL_ROLES.get(m.role)=='admin' and v.one('users',user_id=m.user_id).is_active]
                 if not others: raise HTTPException(409,'Нельзя отозвать доступ последнего администратора объекта')
             changes=command.model_dump(exclude={'expected_revision'},exclude_unset=True)
+            if 'role' in changes and not role_is_enabled(SQL_ROLES.get(changes['role'], changes['role'])):
+                raise HTTPException(403,'Роль отключена серверным профилем')
             try:
                 # Validate the effective period, including preserved fields.
                 # A role-only edit must not erase employment metadata.

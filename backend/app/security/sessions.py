@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import os
 import secrets
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -16,6 +17,15 @@ SQL_ROLES['technician'] = 'executor'
 # Compatibility for previously provisioned data until migration 010 is applied.
 SQL_ROLES['executive'] = 'director'
 API_ROLES = {role: role for role in SQL_ROLES if role not in ('technician', 'executive')}
+
+
+def role_is_enabled(role: str) -> bool:
+    configured = {
+        value.strip()
+        for value in os.environ.get("FIXRATE_ACTIVE_ROLES", "").split(",")
+        if value.strip()
+    }
+    return not configured or role in configured
 
 
 def has_role(role, roles):
@@ -79,7 +89,7 @@ def authenticate(request: Request, session) -> Principal:
         WHERE x.token_hash=:token AND x.expires_at>now()
           AND u.is_active AND m.is_active AND s.is_active
     """), {"token": digest(token)}).mappings().first()
-    if not row or row["role"] not in SQL_ROLES:
+    if not row or row["role"] not in SQL_ROLES or not role_is_enabled(SQL_ROLES.get(row["role"], row["role"])):
         raise HTTPException(401, "Сессия истекла или доступ отозван")
     # Personal chat lifecycle is not a write to the operational domain. Ownership
     # and CSRF are still checked by the ordinary auth/assistant dependencies.

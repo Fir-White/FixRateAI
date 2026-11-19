@@ -1,5 +1,9 @@
 # PostgreSQL, данные и история
 
+## Дополнение CR-17
+
+Миграция `025_source_imports.sql` хранит SHA/idempotency исходных XLSX и строки preview в пределах объекта. Миграция `026_source_revision_outbox.sql` хранит durable source-revision события для XLSX и UI text changes. Обе миграции используются после существующей assistant-последовательности; прежние миграции 001–024 не изменяются.
+
 Миграция `023_assistant_workflows.sql`: nullable `workflow`, `resume_turn_id` у turn и `workflow_goal_id`/`workflow_root_turn_id` у действий. Уникальный индекс связывает одну карточку с корневым поручением и пунктом, включая последующие resume-turn. Снимки содержат только данные приватного диалога; секреты вычищаются. Старые turn остаются с NULL, прежние поля не переписываются. GET не сохраняет устаревший снимок поверх worker; исходы подтверждения сверяются по action receipts. Повтор миграции/seed и создание новой БД проверены выбранными native gates; upgrade работающей БД и deploy не выполнялись. [Границы](../agent-audit/orchestrator-2026-11-16.md).
 
 Миграция `022_assistant_model_preferences.sql`: настройка с ключом `(user_id, site_id, role)`, revision для конкурентного обновления и SHA-256 digest локальной модели. Для AI Tunnel digest отсутствует; признак alias задаётся сервером из каталога. В `assistant_turns` добавлены nullable `model_selection`, `deadline_at`; прежние поля и записи не переписываются. Перед применением к существующей БД нужен резервный dump; штатный `app.manage migrate` проверяет журнал и checksum. Повторный seed не нужен. Результаты сохранности фиксируются в журнале проверки.

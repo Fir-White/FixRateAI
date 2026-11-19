@@ -45,7 +45,7 @@ from app.schemas.management import CancelTask
 from app.schemas.planning import WorkloadResponse
 from app.integration.analyst import ReadingInput, ExecutionInput, validate_execution, validate_acceptance, notify_event
 from app.security.authorization import AuthorizationError, require_any_role
-from app.security.sessions import COOKIE, Principal, SQL_ROLES, authenticate, create_session, digest, verify_password
+from app.security.sessions import COOKIE, Principal, SQL_ROLES, authenticate, create_session, digest, role_is_enabled, verify_password
 from app.storage import safe_storage_path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -300,6 +300,10 @@ def create_app(engine=None):
             {"user": user["user_id"]}).mappings().all()
         if payload.site_id:
             memberships = [m for m in memberships if m["site_id"] == payload.site_id]
+        memberships = [
+            member for member in memberships
+            if role_is_enabled(SQL_ROLES.get(member["role"], member["role"]))
+        ]
         if not memberships:
             raise HTTPException(403, "Нет доступа к объекту")
         if len(memberships) != 1:

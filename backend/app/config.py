@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import math
 import os
 from pathlib import Path
+from typing import FrozenSet
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -16,6 +17,7 @@ class RuntimeSettings:
     photo_review_max_bytes: int
     photo_review_provider: str = "clip"
     forecast_provider: str = "rf"
+    active_roles: FrozenSet[str] = frozenset()
 
     @classmethod
     def from_environment(cls):
@@ -62,7 +64,20 @@ class RuntimeSettings:
                 AITunnelConfig.from_environment("vision")
             if forecast_provider == "aitunnel":
                 AITunnelConfig.from_environment("forecast")
+        configured_roles = os.environ.get("FIXRATE_ACTIVE_ROLES", "").strip()
+        active_roles = frozenset(
+            role.strip() for role in configured_roles.split(",") if role.strip()
+        )
+        unknown_roles = active_roles.difference(
+            {"director", "chief_engineer", "engineer", "admin", "dispatcher", "executor"}
+        )
+        if unknown_roles:
+            raise ValueError(
+                "FIXRATE_ACTIVE_ROLES contains unsupported roles: "
+                + ", ".join(sorted(unknown_roles))
+            )
         return cls(secure == "true", storage, timeout,
             number("FORECAST_TIMEOUT_SECONDS", "90" if forecast_provider == "aitunnel" else "2", 120 if forecast_provider == "aitunnel" else 5),
             integer("PHOTO_REVIEW_MAX_FILES", "20", 2, 100),
-            integer("PHOTO_REVIEW_MAX_BYTES", "52428800", 1, 524288000), provider, forecast_provider)
+            integer("PHOTO_REVIEW_MAX_BYTES", "52428800", 1, 524288000),
+            provider, forecast_provider, active_roles)

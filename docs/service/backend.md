@@ -1,5 +1,11 @@
 # Backend: HTTP, доступ и выполнение
 
+## CR-17: целевой профиль и XLSX
+
+В Compose задаётся `FIXRATE_ACTIVE_ROLES=chief_engineer,executor,admin`. Отключённые memberships остаются в БД для обратимой миграции и не выдают login/session.
+
+Под `/api/v1/maintenance/source/xlsx` доступны preview, атомарный import и export. Повтор того же SHA в пределах объекта не создаёт новую revision. Таблица `source_revision_events` хранит durable pending-события индексации и публикуется отдельно после обработки.
+
 ## Утверждение и конечная публикация СВиК, 13.11.2026
 
 `draft-plans/{id}/publication-profiles` и `publication-proposals` подготавливают выбранный состав/процедуры. `publication-proposals/{id}` даёт просмотр изменений и отдельные approve/reject/publish. Утверждение/публикация доступны только главному инженеру; token не заменяет RBAC/CSRF и свежую проверку. Новые задания используют существующий workflow, старт повторно проверяет ресурсы/зависимости. [Контракт, бюджеты и границы](publication.md).
