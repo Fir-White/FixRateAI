@@ -2,6 +2,11 @@
 def extra_tools(T,P,ALL,PLAN,EDIT,OPERATE):
     READ=(*PLAN,'director');CHIEF=('chief_engineer',);CAT=('chief_engineer','admin');STAFF=(*OPERATE,'admin');WORKER=('executor',)
     return (
+      T('source_xlsx_preview','Проверить согласованный исходный XLSX без записи','POST',P+'/source/xlsx/preview',CAT),
+      T('source_xlsx_import','Атомарно импортировать согласованный исходный XLSX','POST',P+'/source/xlsx/import',CHIEF,'write'),
+      T('source_xlsx_export','Выгрузить сохранённый исходный XLSX','GET',P+'/source/xlsx/export',CAT),
+      T('source_revisions','Очередь событий переиндексации исходного каталога','GET',P+'/source/revisions',CAT),
+      T('source_revision_publish','Подтвердить обработку события переиндексации','POST',P+'/source/revisions/{event_id}/published',CAT,'write'),
       T('sites_list','Доступные мне здания','GET','/api/v1/auth/sites',ALL),
       T('site_switch','Переключить текущее здание','POST','/api/v1/auth/site',ALL,'write'),
       T('session_logout','Выйти из системы','POST','/api/v1/auth/logout',ALL,'write'),

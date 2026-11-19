@@ -1551,6 +1551,99 @@
       "optional_protected_inputs": []
     },
     {
+      "name": "source_xlsx_preview",
+      "title": "Проверить согласованный исходный XLSX без записи",
+      "method": "POST",
+      "path": "/api/v1/maintenance/source/xlsx/preview",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [
+        "file"
+      ],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "source_xlsx_import",
+      "title": "Атомарно импортировать согласованный исходный XLSX",
+      "method": "POST",
+      "path": "/api/v1/maintenance/source/xlsx/import",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [
+        "file"
+      ],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "source_xlsx_export",
+      "title": "Выгрузить сохранённый исходный XLSX",
+      "method": "GET",
+      "path": "/api/v1/maintenance/source/xlsx/export",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "source_revisions",
+      "title": "Очередь событий переиндексации исходного каталога",
+      "method": "GET",
+      "path": "/api/v1/maintenance/source/revisions",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "source_revision_publish",
+      "title": "Подтвердить обработку события переиндексации",
+      "method": "POST",
+      "path": "/api/v1/maintenance/source/revisions/{event_id}/published",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
       "name": "sites_list",
       "title": "Доступные мне здания",
       "method": "GET",

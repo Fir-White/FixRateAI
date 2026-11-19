@@ -1,6 +1,6 @@
 BEGIN;
 
-CREATE TABLE source_imports (
+CREATE TABLE IF NOT EXISTS source_imports (
     source_import_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     site_id UUID NOT NULL REFERENCES sites(site_id) ON DELETE RESTRICT,
     source_sha256 CHAR(64) NOT NULL,
@@ -15,6 +15,6 @@ CREATE TABLE source_imports (
     FOREIGN KEY (site_id, created_by) REFERENCES site_memberships(site_id, user_id)
 );
 
-CREATE INDEX source_imports_site_revision ON source_imports(site_id, source_revision);
+CREATE INDEX IF NOT EXISTS source_imports_site_revision ON source_imports(site_id, source_revision);
 
 COMMIT;
