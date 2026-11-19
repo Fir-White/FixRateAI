@@ -1,0 +1,204 @@
+{
+  "revision": 216,
+  "label": "Current app · Login and registration · 2026-11-18",
+  "count": 12,
+  "updated": 6,
+  "sourceCommit": "8049174",
+  "sourceRoutes": [
+    "/login",
+    "/register"
+  ],
+  "sourceComponents": [
+    "frontend/src/pages/AuthLayout.tsx",
+    "frontend/src/pages/LoginPage.tsx",
+    "frontend/src/pages/RegistrationPage.tsx",
+    "frontend/src/pages/LoginPage.css"
+  ],
+  "viewport": {
+    "desktop": [
+      1440,
+      900
+    ],
+    "mobile": [
+      390,
+      844
+    ]
+  },
+  "font": "IBM Plex Sans (Segoe UI unavailable in Penpot)",
+  "artwork": "Static reduced-motion capture from the current app",
+  "prototype": "Login → register → pending → login, desktop and mobile",
+  "notes": "The desktop hero title keeps the source CSS line spacing. Penpot text metrics include space above and below the glyphs, so adjacent text boxes touch while the rendered glyphs remain distinct.",
+  "total": 12,
+  "drafts": 0,
+  "frames": [
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5cad66f1111",
+      "key": "login--desktop",
+      "width": 1440,
+      "height": 900,
+      "texts": 17,
+      "nodes": 42,
+      "overflow": [],
+      "overlap": [
+        [
+          "Интеллектуальная",
+          "система прогнозирования"
+        ],
+        [
+          "система прогнозирования",
+          "ТО и ППР."
+        ]
+      ],
+      "actions": [
+        {
+          "name": "Регистрация",
+          "target": "a27ef1c6-05d8-806c-8008-f5cad8db1a09"
+        }
+      ],
+      "outside": []
+    },
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5cad7dd5fde",
+      "key": "login--mobile",
+      "width": 390,
+      "height": 844,
+      "texts": 12,
+      "nodes": 35,
+      "overflow": [],
+      "overlap": [],
+      "actions": [
+        {
+          "name": "Регистрация",
+          "target": "a27ef1c6-05d8-806c-8008-f5cadb701bb6"
+        }
+      ],
+      "outside": []
+    },
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5cad8db1a09",
+      "key": "register--desktop",
+      "width": 1440,
+      "height": 948,
+      "texts": 25,
+      "nodes": 58,
+      "overflow": [],
+      "overlap": [
+        [
+          "Интеллектуальная",
+          "система прогнозирования"
+        ],
+        [
+          "система прогнозирования",
+          "ТО и ППР."
+        ]
+      ],
+      "actions": [
+        {
+          "name": "Перейти ко входу",
+          "target": "a27ef1c6-05d8-806c-8008-f5cad66f1111"
+        },
+        {
+          "name": "Зарегистрироваться",
+          "target": "a27ef1c6-05d8-806c-8008-f5cae0f1f2ae"
+        }
+      ],
+      "outside": []
+    },
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5cadb701bb6",
+      "key": "register--mobile",
+      "width": 390,
+      "height": 942,
+      "texts": 20,
+      "nodes": 50,
+      "overflow": [],
+      "overlap": [],
+      "actions": [
+        {
+          "name": "Перейти ко входу",
+          "target": "a27ef1c6-05d8-806c-8008-f5cad7dd5fde"
+        },
+        {
+          "name": "Зарегистрироваться",
+          "target": "a27ef1c6-05d8-806c-8008-f5cae1e02e77"
+        }
+      ],
+      "outside": []
+    },
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5cae0f1f2ae",
+      "key": "registration-pending--desktop",
+      "width": 1440,
+      "height": 900,
+      "texts": 15,
+      "nodes": 35,
+      "overflow": [],
+      "overlap": [
+        [
+          "Интеллектуальная",
+          "система прогнозирования"
+        ],
+        [
+          "система прогнозирования",
+          "ТО и ППР."
+        ]
+      ],
+      "actions": [
+        {
+          "name": "Перейти ко входу",
+          "target": "a27ef1c6-05d8-806c-8008-f5cad66f1111"
+        }
+      ],
+      "outside": []
+    },
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5cae1e02e77",
+      "key": "registration-pending--mobile",
+      "width": 390,
+      "height": 844,
+      "texts": 10,
+      "nodes": 28,
+      "overflow": [],
+      "overlap": [],
+      "actions": [
+        {
+          "name": "Перейти ко входу",
+          "target": "a27ef1c6-05d8-806c-8008-f5cad7dd5fde"
+        }
+      ],
+      "outside": []
+    }
+  ],
+  "viewer": [
+    {
+      "device": "desktop",
+      "action": "Регистрация",
+      "destination": "register"
+    },
+    {
+      "device": "desktop",
+      "action": "Зарегистрироваться",
+      "destination": "registration-pending"
+    },
+    {
+      "device": "desktop",
+      "action": "Перейти ко входу",
+      "destination": "login"
+    },
+    {
+      "device": "mobile",
+      "action": "Регистрация",
+      "destination": "register"
+    },
+    {
+      "device": "mobile",
+      "action": "Зарегистрироваться",
+      "destination": "registration-pending"
+    },
+    {
+      "device": "mobile",
+      "action": "Перейти ко входу",
+      "destination": "login"
+    }
+  ]
+}

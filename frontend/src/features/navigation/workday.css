@@ -1,0 +1,33 @@
+.e3-workday-heading { display: grid; grid-template-columns: minmax(0, 2fr) minmax(235px, 1fr); align-items: start; gap: 32px; margin: 6px 0 28px; }
+.e3-workday-heading h1 { max-width: 19ch; font-size: clamp(32px, 3.4vw, 49px); font-weight: 400; line-height: 1.16; letter-spacing: -.035em; text-wrap: balance; }
+.e3-workday-heading > div > p { margin-top: 20px; color: var(--color-muted); }
+.e3-workday-signals { border-inline-start: 1px solid var(--color-line); padding-inline-start: clamp(16px, 2.2vw, 32px); }
+.e3-workday-signals h2 { margin-bottom: 18px; color: var(--color-muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .035em; }
+.e3-workday-signals > :is(a, p) { display: flex; align-items: center; gap: 8px; min-height: 48px; color: var(--color-accent); }
+.e3-workday-signals > p { color: var(--color-muted); }
+.e3-workday-signals > a:hover span { text-decoration: underline; }
+.e3-workday-signals strong { min-width: 2ch; color: var(--color-ink); font-size: clamp(29px, 3vw, 40px); font-weight: 400; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.e3-workday-signals [data-tone="danger"] { color: var(--color-danger); }
+.e3-workday-signals [data-tone="warning"] { color: var(--color-warning); }
+.e3-workday-upcoming { margin-block: 30px; border-block-end: 1px solid var(--color-line); }
+.e3-workday-upcoming > header { display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+.e3-workday-upcoming h2 { font-size: 22px; font-weight: 600; }
+.e3-workday-upcoming > header a { display: inline-flex; gap: 5px; align-items: center; min-height: 44px; color: var(--color-accent); }
+.e3-workday-upcoming > p { margin: 14px 0 20px; color: var(--color-muted); }
+.e3-workday-upcoming > ul { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(12px, 3vw, 40px); }
+.e3-workday-upcoming .fr-task-line { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-content: start; padding-block: 16px; border: 0; }
+.e3-workday-upcoming .fr-task-line-body { padding: 0; }
+.e3-workday-upcoming .fr-task-line-status { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+.e3-workday-upcoming .fr-row-arrow { display: none; }
+
+@media (max-width: 720px) {
+  .e3-workday-heading { grid-template-columns: minmax(0, 1fr); gap: 18px; margin-bottom: 18px; }
+  .e3-workday-heading h1 { font-size: 31px; text-wrap: pretty; }
+  .e3-workday-heading > div > p { margin-top: 10px; }
+  .e3-workday-signals { display: flex; flex-wrap: wrap; column-gap: 20px; padding: 0; border: 0; }
+  .e3-workday-signals h2 { flex-basis: 100%; margin-bottom: 2px; }
+  .e3-workday-signals > :is(a,p) { flex: 1 1 110px; }
+  .e3-workday-upcoming > ul { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .e3-workday-upcoming .fr-task-line + .fr-task-line { border-top: 1px solid var(--color-line); }
+  .e3-workday-upcoming h2 { font-size: 20px; }
+}

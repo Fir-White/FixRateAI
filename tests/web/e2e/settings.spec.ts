@@ -2,9 +2,11 @@ import { test,expect } from "@playwright/test";
 import type {Workforce} from '../../../frontend/src/shared/types/management';
 import { pickCalendar } from "./calendar-input";
 
-test("web registration → role → shift/qualification/crew → equipment/service → confirmed work",async({page})=>{
+test("chief engineer manages registration, workforce, equipment and assignment in one workspace",async({page})=>{
   test.setTimeout(90000);
   test.skip(!process.env.FIXRATE_BASE_URL,"Use scripts/verify.py --browser");
+  const desktop={width:1440,height:900};
+  await page.setViewportSize(desktop);
   const marker=Date.now().toString();
   const workerName=`Настройка — работник ${marker}`;
   const workerEmail=`settings-${marker}@example.test`;
@@ -23,13 +25,17 @@ test("web registration → role → shift/qualification/crew → equipment/servi
     await expect(page).not.toHaveURL(/\/login$/);
   }
   async function logout(){await page.goto("/profile");await page.getByRole("button",{name:"Выйти из аккаунта",exact:true}).click();await expect(page).toHaveURL(/\/login$/);}
-  await login("fixrate-demo-admin@example.test");
-  await page.goto("/settings/workforce");
+  const chiefEmail="fixrate-demo-chief_engineer@example.test";
+  await login(chiefEmail);
+  const teamLink=page.getByRole("navigation",{name:"Основная навигация"}).getByRole("link",{name:"Команда и смены",exact:true});
+  await teamLink.click();
+  await page.getByRole("button",{name:"Регистрация и доступ",exact:true}).click();
   const createCode=page.getByRole("button",{name:"Создать код регистрации",exact:true});
   await expect(page.getByRole("heading",{name:"Регистрация и выдача роли"})).toBeVisible();
   await createCode.click();
   const code=(await page.locator("code").innerText()).trim();
   await logout();
+  await page.setViewportSize({width:390,height:844});
   await page.getByRole("link",{name:"Регистрация",exact:true}).click();
   await page.getByLabel("Имя и фамилия",{exact:true}).fill(workerName);
   await page.getByLabel("Email",{exact:true}).fill(workerEmail);
@@ -38,9 +44,31 @@ test("web registration → role → shift/qualification/crew → equipment/servi
   await page.getByLabel("Код компании",{exact:true}).fill(code);
   await page.getByRole("button",{name:"Зарегистрироваться",exact:true}).click();
   await expect(page.getByText(/Учётная запись создана/)).toBeVisible();
-  await login("fixrate-demo-admin@example.test");await page.goto("/settings/workforce");
+  await login(chiefEmail);
+  await page.getByRole("button",{name:"Открыть меню",exact:true}).click();
+  await teamLink.click();
+  await page.getByRole("button",{name:"Регистрация и доступ",exact:true}).click();
   await page.getByRole("button",{name:"Выдать роль",exact:true}).click();
-  await page.getByLabel("Сотрудник",{exact:true}).selectOption({label:`${workerName} · Исполнитель`});
+  await page.getByRole("button",{name:"Сотрудники",exact:true}).click();
+  await page.getByRole("button",{name:`Открыть сотрудника: ${workerName}`,exact:true}).click();
+  await page.mouse.move(195,400);
+  await page.mouse.wheel(0,380);
+  await expect.poll(()=>page.evaluate(()=>window.scrollY)).toBeGreaterThan(0);
+  const access=page.getByRole("checkbox",{name:"Доступ к объекту включён",exact:true});
+  const saveAccess=page.getByRole("button",{name:"Сохранить роль и период работы",exact:true});
+  await access.uncheck();
+  await saveAccess.click();
+  await expect(page.getByText(/Исполнитель · Доступ отключён/)).toBeVisible();
+  await expect(access).not.toBeChecked();
+  await access.check();
+  await saveAccess.click();
+  await expect(page.getByText(/Исполнитель · Доступ включён/)).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await page.setViewportSize(desktop);
+  await page.evaluate(()=>window.scrollTo(0,0));
+  await page.mouse.move(750,420);
+  await page.mouse.wheel(0,400);
+  await expect.poll(()=>page.evaluate(()=>window.scrollY)).toBeGreaterThan(0);
   await page.getByRole("button",{name:"Добавить смену",exact:true}).click();
   await pickCalendar(page,page.getByLabel("Смена действует по",{exact:true}),day);
   await page.getByLabel("Повторять по",{exact:true}).selectOption("day");
@@ -92,8 +120,15 @@ test("web registration → role → shift/qualification/crew → equipment/servi
   await page.getByLabel(workerName,{exact:true}).check();
   await page.getByRole("button",{name:"Сохранить бригаду",exact:true}).click();
   await expect(page.getByText("Бригада сохранена",{exact:true})).toBeVisible();
-  await logout();await login("fixrate-demo-chief_engineer@example.test");
   await page.goto("/settings/equipment");
+  await page.getByText("Справочники систем и типов оборудования",{exact:true}).click();
+  await page.getByText("Добавить систему или тип оборудования",{exact:true}).click();
+  await page.getByLabel("Справочник",{exact:true}).selectOption("equipment-types");
+  await page.getByLabel("Код справочника",{exact:true}).fill(`TYPE-${marker}`);
+  await page.getByLabel("Название справочника",{exact:true}).fill(`Тип насоса ${marker}`);
+  const savedType=page.waitForResponse(r=>r.request().method()==="POST"&&r.url().endsWith("/management/equipment-types"));
+  await page.getByRole("button",{name:"Добавить в справочник",exact:true}).click();
+  expect((await savedType).status()).toBe(201);
   await page.getByLabel("Инвентарный номер",{exact:true}).fill(`SETTINGS-${marker}`);
   await page.getByLabel("Название оборудования",{exact:true}).fill(`Настройка — насос ${marker}`);
   await page.getByRole("button",{name:"Сохранить оборудование",exact:true}).click();
@@ -121,7 +156,6 @@ test("web registration → role → shift/qualification/crew → equipment/servi
   expect((await serviceResponse.json()).valid_until).toBe(day);
   await expect(page.getByText(/Правило сохранено/)).toBeVisible();
   await page.reload();await expect(page.getByText(title,{exact:false}).first()).toBeVisible();
-  await logout();await login("fixrate-demo-dispatcher@example.test");
   await page.goto("/calendar");
   let response=page.waitForResponse(r=>r.url().includes("/ui/calendar/preview?"));
   await page.getByRole("button",{name:"Рассчитать график",exact:true}).click();
@@ -160,7 +194,7 @@ test('shared web calendar previews ISO week 53, real quarters and constrained an
   await page.getByRole('button',{name:'Войти',exact:true}).click();await expect(page).not.toHaveURL(/\/login$/);
   const before=await(await page.request.get('/api/v1/maintenance/ui/tasks')).json();
   await page.goto('/settings/workforce');
-  await page.getByLabel('Сотрудник',{exact:true}).selectOption({label:'DEMO — работник планирования 3 · Исполнитель'});
+  await page.getByRole('button',{name:'Открыть сотрудника: DEMO — работник планирования 3',exact:true}).click();
   await page.getByRole('button',{name:'Добавить смену',exact:true}).click();
   await pickCalendar(page,page.getByLabel('Не раньше даты',{exact:true}),'2026-01-01');
   for(const label of ['Вт','Ср','Чт','Пт'])await page.getByRole('checkbox',{name:label,exact:true}).uncheck();

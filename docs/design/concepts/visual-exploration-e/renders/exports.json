@@ -1,0 +1,122 @@
+[
+  {
+    "file": "e1.png",
+    "width": 1440,
+    "height": 900,
+    "sha256": "470af4878ba5e9c1478e1d427aec8081c09476fb1cc52e2d80462a2d6abcecf7",
+    "source": "official Penpot MCP export_shape"
+  },
+  {
+    "file": "e1-composer-100.png",
+    "crop": [
+      248,
+      248,
+      1408,
+      488
+    ],
+    "scale": 1,
+    "sha256": "8e2a16969f50c864b971acf555616c055894a48743b6bb702f4740de5989898e"
+  },
+  {
+    "file": "e1-work-100.png",
+    "crop": [
+      248,
+      526,
+      1408,
+      876
+    ],
+    "scale": 1,
+    "sha256": "8106d3b7b7dbc3bfc5e5a357b4b920400dd1f1428e2f5f723e6758b754d6a48f"
+  },
+  {
+    "file": "e1-type-100.png",
+    "crop": [
+      248,
+      112,
+      1408,
+      238
+    ],
+    "scale": 1,
+    "sha256": "64e7cfa541b8bda9aebd88fa0794fdba7e63fd9557efcf8abd397495582fd50c"
+  },
+  {
+    "file": "e2.png",
+    "width": 1440,
+    "height": 900,
+    "sha256": "fea57dd0212ea91f5913eefde485e77c060f9d2f24d74ee59debbf9a6b332ecc",
+    "source": "official Penpot MCP export_shape"
+  },
+  {
+    "file": "e2-composer-100.png",
+    "crop": [
+      40,
+      345,
+      1400,
+      579
+    ],
+    "scale": 1,
+    "sha256": "8324eb8cc9bd0317bed3cf7edee153b9cfb5feb4b898afa588bff0e034aec2f3"
+  },
+  {
+    "file": "e2-work-100.png",
+    "crop": [
+      40,
+      603,
+      1400,
+      897
+    ],
+    "scale": 1,
+    "sha256": "e93b80e3258f33c43af2bea698f050a05de3841acf618592152dea672db4c08e"
+  },
+  {
+    "file": "e2-type-100.png",
+    "crop": [
+      40,
+      157,
+      1400,
+      345
+    ],
+    "scale": 1,
+    "sha256": "f19952f427ff2cbfc39d83d48397b3601c5d09d7f838e304557c5ce9c39b33e6"
+  },
+  {
+    "file": "e3.png",
+    "width": 1440,
+    "height": 900,
+    "sha256": "c0600ddbe73b19ffb8bd39f00d89bbb724911886789f6963f5420189a919de5f",
+    "source": "official Penpot MCP export_shape"
+  },
+  {
+    "file": "e3-composer-100.png",
+    "crop": [
+      48,
+      356,
+      1392,
+      614
+    ],
+    "scale": 1,
+    "sha256": "bac9116ef04e94cb30080e3fe147a1925cfe3f144dc94417bb30395566898175"
+  },
+  {
+    "file": "e3-work-100.png",
+    "crop": [
+      48,
+      612,
+      1392,
+      898
+    ],
+    "scale": 1,
+    "sha256": "47febaa561c0ccfdf9683a26191bd7686b7f8aa3d231a331fe72a4a1cdc2fdc8"
+  },
+  {
+    "file": "e3-type-100.png",
+    "crop": [
+      48,
+      163,
+      1392,
+      338
+    ],
+    "scale": 1,
+    "sha256": "9e13ad66e5d1f56777f6a33081f4f2ffa5a5013acb7fd42edb85274928720b58"
+  }
+]

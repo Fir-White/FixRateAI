@@ -44,7 +44,14 @@ test("account preserves session after failed logout and clears the previous user
   await signIn(page, "dispatcher@workspace.test");
   const canvas = await page.locator(".workspace-aurora canvas").elementHandle();
   await page.getByRole("link", { name: "Оборудование", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Работы + реестр оборудования", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Оборудование", exact: true })).toBeVisible();
+  await page.keyboard.press("Control+k");
+  const search=page.getByRole("dialog",{name:"Поиск по рабочему пространству"});
+  await expect(search.getByRole("textbox",{name:"Найти раздел"})).toBeFocused();
+  await search.getByRole("textbox",{name:"Найти раздел"}).fill("команда");
+  await expect(search.getByRole("link",{name:"Команда и смены"})).toBeVisible();
+  await expect(search.getByRole("link",{name:"Приёмка работ"})).toHaveCount(0);
+  await page.keyboard.press("Escape");
   expect(await page.locator(".workspace-aurora canvas").evaluate((element, original) => element === original, canvas)).toBe(true);
   await page.getByRole("link", {name: "Учётная запись", exact: true}).click();
   await expect(page.getByRole("heading", {name: "Мой профиль"})).toBeVisible();
@@ -83,7 +90,7 @@ test("one mobile sidebar and the top-bar profile preserve the reduced-motion bac
 });
 
 for (const width of [1440, 390]) {
-  test(`document scrolling and sidebar leave the full-width background unchanged at ${width}px`, async ({page, context}) => {
+  test(`document scrolling and workspace controls leave the full-width background unchanged at ${width}px`, async ({page, context}) => {
     test.skip(!process.env.FIXRATE_BASE_URL, "Requires the running local application");
     await sessionFixture(context);
     await page.setViewportSize({width, height: 900});
@@ -108,10 +115,11 @@ for (const width of [1440, 390]) {
     expect(await page.evaluate(() => document.documentElement.clientWidth)).toBe(width);
     const before = await geometry();
     if (width >= 1024) {
-      await page.getByRole("button", {name: "Свернуть меню", exact: true}).click();
-      await expect(page.getByRole("button", {name: "Развернуть меню", exact: true})).toBeVisible();
+      await expect(page.getByRole("navigation", {name:"Основная навигация"})).toBeVisible();
+      await page.getByRole("button", {name: "Объект QA", exact: true}).click();
+      await expect(page.getByRole("dialog", {name: "Выбрать объект"})).toBeVisible();
       expect(await geometry()).toEqual(before);
-      await page.getByRole("button", {name: "Развернуть меню", exact: true}).click();
+      await page.keyboard.press("Escape");
     } else {
       await page.getByRole("button", {name: "Открыть меню", exact: true}).click();
       await expect(page.getByRole("dialog", {name: "Мобильная навигация"})).toBeVisible();

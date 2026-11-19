@@ -38,9 +38,8 @@ def test_claiming_admin_in_headers_does_not_expose_privileged_tools(runtime,role
                 headers={'MCP-Protocol-Version':'2025-06-18','Accept':'application/json, text/event-stream','X-Role':'admin','X-User-Role':'admin'})
         assert response.status_code==200,response.text
         names={t['name'] for t in response.json()['result']['tools']}
-        # Independent baseline: only a genuine administrator gets role-management.
-        if role!='admin':assert 'staff_edit' not in names
-        else:assert 'staff_edit' in names
+        # Only genuine access managers get role-management tools.
+        assert ('staff_edit' in names)==(role in ('admin','chief_engineer'))
         assert not any('password' in n for n in names)
 
 

@@ -12,8 +12,10 @@ export const readQueries = {
   quality: { key: "quality", load: () => maintenanceApi.listQualityQueue() },
   workforce: { key: "workforce", load: () => managementApi.workforce() },
   overview: { key: "overview", load: () => request<unknown[]>("/api/v1/maintenance/overview") },
-  registry: { key: "registry-index", load: async () => {
-    const [registry, sites] = await Promise.all([registryApi.load(), registryApi.sites()]);
+  sites: { key: "accessible-sites", load: () => registryApi.sites() },
+  registry: { key: "registry-index", load: async (cache?: ApiQueryCache | null) => {
+    const [registry, sites] = await Promise.all([registryApi.load(),
+      cache ? cache.load(readQueries.sites.key,readQueries.sites.load) : readQueries.sites.load()]);
     if (!Array.isArray(registry.items) || !Array.isArray(registry.systems) || !Array.isArray(sites)) throw new Error("Не удалось загрузить реестр оборудования");
     return { registry, sites };
   } },

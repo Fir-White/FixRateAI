@@ -1,0 +1,43 @@
+{
+  "results": [
+    {
+      "name": "Catalog import → close without a business write",
+      "status": "PASS"
+    },
+    {
+      "name": "Plan → version confirmation → cancel",
+      "status": "FAIL",
+      "error": "Error: No visible text: Сохранить новую версию?"
+    },
+    {
+      "name": "Calendar month → week via compact tabs",
+      "status": "PASS"
+    },
+    {
+      "name": "Executor steps retain separate final report",
+      "status": "PASS"
+    },
+    {
+      "name": "Acceptance → facts → return to decision",
+      "status": "PASS"
+    },
+    {
+      "name": "Employee → qualifications",
+      "status": "FAIL",
+      "error": "Error: No visible text: Сохранённые допуски"
+    },
+    {
+      "name": "AI send → chat with timestamps",
+      "status": "PASS"
+    },
+    {
+      "name": "Mobile chat → model picker → back",
+      "status": "PASS"
+    },
+    {
+      "name": "Profile → protected password dialog → close",
+      "status": "PASS"
+    }
+  ],
+  "businessCommandsSent": false
+}

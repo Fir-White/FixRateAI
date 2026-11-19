@@ -31,13 +31,13 @@ export function RegistrationPage() {
     <>
       <header className="auth-heading">
         <h1 id="register-title" tabIndex={-1}>Регистрация</h1>
-        <p>После регистрации администратор выдаст вам роль и доступ к объекту</p>
+        <p>После регистрации главный инженер или администратор выдаст вам роль и доступ к объекту</p>
       </header>
 
       {done ? (
         <div className="auth-success" role="status">{done}</div>
       ) : (
-        <form ref={formRef} noValidate className="auth-form auth-form--registration" aria-label="Регистрация сотрудника" aria-busy={busy} aria-describedby={error ? "register-error" : undefined} onSubmit={async event => {
+        <form ref={formRef} noValidate className="auth-form auth-form--compact" aria-label="Регистрация сотрудника" aria-busy={busy} aria-describedby={error ? "register-error" : undefined} onSubmit={async event => {
           event.preventDefault();
           if (busy) return;
           setError("");

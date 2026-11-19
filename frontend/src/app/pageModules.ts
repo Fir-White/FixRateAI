@@ -19,7 +19,6 @@ export const pageLoaders = {
   QualityTaskPage: pageModule(() => import("@/pages/QualityTaskPage").then(module => ({ default: module.QualityTaskPage }))),
   ServiceSettingsPage: pageModule(() => import("@/pages/ServiceSettingsPage").then(module => ({ default: module.ServiceSettingsPage }))),
   WorkforceSettingsPage: pageModule(() => import("@/pages/WorkforceSettingsPage").then(module => ({ default: module.WorkforceSettingsPage }))),
-  RegistrationPage: pageModule(() => import("@/pages/RegistrationPage").then(module => ({ default: module.RegistrationPage }))),
   ProfilePage: pageModule(() => import("@/pages/ProfilePage").then(module => ({ default: module.ProfilePage }))),
   PersonalShiftsPage: pageModule(() => import("@/pages/PersonalShiftsPage").then(module => ({ default: module.PersonalShiftsPage }))),
 };
@@ -43,7 +42,6 @@ const byPath: Record<string, () => Promise<unknown>> = {
   "/dispatcher": pageLoaders.DispatcherPage,
   "/admin": pageLoaders.DispatcherPage,
   "/engineer": pageLoaders.DispatcherPage,
-  "/register": pageLoaders.RegistrationPage,
 };
 
 export function preloadPage(path: string) {

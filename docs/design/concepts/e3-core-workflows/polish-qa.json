@@ -1,0 +1,402 @@
+{
+  "revision": 60,
+  "frames": [
+    {
+      "key": "planning",
+      "id": "582936bd-dbb0-8088-8008-f5a1d08a1df6",
+      "name": "01 · Планирование · Действующий календарь · 1440×900",
+      "width": 1440,
+      "height": 900,
+      "texts": 94,
+      "nodes": 166,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "equipment",
+      "id": "582936bd-dbb0-8088-8008-f5a1f45add04",
+      "name": "02 · Оборудование и регламенты · 1440×900",
+      "width": 1440,
+      "height": 900,
+      "texts": 49,
+      "nodes": 87,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "review",
+      "id": "582936bd-dbb0-8088-8008-f5a1ffa8466a",
+      "name": "03 · Приёмка · Главный инженер · 1440×900",
+      "width": 1440,
+      "height": 900,
+      "texts": 36,
+      "nodes": 73,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "executor",
+      "id": "582936bd-dbb0-8088-8008-f5a271a896ab",
+      "name": "04 · Исполнение · Итоговый отчёт · 1440×900",
+      "width": 1440,
+      "height": 900,
+      "texts": 46,
+      "nodes": 96,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "review-mobile",
+      "id": "582936bd-dbb0-8088-8008-f5a27da748f2",
+      "name": "05 · Приёмка · Mobile · 390×844",
+      "width": 390,
+      "height": 844,
+      "texts": 18,
+      "nodes": 51,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "executor-mobile",
+      "id": "582936bd-dbb0-8088-8008-f5a2871cc3fd",
+      "name": "06 · Исполнение · Mobile · 390×844",
+      "width": 390,
+      "height": 844,
+      "texts": 19,
+      "nodes": 53,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "proposal",
+      "id": "582936bd-dbb0-8088-8008-f5a28f56627e",
+      "name": "07 · Планирование · Предложение → новая версия · 1440×900",
+      "width": 1440,
+      "height": 900,
+      "texts": 46,
+      "nodes": 74,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "ai-context",
+      "id": "582936bd-dbb0-8088-8008-f5a3a4ed154d",
+      "name": "08 · Единый AI-диалог · Контекст приёмки · 1440×900",
+      "width": 1440,
+      "height": 900,
+      "texts": 30,
+      "nodes": 53,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "review-facts",
+      "id": "582936bd-dbb0-8088-8008-f5a3bbcfdbc8",
+      "name": "90 · review-facts",
+      "width": 900,
+      "height": 760,
+      "texts": 24,
+      "nodes": 40,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "review-facts-mobile",
+      "id": "582936bd-dbb0-8088-8008-f5a3c2eab6f8",
+      "name": "90 · review-facts-mobile",
+      "width": 350,
+      "height": 680,
+      "texts": 20,
+      "nodes": 24,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "return-confirm",
+      "id": "582936bd-dbb0-8088-8008-f5a3c7b178fc",
+      "name": "90 · return-confirm",
+      "width": 350,
+      "height": 350,
+      "texts": 6,
+      "nodes": 11,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "apply-confirm",
+      "id": "582936bd-dbb0-8088-8008-f5a3cba34eec",
+      "name": "90 · apply-confirm",
+      "width": 350,
+      "height": 374,
+      "texts": 6,
+      "nodes": 10,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "executor-finish",
+      "id": "582936bd-dbb0-8088-8008-f5a3cf0ced20",
+      "name": "90 · executor-finish",
+      "width": 350,
+      "height": 680,
+      "texts": 15,
+      "nodes": 29,
+      "outside": [],
+      "overflow": []
+    },
+    {
+      "key": "verify-document-mobile",
+      "id": "582936bd-dbb0-8088-8008-f5a8e7e18d67",
+      "name": "90 · verify-document-mobile",
+      "width": 350,
+      "height": 492,
+      "texts": 8,
+      "nodes": 13,
+      "outside": [],
+      "overflow": []
+    }
+  ],
+  "timestamps": [
+    {
+      "role": "user",
+      "value": "17.11.2026 · 12:10"
+    },
+    {
+      "role": "assistant",
+      "value": "17.11.2026 · 12:11"
+    }
+  ],
+  "underlines": [
+    {
+      "key": "planning",
+      "centerDelta": 0,
+      "widthDelta": 0
+    },
+    {
+      "key": "equipment",
+      "centerDelta": 0,
+      "widthDelta": 0
+    },
+    {
+      "key": "review",
+      "centerDelta": 0,
+      "widthDelta": 0
+    },
+    {
+      "key": "executor",
+      "centerDelta": 0,
+      "widthDelta": 0
+    },
+    {
+      "key": "proposal",
+      "centerDelta": 0,
+      "widthDelta": 0
+    },
+    {
+      "key": "ai-context",
+      "centerDelta": 0,
+      "widthDelta": 0
+    }
+  ],
+  "linkArrows": [
+    {
+      "label": "Открыть наряд",
+      "arrow": {
+        "width": 10,
+        "height": 8,
+        "stroke": 1.15,
+        "gap": 8
+      }
+    },
+    {
+      "label": "Нагрузка и персонал",
+      "arrow": {
+        "width": 10,
+        "height": 8,
+        "stroke": 1.15,
+        "gap": 8
+      }
+    },
+    {
+      "label": "Открыть задание",
+      "arrow": {
+        "width": 10,
+        "height": 8,
+        "stroke": 1.15,
+        "gap": 8
+      }
+    },
+    {
+      "label": "Настроить регламенты",
+      "arrow": {
+        "width": 10,
+        "height": 8,
+        "stroke": 1.15,
+        "gap": 8
+      }
+    },
+    {
+      "label": "Принятая история · 3 события",
+      "arrow": {
+        "width": 10,
+        "height": 8,
+        "stroke": 1.15,
+        "gap": 8
+      }
+    },
+    {
+      "label": "Обсудить оборудование",
+      "arrow": {
+        "width": 10,
+        "height": 8,
+        "stroke": 1.15,
+        "gap": 8
+      }
+    },
+    {
+      "label": "Чек-лист 6/6 · Показания · Факт · Протокол и примечания",
+      "arrow": {
+        "width": 10,
+        "height": 8,
+        "stroke": 1.15,
+        "gap": 8
+      }
+    },
+    {
+      "label": "Открыть и проверить протокол",
+      "arrow": {
+        "width": 10,
+        "height": 8,
+        "stroke": 1.15,
+        "gap": 8
+      }
+    },
+    {
+      "label": "Паспорт оборудования",
+      "arrow": {
+        "width": 10,
+        "height": 8,
+        "stroke": 1.15,
+        "gap": 8
+      }
+    },
+    {
+      "label": "Проверить ответы",
+      "arrow": {
+        "width": 10,
+        "height": 8,
+        "stroke": 1.15,
+        "gap": 8
+      }
+    },
+    {
+      "label": "Открыть фотоотчёт",
+      "arrow": {
+        "width": 10,
+        "height": 8,
+        "stroke": 1.15,
+        "gap": 8
+      }
+    },
+    {
+      "label": "К приёмке",
+      "arrow": {
+        "width": 10,
+        "height": 8,
+        "stroke": 1.15,
+        "gap": 8
+      }
+    },
+    {
+      "label": "Чек-лист 6/6 · Факт и документы",
+      "arrow": {
+        "width": 10,
+        "height": 8,
+        "stroke": 1.15,
+        "gap": 8
+      }
+    },
+    {
+      "label": "Мои задания",
+      "arrow": {
+        "width": 10,
+        "height": 8,
+        "stroke": 1.15,
+        "gap": 8
+      }
+    },
+    {
+      "label": "Инструкция · методика не приложена",
+      "arrow": {
+        "width": 10,
+        "height": 8,
+        "stroke": 1.15,
+        "gap": 8
+      }
+    },
+    {
+      "label": "Скан протокола · не загружен",
+      "arrow": {
+        "width": 10,
+        "height": 8,
+        "stroke": 1.15,
+        "gap": 8
+      }
+    },
+    {
+      "label": "Действующий календарь",
+      "arrow": {
+        "width": 10,
+        "height": 8,
+        "stroke": 1.15,
+        "gap": 8
+      }
+    },
+    {
+      "label": "Параметры: шаг 60 мин. · лимит 10 с · закреплённые назначения сохранены",
+      "arrow": {
+        "width": 10,
+        "height": 8,
+        "stroke": 1.15,
+        "gap": 8
+      }
+    },
+    {
+      "label": "Вернуться к приёмке",
+      "arrow": {
+        "width": 10,
+        "height": 8,
+        "stroke": 1.15,
+        "gap": 8
+      }
+    },
+    {
+      "label": "Открыть отчёт, проверить факты и документ",
+      "arrow": {
+        "width": 10,
+        "height": 8,
+        "stroke": 1.15,
+        "gap": 8
+      }
+    },
+    {
+      "label": "Открыть скан · ПР-017.jpg",
+      "arrow": null
+    },
+    {
+      "label": "Протокол ПР-017 · не проверен",
+      "arrow": {
+        "width": 10,
+        "height": 8,
+        "stroke": 1.15,
+        "gap": 8
+      }
+    },
+    {
+      "label": "Открыть скан документа",
+      "arrow": null
+    }
+  ],
+  "interactions": 37,
+  "flatUI": 0
+}

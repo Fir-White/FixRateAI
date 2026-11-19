@@ -1,0 +1,42 @@
+{
+  "results": [
+    {
+      "name": "Review → return confirmation → cancel",
+      "status": "PASS"
+    },
+    {
+      "name": "Review → facts → close",
+      "status": "PASS"
+    },
+    {
+      "name": "Review → unified AI → review",
+      "status": "PASS"
+    },
+    {
+      "name": "Calendar → proposal → confirmation → cancel",
+      "status": "PASS"
+    },
+    {
+      "name": "Equipment → readable maintenance details",
+      "status": "PASS"
+    },
+    {
+      "name": "Navigation works at the edge of its 44 px target",
+      "status": "PASS"
+    },
+    {
+      "name": "Mobile review → facts → document verification",
+      "status": "PASS"
+    },
+    {
+      "name": "Mobile executor → report readiness → photos",
+      "status": "PASS"
+    },
+    {
+      "name": "Selected E3 home renders with the shared visual system",
+      "status": "PASS"
+    }
+  ],
+  "url": "http://localhost:9001/?screen=viewer&file-id=13ac3151-58c1-801c-8008-f58dd579cd50&page-id=ecd29d2d-0751-800b-8008-f5988773752e&section=interactions&frame-id=ecd29d2d-0751-800b-8008-f598c0372d0b&index=0",
+  "businessCommandsSent": false
+}

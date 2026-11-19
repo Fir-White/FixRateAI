@@ -1,0 +1,545 @@
+{
+  "label": "Aligned access screens · Glyph alignment · 2026-11-18",
+  "revision": 246,
+  "frames": [
+    {
+      "key": "login--desktop",
+      "id": "a27ef1c6-05d8-806c-8008-f5cad66f1111",
+      "pageId": "a27ef1c6-05d8-806c-8008-f5cad639421f",
+      "width": 1440,
+      "height": 900,
+      "nodes": 42,
+      "texts": 17,
+      "background": [
+        460,
+        0,
+        980,
+        900
+      ],
+      "asset": "d0926f7c-cfba-8122-8008-f692bfd6281b",
+      "mark": [
+        52,
+        46,
+        44,
+        44
+      ],
+      "logo": [
+        108,
+        55.88,
+        157,
+        24.25
+      ],
+      "heading": [
+        52,
+        115,
+        213.8,
+        44
+      ],
+      "outside": [],
+      "overflow": [],
+      "overlaps": [],
+      "actions": [
+        {
+          "id": "63d83be6-908a-8013-8008-f692c2b1e398",
+          "name": "Регистрация",
+          "target": "a27ef1c6-05d8-806c-8008-f5cad8db1a09",
+          "width": 76.046875,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "key": "login--mobile",
+      "id": "a27ef1c6-05d8-806c-8008-f5cad7dd5fde",
+      "pageId": "a27ef1c6-05d8-806c-8008-f5cad639421f",
+      "width": 390,
+      "height": 844,
+      "nodes": 35,
+      "texts": 12,
+      "background": [
+        0,
+        0,
+        390,
+        844
+      ],
+      "asset": "d0926f7c-cfba-8122-8008-f692db71a7e6",
+      "mark": [
+        24,
+        28,
+        40,
+        40
+      ],
+      "logo": [
+        76,
+        36.8,
+        145,
+        22.39
+      ],
+      "heading": [
+        24,
+        97,
+        213.8,
+        44
+      ],
+      "outside": [],
+      "overflow": [],
+      "overlaps": [],
+      "actions": [
+        {
+          "id": "63d83be6-908a-8013-8008-f692dd9e9e26",
+          "name": "Регистрация",
+          "target": "a27ef1c6-05d8-806c-8008-f5cadb701bb6",
+          "width": 76.046875,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "key": "register--desktop",
+      "id": "a27ef1c6-05d8-806c-8008-f5cad8db1a09",
+      "pageId": "a27ef1c6-05d8-806c-8008-f5cad639421f",
+      "width": 1440,
+      "height": 971,
+      "nodes": 58,
+      "texts": 25,
+      "background": [
+        460,
+        0,
+        980,
+        900
+      ],
+      "asset": "d0926f7c-cfba-8122-8008-f692bfd6281b",
+      "mark": [
+        52,
+        46,
+        44,
+        44
+      ],
+      "logo": [
+        108,
+        55.88,
+        157,
+        24.25
+      ],
+      "heading": [
+        52,
+        115,
+        177.63,
+        44
+      ],
+      "outside": [],
+      "overflow": [],
+      "overlaps": [],
+      "actions": [
+        {
+          "id": "63d83be6-908a-8013-8008-f692d390c728",
+          "name": "Перейти ко входу",
+          "target": "a27ef1c6-05d8-806c-8008-f5cad66f1111",
+          "width": 109.328125,
+          "height": 44
+        },
+        {
+          "id": "63d83be6-908a-8013-8008-f6937c0f484c",
+          "name": "Зарегистрироваться",
+          "target": "a27ef1c6-05d8-806c-8008-f5cae0f1f2ae",
+          "width": 355,
+          "height": 52
+        }
+      ]
+    },
+    {
+      "key": "register--mobile",
+      "id": "a27ef1c6-05d8-806c-8008-f5cadb701bb6",
+      "pageId": "a27ef1c6-05d8-806c-8008-f5cad639421f",
+      "width": 390,
+      "height": 965,
+      "nodes": 50,
+      "texts": 20,
+      "background": [
+        0,
+        0,
+        390,
+        844
+      ],
+      "asset": "d0926f7c-cfba-8122-8008-f692db71a7e6",
+      "mark": [
+        24,
+        28,
+        40,
+        40
+      ],
+      "logo": [
+        76,
+        36.8,
+        145,
+        22.39
+      ],
+      "heading": [
+        24,
+        97,
+        177.63,
+        44
+      ],
+      "outside": [],
+      "overflow": [],
+      "overlaps": [],
+      "actions": [
+        {
+          "id": "63d83be6-908a-8013-8008-f692e278dcf2",
+          "name": "Перейти ко входу",
+          "target": "a27ef1c6-05d8-806c-8008-f5cad7dd5fde",
+          "width": 109.328125,
+          "height": 44
+        },
+        {
+          "id": "63d83be6-908a-8013-8008-f6937db6c53c",
+          "name": "Зарегистрироваться",
+          "target": "a27ef1c6-05d8-806c-8008-f5cae1e02e77",
+          "width": 342,
+          "height": 52
+        }
+      ]
+    },
+    {
+      "key": "registration-pending--desktop",
+      "id": "a27ef1c6-05d8-806c-8008-f5cae0f1f2ae",
+      "pageId": "a27ef1c6-05d8-806c-8008-f5cad639421f",
+      "width": 1440,
+      "height": 900,
+      "nodes": 35,
+      "texts": 15,
+      "background": [
+        460,
+        0,
+        980,
+        900
+      ],
+      "asset": "d0926f7c-cfba-8122-8008-f692bfd6281b",
+      "mark": [
+        52,
+        46,
+        44,
+        44
+      ],
+      "logo": [
+        108,
+        55.88,
+        157,
+        24.25
+      ],
+      "heading": [
+        52,
+        115,
+        177.63,
+        44
+      ],
+      "outside": [],
+      "overflow": [],
+      "overlaps": [],
+      "actions": [
+        {
+          "id": "63d83be6-908a-8013-8008-f692d8fd2865",
+          "name": "Перейти ко входу",
+          "target": "a27ef1c6-05d8-806c-8008-f5cad66f1111",
+          "width": 109.328125,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "key": "registration-pending--mobile",
+      "id": "a27ef1c6-05d8-806c-8008-f5cae1e02e77",
+      "pageId": "a27ef1c6-05d8-806c-8008-f5cad639421f",
+      "width": 390,
+      "height": 844,
+      "nodes": 28,
+      "texts": 10,
+      "background": [
+        0,
+        0,
+        390,
+        844
+      ],
+      "asset": "d0926f7c-cfba-8122-8008-f692db71a7e6",
+      "mark": [
+        24,
+        28,
+        40,
+        40
+      ],
+      "logo": [
+        76,
+        36.8,
+        145,
+        22.39
+      ],
+      "heading": [
+        24,
+        97,
+        177.63,
+        44
+      ],
+      "outside": [],
+      "overflow": [],
+      "overlaps": [],
+      "actions": [
+        {
+          "id": "63d83be6-908a-8013-8008-f692e5fbc585",
+          "name": "Перейти ко входу",
+          "target": "a27ef1c6-05d8-806c-8008-f5cad7dd5fde",
+          "width": 109.328125,
+          "height": 44
+        }
+      ]
+    },
+    {
+      "key": "setup--desktop",
+      "id": "a27ef1c6-05d8-806c-8008-f5cae2907736",
+      "pageId": "a27ef1c6-05d8-806c-8008-f5cad639421f",
+      "width": 1440,
+      "height": 1036,
+      "nodes": 49,
+      "texts": 21,
+      "background": [
+        460,
+        0,
+        980,
+        900
+      ],
+      "asset": "d0926f7c-cfba-8122-8008-f692bfd6281b",
+      "mark": [
+        52,
+        46,
+        44,
+        44
+      ],
+      "logo": [
+        108,
+        55.88,
+        157,
+        24.25
+      ],
+      "heading": [
+        52,
+        115,
+        395.83,
+        44
+      ],
+      "outside": [],
+      "overflow": [],
+      "overlaps": [],
+      "actions": [
+        {
+          "id": "63d83be6-908a-8013-8008-f6957f036ecb",
+          "name": "Перейти ко входу",
+          "target": "a27ef1c6-05d8-806c-8008-f5cad66f1111",
+          "width": 109.328125,
+          "height": 44
+        },
+        {
+          "id": "63d83be6-908a-8013-8008-f695ced28406",
+          "name": "Создать администратора",
+          "target": "a27ef1c6-05d8-806c-8008-f5cad66f1111",
+          "width": 355,
+          "height": 52
+        }
+      ]
+    },
+    {
+      "key": "setup--mobile",
+      "id": "a27ef1c6-05d8-806c-8008-f5cae5482556",
+      "pageId": "a27ef1c6-05d8-806c-8008-f5cad639421f",
+      "width": 390,
+      "height": 1064,
+      "nodes": 42,
+      "texts": 17,
+      "background": [
+        0,
+        0,
+        390,
+        844
+      ],
+      "asset": "d0926f7c-cfba-8122-8008-f692db71a7e6",
+      "mark": [
+        24,
+        28,
+        40,
+        40
+      ],
+      "logo": [
+        76,
+        36.8,
+        145,
+        22.39
+      ],
+      "heading": [
+        24,
+        97,
+        240.96,
+        44
+      ],
+      "outside": [],
+      "overflow": [],
+      "overlaps": [],
+      "actions": [
+        {
+          "id": "63d83be6-908a-8013-8008-f6958543362d",
+          "name": "Перейти ко входу",
+          "target": "a27ef1c6-05d8-806c-8008-f5cad7dd5fde",
+          "width": 109.328125,
+          "height": 44
+        },
+        {
+          "id": "63d83be6-908a-8013-8008-f695cf67bf2e",
+          "name": "Создать администратора",
+          "target": "a27ef1c6-05d8-806c-8008-f5cad7dd5fde",
+          "width": 342,
+          "height": 52
+        }
+      ]
+    }
+  ],
+  "format": {
+    "desktop": {
+      "viewport": [
+        1440,
+        900
+      ],
+      "artwork": [
+        460,
+        0,
+        980,
+        900
+      ],
+      "heading": [
+        52,
+        115
+      ]
+    },
+    "mobile": {
+      "viewport": [
+        390,
+        844
+      ],
+      "artwork": [
+        0,
+        0,
+        390,
+        844
+      ],
+      "heading": [
+        24,
+        97
+      ]
+    }
+  },
+  "pixelComparison": {
+    "desktop": {
+      "unobstructedRegions": [
+        [
+          460,
+          0,
+          1440,
+          310
+        ],
+        [
+          460,
+          575,
+          1440,
+          900
+        ],
+        [
+          1170,
+          310,
+          1440,
+          575
+        ]
+      ],
+      "identicalToLogin": {
+        "login": true,
+        "register": true,
+        "registration-pending": true,
+        "setup": true
+      },
+      "fullRightPanelPixelDiff": [
+        null,
+        null,
+        null,
+        [
+          356,
+          532,
+          647,
+          545
+        ]
+      ]
+    },
+    "mobile": {
+      "unobstructedRegions": [
+        [
+          0,
+          0,
+          18,
+          844
+        ]
+      ],
+      "identicalToLogin": {
+        "login": true,
+        "register": true,
+        "registration-pending": true,
+        "setup": true
+      }
+    }
+  },
+  "viewer": [
+    {
+      "device": "desktop",
+      "action": "Регистрация",
+      "destination": "register"
+    },
+    {
+      "device": "desktop",
+      "action": "Зарегистрироваться",
+      "destination": "registration-pending"
+    },
+    {
+      "device": "desktop",
+      "action": "Перейти ко входу",
+      "destination": "login"
+    },
+    {
+      "device": "mobile",
+      "action": "Регистрация",
+      "destination": "register"
+    },
+    {
+      "device": "mobile",
+      "action": "Зарегистрироваться",
+      "destination": "registration-pending"
+    },
+    {
+      "device": "mobile",
+      "action": "Перейти ко входу",
+      "destination": "login"
+    },
+    {
+      "key": "setup--desktop",
+      "action": "Перейти ко входу",
+      "target": "a27ef1c6-05d8-806c-8008-f5cad66f1111"
+    },
+    {
+      "key": "setup--desktop",
+      "action": "Создать администратора",
+      "target": "a27ef1c6-05d8-806c-8008-f5cad66f1111"
+    },
+    {
+      "key": "setup--mobile",
+      "action": "Перейти ко входу",
+      "target": "a27ef1c6-05d8-806c-8008-f5cad7dd5fde"
+    },
+    {
+      "key": "setup--mobile",
+      "action": "Создать администратора",
+      "target": "a27ef1c6-05d8-806c-8008-f5cad7dd5fde"
+    }
+  ]
+}

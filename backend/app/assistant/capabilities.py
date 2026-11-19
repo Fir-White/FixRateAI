@@ -1,4 +1,7 @@
 """Reviewed coverage of the remaining user-facing API, including files and settings."""
+from app.security.sessions import SITE_ACCESS_MANAGERS
+
+
 def extra_tools(T,P,ALL,PLAN,EDIT,OPERATE):
     READ=(*PLAN,'director');CHIEF=('chief_engineer',);CAT=('chief_engineer','admin');STAFF=(*OPERATE,'admin');WORKER=('executor',)
     return (
@@ -8,12 +11,12 @@ def extra_tools(T,P,ALL,PLAN,EDIT,OPERATE):
       T('profile_read','Мой профиль и роль','GET',P+'/users/me',ALL),
       T('profile_email','Изменить мой email','PATCH',P+'/users/me/email',ALL,'write',before='profile_read',secrets=('current_password',)),
       T('roles_list','Описание ролей','GET',P+'/users/roles',ALL),
-      T('user_roles','Своя роль; администратору — роль сотрудника','GET',P+'/users/{user_id}/roles',ALL),
-      T('users_list','Сотрудники для управления доступом','GET',P+'/users',('admin',)),
-      T('enrollment_read','Код присоединения к компании','GET',P+'/management/enrollment',('admin',)),
-      T('enrollment_create','Создать код присоединения к компании','POST',P+'/management/enrollment',('admin',),'write'),
-      T('application_decide','Рассмотреть заявку сотрудника','POST',P+'/management/applications/{application_id}/decision',('admin',),'write'),
-      T('staff_edit','Изменить роль или доступ сотрудника','PUT',P+'/management/staff/{user_id}',('admin',),'write',before='staff_read'),
+      T('user_roles','Своя роль; главному инженеру и администратору — роль сотрудника','GET',P+'/users/{user_id}/roles',ALL),
+      T('users_list','Сотрудники для управления доступом','GET',P+'/users',SITE_ACCESS_MANAGERS),
+      T('enrollment_read','Код присоединения к компании','GET',P+'/management/enrollment',SITE_ACCESS_MANAGERS),
+      T('enrollment_create','Создать код присоединения к компании','POST',P+'/management/enrollment',SITE_ACCESS_MANAGERS,'write'),
+      T('application_decide','Рассмотреть заявку сотрудника','POST',P+'/management/applications/{application_id}/decision',SITE_ACCESS_MANAGERS,'write'),
+      T('staff_edit','Изменить роль или доступ сотрудника','PUT',P+'/management/staff/{user_id}',SITE_ACCESS_MANAGERS,'write',before='staff_read'),
       T('shift_create','Добавить смену сотрудника','POST',P+'/management/staff/{user_id}/shifts',STAFF,'write'),
       T('shift_edit','Изменить смену сотрудника','PUT',P+'/management/staff/{user_id}/shifts/{shift_id}',STAFF,'write'),
       T('availability_create','Добавить доступность или отсутствие','POST',P+'/management/staff/{user_id}/availability',STAFF,'write'),
@@ -26,7 +29,7 @@ def extra_tools(T,P,ALL,PLAN,EDIT,OPERATE):
       T('crew_edit','Изменить бригаду','PUT',P+'/management/crews/{crew_id}',STAFF,'write'),
       T('pattern_preview','Проверить календарную периодичность','POST',P+'/management/calendar-pattern/preview',STAFF),
       T('system_create','Добавить инженерную систему','POST',P+'/management/systems',EDIT,'write'),
-      T('equipment_type_create','Добавить тип оборудования','POST',P+'/management/equipment-types',EDIT,'write'),
+      T('equipment_type_create','Добавить тип оборудования','POST',P+'/management/equipment-types',SITE_ACCESS_MANAGERS,'write'),
       T('registry_read','Реестр систем и оборудования','GET',P+'/registry',READ),
       T('system_classify','Изменить группу системы','PATCH',P+'/registry/systems/{system_id}',CAT,'write'),
       T('building_create','Добавить здание','POST',P+'/registry/buildings',CAT,'write'),

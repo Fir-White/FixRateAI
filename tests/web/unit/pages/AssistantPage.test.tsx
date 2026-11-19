@@ -69,7 +69,9 @@ it('shows server activity and local timestamps without exposing an unfinished an
   const details=screen.getByText(/Проверяю состав бригады/).closest('details')!;expect(details).toHaveAttribute('open');
   await user.click(details.querySelector('summary')!);expect(details).not.toHaveAttribute('open');
   await user.click(details.querySelector('summary')!);expect(details).toHaveAttribute('open');
-  expect(screen.getByText(/13:15/,{selector:'time'})).toHaveAttribute('datetime',turn.created_at);
+  const timestamps=screen.getAllByText(/13:15/,{selector:'time'});
+  expect(timestamps).toHaveLength(2);
+  timestamps.forEach(time=>expect(time).toHaveAttribute('datetime',turn.created_at));
 });
 it('collapses distinct progress stages and keeps the completed duration after reload',async()=>{
   const user=userEvent.setup();

@@ -397,8 +397,10 @@ def test_admin_enrollment_read_delivers_protected_link_without_secret_in_model_o
             assert authorized.status_code == 200, 'Admin cannot open the protected handoff'
             same_saved_code = authorized.json().get('code') == private_code
             assert same_saved_code, 'Protected resource did not return the originally saved code'
-            denied = c['admin'].chief.get(protected_url)
-            assert denied.status_code == 403, 'Chief engineer must not receive the admin-only join code'
+            chief = c['admin'].chief.get(protected_url)
+            assert chief.status_code == 200, 'Chief engineer cannot open the protected handoff for the same site'
+            chief_has_same_code = chief.json().get('code') == private_code
+            assert chief_has_same_code, 'The handoff did not resolve to the same site code'
             assert snapshot() == before, 'Reading a protected code changed domain data or proposed a write'
             outcome['workflow_outcome'] = state['outcome']
             outcome['unfinished_goals'] = [goal for goal in state['goals'] if goal['status'] != 'completed']

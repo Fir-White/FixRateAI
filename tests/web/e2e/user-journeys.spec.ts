@@ -20,7 +20,7 @@ for(const [role,home] of Object.entries(homes)){
       await expect(menu.getByRole('link',{name:'Планирование ТО'})).toHaveCount(0);
       await menu.getByRole('link',{name:'Мой календарь'}).click();
       await expect(page.getByRole('navigation',{name:'Разделы планирования'})).toHaveCount(0);
-      await page.goto('/planning');await expect(page.getByRole('heading',{name:'Раздел недоступен для текущей роли'})).toBeVisible();
+      await page.goto('/planning');await expect(page.getByRole('heading',{name:'Раздел недоступен'})).toBeVisible();
     }else{
       await expect(page.getByRole('navigation',{name:'Основные задачи'})).toBeVisible();
       await menu.getByRole('link',{name:'Планирование ТО'}).click();

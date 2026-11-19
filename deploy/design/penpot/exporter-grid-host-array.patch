@@ -1,0 +1,103 @@
+--- a/plugin-src/translators/translateLayout.ts
++++ b/plugin-src/translators/translateLayout.ts
+@@ -249,7 +249,14 @@
+ };
+ 
+ export const translateGridTracks = (tracks: GridTrackSize[]): GridTrack[] => {
+-  return tracks.map(translateGridTrack);
++  // Figma can expose host-backed array methods with an invalid native callback.
++  // Reading entries by index avoids invoking a corrupted `tracks.map` binding.
++  // Keep the original track sizing; do not replace it with fallback flex tracks.
++  const translated: GridTrack[] = [];
++  for (let index = 0; index < tracks.length; index++) {
++    translated.push(translateGridTrack(tracks[index]));
++  }
++  return translated;
+ };
+ 
+ const translateGridCellAlignSelf = (
+--- /dev/null
++++ b/tests/plugin-src/transformers/partials/gridHostArray.test.ts
+@@ -0,0 +1,51 @@
++import { describe, expect, it } from 'vitest';
++
++import { translateGridTracks } from '@plugin/translators/translateLayout';
++import { FigmaPlatformDataError } from '@plugin/utils/figmaPlatformError';
++
++describe('Figma grid host-array compatibility', () => {
++  it('reads mixed fixed/flex sizing without invoking host array methods', () => {
++    const values: GridTrackSize[] = [
++      { type: 'FIXED', value: 180 },
++      { type: 'FLEX', value: 2 }
++    ];
++    const tracks = new Proxy(values, {
++      get(target, key, receiver): unknown {
++        if (key === 'map') {
++          throw new Error(
++            'in set_strokeStyleId: Cannot call with documentAccess: dynamic-page. Use node.setStrokeStyleIdAsync instead.'
++          );
++        }
++        return Reflect.get(target, key, receiver);
++      }
++    });
++    expect(translateGridTracks(tracks)).toEqual([
++      { type: 'fixed', value: 180 },
++      { type: 'flex', value: 2 }
++    ]);
++    expect(values).toEqual([
++      { type: 'FIXED', value: 180 },
++      { type: 'FLEX', value: 2 }
++    ]);
++  });
++
++  it('preserves an empty grid without synthesizing tracks', () => {
++    expect(translateGridTracks([])).toEqual([]);
++  });
++
++  it('still reports invalid track data', () => {
++    expect(() => translateGridTracks([null as unknown as GridTrackSize])).toThrow(
++      FigmaPlatformDataError
++    );
++  });
++
++  it('does not suppress unrelated errors from reading an entry', () => {
++    const tracks = new Proxy([{ type: 'FIXED', value: 180 }], {
++      get(target, key, receiver): unknown {
++        if (key === '0') throw new Error('unrelated read failure');
++        return Reflect.get(target, key, receiver);
++      }
++    }) as GridTrackSize[];
++    expect(() => translateGridTracks(tracks)).toThrow('unrelated read failure');
++  });
++});
+--- a/manifest.json
++++ b/manifest.json
+@@ -1,16 +1,12 @@
+ {
+-  "name": "Penpot Exporter",
++  "name": "Penpot Exporter — FixRate Grid Fix",
+   "id": "1219369440655168734",
+   "api": "1.0.0",
+   "main": "dist/code.js",
+   "ui": "dist/index.html",
+   "editorType": ["figma", "slides", "figjam"],
+   "networkAccess": {
+-    "allowedDomains": [
+-      "https://o4508183201316864.ingest.de.sentry.io",
+-      "https://api-js.mixpanel.com"
+-    ],
+-    "reasoning": "We use Sentry and Mixpanel to monitor the performance of the plugin and get information about errors to continue improving the experience."
++    "allowedDomains": ["none"]
+   },
+   "permissions": ["currentuser", "teamlibrary"],
+   "documentAccess": "dynamic-page"
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "penpot-exporter",
+-  "version": "0.26.3",
++  "version": "0.26.3+fixrate.grid1",
+   "description": "Penpot exporter",
+   "type": "module",
+   "scripts": {

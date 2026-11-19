@@ -46,11 +46,10 @@ export function EquipmentRegistry() {
   const currentPage = Math.min(page, pages);
   const visible = items.slice((currentPage - 1) * 25, currentPage * 25);
   const active = all.find(row => row.equipment_id === selected);
-  return <div className="space-y-6 registry-page"><PageHeader title="Работы + реестр оборудования" description="Оборудование, регламенты ТО и наработка деталей по зданиям." actions={mayEdit ? <Link to="/settings/equipment" className={buttonClassName('primary')}>Добавить оборудование</Link> : undefined}/>
+  return <div className="space-y-6 registry-page"><PageHeader title="Оборудование" description="Реестр, инженерные системы и наработка деталей по зданиям." actions={mayEdit ? <Link to="/settings/equipment" className={buttonClassName('primary')}>Добавить оборудование</Link> : undefined}/>
     {error && <p role="alert"><Callout tone="danger">{error}</Callout></p>}
     {query.status === 'loading' && <LoadingState/>}{query.status === 'error' && <ErrorState description={query.error}/>}
     {query.status === 'success' && <>
-      <div className="journey-next"><div><h2>Нужен план из Excel с регламентами?</h2><p>Загрузка каталога СВиК, расчёт дат и назначение бригад находятся в планировании ТО.</p></div><Link to="/planning" className={buttonClassName('secondary')}>Перейти в планирование →</Link></div>
       <Card className="space-y-4 p-5"><div className="registry-tools"><label className="space-y-1 text-sm"><FieldCaption>Здание</FieldCaption><Select aria-label="Здание" value={query.data.registry.site_id} disabled={busy} onChange={async e => {setBusy(true); setError(''); try{await switchSite(e.target.value);}catch(error){setError(failure(error));setBusy(false);}}}>{query.data.sites.map(site => <option key={site.site_id} value={site.site_id}>{site.name}</option>)}</Select></label><label className="space-y-1 text-sm"><FieldCaption>Поиск оборудования, работы или детали</FieldCaption><Input aria-label="Поиск по реестру" value={search} onChange={e => {setSearch(e.target.value);setPage(1);setSelected('');}} placeholder="Название, номер или расположение"/></label></div>
         {mayEdit && <BuildingForm timezone={profile?.timezone ?? 'Asia/Yekaterinburg'} onSaved={() => setRefresh(n => n+1)}/>}
         <div className="registry-tabs" role="tablist" aria-label="Инженерные системы"><Button role="tab" id="registry-tab-all" aria-controls="registry-table-panel" aria-selected={group==='all'} variant={group==='all'?'primary':'ghost'} onClick={()=>{setGroup('all');setPage(1);setSelected('');}}>Все системы <span>{all.length}</span></Button>{(Object.entries(systemGroups) as [SystemGroup, string][]).map(([key, label]) => <Button key={key} role="tab" id={`registry-tab-${key}`} aria-controls="registry-table-panel" aria-selected={group === key} variant={group === key ? 'primary' : 'ghost'} onClick={() => {setGroup(key);setPage(1);setSelected('');}}>{label} <span>{counts[key]}</span></Button>)}<Button role="tab" id="registry-tab-unclassified" aria-controls="registry-table-panel" aria-selected={group === 'unclassified'} variant={group === 'unclassified' ? 'primary' : 'ghost'} onClick={() => {setGroup('unclassified');setPage(1);setSelected('');}}>Без группы <span>{counts.unclassified}</span></Button></div>
@@ -66,6 +65,7 @@ export function EquipmentRegistry() {
       </nav>}
       {active && <section className="space-y-4" aria-label={`Детали: ${active.name}`}><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">{active.name} · {active.asset_code}</h2>{mayEdit && <Link to={`/settings/equipment?equipment=${encodeURIComponent(active.equipment_id)}`} className={buttonClassName('secondary')}>Настроить оборудование и работы</Link>}</div><ComponentPanel equipmentId={active.equipment_id} onChanged={() => setRefresh(n => n+1)}/></section>}
       <RegistryExcel mayImport={mayEdit} onSaved={() => setRefresh(n => n+1)}/>
+      {canOpenSection(profile?.role,"planning")&&<Link to="/planning" className={buttonClassName('ghost')}>Перейти в планирование →</Link>}
     </>}
   </div>;
 }

@@ -44,7 +44,7 @@ for (const role of roles) {
       await page.goto(route);
       const permitted = allowed[route.split("/")[1]].includes(role);
       if (!permitted) {
-        await expect(page.getByRole("heading", {name: "Раздел недоступен для текущей роли"})).toBeVisible();
+        await expect(page.getByRole("heading", {name: "Раздел недоступен"})).toBeVisible();
         continue;
       }
       await expect(page.locator("h1")).toBeVisible();

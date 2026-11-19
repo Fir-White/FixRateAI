@@ -39,6 +39,7 @@ export function QualityTaskPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [lastMeasured, setLastMeasured] = useState<{ reviewId: string; elapsedMs: number } | null>(null);
   const [reason, setReason] = useState("");
+  const [factsOpen, setFactsOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingDecision, setPendingDecision] = useState<
     "accepted" | "rejected" | null
@@ -55,6 +56,7 @@ export function QualityTaskPage() {
     decisionContext.current = `${taskId}:${executionId}`;
     setReason("");
     setPendingDecision(null);
+    setFactsOpen(false);
     setNotice(null);
     setLastMeasured(null);
   }, [taskId, executionId]);
@@ -132,7 +134,6 @@ export function QualityTaskPage() {
       ) : null}
 
       <p className="text-sm text-muted">{attemptStateSummary(task.state)}</p>
-      <nav className="journey-context-links" aria-label="Порядок приёмки"><a href="#review-evidence">1. Фото и отчёт</a><a href="#review-facts">2. Факт и документы</a><a href="#review-decision">3. Решение инженера</a></nav>
       {decision&&task.state==='accepted'&&<div className="journey-next"><div><h2>Проверка завершена</h2><p>Работа принята. Решение и доказательства сохранены.</p></div><Link to="/quality" className={buttonClassName('primary')}>Вернуться к приёмке</Link></div>}
       {canReview && <a className="fr-decision-shortcut" href="#review-decision">Перейти к основанию решения</a>}
       {notice && !canReview && <div role="alert"><Callout tone="danger" className="text-xs">{notice}</Callout></div>}
@@ -165,31 +166,7 @@ export function QualityTaskPage() {
         <div className="space-y-6">
           <Card id="review-evidence">
             <CardHeader
-              title="Отчёт исполнителя"
-              description={
-                execution?.submittedAt
-                  ? `Отправлен ${formatDateTime(execution.submittedAt)}`
-                  : "Отчёт ещё не отправлен"
-              }
-            />
-            <div className="p-5 sm:p-6">
-              <p className="text-sm leading-6 text-ink-soft">
-                {execution?.narrative || "Комментарий отсутствует."}
-              </p>
-              {execution?.checklist.length ? (
-                <div className="mt-4">
-                  <ChecklistSummary
-                    items={execution.checklist}
-                    mode="quality"
-                  />
-                </div>
-              ) : null}
-            </div>
-          </Card>
-
-          <Card>
-            <CardHeader
-              title="До / после"
+              title="Фотографии исполнителя"
               description="Сравнение по пункту чек-листа и одинаковому ракурсу"
             />
             <div className="p-5 sm:p-6">
@@ -198,20 +175,33 @@ export function QualityTaskPage() {
           </Card>
 
           {query.data.photoAnalysisStatus !== "pending" && <PhotoReviewCard review={review} formatDateTime={formatDateTime} fallbackElapsedMs={lastMeasured && review?.id === lastMeasured.reviewId ? lastMeasured.elapsedMs : null}/>}
-          <div id="review-facts" className="space-y-5">          {hasDocuments && <div id="review-documents"><ActsPanel task={task} execution={execution} editable={false} onSaved={()=>setRefresh(n=>n+1)}/></div>}
-          {execution&&<ExecutionProtocol task={task} execution={execution} value={{actual:execution.actual?{started_at:execution.actual.started_at??"",performed_at:execution.actual.performed_at??"",person_hours:execution.actual.person_hours??""}:null,readings:execution.readings??[]}} onChange={()=>{}} disabled readOnly/>}
-</div>
+          <Button variant="secondary" onClick={()=>setFactsOpen(true)}>Факты и документы</Button>
+          <Modal open={factsOpen} size="wide" title={`Факты и документы · ${task.code}`}
+            description={execution?.submittedAt ? `Попытка №${execution.attemptNumber} · Отправлен ${formatDateTime(execution.submittedAt)}` : "Отчёт ещё не отправлен"}
+            onClose={()=>setFactsOpen(false)}>
+            <div className="space-y-6">
+              <section>
+                <h3 className="mb-2 text-lg font-semibold">Ответы исполнителя</h3>
+                {execution?.checklist.length ? <ChecklistSummary items={execution.checklist} mode="quality"/> : <p className="text-muted">Ответов пока нет.</p>}
+                {execution?.narrative && <p className="mt-4 whitespace-pre-wrap break-words text-ink-soft">{execution.narrative}</p>}
+              </section>
+              {execution&&<ExecutionProtocol task={task} execution={execution} value={{actual:execution.actual?{started_at:execution.actual.started_at??"",performed_at:execution.actual.performed_at??"",person_hours:execution.actual.person_hours??""}:null,readings:execution.readings??[]}} onChange={()=>{}} disabled readOnly/>}
+              {hasDocuments&&<ActsPanel task={task} execution={execution} editable={false} onSaved={()=>setRefresh(n=>n+1)}/>}
+            </div>
+          </Modal>
         </div>
 
         <div id="review-decision" className="space-y-6 quality-decision-rail">
           {canReview&&<Card>
-            <CardHeader title="Основание решения" />
+            <CardHeader title="Текущая попытка" />
             <div className="p-5 sm:p-6">
               <InfoList className="grid grid-cols-2 gap-4">
                 <InfoItem
                   label="Обязательный срок"
                   value={formatDate(task.mandatoryDueDate)}
                 />
+                <InfoItem label="Отправлено" value={formatDateTime(execution?.submittedAt??null)} />
+                <InfoItem label="Исполнитель" value={task.assignees.map(person=>person.name).join(", ")||"Не указан"} />
                 <InfoItem label="Ревизия" value={String(task.revision)} />
               </InfoList>
               <p className="mt-4 text-xs leading-5 text-muted">
@@ -219,7 +209,7 @@ export function QualityTaskPage() {
                 неуверенного AI-результата она служит основанием ручной оценки.
               </p>
 
-              <div className="fr-decision-facts"><p>Фото этой попытки: {execution?.photos.length??0}.{hasDocuments && <> <a href="#review-documents">Документы и проверки</a></>}</p>{task.requiredActs?.map(kind=><p key={kind}>{kind}: {execution?.acts?.some(a=>a.kind===kind&&a.verified)?"проверен":execution?.acts?.some(a=>a.kind===kind)?"ожидает проверки":"не приложен"}</p>)}<p>AI не принимает работу. Скрытые операции и точность прибора требуют ручной проверки.</p>{review?.limitations.map(text=><p key={text}>{text}</p>)}</div>
+              <div className="fr-decision-facts"><p>Фото этой попытки: {execution?.photos.length??0}.</p>{hasDocuments&&<button type="button" onClick={()=>setFactsOpen(true)}>Документы и проверки</button>}{task.requiredActs?.map(kind=><p key={kind}>{kind}: {execution?.acts?.some(a=>a.kind===kind&&a.verified)?"проверен":execution?.acts?.some(a=>a.kind===kind)?"ожидает проверки":"не приложен"}</p>)}<p>Скрытые операции и точность прибора требуют ручной проверки.</p>{review?.limitations.map(text=><p key={text}>{text}</p>)}</div>
               <FormField
                 label="Причина решения"
                 htmlFor="quality-reason"

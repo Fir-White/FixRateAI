@@ -1,0 +1,612 @@
+{
+  "revision": 66,
+  "frames": [
+    {
+      "key": "planning",
+      "id": "582936bd-dbb0-8088-8008-f5a1d08a1df6",
+      "name": "01 · Планирование · Действующий календарь · 1440×900",
+      "width": 1440,
+      "height": 900,
+      "texts": 94,
+      "nodes": 176,
+      "outside": [],
+      "overflow": [],
+      "textOverlaps": [],
+      "lineClashes": [],
+      "smallTargets": [],
+      "underline": {
+        "label": "Планирование ТО",
+        "centerDelta": 0,
+        "widthDelta": 0
+      },
+      "tabCenters": [
+        {
+          "label": "Календарь",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "label": "Неделя",
+          "x": -0.006,
+          "y": 0
+        }
+      ],
+      "buttonCenters": [
+        {
+          "label": "Параметры и черновики",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "label": "Спросить AI",
+          "x": 0,
+          "y": 0
+        }
+      ],
+      "flatUI": 0,
+      "interactions": 3
+    },
+    {
+      "key": "equipment",
+      "id": "582936bd-dbb0-8088-8008-f5a1f45add04",
+      "name": "02 · Оборудование и регламенты · 1440×900",
+      "width": 1440,
+      "height": 900,
+      "texts": 49,
+      "nodes": 95,
+      "outside": [],
+      "overflow": [],
+      "textOverlaps": [],
+      "lineClashes": [],
+      "smallTargets": [],
+      "underline": {
+        "label": "Оборудование",
+        "centerDelta": 0,
+        "widthDelta": 0
+      },
+      "tabCenters": [
+        {
+          "label": "Обслуживание",
+          "x": -0.006,
+          "y": 0
+        }
+      ],
+      "buttonCenters": [
+        {
+          "label": "Спросить AI",
+          "x": 0.004,
+          "y": -0.364
+        }
+      ],
+      "flatUI": 0,
+      "interactions": 2
+    },
+    {
+      "key": "review",
+      "id": "582936bd-dbb0-8088-8008-f5a1ffa8466a",
+      "name": "03 · Приёмка · Главный инженер · 1440×900",
+      "width": 1440,
+      "height": 900,
+      "texts": 36,
+      "nodes": 81,
+      "outside": [],
+      "overflow": [],
+      "textOverlaps": [],
+      "lineClashes": [],
+      "smallTargets": [],
+      "underline": {
+        "label": "Приёмка",
+        "centerDelta": 0,
+        "widthDelta": 0
+      },
+      "tabCenters": [
+        {
+          "label": "Фото и отчёт",
+          "x": -0.006,
+          "y": 0
+        }
+      ],
+      "buttonCenters": [
+        {
+          "label": "Спросить AI",
+          "x": 0.004,
+          "y": -0.364
+        },
+        {
+          "label": "Принять работу",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "label": "Вернуть",
+          "x": -0.006,
+          "y": 0
+        }
+      ],
+      "flatUI": 0,
+      "interactions": 6
+    },
+    {
+      "key": "executor",
+      "id": "582936bd-dbb0-8088-8008-f5a271a896ab",
+      "name": "04 · Исполнение · Итоговый отчёт · 1440×900",
+      "width": 1440,
+      "height": 900,
+      "texts": 46,
+      "nodes": 102,
+      "outside": [],
+      "overflow": [],
+      "textOverlaps": [],
+      "lineClashes": [],
+      "smallTargets": [],
+      "underline": {
+        "label": "Мои задания",
+        "centerDelta": 0,
+        "widthDelta": 0
+      },
+      "tabCenters": [
+        {
+          "label": "3 · Итоговый отчёт",
+          "x": -0.006,
+          "y": 0
+        }
+      ],
+      "buttonCenters": [
+        {
+          "label": "Спросить AI",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "label": "Добавить скан · JPG / PNG / WebP",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "label": "Сохранить",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "label": "Сдать работу",
+          "x": 0,
+          "y": 0
+        }
+      ],
+      "flatUI": 0,
+      "interactions": 1
+    },
+    {
+      "key": "review-mobile",
+      "id": "582936bd-dbb0-8088-8008-f5a27da748f2",
+      "name": "05 · Приёмка · Mobile · 390×844",
+      "width": 390,
+      "height": 844,
+      "texts": 18,
+      "nodes": 51,
+      "outside": [],
+      "overflow": [],
+      "textOverlaps": [],
+      "lineClashes": [],
+      "smallTargets": [],
+      "underline": null,
+      "tabCenters": [],
+      "buttonCenters": [
+        {
+          "label": "Принять",
+          "x": -0.006,
+          "y": 0
+        },
+        {
+          "label": "Вернуть",
+          "x": -0.006,
+          "y": 0
+        }
+      ],
+      "flatUI": 0,
+      "interactions": 3
+    },
+    {
+      "key": "executor-mobile",
+      "id": "582936bd-dbb0-8088-8008-f5a2871cc3fd",
+      "name": "06 · Исполнение · Mobile · 390×844",
+      "width": 390,
+      "height": 844,
+      "texts": 19,
+      "nodes": 52,
+      "outside": [],
+      "overflow": [],
+      "textOverlaps": [],
+      "lineClashes": [],
+      "smallTargets": [],
+      "underline": null,
+      "tabCenters": [
+        {
+          "label": "2 · Фото",
+          "x": 0,
+          "y": 0
+        }
+      ],
+      "buttonCenters": [
+        {
+          "label": "Добавить фото",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "label": "Далее: итоговый отчёт",
+          "x": -0.006,
+          "y": 0
+        }
+      ],
+      "flatUI": 0,
+      "interactions": 2
+    },
+    {
+      "key": "proposal",
+      "id": "582936bd-dbb0-8088-8008-f5a28f56627e",
+      "name": "07 · Планирование · Предложение → новая версия · 1440×900",
+      "width": 1440,
+      "height": 900,
+      "texts": 46,
+      "nodes": 81,
+      "outside": [],
+      "overflow": [],
+      "textOverlaps": [],
+      "lineClashes": [],
+      "smallTargets": [],
+      "underline": {
+        "label": "Планирование ТО",
+        "centerDelta": 0,
+        "widthDelta": 0
+      },
+      "tabCenters": [
+        {
+          "label": "Даты и бригады",
+          "x": -0.006,
+          "y": 0
+        }
+      ],
+      "buttonCenters": [
+        {
+          "label": "Спросить AI",
+          "x": 0.004,
+          "y": -0.364
+        },
+        {
+          "label": "Подтвердить новую версию",
+          "x": 0,
+          "y": 0
+        }
+      ],
+      "flatUI": 0,
+      "interactions": 5
+    },
+    {
+      "key": "ai-context",
+      "id": "582936bd-dbb0-8088-8008-f5a3a4ed154d",
+      "name": "08 · Единый AI-диалог · Контекст приёмки · 1440×900",
+      "width": 1440,
+      "height": 900,
+      "texts": 30,
+      "nodes": 65,
+      "outside": [],
+      "overflow": [],
+      "textOverlaps": [],
+      "lineClashes": [],
+      "smallTargets": [],
+      "underline": {
+        "label": "Приёмка",
+        "centerDelta": 0,
+        "widthDelta": 0
+      },
+      "tabCenters": [],
+      "buttonCenters": [
+        {
+          "label": "Новый диалог",
+          "x": -0.006,
+          "y": 0
+        }
+      ],
+      "flatUI": 0,
+      "interactions": 5
+    },
+    {
+      "key": "review-facts",
+      "id": "582936bd-dbb0-8088-8008-f5a3bbcfdbc8",
+      "name": "90 · review-facts",
+      "width": 900,
+      "height": 760,
+      "texts": 24,
+      "nodes": 40,
+      "outside": [],
+      "overflow": [],
+      "textOverlaps": [],
+      "lineClashes": [],
+      "smallTargets": [],
+      "underline": null,
+      "tabCenters": [],
+      "buttonCenters": [
+        {
+          "label": "Подтвердить проверку",
+          "x": -0.006,
+          "y": 0
+        }
+      ],
+      "flatUI": 0,
+      "interactions": 1
+    },
+    {
+      "key": "review-facts-mobile",
+      "id": "582936bd-dbb0-8088-8008-f5a3c2eab6f8",
+      "name": "90 · review-facts-mobile",
+      "width": 350,
+      "height": 680,
+      "texts": 20,
+      "nodes": 24,
+      "outside": [],
+      "overflow": [],
+      "textOverlaps": [],
+      "lineClashes": [],
+      "smallTargets": [],
+      "underline": null,
+      "tabCenters": [],
+      "buttonCenters": [],
+      "flatUI": 0,
+      "interactions": 2
+    },
+    {
+      "key": "return-confirm",
+      "id": "582936bd-dbb0-8088-8008-f5a3c7b178fc",
+      "name": "90 · return-confirm",
+      "width": 350,
+      "height": 350,
+      "texts": 6,
+      "nodes": 11,
+      "outside": [],
+      "overflow": [],
+      "textOverlaps": [],
+      "lineClashes": [],
+      "smallTargets": [],
+      "underline": null,
+      "tabCenters": [],
+      "buttonCenters": [
+        {
+          "label": "Отмена",
+          "x": -0.006,
+          "y": 0
+        },
+        {
+          "label": "Вернуть работу",
+          "x": -0.008,
+          "y": 0
+        }
+      ],
+      "flatUI": 0,
+      "interactions": 2
+    },
+    {
+      "key": "apply-confirm",
+      "id": "582936bd-dbb0-8088-8008-f5a3cba34eec",
+      "name": "90 · apply-confirm",
+      "width": 350,
+      "height": 374,
+      "texts": 6,
+      "nodes": 10,
+      "outside": [],
+      "overflow": [],
+      "textOverlaps": [],
+      "lineClashes": [],
+      "smallTargets": [],
+      "underline": null,
+      "tabCenters": [],
+      "buttonCenters": [
+        {
+          "label": "Отмена",
+          "x": -0.006,
+          "y": 0
+        },
+        {
+          "label": "Сохранить версию",
+          "x": 0,
+          "y": 0
+        }
+      ],
+      "flatUI": 0,
+      "interactions": 2
+    },
+    {
+      "key": "executor-finish",
+      "id": "582936bd-dbb0-8088-8008-f5a3cf0ced20",
+      "name": "90 · executor-finish",
+      "width": 350,
+      "height": 680,
+      "texts": 15,
+      "nodes": 29,
+      "outside": [],
+      "overflow": [],
+      "textOverlaps": [],
+      "lineClashes": [],
+      "smallTargets": [],
+      "underline": null,
+      "tabCenters": [],
+      "buttonCenters": [
+        {
+          "label": "Добавить скан протокола",
+          "x": -0.006,
+          "y": 0
+        },
+        {
+          "label": "К фотографиям",
+          "x": -0.006,
+          "y": 0
+        },
+        {
+          "label": "Сдать работу",
+          "x": 0,
+          "y": 0
+        }
+      ],
+      "flatUI": 0,
+      "interactions": 2
+    },
+    {
+      "key": "verify-document-mobile",
+      "id": "582936bd-dbb0-8088-8008-f5a8e7e18d67",
+      "name": "90 · verify-document-mobile",
+      "width": 350,
+      "height": 460,
+      "texts": 8,
+      "nodes": 13,
+      "outside": [],
+      "overflow": [],
+      "textOverlaps": [],
+      "lineClashes": [],
+      "smallTargets": [],
+      "underline": null,
+      "tabCenters": [],
+      "buttonCenters": [
+        {
+          "label": "Подтвердить проверку",
+          "x": -0.006,
+          "y": 0
+        }
+      ],
+      "flatUI": 0,
+      "interactions": 1
+    },
+    {
+      "key": "home",
+      "id": "ecd29d2d-0751-800b-8008-f598c0372d0b",
+      "name": "E3 · Fluid Intelligence · 1440×900",
+      "width": 1440,
+      "height": 900,
+      "texts": 44,
+      "nodes": 100,
+      "outside": [],
+      "overflow": [],
+      "textOverlaps": [],
+      "lineClashes": [],
+      "smallTargets": [],
+      "underline": {
+        "label": "Рабочий день",
+        "centerDelta": 0,
+        "widthDelta": 0
+      },
+      "tabCenters": [],
+      "buttonCenters": [
+        {
+          "label": "Разобрать просрочки",
+          "x": -0.008,
+          "y": 0
+        },
+        {
+          "label": "Проверить загрузку",
+          "x": 0,
+          "y": 0
+        },
+        {
+          "label": "Найти оборудование",
+          "x": 0,
+          "y": 0
+        }
+      ],
+      "flatUI": 0,
+      "interactions": 0
+    }
+  ],
+  "timestamps": [
+    {
+      "role": "user",
+      "value": "17.11.2026 · 12:10"
+    },
+    {
+      "role": "assistant",
+      "value": "17.11.2026 · 12:11"
+    }
+  ],
+  "components": 5,
+  "tokens": 45,
+  "scope": {
+    "changedBoards": [
+      {
+        "page": "E · Visual Exploration · Chief Engineer",
+        "id": "ecd29d2d-0751-800b-8008-f598c0372d0b",
+        "name": "E3 · Fluid Intelligence · 1440×900"
+      },
+      {
+        "page": "E3 · Core Workflows",
+        "id": "582936bd-dbb0-8088-8008-f5a1d08a1df6",
+        "name": "01 · Планирование · Действующий календарь · 1440×900"
+      },
+      {
+        "page": "E3 · Core Workflows",
+        "id": "582936bd-dbb0-8088-8008-f5a1f45add04",
+        "name": "02 · Оборудование и регламенты · 1440×900"
+      },
+      {
+        "page": "E3 · Core Workflows",
+        "id": "582936bd-dbb0-8088-8008-f5a1ffa8466a",
+        "name": "03 · Приёмка · Главный инженер · 1440×900"
+      },
+      {
+        "page": "E3 · Core Workflows",
+        "id": "582936bd-dbb0-8088-8008-f5a271a896ab",
+        "name": "04 · Исполнение · Итоговый отчёт · 1440×900"
+      },
+      {
+        "page": "E3 · Core Workflows",
+        "id": "582936bd-dbb0-8088-8008-f5a27da748f2",
+        "name": "05 · Приёмка · Mobile · 390×844"
+      },
+      {
+        "page": "E3 · Core Workflows",
+        "id": "582936bd-dbb0-8088-8008-f5a2871cc3fd",
+        "name": "06 · Исполнение · Mobile · 390×844"
+      },
+      {
+        "page": "E3 · Core Workflows",
+        "id": "582936bd-dbb0-8088-8008-f5a28f56627e",
+        "name": "07 · Планирование · Предложение → новая версия · 1440×900"
+      },
+      {
+        "page": "E3 · Core Workflows",
+        "id": "582936bd-dbb0-8088-8008-f5a3a4ed154d",
+        "name": "08 · Единый AI-диалог · Контекст приёмки · 1440×900"
+      },
+      {
+        "page": "E3 · Core Workflows",
+        "id": "582936bd-dbb0-8088-8008-f5a3bbcfdbc8",
+        "name": "90 · review-facts"
+      },
+      {
+        "page": "E3 · Core Workflows",
+        "id": "582936bd-dbb0-8088-8008-f5a3c2eab6f8",
+        "name": "90 · review-facts-mobile"
+      },
+      {
+        "page": "E3 · Core Workflows",
+        "id": "582936bd-dbb0-8088-8008-f5a3c7b178fc",
+        "name": "90 · return-confirm"
+      },
+      {
+        "page": "E3 · Core Workflows",
+        "id": "582936bd-dbb0-8088-8008-f5a3cba34eec",
+        "name": "90 · apply-confirm"
+      },
+      {
+        "page": "E3 · Core Workflows",
+        "id": "582936bd-dbb0-8088-8008-f5a3cf0ced20",
+        "name": "90 · executor-finish"
+      },
+      {
+        "page": "E3 · Core Workflows",
+        "id": "582936bd-dbb0-8088-8008-f5a8e7e18d67",
+        "name": "90 · verify-document-mobile"
+      }
+    ],
+    "unexpectedChanges": [],
+    "untouchedPages": 12,
+    "archivedE1E2Unchanged": true
+  }
+}

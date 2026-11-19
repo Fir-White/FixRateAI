@@ -34,7 +34,7 @@ describe("dispatcher overview", () => {
     vi.spyOn(maintenanceApi, "listComparisons").mockResolvedValue([]);
     render(<MemoryRouter><DispatcherPage /></MemoryRouter>);
 
-    await screen.findByRole("heading", { name: "Панель диспетчера" });
+    await screen.findByRole("heading", { name: "Рабочий день диспетчера" });
     const day = screen.getByRole("region", { name: "30 октября пятница" });
     expect(within(day).getByText("Нарядов на выбранный день: 2")).toBeInTheDocument();
     expect(within(day).getByRole("link", {name: /task-1/})).toHaveAttribute("href", "/tasks/task-1");
@@ -52,7 +52,7 @@ describe("dispatcher overview", () => {
     vi.spyOn(maintenanceApi, "listTasks").mockResolvedValue([task("task-1")]);
     vi.spyOn(maintenanceApi, "listComparisons").mockResolvedValue([]);
     render(<MemoryRouter><DispatcherPage /></MemoryRouter>);
-    await screen.findByRole("heading", { name: "Панель диспетчера" });
+    await screen.findByRole("heading", { name: "Рабочее пространство" });
     expect(screen.queryByRole("link", { name: /очередь заданий/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /открыть полный календарь/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /открыть сравнение/i })).not.toBeInTheDocument();

@@ -8,7 +8,7 @@ import { SessionProvider } from "@/shared/session/SessionContext";
 
 afterEach(() => vi.unstubAllGlobals());
 // Route assertions test page behavior; cold module loading has separate coverage.
-beforeAll(async () => { await Promise.all(Object.values(pageLoaders).map(load=>load())); },15000);
+beforeAll(async () => { await Promise.all([...Object.values(pageLoaders).map(load=>load()),import("@/shared/api/maintenance.demo")]); },15000);
 
 function renderAt(path: string, role: string) {
   window.localStorage.setItem("fixrate.demo.role", role);
@@ -27,7 +27,7 @@ describe("app routes", () => {
     function LocationProbe() { const location = useLocation(); return <output data-testid="director-path">{location.pathname}</output>; }
     render(<SessionProvider><MemoryRouter initialEntries={["/executive"]}><AppRouter /><LocationProbe /></MemoryRouter></SessionProvider>);
     await waitFor(() => expect(screen.getByTestId("director-path")).toHaveTextContent("/director"));
-    expect(await screen.findByRole("heading", {name: "Панель диспетчера"})).toBeInTheDocument();
+    expect(await screen.findByRole("heading", {name: "Обзор объекта"}, {timeout:5000})).toBeInTheDocument();
   });
 
   it("opens the dispatcher panel and navigates to equipment", async () => {
@@ -35,7 +35,7 @@ describe("app routes", () => {
     renderAt("/dispatcher", "dispatcher");
 
     expect(
-      await screen.findByRole("heading", { name: "Панель диспетчера" }),
+      await screen.findByRole("heading", { name: "Рабочий день диспетчера" }),
     ).toBeInTheDocument();
 
     const equipmentLinks = screen.getAllByRole("link", {
@@ -49,7 +49,7 @@ describe("app routes", () => {
     expect(await screen.findByText("Тепловой пункт №1")).toBeInTheDocument();
   });
 
-  it.each([["director", "Панель диспетчера"], ["executor", "Мои задания"], ["engineer", "Панель диспетчера"]])("returns %s to their home when no workspace history exists", async (role, heading) => {
+  it.each([["director", "Обзор объекта"], ["executor", "Мои задания"], ["engineer", "Рабочий день инженера"]])("returns %s to their home when no workspace history exists", async (role, heading) => {
     const user=userEvent.setup();window.localStorage.setItem("fixrate.demo.role",role);
     render(<SessionProvider><MemoryRouter initialEntries={["/equipment", "/profile"]} initialIndex={1}><AppRouter /></MemoryRouter></SessionProvider>);
     await screen.findByRole("heading",{name:"Мой профиль"});
@@ -83,18 +83,16 @@ describe("app routes", () => {
     await waitFor(()=>expect(screen.getByTestId("route-location")).toHaveTextContent("/equipment?filter=active#list"));
   });
 
-  it("switches sidebar width using the logo", async () => {
-    const user=userEvent.setup();const view=renderAt("/dispatcher", "dispatcher");
-    await screen.findByRole("heading",{name:"Панель диспетчера"});
-    const side=view.container.querySelector(".ops-sidebar")!;
-    const toggle=view.container.querySelector<HTMLButtonElement>(".ops-sidebar-brand-control")!;
-    expect(toggle.closest("aside")).toBe(side);
-    const before=side.getAttribute("data-expanded");
-    await user.click(toggle);
-    expect(side.getAttribute("data-expanded")).not.toBe(before);
-    expect(toggle.getAttribute("aria-expanded")).toBe(side.getAttribute("data-expanded"));
-    await user.click(toggle);
-    expect(side.getAttribute("data-expanded")).toBe(before);
+  it("highlights the current section and sends the logo link to the role home", async () => {
+    const user=userEvent.setup();
+    renderAt("/dispatcher", "dispatcher");
+    await screen.findByRole("heading", {name:"Рабочий день диспетчера"});
+    expect(screen.getByRole("link", {name:"Рабочий день"})).toHaveAttribute("aria-current", "page");
+    await user.click(screen.getByRole("link", {name:"Оборудование"}));
+    await screen.findByRole("heading", {name:"Оборудование"});
+    expect(screen.getByRole("link", {name:"Оборудование"})).toHaveAttribute("aria-current", "page");
+    await user.click(screen.getByRole("link", {name:"FixRate AI"}));
+    expect(await screen.findByRole("heading", {name:"Рабочий день диспетчера"})).toBeVisible();
   });
 
   it("blocks a route outside the current role", async () => {
@@ -102,20 +100,20 @@ describe("app routes", () => {
 
     expect(
       await screen.findByRole("heading", {
-        name: "Раздел недоступен для текущей роли",
+        name: "Раздел недоступен",
       }),
     ).toBeInTheDocument();
   });
 
   it("opens mobile navigation and closes it with Escape", async () => {
     vi.stubGlobal("matchMedia", vi.fn((query: string) => ({
-      matches: query === "(max-width: 1023px)", media: query,
+      matches: query === "(max-width: 1099px)", media: query,
       addEventListener: vi.fn(), removeEventListener: vi.fn(),
     })));
     const user = userEvent.setup();
     renderAt("/dispatcher", "dispatcher");
 
-    await screen.findByRole("heading", { name: "Панель диспетчера" });
+    await screen.findByRole("heading", { name: "Рабочий день диспетчера" });
     await user.click(screen.getByRole("button", { name: "Открыть меню" }));
 
     expect(
@@ -160,15 +158,15 @@ describe("app routes", () => {
   it("retains one background across sections and executor shell, then removes session UI on logout", async () => {
     const user = userEvent.setup();
     const view = renderAt("/dispatcher", "dispatcher");
-    expect(await screen.findByLabelText("Панель диспетчера")).toBeVisible();
+    expect(await screen.findByRole("heading", {name:"Рабочий день диспетчера"})).toBeVisible();
     const canvas = view.container.querySelector(".workspace-aurora canvas");
     await user.click(screen.getByLabelText("Оборудование"));
     expect(await screen.findByText("Оборудование", { selector: "h1" })).toBeVisible();
     expect(view.container.querySelector(".workspace-aurora canvas")).toBe(canvas);
     await user.selectOptions(screen.getByLabelText("Демонстрационная роль"), "executor");
-    expect(await screen.findByText("Мои задания", { selector: "h1" })).toBeVisible();
+    expect(await screen.findByText("С чего начнём рабочий день?", { selector: "h1" })).toBeVisible();
     expect(view.container.querySelector(".workspace-aurora canvas")).toBe(canvas);
-    expect(view.container.querySelectorAll(".ops-sidebar")).toHaveLength(1);
+    expect(view.container.querySelectorAll(".ops-sidebar")).toHaveLength(0);
     expect(screen.getAllByRole("navigation")).toHaveLength(1);
     await user.click(screen.getByLabelText("Учётная запись"));
     await screen.findByRole("heading", { name: "Мой профиль" });
@@ -184,7 +182,7 @@ const PAGE_ROUTES: { path: string; role: string; heading: string }[] = [
   {
     path: "/dispatcher",
     role: "dispatcher",
-    heading: "Панель диспетчера",
+    heading: "Рабочий день диспетчера",
   },
   {
     path: "/equipment/e1000000-0000-4000-8000-000000000001",
@@ -219,7 +217,7 @@ const PAGE_ROUTES: { path: string; role: string; heading: string }[] = [
   {
     path: "/quality",
     role: "engineer",
-    heading: "Контроль качества и приёмка",
+    heading: "Приёмка работ",
   },
   {
     path: "/quality/b1000000-0000-4000-8000-000000000004",

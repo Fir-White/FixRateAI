@@ -37,19 +37,16 @@ async function login(page: Page, email = "qa@workspace.test") {
 
 test.beforeEach(async () => { test.skip(!process.env.FIXRATE_BASE_URL, "Requires the running local application"); });
 
-test("reload retains sidebar width, page scroll, month and filters without leaking to another account", async ({ page, context }) => {
+test("reload retains page scroll, month and filters without leaking to another account", async ({ page, context }) => {
   await fixtures(context);
   await page.setViewportSize({ width: 1440, height: 500 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await login(page);
-  for (const expanded of [false, true]) {
-    await page.locator(".ops-sidebar-brand-control").click();
-    await page.evaluate(() => scrollTo(0, 300));
-    await expect.poll(() => page.evaluate(() => scrollY)).toBe(300);
-    await page.reload();
-    await expect(page.locator(".ops-shell")).toHaveAttribute("data-sidebar-expanded", String(expanded));
-    await expect.poll(() => page.evaluate(() => scrollY)).toBe(300);
-  }
+  await page.evaluate(() => scrollTo(0, 300));
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(300);
+  await page.reload();
+  await expect(page.getByRole("navigation",{name:"Основная навигация"})).toBeVisible();
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(300);
   await page.goto("/equipment");
   await page.getByRole('textbox',{name:'Поиск по реестру'}).fill("Насос");
   await page.getByRole('tab',{name:/Без группы/}).click();

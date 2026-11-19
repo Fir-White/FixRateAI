@@ -1,0 +1,44 @@
+{
+  "results": [
+    {
+      "name": "Catalog import → close without a business write",
+      "status": "PASS"
+    },
+    {
+      "name": "Plan → version confirmation → cancel",
+      "status": "PASS"
+    },
+    {
+      "name": "Calendar month → week via compact tabs",
+      "status": "PASS"
+    },
+    {
+      "name": "Executor steps retain separate final report",
+      "status": "PASS"
+    },
+    {
+      "name": "Acceptance → facts → return to decision",
+      "status": "PASS"
+    },
+    {
+      "name": "Employee → qualifications",
+      "status": "PASS",
+      "method": "Native wheel scroll, visible group bounds, physical pointer click; no business write"
+    },
+    {
+      "name": "AI send → chat with timestamps",
+      "status": "PASS"
+    },
+    {
+      "name": "Mobile chat → model picker → back",
+      "status": "PASS"
+    },
+    {
+      "name": "Profile → protected password dialog → close",
+      "status": "PASS"
+    }
+  ],
+  "businessCommandsSent": false,
+  "scope": "Penpot Viewer only; native scroll and pointer targets; no application API writes",
+  "retryNote": "Two original pointer clicks targeted offscreen text; corrected by native scrolling and current visible group bounds. Hidden preloaded text is excluded."
+}

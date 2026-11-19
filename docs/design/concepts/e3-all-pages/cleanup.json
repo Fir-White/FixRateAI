@@ -1,0 +1,212 @@
+{
+  "authorization": "Owner requested removal of unnecessary pages and explicitly protected Core Workflows and Visual Exploration.",
+  "version": "Before page cleanup · E3 expansion · 2026-11-17",
+  "removed": [
+    {
+      "id": "13ac3151-58c1-801c-8008-f58dd57a60a8",
+      "name": "Page 1"
+    },
+    {
+      "id": "49971623-0b20-806c-8008-f58df6ad011c",
+      "name": "10 · Концепт A · Фокус"
+    },
+    {
+      "id": "49971623-0b20-806c-8008-f58e01c1f3f2",
+      "name": "11 · Концепт B · Рабочая пара"
+    },
+    {
+      "id": "49971623-0b20-806c-8008-f58e0a583362",
+      "name": "12 · Концепт C · Светлая мастерская"
+    },
+    {
+      "id": "49971623-0b20-806c-8008-f58e11473774",
+      "name": "20 · Исполнитель · AI-главная"
+    },
+    {
+      "id": "49971623-0b20-806c-8008-f58e1b93b8ac",
+      "name": "30 · AI-диалог · Главный инженер"
+    },
+    {
+      "id": "49971623-0b20-806c-8008-f58e248a0eff",
+      "name": "31 · AI-диалог · Исполнитель"
+    },
+    {
+      "id": "7736ee33-deb6-8079-8008-f5905b6f43df",
+      "name": "00 · Navigation Map"
+    },
+    {
+      "id": "7736ee33-deb6-8079-8008-f590683e87a1",
+      "name": "90 · Foundations"
+    },
+    {
+      "id": "7736ee33-deb6-8079-8008-f5915d2bfd9a",
+      "name": "D · FixRate Intelligence · High Fidelity"
+    },
+    {
+      "id": "7736ee33-deb6-8079-8008-f592a1de0ce4",
+      "name": "D · Design System"
+    }
+  ],
+  "remaining": [
+    {
+      "id": "7736ee33-deb6-8079-8008-f59061ee843b",
+      "name": "40 · Переход · Motion"
+    },
+    {
+      "id": "ecd29d2d-0751-800b-8008-f5988773752e",
+      "name": "E · Visual Exploration · Chief Engineer"
+    },
+    {
+      "id": "582936bd-dbb0-8088-8008-f5a1cedb5ec8",
+      "name": "E3 · Core Workflows"
+    },
+    {
+      "id": "5d5eb894-14d3-80f0-8008-f5c133728c40",
+      "name": "E3 · All Pages"
+    }
+  ],
+  "currentPageResolution": "Both observed current pages retained: initial Motion and original All Pages, now 02 Workspaces with its original page ID.",
+  "retainedNow": [
+    {
+      "id": "7736ee33-deb6-8079-8008-f59061ee843b",
+      "name": "40 · Переход · Motion",
+      "section": null,
+      "frames": 0
+    },
+    {
+      "id": "ecd29d2d-0751-800b-8008-f5988773752e",
+      "name": "E · Visual Exploration · Chief Engineer",
+      "section": null,
+      "frames": 0
+    },
+    {
+      "id": "582936bd-dbb0-8088-8008-f5a1cedb5ec8",
+      "name": "E3 · Core Workflows",
+      "section": null,
+      "frames": 0
+    },
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5cad639421f",
+      "name": "E3 · 01 Вход и доступ",
+      "section": "Access",
+      "frames": 12
+    },
+    {
+      "id": "5d5eb894-14d3-80f0-8008-f5c133728c40",
+      "name": "E3 · 02 Рабочий день",
+      "section": "Workspaces",
+      "frames": 12
+    },
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5cf5b920376",
+      "name": "E3 · 03 Файлы и операции",
+      "section": "Catalogs",
+      "frames": 12
+    },
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5cfad459077",
+      "name": "E3 · 04 Планирование",
+      "section": "Planning",
+      "frames": 18
+    },
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5d01edddce7",
+      "name": "E3 · 05 Календарь",
+      "section": "Calendar",
+      "frames": 12
+    },
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5cb29c2d870",
+      "name": "E3 · 06 Оборудование",
+      "section": "Equipment",
+      "frames": 18
+    },
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5cce36fc105",
+      "name": "E3 · 07 Регламенты",
+      "section": "Regulations",
+      "frames": 10
+    },
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5d07f23162a",
+      "name": "E3 · 08 Задания",
+      "section": "Tasks",
+      "frames": 10
+    },
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5d12933308f",
+      "name": "E3 · 09 Исполнение",
+      "section": "Executor",
+      "frames": 16
+    },
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5d16fc2f35b",
+      "name": "E3 · 10 Приёмка",
+      "section": "Quality",
+      "frames": 16
+    },
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5d1b44e8e54",
+      "name": "E3 · 11 Команда",
+      "section": "Team",
+      "frames": 20
+    },
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5d28532d822",
+      "name": "E3 · 12 Личный календарь",
+      "section": "Shifts",
+      "frames": 4
+    },
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5d29ef75fd4",
+      "name": "E3 · 13 Прогнозы",
+      "section": "Forecasts",
+      "frames": 4
+    },
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5d2b2b5fb10",
+      "name": "E3 · 14 Отчёты",
+      "section": "Reports",
+      "frames": 2
+    },
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5d2ba98bb7c",
+      "name": "E3 · 15 AI-помощник",
+      "section": "Assistant",
+      "frames": 18
+    },
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5d30ca3ef0e",
+      "name": "E3 · 16 Профиль",
+      "section": "Profile",
+      "frames": 8
+    },
+    {
+      "id": "a27ef1c6-05d8-806c-8008-f5d32e8b6bf0",
+      "name": "E3 · 17 Общие панели",
+      "section": "Shared",
+      "frames": 14
+    }
+  ],
+  "finalVersion": {
+    "label": "E3 · All pages · Final QA · 2026-11-17",
+    "revision": 208
+  },
+  "protectedFingerprints": [
+    {
+      "id": "7736ee33-deb6-8079-8008-f59061ee843b",
+      "name": "40 · Переход · Motion",
+      "hash": "6e2d2ad4"
+    },
+    {
+      "id": "ecd29d2d-0751-800b-8008-f5988773752e",
+      "name": "E · Visual Exploration · Chief Engineer",
+      "hash": "a91e6ce5"
+    },
+    {
+      "id": "582936bd-dbb0-8088-8008-f5a1cedb5ec8",
+      "name": "E3 · Core Workflows",
+      "hash": "195390c1"
+    }
+  ]
+}

@@ -1,0 +1,116 @@
+{
+  "date": "2026-11-17",
+  "scope": "Owner requested exact supplied SVG transfer; React reconstruction and 103-screen semantic/text reconstruction are not claimed complete",
+  "penpot_version": "2.19.2",
+  "file_id": "8b7de69e-e368-81a5-8008-f56e9f0afb7c",
+  "project_id": "8b7de69e-e368-81a5-8008-f56e5c02ec42",
+  "file_name": "FixRate AI — SVG Baseline",
+  "local_url": "http://localhost:9001",
+  "supplied_files": 3,
+  "unique_sources": 2,
+  "imported_unique_sources": 2,
+  "duplicate": {
+    "file": "FixRate AI — UI Design-1.svg",
+    "same_as": "FixRate AI — UI Design.svg",
+    "action": "preserved privately; not duplicated on canvas"
+  },
+  "entries": [
+    {
+      "source_file": "FixRate AI — UI Design.svg",
+      "bytes": 86120335,
+      "sha256": "fd7146fb7da133c3c8f06aa19a452ecc8cd9ebc4d7d12ec002651e9f99e0ed2b",
+      "source_canvas": [
+        5080,
+        55287
+      ],
+      "penpot_page_id": "f4927f58-4ade-808b-8008-f57888723c1d",
+      "penpot_page_name": "01 · SVG · UI Design · Original",
+      "penpot_group_id": "12f00795-99b5-80fb-8008-f57d1bd0e71a",
+      "penpot_canvas_id": "12f00795-99b5-80fb-8008-f57e36729f29",
+      "penpot_url": "http://localhost:9001/?screen=workspace&team-id=8b7de69e-e368-81a5-8008-f56e4d02d5b0&project-id=8b7de69e-e368-81a5-8008-f56e5c02ec42&file-id=8b7de69e-e368-81a5-8008-f56e9f0afb7c&page-id=f4927f58-4ade-808b-8008-f57888723c1d",
+      "native_objects": 12998,
+      "native_types": {
+        "frame": 2,
+        "path": 11267,
+        "rect": 790,
+        "group": 716,
+        "svg-raw": 223
+      },
+      "status": "imported_and_saved",
+      "text_representation": "outlines from supplied SVG; not editable text strings"
+    },
+    {
+      "source_file": "Container.svg",
+      "bytes": 1971307,
+      "sha256": "a2b654790f2204fe22f0e12c7a1889b91666d0a490537183c66b58b0ba090a66",
+      "source_canvas": [
+        1440,
+        1987
+      ],
+      "penpot_page_id": "f4927f58-4ade-808b-8008-f5771173c6bf",
+      "penpot_page_name": "02 · SVG · Desktop · Container",
+      "penpot_group_id": "f4927f58-4ade-808b-8008-f577a6e1a997",
+      "penpot_canvas_id": null,
+      "penpot_url": "http://localhost:9001/?screen=workspace&team-id=8b7de69e-e368-81a5-8008-f56e4d02d5b0&project-id=8b7de69e-e368-81a5-8008-f56e5c02ec42&file-id=8b7de69e-e368-81a5-8008-f56e9f0afb7c&page-id=f4927f58-4ade-808b-8008-f5771173c6bf",
+      "native_objects": 290,
+      "native_types": {
+        "frame": 1,
+        "path": 266,
+        "rect": 11,
+        "svg-raw": 4,
+        "group": 8
+      },
+      "status": "imported_and_saved",
+      "text_representation": "outlines from supplied SVG; not editable text strings"
+    }
+  ],
+  "checks": {
+    "native_mcp_import": "PASS",
+    "saved_revision": 7,
+    "fresh_profile_login": "PASS (HTTP 200)",
+    "browser_reopen_and_mcp_readback": "PASS",
+    "container_stack_restart": "PENDING",
+    "native_backup_crc": "PASS",
+    "native_backup_object_ids": "PASS",
+    "source_preservation": "PASS"
+  },
+  "visual": {
+    "container": {
+      "source": [
+        1440,
+        1987
+      ],
+      "penpot": [
+        1440,
+        1987
+      ],
+      "mean_channel_difference_0_255": 0.43623553095118267,
+      "method": "full-size source SVG browser render vs native Penpot export"
+    },
+    "large": {
+      "source_size": [
+        1270,
+        13822
+      ],
+      "penpot_size": [
+        635,
+        6911
+      ],
+      "mean_channel_difference_0_255": 1.4279380393613437,
+      "rms": 5.084250125198733,
+      "comparison": "native Penpot render .125 versus source SVG browser render .25 downsampled"
+    },
+    "assessment": "Same source layout and dimensions; cross-renderer antialiasing/filter differences exist. Pixel identity is not claimed."
+  },
+  "backup": {
+    "native_backup": "var\\penpot-migration-20261117\\FixRate-AI-SVG-Baseline.penpot",
+    "bytes": 58600420,
+    "sha256": "77359f30715955e2655bd259ea9f30cdb727ef7157ca3e0718baed2db0c2e99a",
+    "crc": "PASS"
+  },
+  "limitations": [
+    "SVG text was already converted to paths before import; native editable text strings and Auto Layout are not reconstructed.",
+    "The original 103-frame Figma manifest is preserved; per-screen Figma Frame ID mapping and 60/43 completeness are not verified by importing two flat SVGs.",
+    "Large SVG has nearly 13000 objects; rendering and whole-file saves can take tens of seconds. Default exporter 10-second screenshot timeout is insufficient; manual native render was verified."
+  ]
+}

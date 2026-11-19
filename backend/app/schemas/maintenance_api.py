@@ -294,7 +294,7 @@ class RolePermissions(ApiModel):
 ROLE_PERMISSIONS: dict[str, tuple[str, ...]] = {
     "admin": ("reference:read", "reference:write", "users:write"),
     "director": ("equipment:read","schedule:read","task:read","history:read","reports:read"),
-    "chief_engineer": ("equipment:write","operation:write","regulation:approve","schedule:approve","task:assign","task:reopen","execution:accept","exception:approve"),
+    "chief_engineer": ("reference:read","reference:write","users:write","equipment:read","equipment:write","operation:write","regulation:approve","schedule:write","schedule:approve","task:assign","task:reopen","execution:accept","exception:approve"),
     "dispatcher": ("equipment:read", "schedule:write", "task:assign"),
     "executor": ("task:read_assigned", "execution:write", "photo:write"),
     "engineer": ("equipment:read", "schedule:write","task:assign","execution:read", "execution:accept", "forecast:read"),
