@@ -1,17 +1,17 @@
 {
   "format_version": 1,
-  "catalog_sha256": "64de0e8c968148a4a6cfdfda815f44ee6bb316e052a5bf93980b3a9c0052c0f4",
+  "catalog_sha256": "7ffeb35051ba8e391861c10d2e67a692a557ab195ec98bd320b07cb76e0724c3",
   "acceptance_rule": "A finished response, registered tool, HTTP 200, negative boundary test, mocked completion or successful individual call does not prove the user goal. Positive acceptance requires an independently verified final result and data state for this exact role/operation.",
   "generative_policy": "Installed local Ollama only; no external LLM/fallback, weight downloads or runtime user preference changes.",
   "summary": {
-    "operations": 173,
-    "role_operation_cells": 708,
+    "operations": 178,
+    "role_operation_cells": 721,
     "by_role": {
       "director": 90,
-      "chief_engineer": 163,
+      "chief_engineer": 173,
       "engineer": 124,
-      "dispatcher": 136,
-      "admin": 141,
+      "dispatcher": 135,
+      "admin": 145,
       "executor": 54
     },
     "verification": {
@@ -19,31 +19,31 @@
         "passed": 17,
         "failed": 0,
         "skipped": 0,
-        "not_run": 691
+        "not_run": 704
       },
       "positive_e2e": {
         "passed": 17,
         "failed": 0,
         "skipped": 0,
-        "not_run": 691
+        "not_run": 704
       },
       "negative": {
         "passed": 1,
         "failed": 0,
         "skipped": 0,
-        "not_run": 707
+        "not_run": 720
       },
       "mocked": {
         "passed": 0,
         "failed": 0,
         "skipped": 0,
-        "not_run": 708
+        "not_run": 721
       },
       "api_domain": {
         "passed": 0,
         "failed": 0,
         "skipped": 0,
-        "not_run": 708
+        "not_run": 721
       }
     }
   },
@@ -5090,6 +5090,336 @@
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
     {
+      "operation": "source_xlsx_preview",
+      "title": "Проверить согласованный исходный XLSX без записи",
+      "method": "POST",
+      "path": "/api/v1/maintenance/source/xlsx/preview",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "denied_roles": [
+        "director",
+        "engineer",
+        "dispatcher",
+        "executor"
+      ],
+      "requires_confirmation": false,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [
+        "file"
+      ],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Preview the selected private maintenance workbook",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Do not confirm any unrelated mutation; this operation has a read-only outcome.",
+        "postconditions": [
+          "Rows, cell references, source hash and unknown columns match the owned attachment; the catalog and revision queue are unchanged.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "Business state is unchanged by this read/preview."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_source_import.py::test_confirmed_source_import_round_trip_and_scoped_outbox"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "source_xlsx_import",
+      "title": "Атомарно импортировать согласованный исходный XLSX",
+      "method": "POST",
+      "path": "/api/v1/maintenance/source/xlsx/import",
+      "roles": [
+        "chief_engineer"
+      ],
+      "denied_roles": [
+        "director",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "requires_confirmation": true,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [
+        "file"
+      ],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Import this reviewed workbook as a draft for the selected system and date",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Review the exact target/diff and confirm only the intended action with its own payload hash.",
+        "postconditions": [
+          "After confirmation exactly one scoped source, draft rule set, audit record and pending event match the attachment; replay of the same hash creates no extra revision or live work.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "No business mutation before the concrete human confirmation; repeated confirmation cannot duplicate the result."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_source_import.py::test_confirmed_source_import_round_trip_and_scoped_outbox"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "source_xlsx_export",
+      "title": "Выгрузить сохранённый исходный XLSX",
+      "method": "GET",
+      "path": "/api/v1/maintenance/source/xlsx/export",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "denied_roles": [
+        "director",
+        "engineer",
+        "dispatcher",
+        "executor"
+      ],
+      "requires_confirmation": false,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Download the selected saved source workbook",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Do not confirm any unrelated mutation; this operation has a read-only outcome.",
+        "postconditions": [
+          "The exported workbook preserves the scoped source rows and unknown columns; a foreign hash yields no file.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "Business state is unchanged by this read/preview."
+        ]
+      },
+      "candidate_test_mentions": [],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "source_revisions",
+      "title": "Очередь событий переиндексации исходного каталога",
+      "method": "GET",
+      "path": "/api/v1/maintenance/source/revisions",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "denied_roles": [
+        "director",
+        "engineer",
+        "dispatcher",
+        "executor"
+      ],
+      "requires_confirmation": false,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "List catalog indexing events with the requested status",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Do not confirm any unrelated mutation; this operation has a read-only outcome.",
+        "postconditions": [
+          "Event identifiers, revisions and status match the selected site's persisted queue; another site's events are absent.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "Business state is unchanged by this read/preview."
+        ]
+      },
+      "candidate_test_mentions": [],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "source_revision_publish",
+      "title": "Подтвердить обработку события переиндексации",
+      "method": "POST",
+      "path": "/api/v1/maintenance/source/revisions/{event_id}/published",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "denied_roles": [
+        "director",
+        "engineer",
+        "dispatcher",
+        "executor"
+      ],
+      "requires_confirmation": true,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Mark the selected completed indexing event as published",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Review the exact target/diff and confirm only the intended action with its own payload hash.",
+        "postconditions": [
+          "Only the scoped pending event acquires a publication timestamp after confirmation; repeating the action creates no new event or transition.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "No business mutation before the concrete human confirmation; repeated confirmation cannot duplicate the result."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_source_import.py::test_confirmed_source_import_round_trip_and_scoped_outbox"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
       "operation": "sites_list",
       "title": "Доступные мне здания",
       "method": "GET",
@@ -5449,7 +5779,7 @@
     },
     {
       "operation": "user_roles",
-      "title": "Своя роль; администратору — роль сотрудника",
+      "title": "Своя роль; главному инженеру и администратору — роль сотрудника",
       "method": "GET",
       "path": "/api/v1/maintenance/users/{user_id}/roles",
       "roles": [
@@ -5508,11 +5838,11 @@
       "method": "GET",
       "path": "/api/v1/maintenance/users",
       "roles": [
-        "admin"
+        "admin",
+        "chief_engineer"
       ],
       "denied_roles": [
         "director",
-        "chief_engineer",
         "engineer",
         "dispatcher",
         "executor"
@@ -5555,7 +5885,9 @@
           "Business state is unchanged by this read/preview."
         ]
       },
-      "candidate_test_mentions": [],
+      "candidate_test_mentions": [
+        "tests/backend/test_assistant_capabilities.py::test_entire_authenticated_business_api_is_accounted_for"
+      ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
     {
@@ -5564,11 +5896,11 @@
       "method": "GET",
       "path": "/api/v1/maintenance/management/enrollment",
       "roles": [
-        "admin"
+        "admin",
+        "chief_engineer"
       ],
       "denied_roles": [
         "director",
-        "chief_engineer",
         "engineer",
         "dispatcher",
         "executor"
@@ -5612,6 +5944,7 @@
         ]
       },
       "candidate_test_mentions": [
+        "tests/backend/test_assistant_capabilities.py::test_entire_authenticated_business_api_is_accounted_for",
         "tests/backend/test_assistant_fact_presenter.py::test_nested_credentials_and_trace_are_omitted_with_visible_notice",
         "tests/backend/test_assistant_orchestrator_live_reads.py::test_admin_enrollment_read_delivers_protected_link_without_secret_in_model_or_history",
         "tests/backend/test_assistant_outcome_contracts.py::test_enrollment_contract_accepts_only_the_protected_same_origin_handoff",
@@ -5629,11 +5962,11 @@
       "method": "POST",
       "path": "/api/v1/maintenance/management/enrollment",
       "roles": [
-        "admin"
+        "admin",
+        "chief_engineer"
       ],
       "denied_roles": [
         "director",
-        "chief_engineer",
         "engineer",
         "dispatcher",
         "executor"
@@ -5677,6 +6010,7 @@
         ]
       },
       "candidate_test_mentions": [
+        "tests/backend/test_assistant_capabilities.py::test_entire_authenticated_business_api_is_accounted_for",
         "tests/backend/test_assistant_protected_outputs.py::test_confirm_create_never_persists_code_in_action_or_conversation",
         "tests/backend/test_assistant_protected_outputs.py::test_legacy_action_serializer_and_resume_scrub_secret_and_old_hash_without_mutating_input",
         "tests/backend/test_assistant_protected_outputs.py::test_own_legacy_explanation_and_goal_response_mask_exact_known_code_only"
@@ -5689,11 +6023,11 @@
       "method": "POST",
       "path": "/api/v1/maintenance/management/applications/{application_id}/decision",
       "roles": [
-        "admin"
+        "admin",
+        "chief_engineer"
       ],
       "denied_roles": [
         "director",
-        "chief_engineer",
         "engineer",
         "dispatcher",
         "executor"
@@ -5736,7 +6070,9 @@
           "No business mutation before the concrete human confirmation; repeated confirmation cannot duplicate the result."
         ]
       },
-      "candidate_test_mentions": [],
+      "candidate_test_mentions": [
+        "tests/backend/test_assistant_capabilities.py::test_entire_authenticated_business_api_is_accounted_for"
+      ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
     {
@@ -5745,11 +6081,11 @@
       "method": "PUT",
       "path": "/api/v1/maintenance/management/staff/{user_id}",
       "roles": [
-        "admin"
+        "admin",
+        "chief_engineer"
       ],
       "denied_roles": [
         "director",
-        "chief_engineer",
         "engineer",
         "dispatcher",
         "executor"
@@ -6536,13 +6872,13 @@
       "method": "POST",
       "path": "/api/v1/maintenance/management/equipment-types",
       "roles": [
-        "chief_engineer",
-        "dispatcher",
-        "admin"
+        "admin",
+        "chief_engineer"
       ],
       "denied_roles": [
         "director",
         "engineer",
+        "dispatcher",
         "executor"
       ],
       "requires_confirmation": true,
@@ -6585,7 +6921,9 @@
           "No business mutation before the concrete human confirmation; repeated confirmation cannot duplicate the result."
         ]
       },
-      "candidate_test_mentions": [],
+      "candidate_test_mentions": [
+        "tests/backend/test_assistant_capabilities.py::test_entire_authenticated_business_api_is_accounted_for"
+      ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
     {
@@ -21866,6 +22204,249 @@
       }
     },
     {
+      "operation": "source_xlsx_preview",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "source_xlsx_preview",
+      "role": "admin",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "source_xlsx_import",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "source_xlsx_export",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "source_xlsx_export",
+      "role": "admin",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "source_revisions",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "source_revisions",
+      "role": "admin",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "source_revision_publish",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "source_revision_publish",
+      "role": "admin",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
       "operation": "sites_list",
       "role": "director",
       "registered": true,
@@ -23027,6 +23608,33 @@
       }
     },
     {
+      "operation": "users_list",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
       "operation": "enrollment_read",
       "role": "admin",
       "registered": true,
@@ -23256,6 +23864,33 @@
       }
     },
     {
+      "operation": "enrollment_read",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
       "operation": "enrollment_create",
       "role": "admin",
       "registered": true,
@@ -23283,8 +23918,62 @@
       }
     },
     {
+      "operation": "enrollment_create",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
       "operation": "application_decide",
       "role": "admin",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "application_decide",
+      "role": "chief_engineer",
       "registered": true,
       "verification": {
         "reachability": {
@@ -23455,6 +24144,33 @@
               "note": "Failed attempts retained. A reply marked completed is not a positive business outcome."
             }
           ]
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "staff_edit",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
         },
         "negative": {
           "status": "not_run",
@@ -24795,61 +25511,34 @@
     },
     {
       "operation": "equipment_type_create",
-      "role": "chief_engineer",
-      "registered": true,
-      "verification": {
-        "reachability": {
-          "status": "not_run",
-          "records": []
-        },
-        "positive_e2e": {
-          "status": "not_run",
-          "records": []
-        },
-        "negative": {
-          "status": "not_run",
-          "records": []
-        },
-        "mocked": {
-          "status": "not_run",
-          "records": []
-        },
-        "api_domain": {
-          "status": "not_run",
-          "records": []
-        }
-      }
-    },
-    {
-      "operation": "equipment_type_create",
-      "role": "dispatcher",
-      "registered": true,
-      "verification": {
-        "reachability": {
-          "status": "not_run",
-          "records": []
-        },
-        "positive_e2e": {
-          "status": "not_run",
-          "records": []
-        },
-        "negative": {
-          "status": "not_run",
-          "records": []
-        },
-        "mocked": {
-          "status": "not_run",
-          "records": []
-        },
-        "api_domain": {
-          "status": "not_run",
-          "records": []
-        }
-      }
-    },
-    {
-      "operation": "equipment_type_create",
       "role": "admin",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "equipment_type_create",
+      "role": "chief_engineer",
       "registered": true,
       "verification": {
         "reachability": {

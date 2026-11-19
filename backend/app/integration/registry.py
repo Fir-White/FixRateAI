@@ -13,7 +13,7 @@ from sqlalchemy.orm import joinedload
 from app.db.session import service_transaction
 from app.files import MAX_BYTES, validate_upload
 from app.schemas.registry import BuildingCreate, ComponentCreate, ComponentMetadata, ComponentReplacement, SiteSelection, SystemEdit, UsageReading
-from app.security.sessions import COOKIE, Principal, SQL_ROLES, create_session, digest
+from app.security.sessions import COOKIE, Principal, SQL_ROLES, create_session, digest, role_is_enabled
 from app.storage import safe_storage_path
 from .assignments import _lock
 from .management import PREFIX, _audit, _edit, _equipment, _guard, _revision, equipment_response, service_configurations
@@ -110,7 +110,8 @@ def register_routes(app, views, storage, runtime_settings):
         rows = v.session.execute(text('''SELECT s.site_id,s.name,s.address,s.timezone,m.role FROM sites s
             JOIN site_memberships m USING(site_id) WHERE m.user_id=:user AND m.is_active AND s.is_active ORDER BY s.name,s.site_id'''),
             dict(user=v.principal.user_id)).mappings().all()
-        return [dict(r, role=SQL_ROLES[r['role']]) for r in rows if r['role'] in SQL_ROLES]
+        return [dict(r, role=SQL_ROLES[r['role']]) for r in rows
+                if r['role'] in SQL_ROLES and role_is_enabled(SQL_ROLES[r['role']])]
 
     @app.post('/api/v1/auth/site')
     def switch_site(command: SiteSelection, request: Request, response: Response, v=Depends(views)):
@@ -119,7 +120,8 @@ def register_routes(app, views, storage, runtime_settings):
                 JOIN site_memberships m USING(site_id) JOIN users u USING(user_id)
                 WHERE m.user_id=:user AND s.site_id=:site AND m.is_active AND s.is_active AND u.is_active FOR SHARE OF s,m,u'''),
                 dict(user=v.principal.user_id, site=command.site_id)).mappings().first()
-            if not member or member['role'] not in SQL_ROLES: raise HTTPException(403, 'Нет доступа к зданию')
+            if not member or member['role'] not in SQL_ROLES or not role_is_enabled(SQL_ROLES[member['role']]):
+                raise HTTPException(403, 'Нет доступа к зданию')
             token, csrf = create_session(v.session, v.principal.user_id, command.site_id)
             v.session.execute(text('DELETE FROM fixrate_sessions WHERE token_hash=:token'), dict(token=digest(request.cookies[COOKIE])))
             who = Principal(v.principal.user_id, command.site_id, SQL_ROLES[member['role']], member['full_name'], member['email'], member['name'], member['timezone'])

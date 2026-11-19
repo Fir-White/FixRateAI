@@ -1,5 +1,7 @@
 import pytest
 
+from app.security.sessions import role_is_enabled
+
 from app.security.authorization import (
     AuthorizationError,
     has_any_role,
@@ -60,3 +62,19 @@ def test_require_any_role_rejects_empty_user_roles() -> None:
             user_roles=[],
             allowed_roles=["admin"],
         )
+
+
+def test_role_gate_accepts_target_profile(monkeypatch) -> None:
+    monkeypatch.setenv("FIXRATE_ACTIVE_ROLES", "chief_engineer,executor,admin")
+    assert role_is_enabled("chief_engineer")
+    assert role_is_enabled("executor")
+    assert role_is_enabled("admin")
+    assert not role_is_enabled("director")
+    assert not role_is_enabled("dispatcher")
+    assert not role_is_enabled("engineer")
+
+
+def test_role_gate_preserves_empty_compatibility_profile(monkeypatch) -> None:
+    monkeypatch.setenv("FIXRATE_ACTIVE_ROLES", "")
+    assert role_is_enabled("director")
+    assert role_is_enabled("engineer")

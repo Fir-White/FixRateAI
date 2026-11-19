@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date,datetime,time,timedelta,timezone
 from decimal import Decimal
 from typing import Literal
+from urllib.parse import quote
 from uuid import UUID
 from io import BytesIO
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -14,6 +15,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, ConfigDict, Field, AwareDatetime, model_validator
 from sqlalchemy import select, text, delete, update
 from sqlalchemy.dialects.postgresql import insert
+from app.db.session import service_transaction
 from app.security.sessions import Principal, has_role
 
 PREFIX='/api/v1/maintenance'
@@ -153,6 +155,89 @@ def register_analyst_routes(app,views,photo_path,editable):
         if v.principal.role!='chief_engineer':raise HTTPException(403,'Нужна роль главного инженера')
     def revise(order,payload):
         if order.revision!=payload.expected_revision:raise HTTPException(409,'REVISION_CONFLICT: обновите данные')
+
+    @app.post(PREFIX+'/source/xlsx/preview')
+    async def source_preview(file: UploadFile = File(...), v=Depends(views)):
+        if v.principal.role not in ('chief_engineer', 'admin'):
+            raise HTTPException(403, 'Импорт источника доступен главному инженеру')
+        data = await file.read(10_485_761)
+        if len(data) > 10_485_760:
+            raise HTTPException(422, 'XLSX-файл слишком большой')
+        try:
+            from .source_import import parse_workbook, preview
+            return preview(parse_workbook(data))
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from None
+
+    @app.post(PREFIX+'/source/xlsx/import')
+    async def source_import(
+        system_id: UUID = Form(...),
+        effective_from: date = Form(...),
+        file: UploadFile = File(...),
+        v=Depends(views),
+    ):
+        if v.principal.role != 'chief_engineer':
+            raise HTTPException(403, 'Импорт источника выполняет главный инженер')
+        from .source_import import import_workbook, read_upload
+        _, workbook = await read_upload(file)
+        with service_transaction(v.session):
+            result = import_workbook(
+                v.session, v.principal, workbook, system_id, effective_from,
+                file.filename or 'source.xlsx',
+            )
+            v.session.flush()
+            return result
+
+    @app.get(PREFIX+'/source/xlsx/export')
+    def source_export(source_sha256: str, v=Depends(views)):
+        if v.principal.role not in ('chief_engineer', 'admin'):
+            raise HTTPException(403, 'Экспорт источника доступен главному инженеру')
+        source = v.session.execute(text("""
+            SELECT source_name, source_rows
+            FROM source_imports
+            WHERE site_id=:site AND source_sha256=:sha
+        """), {'site': v.principal.site_id, 'sha': source_sha256}).mappings().first()
+        if source is None:
+            raise HTTPException(404, 'Источник не найден')
+        from .source_import import export_workbook
+        filename = str(source['source_name'])[:200] or 'source.xlsx'
+        if not filename.lower().endswith('.xlsx'):
+            filename += '.xlsx'
+        encoded_filename = quote(filename, safe='')
+        return Response(
+            export_workbook(source['source_rows']),
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={'Content-Disposition': f"attachment; filename=\"source.xlsx\"; filename*=UTF-8''{encoded_filename}",
+                     'Cache-Control': 'private, no-store'},
+        )
+
+    @app.get(PREFIX+'/source/revisions')
+    def source_revisions(status: Literal['pending','published','failed']='pending', v=Depends(views)):
+        if v.principal.role not in ('chief_engineer', 'admin'):
+            raise HTTPException(403, 'Очередь индексации доступна главному инженеру')
+        rows = v.session.execute(text("""
+            SELECT event_id,scope,source_revision,source_sha256,entity_type,entity_id,
+                   change_type,payload,status,created_at,published_at
+            FROM source_revision_events
+            WHERE site_id=:site AND status=:status
+            ORDER BY created_at,event_id
+        """), {'site': v.principal.site_id, 'status': status}).mappings().all()
+        return [dict(row) for row in rows]
+
+    @app.post(PREFIX+'/source/revisions/{event_id}/published')
+    def publish_source_revision(event_id: UUID, v=Depends(views)):
+        if v.principal.role not in ('chief_engineer', 'admin'):
+            raise HTTPException(403, 'Подтверждение индексации доступно главному инженеру')
+        result = v.session.execute(text("""
+            UPDATE source_revision_events
+            SET status='published',published_at=now()
+            WHERE site_id=:site AND event_id=:event AND status='pending'
+            RETURNING event_id,status,published_at
+        """), {'site': v.principal.site_id, 'event': event_id}).mappings().first()
+        if result is None:
+            raise HTTPException(404, 'Событие не найдено или уже обработано')
+        v.session.commit()
+        return dict(result)
 
     @app.get(PREFIX+'/checklist-catalog')
     def catalog(v=Depends(views)):

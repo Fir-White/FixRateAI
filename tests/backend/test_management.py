@@ -42,6 +42,8 @@ def managed(runtime):
         if hasattr(admin,"chief"):admin.chief.close()
         admin.close()
         with engine.begin() as c:
+            for table in ('source_revision_events','source_imports'):
+                c.execute(text(f'DELETE FROM {table} WHERE site_id=:site'),dict(site=site))
             c.execute(text("UPDATE draft_publication_proposals SET state=CASE WHEN state='published' THEN 'approved' ELSE state END,publication_id=NULL WHERE site_id=:site"),dict(site=site))
             for table in ('published_catalog_tasks','published_catalog_obligations','draft_publications','draft_publication_proposals'):
                 c.execute(text(f'DELETE FROM {table} WHERE site_id=:site'),dict(site=site))
@@ -206,6 +208,41 @@ def test_last_access_manager_and_staff_scope_are_protected(managed):
     assert foreign
     assert chief.get(PREFIX+f'/users/{foreign}/roles').status_code==404
     assert chief.put(PREFIX+f'/management/staff/{foreign}',json=command).status_code==404
+
+
+def test_disabled_manager_does_not_allow_revoking_last_enabled_manager(managed,monkeypatch):
+    _,_,admin,_,ids=managed
+    monkeypatch.setenv('FIXRATE_ACTIVE_ROLES','chief_engineer,executor')
+    command=dict(expected_revision=1,role='executor',is_active=True)
+    response=admin.chief.put(PREFIX+f"/management/staff/{ids['chief']}",json=command)
+    assert response.status_code==409,response.text
+    response=admin.chief.put(PREFIX+f"/management/staff/{ids['user']}",json=dict(command,role='dispatcher'))
+    assert response.status_code==403,response.text
+
+
+def test_disabled_membership_stays_out_of_site_selection(managed,monkeypatch):
+    engine,_,admin,_,ids=managed
+    other=uuid4()
+    with engine.begin() as db:
+        db.execute(text("INSERT INTO sites(site_id,name) VALUES (:site,'Legacy role test site')"),dict(site=other))
+        db.execute(text("INSERT INTO site_memberships(site_id,user_id,role) VALUES (:site,:user,'dispatcher')"),
+                   dict(site=other,user=ids['chief']))
+    monkeypatch.setenv('FIXRATE_ACTIVE_ROLES','chief_engineer,executor,admin')
+    chief=admin.chief
+    try:
+        email=f"chief-{ids['marker']}@example.test"
+        credentials=dict(email=email,password=os.environ['FIXRATE_TEST_PASSWORD'])
+        response=chief.post('/api/v1/auth/sites',json=credentials)
+        assert response.status_code==200 and [r['site_id'] for r in response.json()]==[str(ids['site'])],response.text
+        assert chief.post('/api/v1/auth/login',json=dict(credentials,site_id=str(other))).status_code==403
+        assert [r['site_id'] for r in chief.get('/api/v1/auth/sites').json()]==[str(ids['site'])]
+        assert chief.post('/api/v1/auth/site',json=dict(site_id=str(other))).status_code==403
+        assert chief.get('/api/v1/auth/session').json()['profile']['siteId']==str(ids['site'])
+    finally:
+        with engine.begin() as db:
+            db.execute(text('DELETE FROM fixrate_sessions WHERE site_id=:site'),dict(site=other))
+            db.execute(text('DELETE FROM site_memberships WHERE site_id=:site'),dict(site=other))
+            db.execute(text('DELETE FROM sites WHERE site_id=:site'),dict(site=other))
 
 
 def test_chief_engineer_can_extend_equipment_type_reference(managed):
