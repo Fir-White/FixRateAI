@@ -600,6 +600,7 @@ async def run(app, principal, thread_id, turn_id, headers):
                     started = time.monotonic()
                     read_attempts=[]
                     recorded_calls=0
+                    task_bound = False
                     try:
                         if call.tool == 'describe_tool':
                             name = call.arguments.get('name')
@@ -611,7 +612,8 @@ async def run(app, principal, thread_id, turn_id, headers):
                         if tool is None or tool.mode == 'write' and call.tool != goal['tool']:
                             raise HTTPException(403, 'Операция не входит в ответственность текущего пункта')
                         call_args=call.arguments
-                        if selected_task:
+                        task_bound = bool(selected_task and (tool.name=='tasks_find' or '{task_id}' in tool.path))
+                        if task_bound:
                             call_args=validate_arguments(app,tool,call_args)
                             if (call_args.get('path') or {}).get('task_id')!=selected_task:
                                 raise HTTPException(409,'Выбранное задание нужно проверить по его ID.')
@@ -669,7 +671,7 @@ async def run(app, principal, thread_id, turn_id, headers):
                         if exc.status_code in (400,403,404,422):failed_signatures.add(signature)
                         goal['reason'] = 'tool_error_' + str(exc.status_code)
                         goal['message'] = str(exc.detail)[:1000]
-                        if goal['tool']=='task_assign' and (server_prepared or selected_task and exc.status_code in (403,404)):
+                        if goal['tool']=='task_assign' and (server_prepared or task_bound and exc.status_code in (403,404)):
                             goal['status']='blocked'
                         trace.append(dict(tool=call.tool, status='denied', code=exc.status_code, at=svc.now().isoformat(),
                                           seconds=round(time.monotonic()-started, 4),attempts=read_attempts))

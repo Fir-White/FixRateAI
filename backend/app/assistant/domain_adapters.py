@@ -113,7 +113,7 @@ def next_step(goal,state):
             message='Ближайшие работы не найдены. Укажите другое задание.' if items==[] else 'Не удалось проверить список ближайших работ.'
             return AgentStep(answer=message,calls=[])
         first=items[0]
-        if first.get('state') not in ('draft','assigned','rework') or not first.get('id'):
+        if first.get('state') not in ('draft','assigned','rework','rework_required') or not first.get('id'):
             return AgentStep(answer='Уточните задание для назначения. Ближайшая работа не готова к назначению.',calls=[])
         if len(items)>1:
             start=first.get('scheduledStart') or first.get('mandatoryDueDate')
