@@ -10,7 +10,7 @@ describe("First installation", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ required: false }) }));
     render(<MemoryRouter><SetupPage /></MemoryRouter>);
     expect(await screen.findByRole("link", { name: "Перейти ко входу" })).toBeInTheDocument();
-    expect(screen.queryByLabelText("Пароль (от 12 символов)")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Пароль", { exact: true })).not.toBeInTheDocument();
   });
 
   it("sends the one-time secret only in its protected header and clears fields after success", async () => {
@@ -19,7 +19,7 @@ describe("First installation", () => {
     vi.stubGlobal("fetch", fetcher);
     render(<MemoryRouter><SetupPage /></MemoryRouter>);
     await screen.findByRole("button", { name: "Создать администратора" });
-    for (const [label, value] of [["Одноразовый установочный код", "test-one-time-secret"], ["Организация", "TEST company"], ["Первое здание", "TEST building"], ["Имя администратора", "TEST admin"], ["Email", "admin@example.test"], ["Пароль (от 12 символов)", "test-password-at-least-12"]]) {
+    for (const [label, value] of [["Одноразовый установочный код", "test-one-time-secret"], ["Организация", "TEST company"], ["Первое здание", "TEST building"], ["Имя администратора", "TEST admin"], ["Email", "admin@example.test"], ["Пароль", "test-password-at-least-12"]]) {
       fireEvent.change(screen.getByLabelText(label), { target: { value } });
     }
     fireEvent.submit(screen.getByRole("form", { name: "Создание первого администратора" }));

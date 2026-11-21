@@ -79,6 +79,7 @@ describe("AiModelSelector and aiSettings", () => {
   });
 
   it("renders compact mode and allows switching providers", async () => {
+    saveStoredAiSettings({ provider: "clip", model: "", apiKey: "" });
     vi.mocked(maintenanceApi.getAiModels).mockResolvedValueOnce({
       current_provider: "clip",
       providers: [
@@ -117,7 +118,7 @@ describe("AiModelSelector and aiSettings", () => {
 
     // Initially on CLIP
     expect(screen.getByText(/CLIP \(CPU\)/)).toBeInTheDocument();
-    expect(screen.getByText(/Быстрая встроенная модель CLIP/)).toBeInTheDocument();
+    expect(await screen.findByText(/Быстрая встроенная модель CLIP/)).toBeInTheDocument();
 
     // Switch to Ollama
     fireEvent.click(screen.getByText(/Ollama \(Локально\)/));

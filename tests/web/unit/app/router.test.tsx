@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, useLocation } from "react-router-dom";
+import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { pageLoaders } from "@/app/pageModules";
 import { AppRouter } from "@/app/router";
@@ -10,12 +10,18 @@ afterEach(() => vi.unstubAllGlobals());
 // Route assertions test page behavior; cold module loading has separate coverage.
 beforeAll(async () => { await Promise.all([...Object.values(pageLoaders).map(load=>load()),import("@/shared/api/maintenance.demo")]); },15000);
 
-function renderAt(path: string, role: string) {
+function HistoryBack() {
+  const navigate = useNavigate();
+  return <button type="button" onClick={() => navigate(-1)}>Назад в истории браузера</button>;
+}
+
+function renderAt(path: string, role: string, history = false) {
   window.localStorage.setItem("fixrate.demo.role", role);
   return render(
     <SessionProvider>
       <MemoryRouter initialEntries={[path]}>
         <AppRouter />
+        {history && <HistoryBack />}
       </MemoryRouter>
     </SessionProvider>,
   );
@@ -49,25 +55,25 @@ describe("app routes", () => {
     expect(await screen.findByText("Тепловой пункт №1")).toBeInTheDocument();
   });
 
-  it.each([["director", "Обзор объекта"], ["executor", "Мои задания"], ["engineer", "Рабочий день инженера"]])("returns %s to their home when no workspace history exists", async (role, heading) => {
+  it.each([["director", "Обзор объекта"], ["executor", "Мои задания"], ["engineer", "Рабочий день инженера"]])("returns %s to their role home from a direct link", async (role, heading) => {
     const user=userEvent.setup();window.localStorage.setItem("fixrate.demo.role",role);
     render(<SessionProvider><MemoryRouter initialEntries={["/equipment", "/profile"]} initialIndex={1}><AppRouter /></MemoryRouter></SessionProvider>);
     await screen.findByRole("heading",{name:"Мой профиль"});
-    await user.click(screen.getByRole("button",{name:"Назад"}));
+    await user.click(screen.getByRole("link",{name:"FixRate AI"}));
     expect(await screen.findByRole("heading",{name:heading})).toBeInTheDocument();
     expect(screen.queryByRole("button",{name:"Назад"})).not.toBeInTheDocument();
   });
 
   it("returns through previously visited sections without looping", async () => {
-    const user=userEvent.setup();renderAt("/executor", "executor");
+    const user=userEvent.setup();renderAt("/executor", "executor", true);
     await screen.findByRole("heading",{name:"Мои задания"});
     await user.click(screen.getByRole("link",{name:"Оборудование"}));
     await screen.findByRole("heading",{name:"Оборудование"});
     await user.click(screen.getByRole("link",{name:"Учётная запись"}));
     await screen.findByRole("heading",{name:"Мой профиль"});
-    await user.click(screen.getByRole("button",{name:"Назад"}));
+    await user.click(screen.getByRole("button",{name:"Назад в истории браузера"}));
     await screen.findByRole("heading",{name:"Оборудование"});
-    await user.click(screen.getByRole("button",{name:"Назад"}));
+    await user.click(screen.getByRole("button",{name:"Назад в истории браузера"}));
     await screen.findByRole("heading",{name:"Мои задания"});
     expect(screen.queryByRole("button",{name:"Назад"})).not.toBeInTheDocument();
   });
@@ -75,11 +81,11 @@ describe("app routes", () => {
   it("restores search and hash from the previous workspace page", async () => {
     const user=userEvent.setup();window.localStorage.setItem("fixrate.demo.role","executor");
     function LocationProbe(){const location=useLocation();return <output data-testid="route-location">{location.pathname+location.search+location.hash}</output>;}
-    render(<SessionProvider><MemoryRouter initialEntries={["/equipment?filter=active#list"]}><AppRouter /><LocationProbe /></MemoryRouter></SessionProvider>);
+    render(<SessionProvider><MemoryRouter initialEntries={["/equipment?filter=active#list"]}><AppRouter /><LocationProbe /><HistoryBack /></MemoryRouter></SessionProvider>);
     await screen.findByRole("heading",{name:"Оборудование"});
     await user.click(screen.getByRole("link",{name:"Учётная запись"}));
     await screen.findByRole("heading",{name:"Мой профиль"});
-    await user.click(screen.getByRole("button",{name:"Назад"}));
+    await user.click(screen.getByRole("button",{name:"Назад в истории браузера"}));
     await waitFor(()=>expect(screen.getByTestId("route-location")).toHaveTextContent("/equipment?filter=active#list"));
   });
 

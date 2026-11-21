@@ -8,4 +8,8 @@
 .e3-shell .journey-section-nav { gap: 6px; padding-bottom: 8px; margin-bottom: 18px; }
 .e3-shell .journey-section-nav a { display: inline-flex; align-items: center; min-height: 44px; border-radius: 20px; }
 .e3-shell .journey-section-nav a[aria-current=page], .e3-shell .journey-steps button[aria-current=step] { background: var(--color-surface-raised); color: var(--color-accent); border-color: transparent; }
+@media (max-width: 640px) {
+  .e3-shell .journey-section-nav { display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr); }
+  .e3-shell .journey-section-nav a { justify-content:center;text-align:center;overflow-wrap:anywhere; }
+}
 @media(max-width:640px){.journey-launches{grid-template-columns:1fr;gap:8px}.journey-launch{padding:14px}.journey-section-nav{gap:2px;margin-bottom:18px}.journey-section-nav a{padding:9px 10px;font-size:11px}.journey-steps{display:grid;grid-template-columns:1fr 1fr}.journey-steps button{width:100%;padding:9px;font-size:11px}.workspace-site{max-width:40vw;font-size:11px}.workspace-site small{font-size:9px}.workspace-back{font-size:0!important;gap:0!important}}

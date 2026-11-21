@@ -30,8 +30,6 @@ import { useApiQueryCache } from "@/shared/lib/ApiQueryProvider";
 import { warmWorkspacePath } from "@/features/navigation/warmWorkspacePath";
 import { WorkspaceSearch } from "./WorkspaceSearch";
 import { canOpenSection } from "@/shared/lib/roles";
-import { dateLabel, DEMO_DATE } from "@/shared/lib/operations";
-import { todayAt } from "@/shared/lib/format";
 import "./e3-shell.css";
 
 const ROLES: Role[] = ["director","chief_engineer","dispatcher", "engineer", "executor", "admin"];
@@ -155,11 +153,7 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
             </div>
           </div>
         </header>
-        <div className="e3-context">
-          <span className="e3-context-date">{dateLabel(DEMO_MODE?DEMO_DATE:todayAt(profile.timezone), {day:"numeric",month:"long",year:"numeric",weekday:"long"})}</span>
-          <span className="e3-context-role">{ROLE_LABELS[profile.role]}</span>
-          <WorkspaceSearch items={searchItems}/>
-        </div>
+        <WorkspaceSearch items={searchItems}/>
 
         <main
           ref={contentRef}

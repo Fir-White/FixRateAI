@@ -11,7 +11,7 @@ export function SectionNavigation() {
   const planning=['/planning','/calendar','/comparisons'].some(path=>pathname===path||pathname.startsWith(path+'/'));
   const equipment=pathname==='/equipment'||pathname.startsWith('/equipment/')||pathname==='/settings/equipment';
   const links=planning&&canOpenSection(profile?.role,'planning') ? [
-    {to:'/planning',label:'Планы из Excel',section:'planning'},
+    {to:'/planning',label:'Подготовка плана',section:'planning'},
     {to:'/calendar',label:'Действующий календарь',section:'calendar'},
     {to:'/comparisons',label:'AI-прогнозы',section:'comparisons'},
   ] : equipment&&profile?.role!=='executor' ? [

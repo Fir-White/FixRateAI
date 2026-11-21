@@ -58,6 +58,8 @@ it("passes the provider, model and session key selected by the engineer to retry
   const user = userEvent.setup();
   vi.mocked(maintenanceApi.photoReview).mockResolvedValue({ ...failedReview, status: "completed", elapsedMs: 1430 });
   setup(bundle(["photo_review", "review"], failedReview));
+  expect(screen.queryByRole("button", { name: /AI Tunnel \(Облако\)/ })).not.toBeInTheDocument();
+  await user.click(await screen.findByText("Настройки фотоанализа", { exact: true }));
   await user.click(await screen.findByRole("button", { name: /AI Tunnel \(Облако\)/ }));
   await user.selectOptions(await screen.findByLabelText("Облачная модель"), "qwen2.5-vl-72b-instruct");
   await user.type(screen.getByLabelText("Персональный API-ключ"), "test-session-key");

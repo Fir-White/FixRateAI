@@ -5,7 +5,6 @@ import { useSession } from '@/shared/session/SessionContext';
 import { DEMO_MODE } from '@/shared/api/request';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { Callout } from '@/shared/ui/Callout';
-import { buttonClassName } from '@/shared/ui/Button';
 import { canOpenSection } from '@/shared/lib/roles';
 import { JourneySteps } from '@/shared/ui/JourneySteps';
 import { LoadingState } from '@/shared/ui/States';
@@ -35,6 +34,6 @@ export function PlanningPage() {
       {id:'catalog',title:'Планы из Excel',content:()=> <CatalogImports mayImport={mayImport} mayConfirm={profile?.role==='chief_engineer'} mayPlan={mayImport} siteName={profile?.siteName} timezone={profile?.timezone} workspace={workspace}/>},
       {id:'requirements',title:'Общий состав обязательств',content:()=> <Suspense fallback={<LoadingState/>}><RequirementsPanel mayApprove={profile?.role==='chief_engineer'} mayEdit={mayImport} workspace={portfolioWorkspace} timezone={profile?.timezone??'UTC'} catalogId={params.get('requirements_catalog')??''} initialStart={params.get('requirements_start')??undefined} initialEnd={params.get('requirements_end')??undefined} mayConfigure={canOpenSection(profile?.role,'service_settings')} mayViewTasks={canOpenSection(profile?.role,'tasks')} onCatalog={id=>update({requirements_catalog:id})} onCalculate={(start,end)=>update({requirements_start:start,requirements_end:end})} onPrepare={()=>update({mode:null,catalog:params.get('requirements_catalog'),stage:'prepare',draft:null,revision:null,view:null})}/></Suspense>},
     ]}/>}
-    <div className="journey-context-links"><Link to="/equipment">Проверить оборудование →</Link>{canOpenSection(profile?.role,'workforce_settings')&&<Link to="/settings/workforce">Проверить сотрудников и смены →</Link>}{canOpenSection(profile?.role,'calendar')&&<Link to="/calendar" className={buttonClassName('ghost')}>Открыть действующий календарь</Link>}</div>
+    <div className="journey-context-links"><Link to="/equipment">Проверить оборудование →</Link>{canOpenSection(profile?.role,'workforce_settings')&&<Link to="/settings/workforce">Проверить сотрудников и смены →</Link>}</div>
   </div>;
 }

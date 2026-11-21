@@ -1,6 +1,6 @@
 /* The chat owns its viewport; the application shell and background stay mounted. */
-.assistant-workspace{display:flex;gap:24px;min-height:calc(100dvh - var(--e3-topbar-height,82px) - var(--e3-context-height,62px));min-width:0;color:var(--color-ink)}
-.assistant-workspace:has(.assistant-chat){height:calc(100dvh - var(--e3-topbar-height,82px) - var(--e3-context-height,62px))}
+.assistant-workspace{display:flex;gap:24px;min-height:calc(100dvh - var(--e3-topbar-height,82px));min-width:0;color:var(--color-ink)}
+.assistant-workspace:has(.assistant-chat){height:calc(100dvh - var(--e3-topbar-height,82px))}
 .assistant-center{display:flex;flex:1;flex-direction:column;min-width:0;position:relative}
 .assistant-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:8px 0;flex:none}
 .assistant-toolbar h1{font-size:15px;font-weight:600;color:var(--color-muted)}
