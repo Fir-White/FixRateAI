@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 from datetime import timedelta
 import json
+import re
 import time
 from uuid import uuid4
 
@@ -552,6 +553,11 @@ async def run(app, principal, thread_id, turn_id, headers):
             messages.append(dict(role='system', content='Текущий пункт: ' + svc.dump(goal) + '\nРазрешённые инструменты специалиста: ' + svc.dump(list(goal_tools)) +
                                  '\nЗагруженные полные схемы: ' + svc.dump(schemas) + '\nДля остальных сначала describe_tool. После конечного результата сервер перейдёт к следующему пункту.'))
             failed_signatures=set()
+            selected_task = svc.chosen_task_id(question,history[0]['answer']) if goal['tool']=='task_assign' and history else None
+            single_worker = bool(selected_task and re.search(
+                r'\b(?:одного|1)\s+(?:работника|исполнителя|сотрудника|человека)\b',
+                history[0]['content'],re.I,
+            ))
             for _ in range(6):
                 deadline = getattr(client, 'deadline', None)
                 if calls_used >= svc.MAX_TOOL_CALLS or isinstance(deadline, (int, float)) and deadline - time.monotonic() < 8:
@@ -564,14 +570,16 @@ async def run(app, principal, thread_id, turn_id, headers):
                     prep=next((p for p in reversed(state['evidence']) if p.get('goal_id')==goal['id'] and p.get('tool')=='assignment_prepare'),None)
                     prep_res=prep.get('result') if isinstance(prep,dict) and isinstance(prep.get('result'),dict) else {}
                     if prep_res.get('status')=='needs_input':
-                        goal.update(status='blocked',reason='assignment_needs_input',message=str(prep_res.get('explanation') or 'Для назначения требуются уточнения.')[:1000])
+                        goal.update(status='partial',reason='assignment_needs_input')
                         wf.save(app,turn_id,state)
                         break
+                server_prepared = result is not None
                 if result is None:result = await infer(AgentStep, 3000)
                 else:state['metrics']['server_prepared_steps']=state['metrics'].get('server_prepared_steps',0)+1
                 goal['attempts'] += 1
                 if not result.calls:
                     goal.update(status='partial' if goal['evidence_ids'] else 'blocked', reason='outcome_evidence_missing')
+                    if server_prepared and result.answer:goal['message']=result.answer
                     # A model answer is not an execution receipt.
                     break
                 responses = []
@@ -602,11 +610,20 @@ async def run(app, principal, thread_id, turn_id, headers):
                         tool = goal_tools.get(call.tool)
                         if tool is None or tool.mode == 'write' and call.tool != goal['tool']:
                             raise HTTPException(403, 'Операция не входит в ответственность текущего пункта')
+                        call_args=call.arguments
+                        if selected_task:
+                            call_args=validate_arguments(app,tool,call_args)
+                            if (call_args.get('path') or {}).get('task_id')!=selected_task:
+                                raise HTTPException(409,'Выбранное задание нужно проверить по его ID.')
+                            if single_worker and tool.name=='assignment_prepare':
+                                call_args={**call_args,'body':{**(call_args.get('body') or {}),'one_person_only':True}}
+                            if single_worker and tool.name=='task_assign' and len((call_args.get('body') or {}).get('executor_ids') or [])!=1:
+                                raise HTTPException(422,'Пользователь запросил одного исполнителя.')
                         svc.progress(app, turn_id, trace, tool.name)
                         action_id = None
                         if tool.mode == 'write':
                             cache.invalidate()
-                            args = await _prepare(app, tool, call.arguments, headers)
+                            args = await _prepare(app, tool, call_args, headers)
                             # Do not prepare concurrent changes against one snapshot.
                             resource = [tool.before, args.get('path', {})]
                             for other in state['goals']:
@@ -624,14 +641,14 @@ async def run(app, principal, thread_id, turn_id, headers):
                             # invalidation across UI/MCP writes is not yet a
                             # transactional contract, so cross-turn read caching
                             # cannot certify current business state.
-                            read_args=call.arguments
+                            read_args=call_args
                             if tool.name=='attachment_read' and (goal.get('outcome')=='file_analysis' or goal.get('response_style')=='analysis' or goal.get('requires_full_list')):
                                 read_args={**read_args,'query':{**(read_args.get('query') or {}),'full_book':True}}
                             args, value = await _read_pages(app, tool, read_args, headers,
                                 full=(goal['requires_full_list'] or tool.name=='tasks_analyze') and call.tool == goal['tool'], check=check, trace=read_attempts,
                                 principal=principal,max_reads=max(1,svc.MAX_TOOL_CALLS-calls_used+1))
                         else:
-                            args = validate_arguments(app, tool, call.arguments)
+                            args = validate_arguments(app, tool, call_args)
                             value = await invoke(app, tool, args, headers)
                         aggregate=False
                         if tool.name=='tasks_analyze' and isinstance(value,dict) and isinstance(value.get('reads'),list):
@@ -652,6 +669,8 @@ async def run(app, principal, thread_id, turn_id, headers):
                         if exc.status_code in (400,403,404,422):failed_signatures.add(signature)
                         goal['reason'] = 'tool_error_' + str(exc.status_code)
                         goal['message'] = str(exc.detail)[:1000]
+                        if goal['tool']=='task_assign' and (server_prepared or selected_task and exc.status_code in (403,404)):
+                            goal['status']='blocked'
                         trace.append(dict(tool=call.tool, status='denied', code=exc.status_code, at=svc.now().isoformat(),
                                           seconds=round(time.monotonic()-started, 4),attempts=read_attempts))
                         expected_schema=describe(app, goal_tools[call.tool])['inputSchema'] if call.tool in goal_tools and exc.status_code==422 else None
