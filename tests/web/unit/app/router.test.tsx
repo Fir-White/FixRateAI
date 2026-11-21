@@ -159,13 +159,14 @@ describe("app routes", () => {
     const user = userEvent.setup();
     const view = renderAt("/dispatcher", "dispatcher");
     expect(await screen.findByRole("heading", {name:"Рабочий день диспетчера"})).toBeVisible();
-    const canvas = view.container.querySelector(".workspace-aurora canvas");
+    const workspace = view.container.querySelector(".workspace-root");
+    expect(workspace).toBeInTheDocument();
     await user.click(screen.getByLabelText("Оборудование"));
     expect(await screen.findByText("Оборудование", { selector: "h1" })).toBeVisible();
-    expect(view.container.querySelector(".workspace-aurora canvas")).toBe(canvas);
+    expect(view.container.querySelector(".workspace-root")).toBe(workspace);
     await user.selectOptions(screen.getByLabelText("Демонстрационная роль"), "executor");
     expect(await screen.findByText("С чего начнём рабочий день?", { selector: "h1" })).toBeVisible();
-    expect(view.container.querySelector(".workspace-aurora canvas")).toBe(canvas);
+    expect(view.container.querySelector(".workspace-root")).toBe(workspace);
     expect(view.container.querySelectorAll(".ops-sidebar")).toHaveLength(0);
     expect(screen.getAllByRole("navigation")).toHaveLength(1);
     await user.click(screen.getByLabelText("Учётная запись"));

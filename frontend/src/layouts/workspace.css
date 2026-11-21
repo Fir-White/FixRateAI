@@ -1,23 +1,84 @@
 @font-face {
   font-family: "IBM Plex Sans";
-  src: url("../assets/plex/IBMPlexSans-Regular.ttf") format("truetype");
+  src: url("../assets/plex/IBMPlexSans-Regular.woff2") format("woff2");
   font-weight: 400;
   font-display: swap;
 }
 @font-face {
   font-family: "IBM Plex Sans";
-  src: url("../assets/plex/IBMPlexSans-SemiBold.ttf") format("truetype");
+  src: url("../assets/plex/IBMPlexSans-SemiBold.woff2") format("woff2");
   font-weight: 600;
   font-display: swap;
 }
 body:has(.workspace-root) { font-family: "IBM Plex Sans", var(--font-sans); }
-.workspace-root {position:relative;isolation:isolate;min-height:100dvh;background:var(--color-canvas);color:var(--color-ink);}
+.workspace-root {
+  --glow-radius: 76%;
+  --glow-strength: 1;
+  --glow-upper: .43;
+  --glow-lower: .32;
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  color: var(--color-ink);
+  background: var(--color-canvas);
+}
+.workspace-root::before,
+.workspace-root::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  z-index: -1;
+  height: min(34rem, 50%);
+  pointer-events: none;
+  background: radial-gradient(ellipse var(--glow-radius) 100% at 50% var(--glow-edge),
+    #103239, #0c242c 38%, #08171e 68%, var(--color-canvas));
+  opacity: calc(var(--glow-level) * var(--glow-strength));
+}
+.workspace-root::before {
+  top: 0;
+  --glow-edge: 0%;
+  --glow-level: var(--glow-upper);
+  --glow-entry-level: .96;
+}
+.workspace-root::after {
+  bottom: 0;
+  --glow-edge: 100%;
+  --glow-level: var(--glow-lower);
+  --glow-entry-level: .24;
+}
+.workspace-root:has(.e3-workday-assistant, .assistant-workspace) {
+  --glow-upper: .96;
+  --glow-lower: .24;
+}
+.workspace-root:has(.assistant-chat, .assistant-workspace[data-chat-open]:not([data-composer-pending])) {
+  --glow-upper: .32;
+  --glow-lower: .9;
+}
+@media (max-width: 767px) {
+  .workspace-root {
+    --glow-radius: 110%;
+    --glow-strength: .82;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .workspace-root:has(.assistant-chat[data-composer-entry])::before,
+  .workspace-root:has(.assistant-chat[data-composer-entry])::after {
+    animation: workspace-glow-handoff 300ms cubic-bezier(.22,.61,.36,1);
+  }
+  .ops-main [data-workspace-loading] {
+    animation: workspace-loading-reveal 120ms 140ms var(--ease-standard) both;
+  }
+}
+@keyframes workspace-glow-handoff {
+  from { opacity: calc(var(--glow-entry-level) * var(--glow-strength)); }
+}
+@keyframes workspace-loading-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 /* Hide only the document scrollbar; wheel, touch and keyboard scrolling remain native. */
 html:has(.workspace-root) {scrollbar-width:none;scrollbar-gutter:auto;}
 html:has(.workspace-root)::-webkit-scrollbar {display:none;}
-/* Viewport units keep the canvas independent of content reflow and dialog scroll locks. */
-.workspace-aurora {position:fixed;z-index:0;top:0;left:0;width:100vw;height:100lvh;pointer-events:none;overflow:hidden;opacity:.14;}
-.workspace-aurora canvas {display:block;width:100%;height:100%;}
 .workspace-account { position: relative; padding-top: 14px; border-top: 1px solid var(--color-line, #1a3432); }
 .workspace-account-trigger { position: relative; display: grid; grid-template-columns: 46px minmax(0, 1fr); align-items: center; width: 100%; min-height: 58px; border: 1px solid transparent; border-radius: 12px; background: transparent; color: var(--color-ink); cursor: pointer; text-align: left; }
 .workspace-account-trigger:hover, .workspace-account-trigger[aria-expanded="true"] { background: rgb(103 220 205 / .04); }

@@ -129,6 +129,18 @@ def check_revision(order, revision):
         raise HTTPException(409, "REVISION_CONFLICT: обновите данные")
 
 
+class FrontendAssets(StaticFiles):
+    """Keep versioned build assets in the browser across workspace visits."""
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code in (200, 206, 304) and re.fullmatch(
+            r"[^/\\]+-[A-Za-z0-9_-]{8}\.(?:js|css|woff2|ttf|svg|png|ico|webp)", path
+        ):
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
+
+
 def create_app(engine=None):
     runtime_settings = RuntimeSettings.from_environment()
     @asynccontextmanager
@@ -296,14 +308,14 @@ def create_app(engine=None):
         if not user or not verify_password(payload.password, user["password_hash"]):
             raise HTTPException(401, "Неверный email или пароль")
         memberships = session.execute(text("""SELECT m.site_id,m.role,s.name,s.timezone FROM site_memberships m
-            JOIN sites s USING(site_id) WHERE m.user_id=:user AND m.is_active AND s.is_active"""),
+            JOIN sites s USING(site_id) WHERE m.user_id=:user AND m.is_active AND s.is_active
+            ORDER BY s.name,s.site_id"""),
             {"user": user["user_id"]}).mappings().all()
         if payload.site_id:
             memberships = [m for m in memberships if m["site_id"] == payload.site_id]
         if not memberships:
             raise HTTPException(403, "Нет доступа к объекту")
-        if len(memberships) != 1:
-            raise HTTPException(409, "Укажите site_id: у пользователя несколько объектов")
+        # The building switcher can select another authorized membership after sign-in.
         member = memberships[0]
         old = request.cookies.get(COOKIE)
         if old:
@@ -781,13 +793,13 @@ def create_app(engine=None):
 
     dist = ROOT / "frontend/dist"
     if dist.is_dir():
-        app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
+        app.mount("/assets", FrontendAssets(directory=dist / "assets"), name="assets")
 
         @app.get("/{path:path}", include_in_schema=False)
         def spa(path: str):
             if path.startswith("api/"):
                 raise HTTPException(404, "Маршрут не найден")
-            return FileResponse(dist / "index.html")
+            return FileResponse(dist / "index.html", headers={"Cache-Control": "no-cache"})
     return app
 
 

@@ -31,7 +31,7 @@ export function useWorkspaceView(rootRef: RefObject<HTMLDivElement | null>, scop
     let timer: ReturnType<typeof setTimeout> | null = null;
     let resize: ResizeObserver | null = null;
     let mutation: MutationObserver | null = null;
-    let restoreTimer: ReturnType<typeof setTimeout> | null = null;
+    let restoreFrame: number | null = null;
     const previousRestoration = history.scrollRestoration;
     history.scrollRestoration = "manual";
 
@@ -51,7 +51,7 @@ export function useWorkspaceView(rootRef: RefObject<HTMLDivElement | null>, scop
       writeWorkspaceValue(navKey, nav, true);
     };
     const restore = () => {
-      if (!pending || !saved) return;
+      if (!pending || !saved || root.querySelector("[data-workspace-loading]")) return;
       root.querySelectorAll("details").forEach((element, index) => {
         const open = saved.details[detailsKey(element, index)];
         if (typeof open === "boolean" && element.open !== open) element.open = open;
@@ -60,15 +60,18 @@ export function useWorkspaceView(rootRef: RefObject<HTMLDivElement | null>, scop
         const at = element.dataset.scrollKey === "sidebar" ? nav : saved.scrolls[element.dataset.scrollKey!];
         if (at) { element.scrollLeft = at.x; element.scrollTop = at.y; }
       });
-      window.scrollTo({ left: saved.page.x, top: saved.page.y, behavior: "instant" });
-      if (!root.querySelector("[data-workspace-loading]")) {
-        pending = false;
-        resize?.disconnect(); mutation?.disconnect();
-        last = snapshot();
+      if (window.scrollX !== saved.page.x || window.scrollY !== saved.page.y) {
+        window.scrollTo({ left: saved.page.x, top: saved.page.y, behavior: "instant" });
       }
+      pending = false;
+      resize?.disconnect(); mutation?.disconnect();
+      last = snapshot();
     };
     const scheduleRestore = () => {
-      if (pending && restoreTimer === null) restoreTimer = setTimeout(() => { restoreTimer = null; restore(); }, 0);
+      if (pending && restoreFrame === null) restoreFrame = requestAnimationFrame(() => {
+        restoreFrame = null;
+        restore();
+      });
     };
     const record = (event: Event) => {
       if (pending) return;
@@ -111,7 +114,7 @@ export function useWorkspaceView(rootRef: RefObject<HTMLDivElement | null>, scop
     document.addEventListener("visibilitychange", visibility);
     return () => {
       if (timer !== null) clearTimeout(timer);
-      if (restoreTimer !== null) clearTimeout(restoreTimer);
+      if (restoreFrame !== null) cancelAnimationFrame(restoreFrame);
       save(); resize?.disconnect(); mutation?.disconnect();
       history.scrollRestoration = previousRestoration;
       root.removeEventListener("scroll", record, true);

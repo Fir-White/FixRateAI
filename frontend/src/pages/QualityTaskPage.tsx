@@ -1,7 +1,7 @@
 import { AttemptHistory } from "@/features/analyst/AnalystPanels";
 import { ChiefActions,ActsPanel,ExecutionProtocol } from "@/features/analyst/AnalystPanels";
 import { AiModelSelector } from "@/features/ai/AiModelSelector";
-import { getStoredAiSettings } from "@/features/ai/aiSettings";
+import { getPhotoReviewOptions } from "@/features/ai/aiSettings";
 import { DEMO_MODE } from "@/shared/api/request";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -10,6 +10,7 @@ import { useApiQuery } from "@/shared/lib/useApiQuery";
 import { formatDate } from "@/shared/lib/format";
 import { useSiteDateTime } from "@/shared/lib/useSiteDateTime";
 import { PageHeader } from "@/shared/ui/PageHeader";
+import { useSession } from "@/shared/session/SessionContext";
 import { Card, CardHeader } from "@/shared/ui/Card";
 import { ErrorState, LoadingState } from "@/shared/ui/States";
 import { Button, buttonClassName } from "@/shared/ui/Button";
@@ -32,6 +33,7 @@ import { attemptStateSummary } from "@/shared/lib/presentation";
 import "./quality-redesign.css";
 
 export function QualityTaskPage() {
+  const { profile } = useSession();
   const formatDateTime=useSiteDateTime();
   const { taskId = "" } = useParams();
   const [refresh, setRefresh] = useState(0);
@@ -105,7 +107,7 @@ export function QualityTaskPage() {
 
       <PageHeader
         title={task.title}
-        description={`${task.code} · ${task.equipmentName} · ${task.summary}`}
+        description={[task.code, profile?.siteName, task.equipmentName, task.summary].filter(Boolean).join(" · ")}
         actions={
           <Link to={`/tasks/${task.id}`} className={buttonClassName("secondary")}>
             Карточка задания
@@ -145,11 +147,11 @@ export function QualityTaskPage() {
             const startedAt = performance.now();
             setBusy(true); setAnalyzing(true); setNotice(null);
             try {
-              const aiOpts = getStoredAiSettings();
+              const aiOpts = getPhotoReviewOptions();
               const res = await maintenanceApi.photoReview(task.id, task.revision, false, {
-                provider: aiOpts.provider,
-                model: aiOpts.model,
-                api_key: aiOpts.apiKey,
+                provider: aiOpts?.provider,
+                model: aiOpts?.model,
+                api_key: aiOpts?.apiKey,
               });
               setLastMeasured({ reviewId: res.id, elapsedMs: res.elapsedMs ?? Math.round(performance.now() - startedAt) });
               setRefresh(n => n+1);

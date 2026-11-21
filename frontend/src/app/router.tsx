@@ -9,7 +9,6 @@ import { ExecutorLayout } from "@/layouts/ExecutorLayout";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegistrationPage } from "@/pages/RegistrationPage";
 const SetupPage = lazy(() => import("@/pages/SetupPage").then(module => ({ default: module.SetupPage })));
-import { AuthLayout } from "@/pages/AuthLayout";
 import { HomeRedirect } from "@/pages/HomeRedirect";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { SECTION_ROLES } from "@/shared/lib/roles";
@@ -36,6 +35,7 @@ const ProfilePage = lazyPage(pageLoaders.ProfilePage);
 const PersonalShiftsPage = lazyPage(pageLoaders.PersonalShiftsPage);
 
 const WorkspaceLayout = lazy(() => import("@/layouts/WorkspaceLayout").then(module => ({ default: module.WorkspaceLayout })));
+const AuthLayout = lazy(() => import("@/pages/AuthLayout").then(module => ({ default: module.AuthLayout })));
 
 function WorkspaceAccess() {
   const location = useLocation();
@@ -54,7 +54,7 @@ function WorkspaceAccess() {
 
 const routes = createRoutesFromElements(
   <>
-    <Route element={<AuthLayout />}>
+    <Route element={<Suspense fallback={<div className="auth-pending"><LoadingState label="Загрузка входа" /></div>}><AuthLayout /></Suspense>}>
       <Route path="/setup" element={<Suspense fallback={<LoadingState />}><SetupPage /></Suspense>} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegistrationPage />} />

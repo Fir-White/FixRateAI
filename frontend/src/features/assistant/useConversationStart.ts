@@ -27,8 +27,8 @@ export function useConversationStart({model, onModelChange, onOpen}: StartOption
     setOperation(null);
   }
 
-  async function start(draft: string, file?: File) {
-    const message = draft.trim();
+  async function start(text: string, {file, remainingDraft = file ? text : ''}: {file?: File; remainingDraft?: string} = {}) {
+    const message = text.trim();
     if (running.current || (!file && !message)) return;
     const activeVersion = version.current;
     running.current = true;
@@ -50,7 +50,7 @@ export function useConversationStart({model, onModelChange, onOpen}: StartOption
         if (attempt.current?.payload !== payload) attempt.current = {payload, key: crypto.randomUUID()};
         await api.send(id, message, attempt.current.key, [], model?.revision);
       }
-      if (activeVersion === version.current) onOpen(id, file ? draft : '');
+      if (activeVersion === version.current) onOpen(id, remainingDraft);
     } catch (failure) {
       if (activeVersion !== version.current) return;
       setError(failure instanceof Error ? failure.message : 'Не удалось начать диалог');

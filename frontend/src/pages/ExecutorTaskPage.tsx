@@ -33,9 +33,9 @@ export function ExecutorTaskPage(){
  if(query.status==="loading")return <LoadingState label="Загрузка задания"/>;
  if(query.status==="error")return <ErrorState description={query.error}/>;
  if(!query.data.task.assignees.some(a=>a.executorId===profile?.userId))return <ErrorState title="Задание назначено другому исполнителю" description="Доступ проверяется сервером."/>;
- return <ExecutionEditor key={`${query.data.task.id}:${query.data.task.revision}`} bundle={query.data} reload={()=>setRefresh(n=>n+1)}/>;
+ return <ExecutionEditor key={`${query.data.task.id}:${query.data.task.revision}`} bundle={query.data} siteName={profile?.siteName} reload={()=>setRefresh(n=>n+1)}/>;
 }
-function ExecutionEditor({bundle,reload}:{bundle:TaskBundle;reload:()=>void}){
+function ExecutionEditor({bundle,siteName,reload}:{bundle:TaskBundle;siteName?:string;reload:()=>void}){
  const navigate=useNavigate();
  const dateTime=useSiteDateTime();const {task,execution,decision}=bundle;
  const allowed=(action:NonNullable<TaskBundle["allowedActions"]>[number])=>!DEMO_MODE&&!!bundle.allowedActions?.includes(action);
@@ -64,7 +64,7 @@ function ExecutionEditor({bundle,reload}:{bundle:TaskBundle;reload:()=>void}){
  return <div className="space-y-5 executor-editor"><Link to="/executor?queue=active" className="ops-back" onClick={event=>{
    if(dirty||busy||photoQueueLength>0){event.preventDefault();setConfirmLeave(true);}
  }}><Icon name="back" size={17}/>Мои задания</Link>
- <PageHeader title={task.title} description={`${task.code} · ${task.equipmentName}`}/>
+ <PageHeader title={task.title} description={[task.code, siteName, task.equipmentName].filter(Boolean).join(" · ")}/>
  <div className="flex flex-wrap items-center gap-2"><TaskStateBadge state={task.state}/>{isTaskOverdue(task)&&<OverdueBadge/>}<span className="text-xs text-muted">{execution?`Попытка №${execution.attemptNumber}`:"Выполнение ещё не начато"}</span></div>
  <div className="fr-attempt-layout"><aside className="fr-attempt-context"><h2>Текущая попытка</h2><p>{attemptStateSummary(task.state)}</p><div className="execution-deadline"><div><span>Обязательный срок</span><strong>{formatDate(task.mandatoryDueDate)}</strong></div><div><span>Плановое начало</span><strong>{dateTime(task.scheduledStart)}</strong></div>{task.equipmentId&&<Link to={`/equipment/${task.equipmentId}`} className="text-xs text-accent">Паспорт оборудования ↗</Link>}</div></aside><div className="fr-attempt-content space-y-5">
  {task.summary&&<p className="execution-instruction">{task.summary}</p>}

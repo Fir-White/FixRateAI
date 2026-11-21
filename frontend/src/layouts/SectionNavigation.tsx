@@ -19,5 +19,5 @@ export function SectionNavigation() {
     {to:'/settings/equipment',label:'Оборудование и регламенты',section:'service_settings'},
   ] : [];
   if(!links.length)return null;
-  return <nav className="journey-section-nav" aria-label={planning?'Разделы планирования':'Разделы оборудования'}>{links.filter(link=>canOpenSection(profile?.role,link.section)).map(link=><NavLink key={link.to} to={link.to} onMouseEnter={()=>warmWorkspacePath(cache,link.to,profile?.timezone??'UTC')} onFocus={()=>warmWorkspacePath(cache,link.to,profile?.timezone??'UTC')}>{link.label}</NavLink>)}</nav>;
+  return <nav className="journey-section-nav" aria-label={planning?'Разделы планирования':'Разделы оборудования'}>{links.filter(link=>canOpenSection(profile?.role,link.section)).map(link=><NavLink key={link.to} to={link.to} onMouseEnter={()=>warmWorkspacePath(cache,link.to,profile?.timezone??'UTC',profile?.role)} onFocus={()=>warmWorkspacePath(cache,link.to,profile?.timezone??'UTC',profile?.role)}>{link.label}</NavLink>)}</nav>;
 }

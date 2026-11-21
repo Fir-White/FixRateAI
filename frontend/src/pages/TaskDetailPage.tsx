@@ -75,7 +75,7 @@ export function TaskDetailPage() {
 
       <PageHeader
         title={task.title}
-        description={`${task.code} · ${task.summary}`}
+        description={[task.code, profile?.siteName, task.summary].filter(Boolean).join(" · ")}
         actions={
           <>
             {!DEMO_MODE && query.data.allowedActions?.includes("forecast") && <Button variant="secondary" disabled={busy} onClick={async () => {

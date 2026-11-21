@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import type { MouseEvent } from "react";
+import type { Role } from "@/shared/types/domain";
 import { useDialogFocus } from "@/shared/lib/useDialogFocus";
 import { useScrollBoundary } from "@/shared/lib/useScrollBoundary";
 import { useApiQueryCache } from "@/shared/lib/ApiQueryProvider";
@@ -9,11 +10,11 @@ import { Icon } from "@/shared/ui/Icon";
 import type { NavigationItem } from "./navigation";
 import "./Sidebar.css";
 
-export function Sidebar({items, open, onClose, timezone}: {
-  items: readonly NavigationItem[]; open: boolean; onClose: () => void; timezone: string;
+export function Sidebar({items, open, onClose, timezone, role}: {
+  items: readonly NavigationItem[]; open: boolean; onClose: () => void; timezone: string; role: Role;
 }) {
   const cache = useApiQueryCache();
-  const warm = (path: string) => warmWorkspacePath(cache,path,timezone);
+  const warm = (path: string) => warmWorkspacePath(cache,path,timezone,role);
   const pathname = useLocation().pathname.replace(/\/+$/,'');
   const dialog = useDialogFocus<HTMLElement>(open,onClose);
   useScrollBoundary(dialog,open);
@@ -25,7 +26,8 @@ export function Sidebar({items, open, onClose, timezone}: {
   }
 
   return <>
-    {open&&<button type="button" className="ops-sidebar-backdrop" aria-label="Закрыть меню" tabIndex={-1} onClick={onClose}/>}
+    <button type="button" className="ops-sidebar-backdrop" data-open={open}
+      aria-label="Закрыть меню" aria-hidden={!open || undefined} inert={!open} tabIndex={-1} onClick={onClose}/>
     <aside ref={dialog} id="application-sidebar" className="ops-sidebar scroll-boundary" role="dialog"
       aria-label="Мобильная навигация" aria-modal={open||undefined} aria-hidden={!open||undefined} inert={!open} data-open={open}>
       <header className="ops-sidebar-header"><AccessBrand/>

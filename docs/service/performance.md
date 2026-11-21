@@ -49,7 +49,7 @@ $env:FIXRATE_BASE_URL='http://127.0.0.1:8000'
 node frontend/node_modules/@playwright/test/cli.js test --config frontend/playwright.config.ts tests/web/e2e/performance.spec.ts tests/web/e2e/notifications.spec.ts tests/web/e2e/workspace.spec.ts
 ```
 
-Первой команде нужны локальные PostgreSQL binaries; альтернативный Docker runner обязан создавать отдельные тестовые БД и private photo storage. Браузерные performance-сценарии работают с mock API: 1000 единиц оборудования, полный поиск, не более 25 строк DOM, повторное чтение из кеша, Worker и fallback. Это проверка поведения production SPA, не end-to-end проверка настоящих бизнес-операций.
+Первая команда требует локальные исполняемые файлы PostgreSQL. Альтернативный Docker runner создаёт отдельные тестовые БД и приватное хранилище фото. Браузерные сценарии с подменой API проверяют поиск по всем 1000 единицам оборудования, максимум 25 строк в DOM, повторное чтение из кеша и стабильность CSS-фона. Проверка перехода в чат дополнительно измеряет ввод и прокрутку и учитывает системное уменьшение движения.
 
 ## Изменения 13.11.2026
 

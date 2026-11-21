@@ -2,15 +2,19 @@ import { preloadPage } from "@/app/pageModules";
 import { readQueries } from "@/shared/api/readQueries";
 import type { ApiQueryCache } from "@/shared/lib/apiQueryCache";
 import { todayAt } from "@/shared/lib/format";
+import type { Role } from "@/shared/types/domain";
 
 /** Called only for links the current role can see; cache belongs to its site/session. */
-export function warmWorkspacePath(cache: ApiQueryCache | null, path: string, timezone: string) {
+export function warmWorkspacePath(cache: ApiQueryCache | null, path: string, timezone: string, role?: Role) {
   void preloadPage(path)?.catch(() => { /* Navigation exposes the load error. */ });
   if (!cache) return;
-  const [year, month] = todayAt(timezone).split("-").map(Number);
-  const query = path === "/equipment" ? readQueries.registry
+  const calendarMonth = () => {
+    const [year, month] = todayAt(timezone).split("-").map(Number);
+    return readQueries.calendarMonth(year, month);
+  };
+  const query = path === "/equipment" ? (role === "executor" ? readQueries.equipment : readQueries.registry)
     : path === "/tasks" || path === "/executor" ? readQueries.tasks
-    : path === "/calendar" ? readQueries.calendarMonth(year, month)
+    : path === "/calendar" ? calendarMonth()
     : path === "/quality" ? readQueries.quality
     : ["/engineer","/chief-engineer","/dispatcher","/director"].includes(path) ? readQueries.tasks
     : path === "/comparisons" ? readQueries.comparisons

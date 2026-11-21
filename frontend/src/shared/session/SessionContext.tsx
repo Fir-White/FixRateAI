@@ -68,7 +68,7 @@ interface SessionContextValue {
   switchRole: (role: Role) => void;
   loading: boolean;
   updateEmail: (email: string, currentPassword: string) => Promise<void>;
-  signIn: (email: string, password: string, siteId?: string) => Promise<SessionProfile>;
+  signIn: (email: string, password: string) => Promise<SessionProfile>;
   switchSite: (siteId: string) => Promise<void>;
 }
 
@@ -161,9 +161,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         const updated = await request<SessionProfile>("/api/v1/maintenance/users/me/email", {method: "PATCH", body: JSON.stringify({email, current_password: currentPassword})});
         profileRef.current = updated; setProfile(updated); notifyOtherTabs();
       },
-      signIn: async (email, password, siteId) => {
+      signIn: async (email, password) => {
         const result = await request<{profile: SessionProfile}>("/api/v1/auth/login", {
-          method: "POST", body: JSON.stringify({email, password, ...(siteId ? {site_id: siteId} : {})}),
+          method: "POST", body: JSON.stringify({email, password}),
         });
         clearAiKey(); authVersion.current++; profileRef.current = result.profile; setProfile(result.profile); notifyOtherTabs();
         return result.profile;

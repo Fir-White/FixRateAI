@@ -15,7 +15,7 @@ function RouteProbe() {
 describe("mobile workspace navigation", () => {
   it("returns from a detail page and preserves an active section's search and hash", () => {
     const onClose = vi.fn();
-    const menu = <Sidebar items={items} open onClose={onClose} timezone={timezone}/>;
+    const menu = <Sidebar role="chief_engineer" items={items} open onClose={onClose} timezone={timezone}/>;
     const view = render(<MemoryRouter initialEntries={["/tasks/task-id"]}>{menu}<RouteProbe/></MemoryRouter>);
     fireEvent.click(screen.getByRole("link",{name:"Задания"}));
     expect(JSON.parse(screen.getByTestId("route").textContent!).pathname).toBe("/tasks");
@@ -29,7 +29,7 @@ describe("mobile workspace navigation", () => {
 
   it("preserves modified clicks without closing the navigation", () => {
     const onClose = vi.fn();
-    render(<MemoryRouter initialEntries={["/tasks"]}><Sidebar items={items} open onClose={onClose} timezone={timezone}/></MemoryRouter>);
+    render(<MemoryRouter initialEntries={["/tasks"]}><Sidebar role="chief_engineer" items={items} open onClose={onClose} timezone={timezone}/></MemoryRouter>);
     let prevented: boolean | undefined;
     document.addEventListener("click", event => {prevented=event.defaultPrevented;event.preventDefault();},{once:true});
     fireEvent.click(screen.getByRole("link",{name:"Задания"}),{ctrlKey:true});
@@ -39,7 +39,7 @@ describe("mobile workspace navigation", () => {
 
   it("retains one dialog, preserves the active link and restores native scrolling", () => {
     const onClose = vi.fn();
-    const menu = (open:boolean)=><MemoryRouter initialEntries={["/tasks"]}><Sidebar items={items} open={open} onClose={onClose} timezone={timezone}/></MemoryRouter>;
+    const menu = (open:boolean)=><MemoryRouter initialEntries={["/tasks"]}><Sidebar role="chief_engineer" items={items} open={open} onClose={onClose} timezone={timezone}/></MemoryRouter>;
     const view = render(menu(false));
     const aside = view.container.querySelector("aside")!;
     expect(aside).toHaveAttribute("inert");

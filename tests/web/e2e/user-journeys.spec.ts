@@ -22,7 +22,9 @@ for(const [role,home] of Object.entries(homes)){
       await expect(page.getByRole('navigation',{name:'Разделы планирования'})).toHaveCount(0);
       await page.goto('/planning');await expect(page.getByRole('heading',{name:'Раздел недоступен'})).toBeVisible();
     }else{
-      await expect(page.getByRole('navigation',{name:'Основные задачи'})).toBeVisible();
+      const shortcuts=page.getByRole('navigation',{name:'Основные задачи'});
+      if(role==='admin'||role==='director')await expect(shortcuts).toBeVisible();
+      else await expect(shortcuts).toHaveCount(0);
       await menu.getByRole('link',{name:'Планирование ТО'}).click();
       await expect(page.getByRole('heading',{name:'Планирование ТО',exact:true})).toBeVisible();
       const sections=page.getByRole('navigation',{name:'Разделы планирования'});
@@ -50,8 +52,10 @@ for(const width of [1440,390,320]){
     const login=await context.request.post('/api/v1/auth/login',{data:{email:'chief@test.local',password:'Test-FixRate-2026!'}});expect(login.ok()).toBe(true);
     const auth=await login.json();
     try{
-      await page.goto('/');await expect(page.getByRole('navigation',{name:'Основные задачи'})).toBeVisible();
-      await page.getByRole('link',{name:/Подготовить план ТО/}).click();
+      await page.goto('/');
+      const openMenu=page.getByRole('button',{name:'Открыть меню',exact:true});
+      if(width<768)await openMenu.click();
+      await page.getByRole('navigation',{name:'Основная навигация'}).getByRole('link',{name:'Планирование ТО',exact:true}).click();
       const file=page.getByRole('button',{name:/TEST_HVAC.xlsx · 217 операций/});await expect(file).toBeVisible();
       await expect(page.getByLabel('Excel каталога СВиК')).toHaveCount(0);
       await page.screenshot({path:testInfo.outputPath(`planning-files-${width}.png`)});

@@ -42,9 +42,10 @@ test("account preserves session after failed logout and clears the previous user
   const headers = await sessionFixture(context);
   await page.setViewportSize({ width: 1440, height: 900 });
   await signIn(page, "dispatcher@workspace.test");
-  const canvas = await page.locator(".workspace-aurora canvas").elementHandle();
+  const workspace = await page.locator(".workspace-root").elementHandle();
   await page.getByRole("link", { name: "Оборудование", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Оборудование", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", {name:"Поиск по рабочему пространству",exact:true})).toHaveCount(0);
   await page.keyboard.press("Control+k");
   const search=page.getByRole("dialog",{name:"Поиск по рабочему пространству"});
   await expect(search.getByRole("textbox",{name:"Найти раздел"})).toBeFocused();
@@ -52,7 +53,7 @@ test("account preserves session after failed logout and clears the previous user
   await expect(search.getByRole("link",{name:"Команда и смены"})).toBeVisible();
   await expect(search.getByRole("link",{name:"Приёмка работ"})).toHaveCount(0);
   await page.keyboard.press("Escape");
-  expect(await page.locator(".workspace-aurora canvas").evaluate((element, original) => element === original, canvas)).toBe(true);
+  expect(await page.locator(".workspace-root").evaluate((element, original) => element === original, workspace)).toBe(true);
   await page.getByRole("link", {name: "Учётная запись", exact: true}).click();
   await expect(page.getByRole("heading", {name: "Мой профиль"})).toBeVisible();
   await expect(page.locator(".profile-page")).toContainText("dispatcher@workspace.test");
@@ -79,12 +80,18 @@ test("one mobile sidebar and the top-bar profile preserve the reduced-motion bac
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await signIn(page, "dispatcher@workspace.test");
-  await expect(page.locator(".workspace-aurora canvas")).toHaveAttribute("data-state", "paused");
-  await expect(page.locator(".ops-sidebar, .ops-sidebar-nav, .workspace-aurora canvas")).toHaveCount(3);
+  await expect(page.locator(".workspace-root")).toHaveCSS("background-color", "rgb(5, 13, 18)");
+  await expect(page.locator(".ops-sidebar, .ops-sidebar-nav")).toHaveCount(2);
+  const backdrop = page.locator(".ops-sidebar-backdrop");
+  await expect(backdrop).toHaveCSS("transition-property", "none");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.getByRole("button", { name: "Открыть меню", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Мобильная навигация" })).toBeVisible();
+  await expect(backdrop).toHaveCSS("opacity", "1");
   await page.getByRole("link", { name: "Оборудование", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(backdrop).toHaveAttribute("inert");
+  await expect(backdrop).toHaveCSS("visibility", "hidden");
   await expect(page.locator(".ops-stage")).not.toHaveAttribute("inert");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
@@ -96,21 +103,26 @@ for (const width of [1440, 390]) {
     await page.setViewportSize({width, height: 900});
     await page.emulateMedia({reducedMotion: "reduce"});
     await signIn(page, "dispatcher@workspace.test");
-    const canvas = page.locator(".workspace-aurora canvas");
-    await expect(canvas).toHaveAttribute("data-state", "paused");
+    if (width >= 1024) {
+      await page.getByRole("link", {name:"Учётная запись",exact:true}).click();
+      await expect(page.getByRole("heading", {name:"Мой профиль"})).toBeVisible();
+    }
+    const workspace = page.locator(".workspace-root");
+    const background = (element: Element) => ["::before", "::after"].map(pseudo => {
+      const layer = getComputedStyle(element, pseudo);
+      return { image: layer.backgroundImage, opacity: layer.opacity };
+    });
+    expect((await workspace.evaluate(background)).every(layer => layer.image.includes("radial-gradient"))).toBe(true);
     // Force a scrolling document, including the mobile case with a normally short overview.
     await page.locator(".workspace-root").evaluate(root => {
       const spacer = document.createElement("div");
       spacer.style.height = "2000px";
       root.append(spacer);
     });
-    const geometry = () => canvas.evaluate(element => {
-      const bounds = element.getBoundingClientRect();
-      const canvas = element as HTMLCanvasElement;
-      return {left: bounds.left, top: bounds.top, width: bounds.width, height: bounds.height,
-        rasterWidth: canvas.width, rasterHeight: canvas.height, pixels: canvas.toDataURL()};
+    const geometry = async () => ({
+      width: await workspace.evaluate(element => element.getBoundingClientRect().width),
+      layers: await workspace.evaluate(background),
     });
-    await expect.poll(() => canvas.evaluate(element => element.getBoundingClientRect().width)).toBe(width);
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).scrollbarWidth)).toBe("none");
     expect(await page.evaluate(() => document.documentElement.clientWidth)).toBe(width);
     const before = await geometry();
@@ -141,6 +153,7 @@ for (const width of [1440, 390]) {
     await context.route("**/api/v1/auth/session", route => route.fulfill({status: 401, json: {detail: "Нет сессии"}}));
     await page.goto("/login");
     await expect(page.locator(".workspace-root")).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Вход в систему" })).toBeVisible();
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).scrollbarGutter)).toBe("auto");
   });
 }

@@ -5,9 +5,9 @@ import {SavedAnswer} from '@/features/assistant/SavedAnswer';
 
 const answer = '### Сохранённая инструкция\n\n' + '- Исходное поле: полный текст без выдуманных единиц.\n'.repeat(80);
 
-it('renders the newest long answer eagerly and preserves already visible content when it becomes older', () => {
+it('formats the newest long answer and preserves already visible content when it becomes older', async () => {
   const {container, rerender} = render(<SavedAnswer answer={answer}/>);
-  expect(screen.getByRole('heading', {name: 'Сохранённая инструкция'})).toBeVisible();
+  expect(await screen.findByRole('heading', {name: 'Сохранённая инструкция'})).toBeVisible();
   expect(container.querySelector('details')).toHaveAttribute('open');
   const body=container.querySelector('.assistant-answer');
   rerender(<SavedAnswer answer={answer} older/>);

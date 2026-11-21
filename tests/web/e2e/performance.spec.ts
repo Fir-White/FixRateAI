@@ -22,9 +22,10 @@ for (const width of [1440, 390]) {
     const rows=page.locator('.registry-table tbody tr');
     await expect(rows).toHaveCount(25);
     await expect(page.getByRole('navigation',{name:'Страницы оборудования'})).toContainText('1–25 из 1000');
-    const canvas=page.locator('.workspace-aurora canvas');
-    await expect(canvas).toHaveAttribute('data-renderer','worker');
-    await expect.poll(()=>canvas.evaluate(element=>(element as HTMLCanvasElement).toDataURL().length)).toBeGreaterThan(500);
+    const workspace=page.locator('.workspace-root');
+    const glow = await workspace.evaluate(el => ['::before', '::after'].map(pseudo => getComputedStyle(el, pseudo).opacity));
+    expect(glow.every(opacity => Number(opacity) > 0 && Number(opacity) < .5)).toBe(true);
+    await expect(workspace.locator('canvas')).toHaveCount(0);
     await page.getByRole('button',{name:'Следующая страница оборудования'}).click();
     await expect(rows.first()).toContainText('Насос 0025');
     await page.getByRole('textbox',{name:'Поиск по реестру'}).fill('Насос 0999');
@@ -43,26 +44,3 @@ for (const width of [1440, 390]) {
     expect(errors).toEqual([]);
   });
 }
-
-test('background falls back when workers are unavailable',async({page,context})=>{
-  test.skip(!process.env.FIXRATE_BASE_URL,'Requires a production SPA build');
-  await page.addInitScript(()=>{Object.defineProperty(window,'Worker',{value:undefined});});
-  await context.route('**/api/**',route=>new URL(route.request().url()).pathname==='/api/v1/auth/session'
-    ?route.fulfill({json:{profile:{userId:'fallback-user',siteId:'fallback-site',role:'dispatcher',name:'QA',email:'qa@example.test',siteName:'QA',timezone:'UTC'}}})
-    :route.fulfill({json:[]}));
-  await page.goto('/tasks');
-  await expect(page.locator('.ops-main h1')).toHaveText('Наряды и назначения');
-  await expect(page.locator('.workspace-aurora canvas')).toHaveAttribute('data-renderer','main');
-});
-
-test('background recovers when the worker module fails to load',async({page,context})=>{
-  test.skip(!process.env.FIXRATE_BASE_URL,'Requires a production SPA build');
-  await context.route('**/assets/workspaceAurora.worker-*.js',route=>route.abort());
-  await context.route('**/api/**',route=>new URL(route.request().url()).pathname==='/api/v1/auth/session'
-    ?route.fulfill({json:{profile:{userId:'worker-error-user',siteId:'worker-error-site',role:'dispatcher',name:'QA',email:'qa@example.test',siteName:'QA',timezone:'UTC'}}})
-    :route.fulfill({json:[]}));
-  await page.goto('/tasks');
-  await expect(page.locator('.ops-main h1')).toHaveText('Наряды и назначения');
-  await expect(page.locator('.workspace-aurora canvas')).toHaveCount(1);
-  await expect(page.locator('.workspace-aurora canvas')).toHaveAttribute('data-renderer','main');
-});

@@ -71,27 +71,50 @@ for(const width of [1440,390]) {
   });
 }
 
-test('login selects an authorized building by name instead of a raw UUID',async({page,context})=>{
-  test.skip(!process.env.FIXRATE_BASE_URL,'Requires the built application');
-  const first='10000000-0000-4000-8000-000000000001',second='10000000-0000-4000-8000-000000000002';
-  let selected='';
-  const profile={userId:'qa-multisite',siteId:second,name:'Техник QA',email:'multisite@example.test',role:'executor',siteName:'Второй корпус',timezone:'UTC'};
-  await context.route('**/api/**',route=>{
-    const path=new URL(route.request().url()).pathname;
-    if(path==='/api/v1/auth/login'){
-      const body=route.request().postDataJSON();
-      if(!body.site_id)return route.fulfill({status:409,json:{detail:'Укажите site_id: у пользователя несколько объектов'}});
-      selected=body.site_id;return route.fulfill({json:{profile}});
-    }
-    if(path==='/api/v1/auth/sites')return route.fulfill({json:[{site_id:first,name:'Первый корпус'},{site_id:second,name:'Второй корпус'}]});
-    if(path==='/api/v1/auth/session')return route.fulfill(selected?{json:{profile}}:{status:401,json:{detail:'Нет сессии'}});
-    return route.fulfill({json:[]});
+for(const [role,width,home] of [['chief_engineer',1440,'/chief-engineer'],['executor',390,'/executor']] as const){
+  test(`multisite ${role} signs in directly and switches buildings in the workspace`,async({page,context})=>{
+    test.skip(!process.env.FIXRATE_BASE_URL,'Requires the built application');
+    const first='10000000-0000-4000-8000-000000000001',second='10000000-0000-4000-8000-000000000002';
+    let selected='';
+    let preLoginLookups=0;
+    const profile=()=>({userId:'qa-multisite',siteId:selected,name:'QA',email:'multisite@example.test',role,siteName:selected===second?'Второй корпус':'Первый корпус',timezone:'UTC'});
+    await context.route('**/api/**',route=>{
+      const request=route.request();
+      const path=new URL(request.url()).pathname;
+      if(path==='/api/v1/auth/login'){
+        expect(request.postDataJSON()).toEqual({email:'multisite@example.test',password:'test-multisite-password'});
+        selected=first;
+        return route.fulfill({json:{profile:profile()}});
+      }
+      if(path==='/api/v1/auth/sites'){
+        if(request.method()==='POST')preLoginLookups++;
+        return route.fulfill({json:[
+          {site_id:first,name:'Первый корпус',timezone:'UTC',role},
+          {site_id:second,name:'Второй корпус',timezone:'UTC',role},
+        ]});
+      }
+      if(path==='/api/v1/auth/site'){
+        selected=request.postDataJSON().site_id;
+        return route.fulfill({json:{profile:profile()}});
+      }
+      if(path==='/api/v1/auth/session')return route.fulfill(selected?{json:{profile:profile()}}:{status:401,json:{detail:'Нет сессии'}});
+      if(path==='/api/v1/maintenance/registry')return route.fulfill({json:{site_id:selected,items:[],systems:[]}});
+      return route.fulfill({json:[]});
+    });
+    await page.setViewportSize({width,height:900});
+    await page.goto('/login');
+    await page.getByLabel('Email',{exact:true}).fill('multisite@example.test');
+    await page.getByLabel('Пароль',{exact:true}).fill('test-multisite-password');
+    await page.getByRole('button',{name:'Войти',exact:true}).click();
+    await expect(page).toHaveURL(new RegExp(`${home}$`));
+    expect(preLoginLookups).toBe(0);
+    await expect(page.locator('.e3-context').getByText('Первый корпус')).toHaveCount(0);
+    await page.getByRole('link',{name:'Учётная запись',exact:true}).click();
+    await page.getByRole('button',{name:'Первый корпус',exact:true}).click();
+    await page.getByRole('dialog',{name:'Выбрать объект'}).getByRole('button',{name:/Второй корпус/}).click();
+    await expect(page).toHaveURL(/\/equipment$/);
+    await page.getByRole('link',{name:'Учётная запись',exact:true}).click();
+    await expect(page.getByRole('button',{name:'Второй корпус',exact:true})).toBeVisible();
+    expect(selected).toBe(second);
   });
-  await page.setViewportSize({width:390,height:900});await page.goto('/login');
-  await page.getByLabel('Email',{exact:true}).fill('multisite@example.test');
-  await page.getByLabel('Пароль',{exact:true}).fill('test-multisite-password');
-  await page.getByRole('button',{name:'Войти',exact:true}).click();
-  await page.getByLabel('Здание',{exact:true}).selectOption({label:'Второй корпус'});
-  await page.getByRole('button',{name:'Войти',exact:true}).click();
-  await expect(page).toHaveURL(/\/executor$/);expect(selected).toBe(second);
-});
+}

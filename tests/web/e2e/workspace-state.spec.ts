@@ -91,16 +91,18 @@ test("phone reload retains an open menu and shows equipment without document ove
 test("delayed API restores scroll after loading and manual scrolling cancels restoration", async ({ page, context }) => {
   const delay = await fixtures(context);
   await page.setViewportSize({ width: 1440, height: 500 });
-  await page.emulateMedia({ reducedMotion: "reduce" });
   await login(page);
   await page.evaluate(() => scrollTo(0, 300));
   delay(1000);
   await page.reload({ waitUntil: "domcontentloaded" });
-  await page.locator(".workspace-root [data-workspace-loading]").first().waitFor();
+  const loading = page.locator(".workspace-root [data-workspace-loading]").first();
+  await expect(loading).toHaveCSS("animation-delay", "0.14s");
+  await expect(loading).toHaveCSS("opacity", "1");
   await expect(page.locator(".workspace-root [data-workspace-loading]")).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => scrollY)).toBe(300);
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.reload({ waitUntil: "domcontentloaded" });
-  await page.locator(".workspace-root [data-workspace-loading]").first().waitFor();
+  await expect(loading).toHaveCSS("animation-name", "none");
   await page.mouse.move(900, 300); await page.mouse.wheel(0, -1000);
   await expect(page.locator(".workspace-root [data-workspace-loading]")).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => scrollY)).toBe(0);
