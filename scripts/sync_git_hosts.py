@@ -73,7 +73,10 @@ def git(*args: str, cwd: Path | None = None) -> str:
     except subprocess.TimeoutExpired as failure:
         raise RuntimeError("Git command timed out after 120 seconds") from failure
     if result.returncode:
-        raise RuntimeError(safe_error(result.stderr.strip() or result.stdout.strip()))
+        # --porcelain puts rejection reasons (fetch first/non-fast-forward) on
+        # stdout; stderr alone can contain only a generic atomic-push failure.
+        raise RuntimeError(safe_error('\n'.join(part for part in
+            (result.stderr.strip(), result.stdout.strip()) if part)))
     return result.stdout
 
 
@@ -179,6 +182,31 @@ def synchronize(github: str, gitverse: str, *, dry_run: bool = False,
     return report
 
 
+def reconcile(github: str, gitverse: str, *, dry_run: bool = False,
+              work_dir: Path | None = None, attempts: int = 3) -> dict:
+    """Recover from fresh refs, never blindly replay a planned push."""
+    if not 1 <= attempts <= 3:
+        raise ValueError('Reconciliation attempts must be between 1 and 3')
+    rounds = []
+    for number in range(1, attempts + 1):
+        result = synchronize(github, gitverse, dry_run=dry_run, work_dir=work_dir)
+        rounds.append(result)
+        if result['status'] != 'failed' or dry_run:
+            break
+        failure = result.get('failed_operation')
+        if failure:
+            retryable = transient_read_failure(failure['host'], failure['error']) or (
+                failure['operation'] == 'push' and any(marker in failure['error'].lower()
+                    for marker in ('non-fast-forward', 'fetch first', 'stale info', 'cannot lock ref')))
+        else:
+            retryable = any('Remote refs changed' in error for error in result['errors'])
+        if not retryable or number == attempts:
+            break
+        time.sleep((10, 30)[number - 1])
+    # Retain failed/planned rounds even when new refs prove a lost push succeeded.
+    return {**result, 'reconciliation_attempts': len(rounds), 'rounds': rounds}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--github", required=True)
@@ -186,8 +214,10 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--work-dir", type=Path)
     parser.add_argument("--report", type=Path)
+    parser.add_argument('--attempts', type=int, choices=range(1, 4), default=3)
     args = parser.parse_args()
-    report = synchronize(args.github, args.gitverse, dry_run=args.dry_run, work_dir=args.work_dir)
+    report = reconcile(args.github, args.gitverse, dry_run=args.dry_run,
+                       work_dir=args.work_dir, attempts=args.attempts)
     rendered = json.dumps(report, ensure_ascii=False, indent=2)
     print(rendered)
     if args.report:

@@ -45,7 +45,7 @@ from app.schemas.management import CancelTask
 from app.schemas.planning import WorkloadResponse
 from app.integration.analyst import ReadingInput, ExecutionInput, validate_execution, validate_acceptance, notify_event
 from app.security.authorization import AuthorizationError, require_any_role
-from app.security.sessions import COOKIE, Principal, SQL_ROLES, authenticate, create_session, digest, verify_password
+from app.security.sessions import COOKIE, Principal, SQL_ROLES, authenticate, create_session, digest, role_is_enabled, verify_password
 from app.storage import safe_storage_path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -292,9 +292,10 @@ def create_app(engine=None):
         if not user or not verify_password(payload.password,user['password_hash']):
             raise HTTPException(401, 'Неверный email или пароль')
         response.headers['Cache-Control']='private, no-store'
-        rows=session.execute(text('''SELECT s.site_id,s.name FROM sites s JOIN site_memberships m USING(site_id)
+        rows=session.execute(text('''SELECT s.site_id,s.name,m.role FROM sites s JOIN site_memberships m USING(site_id)
             WHERE m.user_id=:user AND m.is_active AND s.is_active ORDER BY s.name,s.site_id'''),dict(user=user['user_id'])).mappings().all()
-        return [dict(row) for row in rows]
+        return [dict(site_id=row['site_id'], name=row['name']) for row in rows
+                if row['role'] in SQL_ROLES and role_is_enabled(SQL_ROLES[row['role']])]
 
     @app.post("/api/v1/auth/login")
     def login(payload: Login, response: Response, request: Request, session=Depends(db)):
@@ -313,6 +314,10 @@ def create_app(engine=None):
             {"user": user["user_id"]}).mappings().all()
         if payload.site_id:
             memberships = [m for m in memberships if m["site_id"] == payload.site_id]
+        memberships = [
+            member for member in memberships
+            if role_is_enabled(SQL_ROLES.get(member["role"], member["role"]))
+        ]
         if not memberships:
             raise HTTPException(403, "Нет доступа к объекту")
         # The building switcher can select another authorized membership after sign-in.

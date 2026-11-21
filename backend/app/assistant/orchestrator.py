@@ -551,6 +551,7 @@ async def run(app, principal, thread_id, turn_id, headers):
                     size += length
             messages.append(dict(role='system', content='Текущий пункт: ' + svc.dump(goal) + '\nРазрешённые инструменты специалиста: ' + svc.dump(list(goal_tools)) +
                                  '\nЗагруженные полные схемы: ' + svc.dump(schemas) + '\nДля остальных сначала describe_tool. После конечного результата сервер перейдёт к следующему пункту.'))
+            failed_signatures=set()
             for _ in range(6):
                 deadline = getattr(client, 'deadline', None)
                 if calls_used >= svc.MAX_TOOL_CALLS or isinstance(deadline, (int, float)) and deadline - time.monotonic() < 8:
@@ -559,6 +560,13 @@ async def run(app, principal, thread_id, turn_id, headers):
                 svc.progress(app, turn_id, trace, '__responding')
                 from .domain_adapters import next_step
                 result=next_step(goal,state)
+                if result is None and goal['tool']=='task_assign':
+                    prep=next((p for p in reversed(state['evidence']) if p.get('goal_id')==goal['id'] and p.get('tool')=='assignment_prepare'),None)
+                    prep_res=prep.get('result') if isinstance(prep,dict) and isinstance(prep.get('result'),dict) else {}
+                    if prep_res.get('status')=='needs_input':
+                        goal.update(status='blocked',reason='assignment_needs_input',message=str(prep_res.get('explanation') or 'Для назначения требуются уточнения.')[:1000])
+                        wf.save(app,turn_id,state)
+                        break
                 if result is None:result = await infer(AgentStep, 3000)
                 else:state['metrics']['server_prepared_steps']=state['metrics'].get('server_prepared_steps',0)+1
                 goal['attempts'] += 1
@@ -577,7 +585,7 @@ async def run(app, principal, thread_id, turn_id, headers):
                         continue
                     signature = fingerprint(dict(goal=goal['id'], tool=call.tool, arguments=call.arguments))
                     attempts[signature] = attempts.get(signature, 0) + 1
-                    if attempts[signature] > 2:
+                    if signature in failed_signatures or attempts[signature] > 2:
                         goal.update(status='partial' if goal['evidence_ids'] else 'blocked', reason='repeated_call')
                         break
                     calls_used += 1
@@ -641,12 +649,15 @@ async def run(app, principal, thread_id, turn_id, headers):
                         if isinstance(value,dict) and isinstance(value.get('resource'),dict):
                             trace[-1]['resource']=value['resource']
                     except HTTPException as exc:
+                        if exc.status_code in (400,403,404,422):failed_signatures.add(signature)
                         goal['reason'] = 'tool_error_' + str(exc.status_code)
                         goal['message'] = str(exc.detail)[:1000]
                         trace.append(dict(tool=call.tool, status='denied', code=exc.status_code, at=svc.now().isoformat(),
                                           seconds=round(time.monotonic()-started, 4),attempts=read_attempts))
+                        expected_schema=describe(app, goal_tools[call.tool])['inputSchema'] if call.tool in goal_tools and exc.status_code==422 else None
+                        hint=({k:list((expected_schema.get('properties',{}).get(k,{}).get('properties') or {}).keys()) for k in ('path','query','body') if expected_schema.get('properties',{}).get(k,{}).get('properties')} if expected_schema else None)
                         responses.append(dict(tool=call.tool, error=str(exc.detail)[:1500], status_code=exc.status_code,
-                                              expected_arguments=describe(app, goal_tools[call.tool])['inputSchema'] if call.tool in goal_tools and exc.status_code==422 else None))
+                                              allowed_fields=hint,expected_arguments=expected_schema))
                     actual_reads=sum(row.get('status') in ('completed','denied') and row.get('tool')==call.tool for row in read_attempts)
                     calls_used+=max(0,actual_reads-1)
                     state['metrics']['tool_calls']+=max(0,actual_reads-recorded_calls)

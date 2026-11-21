@@ -10,10 +10,13 @@ RUN npm run build
 
 FROM python:3.12-slim-bookworm
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/app/backend:/app
+ENV PIP_DEFAULT_TIMEOUT=300 PIP_RETRIES=20
 WORKDIR /app
 COPY requirements.txt requirements-solver.txt ./
-RUN pip install --no-cache-dir torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu \
-    && pip install --no-cache-dir -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --timeout 300 --retries 20 torch==2.5.1 \
+        --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --timeout 300 --retries 20 -r requirements.txt
 COPY backend/ backend/
 COPY ml_service/ ml_service/
 COPY database/ database/

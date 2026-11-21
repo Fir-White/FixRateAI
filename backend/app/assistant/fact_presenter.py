@@ -123,12 +123,56 @@ def _equipment_list(value, *, max_rows, max_characters):
     return FactPresentation(lines, truncated, 0, None,nodes=shown,compact_rows=shown,characters=len('\n'.join(lines)))
 
 
+def _tasks_list(value, *, max_rows, max_characters):
+    max_rows = min(50, max(0, max_rows))
+    items = value['items']
+    total = value.get('total')
+    total_text = str(total) if type(total) is int and total >= 0 else 'не установлено'
+    periods = {'upcoming': 'ближайшие', 'all': 'все активные'}
+    period_label = periods.get(str(value.get('period') or ''), str(value.get('period') or 'не указан'))
+    states = {'draft': 'черновик', 'assigned': 'назначено', 'in_progress': 'в работе',
+              'submitted': 'на проверке', 'rework': 'на доработке', 'rework_required': 'на доработке',
+              'accepted': 'принято', 'cancelled': 'отменено'}
+    lines = [f'Найдено заданий: {total_text} (период: {period_label}).']
+    if not items:
+        lines.append('Подходящих заданий не найдено.')
+        return FactPresentation(lines, False, 0, None, nodes=1, compact_rows=0, characters=len('\n'.join(lines)))
+    shown = characters = 0
+    truncated = False
+    for row in items[:max_rows]:
+        if not isinstance(row, dict):
+            truncated = True
+            break
+        title = _inline(row.get('title') or row.get('summary') or 'Задание')
+        code = _inline(row.get('code') or '')
+        eq = _inline(row.get('equipmentName') or 'оборудование не указано')
+        state_ru = _inline(states.get(row.get('state'), row.get('state') or 'не указано'))
+        due = _inline(row.get('mandatoryDueDate') or 'не указан')
+        plan = _inline(str(row.get('scheduledStart') or 'не назначено')[:16].replace('T', ' '))
+        assignees = row.get('assignees') if isinstance(row.get('assignees'), list) else []
+        names = ', '.join(_inline(a.get('name')) for a in assignees if isinstance(a, dict) and a.get('name')) or 'не назначены'
+        head = f'- {title} ({code})' if code else f'- {title}'
+        line = f'{head} — {eq}; состояние: {state_ru}; срок: {due}; план: {plan}; исполнители: {names}.'
+        if characters + len(line) > max_characters:
+            truncated = True
+            break
+        lines.append(line)
+        shown += 1
+        characters += len(line)
+    truncated = truncated or shown < len(items)
+    if truncated:
+        lines.append(f'Показано {shown} из {len(items)} прочитанных заданий (предел {max_rows} строк).')
+    return FactPresentation(lines, truncated, 0, None, nodes=shown, compact_rows=shown, characters=len('\n'.join(lines)))
+
+
 def present_facts(value, *, tool, arguments=None, max_rows=25, max_compact_rows=50, max_nodes=140,
                   max_depth=6, max_characters=12000):
     """Render facts; compact equipment has its own <=50 row budget, no per-card expansion."""
     arguments = arguments or {}
     if tool == 'equipment_find' and isinstance(value, dict) and isinstance(value.get('items'), list):
         return _equipment_list(value, max_rows=max_compact_rows, max_characters=max_characters)
+    if tool == 'tasks_find' and isinstance(value, dict) and isinstance(value.get('items'), list):
+        return _tasks_list(value, max_rows=max_compact_rows, max_characters=max_characters)
     rows = nodes = characters = hidden = 0
     truncated = False
     lines = []

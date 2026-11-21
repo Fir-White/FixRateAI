@@ -44,6 +44,7 @@ playwright-report/
 *.sql.gz
 /reports/**
 !/reports/ml/
+!/reports/ml/photo_model_benchmark.json
 !/reports/ml/archive/
 !/reports/ml/archive/clip_experiment.json
 !/reports/ml/archive/clip_default_experiment.json
@@ -79,6 +80,13 @@ reports*.zip
 /FixRateAI_Iteration_Intelligent_Planning_Spec.md
 /docs/service/customer-start.md
 /start-fixrate.bat
+
+# Private customer data & raw photos (Policy TL04)
+/data/customer/photos/
+/data/private_storage/
+/data/raw_pilot/
+*.private.jpg
+*.private.png
 
 # Local Penpot review package and exports containing restricted evidence photos.
 /docs/design/concepts/e3-all-pages/review.html
