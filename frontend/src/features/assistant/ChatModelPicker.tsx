@@ -6,10 +6,10 @@ import {useApiQuery} from '@/shared/lib/useApiQuery';
 import {useDialogFocus} from '@/shared/lib/useDialogFocus';
 import {Icon} from '@/shared/ui/Icon';
 
-type Props={preference?:ChatModelPreference;disabled:boolean;onChange:(value:ChatModelPreference)=>void;onBusy:(value:boolean)=>void};
+type Props={friendlyLabel?:boolean;preference?:ChatModelPreference;disabled:boolean;onChange:(value:ChatModelPreference)=>void;onBusy:(value:boolean)=>void};
 type Results={status:'loading'}|{status:'ready';data:ChatModelCatalog}|{status:'error';error:string};
 
-export function ChatModelPicker({preference,disabled,onChange,onBusy}:Props){
+export function ChatModelPicker({friendlyLabel=false,preference,disabled,onChange,onBusy}:Props){
   const [open,setOpen]=useState(false),[q,setQ]=useState(''),[offset,setOffset]=useState(0),[refresh,setRefresh]=useState(0),[saving,setSaving]=useState(false),[error,setError]=useState('');
   const [position,setPosition]=useState<CSSProperties>({left:12,top:0,width:380,maxHeight:480});
   const id=useId(),trigger=useRef<HTMLButtonElement>(null);
@@ -49,6 +49,7 @@ export function ChatModelPicker({preference,disabled,onChange,onBusy}:Props){
   }, [open]);
   const focus=useDialogFocus<HTMLDivElement>(open,close);
   const name=selected?.model??'Выбрать модель';
+  const label=friendlyLabel&&selected ? selected.provider==='ollama'?'Локальная модель':'Облачная модель' : name;
   function toggle(){
     if(open){close();return;}
     setOpen(true);setError('');
@@ -61,9 +62,9 @@ export function ChatModelPicker({preference,disabled,onChange,onBusy}:Props){
     finally{setSaving(false);onBusy(false);}
   }
   return <div className="assistant-model-picker">
-    <button type="button" ref={trigger} className="assistant-model-trigger" aria-label={selected?`Выбрать модель: ${name}`:"Выбрать модель"} aria-haspopup="dialog" aria-expanded={open} aria-controls={id} disabled={disabled||saving} onClick={toggle} title={selected?`${selected.provider==='ollama'?'Локальная':'AI Tunnel'} · ${name}`:'Выбрать модель чата'}>
+    <button type="button" ref={trigger} className="assistant-model-trigger" aria-label={selected?`Выбрать модель: ${label}`:"Выбрать модель"} aria-haspopup="dialog" aria-expanded={open} aria-controls={id} disabled={disabled||saving} onClick={toggle} title={selected?`${selected.provider==='ollama'?'Локальная':'AI Tunnel'} · ${name}`:'Выбрать модель чата'}>
       <svg className="assistant-model-chip" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="4"/><path d="M9 1v4m6-4v4M9 19v4m6-4v4M1 9h4m-4 6h4m14-6h4m-4 6h4"/></svg>
-      <span className="assistant-model-name">{saving?'Сохраняю…':name}</span>
+      <span className="assistant-model-name">{saving?'Сохраняю…':label}</span>
       <Icon name="chevron" size={14} className="assistant-model-chevron"/>
     </button>
     {open&&createPortal(<><div className="assistant-model-backdrop" onMouseDown={close}/><div className="assistant-model-menu" style={position} ref={focus} id={id} role="dialog" aria-modal="true" aria-labelledby={`${id}-title`}>

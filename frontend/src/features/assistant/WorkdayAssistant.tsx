@@ -10,7 +10,7 @@ import { AssistantComposer, type ComposerHandle } from './AssistantComposer';
 import { DEFAULT_STARTERS, EXECUTOR_STARTERS, transferAssistantDraft } from './assistantEntry';
 import { useConversationStart } from './useConversationStart';
 
-export function WorkdayAssistant({executor = false}: {executor?: boolean}) {
+export function WorkdayAssistant({executor = false, chiefWorkday = false}: {executor?: boolean; chiefWorkday?: boolean}) {
   const composer = useRef<ComposerHandle>(null);
   const draft = useRef('');
   const [model, setModel] = useState<ChatModelPreference>();
@@ -35,7 +35,7 @@ export function WorkdayAssistant({executor = false}: {executor?: boolean}) {
   const warm = () => { void preloadPage('/assistant')?.catch(() => {}); };
 
   return <section ref={entry} className="e3-workday-assistant" aria-label="FixRate AI" onFocus={warm} onPointerEnter={warm}>
-    <AssistantComposer ref={composer} showMark available={available} running={false} onDraftChange={text => { draft.current = text; }}
+    <AssistantComposer ref={composer} showMark chiefWorkday={chiefWorkday} available={available} running={false} onDraftChange={text => { draft.current = text; }}
       busy={start.operation === 'send'} uploading={start.operation === 'upload'}
       onSend={text => void start.start(text)} onUpload={(file, text) => void start.start(text, {file})}
       modelPreference={preference} onModelChange={setModel}/>

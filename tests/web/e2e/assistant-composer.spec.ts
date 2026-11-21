@@ -241,9 +241,9 @@ for(const width of [1440,390,320])test(`history controls and message attachments
   await expect(chat).not.toHaveAttribute('data-composer-entry','');
   await page.screenshot({path:info.outputPath(`handoff-${width}.png`)});
   await page.goBack();
+  if(width!==390)await expect(page.getByRole('heading',{name:'С чего начнём рабочий день?'})).toBeVisible();
   await expect(input).toBeVisible();
-  const restored=await glow();
-  expect(restored[0]).toBeGreaterThan(restored[1]);
+  await expect.poll(async()=>{const [top,bottom]=await glow();return top>bottom;}).toBe(true);
   if(width===1440){
     await expect(page.locator('.fr-overview-grid')).toHaveCount(0);
     await expect(page.getByText('Показатели доступных объектов и месячный экспорт',{exact:true})).toHaveCount(0);
