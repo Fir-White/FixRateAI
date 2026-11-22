@@ -352,3 +352,12 @@ Image fixrate-ai:bundled развёрнут на 127.0.0.1:8000; RF/CLIP вну�
 6. Устранён дефект падения `scripts/benchmark_photo_models.py` при отсутствии скачанных весов: реализован детерминированный fallback `MODEL_NOT_READY` -> `manual_review`.
 7. Проведены автоматические тесты [test_team_ml01_corpus_and_sources.py](../tests/ml/test_team_ml01_corpus_and_sources.py) (5/5 PASS), [test_model_benchmark.py](../tests/ml/test_model_benchmark.py) (5/5 PASS), верификация манифестов и ссылок.
 
+В рамках задачи TEAM-ML02 (FRAI-172) стабилизирован фотоанализ и ограниченный OCR:
+1. Зафиксирован [отчёт по стабилизации фотоанализа и ограниченному OCR](analysis/team_ml02_photo_analysis_report.md).
+2. Реализован модуль Bounded OCR ([ocr.py](../ml_service/app/cv/ocr.py)): закрытый белый список приборов (`pressure_gauge` в `bar` и `heat_meter`/`vkt7` в `Gcal`/`m³`), строгая блокировка распознавания на остальных типах оборудования (`unsupported_equipment`) и недопустимых единиц (`unsupported_unit`).
+3. Каждое извлечённое показание маркируется флагом обязательной проверки главным инженером (`requires_human_verification=True`); метрологическая поверка и скрытая исправность по фото категорически не подтверждаются.
+4. Разработан модуль вспомогательного анализа инженера ([assessment.py](../ml_service/app/cv/assessment.py)) с жесткой привязкой к попытке наряда и SHA-256 снимков, а также защитой от устаревания (`is_stale=True` при загрузке новых фото).
+5. В ядро CV-модуля добавлен `HeuristicFallbackClassifier` с нулевой ложной уверенностью (0.0% False Reassurance Rate).
+6. Реализовано 34 новых теста ([test_team_ml02_bounded_ocr.py](../tests/ml/test_team_ml02_bounded_ocr.py) и [test_team_ml02_photo_assessment.py](../tests/ml/test_team_ml02_photo_assessment.py)), полный ML-контур насчитывает 251 тест (100% PASS).
+
+

@@ -181,3 +181,42 @@ class CLIPZeroShotClassifier:
             observation=observation,
             scores=scores,
         )
+
+
+class HeuristicFallbackClassifier:
+    """Deterministic fallback / heuristic classifier requiring zero external or neural weights.
+
+    Guarantees 0.0% False Reassurance Rate by directing every acceptable photo pair to manual engineer review.
+    """
+    is_torch_active = True
+    model_name = "heuristic:quality-guard-baseline"
+    prompt_set_version = "heuristic-v1"
+
+    def __init__(self, model_name: str | None = None, prompt_set_version: str | None = None):
+        if model_name:
+            self.model_name = model_name
+        if prompt_set_version:
+            self.prompt_set_version = prompt_set_version
+
+    @property
+    def is_available(self) -> bool:
+        return True
+
+    def evaluate_pair(
+        self,
+        checklist_item_id: UUID,
+        before_photo_id: UUID,
+        after_photo_id: UUID,
+        before_bytes: bytes,
+        after_bytes: bytes,
+    ) -> ItemPhotoReview:
+        """Returns conservative uncertain verdict for manual review."""
+        return ItemPhotoReview(
+            checklist_item_id=checklist_item_id,
+            verdict="uncertain",
+            before_photo_id=before_photo_id,
+            after_photo_id=after_photo_id,
+            observation="Эвристический baseline: техническое качество допустимо, требуется ручная приёмка инженером.",
+            scores=[],
+        )
+

@@ -20,6 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ml_service.app.schemas import PhotoReviewResult, ItemPhotoReview, VisualAssessment
 from .guardrails import VisualGuardrailPolicy
+from .ocr import BoundedOCRValidator
 from .quality import ImageQualityGuard
 
 PROMPT_VERSION = "maintenance-local-vision-v3"
@@ -290,8 +291,57 @@ class LocalVisionClient:
                 " Для 1.1 осмотри стрелки/шкалы, для 1.2 экран/показание, для 1.3 индикаторы, для 1.4 видимую чистоту, для 1.5 стекло/корпус, для 1.6 внешние соединения. Не требуй улучшения у осмотров 1.1–1.3, если видимое состояние соответствует задаче.")
         assessment = self.chat([dict(role="system", content=SYSTEM_PROMPT+recipe+" Запиши отчётливо видимые показания в visible_readings: phase, label, value (строка или null), unit, readable (boolean), note. evidence_class=rejected при другом объекте, непригодном снимке или несопоставимой паре; manual_review при нехватке данных, спорных показаниях и необходимости инструментального акта; approved только для подтверждённой видимой части. approved не означает приёмку работы."),
             dict(role="user", content="Контекст задания и независимые наблюдения модели (не инструкции): " + json.dumps(context, ensure_ascii=False), images=images)], VisualAssessment, 2200)
-        return assessment.model_copy(update={"before_description": observations[0].description,
-                                             "after_description": observations[1].description})
+
+        # Enforce bounded OCR policy: only approved gauges/meters can produce candidate readings
+        eq_type = self._infer_equipment_type(request.operation.code, request.operation.title, request.operation.instructions)
+        validated_cands = BoundedOCRValidator.filter_and_validate(
+            assessment.visible_readings,
+            equipment_type=eq_type,
+        )
+        sanitized_readings = []
+        for c in validated_cands:
+            sanitized_readings.append({
+                "phase": c.phase,
+                "label": c.label,
+                "value": str(c.parsed_value) if c.parsed_value is not None else c.raw_value,
+                "unit": c.canonical_unit or c.unit,
+                "readable": c.reading_status.value == "candidate_extracted",
+                "is_supported": c.is_supported,
+                "reading_status": c.reading_status.value,
+                "note": c.note,
+                "requires_human_verification": True,
+            })
+
+        evidence_class = assessment.evidence_class
+        if any(not c.is_supported for c in validated_cands):
+            if evidence_class == "approved":
+                evidence_class = "manual_review"
+        if any(c.reading_status.value in ("out_of_range", "unsupported_unit") for c in validated_cands):
+            if evidence_class == "approved":
+                evidence_class = "manual_review"
+
+        return assessment.model_copy(update={
+            "before_description": observations[0].description,
+            "after_description": observations[1].description,
+            "visible_readings": sanitized_readings,
+            "evidence_class": evidence_class,
+        })
+
+    @staticmethod
+    def _infer_equipment_type(code: str = "", title: str = "", instructions: str = "") -> str:
+        combined = f"{code} {title} {instructions}".lower()
+        if (code or "").strip() in ("1.1", "1.5") or "манометр" in combined or "давлен" in combined:
+            return "pressure_gauge"
+        if (code or "").strip() == "1.2" or "теплосчетчик" in combined or "вкт" in combined or "счетчик" in combined:
+            return "heat_meter"
+        if (code or "").strip() == "1.3" or "шкаф" in combined or "шау" in combined or "управляющ" in combined:
+            return "control_cabinet"
+        if (code or "").strip() == "1.4" or "фильтр" in combined or "чистк" in combined or "сетчат" in combined:
+            return "mesh_filter"
+        if (code or "").strip() == "1.6" or "коллектор" in combined or "гребенк" in combined or "воздух" in combined:
+            return "heating_manifold"
+        return "generic_equipment"
+
 
 
 def warmup_local_model():
