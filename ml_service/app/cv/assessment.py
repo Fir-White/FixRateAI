@@ -11,6 +11,7 @@ Provides structured decision support for chief engineers:
 from __future__ import annotations
 
 import hashlib
+import re
 from datetime import datetime, timezone
 from typing import Any, Literal
 from uuid import UUID, uuid4
@@ -28,6 +29,31 @@ CHIEF_ENGINEER_DISCLAIMER = (
 )
 
 
+def normalize_text_dashes(text: str) -> str:
+    """Normalize any unicode dashes, spaces, and formatting for robust scale comparison."""
+    return re.sub(r"[\u2010\u2011\u2012\u2013\u2014\u2015\u2212\ufe58\ufe63\uff0d]", "-", text.lower())
+
+
+def extract_dial_limit(text: str) -> int | None:
+    """Detect whether a dial scale limit of 4 or 6 bar is described in the text."""
+    norm = normalize_text_dashes(text)
+    # Check for 0-4 or 0..4 or 0...4 or limit 4
+    if (
+        re.search(r"\b0\s*(?:-|\.{2,})\s*4\b", norm)
+        or re.search(r"\b(?:шкала|диапазон|предел)\s*(?:до\s*)?4(?:\s*бар|\s*bar)?\b", norm)
+        or re.search(r"\bдо\s*4\s*(?:бар|bar)\b", norm)
+    ):
+        return 4
+    # Check for 0-6 or 0..6 or 0...6 or limit 6
+    if (
+        re.search(r"\b0\s*(?:-|\.{2,})\s*6\b", norm)
+        or re.search(r"\b(?:шкала|диапазон|предел)\s*(?:до\s*)?6(?:\s*бар|\s*bar)?\b", norm)
+        or re.search(r"\bдо\s*6\s*(?:бар|bar)\b", norm)
+    ):
+        return 6
+    return None
+
+
 class WorkOrderAttemptBinding(BaseModel):
     """Binds analysis artifact to a specific work order attempt and input files."""
     model_config = ConfigDict(frozen=True)
@@ -42,6 +68,7 @@ class WorkOrderAttemptBinding(BaseModel):
     prompt_set_version: str = "maintenance-assessment-v2"
     analyzed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     is_stale: bool = Field(default=False, description="True if subsequent photos were uploaded")
+    stale_reason: str | None = Field(default=None, description="Diagnostic explanation when stale")
 
 
 class PairQualityAssessment(BaseModel):
@@ -75,6 +102,7 @@ class AuxiliaryPhotoAssessment(BaseModel):
     is_stale: bool = Field(
         default=False, description="Flagged as stale if input photos no longer match attempt"
     )
+    stale_reason: str | None = Field(default=None, description="Diagnostic explanation when stale")
     equipment_type: str
     quality: PairQualityAssessment
     comparability: PairComparabilityAssessment
@@ -84,9 +112,9 @@ class AuxiliaryPhotoAssessment(BaseModel):
     recommended_engineer_actions: list[str] = Field(default_factory=list)
     cannot_confirm: list[str] = Field(
         default_factory=lambda: [
-            "Скрытые внутренние работы и электробезопасность по фото не подтверждаются.",
-            "Метрологическая точность приборов и калибровка требуют инструментальной поверки.",
-            "Герметичность соединений под рабочим давлением подтверждается актом опрессовки.",
+            "Метрологическая точность стрелочных манометров по фото не подтверждается.",
+            "Скрытая исправность гидравлических узлов и отсутствие протечек вне кадра не оцениваются.",
+            "При любых сомнениях инженер обязан провести очный осмотр узла.",
         ]
     )
     limitations: list[str] = Field(
@@ -99,14 +127,63 @@ class AuxiliaryPhotoAssessment(BaseModel):
     summary: str
 
     def with_staleness_check(
-        self, current_before_blob: bytes | None, current_after_blob: bytes | None
+        self,
+        current_before_blob: bytes | None = None,
+        current_after_blob: bytes | None = None,
+        current_before_sha256: str | None = None,
+        current_after_sha256: str | None = None,
     ) -> AuxiliaryPhotoAssessment:
-        """Returns a copy of the assessment with updated staleness status based on current blobs."""
-        stale = check_assessment_staleness(self, current_before_blob, current_after_blob)
-        if stale == self.is_stale:
+        """Returns a copy of the assessment with updated staleness status, reasons, and demoted approvals."""
+        stale = check_assessment_staleness(
+            self,
+            current_before_blob=current_before_blob,
+            current_after_blob=current_after_blob,
+            current_before_sha256=current_before_sha256,
+            current_after_sha256=current_after_sha256,
+        )
+        if stale == self.is_stale and (not stale or self.binding.is_stale):
             return self
-        return self.model_copy(update={"is_stale": stale})
 
+        updated_concerns = list(self.concerns)
+        updated_limitations = list(self.limitations)
+        updated_evidence_class = self.evidence_class
+        updated_summary = self.summary
+        reason_msg = None
+
+        if stale:
+            reason_msg = (
+                "ВНИМАНИЕ: Фотоматериалы наряда были изменены после проведения анализа (хеш SHA-256 снимков не совпадает). "
+                "Данная оценка УСТАРЕЛА (is_stale=True) и не может использоваться для приёмки."
+            )
+            if reason_msg not in updated_concerns:
+                updated_concerns.append(reason_msg)
+            stale_lim = "Оценка потеряла актуальность (is_stale=True): исходные фотофайлы попытки наряда были перезаписаны."
+            if stale_lim not in updated_limitations:
+                updated_limitations.append(stale_lim)
+            if updated_evidence_class == "approved":
+                updated_evidence_class = "manual_review"
+            if not updated_summary.startswith("[УСТАРЕЛО"):
+                updated_summary = f"[УСТАРЕЛО / STALE] {updated_summary}"
+        else:
+            updated_concerns = [c for c in updated_concerns if "is_stale=True" not in c]
+            if updated_summary.startswith("[УСТАРЕЛО / STALE] "):
+                updated_summary = updated_summary.replace("[УСТАРЕЛО / STALE] ", "")
+
+        updated_binding = self.binding.model_copy(
+            update={"is_stale": stale, "stale_reason": reason_msg}
+        )
+
+        return self.model_copy(
+            update={
+                "is_stale": stale,
+                "stale_reason": reason_msg,
+                "binding": updated_binding,
+                "concerns": updated_concerns,
+                "limitations": updated_limitations,
+                "evidence_class": updated_evidence_class,
+                "summary": updated_summary,
+            }
+        )
 
 
 def compute_blob_sha256(blob: bytes | None) -> str | None:
@@ -117,12 +194,14 @@ def compute_blob_sha256(blob: bytes | None) -> str | None:
 
 def check_assessment_staleness(
     assessment: AuxiliaryPhotoAssessment,
-    current_before_blob: bytes | None,
-    current_after_blob: bytes | None,
+    current_before_blob: bytes | None = None,
+    current_after_blob: bytes | None = None,
+    current_before_sha256: str | None = None,
+    current_after_sha256: str | None = None,
 ) -> bool:
     """Verifies whether the current files on the work order still match the analyzed hashes."""
-    current_b_hash = compute_blob_sha256(current_before_blob)
-    current_a_hash = compute_blob_sha256(current_after_blob)
+    current_b_hash = current_before_sha256 or compute_blob_sha256(current_before_blob)
+    current_a_hash = current_after_sha256 or compute_blob_sha256(current_after_blob)
 
     if assessment.binding.before_photo_sha256 != current_b_hash:
         return True
@@ -159,6 +238,7 @@ def build_auxiliary_assessment(
         prompt_set_version="maintenance-assessment-v2",
         analyzed_at=datetime.now(timezone.utc),
         is_stale=False,
+        stale_reason=None,
     )
 
     # 1. Quality evaluation
@@ -202,22 +282,46 @@ def build_auxiliary_assessment(
         mismatch_reason = "Сопоставимость пары до/после не подтверждена оператором; требуется ручная приёмка."
 
     # Built-in contradiction detection across VLM descriptions and observations
-    b_desc = str(vlm.get("before_description", "")).lower()
-    a_desc = str(vlm.get("after_description", "")).lower()
-    all_concerns = [str(c).lower() for c in vlm.get("concerns", [])]
+    b_desc = str(vlm.get("before_description", ""))
+    a_desc = str(vlm.get("after_description", ""))
+    all_concerns = [str(c) for c in vlm.get("concerns", [])]
+    all_changes = [str(c) for c in vlm.get("visible_changes", [])]
 
-    # Detect CASE-01 dial mismatch: e.g. 0-4 bar vs 0-6 bar
+    # Robust detection of CASE-01 dial mismatch (0-4 vs 0-6 bar, with en-dash, em-dash, spaces, or words)
+    scale_b = extract_dial_limit(b_desc)
+    scale_a = extract_dial_limit(a_desc)
+    has_dial_contradiction = (scale_b is not None and scale_a is not None and scale_b != scale_a)
+
+    b_norm = normalize_text_dashes(b_desc)
+    a_norm = normalize_text_dashes(a_desc)
+    all_text_norm = " ".join([b_norm, a_norm, *[normalize_text_dashes(c) for c in all_concerns], *[normalize_text_dashes(c) for c in all_changes]])
+
     is_dial_mismatch = (
-        ("0-4" in b_desc or "0..4" in b_desc) and ("0-6" in a_desc or "0..6" in a_desc)
-    ) or (
-        ("0-6" in b_desc or "0..6" in b_desc) and ("0-4" in a_desc or "0..4" in a_desc)
-    ) or any("разные приборы" in c or "разные шкалы" in c for c in all_concerns)
+        has_dial_contradiction
+        or (("0-4" in b_norm or "0..4" in b_norm) and ("0-6" in a_norm or "0..6" in a_norm))
+        or (("0-6" in b_norm or "0..6" in b_norm) and ("0-4" in a_norm or "0..4" in a_norm))
+        or any(
+            phrase in all_text_norm
+            for phrase in [
+                "разные приборы",
+                "разные шкалы",
+                "несовпадение шкал",
+                "несоответствие шкал",
+                "подмена прибора",
+                "подмена манометра",
+                "case-01",
+            ]
+        )
+    )
 
     if is_dial_mismatch:
         contradiction = True
         is_comp = False
         same_subj = "no"
-        mismatch_reason = "Выявлено физическое несоответствие циферблатов манометров: 0-4 бар на фото ДО vs 0-6 бар на фото ПОСЛЕ (CASE-01)"
+        mismatch_reason = (
+            "Выявлено физическое несоответствие циферблатов манометров: "
+            "шкала 0–4 бар на фото ДО vs 0–6 бар на фото ПОСЛЕ (CASE-01)"
+        )
 
     # Detect cross-equipment mismatch (NEG-02, NEG-03)
     if vlm.get("same_subject") == "no" or vlm.get("comparable") == "no":
@@ -283,6 +387,7 @@ def build_auxiliary_assessment(
         binding=binding,
         evidence_class=evidence_class,
         is_stale=False,
+        stale_reason=None,
         equipment_type=equipment_type,
         quality=quality,
         comparability=comparability,
@@ -291,4 +396,53 @@ def build_auxiliary_assessment(
         bounded_readings=bounded_readings,
         recommended_engineer_actions=recs,
         summary=summary_text,
+    )
+
+
+def review_work_order_attempt(
+    work_order_id: UUID,
+    attempt_no: int,
+    equipment_type: str,
+    before_photo_id: UUID | None,
+    after_photo_id: UUID | None,
+    before_blob: bytes | None,
+    after_blob: bytes | None,
+    quality_guard: Any | None = None,
+    comparability_confirmed: bool = False,
+    model_ref: str | None = None,
+    vlm_assessment_dict: dict[str, Any] | None = None,
+) -> AuxiliaryPhotoAssessment:
+    """Production entry point: evaluates attempt photo pair, checks quality & OCR, and binds to attempt."""
+    from ml_service.app.cv.quality import ImageQualityGuard
+
+    guard = quality_guard or ImageQualityGuard()
+    b_res = guard.assess_bytes(before_blob) if before_blob else None
+    a_res = guard.assess_bytes(after_blob) if after_blob else None
+
+    quality_result = {
+        "before_acceptable": b_res.is_acceptable if b_res else False,
+        "after_acceptable": a_res.is_acceptable if a_res else False,
+        "before_issue": b_res.issue if b_res else "Снимок ДО отсутствует",
+        "after_issue": a_res.issue if a_res else "Снимок ПОСЛЕ отсутствует",
+    }
+
+    comparability_result = {
+        "is_comparable": comparability_confirmed,
+        "same_subject": "yes" if comparability_confirmed else "uncertain",
+        "viewpoint_matched": comparability_confirmed,
+        "contradiction_detected": False,
+    }
+
+    return build_auxiliary_assessment(
+        work_order_id=work_order_id,
+        attempt_no=attempt_no,
+        equipment_type=equipment_type,
+        before_photo_id=before_photo_id,
+        after_photo_id=after_photo_id,
+        before_blob=before_blob,
+        after_blob=after_blob,
+        quality_result=quality_result,
+        comparability_result=comparability_result,
+        vlm_assessment_dict=vlm_assessment_dict,
+        model_ref=model_ref,
     )

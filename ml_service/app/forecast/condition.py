@@ -1,4 +1,13 @@
-"""Condition evidence contract; no trained customer predictor is available yet."""
+"""Condition evidence contract; no trained customer predictor is available yet.
+
+NOTE on ALG07 vs ML RUL:
+- ALG07 (FRAI-75): The deterministic regulatory schedule calculation based on equipment
+  passport and manufacturer interval is owned and executed by the backend planning integration
+  (`backend/app/integration/forecasting.py` and `scripts/verify_orchestration.py`).
+- This ML module strictly enforces the No-Go policy for speculative ML-based RUL predictions
+  at the MVP stage due to the verified deficit of historical failure data, returning status
+  'insufficient_data' or 'unavailable' (MODEL_NOT_READY) and NEVER returning an ungrounded date.
+"""
 from datetime import date, datetime
 from typing import Literal
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator

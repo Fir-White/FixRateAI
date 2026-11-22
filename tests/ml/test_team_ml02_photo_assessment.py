@@ -331,3 +331,138 @@ def test_service_review_photos_with_heuristic_fallback(canonical_photo_review_re
     assert res_fb.item_results[0].verdict == "uncertain"
     assert "Эвристический baseline" in res_fb.item_results[0].observation
 
+
+def test_case_01_en_dash_and_em_dash_contradiction_overrides_positive_comparability():
+    """CASE-01: Russian en-dash (0–4 vs 0–6) strictly auto-detects and overrides positive comparability."""
+    wo_id = uuid4()
+    b_blob = make_test_jpeg("dirty")
+    a_blob = make_test_jpeg("clean_serviced")
+
+    # Russian en-dash \u2013 and em-dash \u2014 and minus \u2212 notations
+    dash_pairs = [
+        ("шкала 0\u20134 bar", "шкала 0\u20136 bar"),  # en-dash
+        ("шкала 0\u20144 бар", "шкала 0\u20146 бар"),  # em-dash
+        ("шкала 0\u22124 бар", "шкала 0\u22126 бар"),  # minus sign
+        ("шкала 0 - 4 бар", "шкала 0 – 6 бар"),        # spaces with en-dash
+        ("предел до 4 бар", "шкала до 6 бар"),         # descriptive text
+    ]
+
+    for b_text, a_text in dash_pairs:
+        assessment = build_auxiliary_assessment(
+            work_order_id=wo_id,
+            attempt_no=1,
+            equipment_type="pressure_gauge",
+            before_photo_id=uuid4(),
+            after_photo_id=uuid4(),
+            before_blob=b_blob,
+            after_blob=a_blob,
+            # Caller incorrectly supplied positive comparability and model said approved
+            comparability_result={"is_comparable": True, "same_subject": "yes", "viewpoint_matched": True},
+            vlm_assessment_dict={
+                "evidence_class": "approved",
+                "before_description": f"Манометр на вводе: {b_text}",
+                "after_description": f"Манометр после промывки: {a_text}",
+            },
+            model_ref="qwen3-vl:4b-instruct",
+        )
+
+        # Dial contradiction MUST trigger and strictly override positive comparability
+        assert assessment.comparability.contradiction_detected is True, f"Failed for {b_text} vs {a_text}"
+        assert assessment.comparability.same_subject == "no"
+        assert assessment.comparability.is_comparable is False
+        assert assessment.evidence_class == "rejected"
+        assert "CASE-01" in (assessment.comparability.mismatch_reason or "")
+        assert any("Отклонить фотоотчёт" in r for r in assessment.recommended_engineer_actions)
+
+
+def test_with_staleness_check_propagates_binding_stale_reason_and_demotes_approval():
+    """Verify with_staleness_check updates binding.is_stale, adds warnings, and demotes approved."""
+    wo_id = uuid4()
+    b_blob = make_test_jpeg("dirty")
+    a_blob_v1 = make_test_jpeg("clean_serviced")
+
+    assessment = build_auxiliary_assessment(
+        work_order_id=wo_id,
+        attempt_no=1,
+        equipment_type="pressure_gauge",
+        before_photo_id=uuid4(),
+        after_photo_id=uuid4(),
+        before_blob=b_blob,
+        after_blob=a_blob_v1,
+        comparability_result={"is_comparable": True, "same_subject": "yes"},
+        vlm_assessment_dict={"evidence_class": "approved"},
+        model_ref="qwen3-vl:4b-instruct",
+    )
+    assert assessment.evidence_class == "approved"
+    assert assessment.is_stale is False
+    assert assessment.binding.is_stale is False
+    assert assessment.stale_reason is None
+
+    # When photo blob changes -> marks stale, updates binding, adds concerns and limitations, demotes approved
+    a_blob_v2 = make_test_jpeg("sharp")
+    stale_assessment = assessment.with_staleness_check(current_before_blob=b_blob, current_after_blob=a_blob_v2)
+
+    assert stale_assessment.is_stale is True
+    assert stale_assessment.binding.is_stale is True
+    assert stale_assessment.stale_reason is not None
+    assert stale_assessment.binding.stale_reason == stale_assessment.stale_reason
+    assert stale_assessment.evidence_class == "manual_review"  # Approved demoted!
+    assert any("is_stale=True" in c for c in stale_assessment.concerns)
+    assert any("is_stale=True" in lim for lim in stale_assessment.limitations)
+    assert stale_assessment.summary.startswith("[УСТАРЕЛО / STALE]")
+
+
+def test_production_review_work_order_attempt_runner():
+    """Verify review_work_order_attempt entry point executes full pipeline and attempt binding."""
+    from ml_service.app.cv.assessment import review_work_order_attempt
+    from ml_service.app.cv.api import invoke_attempt_review
+
+    wo_id = uuid4()
+    b_id = uuid4()
+    a_id = uuid4()
+    b_blob = make_test_jpeg("dirty")
+    a_blob = make_test_jpeg("clean_serviced")
+
+    # 1. Via assessment module
+    res = review_work_order_attempt(
+        work_order_id=wo_id,
+        attempt_no=3,
+        equipment_type="pressure_gauge",
+        before_photo_id=b_id,
+        after_photo_id=a_id,
+        before_blob=b_blob,
+        after_blob=a_blob,
+        comparability_confirmed=True,
+        model_ref="test-model:1.0",
+        vlm_assessment_dict={
+            "evidence_class": "approved",
+            "visible_changes": ["Штуцер зачищен"],
+            "visible_readings": [
+                {"phase": "after", "label": "Манометр", "value": "2.5", "unit": "bar", "readable": True}
+            ],
+        },
+    )
+
+    assert res.binding.work_order_id == wo_id
+    assert res.binding.attempt_no == 3
+    assert res.binding.before_photo_sha256 == compute_blob_sha256(b_blob)
+    assert res.binding.after_photo_sha256 == compute_blob_sha256(a_blob)
+    assert res.evidence_class == "approved"
+    assert len(res.bounded_readings) == 1
+    assert res.bounded_readings[0].canonical_unit == "bar"
+
+    # 2. Via api module
+    res_api = invoke_attempt_review(
+        work_order_id=wo_id,
+        attempt_no=3,
+        equipment_type="pressure_gauge",
+        before_photo_id=b_id,
+        after_photo_id=a_id,
+        before_blob=b_blob,
+        after_blob=a_blob,
+        comparability_confirmed=False,
+    )
+    # Unconfirmed comparability defaults to manual_review
+    assert res_api.evidence_class == "manual_review"
+
+

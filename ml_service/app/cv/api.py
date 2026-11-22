@@ -7,9 +7,43 @@ from datetime import datetime, timezone
 from uuid import uuid4
 from ml_service.app.schemas import PhotoReviewRequest, PhotoReviewResult
 from .service import review_photos, STANDARD_LIMITATIONS
+from .assessment import (
+    AuxiliaryPhotoAssessment,
+    build_auxiliary_assessment,
+    check_assessment_staleness,
+    review_work_order_attempt,
+)
 
 
 _slots = BoundedSemaphore(2)
+
+
+def invoke_attempt_review(
+    work_order_id,
+    attempt_no,
+    equipment_type,
+    before_photo_id,
+    after_photo_id,
+    before_blob,
+    after_blob,
+    *,
+    comparability_confirmed=False,
+    model_ref=None,
+    vlm_assessment_dict=None,
+) -> AuxiliaryPhotoAssessment:
+    """Production helper for chief engineer attempt photo analysis with attempt binding and OCR validation."""
+    return review_work_order_attempt(
+        work_order_id=work_order_id,
+        attempt_no=attempt_no,
+        equipment_type=equipment_type,
+        before_photo_id=before_photo_id,
+        after_photo_id=after_photo_id,
+        before_blob=before_blob,
+        after_blob=after_blob,
+        comparability_confirmed=comparability_confirmed,
+        model_ref=model_ref,
+        vlm_assessment_dict=vlm_assessment_dict,
+    )
 
 def invoke_review(request: PhotoReviewRequest, photo_loader, *, timeout_seconds=20.0,
                   comparability_confirmed=None, provider=None, expected_model_ref=None):

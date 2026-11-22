@@ -6,6 +6,7 @@ from .assessment import (
     WorkOrderAttemptBinding,
     build_auxiliary_assessment,
     check_assessment_staleness,
+    review_work_order_attempt,
 )
 from .classifier import CLIPZeroShotClassifier, HeuristicFallbackClassifier
 from .guardrails import VisualGuardrailPolicy
@@ -29,5 +30,6 @@ __all__ = [
     "build_auxiliary_assessment",
     "check_assessment_staleness",
     "review_photos",
+    "review_work_order_attempt",
 ]
 

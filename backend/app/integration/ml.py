@@ -285,11 +285,35 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
         ui["classification"]=classify_evidence(result,manual_evidence_required=bool(order.operation_snapshot.get("required_acts")) or any(i["required"] and i["visualVerifiability"]!="visible" for i in report.checklist_snapshot))
         ui["readingComparison"]=compare_readings(readings,result)
         if any(r["status"]=="mismatch" for r in ui["readingComparison"]): ui["classification"]="manual_review"
+
+        # Wire attempt binding and auxiliary assessment for Chief Engineer decision support
+        from ml_service.app.cv.api import invoke_attempt_review, check_assessment_staleness
+        before_row = next((p for p in rows if p.stage == "before"), None)
+        after_row = next((p for p in rows if p.stage == "after"), None)
+        before_blob = blobs.get(before_row.evidence_file_id) if before_row else None
+        after_blob = blobs.get(after_row.evidence_file_id) if after_row else None
+        vlm_first = result.item_results[0].visual_assessment.model_dump() if (result.item_results and result.item_results[0].visual_assessment) else None
+
+        auxiliary_assessment = invoke_attempt_review(
+            work_order_id=task_id,
+            attempt_no=report.revision_no,
+            equipment_type=str(order.operation_snapshot.get("equipment_type") or order.operation_snapshot.get("code") or "engineering_equipment"),
+            before_photo_id=before_row.evidence_file_id if before_row else None,
+            after_photo_id=after_row.evidence_file_id if after_row else None,
+            before_blob=before_blob,
+            after_blob=after_blob,
+            comparability_confirmed=command.comparability_confirmed,
+            model_ref=result.model_ref,
+            vlm_assessment_dict=vlm_first,
+        )
+        auxiliary_assessment = auxiliary_assessment.with_staleness_check(before_blob, after_blob)
+        ui["auxiliaryAssessment"] = auxiliary_assessment.model_dump(mode="json")
+
         predictor = version(v, "vision", predictor_family, result.model_ref or "unavailable", result.model_ref)
         v.repo.add("ai_quality_checks", ai_quality_check_id=result.ai_review_id, site_id=v.principal.site_id,
             work_order_id=task_id, work_report_id=report.work_report_id, predictor_version_id=predictor.predictor_version_id,
             status="failed" if result.status == "failed" else "ok" if result.status == "completed" else "inconclusive",
-            assessment="inconclusive", findings={"canonical": json.loads(result.model_dump_json()), "ui": ui})
+            assessment="inconclusive", findings={"canonical": json.loads(result.model_dump_json()), "ui": ui, "auxiliary_assessment": auxiliary_assessment.model_dump(mode="json")})
         v.session.commit()
         logger.info("ml_result tool=photo-review task=%s review=%s status=%s model=%s code=%s elapsed_ms=%s",
                     task_id, result.ai_review_id, result.status, result.model_ref or "none",

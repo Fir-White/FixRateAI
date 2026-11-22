@@ -91,12 +91,23 @@ flowchart TD
   * `before_photo_sha256`: SHA-256 снимка До.
   * `after_photo_sha256`: SHA-256 снимка После.
   * `analyzed_at`: временная метка анализа.
-* Метод `assessment.with_staleness_check(...)` сравнивает хэши текущих файлов наряда с хэшами анализа. При любой замене или дозагрузке файлов предыдущий анализ немедленно помечается как `is_stale=True`. Главный инженер видит предупреждение о неактуальности выводов.
+  * `is_stale`: флаг актуальности снимков.
+  * `stale_reason`: диагностическая причина устаревания.
+* Метод `assessment.with_staleness_check(...)` сравнивает хэши текущих файлов наряда с хэшами попытки:
+  * При обнаружении несовпадения хэшей обновляются как `assessment.is_stale = True`, так и `binding.is_stale = True`.
+  * Выставляется `stale_reason` и добавляется обязательное предупреждение в `concerns` и `limitations`.
+  * Если ранее статус доказательства был `approved`, он **принудительно понижается** до `manual_review`: устаревший анализ не может служить одобренным доказательством.
+  * К заголовку отчёта добавляется префикс `[УСТАРЕЛО / STALE]`.
+* Функция `review_work_order_attempt` и обёртка `invoke_attempt_review` встроены непосредственно в промышленный контур [api.py](file:///home/handraqw/Projects/FixRate_AI/ml_service/app/cv/api.py) и вызываются в основном эндпоинте бэкенда `analyze_photo_review` ([backend/app/integration/ml.py](file:///home/handraqw/Projects/FixRate_AI/backend/app/integration/ml.py)). Результат вспомогательного анализа сохраняется в БД в таблице `ai_quality_checks` и передаётся на фронтенд в `ui["auxiliaryAssessment"]`.
 
 ### 4.2. Исключение ложного одобрения при пропуске флагов сопоставимости и автодетект CASE-01
 * Функция `build_auxiliary_assessment(...)` имеет строго консервативное поведение:
   * Если вызывающая сторона **не передала** результат сопоставимости (`comparability_result=None`), система **не предполагает сопоставимость по умолчанию**: выставляется `is_comparable=False`, `same_subject="uncertain"`, а статус доказательства переходит в `manual_review`, полностью исключая ложный `approved`.
-  * Встроен автоматический анализ текстовых наблюдений: если в описании фото ДО зафиксирована шкала 0-4 бар, а на фото ПОСЛЕ — 0-6 бар (противоречие `CASE-01`), система автоматически выставляет `contradiction_detected=True`, `same_subject="no"` и принудительно возвращает `evidence_class="rejected"`.
+  * Встроен автоматический анализ текстовых наблюдений и шкал:
+    * Нормализуются любые виды тире (русское короткое тире `–` U+2013, длинное `—` U+2014, минус `−` U+2212, дефис `-`, пробелы).
+    * Парсер `extract_dial_limit()` распознает шкалы 0–4 и 0–6 бар в любых текстовых формулировках («0–4 bar», «0—4 бар», «шкала до 4 бар», «предел 4»).
+    * При обнаружении несовпадения шкал циферблатов (противоречие `CASE-01`) система выставляет `contradiction_detected=True`, `same_subject="no"`, `is_comp=False` и **строго возвращает `evidence_class="rejected"`**.
+    * Этот автодетект срабатывает даже в том случае, если вызывающая сторона ошибочно передала положительный флаг сопоставимости (`is_comparable=True`, `same_subject="yes"`), гарантируя абсолютную защиту от ложного одобрения.
 
 ### 4.3. Классы доказательств
 * Поле `evidence_class` принимает значения:
@@ -107,13 +118,25 @@ flowchart TD
 
 ---
 
-## 5. Отказоустойчивость и Fallback
+## 5. Отказоустойчивость, Fallback и распределение ответственности
 
+### 5.1. Фабричный фоллбэк HeuristicFallbackClassifier
 В модуль [classifier.py](file:///home/handraqw/Projects/FixRate_AI/ml_service/app/cv/classifier.py) интегрирован фабричный класс `HeuristicFallbackClassifier`:
 * Не требует внешних нейросетевых весов, PyTorch или интернет-соединения.
 * В конвейер [service.py](file:///home/handraqw/Projects/FixRate_AI/ml_service/app/cv/service.py) встроена прямая поддержка фоллбэка через параметр `fallback_to_heuristic=True`: при отсутствии локальных весов CLIP конвейер выполняет детерминированную оценку качества и выдаёт `verdict="uncertain"` с привязкой к `model_ref="heuristic:quality-guard-baseline"`.
 * Функция `classify_evidence` в бэкенде гарантированно переводит как `status="unavailable"`, так и `verdict="uncertain"` в статус `manual_review`.
 * **False Reassurance Rate = 0.0%**: ни один сбой, обрыв соединения или отсутствие весов не приводит к ложноположительному вердикту `approved`.
+
+### 5.2. Разграничение ответственности ALG07 и ML RUL
+* **Детерминированный расчёт регламента ALG07 (FRAI-75)**: полностью принадлежит бэкенду планирования ([backend/app/integration/forecasting.py](file:///home/handraqw/Projects/FixRate_AI/backend/app/integration/forecasting.py)) и вычисляется строго по паспортным межремонтным интервалам оборудования.
+* **ML-модуль оценки наработки ([condition.py](file:///home/handraqw/Projects/FixRate_AI/ml_service/app/forecast/condition.py))**: на этапе MVP реализует политику строгого **No-Go** для спекулятивного прогноза остаточного ресурса (RUL). При дефиците подтверждённых отказов возвращает статус `insufficient_data` или `unavailable` (`MODEL_NOT_READY`), категорически исключая выдачу неподтверждённых дат.
+
+### 5.3. Готовность инфраструктуры для динамического RAG (TEAM-ML03)
+* В репозитории уже присутствует миграция [database/migrations/026_source_revision_outbox.sql](file:///home/handraqw/Projects/FixRate_AI/database/migrations/026_source_revision_outbox.sql), создающая durable outbox-таблицу `source_revision_events`.
+* В [backend/app/integration/analyst.py](file:///home/handraqw/Projects/FixRate_AI/backend/app/integration/analyst.py) реализованы эндпоинты:
+  * `GET /api/v1/maintenance/source/revisions?status=pending` — получение очереди событий индексации.
+  * `POST /api/v1/maintenance/source/revisions/{event_id}/published` — подтверждение успешной публикации индекса.
+* Бэкенд-инфраструктура полностью готова к реализации динамического RAG-консьюмера в задаче TEAM-ML03.
 
 ---
 
@@ -123,23 +146,23 @@ flowchart TD
 
 1. **Новые модульные и приёмочные тесты:**
    * [tests/ml/test_team_ml02_bounded_ocr.py](file:///home/handraqw/Projects/FixRate_AI/tests/ml/test_team_ml02_bounded_ocr.py) — 29 проверок Bounded OCR, белого списка приборов, конвертации МПа в бар, защиты `requires_human_verification`, физических диапазонов и блокировки левых классов.
-   * [tests/ml/test_team_ml02_photo_assessment.py](file:///home/handraqw/Projects/FixRate_AI/tests/ml/test_team_ml02_photo_assessment.py) — 11 проверок привязки к попытке, staleness-инвалидации, автодетекции противоречия CASE-01, консервативного дефолта сопоставимости, дефектов NEG-01..03 и рантайм-фоллбэка.
-   * **Результат:** 40/40 passed (0.14 с).
+   * [tests/ml/test_team_ml02_photo_assessment.py](file:///home/handraqw/Projects/FixRate_AI/tests/ml/test_team_ml02_photo_assessment.py) — 14 проверок привязки к попытке, staleness-инвалидации, автодетекции противоречия CASE-01 (включая русское тире `–` и `—`), консервативного дефолта сопоставимости, дефектов NEG-01..03, рантайм-фоллбэка и интеграции `review_work_order_attempt`.
+   * **Результат:** 43/43 passed (0.29 с).
 
 2. **Сквозной регрессионный прогон всего ML-контура:**
    * Команда: `.venv/bin/pytest tests/ml`
-   * **Результат:** **257 / 257 passed** (49.31 с).
+   * **Результат:** **260 / 260 passed** (48.73 с).
 
 3. **Сравнительный бенчмарк моделей:**
-   * Команда: `.venv/bin/python -B scripts/benchmark_photo_models.py`
+   * Команда: `.venv/bin/python3 scripts/benchmark_photo_models.py`
    * **Результат:**
-     * Heuristic Baseline: False Reassurance = **0.0%** (p50: 13.7 мс)
-     * Local CLIP Zero-Shot: False Reassurance = **0.0%** (p50: 15.0 мс)
-     * Conservative Guarded VLM: False Reassurance = **0.0%** (p50: 13.5 мс)
+     * Heuristic Baseline: False Reassurance = **0.0%** (p50: 14.8 мс)
+     * Local CLIP Zero-Shot: False Reassurance = **0.0%** (p50: 15.5 мс)
+     * Conservative Guarded VLM: False Reassurance = **0.0%** (p50: 14.5 мс)
      * Naive Autonomous VLM: False Reassurance = **66.7%** (математическое доказательство недопустимости бесконтрольного ИИ).
      * Протокол сохранён в [reports/ml/photo_model_benchmark.json](file:///home/handraqw/Projects/FixRate_AI/reports/ml/photo_model_benchmark.json).
 
 4. **Проверка артефактов и ссылочной целостности:**
-   * Команда: `.venv/bin/python -B scripts/validate_artifacts.py`
+   * Команда: `.venv/bin/python3 scripts/validate_artifacts.py`
    * **Результат:** PASS (1527 локальных ссылок, 31 неизменный исходник).
 
