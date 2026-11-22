@@ -84,7 +84,7 @@ const businessMenus: [Role, string[]][] = [
   ["director", ["/assistant","/director","/planning","/tasks","/equipment","/reports"]],
   ["chief_engineer", ["/assistant","/chief-engineer","/planning","/tasks","/quality","/equipment","/settings/workforce","/reports"]],
   ["engineer", ["/assistant","/engineer","/planning","/tasks","/quality","/equipment","/settings/workforce","/reports"]],
-  ["executor", ["/assistant","/executor","/calendar","/equipment","/my-shifts"]],
+  ["executor", ["/assistant","/executor","/executor/tasks","/equipment","/executor/reports"]],
 ];
 
 describe("required business navigation, independently of direct route access", () => {

@@ -1,6 +1,6 @@
 import {memo,useCallback,useEffect,useLayoutEffect,useMemo,useRef,useState,type ReactNode} from 'react';
 import {createPortal} from 'react-dom';
-import {useSearchParams} from 'react-router-dom';
+import {Link, useSearchParams} from 'react-router-dom';
 import {useApiQueryCache} from '@/shared/lib/ApiQueryProvider';
 import {assistantTransfer, clearAssistantTransfer, DEFAULT_STARTERS, EXECUTOR_STARTERS} from '@/features/assistant/assistantEntry';
 import {useConversationStart} from '@/features/assistant/useConversationStart';
@@ -18,6 +18,7 @@ import {LoadingState,ErrorState} from '@/shared/ui/States';
 import {Callout} from '@/shared/ui/Callout';
 import {Modal} from '@/shared/ui/Modal';
 import {ActionCard} from '@/features/assistant/ActionCard';
+import {ActionHistory} from '@/features/assistant/ActionHistory';
 import {SavedAnswer} from '@/features/assistant/SavedAnswer';
 import {WorkflowStatus} from '@/features/assistant/WorkflowStatus';
 import '@/features/assistant/assistant.css';
@@ -30,7 +31,7 @@ const Timestamp=memo(function Timestamp({at,timezone}:{at:string;timezone:string
 });
 function activity(tool:string,names:Record<string,string>){
   if(tool==='__planning')return 'Разбираю поручение на пункты';
-  if(tool==='__routing')return 'Подбираю действия для вашего запроса';
+  if(tool==='__routing')return 'Разбираюсь в запросе';
   if(tool==='__responding')return 'Сопоставляю данные и готовлю ответ';
   if(tool==='describe_tool')return 'Уточняю параметры действия';
   if(tool==='tasks_find'||tool==='tasks_list')return 'Ищу подходящие задания и ближайшее ТО';
@@ -114,7 +115,39 @@ function Chat({identity,capabilities,initialDraft,onDraftChange,onRefreshList,ti
   const stop=async()=>{const turn=data.turns.find(t=>t.status==='running');if(!turn||sending)return;setSending(true);setError('');try{await api.stop(identity,turn.turn_id);refreshAll();}catch(e){setError(e instanceof Error?e.message:'Не удалось остановить ответ');}finally{setSending(false);}};
   const files=Array.from(new Map([...(data.pending_attachments??[]),...localFiles].map(file=>[file.attachment_id,file])).values()).filter(file=>!excludedFiles.includes(file.attachment_id)).sort((a,b)=>a.created_at.localeCompare(b.created_at)||a.attachment_id.localeCompare(b.attachment_id));
   const upload=async(file:File)=>{if(file.type.startsWith('image/')&&files.filter(f=>f.mime_type.startsWith('image/')).length>=4){setError('К одному сообщению можно отправить не больше четырёх изображений');return;}setUploading(true);setError('');try{const saved=await api.upload(identity,file);setLocalFiles(current=>[...current.filter(f=>f.attachment_id!==saved.attachment_id),saved]);setExcludedFiles(ids=>ids.filter(id=>id!==saved.attachment_id));refreshAll();}catch(e){setError(e instanceof Error?e.message:'Не удалось прикрепить файл');}finally{setUploading(false);}};
-  const send=async(draft:string)=>{if((!draft.trim()&&!files.length)||sending||running||uploading)return;const text=draft.trim(),ids=files.map(f=>f.attachment_id),signature=JSON.stringify([text,ids,modelPreference?.revision]);if(attempt.current.signature!==signature)attempt.current={signature,key:crypto.randomUUID()};setLocalFiles(files);setSending(true);setError('');try{if(modelPreference)await api.send(identity,text,attempt.current.key,ids,modelPreference.revision);else await api.send(identity,text,attempt.current.key,ids);attempt.current={signature:'',key:crypto.randomUUID()};setLocalFiles([]);setExcludedFiles(current=>[...new Set([...current,...ids])]);composer.current?.replaceDraft('');setOffset(0);followNext.current=true;refreshAll();}catch(e){setError(e instanceof Error?e.message:'Не удалось отправить сообщение');if(e instanceof ApiError&&e.status===409&&modelPreference)try{onModelChange(await api.modelPreference());}catch{/* Preserve the draft on a failed refresh. */}setRefresh(n=>n+1);}finally{setSending(false);}};
+  const send=async(draft:string)=>{
+    if((!draft.trim()&&!files.length)||sending||running||uploading)return;
+    const text=draft.trim(),ids=files.map(f=>f.attachment_id);
+    let resumeTurnId: string | undefined;
+    if(/^факты\s*:/i.test(text)){
+      const workflows = new Map<string,ChatTurn>();
+      for(const turn of data.turns){
+        const root=turn.workflow?.root_turn_id;
+        if(turn.workflow?.kind==='task_execution'&&root)workflows.set(root,turn);
+      }
+      const targets=[...workflows.values()].filter(turn=>turn.workflow?.goals.some(goal=>goal.id==='draft'&&goal.status==='awaiting_input'));
+      if(offset!==0||targets.length!==1){
+        setError('Отправка фактов в диалоге доступна для одного открытого отчёта. Внесите данные в карточке нужного задания и продолжите это поручение.');
+        return;
+      }
+      resumeTurnId=targets[0].turn_id;
+    }
+    const signature=JSON.stringify([text,ids,modelPreference?.revision,resumeTurnId]);
+    if(attempt.current.signature!==signature)attempt.current={signature,key:crypto.randomUUID()};
+    setLocalFiles(files);setSending(true);setError('');
+    try{
+      if(resumeTurnId)await api.send(identity,text,attempt.current.key,ids,modelPreference?.revision,resumeTurnId);
+      else if(modelPreference)await api.send(identity,text,attempt.current.key,ids,modelPreference.revision);
+      else await api.send(identity,text,attempt.current.key,ids);
+      attempt.current={signature:'',key:crypto.randomUUID()};setLocalFiles([]);
+      setExcludedFiles(current=>[...new Set([...current,...ids])]);composer.current?.replaceDraft('');
+      setOffset(0);followNext.current=true;refreshAll();
+    }catch(e){
+      setError(e instanceof Error?e.message:'Не удалось отправить сообщение');
+      if(e instanceof ApiError&&e.status===409&&modelPreference)try{onModelChange(await api.modelPreference());}catch{/* Preserve the draft on a failed refresh. */}
+      setRefresh(n=>n+1);
+    }finally{setSending(false);}
+  };
   return <section className="assistant-chat" data-composer-entry={entryRect ? "" : undefined} aria-label="Диалог с ИИ"><div className="assistant-body"><div className="assistant-transcript" ref={scroll} role="region" aria-label="Сообщения" tabIndex={0} onScroll={()=>{const el=scroll.current;if(el){pinned.current=el.scrollHeight-el.scrollTop-el.clientHeight<72;updateJump(el);}}}><div className="assistant-transcript-inner" ref={transcript}>
     {data.total>25&&<div className="assistant-pagination"><Button size="sm" variant="ghost" disabled={offset+25>=data.total} onClick={()=>{last.current=null;setOffset(n=>n+25);}}>Ранее</Button><span>{offset+1}–{Math.min(offset+25,data.total)} из {data.total}</span><Button size="sm" variant="ghost" disabled={offset===0} onClick={()=>{last.current=null;setOffset(0);}}>К последним</Button></div>}
     {!data.turns.length&&<div className="assistant-thread-empty"><Icon name="assistant" size={28}/><h2>С чего начнём?</h2><p>Опишите задачу или прикрепите файл.</p></div>}
@@ -136,6 +169,11 @@ function Workspace(){
   const cache=useApiQueryCache();
   const [params,setParams]=useSearchParams(),[refresh,setRefresh]=useState(0),[listOffset,setListOffset]=useState(0),[historyOpen,setHistoryOpen]=useState(false);
   const identity=params.get('chat')??'';
+  const showActions=params.get('view')==='actions';
+  const chatParams=new URLSearchParams(identity ? {chat:identity} : {});
+  const actionParams=new URLSearchParams(chatParams);
+  actionParams.set('view','actions');
+  const [capsRetry, retryCaps]=useState(0);
   const [entry,setEntry]=useState(()=>assistantTransfer(cache, identity));
   const entryRect=entry?.id===identity?entry.rect:undefined;
   const welcome=useRef<HTMLDivElement>(null);
@@ -157,7 +195,7 @@ function Workspace(){
   const [modelOverride,setModelOverride]=useState<ChatModelPreference>();
   useEffect(()=>{clearAssistantTransfer(cache);},[cache]);
   useEffect(()=>{const media=window.matchMedia?.('(max-width: 1279px)');if(!media)return;const update=()=>{setNarrow(media.matches);if(!media.matches)setHistoryOpen(false);};update();media.addEventListener('change',update);return()=>media.removeEventListener('change',update);},[]);
-  const caps=useApiQuery(api.capabilities,[],undefined,'assistant:capabilities'),list=useApiQuery(()=>api.list(listOffset),[refresh,listOffset],undefined,`assistant:list:${listOffset}`);
+  const caps=useApiQuery(api.capabilities,[capsRetry],undefined,'assistant:capabilities'),list=useApiQuery(()=>api.list(listOffset),[refresh,listOffset],undefined,`assistant:list:${listOffset}`);
   const serverModel=caps.status==='success'?caps.data.model_preference:undefined;
   const modelPreference=modelOverride&&modelOverride.revision>=(serverModel?.revision??0)?modelOverride:serverModel;
   const rememberDraft=useCallback((id:string,text:string)=>{
@@ -182,10 +220,23 @@ function Workspace(){
   },[identity]);
   const fresh=()=>{launch.reset();welcomeDraft.current='';welcomeComposer.current?.replaceDraft('');setParams({});setHistoryOpen(false);};
   const remove=async()=>{if(!deleting||deleteBusy)return;setDeleteBusy(true);setDeleteError('');try{await api.remove(deleting.id);if(identity===deleting.id)fresh();drafts.delete(deleting.id);setDeleting(null);setListOffset(0);setRefresh(n=>n+1);}catch(e){setDeleteError(e instanceof Error?e.message:'Не удалось удалить чат');}finally{setDeleteBusy(false);}};
-  if(caps.status==='loading')return <LoadingState label="Загрузка помощника"/>;
-  if(caps.status==='error')return <ErrorState description={caps.error} action={<Button onClick={()=>window.location.reload()}>Повторить загрузку</Button>}/>;
   const history=<><div className="assistant-history-heading"><h2>{inlineHistory&&!historyOpen?"Недавние диалоги":"История чатов"}</h2></div><button type="button" className="assistant-history-new" onClick={fresh}><span>＋</span>Новый чат</button><div className="assistant-history-list">{list.status==='loading'?<p className="assistant-history-empty">Загрузка…</p>:list.status==='error'?<ErrorState description={list.error} action={<Button size="sm" onClick={()=>setRefresh(n=>n+1)}>Повторить</Button>}/>:<>{list.data.items.map(chat=><div className="assistant-history-row" key={chat.conversation_id}><button type="button" aria-current={identity===chat.conversation_id?'true':undefined} className={`assistant-history-item ${identity===chat.conversation_id?'is-active':''}`} onClick={()=>select(chat.conversation_id)}><span>{chat.title}</span><Timestamp at={chat.updated_at} timezone={timezone}/></button><button type="button" className="assistant-history-delete" title="Удалить чат" aria-label={`Удалить чат ${chat.title}`} onClick={()=>{setDeleteError('');setHistoryOpen(false);setDeleting({id:chat.conversation_id,title:chat.title});}}><Icon name="trash" size={17}/></button></div>)}{!list.data.total&&<p className="assistant-history-empty">Диалогов пока нет.</p>}</>}</div>{list.status==='success'&&list.data.total>25&&<div className="assistant-history-pages"><Button size="sm" variant="ghost" disabled={!listOffset} onClick={()=>setListOffset(n=>Math.max(0,n-25))}>Назад</Button><Button size="sm" variant="ghost" disabled={listOffset+25>=list.data.total} onClick={()=>setListOffset(n=>n+25)}>Далее</Button></div>}</>;
-  return <div className="assistant-workspace" data-chat-open={identity ? "" : undefined} data-composer-pending={entryRect ? "" : undefined} data-history-visible={narrow?historyOpen:showDesktopHistory}><div className="assistant-center" inert={narrow&&historyOpen} aria-hidden={narrow&&historyOpen||undefined}><header className="assistant-toolbar"><h1>ИИ-помощник</h1><div className="assistant-toolbar-pill" role="group" aria-label="Управление чатом"><button type="button" aria-label={narrow?'Открыть историю чатов':showDesktopHistory?'Свернуть историю чатов':'Развернуть историю чатов'} title={narrow?'История чатов':showDesktopHistory?'Свернуть историю':'Развернуть историю'} aria-expanded={narrow?historyOpen:showDesktopHistory} aria-controls="assistant-history" onClick={toggleHistory}><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M15 3v18"/></svg></button><button type="button" aria-label="Новый чат" title="Новый чат" onClick={fresh}><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 20l-3 1 1-4a9 9 0 1 1 4 3"/><path d="M12 7v8m-4-4h8"/></svg></button></div></header>
+  const drawerOpen=!showActions&&narrow&&historyOpen;
+  return <div className="assistant-workspace" data-chat-open={identity&&!showActions ? "" : undefined} data-composer-pending={entryRect ? "" : undefined} data-history-visible={!showActions&&(narrow?historyOpen:showDesktopHistory)}>
+    <div className="assistant-center" inert={drawerOpen} aria-hidden={drawerOpen||undefined}>
+      <header className="assistant-toolbar">
+        <h1>ИИ-помощник</h1>
+        {!showActions&&caps.status==='success'&&<div className="assistant-toolbar-pill" role="group" aria-label="Управление чатом"><button type="button" aria-label={narrow?'Открыть историю чатов':showDesktopHistory?'Свернуть историю чатов':'Развернуть историю чатов'} title={narrow?'История чатов':showDesktopHistory?'Свернуть историю':'Развернуть историю'} aria-expanded={narrow?historyOpen:showDesktopHistory} aria-controls="assistant-history" onClick={toggleHistory}><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M15 3v18"/></svg></button><button type="button" aria-label="Новый чат" title="Новый чат" onClick={fresh}><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 20l-3 1 1-4a9 9 0 1 1 4 3"/><path d="M12 7v8m-4-4h8"/></svg></button></div>}
+      </header>
+      <nav className="assistant-sections" aria-label="Разделы помощника">
+        <Link to={{search:chatParams.toString()}} aria-current={showActions?undefined:'page'}>Диалоги</Link>
+        <Link to={{search:actionParams.toString()}} aria-current={showActions?'page':undefined}>История действий</Link>
+      </nav>
+      {showActions&&<ActionHistory timezone={timezone}/>}
+      <div className="assistant-dialog-panel" hidden={showActions}>
+      {caps.status==='loading'&&<LoadingState label="Загрузка помощника"/>}
+      {caps.status==='error'&&<ErrorState description={caps.error} action={<Button onClick={()=>retryCaps(value=>value+1)}>Повторить загрузку</Button>}/>}
+      {caps.status==='success'&&<>
     {!(modelPreference?.available??caps.data.available)&&<div className="assistant-inline-error"><Callout tone="warning">ИИ пока не подключён. История доступна; выберите доступную модель рядом с кнопкой «Файл».</Callout></div>}
     {identity ? <Chat key={identity} identity={identity} entryRect={entryRect} onEntryComplete={completeEntry} capabilities={caps.data} initialDraft={drafts.get(identity)??''} onDraftChange={rememberDraft} onRefreshList={refreshList} timezone={timezone} modelPreference={modelPreference} onModelChange={setModelOverride}/> :
       <section className="assistant-welcome" aria-label="Новый чат">
@@ -201,6 +252,7 @@ function Workspace(){
         </div>
       </section>}
     {launch.error&&<div className="assistant-inline-error" role="alert"><Callout tone="danger">{launch.error}</Callout></div>}
-  </div>{narrow?<HistoryDrawer open={historyOpen} onClose={()=>setHistoryOpen(false)}>{history}</HistoryDrawer>:<aside id="assistant-history" className="assistant-history" aria-label="История диалогов" hidden={!showDesktopHistory}>{history}</aside>}<Modal open={!!deleting} title="Удалить чат?" description="Переписка и прикреплённые файлы будут удалены без возможности восстановления." onClose={()=>{if(!deleteBusy)setDeleting(null);}} tone="danger" instant footer={<><Button variant="secondary" disabled={deleteBusy} onClick={()=>setDeleting(null)}>Отмена</Button><Button disabled={deleteBusy} onClick={()=>void remove()}>{deleteBusy?'Удаление…':'Удалить чат'}</Button></>}><p className="assistant-delete-title">{deleting?.title}</p>{deleteError&&<Callout tone="danger">{deleteError}</Callout>}</Modal></div>;
+    </>}
+  </div></div>{narrow?<HistoryDrawer open={drawerOpen} onClose={()=>setHistoryOpen(false)}>{history}</HistoryDrawer>:<aside id="assistant-history" className="assistant-history" aria-label="История диалогов" hidden={showActions||!showDesktopHistory}>{history}</aside>}<Modal open={!!deleting&&!showActions} title="Удалить чат?" description="Переписка и прикреплённые файлы будут удалены без возможности восстановления." onClose={()=>{if(!deleteBusy)setDeleting(null);}} tone="danger" instant footer={<><Button variant="secondary" disabled={deleteBusy} onClick={()=>setDeleting(null)}>Отмена</Button><Button disabled={deleteBusy} onClick={()=>void remove()}>{deleteBusy?'Удаление…':'Удалить чат'}</Button></>}><p className="assistant-delete-title">{deleting?.title}</p>{deleteError&&<Callout tone="danger">{deleteError}</Callout>}</Modal></div>;
 }
 export function AssistantPage(){const {profile}=useSession();return <Workspace key={`${profile?.userId}:${profile?.siteId}:${profile?.role}`}/>;}

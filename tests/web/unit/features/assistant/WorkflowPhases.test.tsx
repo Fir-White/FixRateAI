@@ -94,7 +94,7 @@ it('keeps an unknown postcondition incomplete even when the phase write has a su
   render(<Page/>);
   expect(await screen.findByText(/Поручение не завершено/)).toBeVisible();
   const card = screen.getByRole('region', {name: 'Предложение: Сохранить черновик'});
-  expect(within(card).getByRole('status')).toHaveTextContent('Запись выполнена; результат требует проверки');
+  expect(within(card).getByRole('status')).toHaveTextContent('Действие завершилось. Результат требует проверки');
   expect(screen.queryByText('Поручение выполнено')).not.toBeInTheDocument();
 });
 

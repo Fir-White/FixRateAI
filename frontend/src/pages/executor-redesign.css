@@ -2,6 +2,8 @@
 .fr-content-v2 .fr-history-toolbar label { display: grid; min-width: 0; gap: 8px; color: var(--fr2-secondary); }
 .fr-content-v2 .fr-history-toolbar p { grid-column: 1 / -1; color: var(--fr2-muted); }
 .fr-content-v2 .executor-tabs { flex-wrap: wrap; }
+.fr-content-v2 .executor-task-row > a { min-height: 44px; margin-top: 2px; }
+.fr-content-v2 .executor-task-row > a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 .fr-content-v2 .executor-task-row h2 { overflow-wrap: anywhere; }
 .fr-content-v2 .executor-workspace { --executor-content-gutter:28px; }
 .fr-content-v2 .executor-spotlight { padding:var(--executor-content-gutter); }

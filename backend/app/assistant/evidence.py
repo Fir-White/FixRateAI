@@ -3,6 +3,7 @@ from datetime import date,datetime
 from decimal import Decimal,InvalidOperation
 from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
 import re
+from typing import Literal
 
 class InconsistentEvidence(ValueError):
     """Reason is a constant field category; never contains source data or secrets."""
@@ -100,3 +101,55 @@ def details(data,equipment,dates,groups):
     require(len(groups)==dup['candidate_groups'],'duplicate_group_count')
     require(all(integer(row.get('count')) and row['count']>=2 for row in groups),'duplicate_group_size')
     require(sum(row['count'] for row in groups)==dup['candidate_tasks'],'duplicate_task_count')
+
+
+EvidenceStatus = Literal['FOUND', 'EMPTY', 'PARTIAL', 'MISSING_INPUT', 'FORBIDDEN',
+                         'UNAVAILABLE', 'ERROR', 'STALE']
+
+
+def failure_status(http_status: int) -> EvidenceStatus:
+    if http_status in (401, 403):
+        return 'FORBIDDEN'
+    if http_status in (404, 502, 503, 504):
+        # A concealed access denial and a missing selected entity share a 404.
+        # Neither proves an empty, authorized collection.
+        return 'UNAVAILABLE'
+    if http_status == 422:
+        return 'MISSING_INPUT'
+    return 'ERROR'
+
+
+def result_status(value, complete, limitations) -> EvidenceStatus:
+    if isinstance(value, dict):
+        upstream = value.get('status')
+        if upstream in ('forbidden', 'access_denied'):
+            return 'FORBIDDEN'
+        if upstream in ('needs_input', 'missing_input'):
+            return 'MISSING_INPUT'
+        if upstream == 'stale':
+            return 'STALE'
+        if upstream in ('unavailable', 'blocked'):
+            return 'UNAVAILABLE'
+        if upstream in ('error', 'failed', 'invalid_configuration'):
+            return 'ERROR'
+    if 'read_outcome_result_shape_mismatch' in limitations:
+        return 'ERROR'
+    if not complete:
+        return 'PARTIAL'
+    if value == []:
+        return 'EMPTY'
+    if isinstance(value, dict):
+        if value.get('items') == [] and (value.get('total') == 0 or value.get('matched_reports') == 0):
+            return 'EMPTY'
+        if value.get('configurations') == []:
+            return 'EMPTY'
+    return 'FOUND'
+
+
+def provenance(arguments, kind):
+    path = arguments.get('path') or {}
+    query = arguments.get('query') or {}
+    keys = ('equipment_id', 'task_id', 'user_id', 'operation_id', 'attachment_id', 'binding_id')
+    return dict(source_type=kind, entity={key: path.get(key, query.get(key)) for key in keys
+                if key in path or key in query},
+                period={key: query[key] for key in ('starts_on', 'ends_on') if key in query})

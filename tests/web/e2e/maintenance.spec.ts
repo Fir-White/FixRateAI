@@ -61,14 +61,21 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
   await executor.getByRole("dialog", {name: "Передать отчёт инженеру?"}).getByRole("button", {name: "Подтвердить сдачу"}).click();
   expect((await submit).status()).toBe(200);
   await expect(executor.getByRole("button", {name: "Сдать работу"})).toHaveCount(0);
+  await executor.goto("/executor/reports");
+  const savedReport = executor.locator(`a[href="/executor/tasks/${demoId("runtime-order")}"]`);
+  await expect(savedReport).toBeVisible();
+  await savedReport.click();
+  await expect(executor.getByText("На проверке", {exact: true}).first()).toBeVisible();
   const engineerContext = await browser.newContext(contextOptions);
   const engineer = await engineerContext.newPage();
   engineer.on("pageerror", error => errors.push(error.message));
-  await signIn(engineer, "fixrate-demo-engineer@example.test");
+  await signIn(engineer, "fixrate-demo-chief_engineer@example.test");
   if(configuredViewport)expect(await engineer.evaluate(()=>innerWidth)).toBe(configuredViewport.width);
   await engineer.goto(`/quality/${demoId("runtime-order")}`);
   await expect(engineer.locator(".evidence-photo img")).toHaveCount(2);
-  await expect(engineer.getByText("Последние изменения перед сдачей", {exact: true})).toBeVisible();
+  await engineer.getByRole("button", {name: "Факты и документы", exact: true}).click();
+  await expect(engineer.getByRole("dialog").getByText("Последние изменения перед сдачей", {exact: true})).toBeVisible();
+  await engineer.keyboard.press("Escape");
   await checkpoint(engineer,'engineer-submitted');
   // No engineer POST or comparability confirmation: submission queues the analysis.
   await expect.poll(async()=> (await (await engineer.request.get(`/api/v1/maintenance/ui/tasks/${demoId("runtime-order")}`)).json()).photoAnalysisStatus,{timeout:30000}).toBe("ready");

@@ -198,6 +198,9 @@ def _merge_system_messages(messages):
 
 
 class OllamaClient:
+    supports_semantic_plan = True
+    supports_dialogue_routing = True
+    supports_request_coverage = True
     def __init__(self,config):
         self.config=config;self.deadline=time.monotonic()+config.timeout;self.response_model=None
         self.metrics=[]

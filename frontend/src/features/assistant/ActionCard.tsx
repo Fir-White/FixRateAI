@@ -6,6 +6,7 @@ import {Callout} from '@/shared/ui/Callout';
 import {notifyOtherTabs} from '@/shared/session/SessionContext';
 const labels:Record<string,string>={role:'Роль',user_id:'Сотрудник',is_active:'Доступ активен',file:'Файл',photo:'Фотография',payload:'Показание и основание',email:'Новый email',site_id:'Здание',preview_token:'Контроль предпросмотра',name:'Название',asset_code:'Инвентарный код',location:'Расположение',status:'Состояние',reason:'Причина',title:'Название плана',expected_revision:'Исходная версия',system_id:'Система',equipment_type_id:'Тип оборудования',equipment_id:'Оборудование',task_id:'Задание',identity:'План',serial_number:'Серийный номер',commissioned_on:'Дата ввода',start_at:'Начало',end_at:'Окончание',start_local:'Начало (время объекта)',end_local:'Окончание (время объекта)',executor_ids:'Исполнители',worker_ids:'Исполнители',comparability_confirmed:'Сопоставимость фото подтверждена',locked:'Закрепить',unlock:'Разрешить снятие закрепления',narrative:'Описание выполнения',verdict:'Решение',policy:'Условия расчёта',input:'Исходные данные',answers:'Ответы чек-листа',readings:'Показания',actual:'Фактическое выполнение',parent_equipment_id:'Родительское оборудование',properties:'Свойства',data_origin:'Происхождение',idempotency_key:'Ключ защиты от повтора'};
 const states:Record<ChatAction['status'],string>={proposed:'Нужно ваше подтверждение',rejected:'Отклонено',executing:'Выполняется',succeeded:'Выполнено',failed:'Действие отклонено системой',uncertain:'Результат требует проверки',stale:'Предложение устарело'};
+const executorActions = new Set(['task_start', 'report_save', 'report_submit']);
 const values:Record<string,string>={director:'Руководитель',chief_engineer:'Главный инженер',admin:'Администратор',dispatcher:'Диспетчер',engineer:'Инженер',executor:'Исполнитель',before:'До работы',after:'После работы',active:'В работе',under_repair:'На ремонте',retired:'Выведено из эксплуатации',customer:'Данные заказчика',synthetic_demo:'Тестовые данные',accepted:'Принять',rejected:'Вернуть на доработку',draft:'Черновик',assigned:'Назначено',in_progress:'В работе',submitted:'На проверке',rework:'На доработке',rework_required:'На доработке',cancelled:'Отменено'};
 function formatWhen(raw:unknown):string|null{
   if(typeof raw!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(raw))return null;
@@ -17,6 +18,11 @@ function value(v:unknown){return v===null?'Не задано':typeof v==='boolea
 function resultSummaryRows(data:unknown):Array<[string,string]>{
   if(!data||typeof data!=='object'||Array.isArray(data))return [];
   const obj=data as Record<string,unknown>;
+  if(typeof obj.siteName==='string')return [['Здание',obj.siteName],...(typeof obj.role==='string'?[['Роль',values[obj.role]??obj.role] as [string,string]]:[])];
+  if(obj.profile&&typeof obj.profile==='object'){
+    const profile=obj.profile as Record<string,unknown>;
+    if(typeof profile.siteName==='string')return resultSummaryRows(profile);
+  }
   const task=obj.task&&typeof obj.task==='object'?obj.task as Record<string,unknown>:null;
   if(task){
     const rows:Array<[string,string]>=[];
@@ -62,7 +68,8 @@ export const ActionCard=memo(function ActionCard({action:original,title,onChange
   const [secrets,setSecrets]=useState<Record<string,string>>({});
   const [consent,setConsent]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
   const expired=Date.parse(action.expires_at)<Date.now();
-  const fields=Object.entries({...action.arguments.path,...action.arguments.query,...action.arguments.body}).filter(([k,v])=>!action.secret_fields?.includes(k)&&k!=='idempotency_key'&&v!==null&&v!==undefined&&!(typeof v==='object'&&Object.keys(v).length===0));
+  const fields=Object.entries({...action.arguments.path,...action.arguments.query,...action.arguments.body}).filter(([k,v])=>!action.secret_fields?.includes(k)&&k!=='idempotency_key'&&
+    !(executorActions.has(action.tool_name)&&['task_id','expected_revision'].includes(k))&&v!==null&&v!==undefined&&!(typeof v==='object'&&Object.keys(v).length===0));
   const before=action.before_snapshot?.preview;
   const run=async(confirm:boolean)=>{setBusy(true);setError('');try{const result=confirm?(action.secret_fields?.length?await assistantApi.confirm(action,secrets):await assistantApi.confirm(action)):await assistantApi.reject(action.action_id);setResolved(result);setSecrets({});onChanged();const navigate=(result.result?.data as {navigate_to?:unknown}|undefined)?.navigate_to;if(navigate==='/assistant'||navigate==='/login'){notifyOtherTabs();window.location.assign(navigate);}}catch(e){setError(e instanceof Error?e.message:'Не удалось выполнить действие');onChanged();}finally{setBusy(false);}};
   const target=action.arguments.path?.equipment_id;
@@ -71,14 +78,14 @@ export const ActionCard=memo(function ActionCard({action:original,title,onChange
   const verification=action.result?.verification;
   const resource=action.status==='succeeded'?protectedResource(action.result?.data):null;
   const summaryRows=action.status==='succeeded'?resultSummaryRows(action.result?.data):[];
-  const stateLabel=action.status==='succeeded'&&verification?verification.status==='confirmed'?'Выполнено и проверено':'Запись выполнена; результат требует проверки':states[action.status];
+  const stateLabel=action.status==='succeeded'&&verification?verification.status==='confirmed'?'Выполнено и проверено':'Действие завершилось. Результат требует проверки':states[action.status];
   return <section className="min-w-0 space-y-4 rounded-2xl border border-accent/30 bg-surface p-4 sm:p-5" aria-label={`Предложение: ${title}`}>
     <div className="flex flex-wrap items-start justify-between gap-2"><h3 className="font-semibold">{title}</h3><span role="status" className="text-xs text-muted">{stateLabel}</span></div>
     {verification&&<p className="text-sm whitespace-pre-wrap">{verification.summary}</p>}
     <p className="whitespace-pre-wrap text-sm">{action.explanation}</p>
     <div className="flex flex-wrap gap-3">
       {typeof target==='string'&&<Link className="text-sm text-accent underline" to={`/equipment/${encodeURIComponent(target)}`}>Открыть оборудование</Link>}
-      {taskTarget&&<Link className="text-sm text-accent underline" to={`/tasks/${encodeURIComponent(taskTarget)}`}>Открыть задание</Link>}
+      {taskTarget&&<Link className="text-sm text-accent underline" to={`${executorActions.has(action.tool_name)?'/executor':''}/tasks/${encodeURIComponent(taskTarget)}`}>Открыть задание</Link>}
     </div>
     <dl className="space-y-2 text-sm">{fields.map(([key,v])=><div key={key} className="grid min-w-0 gap-1 border-t border-line pt-2 sm:grid-cols-[160px_minmax(0,1fr)]"><dt className="text-muted">{labels[key]??key}</dt><dd className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{attachments.find(a=>a.attachment_id===v)?.original_name??value(v)}</dd></div>)}</dl>
     <details className="text-sm"><summary className="cursor-pointer text-muted">Все параметры команды</summary><pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs [overflow-wrap:anywhere]">{JSON.stringify(action.arguments,null,2)}</pre></details>

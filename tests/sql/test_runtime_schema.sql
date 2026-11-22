@@ -7,7 +7,8 @@ DECLARE missing text; amount integer;
 BEGIN
     SELECT string_agg(name,', ') INTO missing FROM unnest(ARRAY[
         'fixrate_sessions','planning_runs','employee_shift_rules','site_join_codes','employment_applications','maintenance_notifications',
-        'source_imports','source_revision_events'
+        'source_imports','source_revision_events',
+        'assistant_conversations','assistant_turns','assistant_actions','assistant_attachments','assistant_model_preferences'
     ]) name WHERE NOT EXISTS (
         SELECT 1 FROM pg_constraint c WHERE c.conrelid=to_regclass('public.'||name) AND c.contype='p');
     IF missing IS NOT NULL THEN RAISE EXCEPTION 'Missing runtime table/primary key: %',missing; END IF;

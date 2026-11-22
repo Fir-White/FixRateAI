@@ -1,0 +1,489 @@
+"""Execute and project server-compiled objectives through the existing tool pipeline."""
+from __future__ import annotations
+
+import json
+import re
+from datetime import date, datetime
+
+from pydantic import ValidationError
+
+from app.schemas.assistant import AgentStep
+from app.schemas.maintenance import CalendarPattern
+from app.scheduling.recurrence import pattern_description
+
+from .inventory_report import label
+from .semantic_plan import EQUIPMENT_ANALYSIS, UUID, positive_text
+
+
+TASK_STATES = {'draft': 'черновик', 'assigned': 'назначено', 'in_progress': 'в работе',
+               'rework': 'на доработке', 'rework_required': 'на доработке', 'in_review': 'на проверке',
+               'submitted': 'на проверке', 'completed': 'завершено', 'accepted': 'принято',
+               'cancelled': 'отменено', 'active': 'в эксплуатации', 'retired': 'выведено из эксплуатации'}
+ROLES = {'chief_engineer': 'главный инженер', 'executor': 'исполнитель', 'engineer': 'инженер',
+         'director': 'директор', 'dispatcher': 'диспетчер', 'admin': 'администратор'}
+LABELS = {'name': 'Название', 'location': 'Место установки', 'role': 'Роль', 'site': 'Здание',
+          'email': 'Email', 'code': 'Код', 'state': 'Состояние', 'start': 'Плановое начало',
+          'deadline': 'Нормативный срок', 'crew_size': 'Требуется исполнителей',
+          'assignees': 'Назначенные исполнители', 'checklist': 'Чек-лист', 'revision': 'Ревизия',
+          'closed': 'Фактическое закрытие'}
+
+
+def _call(goal, tool, args):
+    return AgentStep(answer='', calls=[dict(tool=tool, goal_id=goal['id'],
+        arguments_json=json.dumps(args, ensure_ascii=False), explanation=goal['title'])])
+
+
+def _stop(message):
+    return AgentStep(answer=message, calls=[])
+
+
+def _read(proofs, tool):
+    return next((proof['result'] for proof in reversed(proofs) if proof['tool'] == tool), None)
+
+
+REFERENCE_SOURCES = {'task_read': 'task_id', 'equipment_read': 'equipment_id'}
+
+
+def _reference(goal, meta, proofs):
+    misses = goal.get('reference_misses', [])
+    for tool, key in REFERENCE_SOURCES.items():
+        if tool not in misses and _read(proofs, tool) is None:
+            return _call(goal, tool, {'path': {key: meta['subject']}})
+    return _stop('')
+
+
+def _equipment(goal, meta, proofs):
+    from .semantic_plan import ASSET
+
+    target = goal['tool']
+    subject = meta['subject']
+    if re.fullmatch(UUID, subject, re.I):
+        identity = subject
+    else:
+        lookup = next((proof for proof in reversed(proofs) if proof['tool'] == 'equipment_find'), None)
+        if lookup is None:
+            query = {'asset_code': subject} if re.fullmatch(ASSET, subject, re.I) else {'q': subject}
+            return _call(goal, 'equipment_find', {'query': query})
+        found = lookup['result']
+        if (not lookup.get('complete') or not isinstance(found, dict)
+                or not isinstance(found.get('items'), list) or type(found.get('total')) is not int):
+            return _stop('Поиск оборудования не подтвердил полный результат. Уточните код или повторите чтение.')
+        rows = found.get('items', [])
+        exact = [row for row in rows if subject.casefold() in
+                 (str(row.get('asset_code') or '').casefold(), str(row.get('name') or '').casefold())]
+        candidates = exact or (rows if found.get('total') == 1 and not re.fullmatch(ASSET, subject, re.I) else [])
+        if not candidates:
+            return _stop('Оборудование по указанному коду или названию не найдено.')
+        if len(candidates) != 1:
+            return _stop('Уточните инвентарный код: найдено несколько единиц оборудования.')
+        if target == 'equipment_find':
+            return _stop('Оборудование найдено.')
+        identity = candidates[0]['equipment_id']
+    arguments = {'path': {'equipment_id': identity}}
+    if target == 'equipment_edit':
+        arguments['body'] = dict(meta['changes'])
+        if 'expected_revision' in meta:
+            arguments['body']['expected_revision'] = meta['expected_revision']
+    if target == 'equipment_service_history':
+        arguments['query'] = {**meta['query'], 'only_accepted': True}
+    elif target == 'calendar_evidence':
+        arguments['query'] = {**meta['query'], 'approved_only': True}
+    elif target == 'tasks_find':
+        arguments = {'query': {**meta['query'], 'equipment_id': identity, 'unfinished_only': True,
+                               'period': meta['period']}}
+    return _call(goal, target, arguments)
+
+
+def _assign(goal, meta, proofs):
+    candidate = meta['subject']
+    if candidate is None:
+        found = _read(proofs, 'tasks_find')
+        if found is None:
+            return _call(goal, 'tasks_find', {'query': {'period': 'upcoming'}})
+        rows = found.get('items', [])
+        if not rows:
+            return _stop('Предстоящих заданий для назначения нет.')
+        first = rows[0]
+        if len(rows) > 1 and (not first.get('scheduledStart') or first['scheduledStart'] == rows[1].get('scheduledStart')):
+            ids = ', '.join(row['id'] for row in rows[:3] if row.get('id'))
+            return _stop('У нескольких ближайших работ одинаковое время. Уточните задание по названию или ID. ' + ids)
+        candidate = first.get('id')
+        if not candidate:
+            return _stop('У ближайшей работы не подтверждён ID. Уточните задание.')
+    if meta['one_worker']:
+        card = _read(proofs, 'task_read')
+        if card is None:
+            return _call(goal, 'task_read', {'path': {'task_id': candidate}})
+        required = (card.get('task') or {}).get('crewSize')
+        if type(required) is not int:
+            return _stop('Требуемый состав задания не подтверждён.')
+        if required != 1:
+            return _stop(f'Для этого задания требуется исполнителей: {required}. Одного назначить нельзя.')
+    preparation = _read(proofs, 'assignment_prepare')
+    if preparation is None:
+        return _call(goal, 'assignment_prepare', {'path': {'task_id': candidate}, 'body': {'one_person_only': meta['one_worker']}})
+    command = preparation.get('command')
+    if not isinstance(command, dict):
+        return _stop(str(preparation.get('explanation') or 'Назначение сейчас невозможно. Проверьте состав и время.'))
+    if meta['one_worker'] and len(command.get('executor_ids') or []) != 1:
+        return _stop('Для этого задания требуется другой состав. Одного исполнителя назначить нельзя.')
+    if 'expected_revision' in meta and meta['expected_revision'] != command.get('expected_revision'):
+        return _stop('Указанная ревизия не совпадает с текущей. Обновите карточку задания.')
+    body = {key: command[key] for key in ('expected_revision', 'start_at', 'end_at', 'executor_ids', 'crew_id') if command.get(key) is not None}
+    body['reason'] = 'По запросу пользователя подготовлено назначение на выбранное задание.'
+    return _call(goal, 'task_assign', {'path': {'task_id': candidate}, 'body': body})
+
+
+def next_step(goal, state, *, turn_evidence_start=None):
+    meta = goal['semantic']
+    target = goal['tool']
+    proofs = [proof for proof in state['evidence'] if proof['goal_id'] == goal['id'] and
+              proof.get('retained') and proof.get('status') != 'STALE']
+    if meta['intent'] == 'reference_details':
+        return _reference(goal, meta, proofs)
+    if meta['intent'] in EQUIPMENT_ANALYSIS or target in (
+            'equipment_read', 'equipment_find', 'equipment_edit', 'regulations_read', 'equipment_service_history'):
+        if goal['mode'] == 'read' and target != 'equipment_find' and meta['subject'] and turn_evidence_start is not None:
+            from .semantic_plan import ASSET
+            query_key = 'asset_code' if re.fullmatch(ASSET, meta['subject'], re.I) else 'q'
+            shared = next((proof for proof in reversed(state['evidence'][turn_evidence_start:])
+                           if proof['tool'] == 'equipment_find' and proof.get('complete') and proof.get('retained')
+                           and proof.get('scope') == state['scope'] and
+                           proof['arguments'].get('query', {}).get(query_key) == meta['subject']), None)
+            if shared is not None:
+                goal['identity_evidence_id'] = shared['id']
+                proofs.append(shared)
+        return _equipment(goal, meta, proofs)
+    if target == 'task_assign':
+        return _assign(goal, meta, proofs)
+    if target == 'task_read':
+        return _call(goal, target, {'path': {'task_id': meta['subject']}})
+    if target in ('task_start', 'task_cancel'):
+        body = dict(meta.get('changes', {}))
+        if 'expected_revision' in meta:
+            body['expected_revision'] = meta['expected_revision']
+        return _call(goal, target, {'path': {'task_id': meta['subject']}, 'body': body})
+    if target == 'tasks_find':
+        query = {'period': meta.get('list_period') or meta['period']}
+        if meta.get('scheduled_only'):
+            query['scheduled_only'] = True
+        if meta.get('list_period'):
+            query['limit'] = 1
+        elif meta.get('limit', 0):
+            query['limit'] = min(meta['limit'], 25)
+        return _call(goal, target, {'query': query})
+    if target == 'tasks_analyze':
+        return _call(goal, target, {'query': {'section': 'summary', **meta.get('query', {})}})
+    if target == 'staff_find':
+        subject = meta['subject'].strip()
+        # A surname prefix finds endings used by the saved spelling and natural inflection.
+        words = re.findall(r'[\w@.+-]+', subject)
+        search = words[-1][:max(4, len(words[-1])-2)] if len(words) > 1 else subject
+        return _call(goal, target, {'query': {'q': search}})
+    if target == 'attachment_read':
+        query = {'coordinates_mode': meta['workbook_mode']}
+        for name in ('sheet', 'row'):
+            if meta.get(name) is not None:
+                query[name] = meta[name]
+        return _call(goal, target, {'path': {'identity': state['scope']['conversation_id'],
+            'attachment_id': meta['attachment_id']}, 'query': query})
+    return _call(goal, target, {})
+
+
+def _discussion_proofs(goal, state):
+    goals = {item['id']: item for item in state['goals']}
+    subject = goal['semantic'].get('subject')
+    for proof in state['evidence']:
+        owner = goals[proof['goal_id']]
+        if (proof.get('complete') and proof.get('retained') and proof.get('scope') == state.get('scope') and
+                proof.get('status') in ('FOUND', 'EMPTY') and proof['tool'] == owner['tool'] and
+                (subject is None or str(owner.get('semantic', {}).get('subject')).casefold() == subject.casefold())):
+            yield proof, owner
+
+
+def explain_results(goal, state):
+    for proof, _ in _discussion_proofs(goal, state):
+        if proof['tool'] == 'task_read':
+            task = proof['result'].get('task', {})
+            if task.get('isOverdue') is True:
+                return ('Карточка подтверждает просрочку. Для выяснения причины нужны факты о ходе работ. '
+                        f'Источник {proof["id"]}.')
+            if task.get('isOverdue') is False:
+                return f'На момент чтения карточка не отмечена как просроченная. Источник {proof["id"]}.'
+    return 'Проверенные чтения приведены выше. Дополнительный вывод по ним подтвердить не удалось.'
+
+
+def recommendations(goal, state):
+    """Rank review steps using only validated evidence from this request."""
+    options = []
+    for proof, owner in _discussion_proofs(goal, state):
+        tool, result = proof['tool'], proof['result']
+        source = f' · источник {proof["id"]}'
+        if tool == 'task_read' and result.get('task', {}).get('isOverdue') is True:
+            options.extend((
+                (10, 'Найти ближайшее доступное окно с текущим исполнителем и уточнить причину просрочки.' + source),
+                (15, 'Проверить, может ли допущенная бригада выполнить работу раньше.' + source),
+            ))
+        elif tool == 'tasks_find' and owner.get('semantic', {}).get('intent') == 'equipment_tasks':
+            if result['period'] == 'overdue' and result['items']:
+                options.append((10, 'Проверить причины просроченных работ и согласовать ближайшее доступное окно.' + source))
+            if result['period'] == 'all' and result['items']:
+                options.append((20, 'Сверить сроки и ответственных по незавершённым работам.' + source))
+        elif tool == 'equipment_service_history':
+            if proof['status'] == 'EMPTY':
+                options.append((25, 'Сверить журнал обслуживания и акты приёмки, чтобы восстановить историю.' + source))
+            else:
+                options.append((40, 'Сверить объём работ в последнем принятом отчёте с текущим регламентом.' + source))
+        elif tool == 'regulations_read':
+            options.append((35, 'Сверить актуальность сохранённого регламента с утверждённой документацией.' + source))
+        elif tool == 'equipment_read':
+            options.append((60, 'При ближайшем допущенном обходе сверить запись о состоянии с фактическими наблюдениями.' + source))
+    options.extend((
+        (70, 'Уточнить, какие сведения об оборудовании ещё нужны для решения о работах.'),
+        (80, 'Согласовать с ответственными критерии приоритета и ограничения доступа.'),
+        (90, 'Выбрать контрольную точку для повторной проверки состояния и документов.'),
+    ))
+    selected = list(dict.fromkeys(message for _, message in sorted(options)))[:goal['semantic']['recommendation_count']]
+    return '\n'.join(f'{i}. {message}' for i, message in enumerate(selected, 1))
+
+
+def _instant(value):
+    if not value:
+        return None
+    try:
+        instant = datetime.fromisoformat(value.replace('Z', '+00:00'))
+    except (TypeError, ValueError):
+        return value
+    return instant.strftime('%d.%m.%Y %H:%M')
+
+
+def _row(item, fields):
+    checklist = item.get('checklist') or []
+    values = {
+        'name': item.get('name') or item.get('title') or item.get('full_name'),
+        'code': item.get('asset_code'), 'location': item.get('location'),
+        'role': ROLES.get(item.get('role'), item.get('role')), 'site': item.get('siteName'),
+        'email': item.get('email'), 'state': TASK_STATES.get(item.get('state') or item.get('status'), item.get('state') or item.get('status')),
+        'start': _instant(item.get('scheduledStart')), 'deadline': item.get('mandatoryDueDate'),
+        'crew_size': item.get('crewSize'), 'assignees': ', '.join(str(row.get('name', '')) for row in item.get('assignees', [])),
+        'revision': item.get('revision'),
+        'closed': _instant(item.get('closedAt')) if item.get('state') == 'completed' else
+                  'работа не закрыта' if item.get('state') != 'cancelled' else 'работа отменена',
+    }
+    main = ' · '.join(f'{LABELS[field]}: {label(str(values[field]))}' if values.get(field) not in (None, '')
+                      else f'{LABELS[field]}: не указано' for field in fields if field != 'checklist')
+    if 'checklist' not in fields:
+        return main
+    points = '\n'.join('- ' + label(row['text']) for row in checklist if row.get('text'))
+    return '\n\n'.join(filter(None, (main, points or 'Согласованный чек-лист не найден.')))
+
+
+def _staff(value, meta):
+    subject = meta['subject'].casefold().replace('ё', 'е')
+    def same_name(saved):
+        expected = re.findall(r'[\w-]+', subject)
+        actual = re.findall(r'[\w-]+', saved.casefold().replace('ё', 'е'))
+        if not expected or len(expected) != len(actual):
+            return False
+        endings = ('а', 'у', 'ом', 'е', 'я', 'ю', 'ем', 'ы', 'и', 'ой', 'ей', 'ого', 'ому')
+        return all(query == name or len(name) >= 4 and (query in {name + ending for ending in endings} or
+                   name[-1] in 'аяьй' and query in {name[:-1]+ending for ending in endings})
+                   for query, name in zip(expected, actual))
+    rows = [row for row in value.get('items', []) if subject == str(row.get('email', '')).casefold() or
+            same_name(str(row.get('full_name', '')))]
+    if len(rows) == 1 and (value.get('total', 0) <= len(value.get('items', []))):
+        return _row(rows[0], meta['fields'])
+    return 'Сотрудник с указанными данными не найден.' if not rows else 'Уточните сотрудника по точному рабочему email.'
+
+
+def _workbook(value, meta, request):
+    mode = meta['workbook_mode']
+    if mode == 'sheets':
+        return '\n'.join('- ' + label(sheet['name']) for sheet in value['sheets']) or 'В книге нет листов.'
+    if mode == 'structure':
+        sheet = value['sheet']
+        return f'{label(sheet["name"])}: строк {sheet["rows"]}, первая {sheet["first_row"]}, последняя {sheet["last_row"]}.'
+    headers = value['headers']
+    if mode == 'headers':
+        return '\n'.join(f'{column}: {label(str(text))}' for column, text in headers.items()) or 'Строка заголовков пуста.'
+    row = value['cells']
+    output = []
+    selected = meta['columns']
+    if not selected and meta['whole_row']:
+        selected = list(row)
+    elif not selected:
+        selected = [text.split(',')[0].strip() for text in headers.values() if isinstance(text, str) and
+                    text.strip() and _header_mentioned(text.split(',')[0].strip(), positive_text(request))]
+    for requested in dict.fromkeys(selected):
+        wanted = ' '.join(re.findall(r'\w+', requested.casefold()))
+        columns = [column for column, text in headers.items() if isinstance(text, str) and
+                   (_header_mentioned(text.split(',')[0].strip(), requested)
+                    or re.search(r'\b' + re.escape(wanted) + r'\b', text.casefold()))]
+        if not columns and re.fullmatch(r'[A-Za-z]{1,3}', requested):
+            columns = [requested.upper()]
+        if len(columns) != 1:
+            output.append(f'{label(requested)}: столбец не удалось определить однозначно.')
+            continue
+        column = columns[0]
+        cell = _cell(row, column)
+        if isinstance(cell, dict):
+            cell = cell.get('value')
+        output.append(f'{label(str(headers.get(column, requested)))}: {label(str(cell)) if cell not in (None, "") else "пусто"}.')
+    return '\n'.join(output) or 'Уточните названия или буквы нужных столбцов.'
+
+
+def _header_mentioned(header, text):
+    words = re.findall(r'\w+', header.casefold())
+    if not words:
+        return False
+    patterns = []
+    for word in words:
+        if len(word) >= 5 and word[-1] in 'аяь':
+            patterns.append(re.escape(word[:-1]) + r'(?:а|у|е|ы|ой|я|ю|и|ей|ь)')
+        else:
+            patterns.append(re.escape(word))
+    return bool(re.search(r'\b' + r'\s+'.join(patterns) + r'\b', text.casefold()))
+
+
+def _cell(row, column):
+    def column_number(letters):
+        result = 0
+        for letter in letters:
+            result = result * 26 + ord(letter) - ord('A') + 1
+        return result
+    if column in row:
+        return row[column]
+    for address, value in row.items():
+        if ':' in address:
+            start, end = address.split(':', 1)
+            if column_number(start) <= column_number(column) <= column_number(end):
+                return value
+    return None
+
+
+def render(goal, proofs, request=''):
+    meta = goal['semantic']
+    intent = meta['intent']
+    if meta.get('block'):
+        return meta['block']
+    if goal.get('message') and (goal['status'] in ('blocked', 'partial') and goal.get('reason') != 'semantic_page'):
+        return label(goal['message'])
+    if intent == 'reference_details':
+        task, equipment = (_read(proofs, tool) for tool in REFERENCE_SOURCES)
+        if task is not None and equipment is not None:
+            return 'Этот ID совпал у задания и оборудования. Уточните тип карточки.'
+        if task is not None and 'equipment_read' in goal.get('reference_misses', []):
+            return _row(task['task'], meta['fields'])
+        if equipment is not None and 'task_read' in goal.get('reference_misses', []):
+            return _row(equipment, meta['fields'])
+        if len(goal.get('reference_misses', [])) == len(REFERENCE_SOURCES):
+            return 'Доступное задание или оборудование с таким ID не найдено.'
+        return 'Не удалось подтвердить тип карточки по доступным источникам.'
+    proof = next((proof for proof in reversed(proofs) if proof['tool'] == goal['tool']), None)
+    value = proof['result'] if proof and proof.get('status') in (None, 'FOUND', 'EMPTY', 'PARTIAL') else None
+    if value is None:
+        return 'Не удалось подтвердить результат по доступному источнику.'
+    scope_errors = {'requested_resource_mismatch', 'result_resource_mismatch', 'requested_equipment_code_not_verified',
+                    'requested_period_mismatch', 'result_period_mismatch', 'history_equipment_reference_unverified',
+                    'requested_task_scope_not_verified', 'requested_task_row_scope_mismatch', 'read_outcome_result_shape_mismatch'}
+    if scope_errors.intersection(proof.get('limitations', [])):
+        return 'Полученные данные не подтвердили выбранное оборудование, период или вид результата.'
+    complete = proof.get('complete', goal.get('status') == 'completed')
+    if intent in ('equipment_details', 'self_profile'):
+        return _row(value, meta['fields'])
+    if intent == 'equipment_exists':
+        if goal['tool'] == 'equipment_read' or value.get('total'):
+            return f'Оборудование {label(meta["subject"])} найдено.'
+        return (f'Оборудование {label(meta["subject"])} не найдено.' if complete else
+                'Полный результат поиска оборудования не подтверждён.')
+    if intent == 'task_details':
+        item = value.get('task') or {}
+        return _row({**item, 'checklist': (value.get('execution') or {}).get('checklist')}, meta['fields'])
+    if intent == 'task_count':
+        if meta.get('list_period'):
+            total = value.get('total') if value.get('period') == meta['list_period'] else None
+        else:
+            total = value.get('counters', {}).get(meta['counter']) if meta.get('counter') else value.get('selected_tasks')
+            if value.get('complete') is not True:
+                total = None
+        return str(total) if type(total) is int else 'Не удалось подтвердить полное число заданий.'
+    if intent == 'task_list':
+        rows = value.get('items', [])
+        overdue = meta['period'] == 'overdue'
+        selected = [item for item in rows if not overdue or item.get('isOverdue') is True]
+        limit = meta.get('limit')
+        lines = ['- ' + _row(item, meta['fields']) for item in selected[:limit]]
+        if not lines:
+            lines.append('Подходящих заданий нет.' if complete else 'Полный список подходящих заданий не подтверждён.')
+        if value.get('total', 0) > len(rows) and (limit is None or len(lines) < limit):
+            lines.append(f'Прочитана первая страница ({len(rows)} из {value["total"]}).')
+        return '\n'.join(lines)
+    if intent == 'equipment_tasks':
+        rows = value['items']
+        if meta['period'] == 'overdue':
+            rows = [row for row in rows if row.get('isOverdue') is True]
+        lines = [f'- {_row(row, meta["fields"])} · ID {row["id"]}' for row in rows[:25]]
+        if not lines and complete:
+            return 'Подходящих заданий нет.'
+        if not complete or len(rows) > 25:
+            lines.append(f'Показано заданий: {min(len(rows), 25)}. Полный перечень не подтверждён.')
+        return '\n'.join(lines)
+    if intent == 'staff_details':
+        return _staff(value, meta)
+    if intent in ('maintenance_history', 'latest_maintenance'):
+        rows = [row for row in value.get('items', []) if row.get('actual_date_verified') and row.get('performed_at')
+                and row.get('accepted_at') and not row.get('actual_date_conflict')]
+        lines = [f'- {_instant(row["performed_at"])} · отчёт {row["report_id"]}' for row in rows[:25]]
+        if not lines:
+            lines.append('Принятых отчётов с подтверждённой датой в проверенной области нет.' if complete else
+                         'Дату фактического обслуживания по доступным отчётам подтвердить не удалось.')
+        if not complete or len(rows) > 25:
+            lines.append('Последнее фактическое обслуживание не установлено.' if intent == 'latest_maintenance' else
+                         'Полнота перечня дат не подтверждена.')
+        return '\n'.join(lines)
+    if intent in ('service_frequency', 'active_regulations'):
+        lines = []
+        for rule in value:
+            if not rule.get('enabled'):
+                continue
+            day = meta.get('local_date')
+            if day and not (rule['valid_from'] <= day and (rule['valid_until'] is None or rule['valid_until'] >= day)):
+                continue
+            try:
+                frequency = pattern_description(CalendarPattern.model_validate_json(json.dumps(rule.get('pattern'))))
+            except ValidationError:
+                frequency = 'периодичность в сохранённом регламенте не подтверждена'
+            reference = f' · привязка {rule["binding_id"]}, версия {rule["rule_version"]}' if intent == 'active_regulations' else ''
+            lines.append(f'- {label(rule["title"])}: {label(frequency)}{reference}.')
+        if lines:
+            return 'По сохранённому регламенту объекта.\n' + '\n'.join(lines)
+        return ('Действующий сохранённый регламент не найден.' if complete else
+                'Наличие действующего регламента не подтверждено.')
+    if intent == 'maintenance_calendar':
+        lines = [f'Период расчёта {value["starts_on"]} — {value["ends_on"]} · {value["timezone"]}.']
+        next_dates = []
+        for configuration in value['configurations']:
+            if not configuration['complete']:
+                lines.append('По одной из конфигураций полный расчёт недоступен.')
+            for occurrence in configuration['occurrences']:
+                effective = occurrence['effective_date']
+                if meta['calendar_view'] == 'period' or effective >= meta['local_date']:
+                    next_dates.append((effective, occurrence['source_date'], configuration['source']['binding_id']))
+        if next_dates and meta['calendar_view'] == 'period':
+            lines.extend(f'- {effective} · исходная дата {source} · привязка {binding}.'
+                         for effective, source, binding in sorted(next_dates)[:25])
+            if len(next_dates) > 25:
+                lines.append('В ответе показаны первые 25 расчётных обязанностей.')
+        elif next_dates:
+            effective, source, binding = min(next_dates)
+            prefix = 'Ближайшая расчётная обязанность' if complete else 'Дата в доступной части расчёта'
+            lines.append(f'{prefix} — {effective} · исходная дата {source} · привязка {binding}.')
+        elif complete:
+            lines.append('В проверенном диапазоне подходящих расчётных обязанностей нет.')
+        return '\n'.join(lines)
+    if intent == 'workbook_row':
+        return _workbook(value, meta, request)
+    if intent == 'notifications':
+        lines = ['- ' + label(row['message']) for row in value if row.get('message')]
+        return '\n'.join(lines) or ('Уведомлений нет.' if complete else 'Полный список уведомлений не подтверждён.')
+    return 'Не удалось подтвердить результат по доступному источнику.'

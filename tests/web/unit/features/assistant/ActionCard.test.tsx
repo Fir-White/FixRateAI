@@ -9,7 +9,7 @@ beforeEach(()=>{vi.restoreAllMocks();vi.spyOn(api,'confirm').mockResolvedValue({
 function show(action=record){const changed=vi.fn();render(<MemoryRouter><ActionCard action={action} title="Изменить оборудование" onChanged={changed}/></MemoryRouter>);return changed;}
 it('distinguishes an acknowledged write from a verified postcondition',()=>{
   show({...record,status:'succeeded',result:{data:{revision:3},verification:{status:'unverified',summary:'Нужна проверка состояния данных.'}}});
-  expect(screen.getByRole('status')).toHaveTextContent('Запись выполнена; результат требует проверки');
+  expect(screen.getByRole('status')).toHaveTextContent('Действие завершилось. Результат требует проверки');
   expect(screen.queryByText('Выполнено и проверено')).not.toBeInTheDocument();
   expect(screen.queryByRole('button',{name:'Подтвердить и выполнить'})).not.toBeInTheDocument();
 });

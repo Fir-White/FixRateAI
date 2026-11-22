@@ -66,6 +66,9 @@ class AITunnelConfig:
 
 
 class AITunnelClient:
+    supports_dialogue_routing = True
+    supports_semantic_plan = True
+    supports_request_coverage = True
     def __init__(self, config):
         self.config = config
         self.opener = build_opener(ProxyHandler({}), NoRedirect())

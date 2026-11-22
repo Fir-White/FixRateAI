@@ -89,6 +89,39 @@ def page(app,identity,sheet=None,offset=0,limit=25,q=''):
                 quality=diagnostics,note='Строки исходного файла, не импорт. Формулы не вычислялись; value — сохранённое в Excel значение. null в нормативном столбце означает отсутствие исходного значения, не ноль.')
 
 
+def coordinates(app, identity, sheet, number, mode):
+    """Read bounded evidence at physical Excel row coordinates."""
+    _, sheets = load(app, identity)
+    metadata = summary(sheets)
+    if mode == 'sheets':
+        return dict(sheets=metadata, complete=True)
+    if sheet is None:
+        if len(sheets) != 1:
+            raise HTTPException(422, 'Укажите название листа XLSX.')
+        sheet = next(iter(sheets))
+    name = next((name for name in sheets if name.casefold() == sheet.casefold()), None)
+    if name is None:
+        raise HTTPException(404, 'Указанный лист XLSX не найден.')
+    info = next(item for item in metadata if item['name'] == name)
+    if mode == 'structure':
+        return dict(sheet=info, complete=True)
+    rows = sheets[name]
+    header_number = number if mode == 'headers' and number is not None else info['first_row']
+    headers = next((cells(values) for index, values in rows if index == header_number), None)
+    if mode == 'headers':
+        if headers is None:
+            raise HTTPException(404, 'Строка заголовков не найдена.')
+        result = dict(headers=headers)
+    else:
+        values = next((cells(values) for index, values in rows if index == number), None)
+        if values is None:
+            raise HTTPException(404, 'Указанная строка XLSX не найдена.')
+        result = dict(headers=headers or {}, cells=values)
+    if len(json.dumps(result, ensure_ascii=False)) > 55000:
+        raise HTTPException(422, 'Выбранная строка XLSX слишком велика для ответа.')
+    return dict(result, sheet=info, row=number, complete=True)
+
+
 def context(app,files,budget=CONTEXT_BUDGET):
     """Attach actual workbook evidence before routing. No domain writes or hidden truncation."""
     result=[];remaining=budget

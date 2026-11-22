@@ -1644,6 +1644,28 @@
       "optional_protected_inputs": []
     },
     {
+      "name": "assistant_action_history",
+      "title": "История моих действий через помощника",
+      "method": "GET",
+      "path": "/api/v1/assistant/actions",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
       "name": "sites_list",
       "title": "Доступные мне здания",
       "method": "GET",

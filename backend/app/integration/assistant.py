@@ -42,6 +42,12 @@ def register_routes(app,views):
         count=v.session.scalar(text('SELECT count(*) FROM assistant_conversations WHERE site_id=:site AND user_id=:user AND role=:role'),params)
         return dict(items=[dict(r) for r in rows],total=count)
 
+    @app.get(BASE+'/actions')
+    def actions(response:Response,offset:int=Query(0,ge=0),v=Depends(views)):
+        from app.assistant.action_history import history
+        response.headers['Cache-Control']='private, no-store'
+        return history(v.session,v.principal,offset)
+
     @app.post(BASE+'/conversations',status_code=201)
     def create(command:ConversationCreate,v=Depends(views)):
         identity=uuid4()
@@ -57,7 +63,7 @@ def register_routes(app,views):
         from app.assistant.action_outcomes import mark_interrupted_actions
         mark_interrupted_actions(v.session,conversation_id=identity,cutoff=svc.now()-timedelta(minutes=3))
         # A lost process cannot leave the UI polling forever; read never retries model or action.
-        v.session.execute(text("UPDATE assistant_turns SET status='failed',error_code='ASSISTANT_INTERRUPTED',answer='Ответ прерван. Сообщение сохранено; отправьте новый запрос.',finished_at=now() WHERE conversation_id=:id AND status='running' AND ((deadline_at IS NOT NULL AND deadline_at<:now) OR (deadline_at IS NULL AND created_at<:cutoff))"),dict(id=identity,now=svc.now(),cutoff=svc.now()-timedelta(seconds=svc.turn_timeout_seconds())))
+        svc.expire_turns(v.session, identity)
         turns=v.session.execute(text('SELECT * FROM assistant_turns WHERE conversation_id=:id ORDER BY created_at DESC,turn_id DESC LIMIT 25 OFFSET :offset'),dict(id=identity,offset=offset)).mappings().all()
         count=v.session.scalar(text('SELECT count(*) FROM assistant_turns WHERE conversation_id=:id'),dict(id=identity))
         rows=v.session.execute(text('''SELECT * FROM assistant_actions WHERE conversation_id=:id AND
@@ -70,17 +76,24 @@ def register_routes(app,views):
         rows=[mask_known_outputs(svc.public_action(prior),known) for prior in rows]
         public_turns=[]
         workflow_roots=list({r['workflow']['root_turn_id'] for r in turns if r['workflow'] and r['workflow'].get('root_turn_id')})
-        workflow_actions=v.session.execute(text('SELECT action_id,status,result,workflow_goal_id,workflow_root_turn_id,expires_at,created_at FROM assistant_actions WHERE conversation_id=:chat AND workflow_root_turn_id=ANY(CAST(:roots AS uuid[]))'),dict(chat=identity,roots=workflow_roots)).mappings().all() if workflow_roots else []
+        workflow_actions=v.session.execute(text('SELECT action_id,status,result,workflow_goal_id,workflow_root_turn_id,turn_id,expires_at,created_at FROM assistant_actions WHERE conversation_id=:chat AND workflow_root_turn_id=ANY(CAST(:roots AS uuid[]))'),dict(chat=identity,roots=workflow_roots)).mappings().all() if workflow_roots else []
         for row in turns:
             item=dict(row);state=item.get('workflow')
+            item.pop('worker_claimed_at', None)
             if state:
                 scoped_actions={str(a['action_id']):a for a in workflow_actions if str(a['workflow_root_turn_id'])==state.get('root_turn_id')}
+                if state.get('task_execution'):
+                    scoped_actions={key: a for key, a in scoped_actions.items()
+                                    if a['turn_id']==row['turn_id'] or a['created_at']<=row['created_at']}
                 wf.refresh_actions(v.session,state,scoped_actions)
                 if item['status']=='failed':
                     for goal in state['goals']:
                         if goal['status'] in ('running','planned'):
                             goal.update(status='cancelled' if item['error_code']=='ASSISTANT_STOPPED' else 'blocked',reason=item['error_code'])
                     state['stop_reason']=item['error_code'];wf.update_outcome(state)
+                if state.get('task_execution') and item['status']=='completed':
+                    from app.assistant.task_execution import render
+                    item['answer']=render(state)
                 item['workflow']=wf.public_state(state)
             public_turns.append(item)
         v.session.commit()
@@ -170,11 +183,16 @@ def register_routes(app,views):
 
     @app.get(BASE+'/conversations/{identity}/attachments/{attachment_id}/content')
     def attachment_read(identity:UUID,attachment_id:UUID,response:Response,sheet:str|None=Query(None,max_length=255),
-                        offset:int=Query(0,ge=0),limit:int=Query(25,ge=1,le=25),q:str=Query('',max_length=200),full_book:bool=False,v=Depends(views)):
-        from app.assistant.workbooks import page
+                        offset:int=Query(0,ge=0),limit:int=Query(25,ge=1,le=25),q:str=Query('',max_length=200),full_book:bool=False,
+                        coordinates_mode:Literal['sheets','structure','headers','row']|None=None,row:int|None=Query(None,ge=1,le=1048576),v=Depends(views)):
+        from app.assistant.workbooks import coordinates, page
         svc.conversation(v.session,v.principal,identity)
         SCOPE.set((identity,v.principal.user_id,v.principal.site_id,v.principal.role))
         response.headers['Cache-Control']='private, no-store'
+        if coordinates_mode:
+            if full_book or offset or q or (coordinates_mode == 'row' and row is None):
+                raise HTTPException(422, 'Для точного чтения укажите режим и номер строки, если нужен.')
+            return coordinates(app, attachment_id, sheet, row, coordinates_mode)
         if full_book:
             from app.assistant.attachments import owned
             from app.assistant.workbooks import context
@@ -188,6 +206,7 @@ def register_routes(app,views):
     @app.post(BASE+'/conversations/{identity}/messages',status_code=202)
     def message(identity:UUID,command:MessageCreate,background:BackgroundTasks,request:Request,v=Depends(views)):
         thread=svc.conversation(v.session,v.principal,identity,lock=True)
+        svc.expire_turns(v.session, identity)
         message_content=command.content or 'Проанализируй прикреплённые файлы.'
         previous=v.session.execute(text('SELECT * FROM assistant_turns WHERE conversation_id=:id AND request_key=:key'),dict(id=identity,key=command.idempotency_key)).mappings().first()
         if previous:
@@ -224,7 +243,7 @@ def register_routes(app,views):
             dict(id=identity,files=selected)).mappings().all()
         if len(files)!=len(selected):raise HTTPException(404,'Вложение не найдено в этом диалоге')
         if sum(row['mime_type'].startswith('image/') for row in files)>4:raise HTTPException(422,'К одному сообщению можно отправить не больше четырёх изображений')
-        if v.session.scalar(text("SELECT EXISTS(SELECT 1 FROM assistant_turns WHERE conversation_id=:id AND status='running' AND ((deadline_at IS NOT NULL AND deadline_at>:now) OR (deadline_at IS NULL AND created_at>:cutoff)))"),dict(id=identity,now=svc.now(),cutoff=svc.now()-timedelta(seconds=svc.turn_timeout_seconds()))):
+        if v.session.scalar(text("SELECT EXISTS(SELECT 1 FROM assistant_turns WHERE conversation_id=:id AND status='running')"),dict(id=identity)):
             raise HTTPException(409,'Дождитесь ответа на предыдущее сообщение')
         if not svc.configured(preference['selection'])['available'] and not hasattr(app.state,'assistant_provider_factory'):raise HTTPException(503,'ИИ не настроен. Проверьте провайдер и модель чата на сервере.')
         if not svc.SLOTS.acquire(blocking=False):raise HTTPException(429,'ИИ сейчас занят. Попробуйте через несколько секунд.')

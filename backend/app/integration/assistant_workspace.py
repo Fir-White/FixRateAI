@@ -31,12 +31,17 @@ def register_routes(app,views):
         return dict(status='blocked',complete=all(book.get('complete') for book in books),fact=fact(books),report=report(books),workbooks=books)
 
     @app.get(BASE+'/equipment/{equipment_id}/history')
-    def equipment_history(equipment_id:UUID,starts_on:date,ends_on:date,offset:int=Query(0,ge=0),only_accepted:bool=True,v=Depends(views)):
+    def equipment_history(equipment_id:UUID,starts_on:date|None=None,ends_on:date|None=None,
+                          offset:int=Query(0,ge=0),only_accepted:bool=True,latest_only:bool=False,v=Depends(views)):
         from sqlalchemy import text
         from .management import _equipment
         _equipment(v,equipment_id)
         if v.principal.role=='executor' and equipment_id not in v.visible_equipment_ids():raise HTTPException(404,'Оборудование не найдено')
-        if ends_on<starts_on or (ends_on-starts_on).days>3660:raise HTTPException(422,'Выберите корректный период истории не более 3660 дней')
+        bounded = starts_on is not None and ends_on is not None
+        if ((starts_on is None) != (ends_on is None) or
+                bounded and (ends_on < starts_on or (ends_on-starts_on).days > 3660) or
+                not bounded and not latest_only or latest_only and (offset or not only_accepted)):
+            raise HTTPException(422,'Выберите корректный период истории либо запросите последний принятый отчёт.')
         # Fixed-count SQL, filtering dates in the object's actual timezone. A
         # report is a fact of submission; accepted_only additionally requires
         # the explicit acceptance record for that exact report attempt.
@@ -45,7 +50,8 @@ def register_routes(app,views):
         review_actual=timestamp_sql('a.performed_text')
         report_actual=timestamp_sql("r.execution_context->>'performed_at'")
         actual='COALESCE('+review_actual+','+report_actual+')'
-        conflict='('+review_actual+') IS NOT NULL AND ('+report_actual+') IS NOT NULL AND ('+review_actual+')<>('+report_actual+')'
+        conflict='''((%s) IS NOT NULL AND (%s) IS NOT NULL AND (%s)<>(%s))
+                 OR COALESCE(f.actual_at>a.accepted_at,false)''' % (review_actual,report_actual,review_actual,report_actual)
         period_filter='AND timezone(:timezone,COALESCE(f.actual_at,r.submitted_at))::date BETWEEN :start AND :end'
         scope='''FROM work_reports r JOIN work_orders o USING(work_order_id)
           JOIN work_order_equipment e ON e.site_id=o.site_id AND e.work_order_id=o.work_order_id AND e.equipment_id=:equipment
@@ -54,20 +60,47 @@ def register_routes(app,views):
           CROSS JOIN LATERAL (SELECT '''+actual+''') f(actual_at)
           WHERE o.site_id=:site AND r.site_id=:site
           AND (:accepted=false OR a.accepted_at IS NOT NULL)
-          '''+period_filter
+          '''
         if v.principal.role=='executor':
             scope+=''' AND EXISTS(SELECT 1 FROM work_assignments w WHERE w.site_id=o.site_id AND w.work_order_id=o.work_order_id
                        AND w.user_id=:user AND w.status NOT IN ('cancelled','declined'))'''
         params=dict(equipment=equipment_id,site=v.principal.site_id,timezone=v.principal.timezone,
                     user=v.principal.user_id,start=starts_on,end=ends_on,accepted=only_accepted,offset=offset)
-        total=v.session.scalar(text('SELECT count(*) '+scope),params)
-        undated=v.session.scalar(text('SELECT count(*) '+scope.replace(period_filter,'AND COALESCE(f.actual_at,r.submitted_at) IS NULL')),params)
-        unknown_actual=v.session.scalar(text('SELECT count(*) '+scope.replace(period_filter,'AND f.actual_at IS NULL')),params)
-        rows=v.session.execute(text('''SELECT o.work_order_id task_id,r.work_report_id report_id,
-            f.actual_at performed_at,r.submitted_at,a.accepted_at,(f.actual_at IS NOT NULL) actual_date_verified,
+        selected_scope = scope + (period_filter if bounded else '')
+        columns = '''SELECT o.work_order_id task_id,r.work_report_id report_id,
+            f.actual_at performed_at,r.submitted_at,a.accepted_at,
+            (f.actual_at IS NOT NULL AND NOT ('''+conflict+''')) actual_date_verified,
             CASE WHEN f.actual_at IS NULL THEN 'submission_only' ELSE 'actual_performed' END date_basis,
-            ('''+conflict+''') actual_date_conflict,r.status report_state,o.status task_state '''+
-            scope+' ORDER BY COALESCE(f.actual_at,r.submitted_at) DESC,r.work_report_id LIMIT 25 OFFSET :offset'),params).mappings().all()
+            ('''+conflict+''') actual_date_conflict,r.status report_state,o.status task_state '''
+        if latest_only:
+            # The candidate and the completeness checks must describe the same
+            # snapshot, including accepted reports with missing or disputed dates.
+            window = ('timezone(:timezone,COALESCE(performed_at,submitted_at))::date BETWEEN :start AND :end'
+                      if bounded else 'true')
+            row = dict(v.session.execute(text(f"""WITH scoped_reports AS ({columns + scope}),
+              totals AS (
+                SELECT count(*) FILTER (WHERE {window}) matched_reports,
+                       count(*) FILTER (WHERE performed_at IS NULL AND submitted_at IS NULL) undated_count,
+                       count(*) FILTER (WHERE performed_at IS NULL) actual_date_unknown_count,
+                       coalesce(bool_or(actual_date_conflict),false) actual_date_conflict
+                FROM scoped_reports
+              )
+              SELECT totals.*, item.payload FROM totals LEFT JOIN LATERAL (
+                SELECT to_jsonb(r) payload FROM scoped_reports r WHERE {window}
+                ORDER BY performed_at DESC NULLS LAST,report_id LIMIT 1
+              ) item ON true"""),params).mappings().one())
+            item = row.pop('payload')
+            return dict(equipment_id=str(equipment_id),starts_on=starts_on,ends_on=ends_on,only_accepted=True,
+                        latest_only=True,items=[item] if item else [],**row,
+                        complete=not (row['actual_date_unknown_count'] or row['actual_date_conflict']),
+                        checked_at=datetime.now(timezone.utc),timezone=v.principal.timezone,
+                        source='saved_work_reports_and_acceptance_reviews',date_basis='verified_actual_date',
+                        manufacturer_unverified=True)
+        total=v.session.scalar(text('SELECT count(*) '+selected_scope),params)
+        undated=v.session.scalar(text('SELECT count(*) '+scope+' AND COALESCE(f.actual_at,r.submitted_at) IS NULL'),params)
+        unknown_actual=v.session.scalar(text('SELECT count(*) '+scope+' AND f.actual_at IS NULL'),params)
+        rows=v.session.execute(text(columns+selected_scope+
+            ' ORDER BY COALESCE(f.actual_at,r.submitted_at) DESC,r.work_report_id LIMIT 25 OFFSET :offset'),params).mappings().all()
         return dict(equipment_id=str(equipment_id),starts_on=starts_on,ends_on=ends_on,only_accepted=only_accepted,
                     items=[dict(row) for row in rows],total=total,offset=offset,limit=25,page_complete=offset==0 and len(rows)==total,
                     undated_count=undated,actual_date_unknown_count=unknown_actual,complete=offset==0 and len(rows)==total and undated==0 and unknown_actual==0 and not any(row['actual_date_conflict'] for row in rows),
@@ -76,16 +109,22 @@ def register_routes(app,views):
                     manufacturer_unverified=True)
 
     @app.get(BASE+'/equipment/{equipment_id}/calendar-evidence')
-    def calendar_evidence(equipment_id:UUID,starts_on:date,ends_on:date,v=Depends(views)):
+    def calendar_evidence(equipment_id:UUID,starts_on:date,ends_on:date,approved_only:bool=False,v=Depends(views)):
         from .management import _equipment,service_configurations
         from app.assistant.calendar_evidence import explain_configuration
         _equipment(v,equipment_id)
         if v.principal.role=='executor' and equipment_id not in v.visible_equipment_ids():raise HTTPException(404,'Оборудование не найдено')
+        if ends_on<starts_on or (ends_on-starts_on).days>3660 or ends_on.year>9998:
+            raise HTTPException(422,'Укажите корректный ограниченный период календаря')
         rows=service_configurations(v,equipment_id)
+        if approved_only:
+            rows = [row for row in rows if row['enabled'] and row['valid_from'] <= ends_on
+                    and (row['valid_until'] is None or row['valid_until'] >= starts_on)]
         try:
             results=[explain_configuration(row,starts_on,ends_on,timezone=v.principal.timezone) for row in rows]
         except ValueError:raise HTTPException(422,'Укажите корректный ограниченный период календаря') from None
-        return dict(equipment_id=str(equipment_id),configurations=results,complete=all(row['complete'] for row in results),
+        return dict(equipment_id=str(equipment_id),starts_on=starts_on,ends_on=ends_on,approved_only=approved_only,
+                    configurations=results,complete=all(row['complete'] for row in results),
                     manufacturer_unverified=True,source='saved_service_configurations',timezone=v.principal.timezone)
 
     @app.get(BASE+'/task-analysis')
@@ -271,22 +310,62 @@ def register_routes(app,views):
             availability=[dict(availability_id=r.availability_id,starts_at=r.starts_at,ends_at=r.ends_at,status=r.status,reason=r.reason,revision=r.revision) for r in v.rows('availability_slots',user_id=user_id)])
 
     @app.get(BASE+'/tasks')
-    def tasks(period:Literal['upcoming','overdue','undated','all']='upcoming',state:Literal['draft','assigned','clarification','rework','in_progress','in_review','completed','cancelled']|None=None,active_only:bool=True,q:str=Query('',max_length=200),offset:int=Query(0,ge=0),v=Depends(views)):
+    def tasks(period:Literal['upcoming','overdue','undated','all']='upcoming',state:Literal['draft','assigned','clarification','rework','in_progress','in_review','completed','cancelled']|None=None,active_only:bool=True,q:str=Query('',max_length=200),offset:int=Query(0,ge=0),limit:int=Query(25,ge=1,le=25),scheduled_only:bool=False,
+              equipment_id:UUID|None=None,unfinished_only:bool=False,starts_on:date|None=None,ends_on:date|None=None,
+              v=Depends(views)):
+        from .task_analytics import UNFINISHED
         orders=v.models['work_orders'];assignments=v.models['work_assignments'];rules=v.models['maintenance_rules'];operations=v.models['operation_templates']
         instant=func.coalesce(orders.planned_start_at,orders.regulatory_deadline_at);now=datetime.now(timezone.utc)
+        active_states=['draft','assigned','clarification','rework']
+        if period=='overdue':
+            instant=orders.regulatory_deadline_at
+            active_states.extend(('in_progress','in_review'))
         filters=[orders.site_id==v.principal.site_id]
+        if equipment_id is not None:
+            from .management import _equipment
+            _equipment(v,equipment_id)
+            if v.principal.role=='executor' and equipment_id not in v.visible_equipment_ids():
+                raise HTTPException(404,'Оборудование не найдено')
+            links=v.models['work_order_equipment']
+            filters.append(select(links.work_order_id).where(links.site_id==orders.site_id,
+                links.work_order_id==orders.work_order_id,links.equipment_id==equipment_id).exists())
+        if starts_on and ends_on and ends_on<starts_on:
+            raise HTTPException(422,'Конец периода раньше начала.')
+        if starts_on or ends_on:
+            local_day=func.date(func.timezone(v.principal.timezone,instant))
+            if starts_on:filters.append(local_day>=starts_on)
+            if ends_on:filters.append(local_day<=ends_on)
+        if scheduled_only:
+            filters.append(orders.planned_start_at.is_not(None))
+        if unfinished_only:
+            filters.append(orders.status.in_(UNFINISHED))
         if state:filters.append(orders.status==state)
-        elif active_only:filters.append(orders.status.in_(('draft','assigned','clarification','rework')))
+        elif active_only and not unfinished_only:filters.append(orders.status.in_(active_states))
         if v.principal.role=='executor':filters.append(select(assignments.work_order_id).where(assignments.work_order_id==orders.work_order_id,assignments.user_id==v.principal.user_id,assignments.status.not_in(('cancelled','declined'))).exists())
         if period=='upcoming':filters.append(instant>=now)
-        elif period=='overdue':filters.append(instant<now)
+        elif period=='overdue':filters.extend((instant<now,orders.status.not_in(('completed','cancelled'))))
         elif period=='undated':filters.append(instant.is_(None))
         source=select(orders).outerjoin(rules,and_(rules.maintenance_rule_id==orders.maintenance_rule_id,rules.site_id==v.principal.site_id)).outerjoin(operations,operations.operation_template_id==rules.operation_template_id)
-        if q.strip():filters.append(or_(orders.operation_snapshot['label'].astext.ilike('%'+q.strip()+'%'),operations.title.ilike('%'+q.strip()+'%'),operations.code.ilike('%'+q.strip()+'%')))
+        if q.strip():
+            filters.append(or_(*(column.icontains(q.strip(), autoescape=True) for column in (
+                orders.operation_snapshot['title'].astext, orders.operation_snapshot['label'].astext,
+                operations.title, operations.code))))
         source=source.where(*filters)
         count=v.session.scalar(select(func.count()).select_from(source.subquery()))
-        selected=v.session.scalars(source.order_by(instant.asc().nulls_last() if period!='overdue' else instant.desc(),orders.work_order_id).offset(offset).limit(25)).all()
+        selected=v.session.scalars(source.order_by(instant.asc().nulls_last() if period!='overdue' else instant.desc(),orders.work_order_id).offset(offset).limit(limit)).all()
         v.prepare_task_views(selected)
-        return dict(items=[v.task_view(o) for o in selected],total=count,period=period,timezone=v.principal.timezone,checked_at=now,offset=offset,limit=25,
-            filters=dict(state=state,active_only=active_only,states=[state] if state else ['draft','assigned','clarification','rework'] if active_only else 'all_including_completed_and_cancelled'),
+        scope = {}
+        if equipment_id is not None:scope['equipment_id']=str(equipment_id)
+        if unfinished_only:scope['unfinished_only']=True
+        if starts_on is not None:scope['starts_on']=starts_on
+        if ends_on is not None:scope['ends_on']=ends_on
+        items = [v.task_view(order, checked_at=now) for order in selected]
+        if equipment_id is not None:
+            for item, order in zip(items, selected, strict=True):
+                item['equipmentIds'] = [str(link.equipment_id) for link in
+                                        v.rows('work_order_equipment', work_order_id=order.work_order_id)]
+                item['regulatoryDeadlineAt'] = order.regulatory_deadline_at
+        return dict(items=items,total=count,period=period,timezone=v.principal.timezone,checked_at=now,offset=offset,limit=limit,
+            filters=dict(state=state,active_only=active_only,states=[state] if state else list(UNFINISHED) if unfinished_only else active_states if active_only else 'all_including_completed_and_cancelled',
+                         **({'scheduled_only': True} if scheduled_only else {}),**scope),
             page_complete=offset==0 and len(selected)==count,analysis_tool='tasks_analyze')

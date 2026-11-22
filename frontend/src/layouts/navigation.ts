@@ -16,13 +16,13 @@ export interface NavigationItem {
 export const NAVIGATION_ITEMS: readonly NavigationItem[] = [
   { to: "/assistant", label: "ИИ-помощник", icon: "assistant", roles: ["director","chief_engineer","engineer","dispatcher","admin","executor"], group: "Помощник" },
   { to: "/dispatcher", label: "Рабочий день", icon: "dashboard", roles: SECTION_ROLES.dispatcher, group: "Работа" },
-  { to: "/executor", label: "Рабочий день", icon: "tasks", roles: SECTION_ROLES.executor, group: "Моя работа" },
+  { to: "/executor", label: "Мой день", icon: "dashboard", roles: SECTION_ROLES.executor, group: "Моя работа", end: true, activePaths: ["/calendar", "/my-shifts"] },
+  { to: "/executor/tasks", label: "Мои задания", icon: "tasks", roles: SECTION_ROLES.executor, group: "Моя работа" },
   { to: "/planning", label: "Планирование ТО", icon: "calendar", roles: SECTION_ROLES.planning, group: "Работа", activePaths: ["/calendar", "/comparisons"] },
-  { to: "/calendar", label: "Мой календарь", icon: "calendar", roles: SECTION_ROLES.executor, group: "Моя работа" },
   { to: "/tasks", label: "Задания", icon: "tasks", roles: SECTION_ROLES.tasks, group: "Работа" },
   { to: "/quality", label: "Приёмка работ", icon: "quality", roles: SECTION_ROLES.quality, group: "Работа" },
   { to: "/equipment", label: "Оборудование", icon: "equipment", roles: SECTION_ROLES.equipment, group: "Подготовка", activePaths: ["/settings/equipment"] },
   { to: "/settings/workforce", label: "Команда и смены", icon: "workforce", roles: SECTION_ROLES.workforce_settings, group: "Подготовка" },
-  { to: "/my-shifts", label: "Мои смены", icon: "clock", roles: SECTION_ROLES.executor, group: "Моя работа" },
+  { to: "/executor/reports", label: "Мои отчёты", icon: "report", roles: SECTION_ROLES.executor, group: "Моя работа" },
   { to: "/reports", label: "Отчёты", icon: "report", roles: SECTION_ROLES.reports, group: "Аналитика" },
 ];

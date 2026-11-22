@@ -50,6 +50,7 @@ DOMAINS = {
 # Explicit specifications make omissions fail export instead of silently falling
 # back to the tool title or a generic HTTP-200 oracle.
 SPECIFICATIONS = '''
+assistant_action_history|assistant|Show my recent proposed and confirmed actions across saved chats|Rows and total match stored actions for this user, site and role. Confirmation and verified outcome remain distinct; expired proposals, sensitive payloads and other scopes are handled without writes.
 chat_models|assistant|Show installed local chat models without generating an answer|Catalog matches local tags and excludes cloud-only entries in the local-only evaluation; no model download or preference mutation.
 chat_model_preference|assistant|Show my saved model in this role and site|Selection and revision equal this actor/site/role preference; another role/site preference is absent.
 chat_model_select|assistant|Use the named installed local model for my next messages|After confirmation only this TEST user's scoped preference changes; a new turn pins that model/digest and old turns retain their snapshot.

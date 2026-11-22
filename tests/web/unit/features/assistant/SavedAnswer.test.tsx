@@ -1,9 +1,12 @@
 import {act, fireEvent, render, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {expect, it} from 'vitest';
+import {beforeAll, expect, it} from 'vitest';
 import {SavedAnswer} from '@/features/assistant/SavedAnswer';
 
 const answer = '### Сохранённая инструкция\n\n' + '- Исходное поле: полный текст без выдуманных единиц.\n'.repeat(80);
+
+// Browser coverage exercises the cold fallback. These assertions check the rendered answer.
+beforeAll(async () => { await import('@/features/assistant/AssistantAnswer'); }, 15_000);
 
 it('formats the newest long answer and preserves already visible content when it becomes older', async () => {
   const {container, rerender} = render(<SavedAnswer answer={answer}/>);

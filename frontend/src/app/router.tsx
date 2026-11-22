@@ -91,6 +91,8 @@ const routes = createRoutesFromElements(
 
         <Route path="/executor" handle={{ roles: SECTION_ROLES.executor }} element={<ExecutorLayout />} >
           <Route index element={<ExecutorPage />} />
+          <Route path="tasks" element={<ExecutorPage />} />
+          <Route path="reports" element={<ExecutorPage />} />
           <Route path="tasks/:taskId" element={<ExecutorTaskPage />} />
         </Route>
         </Route>

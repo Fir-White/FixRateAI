@@ -12,6 +12,7 @@ from tests.backend.test_management import managed, equipment, config, join
 from tests.backend.test_assistant import assistant_case, thread, B
 from app.assistant.tools import available, describe, validate_arguments
 from app.integration import task_analytics as analytics
+from app.assistant.analysis_scope import task_search_arguments
 
 URL='/api/v1/assistant/workspace/task-analysis'
 TODAY=datetime(2026,11,15,8,tzinfo=timezone.utc)
@@ -77,6 +78,37 @@ def test_124_is_not_76_and_all_83_unfinished_are_aggregated(managed,clock):
     # Counts are whole-set aggregates, never the 25-row sample.
     assert sum(r['tasks'] for r in first['items'])<83
     assert admin.get(URL).json()==data
+
+
+@pytest.mark.parametrize(('request_text','title','period'), [
+    ('Покажи все просроченные наряды', 'Найти просроченные наряды', 'overdue'),
+    ('Покажи просроченные и будущие наряды', 'Найти просроченные и будущие наряды', 'all'),
+    ('Покажи ещё не просроченные наряды', 'Найти просроченные наряды', 'all'),
+    ('Покажи весь список', 'Найти просроченные наряды', 'all'),
+])
+def test_explicit_overdue_lookup_preserves_other_search_filters(request_text,title,period):
+    actual=task_search_arguments(request_text,dict(title=title),dict(query=dict(period='all',q='фильтр',offset=25)))
+    assert actual==dict(query=dict(period=period,q='фильтр',offset=25))
+
+
+def test_overdue_lookup_matches_task_deadline_and_open_status(managed):
+    now=datetime.now(timezone.utc)
+    earlier=now-timedelta(days=2)
+    later=now+timedelta(days=2)
+    order_ids,_=add_orders(managed,[
+        dict(status='assigned',start=earlier,deadline=later),
+        dict(status='in_progress',start=earlier,deadline=earlier),
+        dict(status='in_review',start=earlier,deadline=earlier),
+        dict(status='completed',start=earlier,deadline=earlier),
+    ])
+    _,_,admin,_,_=managed
+    results=admin.get(B+'/workspace/tasks',params=dict(period='overdue'))
+    assert results.status_code==200,results.text
+    entries=results.json()['items']
+    assert {row['id'] for row in entries}=={str(key) for key in order_ids[1:3]}
+    assert all(row['isOverdue'] for row in entries)
+    historical=admin.get(B+'/workspace/tasks',params=dict(period='overdue',active_only=False)).json()
+    assert {row['id'] for row in historical['items']}=={str(key) for key in order_ids[1:3]}
 
 
 def test_server_date_timezone_and_deadline_rules_change_with_date(managed,clock):

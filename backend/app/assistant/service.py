@@ -159,6 +159,27 @@ async def propose(app,session,principal,thread,tool,args,explanation,headers,tur
     for name in file_fields(app,tool):
         if args.get('body',{}).get(name):owned(app,args['body'][name])
     before=await preflight(app,tool,args,headers)
+    if turn_id and tool.name == 'equipment_edit':
+        from .semantic_plan import QUOTED, UUID, asset_references, equipment_changes
+        changes, incomplete = equipment_changes(question)
+        business_fields = {key: value for key, value in args.get('body', {}).items() if key != 'expected_revision'}
+        if incomplete or len(changes) > 1 and business_fields != changes:
+            raise HTTPException(422, 'Карточка должна содержать все явно запрошенные изменения оборудования.')
+        if len(changes) > 1 and isinstance(before, dict):
+            if args.get('body', {}).get('expected_revision') != before.get('revision'):
+                raise HTTPException(409, 'Ревизия оборудования изменилась. Откройте свежую карточку.')
+            source = QUOTED.sub(' ', question)
+            codes = {code.casefold() for code in asset_references(source)}
+            ids = {value.lower() for value in re.findall(r'\b' + UUID + r'\b', source, re.I)}
+            if ids:
+                matches = ids == {str(before.get('equipment_id'))}
+            elif codes:
+                matches = codes == {str(before.get('asset_code')).casefold()}
+            else:
+                name = str(before.get('name') or '')
+                matches = bool(name and re.search(r'(?<!\w)' + re.escape(name) + r'(?!\w)', source, re.I))
+            if not matches:
+                raise HTTPException(422, 'Не удалось однозначно связать изменения с указанной карточкой оборудования.')
     if explicit:
         exact=explicit_arguments(explicit,before)
         if exact is None:raise HTTPException(422,'Явная команда не подтверждена текущим состоянием карточки')
@@ -293,8 +314,32 @@ async def agent_turn(app,principal,thread_id,turn_id,headers):
 
 
 def run_turn(app,principal,thread_id,turn_id,headers):
-    try:asyncio.run(agent_turn(app,principal,thread_id,turn_id,headers))
-    finally:SLOTS.release()
+    try:
+        with app.state.factory() as session:
+            claimed = session.execute(text("""UPDATE assistant_turns SET worker_claimed_at=now()
+                WHERE turn_id=:turn AND conversation_id=:chat AND status='running'
+                  AND worker_claimed_at IS NULL AND (deadline_at IS NULL OR deadline_at>now())
+                RETURNING turn_id"""), dict(turn=turn_id, chat=thread_id)).scalar()
+            session.commit()
+        if claimed:
+            asyncio.run(agent_turn(app,principal,thread_id,turn_id,headers))
+    finally:
+        SLOTS.release()
+
+
+def expire_turns(session, conversation_id):
+    """Expire a lost execution lease; recovery uses a fresh authorized message."""
+    cutoff = now()
+    return session.execute(text("""UPDATE assistant_turns
+        SET status='failed', error_code='ASSISTANT_INTERRUPTED', finished_at=now(),
+            answer=CASE WHEN workflow IS NOT NULL
+                THEN 'Ответ прерван. Поручение сохранено, его можно продолжить.'
+                ELSE 'Ответ прерван. Сообщение сохранено, его можно отправить повторно.' END
+        WHERE conversation_id=:chat AND status='running'
+          AND ((deadline_at IS NOT NULL AND deadline_at<=:now) OR
+               (deadline_at IS NULL AND created_at<=:legacy_cutoff))"""),
+        dict(chat=conversation_id, now=cutoff,
+             legacy_cutoff=cutoff-timedelta(seconds=turn_timeout_seconds()))).rowcount
 
 async def confirm(app,session,principal,row,headers,secret_values=None):
     EXPECTED_PRINCIPAL.set((principal.user_id,principal.site_id,principal.role))

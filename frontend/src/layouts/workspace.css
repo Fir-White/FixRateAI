@@ -50,7 +50,7 @@ body:has(.workspace-root) { font-family: "IBM Plex Sans", var(--font-sans); }
   --glow-upper: .96;
   --glow-lower: .24;
 }
-.workspace-root:has(.assistant-chat, .assistant-workspace[data-chat-open]:not([data-composer-pending])) {
+.workspace-root:has(.assistant-dialog-panel:not([hidden]) .assistant-chat, .assistant-workspace[data-chat-open]:not([data-composer-pending])) {
   --glow-upper: .32;
   --glow-lower: .9;
 }

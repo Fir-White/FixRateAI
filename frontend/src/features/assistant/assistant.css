@@ -1,6 +1,6 @@
 /* The chat owns its viewport; the application shell and background stay mounted. */
 .assistant-workspace{display:flex;gap:24px;min-height:calc(100dvh - var(--e3-topbar-height,82px) - var(--e3-context-height,62px));min-width:0;color:var(--color-ink)}
-.assistant-workspace:has(.assistant-chat){height:calc(100dvh - var(--e3-topbar-height,82px) - var(--e3-context-height,62px))}
+.assistant-workspace:has(.assistant-dialog-panel:not([hidden]) .assistant-chat){height:calc(100dvh - var(--e3-topbar-height,82px) - var(--e3-context-height,62px))}
 .assistant-center{display:flex;flex:1;flex-direction:column;min-width:0;position:relative}
 .assistant-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:8px 0;flex:none}
 .assistant-toolbar h1{font-size:15px;font-weight:600;color:var(--color-muted)}
@@ -203,9 +203,76 @@
 .assistant-recent .assistant-history-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 50px; padding-inline-start: 0; }
 .assistant-recent .assistant-history-delete { flex: none; }
 
+.assistant-dialog-panel { display: contents; }
+.assistant-dialog-panel[hidden] { display: none; }
+.assistant-sections {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 0 20px;
+  border-bottom: 1px solid var(--color-line);
+}
+.assistant-sections a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  border-bottom: 2px solid transparent;
+  padding: 0 2px;
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+.assistant-sections a[aria-current="page"] {
+  border-bottom-color: var(--color-accent);
+  color: var(--color-ink);
+}
+.assistant-records { min-width: 0; padding: 20px 0 36px; }
+.assistant-records-heading,.assistant-record-pages {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.assistant-records-heading h2 { font-size: clamp(20px, 2vw, 26px); font-weight: 600; }
+.assistant-records-heading button,.assistant-record-pages button { min-height: 44px; }
+.assistant-record-list { margin: 10px 0 0; padding: 0; list-style: none; }
+.assistant-record-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr) minmax(0, .85fr);
+  gap: 12px 24px;
+  border-block-end: 1px solid var(--color-line);
+  padding: 12px 0;
+  overflow-wrap: anywhere;
+}
+.assistant-record-list li:first-child { border-block-start: 1px solid var(--color-line); }
+.assistant-record-list h3,.assistant-record-state strong { font-size: 14px; font-weight: 600; }
+.assistant-record-list small,.assistant-record-time,.assistant-record-pages { color: var(--color-muted); font-size: 13px; }
+.assistant-record-list small { display: block; }
+.assistant-record-list a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  max-width: 100%;
+  color: var(--color-accent);
+}
+.assistant-record-list a:focus-visible,.assistant-sections a:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .assistant-record-list a:hover { text-decoration: underline; }
+  .assistant-sections a:hover { color: var(--color-ink); }
+}
+.assistant-record-state strong[data-status="succeeded"] { color: var(--color-accent); }
+.assistant-record-state strong[data-status="failed"] { color: var(--color-danger, #f3a4b3); }
+.assistant-record-pages { margin-top: 12px; }
+.assistant-records-empty { margin: 14px 0; color: var(--color-muted); }
+
 @media (max-width: 767px) {
+  .assistant-record-list li { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .assistant-record-time { display: flex; flex-wrap: wrap; gap: 4px 12px; }
   .assistant-workspace { height: auto; }
-  .assistant-workspace:has(.assistant-chat) { min-height: 430px; }
+  .assistant-workspace:has(.assistant-dialog-panel:not([hidden]) .assistant-chat) { min-height: 430px; }
   .assistant-toolbar { padding-inline: 0; }
   .assistant-welcome { padding: 12px 0 32px; }
   .assistant-welcome-caption { max-width: none; margin: 0 0 20px; }

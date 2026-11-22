@@ -9,9 +9,11 @@ from datetime import datetime, timezone
 import copy
 import json
 import re
+from time import perf_counter
 from sqlalchemy import text
 from .tools import fingerprint
 from .objective_scope import objective_scope
+from .evidence import failure_status, provenance, result_status
 
 VERSION = 1
 
@@ -250,7 +252,8 @@ def completeness(value):
         if isinstance(node, dict):
             if node.get('complete') is False or node.get('has_more') is True or node.get('truncated') is True:
                 reasons.append('partial_result')
-            if node.get('status') in ('blocked', 'invalid_configuration', 'access_denied', 'unavailable'):
+            if node.get('status') in ('blocked', 'invalid_configuration', 'access_denied', 'unavailable',
+                                      'forbidden', 'stale', 'error', 'failed', 'missing_input', 'needs_input'):
                 reasons.append('blocked_result')
             if node.get('undated_count',0) or node.get('actual_date_unknown_count',0):
                 reasons.append('undated_facts')
@@ -270,6 +273,7 @@ def completeness(value):
 
 
 def record_result(state, goal, name, arguments, value, *, action_id=None, elapsed=0,count_call=True):
+    started = perf_counter()
     complete, reasons = completeness(value)
     if name=='notifications_list' and isinstance(value,list) and len(value)>=100:
         complete=False;reasons.append('notification_limit_cannot_prove_full_list')
@@ -289,6 +293,7 @@ def record_result(state, goal, name, arguments, value, *, action_id=None, elapse
                  complete=complete, retained=True, limitations=reasons, result=safe_evidence(value))
     kind='calendar_calculation' if name in ('calendar_evidence','planning_context') else 'file_content' if name=='attachment_read' else 'optimizer_result' if name=='optimization_read' and verified_optimizer(value) else 'saved_data'
     proof['evidence_kind']=kind
+    proof.update(provenance(arguments, kind))
     if isinstance(value,dict) and value.get('status')=='awaiting_confirmation' and value.get('action_id'):
         proof.update(evidence_kind='action_proposal',complete=False)
     # Large reads stay explicitly incomplete, instead of losing rows silently.
@@ -298,6 +303,8 @@ def record_result(state, goal, name, arguments, value, *, action_id=None, elapse
         proof['retained'] = False
         proof['complete'] = False
         proof['limitations'].append('evidence_budget')
+    proof['status'] = result_status(value, proof['complete'], proof['limitations'])
+    state['metrics']['evidence_seconds'] = state['metrics'].get('evidence_seconds', 0) + round(perf_counter()-started, 6)
     state['evidence'].append(proof)
     goal['evidence_ids'].append(proof['id'])
     state['metrics']['tool_calls'] += int(count_call)
@@ -322,12 +329,28 @@ def record_result(state, goal, name, arguments, value, *, action_id=None, elapse
     return proof
 
 
+def record_read_failure(state, goal, name, arguments, http_status, *, elapsed=0):
+    """Keep unsuccessful observations auditable without retaining response bodies."""
+    status = failure_status(http_status)
+    proof = dict(id=f'e{len(state["evidence"])+1}', goal_id=goal['id'], tool=name,
+                 checked_at=timestamp(), scope=state['scope'], arguments=safe_evidence(arguments),
+                 complete=False, retained=False, status=status, result=None,
+                 limitations=[f'tool_error_{http_status}'], evidence_kind='saved_data',
+                 **provenance(arguments, 'saved_data'))
+    state['evidence'].append(proof)
+    goal['evidence_ids'].append(proof['id'])
+    state['metrics']['tool_calls'] += 1
+    state['metrics']['tool_seconds'] += round(elapsed, 4)
+    return proof
+
+
 def update_outcome(state):
     for goal in state['goals']:
         blocker=required_blocker(goal)
         if blocker:goal.update(status='blocked',reason=blocker)
     statuses = {goal['status'] for goal in state['goals']}
-    if statuses == {'completed'} and state.get('decomposition_verified'):
+    if (statuses == {'completed'} or state.get('request_spec') and
+            statuses == {'completed', 'answered'}) and state.get('decomposition_verified'):
         result = 'completed'
     elif statuses == {'answered'}:
         result = 'response_only'
@@ -335,6 +358,10 @@ def update_outcome(state):
         result = 'running'
     elif 'awaiting_confirmation' in statuses or 'uncertain' in statuses:
         result = 'awaiting_confirmation' if 'uncertain' not in statuses else 'partial'
+    elif 'awaiting_input' in statuses:
+        result = 'awaiting_input'
+    elif state.get('task_execution') and statuses & {'failed', 'blocked'}:
+        result = 'failed' if 'failed' in statuses else 'blocked'
     elif statuses <= {'cancelled'}:
         result = 'cancelled'
     elif statuses & {'completed', 'partial'}:
@@ -343,6 +370,13 @@ def update_outcome(state):
         result = 'planned'
     else:
         result = 'blocked'
+    if state.get('request_spec'):
+        from .request_coverage import update_coverage
+        update_coverage(state)
+        spec = state['request_spec']
+        if result in ('completed', 'response_only') and (spec.get('review_required') and not spec['reviewed'] or any(
+                requirement['status'] not in ('completed', 'no_tool_required') for requirement in spec['requirements'])):
+            result = 'partial'
     state['outcome'] = result
     return result
 
@@ -370,6 +404,20 @@ def refresh_actions(session, state, rows=None):
         if blocker:
             goal.update(status='blocked',reason=blocker)
             continue
+        if state.get('task_execution') and goal['id'] == 'draft':
+            candidates = [row for row in rows.values() if str(row.get('workflow_goal_id') or '').startswith('draft::')]
+            if not candidates:
+                continue
+            latest = max(candidates, key=lambda row: (row['created_at'], str(row['action_id'])))
+            identity = str(latest['action_id'])
+            goal['pending_action_id'] = identity
+            status, reason = action_state(latest)
+            if status == 'completed':
+                if goal.get('last_verified_action_id') != identity:
+                    goal.update(status='planned', reason='continue_task_from_verified_api', last_verified_action_id=identity)
+            else:
+                goal.update(status=status, reason=reason)
+            continue
         if goal.get('workflow_kind'):
             phases=sorted((row for row in rows.values() if str(row.get('workflow_goal_id') or '').startswith(goal['id']+'::')),key=lambda row:(row['created_at'],str(row['action_id'])))
             if phases:
@@ -390,21 +438,25 @@ def refresh_actions(session, state, rows=None):
         if not row:
             goal.update(status='blocked', reason='action_unavailable')
             continue
-        status = row['status']
-        verification = (row['result'] or {}).get('verification', {})
-        if status == 'succeeded' and verification.get('status') == 'confirmed' and goal.get('required_evidence') in (None,'saved_data'):
-            goal.update(status='completed', reason=None)
-        elif status == 'succeeded':
-            goal.update(status='partial', reason='postcondition_unverified')
-        elif status=='proposed' and row.get('expires_at') and row['expires_at']<datetime.now(timezone.utc):
-            goal.update(status='blocked',reason='action_expired_request_fresh_proposal')
-        elif status in ('proposed', 'executing'):
-            goal.update(status='awaiting_confirmation', reason='human_confirmation_required' if status == 'proposed' else 'action_executing')
-        elif status == 'uncertain':
-            goal.update(status='uncertain', reason='read_only_reconciliation_required')
-        else:
-            goal.update(status='blocked', reason='action_' + status)
+        status, reason = action_state(row, goal.get('required_evidence'))
+        goal.update(status=status, reason=reason)
     return update_outcome(state)
+
+
+def action_state(row, required_evidence=None):
+    status = row['status']
+    if status == 'succeeded':
+        verification = (row['result'] or {}).get('verification', {})
+        if verification.get('status') == 'confirmed' and required_evidence in (None, 'saved_data'):
+            return 'completed', None
+        return 'partial', 'postcondition_unverified'
+    if status == 'proposed' and row.get('expires_at') and row['expires_at'] < datetime.now(timezone.utc):
+        return 'blocked', 'action_expired_request_fresh_proposal'
+    if status in ('proposed', 'executing'):
+        return 'awaiting_confirmation', 'human_confirmation_required' if status == 'proposed' else 'action_executing'
+    if status == 'uncertain':
+        return 'uncertain', 'read_only_reconciliation_required'
+    return 'blocked', 'action_' + status
 
 
 def sanitize_workflow(state):
@@ -432,8 +484,14 @@ def resume(state):
         if blocker:
             goal.update(status='blocked',reason=blocker);continue
         # Never recreate/replay an existing mutation, regardless of its result.
-        if not goal.get('action_id') and goal['status'] not in ('completed', 'cancelled','uncertain') and not (goal.get('pending_action_id') and str(goal.get('reason') or '').startswith('action_')):
-            goal.update(status='planned' if goal['tool'] else 'blocked', reason=None)
+        if not goal.get('action_id') and goal['status'] not in ('completed', 'answered', 'cancelled','uncertain') and not (goal.get('pending_action_id') and str(goal.get('reason') or '').startswith('action_')):
+            if goal.get('semantic'):
+                for proof in state['evidence']:
+                    if proof['goal_id'] == goal['id'] and proof.get('complete'):
+                        proof.update(status='STALE', complete=False)
+                        proof['limitations'].append('recheck_on_resume')
+                goal.pop('reference_misses', None)
+            goal.update(status='planned' if goal['tool'] or goal.get('kind')=='conversation' else 'blocked', reason=None)
     state['stop_reason'] = None
     update_outcome(state)
     return state
@@ -444,6 +502,15 @@ def public_state(state):
         return None
     result={key: state[key] for key in ('version', 'outcome', 'goals', 'metrics', 'stop_reason', 'revision')}
     if state.get('answer_format')=='facts':result['answer_format']='facts'
+    if 'display_plan' in state:
+        result['display_plan'] = state['display_plan']
+    elif state['outcome'] == 'response_only':
+        result['display_plan'] = False
+    if state.get('task_execution'):
+        from .task_execution import message_for
+        result['kind'] = 'task_execution'
+        result['root_turn_id'] = state.get('root_turn_id')
+        result['goals'] = [{**goal, 'message': message_for(goal)} for goal in state['goals']]
     return result
 
 

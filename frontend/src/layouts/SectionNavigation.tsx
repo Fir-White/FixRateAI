@@ -10,7 +10,11 @@ export function SectionNavigation() {
   const {profile}=useSession(),{pathname}=useLocation(),cache=useApiQueryCache();
   const planning=['/planning','/calendar','/comparisons'].some(path=>pathname===path||pathname.startsWith(path+'/'));
   const equipment=pathname==='/equipment'||pathname.startsWith('/equipment/')||pathname==='/settings/equipment';
-  const links=planning&&canOpenSection(profile?.role,'planning') ? [
+  const personalCalendar=profile?.role==='executor'&&['/calendar','/my-shifts'].includes(pathname);
+  const links=personalCalendar ? [
+    {to:'/calendar',label:'Мой календарь',section:'calendar'},
+    {to:'/my-shifts',label:'Мои смены',section:'executor'},
+  ] : planning&&canOpenSection(profile?.role,'planning') ? [
     {to:'/planning',label:'Планы из Excel',section:'planning'},
     {to:'/calendar',label:'Действующий календарь',section:'calendar'},
     {to:'/comparisons',label:'AI-прогнозы',section:'comparisons'},
@@ -19,5 +23,6 @@ export function SectionNavigation() {
     {to:'/settings/equipment',label:'Оборудование и регламенты',section:'service_settings'},
   ] : [];
   if(!links.length)return null;
-  return <nav className="journey-section-nav" aria-label={planning?'Разделы планирования':'Разделы оборудования'}>{links.filter(link=>canOpenSection(profile?.role,link.section)).map(link=><NavLink key={link.to} to={link.to} onMouseEnter={()=>warmWorkspacePath(cache,link.to,profile?.timezone??'UTC',profile?.role)} onFocus={()=>warmWorkspacePath(cache,link.to,profile?.timezone??'UTC',profile?.role)}>{link.label}</NavLink>)}</nav>;
+  const label=personalCalendar?'Мой график':planning?'Разделы планирования':'Разделы оборудования';
+  return <nav className="journey-section-nav" aria-label={label}>{links.filter(link=>canOpenSection(profile?.role,link.section)).map(link=><NavLink key={link.to} to={link.to} onMouseEnter={()=>warmWorkspacePath(cache,link.to,profile?.timezone??'UTC',profile?.role)} onFocus={()=>warmWorkspacePath(cache,link.to,profile?.timezone??'UTC',profile?.role)}>{link.label}</NavLink>)}</nav>;
 }
