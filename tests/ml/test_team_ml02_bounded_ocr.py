@@ -59,6 +59,36 @@ def test_pressure_gauge_valid_reading():
     assert cand.disclaimer == BOUNDED_OCR_DISCLAIMER
 
 
+def test_pressure_gauge_mpa_canonicalization_to_bar():
+    """Pressure readings in MPa are canonicalized to bar (1 MPa = 10 bar)."""
+    raw_mpa = {
+        "phase": "after",
+        "label": "Давление в контуре ГВС",
+        "value": "0.35",
+        "unit": "МПа",
+        "readable": True,
+    }
+    cand = BoundedOCRValidator.validate_reading(raw_mpa, equipment_type="pressure_gauge")
+    assert cand.reading_status == ReadingValidationStatus.CANDIDATE_EXTRACTED
+    assert cand.canonical_unit == "bar"
+    assert cand.parsed_value == 3.5
+    assert cand.requires_human_verification is True
+
+
+def test_requires_human_verification_cannot_be_disabled():
+    """Direct construction with requires_human_verification=False must raise ValueError."""
+    with pytest.raises(ValueError, match="requires_human_verification must ALWAYS be True"):
+        BoundedReadingCandidate(
+            phase="after",
+            label="Тест",
+            equipment_type="pressure_gauge",
+            is_supported=True,
+            reading_status=ReadingValidationStatus.CANDIDATE_EXTRACTED,
+            requires_human_verification=False,
+        )
+
+
+
 def test_heat_meter_valid_readings():
     """Valid heat meter readings for Gcal and m3 are extracted properly."""
     raw_gcal = {

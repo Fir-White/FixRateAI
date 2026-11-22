@@ -35,6 +35,7 @@ def review_photos(
     quality_guard: ImageQualityGuard | None = None,
     classifier: CLIPZeroShotClassifier | None = None,
     comparability_confirmed: Callable[[PhotoReport, PhotoReport], bool] | None = None,
+    fallback_to_heuristic: bool = False,
 ) -> PhotoReviewResult:
     """Analyze execution photo reports against operation checklist and return structured PhotoReviewResult.
 
@@ -158,26 +159,38 @@ def review_photos(
                 item_results.append(review)
                 continue
 
-            # 6. Run Zero-Shot CLIP analysis
-            if not clf.is_torch_active:
-                return PhotoReviewResult(
-                    schema_version="maintenance-0.1", data_origin=request.data_origin,
-                    ai_review_id=uuid4(), execution_id=request.execution_id,
-                    operation_version_id=request.operation.operation_version_id,
-                    status="unavailable", model_ref=None,
-                    prompt_set_version=settings.prompt_set_version,
-                    input_photo_ids=[p.photo_id for p in request.photos], item_results=[],
-                    limitations=STANDARD_LIMITATIONS, error_code="MODEL_NOT_READY",
-                    elapsed_ms=max(1, int((time.perf_counter() - start_time) * 1000)),
-                    created_at=datetime.now(timezone.utc),
+            # 6. Run Zero-Shot CLIP analysis or Heuristic fallback
+            if not getattr(clf, "is_torch_active", True):
+                if fallback_to_heuristic:
+                    from ml_service.app.cv.classifier import HeuristicFallbackClassifier
+                    fallback_clf = HeuristicFallbackClassifier()
+                    item_review = fallback_clf.evaluate_pair(
+                        checklist_item_id=item.checklist_item_id,
+                        before_photo_id=before_p.photo_id,
+                        after_photo_id=after_p.photo_id,
+                        before_bytes=b_bytes,
+                        after_bytes=a_bytes,
+                    )
+                else:
+                    return PhotoReviewResult(
+                        schema_version="maintenance-0.1", data_origin=request.data_origin,
+                        ai_review_id=uuid4(), execution_id=request.execution_id,
+                        operation_version_id=request.operation.operation_version_id,
+                        status="unavailable", model_ref=None,
+                        prompt_set_version=settings.prompt_set_version,
+                        input_photo_ids=[p.photo_id for p in request.photos], item_results=[],
+                        limitations=STANDARD_LIMITATIONS, error_code="MODEL_NOT_READY",
+                        elapsed_ms=max(1, int((time.perf_counter() - start_time) * 1000)),
+                        created_at=datetime.now(timezone.utc),
+                    )
+            else:
+                item_review = clf.evaluate_pair(
+                    checklist_item_id=item.checklist_item_id,
+                    before_photo_id=before_p.photo_id,
+                    after_photo_id=after_p.photo_id,
+                    before_bytes=b_bytes,
+                    after_bytes=a_bytes,
                 )
-            item_review = clf.evaluate_pair(
-                checklist_item_id=item.checklist_item_id,
-                before_photo_id=before_p.photo_id,
-                after_photo_id=after_p.photo_id,
-                before_bytes=b_bytes,
-                after_bytes=a_bytes,
-            )
             item_review = ItemPhotoReview.model_validate(item_review)
             if (item_review.checklist_item_id != item.checklist_item_id
                     or item_review.before_photo_id != before_p.photo_id
@@ -200,6 +213,10 @@ def review_photos(
             overall_status = "completed"
 
         elapsed_ms = max(1, int((time.perf_counter() - start_time) * 1000))
+        prompt_version = getattr(clf, "prompt_set_version", request.prompt_set_version)
+        model_ref_val = getattr(clf, "model_ref", None) if any(r.scores for r in item_results) else None
+        if fallback_to_heuristic and not model_ref_val and any(r.verdict == "uncertain" for r in item_results):
+            model_ref_val = "heuristic:quality-guard-baseline"
 
         return PhotoReviewResult(
             schema_version="maintenance-0.1",
@@ -208,8 +225,8 @@ def review_photos(
             execution_id=request.execution_id,
             operation_version_id=request.operation.operation_version_id,
             status=overall_status,
-            model_ref=clf.model_ref if any(r.scores for r in item_results) else None,
-            prompt_set_version=clf.prompt_set_version,
+            model_ref=model_ref_val,
+            prompt_set_version=prompt_version,
             input_photo_ids=[p.photo_id for p in request.photos],
             item_results=item_results,
             limitations=STANDARD_LIMITATIONS,

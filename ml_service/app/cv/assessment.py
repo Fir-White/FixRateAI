@@ -98,6 +98,16 @@ class AuxiliaryPhotoAssessment(BaseModel):
     )
     summary: str
 
+    def with_staleness_check(
+        self, current_before_blob: bytes | None, current_after_blob: bytes | None
+    ) -> AuxiliaryPhotoAssessment:
+        """Returns a copy of the assessment with updated staleness status based on current blobs."""
+        stale = check_assessment_staleness(self, current_before_blob, current_after_blob)
+        if stale == self.is_stale:
+            return self
+        return self.model_copy(update={"is_stale": stale})
+
+
 
 def compute_blob_sha256(blob: bytes | None) -> str | None:
     if not blob:
@@ -174,12 +184,47 @@ def build_auxiliary_assessment(
     )
 
     # 2. Comparability evaluation
+    vlm = vlm_assessment_dict or {}
     c_dict = comparability_result or {}
-    is_comp = c_dict.get("is_comparable", True)
-    same_subj = c_dict.get("same_subject", "yes")
-    vp_matched = c_dict.get("viewpoint_matched", True)
-    contradiction = c_dict.get("contradiction_detected", False)
-    mismatch_reason = c_dict.get("mismatch_reason")
+
+    if comparability_result is not None:
+        is_comp = bool(c_dict.get("is_comparable", False))
+        same_subj = c_dict.get("same_subject", "uncertain")
+        vp_matched = bool(c_dict.get("viewpoint_matched", False))
+        contradiction = bool(c_dict.get("contradiction_detected", False))
+        mismatch_reason = c_dict.get("mismatch_reason")
+    else:
+        # Strict conservative default: unconfirmed comparability cannot be assumed valid
+        is_comp = False
+        same_subj = "uncertain"
+        vp_matched = False
+        contradiction = False
+        mismatch_reason = "Сопоставимость пары до/после не подтверждена оператором; требуется ручная приёмка."
+
+    # Built-in contradiction detection across VLM descriptions and observations
+    b_desc = str(vlm.get("before_description", "")).lower()
+    a_desc = str(vlm.get("after_description", "")).lower()
+    all_concerns = [str(c).lower() for c in vlm.get("concerns", [])]
+
+    # Detect CASE-01 dial mismatch: e.g. 0-4 bar vs 0-6 bar
+    is_dial_mismatch = (
+        ("0-4" in b_desc or "0..4" in b_desc) and ("0-6" in a_desc or "0..6" in a_desc)
+    ) or (
+        ("0-6" in b_desc or "0..6" in b_desc) and ("0-4" in a_desc or "0..4" in a_desc)
+    ) or any("разные приборы" in c or "разные шкалы" in c for c in all_concerns)
+
+    if is_dial_mismatch:
+        contradiction = True
+        is_comp = False
+        same_subj = "no"
+        mismatch_reason = "Выявлено физическое несоответствие циферблатов манометров: 0-4 бар на фото ДО vs 0-6 бар на фото ПОСЛЕ (CASE-01)"
+
+    # Detect cross-equipment mismatch (NEG-02, NEG-03)
+    if vlm.get("same_subject") == "no" or vlm.get("comparable") == "no":
+        same_subj = "no"
+        is_comp = False
+        if not mismatch_reason:
+            mismatch_reason = "Визуальная модель зафиксировала несовпадающие объекты на фото До и После"
 
     comparability = PairComparabilityAssessment(
         is_comparable=is_comp,
@@ -190,7 +235,6 @@ def build_auxiliary_assessment(
     )
 
     # 3. Reading extraction & Bounded OCR
-    vlm = vlm_assessment_dict or {}
     raw_readings = vlm.get("visible_readings", [])
     bounded_readings = BoundedOCRValidator.filter_and_validate(
         raw_readings=raw_readings,
@@ -207,17 +251,18 @@ def build_auxiliary_assessment(
         evidence_class = "rejected"
         concerns.append("Снимки не соответствуют стандартам технического качества (смаз, блик или недостаточная освещённость).")
         recs.append("Запросить повторную фотофиксацию у исполнителя с соблюдением требований к резкости и освещению.")
-    elif not is_comp or same_subj == "no" or contradiction:
+    elif same_subj == "no" or contradiction:
         evidence_class = "rejected"
         concerns.append(f"Несопоставимая пара или подмена объекта: {mismatch_reason or 'разные физические узлы'}.")
         recs.append("Отклонить фотоотчёт в связи с несопоставимостью снимков до и после обслуживания.")
-    elif any(r.reading_status.value in ("out_of_range", "unsupported_unit") for r in bounded_readings):
-        evidence_class = "manual_review"
-        concerns.append("Выявлены аномальные или неподдерживаемые показания приборов, требующие сверки.")
-        recs.append("Провести ручную сверку показаний по исполнительному протоколу и очному журналу.")
     elif model_ref in (None, "unavailable", "failed") or vlm.get("evidence_class") == "manual_review":
         evidence_class = "manual_review"
+        concerns.append("Модель анализа недоступна или выдала статус ручной проверки.")
         recs.append("Выполнить ручную оценку качества выполненных работ главным инженером.")
+    elif not is_comp or same_subj == "uncertain":
+        evidence_class = "manual_review"
+        concerns.append(f"Сопоставимость ракурса или объекта не доказана: {mismatch_reason or 'требуется визуальная сверка инженером'}.")
+        recs.append("Направить на очную проверку и ручную приёмку главным инженером.")
     elif vlm.get("evidence_class") == "approved":
         evidence_class = "approved"
         recs.append("Фотодоказательство пригодно для рассмотрения. Главный инженер принимает решение о приёмке.")

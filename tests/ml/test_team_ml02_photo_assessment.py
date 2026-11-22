@@ -217,3 +217,117 @@ def test_heuristic_fallback_classifier():
     assert rev.verdict == "uncertain"
     assert rev.checklist_item_id == item_id
     assert "ручная приёмка инженером" in rev.observation
+
+
+def test_omitted_comparability_cannot_approve_defaults_to_manual_review():
+    """When comparability_result is omitted, assessment MUST NOT approve and defaults to manual_review."""
+    wo_id = uuid4()
+    b_blob = make_test_jpeg("dirty")
+    a_blob = make_test_jpeg("clean_serviced")
+
+    assessment = build_auxiliary_assessment(
+        work_order_id=wo_id,
+        attempt_no=1,
+        equipment_type="pressure_gauge",
+        before_photo_id=uuid4(),
+        after_photo_id=uuid4(),
+        before_blob=b_blob,
+        after_blob=a_blob,
+        comparability_result=None,  # Caller omitted comparability
+        vlm_assessment_dict={"evidence_class": "approved"},  # Model naively claimed approved
+    )
+
+    assert assessment.evidence_class == "manual_review"
+    assert assessment.comparability.is_comparable is False
+    assert assessment.comparability.same_subject == "uncertain"
+
+
+def test_case_01_description_auto_detected_as_contradiction_without_comparability_flag():
+    """CASE-01: Auto-detects 0-4 bar vs 0-6 bar from descriptions even if caller omitted comparability."""
+    wo_id = uuid4()
+    b_blob = make_test_jpeg("dirty")
+    a_blob = make_test_jpeg("clean_serviced")
+
+    assessment = build_auxiliary_assessment(
+        work_order_id=wo_id,
+        attempt_no=1,
+        equipment_type="pressure_gauge",
+        before_photo_id=uuid4(),
+        after_photo_id=uuid4(),
+        before_blob=b_blob,
+        after_blob=a_blob,
+        comparability_result=None,
+        vlm_assessment_dict={
+            "evidence_class": "approved",
+            "before_description": "Манометр стрелочный показывающий, шкала 0-4 бар",
+            "after_description": "Манометр с круглой шкалой 0-6 бар, стрелка на 3.2 бар",
+        },
+    )
+
+    assert assessment.evidence_class == "rejected"
+    assert assessment.comparability.contradiction_detected is True
+    assert "CASE-01" in (assessment.comparability.mismatch_reason or "")
+
+
+def test_with_staleness_check_method_updates_assessment_state():
+    """Verify with_staleness_check method returns immutable copy with updated is_stale state."""
+    wo_id = uuid4()
+    b_blob = make_test_jpeg("dirty")
+    a_blob_v1 = make_test_jpeg("clean_serviced")
+
+    assessment = build_auxiliary_assessment(
+        work_order_id=wo_id,
+        attempt_no=1,
+        equipment_type="pressure_gauge",
+        before_photo_id=uuid4(),
+        after_photo_id=uuid4(),
+        before_blob=b_blob,
+        after_blob=a_blob_v1,
+        comparability_result={"is_comparable": True, "same_subject": "yes"},
+        vlm_assessment_dict={"evidence_class": "approved"},
+    )
+    assert assessment.is_stale is False
+
+    # Check identical blobs
+    fresh = assessment.with_staleness_check(b_blob, a_blob_v1)
+    assert fresh.is_stale is False
+
+    # Check modified blobs
+    a_blob_v2 = make_test_jpeg("sharp")
+    stale = assessment.with_staleness_check(b_blob, a_blob_v2)
+    assert stale.is_stale is True
+
+
+def test_service_review_photos_with_heuristic_fallback(canonical_photo_review_request):
+    """Calling review_photos with fallback_to_heuristic=True uses HeuristicFallbackClassifier."""
+    from ml_service.app.cv.service import review_photos
+
+    class MissingClassifier:
+        is_torch_active = False
+
+    photos = canonical_photo_review_request.photos
+    storage = {photos[0].photo_id: make_test_jpeg("dirty"), photos[1].photo_id: make_test_jpeg("clean_serviced")}
+
+    # 1. Without fallback -> unavailable
+    res_no_fb = review_photos(
+        canonical_photo_review_request,
+        lambda pid: storage[pid],
+        classifier=MissingClassifier(),
+        fallback_to_heuristic=False,
+    )
+    assert res_no_fb.status == "unavailable"
+    assert res_no_fb.error_code == "MODEL_NOT_READY"
+    assert len(res_no_fb.item_results) == 0
+
+    # 2. With fallback -> uncertain items with heuristic baseline observation
+    res_fb = review_photos(
+        canonical_photo_review_request,
+        lambda pid: storage[pid],
+        classifier=MissingClassifier(),
+        fallback_to_heuristic=True,
+    )
+    assert res_fb.status == "uncertain"
+    assert len(res_fb.item_results) == 1
+    assert res_fb.item_results[0].verdict == "uncertain"
+    assert "Эвристический baseline" in res_fb.item_results[0].observation
+

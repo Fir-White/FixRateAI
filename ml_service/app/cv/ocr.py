@@ -15,7 +15,7 @@ import re
 from decimal import Decimal, InvalidOperation
 from enum import Enum
 from typing import Any, Literal
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ReadingValidationStatus(str, Enum):
@@ -27,12 +27,13 @@ class ReadingValidationStatus(str, Enum):
 
 
 # Approved equipment to canonical unit mapping
+# Note: for pressure_gauge, mpa/мпа are converted to canonical 'bar' (1 MPa = 10 bar)
 APPROVED_EQUIPMENT_UNITS: dict[str, dict[str, str]] = {
     "pressure_gauge": {
         "bar": "bar",
         "бар": "bar",
-        "mpa": "mpa",
-        "мпа": "mpa",
+        "mpa": "bar",
+        "мпа": "bar",
     },
     "heat_meter": {
         "gcal": "Gcal",
@@ -56,11 +57,10 @@ APPROVED_EQUIPMENT_UNITS: dict[str, dict[str, str]] = {
     },
 }
 
-# Plausible physical operating ranges for individual heating substations (ITP)
+# Plausible physical operating ranges for individual heating substations (ITP) in canonical units
 PLAUSIBLE_RANGES: dict[str, dict[str, tuple[float, float]]] = {
     "pressure_gauge": {
         "bar": (0.0, 16.0),
-        "mpa": (0.0, 1.6),
     },
     "heat_meter": {
         "Gcal": (0.0, 100000.0),
@@ -97,7 +97,7 @@ class BoundedReadingCandidate(BaseModel):
         None, description="Raw text token extracted by vision model / OCR"
     )
     parsed_value: float | None = Field(
-        None, description="Normalized numeric value"
+        None, description="Normalized numeric value in canonical units"
     )
     unit: str | None = Field(
         None, description="Reported unit of measurement"
@@ -126,6 +126,16 @@ class BoundedReadingCandidate(BaseModel):
     disclaimer: str = Field(
         default=BOUNDED_OCR_DISCLAIMER, description="Mandatory legal/safety disclaimer"
     )
+
+    @field_validator("requires_human_verification", mode="after")
+    @classmethod
+    def enforce_human_verification_always_true(cls, v: bool) -> bool:
+        if not v:
+            raise ValueError(
+                "requires_human_verification must ALWAYS be True to prevent unverified autonomous AI approval"
+            )
+        return True
+
 
 
 class BoundedOCRValidator:
@@ -249,7 +259,7 @@ class BoundedOCRValidator:
                 ),
             )
 
-        # 4. Parse numeric value
+        # 4. Parse numeric value and convert to canonical unit if needed
         parsed = cls.parse_number(raw_val_str)
         if parsed is None:
             return BoundedReadingCandidate(
@@ -267,7 +277,11 @@ class BoundedOCRValidator:
                 note=f"Не удалось распознать числовое значение из строки '{raw_val_str}'.",
             )
 
-        # 5. Check plausible operating range
+        # Canonical unit conversion: MPa to bar (1 MPa = 10 bar)
+        if norm_eq in ("pressure_gauge",) and raw_unit_str and raw_unit_str.strip().lower() in ("mpa", "мпа"):
+            parsed = round(parsed * 10.0, 4)
+
+        # 5. Check plausible operating range (in canonical units)
         ranges = PLAUSIBLE_RANGES.get(norm_eq, {}).get(canonical_unit)
         if ranges is not None:
             min_val, max_val = ranges
