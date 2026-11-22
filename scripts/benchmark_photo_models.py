@@ -35,7 +35,7 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "backend"), str(ROOT)]
 
-from ml_service.app.cv.classifier import CLIPZeroShotClassifier
+from ml_service.app.cv.classifier import CLIPZeroShotClassifier, HeuristicFallbackClassifier
 from ml_service.app.cv.guardrails import VisualGuardrailPolicy
 from ml_service.app.cv.quality import ImageQualityGuard
 from ml_service.app.cv.service import review_photos
@@ -47,30 +47,6 @@ from ml_service.app.schemas import (
     PhotoReviewRequest,
 )
 from app.integration.photo_evidence import classify_evidence
-
-
-class HeuristicFallbackClassifier:
-    """Deterministic fallback / heuristic classifier requiring zero external/neural weights."""
-    is_torch_active = True
-    model_name = "heuristic:quality-guard-baseline"
-    prompt_set_version = "heuristic-v1"
-
-    def evaluate_pair(
-        self,
-        checklist_item_id: UUID,
-        before_photo_id: UUID,
-        after_photo_id: UUID,
-        before_bytes: bytes,
-        after_bytes: bytes,
-    ) -> ItemPhotoReview:
-        return ItemPhotoReview(
-            checklist_item_id=checklist_item_id,
-            verdict="uncertain",
-            before_photo_id=before_photo_id,
-            after_photo_id=after_photo_id,
-            observation="Эвристический baseline: техническое качество допустимо, требуется ручная приёмка инженером.",
-            scores=[],
-        )
 
 
 

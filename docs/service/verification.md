@@ -1737,3 +1737,19 @@ README и service INDEX теперь ведут к существующему ч
 6. Проведён аудит наработки и зафиксирован обоснованный No-Go для предиктивного ML-прогноза RUL на этапе MVP (дефицит реальных отказов); сохранён расчет нормативного регламента ALG07 и предложен контракт сбора истории для пилота.
 7. Проведены автоматические тесты: `tests/ml/test_team_ml01_corpus_and_sources.py` (5/5 PASS), `tests/ml/test_model_benchmark.py` (5/5 PASS), `verify_split_leakage.py` (PASS), `verify_photo_manifest.py` (PASS).
 
+## 22.11.2026 — Выполнение TEAM-ML02 (FRAI-172)
+
+Выполнены все обязательные результаты задачи TEAM-ML02 под требования пересмотра CR-17:
+1. Зафиксирован отчёт по стабилизации фотоанализа и ограниченному OCR: `docs/analysis/team_ml02_photo_analysis_report.md`.
+2. Реализован модуль Bounded OCR `ml_service/app/cv/ocr.py`: белый список приборов (`pressure_gauge` с единицей `bar`, `heat_meter`/`vkt7` с единицами `Gcal`, `m³`), отсечение остальных классов оборудования (`unsupported_equipment`) и недопустимых единиц (`unsupported_unit`), нормализация чисел и проверка допустимых диапазонов.
+3. Каждое показание обязательно маркируется флагом `requires_human_verification=True` и дисклеймером о неподтверждении метрологической точности по фото.
+4. Разработан модуль вспомогательного анализа инженера `ml_service/app/cv/assessment.py` с жесткой привязкой к попытке наряда и SHA-256 снимков, детекцией противоречия циферблатов CASE-01 и защитой от устаревания (`is_stale=True`).
+5. В ядро CV-модуля добавлен `HeuristicFallbackClassifier` с нулевой ложной уверенностью (0.0% False Reassurance Rate).
+6. Проведены автоматические тесты:
+   - `tests/ml/test_team_ml02_bounded_ocr.py` (27/27 PASS).
+   - `tests/ml/test_team_ml02_photo_assessment.py` (7/7 PASS).
+   - Полный регрессионный ML-набор `tests/ml`: 251/251 PASS (51.01 с).
+   - `scripts/benchmark_photo_models.py`: 0.0% False Reassurance Rate.
+   - `scripts/validate_artifacts.py`: 1516 ссылок проверены, PASS.
+
+
