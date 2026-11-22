@@ -256,7 +256,7 @@ def validate_result(goal, tool_name, value):
     """
     outcome = goal.get('outcome')
     intent = goal.get('semantic', {}).get('intent')
-    if intent in ('equipment_tasks', 'latest_maintenance', 'active_regulations', 'maintenance_calendar'):
+    if intent in ('equipment_tasks', 'latest_maintenance', 'maintenance_history', 'active_regulations', 'maintenance_calendar'):
         try:
             if intent == 'equipment_tasks':
                 valid = (type(value.get('total')) is int and value['total'] >= 0 and
@@ -269,11 +269,15 @@ def validate_result(goal, tool_name, value):
                              row['isOverdue'] == (row['regulatoryDeadlineAt'] is not None and
                                  datetime.fromisoformat(row['regulatoryDeadlineAt']) < datetime.fromisoformat(value['checked_at'])) and
                              _date(row.get('mandatoryDueDate'), nullable=True) for row in value['items']))
-            elif intent == 'latest_maintenance':
-                valid = (value.get('latest_only') is True and value.get('only_accepted') is True and
-                         _uuid(value.get('equipment_id')) and type(value.get('matched_reports')) is int and
-                         value['matched_reports'] >= 0 and isinstance(value.get('items'), list) and
-                         len(value['items']) == min(value['matched_reports'], 1) and
+            elif intent in ('latest_maintenance', 'maintenance_history'):
+                latest = intent == 'latest_maintenance'
+                shape = (_shape('accepted_history', value) if not latest else
+                         value.get('only_accepted') is True and _uuid(value.get('equipment_id')) and
+                         isinstance(value.get('items'), list))
+                valid = (shape and
+                         value.get('latest_only', False) is latest and
+                         (not latest or type(value.get('matched_reports')) is int and value['matched_reports'] >= 0 and
+                          len(value['items']) == min(value['matched_reports'], 1)) and
                          all(_uuid(row.get('report_id')) and _instant(row.get('accepted_at')) and
                              type(row.get('actual_date_verified')) is bool and
                              _instant(row.get('performed_at'), nullable=not row['actual_date_verified'])

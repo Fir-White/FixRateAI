@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import json
+from http.client import IncompleteRead, RemoteDisconnected
 import math
 import os
 import re
@@ -18,6 +19,10 @@ MAX_RESPONSE_BYTES = 1_048_576
 
 class AITunnelFailure(Exception):
     """Only stable non-secret codes cross the provider boundary."""
+
+    def __init__(self, code, *, reason=None):
+        super().__init__(code)
+        self.reason = reason
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -112,11 +117,15 @@ class AITunnelClient:
                           headers={"Content-Type": "application/json", "Authorization": "Bearer " + self.config.api_key})
         try:
             with self.opener.open(request, timeout=remaining) as response:
+                headers = getattr(response, 'headers', {})
+                diagnostic['billing'] = 'request_identified' if headers.get('X-Request-Id') else 'unknown'
                 raw = response.read(MAX_RESPONSE_BYTES + 1)
             diagnostic.update(stage="envelope", response_bytes=len(raw))
             if len(raw) > MAX_RESPONSE_BYTES:
                 raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE")
             envelope = json.loads(raw)
+            if isinstance(envelope, dict) and isinstance(envelope.get('id'), str) and envelope['id']:
+                diagnostic['billing'] = 'request_identified'
             choices = envelope["choices"]
             diagnostic["stage"] = "choices"
             if isinstance(choices, list) and len(choices) == 1 and isinstance(choices[0], dict):
@@ -126,8 +135,10 @@ class AITunnelClient:
                 raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE")
             diagnostic["stage"] = "message"
             message = choices[0]["message"]
-            if message.get("refusal") or not isinstance(message.get("content"), str):
-                raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE")
+            if message.get("refusal"):
+                raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE", reason='refusal')
+            if not isinstance(message.get("content"), str):
+                raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE", reason='invalid_message')
             diagnostic["content_characters"] = len(message["content"])
             diagnostic["stage"] = "model"
             actual_model = envelope.get("model")
@@ -147,29 +158,59 @@ class AITunnelClient:
             return result
         except AITunnelFailure as exc:
             diagnostic["error_code"] = str(exc)
+            if exc.reason:
+                diagnostic['reason'] = exc.reason
             raise
         except HTTPError as exc:
             code = {401: "AITUNNEL_AUTH_FAILED", 403: "AITUNNEL_AUTH_FAILED", 402: "AITUNNEL_QUOTA_EXCEEDED",
                     429: "AITUNNEL_RATE_LIMITED", 404: "AITUNNEL_MODEL_UNAVAILABLE"}.get(exc.code,
                     "AITUNNEL_INVALID_REQUEST" if 400 <= exc.code < 500 else "AITUNNEL_UNAVAILABLE")
             raise AITunnelFailure(code) from None
+        except (IncompleteRead, RemoteDisconnected):
+            diagnostic.update(reason='transport', error_code='AITUNNEL_UNAVAILABLE')
+            diagnostic.setdefault('billing', 'unknown')
+            raise AITunnelFailure('AITUNNEL_UNAVAILABLE', reason='transport') from None
         except TimeoutError:
-            raise AITunnelFailure("AITUNNEL_TIMEOUT") from None
+            diagnostic.update(reason='timeout', error_code='AITUNNEL_TIMEOUT')
+            diagnostic.setdefault('billing', 'unknown')
+            raise AITunnelFailure("AITUNNEL_TIMEOUT", reason='timeout') from None
         except (URLError, OSError) as exc:
             code = "AITUNNEL_TIMEOUT" if isinstance(getattr(exc, "reason", None), TimeoutError) else "AITUNNEL_UNAVAILABLE"
-            raise AITunnelFailure(code) from None
+            reason = 'timeout' if code == 'AITUNNEL_TIMEOUT' else 'transport'
+            diagnostic.update(reason=reason, error_code=code)
+            diagnostic.setdefault('billing', 'unknown')
+            raise AITunnelFailure(code, reason=reason) from None
         except ValidationError as exc:
             fields = set(schema.model_fields)
             diagnostic["validation_errors"] = [
                 {"type": issue["type"], "location": [part if isinstance(part, int) or part in fields else "unknown_field" for part in issue["loc"]]}
                 for issue in exc.errors(include_input=False, include_context=False, include_url=False)[:8]
             ]
-            diagnostic["error_code"] = "AITUNNEL_INVALID_RESPONSE"
-            raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE") from None
+            reason = 'output_json' if any(issue['type'] == 'json_invalid' for issue in diagnostic['validation_errors']) else 'output_schema'
+            diagnostic.update(reason=reason, error_code='AITUNNEL_INVALID_RESPONSE')
+            raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE", reason=reason) from None
 
+        except json.JSONDecodeError:
+            diagnostic.update(reason='transport_json', error_code='AITUNNEL_INVALID_RESPONSE')
+            raise AITunnelFailure('AITUNNEL_INVALID_RESPONSE', reason='transport_json') from None
         except (ValueError, TypeError, KeyError, IndexError, AttributeError):
             diagnostic["error_code"] = "AITUNNEL_INVALID_RESPONSE"
             raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE") from None
+
+    def assistant_chat(self, messages, schema, tokens):
+        """Retry inference once inside the same deadline before dispatching any tool calls."""
+        try:
+            return self.chat(messages, schema, tokens)
+        except AITunnelFailure as exc:
+            if exc.reason not in ('transport', 'output_json', 'output_schema') or self.deadline-time.monotonic() < 8:
+                raise
+            self.response_diagnostics[-1]['repair_requested'] = True
+            if exc.reason != 'transport':
+                instructions = ('Return one complete JSON object matching the schema. '
+                                'For arguments_json use a string containing a valid complete JSON object, such as "{}". '
+                                'Keep the original request and parameters.')
+                messages = [*messages, {'role': 'system', 'content': instructions}]
+        return self.chat(messages, schema, tokens)
 
     def text(self, messages, tokens=8192):
         """User-facing prose shares the same deadline, envelope checks and privacy rules."""

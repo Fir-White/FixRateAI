@@ -38,6 +38,7 @@ TOOLS=(
  Tool('chat_model_preference','Мой сохранённый выбор модели чата','GET','/api/v1/assistant/model-preference',ALL),
  Tool('chat_model_select','Выбрать мою модель чата для следующих сообщений','POST','/api/v1/assistant/model-preference',ALL,'write',before='chat_model_preference'),
  Tool('tasks_analyze','Полный серверный анализ незавершённых заданий: сроки, нагрузка, бизнес-дубли и единицы норм','GET','/api/v1/assistant/workspace/task-analysis',agents=('assistant','planner','photo')),
+ Tool('work_order_analytics','Рейтинг оборудования и исполнителей по нарядам или сравнение двух периодов планирования','GET','/api/v1/assistant/workspace/work-order-analytics',agents=('assistant',)),
  Tool('draft_changes','Фактические отличия двух версий черновика','GET','/api/v1/assistant/workspace/draft-changes',(*PLAN,'director')),
  Tool('drafts_find','Все доступные черновики текущего объекта из регламентов и каталогов','GET','/api/v1/assistant/workspace/drafts',(*PLAN,'director')),
  Tool('planning_context','Проверенные обязанности, регламенты, исходные пробелы и политика выбранного периода','GET','/api/v1/assistant/workspace/planning-context',(*PLAN,'director')),
@@ -61,6 +62,7 @@ TOOLS=(
  Tool('staff_find','Поиск сотрудников по имени и email','GET','/api/v1/assistant/workspace/staff',(*PLAN,'director')),
  Tool('staff_read','Подробные сведения о сотруднике','GET','/api/v1/assistant/workspace/staff/{user_id}',(*PLAN,'director')),
  Tool('task_read','Задание, инструкции и состояние отчёта','GET',P+'/ui/tasks/{task_id}',agents=('assistant','planner','photo')),
+ Tool('task_acceptance_evidence','Проверить материалы и препятствия приёмке текущей попытки задания','GET','/api/v1/assistant/workspace/tasks/{task_id}/acceptance-evidence',agents=('assistant',)),
  Tool('calendar_read','Календарь работ','GET',P+'/ui/calendar',(*OPERATE,'director','executor')),
  Tool('assignment_context','Сотрудники и условия назначения','GET',P+'/ui/tasks/{task_id}/assignment-context',OPERATE),
  Tool('assignment_prepare','Проверить назначение конкретных сотрудников на задание','POST','/api/v1/assistant/workspace/tasks/{task_id}/prepare-assignment',OPERATE),
@@ -154,7 +156,8 @@ def describe(app,tool):
     if tool.mode=='read':props['view']=ResultView.model_json_schema()
     for kind in ('path','query'):
         fields={p['name']:expand(p['schema']) for p in operation.get('parameters',[]) if p['in']==kind}
-        if kind=='query' and 'limit' in fields:fields['limit'].update(default=25,maximum=25)
+        if kind=='query' and 'limit' in fields and tool.name not in DOMAIN_PAGE_LIMITS:
+            fields['limit'].update(default=25,maximum=25)
         needed=[p['name'] for p in operation.get('parameters',[]) if p['in']==kind and p.get('required')]
         props[kind]=dict(type='object',properties=fields,additionalProperties=False,required=needed)
         if needed:required.append(kind)
@@ -175,6 +178,9 @@ def describe(app,tool):
         inputSchema=dict(type='object',properties=props,additionalProperties=False,required=required),
         annotations=dict(readOnlyHint=tool.mode=='read',destructiveHint=tool.mode=='write',idempotentHint=tool.mode=='read',openWorldHint=False))
 
+DOMAIN_PAGE_LIMITS = {'tasks_find', 'equipment_service_history', 'work_order_analytics'}
+
+
 def validate_arguments(app,tool,arguments):
     if not isinstance(arguments,dict):raise HTTPException(422,'Аргументы должны быть объектом с разделами path, query и body')
     unknown=set(arguments)-{'path','query','body','view'}
@@ -193,14 +199,15 @@ def validate_arguments(app,tool,arguments):
         if unknown:raise HTTPException(422,'Неизвестные параметры '+kind+': '+', '.join(sorted(str(x)[:80] for x in unknown)[:10])+'. Допустимые: '+(', '.join(f.name for f in fields) or 'нет'))
         result[kind]={}
         for field in fields:
+            capped = kind == 'query' and field.name == 'limit' and tool.name not in DOMAIN_PAGE_LIMITS
             if field.name not in values:
                 if field.field_info.is_required():raise HTTPException(422,'Нужен параметр '+field.name)
-                if kind=='query' and field.name=='limit':result[kind][field.name]=25
+                if capped:result[kind][field.name]=25
                 continue
             validated,errors=field.validate(values[field.name],{},loc=(kind,field.name))
             if errors:raise HTTPException(422,'Проверьте параметр '+field.name)
             result[kind][field.name]=jsonable_encoder(validated)
-            if kind=='query' and field.name=='limit':result[kind][field.name]=min(result[kind][field.name],25)
+            if capped:result[kind][field.name]=min(result[kind][field.name],25)
     if route.body_field:
         raw=arguments.get('body')
         if isinstance(raw,dict):raw={**raw,**{key:HUMAN_SECRET for key in (*tool.secrets,*tool.optional_secrets) if key in tool.secrets or raw.get(key) is not None}}

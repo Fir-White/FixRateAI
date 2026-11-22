@@ -107,6 +107,7 @@ def test_architecture_v2_corpus(engineering_case, monkeypatch, case, request):
     providers = [service.provider]
     monkeypatch.setattr(app.state, 'assistant_provider_factory', lambda: providers[0](), raising=False)
     now = datetime.now(timezone.utc)
+    expanded_history = set()
     if primary == 'ambiguous':
         inventory(admin, ids, 'НС-97', name=data['asset']['name'])
         subject = data['asset']['name']
@@ -115,7 +116,8 @@ def test_architecture_v2_corpus(engineering_case, monkeypatch, case, request):
             if primary == 'partial':
                 add_order(data['case'], [selected], f'Строка проверки {index}', 'draft', now + timedelta(days=3), None)
             else:
-                add_report(data['case'], selected)
+                _, report = add_report(data['case'], selected)
+                expanded_history.add(report)
     if primary == 'latest_gap':
         add_report(data['case'], selected, actual=None)
     if primary == 'latest_conflict':
@@ -220,13 +222,20 @@ def test_architecture_v2_corpus(engineering_case, monkeypatch, case, request):
                 wanted &= {data['upcoming']}
             found = {task['id'] for task in value.get('items', [])} if isinstance(value, dict) else set()
             claim('scoped_task_rows', wanted == found, expected=sorted(wanted), actual=sorted(found))
-            claim('task_page_coverage', proof['complete'] is (primary != 'partial'))
+            claim('task_page_coverage', proof['complete'] is True)
+            if primary == 'partial':
+                claim('expanded_task_page_is_visible', len(wanted) > 25 and all(identity in result['answer'] for identity in wanted))
         elif target == 'equipment_service_history':
             report = data['accepted'] if case['asset'] == 'asset' else data['other_report'] if case['asset'] == 'other' else None
             found = {entry['report_id'] for entry in value.get('items', [])} if isinstance(value, dict) else set()
             if primary == 'history_empty':
                 report = None
-            if primary in ('latest_gap', 'latest_conflict', 'history_partial'):
+            if primary == 'history_partial':
+                wanted = {report, *expanded_history}
+                claim('expanded_history_coverage', len(wanted) > 25 and found == wanted and proof['complete'] is True,
+                      actual=sorted(found), expected=sorted(wanted))
+                claim('expanded_history_is_visible', all(identity in result['answer'] for identity in wanted))
+            elif primary in ('latest_gap', 'latest_conflict'):
                 claim('uncertainty_preserved', proof['status'] == 'PARTIAL' and not proof['complete'], actual=proof['status'])
             else:
                 claim('accepted_report_identity', found == ({report} if report else set()), actual=sorted(found), expected=report)

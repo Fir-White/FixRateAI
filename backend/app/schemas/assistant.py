@@ -5,6 +5,8 @@ import json
 from uuid import UUID
 from pydantic import BaseModel,ConfigDict,Field,field_validator,model_validator
 
+MAX_COLLECTION_PAGE = 200
+
 class Input(BaseModel):
     model_config=ConfigDict(extra='forbid')
 

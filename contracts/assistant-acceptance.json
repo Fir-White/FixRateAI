@@ -1,49 +1,49 @@
 {
   "format_version": 1,
-  "catalog_sha256": "d7a5e860d5781c0943b62a4cdd180f3da1a5413aa0e59812815646c92167d133",
+  "catalog_sha256": "3601655c3ee0d883dc10b2b1d00467355d6252a47d8124f09c634d362f3be2fb",
   "acceptance_rule": "A finished response, registered tool, HTTP 200, negative boundary test, mocked completion or successful individual call does not prove the user goal. Positive acceptance requires an independently verified final result and data state for this exact role/operation.",
   "generative_policy": "Installed local Ollama only; no external LLM/fallback, weight downloads or runtime user preference changes.",
   "summary": {
-    "operations": 179,
-    "role_operation_cells": 727,
+    "operations": 181,
+    "role_operation_cells": 739,
     "by_role": {
-      "director": 91,
-      "chief_engineer": 174,
-      "engineer": 125,
-      "dispatcher": 136,
-      "admin": 146,
-      "executor": 55
+      "director": 93,
+      "chief_engineer": 176,
+      "engineer": 127,
+      "dispatcher": 138,
+      "admin": 148,
+      "executor": 57
     },
     "verification": {
       "reachability": {
         "passed": 17,
         "failed": 0,
         "skipped": 0,
-        "not_run": 710
+        "not_run": 722
       },
       "positive_e2e": {
         "passed": 17,
         "failed": 0,
         "skipped": 0,
-        "not_run": 710
+        "not_run": 722
       },
       "negative": {
         "passed": 1,
         "failed": 0,
         "skipped": 0,
-        "not_run": 726
+        "not_run": 738
       },
       "mocked": {
         "passed": 0,
         "failed": 0,
         "skipped": 0,
-        "not_run": 727
+        "not_run": 739
       },
       "api_domain": {
         "passed": 0,
         "failed": 0,
         "skipped": 0,
-        "not_run": 727
+        "not_run": 739
       }
     }
   },
@@ -297,6 +297,66 @@
         "tests/backend/test_assistant_task_analytics.py::test_report_faults_are_not_empty_or_full",
         "tests/backend/test_assistant_task_analytics.py::test_tool_schema_and_registration_use_actual_route",
         "tests/backend/test_assistant_task_analytics.py::test_data_change_between_sections_never_yields_full_report"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "work_order_analytics",
+      "title": "Рейтинг оборудования и исполнителей по нарядам или сравнение двух периодов планирования",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/work-order-analytics",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "denied_roles": [],
+      "requires_confirmation": false,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "reporting",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-10",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-06",
+          "PLN-11",
+          "PLN-14",
+          "AT-01",
+          "AT-11",
+          "AT-27"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-01",
+          "D-07"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Rank equipment or workers, select tasks by deadlines or missing materials, and inspect service coverage",
+        "fixture": "Synthetic task populations exceeding one page, all lifecycle states and a fixed site/timezone/period; independent SQL aggregate.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Do not confirm any unrelated mutation; this operation has a read-only outcome.",
+        "postconditions": [
+          "Independent SQL verifies eligible groups, order, counts, scope, local dates, and ties beyond the first page. Bound reads use only selected IDs and incomplete results remain explicit.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "Business state is unchanged by this read/preview."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_assistant_runtime_dataflow.py::test_bad_source_or_dependency_preserves_only_verified_facts"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -803,6 +863,7 @@
         "tests/backend/test_assistant_semantic_plan.py::test_mixed_entities_do_not_share_each_others_requested_fields",
         "tests/backend/test_assistant_semantic_plan.py::test_equipment_preflight_is_visible_only_when_user_requests_read",
         "tests/backend/test_assistant_semantic_plan.py::test_chat_reads_authoritative_record_after_transient_backend_error",
+        "tests/backend/test_assistant_v2_hardening.py::test_s09_card_delivery_satisfies_redundant_identity_check",
         "tests/backend/test_assistant_workflow_phases.py::test_explicit_binding_preserves_source_gate_before_proposal_and_resume",
         "tests/backend/test_assistant_workflow_phases.py::test_read_goal_with_explicit_patch_is_normalized_to_real_confirmed_mutation"
       ],
@@ -1165,12 +1226,14 @@
       "candidate_test_mentions": [
         "tests/backend/test_agent_redteam_explicit_draft.py::test_clear_command_gets_a_real_draft_after_the_read_stage",
         "tests/backend/test_agent_redteam_grounding.py::test_regulations_are_not_inferred_from_an_empty_task_calendar",
+        "tests/backend/test_assistant_dependent_analytics.py::test_unavailable_source_keeps_rank_and_other_asset",
         "tests/backend/test_assistant_domain_adapters.py::test_equipment_identity_cannot_cross_undeclared_dependencies",
         "tests/backend/test_assistant_domain_adapters.py::test_equipment_context_never_guesses_or_crosses_scope",
         "tests/backend/test_assistant_inference_deadline.py::test_exhausted_provider_persists_an_unfinished_goal_instead_of_hanging",
         "tests/backend/test_assistant_orchestrator_live.py::test_failed_regulation_read_preserves_independent_card_and_explicit_partial",
         "tests/backend/test_assistant_p0.py::test_llm_view_schema_matches_backend_validation",
-        "tests/backend/test_assistant_v2_benchmark.py::test_architecture_v2_corpus"
+        "tests/backend/test_assistant_v2_benchmark.py::test_architecture_v2_corpus",
+        "tests/backend/test_assistant_v2_hardening.py::test_fixed_equipment_comparison_restores_regulation_omitted_by_model"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -1306,6 +1369,7 @@
         "tests/backend/test_assistant_outcome_contracts.py::test_typed_read_result_rectifies_wrong_tool_without_title_keywords",
         "tests/backend/test_assistant_outcome_contracts.py::test_wrong_source_shapes_cannot_claim_typed_goal_completion",
         "tests/backend/test_assistant_v2_benchmark.py::test_architecture_v2_corpus",
+        "tests/backend/test_assistant_v2_hardening.py::test_s15_latest_fact_ignores_unrequested_writes_and_planning",
         "tests/backend/test_orchestrator_eval_summary.py::test_reply_completion_and_supported_ns01_success_do_not_complete_manufacturer_goal"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
@@ -1620,7 +1684,10 @@
         "tests/backend/test_assistant_domain_adapters.py::test_task_assign_adapter_stops_when_prepare_needs_input",
         "tests/backend/test_assistant_domain_adapters.py::test_tasks_find_adapter_respects_upcoming_and_overdue_periods",
         "tests/backend/test_assistant_orchestrator_live.py::test_nc01_period_history_and_unverified_manufacturer_are_separate_goals",
-        "tests/backend/test_assistant_v2_benchmark.py::test_architecture_v2_corpus"
+        "tests/backend/test_assistant_v2_benchmark.py::test_architecture_v2_corpus",
+        "tests/backend/test_assistant_v2_hardening.py::test_s12_complete_rendering_keeps_every_verified_row",
+        "tests/backend/test_assistant_v2_hardening.py::test_s12_multipage_postgres_read_delivers_full_cohort_and_sources",
+        "tests/backend/test_assistant_v2_hardening.py::test_fixed_equipment_comparison_restores_regulation_omitted_by_model"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -1708,6 +1775,7 @@
         "tests/backend/test_assistant_outcome_wire.py::test_native_other_cannot_bypass_a_concrete_source_contract",
         "tests/backend/test_assistant_semantic_plan.py::test_lookup_and_exclusive_projection_are_one_read",
         "tests/backend/test_assistant_v2_benchmark.py::test_architecture_v2_corpus",
+        "tests/backend/test_assistant_v2_hardening.py::test_s10_quoted_ambiguous_request_lists_candidates",
         "tests/backend/test_assistant_workflow_security.py::test_document_injection_does_not_grant_cross_specialist_mutation_or_confirmation"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
@@ -1920,10 +1988,69 @@
         "tests/backend/test_assistant_objective_scope.py::test_model_arguments_cannot_silently_replace_the_declared_target",
         "tests/backend/test_assistant_outcome_contracts.py::test_typed_read_result_rectifies_wrong_tool_without_title_keywords",
         "tests/backend/test_assistant_outcome_contracts.py::test_wrong_source_shapes_cannot_claim_typed_goal_completion",
+        "tests/backend/test_assistant_provider_recovery.py::test_qwen_wire_object_normalizes_to_the_same_pydantic_contract",
         "tests/backend/test_assistant_semantic_plan.py::test_semantic_multi_entity_read_keeps_exact_ids_and_only_requested_fields",
         "tests/backend/test_assistant_semantic_plan.py::test_semantic_permissions_and_revision_are_authoritative",
         "tests/backend/test_assistant_semantic_plan.py::test_mixed_entities_do_not_share_each_others_requested_fields",
-        "tests/backend/test_assistant_semantic_plan.py::test_transient_read_failure_retries_same_arguments_at_most_once"
+        "tests/backend/test_assistant_semantic_plan.py::test_transient_read_failure_retries_same_arguments_at_most_once",
+        "tests/backend/test_assistant_v2_hardening.py::test_saved_task_start_time_survives_misclassified_write_intent"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "task_acceptance_evidence",
+      "title": "Проверить материалы и препятствия приёмке текущей попытки задания",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/tasks/{task_id}/acceptance-evidence",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "denied_roles": [],
+      "requires_confirmation": false,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "execution",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-07",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "AN06",
+          "AN07",
+          "AT-16"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-01",
+          "D-05"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Read current checklist, report, photos and acceptance obstacles for the selected task",
+        "fixture": "Own assigned TEST task with confirmed checklist, permissions and synthetic photo/act attachments; independent engineer account.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Do not confirm any unrelated mutation; this operation has a read-only outcome.",
+        "postconditions": [
+          "Current task identity, revision and report attempt match; absent files and approvals are reported, inaccessible tasks stay protected and no business rows or proposals change.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "Business state is unchanged by this read/preview."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_assistant_runtime_dataflow.py::test_bad_source_or_dependency_preserves_only_verified_facts"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -11996,6 +12123,168 @@
       }
     },
     {
+      "operation": "work_order_analytics",
+      "role": "director",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "work_order_analytics",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "work_order_analytics",
+      "role": "engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "work_order_analytics",
+      "role": "dispatcher",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "work_order_analytics",
+      "role": "admin",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "work_order_analytics",
+      "role": "executor",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
       "operation": "draft_changes",
       "role": "chief_engineer",
       "registered": true,
@@ -17193,6 +17482,168 @@
     },
     {
       "operation": "task_read",
+      "role": "executor",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "task_acceptance_evidence",
+      "role": "director",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "task_acceptance_evidence",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "task_acceptance_evidence",
+      "role": "engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "task_acceptance_evidence",
+      "role": "dispatcher",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "task_acceptance_evidence",
+      "role": "admin",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "task_acceptance_evidence",
       "role": "executor",
       "registered": true,
       "verification": {

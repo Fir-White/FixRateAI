@@ -4,6 +4,11 @@ import re
 
 def objective_scope(state,goal,name,arguments,value):
     selector=goal.get('selector',{});path=arguments.get('path') or {};query=arguments.get('query') or {}
+    site_id = state.get('scope', {}).get('site_id')
+    if site_id and name == 'equipment_find' and isinstance(value, dict):
+        rows = value.get('items')
+        if not isinstance(rows, list) or any(not isinstance(row, dict) or str(row.get('site_id')) != str(site_id) for row in rows):
+            return 'result_resource_mismatch'
     if name == 'tasks_find' and goal.get('semantic', {}).get('intent') == 'equipment_tasks':
         filters = value.get('filters', {}) if isinstance(value, dict) else {}
         identity = query.get('equipment_id')
@@ -37,6 +42,8 @@ def objective_scope(state,goal,name,arguments,value):
     if name not in identities and not (name == 'tasks_find' and query.get('equipment_id')):return None
     key,result_key=identities.get(name, ('equipment_id',None));wanted=selector.get(key);actual=path.get(key) or query.get(key)
     if wanted and str(actual)!=str(wanted):return 'requested_resource_mismatch'
+    if site_id and name == 'equipment_read' and isinstance(value, dict) and str(value.get('site_id')) != str(site_id):
+        return 'result_resource_mismatch'
     if result_key and isinstance(value,dict) and value.get(result_key) is not None and str(value[result_key])!=str(actual):return 'result_resource_mismatch'
     if name=='task_read' and isinstance(value,dict) and isinstance(value.get('task'),dict) and str(value['task'].get('id'))!=str(actual):return 'result_resource_mismatch'
     if name=='operation_read' and goal.get('outcome')=='maintenance_definition':

@@ -7,6 +7,8 @@ from fastapi import Depends,Query,HTTPException,Request
 from sqlalchemy import select,func,or_,and_
 from app.security.sessions import has_role,SQL_ROLES
 from .management import equipment_response
+from app.assistant.analysis_contract import Group, MAX_AGGREGATE_ROWS, Metric
+from app.schemas.assistant import MAX_COLLECTION_PAGE
 
 BASE='/api/v1/assistant/workspace'
 
@@ -16,6 +18,42 @@ class AssignmentPreparation(BaseModel):
     one_person_only:bool=False
 
 def register_routes(app,views):
+    @app.get(BASE+'/work-order-analytics')
+    def work_order_analytics(
+        group_by: Group,
+        metric: Metric,
+        limit: int=Query(5, ge=1, le=MAX_AGGREGATE_ROWS),
+        offset: int=Query(0, ge=0),
+        as_of: date|None=None,
+        starts_on: date|None=None,
+        ends_on: date|None=None,
+        second_starts_on: date|None=None,
+        second_ends_on: date|None=None,
+        include_overdue_tasks: bool=False,
+        include_assignments: bool=False,
+        v=Depends(views),
+    ):
+        from app.assistant.analysis_contract import AggregateQuery, Window
+        from .work_order_analytics import aggregate
+
+        pairs = [(starts_on, ends_on), (second_starts_on, second_ends_on)]
+        if second_starts_on and not starts_on:
+            raise HTTPException(422, 'Сначала укажите первый период.')
+        try:
+            windows = [Window(starts_on=start, ends_on=end) for start,end in pairs if start or end]
+            query = AggregateQuery(group_by=group_by, metric=metric, limit=limit, offset=offset, as_of=as_of,
+                                   windows=windows, include_overdue_tasks=include_overdue_tasks,
+                                   include_assignments=include_assignments)
+        except ValueError:
+            raise HTTPException(422, 'Выберите допустимую группировку, метрику и периоды.') from None
+        return aggregate(v, query)
+
+    @app.get(BASE+'/tasks/{task_id}/acceptance-evidence')
+    def acceptance_evidence(task_id: UUID, expected_revision: int=Query(...,ge=1),
+                            execution_id: UUID|None=None,v=Depends(views)):
+        from .task_acceptance_evidence import inspect
+        return inspect(v, task_id, expected_revision, execution_id, app.state.settings.photo_storage_root)
+
     @app.get(BASE+'/workbook-readiness')
     def workbook_readiness(conversation_id:UUID,attachment_ids:list[UUID]=Query(...,min_length=1,max_length=20),v=Depends(views)):
         from app.assistant.service import conversation
@@ -32,7 +70,8 @@ def register_routes(app,views):
 
     @app.get(BASE+'/equipment/{equipment_id}/history')
     def equipment_history(equipment_id:UUID,starts_on:date|None=None,ends_on:date|None=None,
-                          offset:int=Query(0,ge=0),only_accepted:bool=True,latest_only:bool=False,v=Depends(views)):
+                          offset:int=Query(0,ge=0),limit:int=Query(25,ge=1,le=MAX_COLLECTION_PAGE),
+                          only_accepted:bool=True,latest_only:bool=False,v=Depends(views)):
         from sqlalchemy import text
         from .management import _equipment
         _equipment(v,equipment_id)
@@ -45,10 +84,9 @@ def register_routes(app,views):
         # Fixed-count SQL, filtering dates in the object's actual timezone. A
         # report is a fact of submission; accepted_only additionally requires
         # the explicit acceptance record for that exact report attempt.
-        def timestamp_sql(value):
-            return f"CASE WHEN {value} ~ '[Tt].*(Z|[+-][0-9]{{2}}:[0-9]{{2}})$' AND pg_input_is_valid({value},'timestamp with time zone') THEN ({value})::timestamptz END"
-        review_actual=timestamp_sql('a.performed_text')
-        report_actual=timestamp_sql("r.execution_context->>'performed_at'")
+        from .work_order_analytics import performed_sql
+        review_actual=performed_sql('a.performed_text')
+        report_actual=performed_sql("r.execution_context->>'performed_at'")
         actual='COALESCE('+review_actual+','+report_actual+')'
         conflict='''((%s) IS NOT NULL AND (%s) IS NOT NULL AND (%s)<>(%s))
                  OR COALESCE(f.actual_at>a.accepted_at,false)''' % (review_actual,report_actual,review_actual,report_actual)
@@ -100,16 +138,18 @@ def register_routes(app,views):
         undated=v.session.scalar(text('SELECT count(*) '+scope+' AND COALESCE(f.actual_at,r.submitted_at) IS NULL'),params)
         unknown_actual=v.session.scalar(text('SELECT count(*) '+scope+' AND f.actual_at IS NULL'),params)
         rows=v.session.execute(text(columns+selected_scope+
-            ' ORDER BY COALESCE(f.actual_at,r.submitted_at) DESC,r.work_report_id LIMIT 25 OFFSET :offset'),params).mappings().all()
+            ' ORDER BY COALESCE(f.actual_at,r.submitted_at) DESC,r.work_report_id LIMIT :limit OFFSET :offset'),
+            {**params, 'limit': limit}).mappings().all()
         return dict(equipment_id=str(equipment_id),starts_on=starts_on,ends_on=ends_on,only_accepted=only_accepted,
-                    items=[dict(row) for row in rows],total=total,offset=offset,limit=25,page_complete=offset==0 and len(rows)==total,
+                    items=[dict(row) for row in rows],total=total,offset=offset,limit=limit,page_complete=offset==0 and len(rows)==total,
                     undated_count=undated,actual_date_unknown_count=unknown_actual,complete=offset==0 and len(rows)==total and undated==0 and unknown_actual==0 and not any(row['actual_date_conflict'] for row in rows),
                     checked_at=datetime.now(timezone.utc),timezone=v.principal.timezone,
                     source='saved_work_reports_and_acceptance_reviews',date_basis='per_report_actual_or_explicit_submission_fallback',
                     manufacturer_unverified=True)
 
     @app.get(BASE+'/equipment/{equipment_id}/calendar-evidence')
-    def calendar_evidence(equipment_id:UUID,starts_on:date,ends_on:date,approved_only:bool=False,v=Depends(views)):
+    def calendar_evidence(equipment_id:UUID,starts_on:date,ends_on:date,approved_only:bool=False,
+                          next_only:bool=False,v=Depends(views)):
         from .management import _equipment,service_configurations
         from app.assistant.calendar_evidence import explain_configuration
         _equipment(v,equipment_id)
@@ -120,11 +160,16 @@ def register_routes(app,views):
         if approved_only:
             rows = [row for row in rows if row['enabled'] and row['valid_from'] <= ends_on
                     and (row['valid_until'] is None or row['valid_until'] >= starts_on)]
+        if next_only:
+            rows = [row for row in rows if row['valid_from'] <= starts_on and
+                    (row['valid_until'] is None or row['valid_until'] >= starts_on)]
         try:
-            results=[explain_configuration(row,starts_on,ends_on,timezone=v.principal.timezone) for row in rows]
+            results=[explain_configuration(row,starts_on,ends_on,timezone=v.principal.timezone,
+                                           next_only=next_only) for row in rows]
         except ValueError:raise HTTPException(422,'Укажите корректный ограниченный период календаря') from None
         return dict(equipment_id=str(equipment_id),starts_on=starts_on,ends_on=ends_on,approved_only=approved_only,
                     configurations=results,complete=all(row['complete'] for row in results),
+                    **({'next_only': True} if next_only else {}),
                     manufacturer_unverified=True,source='saved_service_configurations',timezone=v.principal.timezone)
 
     @app.get(BASE+'/task-analysis')
@@ -260,7 +305,9 @@ def register_routes(app,views):
                 links.site_id==v.principal.site_id,assignments.site_id==v.principal.site_id,
                 assignments.user_id==v.principal.user_id,assignments.status.not_in(('cancelled','declined')))
             filters.append(cls.equipment_id.in_(visible))
-        if q.strip():filters.append(or_(cls.name.ilike('%'+q.strip()+'%'),cls.asset_code.ilike('%'+q.strip()+'%'),cls.location.ilike('%'+q.strip()+'%')))
+        if q.strip():
+            filters.append(or_(*(column.icontains(q.strip(), autoescape=True)
+                                 for column in (cls.name, cls.asset_code, cls.location))))
         if asset_code is not None:
             literal_code=asset_code.replace('\\','\\\\').replace('%','\\%').replace('_','\\_')
             filters.append(cls.asset_code.ilike(literal_code,escape='\\'))
@@ -310,7 +357,7 @@ def register_routes(app,views):
             availability=[dict(availability_id=r.availability_id,starts_at=r.starts_at,ends_at=r.ends_at,status=r.status,reason=r.reason,revision=r.revision) for r in v.rows('availability_slots',user_id=user_id)])
 
     @app.get(BASE+'/tasks')
-    def tasks(period:Literal['upcoming','overdue','undated','all']='upcoming',state:Literal['draft','assigned','clarification','rework','in_progress','in_review','completed','cancelled']|None=None,active_only:bool=True,q:str=Query('',max_length=200),offset:int=Query(0,ge=0),limit:int=Query(25,ge=1,le=25),scheduled_only:bool=False,
+    def tasks(period:Literal['upcoming','overdue','undated','all']='upcoming',state:Literal['draft','assigned','clarification','rework','in_progress','in_review','completed','cancelled']|None=None,active_only:bool=True,q:str=Query('',max_length=200),offset:int=Query(0,ge=0),limit:int=Query(25,ge=1,le=MAX_COLLECTION_PAGE),scheduled_only:bool=False,
               equipment_id:UUID|None=None,unfinished_only:bool=False,starts_on:date|None=None,ends_on:date|None=None,
               v=Depends(views)):
         from .task_analytics import UNFINISHED

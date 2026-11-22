@@ -84,6 +84,11 @@ def asks_saved_facts(question):
     unquoted = QUOTED.sub(' ', question)
     if primary_document_requested(question):
         return True
+    from .semantic_plan import equipment_references
+    if equipment_references(question) and re.search(
+            r'\b(?:найди|проверь|открой|покажи)\w*\s+оборудовани\w*|\b(?:названи\w*\s+неоднознач\w*|инвентарн\w*\s+код\w*)\b',
+            unquoted, re.I):
+        return True
     personal = r'\b(?:мо[йяеию]|сво[йяеию])\s+(?:\w+\s+){0,2}(?:профил\w*|рол[ьиью]\b|задани\w*|наряд\w*|уведомлени\w*|email|электронн\w*\s+адрес)'
     lookup = r'\b(?:посмотри|найди|проверь|покажи|открой|прочитай|назови|сверь|выпиши|какие|сколько)\b'
     for portion in re.split(r'[.!?;\n]+|,?\s+и\s+(?=помоги|объясни|предложи|запусти|передай|отправь)', unquoted, flags=re.I):

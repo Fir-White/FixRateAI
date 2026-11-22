@@ -3,11 +3,14 @@ from __future__ import annotations
 
 import json
 import re
+from dataclasses import dataclass
 from datetime import date, datetime
+from typing import Literal
+from urllib.parse import urlencode
 
 from pydantic import ValidationError
 
-from app.schemas.assistant import AgentStep
+from app.schemas.assistant import AgentStep, MAX_COLLECTION_PAGE
 from app.schemas.maintenance import CalendarPattern
 from app.scheduling.recurrence import pattern_description
 
@@ -21,11 +24,13 @@ TASK_STATES = {'draft': 'черновик', 'assigned': 'назначено', 'i
                'cancelled': 'отменено', 'active': 'в эксплуатации', 'retired': 'выведено из эксплуатации'}
 ROLES = {'chief_engineer': 'главный инженер', 'executor': 'исполнитель', 'engineer': 'инженер',
          'director': 'директор', 'dispatcher': 'диспетчер', 'admin': 'администратор'}
-LABELS = {'name': 'Название', 'location': 'Место установки', 'role': 'Роль', 'site': 'Здание',
+LABELS = {'id': 'ID', 'name': 'Название', 'location': 'Место установки', 'role': 'Роль', 'site': 'Здание',
           'email': 'Email', 'code': 'Код', 'state': 'Состояние', 'start': 'Плановое начало',
           'deadline': 'Нормативный срок', 'crew_size': 'Требуется исполнителей',
           'assignees': 'Назначенные исполнители', 'checklist': 'Чек-лист', 'revision': 'Ревизия',
-          'closed': 'Фактическое закрытие'}
+          'closed': 'Фактическое закрытие', 'system_id': 'ID системы', 'site_id': 'ID объекта',
+          'equipment_type_id': 'ID типа оборудования', 'parent_id': 'ID родительского оборудования',
+          'serial_number': 'Серийный номер', 'commissioned_on': 'Дата ввода в эксплуатацию'}
 
 
 def _call(goal, tool, args):
@@ -42,6 +47,43 @@ def _read(proofs, tool):
 
 
 REFERENCE_SOURCES = {'task_read': 'task_id', 'equipment_read': 'equipment_id'}
+
+
+@dataclass(frozen=True)
+class EquipmentResolution:
+    status: Literal['exact', 'ambiguous', 'empty', 'partial']
+    candidates: tuple[dict, ...] = ()
+
+
+def resolve_equipment(proof, subject):
+    from .semantic_plan import ASSET, normalize_reference
+
+    value = proof.get('result')
+    if not isinstance(value, dict) or not isinstance(value.get('items'), list):
+        return EquipmentResolution('partial')
+    rows = value['items']
+    if (not proof.get('complete') or type(value.get('total')) is not int or value['total'] != len(rows) or
+            any(not isinstance(row, dict) or not re.fullmatch(UUID, str(row.get('equipment_id', '')), re.I) for row in rows) or
+            len({row['equipment_id'] for row in rows}) != len(rows)):
+        return EquipmentResolution('partial')
+    subject = normalize_reference(subject).casefold()
+    exact = tuple(row for row in rows if subject in (str(row.get('asset_code') or '').casefold(),
+                                                    str(row.get('name') or '').casefold()))
+    candidates = exact or (() if re.fullmatch(ASSET, subject, re.I) else tuple(rows))
+    status = 'ambiguous' if len(candidates) > 1 else 'exact' if candidates else 'empty'
+    return EquipmentResolution(status, candidates)
+
+
+def equipment_resolution_text(resolution, subject):
+    if resolution.status == 'ambiguous':
+        rows = (f'- {label(row.get("asset_code") or "Без кода")} · {label(row.get("name") or "Без названия")} · ID {row["equipment_id"]}'
+                for row in resolution.candidates)
+        return 'Уточните инвентарный код или ID: найдено несколько единиц оборудования.\n' + '\n'.join(rows)
+    if resolution.status == 'partial':
+        return 'Полный результат поиска оборудования не подтверждён. Повторите чтение.'
+    if resolution.status == 'empty':
+        return f'Оборудование {label(subject)} не найдено в доступном актуальном реестре.'
+    return f'Оборудование {label(subject)} найдено.'
 
 
 def _reference(goal, meta, proofs):
@@ -64,21 +106,12 @@ def _equipment(goal, meta, proofs):
         if lookup is None:
             query = {'asset_code': subject} if re.fullmatch(ASSET, subject, re.I) else {'q': subject}
             return _call(goal, 'equipment_find', {'query': query})
-        found = lookup['result']
-        if (not lookup.get('complete') or not isinstance(found, dict)
-                or not isinstance(found.get('items'), list) or type(found.get('total')) is not int):
-            return _stop('Поиск оборудования не подтвердил полный результат. Уточните код или повторите чтение.')
-        rows = found.get('items', [])
-        exact = [row for row in rows if subject.casefold() in
-                 (str(row.get('asset_code') or '').casefold(), str(row.get('name') or '').casefold())]
-        candidates = exact or (rows if found.get('total') == 1 and not re.fullmatch(ASSET, subject, re.I) else [])
-        if not candidates:
-            return _stop('Оборудование по указанному коду или названию не найдено.')
-        if len(candidates) != 1:
-            return _stop('Уточните инвентарный код: найдено несколько единиц оборудования.')
-        if target == 'equipment_find':
-            return _stop('Оборудование найдено.')
-        identity = candidates[0]['equipment_id']
+        resolution = resolve_equipment(lookup, subject)
+        goal['resolution'] = dict(status=resolution.status,
+                                  evidence_id=lookup['id'])
+        if resolution.status != 'exact' or target == 'equipment_find':
+            return _stop(equipment_resolution_text(resolution, subject))
+        identity = resolution.candidates[0]['equipment_id']
     arguments = {'path': {'equipment_id': identity}}
     if target == 'equipment_edit':
         arguments['body'] = dict(meta['changes'])
@@ -86,11 +119,15 @@ def _equipment(goal, meta, proofs):
             arguments['body']['expected_revision'] = meta['expected_revision']
     if target == 'equipment_service_history':
         arguments['query'] = {**meta['query'], 'only_accepted': True}
+        if meta.get('full'):
+            arguments['query']['limit'] = min(meta.get('limit', MAX_COLLECTION_PAGE), MAX_COLLECTION_PAGE)
     elif target == 'calendar_evidence':
         arguments['query'] = {**meta['query'], 'approved_only': True}
     elif target == 'tasks_find':
         arguments = {'query': {**meta['query'], 'equipment_id': identity, 'unfinished_only': True,
                                'period': meta['period']}}
+        arguments['query']['limit'] = (1 if meta.get('summary_only') else
+                                      min(meta.get('limit', MAX_COLLECTION_PAGE), MAX_COLLECTION_PAGE))
     return _call(goal, target, arguments)
 
 
@@ -167,10 +204,10 @@ def next_step(goal, state, *, turn_evidence_start=None):
         query = {'period': meta.get('list_period') or meta['period']}
         if meta.get('scheduled_only'):
             query['scheduled_only'] = True
-        if meta.get('list_period'):
+        if meta.get('list_period') or meta.get('summary_only'):
             query['limit'] = 1
-        elif meta.get('limit', 0):
-            query['limit'] = min(meta['limit'], 25)
+        elif meta['intent'] == 'task_list':
+            query['limit'] = min(meta.get('limit', MAX_COLLECTION_PAGE), MAX_COLLECTION_PAGE)
         return _call(goal, target, {'query': query})
     if target == 'tasks_analyze':
         return _call(goal, target, {'query': {'section': 'summary', **meta.get('query', {})}})
@@ -180,6 +217,8 @@ def next_step(goal, state, *, turn_evidence_start=None):
         words = re.findall(r'[\w@.+-]+', subject)
         search = words[-1][:max(4, len(words[-1])-2)] if len(words) > 1 else subject
         return _call(goal, target, {'query': {'q': search}})
+    if target == 'staff_read':
+        return _call(goal, target, {'path': {'user_id': meta['subject']}})
     if target == 'attachment_read':
         query = {'coordinates_mode': meta['workbook_mode']}
         for name in ('sheet', 'row'):
@@ -257,9 +296,18 @@ def _instant(value):
     return instant.strftime('%d.%m.%Y %H:%M')
 
 
-def _row(item, fields):
+def _row(item, fields, identity_key='id'):
     checklist = item.get('checklist') or []
+    def identity(key):
+        value = item.get(key)
+        return value if isinstance(value, str) and re.fullmatch(UUID, value, re.I) else None
+
     values = {
+        'id': identity(identity_key), 'system_id': identity('system_id'),
+        'site_id': identity('site_id') or identity('siteId'),
+        'equipment_type_id': identity('equipment_type_id'), 'parent_id': identity('parent_equipment_id'),
+        'serial_number': item.get('serial_number') if isinstance(item.get('serial_number'), str) else None,
+        'commissioned_on': item.get('commissioned_on') if re.fullmatch(r'\d{4}-\d{2}-\d{2}', str(item.get('commissioned_on'))) else None,
         'name': item.get('name') or item.get('title') or item.get('full_name'),
         'code': item.get('asset_code'), 'location': item.get('location'),
         'role': ROLES.get(item.get('role'), item.get('role')), 'site': item.get('siteName'),
@@ -292,7 +340,7 @@ def _staff(value, meta):
     rows = [row for row in value.get('items', []) if subject == str(row.get('email', '')).casefold() or
             same_name(str(row.get('full_name', '')))]
     if len(rows) == 1 and (value.get('total', 0) <= len(value.get('items', []))):
-        return _row(rows[0], meta['fields'])
+        return _row(rows[0], meta['fields'], 'user_id')
     return 'Сотрудник с указанными данными не найден.' if not rows else 'Уточните сотрудника по точному рабочему email.'
 
 
@@ -361,12 +409,58 @@ def _cell(row, column):
     return None
 
 
-def render(goal, proofs, request=''):
+def collection_lines(lines, *, total=None, complete=True, limit=None, location=None, delivery=None):
+    """Apply the requested selection and a character budget independently of source paging."""
+    total = total if type(total) is int else (len(lines) if complete else None)
+    selected = lines[:limit]
+    delivered = []
+    characters = 0
+    for line in selected:
+        characters += len(line) + 1
+        if characters > 32_000:
+            break
+        delivered.append(line)
+    if len(delivered) != len(selected):
+        complete = False
+    if delivery is not None:
+        delivery.update(rows=len(delivered), total=total, complete=complete)
+    count = str(total) if total is not None else 'не подтверждено'
+    if not complete:
+        delivered.append(f'Показано записей: {len(delivered)}. Всего по источнику: {count}. Полный результат не подтверждён.'
+                         + (f' Откройте {location}, чтобы просмотреть выборку в реестре.' if location else ''))
+    elif total is not None and (total or limit):
+        delivered.append(f'Показано записей: {len(delivered)} из {total}.' if limit is not None else f'Всего записей: {total}.')
+    return delivered
+
+
+def collection_link(proof, delivery):
+    if not delivery or delivery.get('complete') is not False:
+        return ''
+    arguments = proof.get('arguments', {})
+    query = {key: value for key, value in arguments.get('query', {}).items() if key not in ('offset', 'limit')}
+    if proof['tool'] == 'tasks_find':
+        path = '/api/v1/assistant/workspace/tasks'
+    elif proof['tool'] == 'equipment_service_history':
+        identity = arguments.get('path', {}).get('equipment_id', '')
+        if not re.fullmatch(UUID, identity, re.I):
+            return ''
+        path = f'/api/v1/assistant/workspace/equipment/{identity}/history'
+    else:
+        return ''
+    # The source performs the same authorization on each page. Start at the
+    # beginning when the assistant could not confirm a complete snapshot.
+    offset = delivery['rows'] if proof['tool'] == 'tasks_find' and delivery.get('total', 0) and delivery['rows'] < delivery['total'] else 0
+    delivery['continuation'] = True
+    page = 'следующую' if offset else 'первую'
+    return f'\n[Открыть {page} страницу источника]({path}?{urlencode({**query, "offset": offset})}).'
+
+
+def render(goal, proofs, request='', *, delivery=None):
     meta = goal['semantic']
     intent = meta['intent']
     if meta.get('block'):
         return meta['block']
-    if goal.get('message') and (goal['status'] in ('blocked', 'partial') and goal.get('reason') != 'semantic_page'):
+    if goal.get('message') and (goal['status'] in ('blocked', 'partial', 'awaiting_input') and goal.get('reason') != 'semantic_page'):
         return label(goal['message'])
     if intent == 'reference_details':
         task, equipment = (_read(proofs, tool) for tool in REFERENCE_SOURCES)
@@ -375,7 +469,7 @@ def render(goal, proofs, request=''):
         if task is not None and 'equipment_read' in goal.get('reference_misses', []):
             return _row(task['task'], meta['fields'])
         if equipment is not None and 'task_read' in goal.get('reference_misses', []):
-            return _row(equipment, meta['fields'])
+            return _row(equipment, meta['fields'], 'equipment_id')
         if len(goal.get('reference_misses', [])) == len(REFERENCE_SOURCES):
             return 'Доступное задание или оборудование с таким ID не найдено.'
         return 'Не удалось подтвердить тип карточки по доступным источникам.'
@@ -390,12 +484,14 @@ def render(goal, proofs, request=''):
         return 'Полученные данные не подтвердили выбранное оборудование, период или вид результата.'
     complete = proof.get('complete', goal.get('status') == 'completed')
     if intent in ('equipment_details', 'self_profile'):
-        return _row(value, meta['fields'])
+        return _row(value, meta['fields'], 'equipment_id' if intent == 'equipment_details' else 'userId')
     if intent == 'equipment_exists':
-        if goal['tool'] == 'equipment_read' or value.get('total'):
+        if goal['tool'] == 'equipment_read':
             return f'Оборудование {label(meta["subject"])} найдено.'
-        return (f'Оборудование {label(meta["subject"])} не найдено.' if complete else
-                'Полный результат поиска оборудования не подтверждён.')
+        result = equipment_resolution_text(resolve_equipment(proof, meta['subject']), meta['subject'])
+        if meta.get('external_registry_unavailable'):
+            result += '\nУпомянутая выгрузка отсутствует среди вложений. Проверен актуальный реестр.'
+        return result
     if intent == 'task_details':
         item = value.get('task') or {}
         return _row({**item, 'checklist': (value.get('execution') or {}).get('checklist')}, meta['fields'])
@@ -408,39 +504,48 @@ def render(goal, proofs, request=''):
                 total = None
         return str(total) if type(total) is int else 'Не удалось подтвердить полное число заданий.'
     if intent == 'task_list':
+        if meta.get('summary_only') and type(value.get('total')) is int:
+            return f'Подходящих заданий: {value["total"]}.'
         rows = value.get('items', [])
         overdue = meta['period'] == 'overdue'
         selected = [item for item in rows if not overdue or item.get('isOverdue') is True]
         limit = meta.get('limit')
-        lines = ['- ' + _row(item, meta['fields']) for item in selected[:limit]]
-        if not lines:
-            lines.append('Подходящих заданий нет.' if complete else 'Полный список подходящих заданий не подтверждён.')
-        if value.get('total', 0) > len(rows) and (limit is None or len(lines) < limit):
-            lines.append(f'Прочитана первая страница ({len(rows)} из {value["total"]}).')
-        return '\n'.join(lines)
+        lines = ['- ' + _row(item, meta['fields']) for item in selected]
+        if not lines and complete:
+            return 'Подходящих заданий нет.'
+        complete = complete or bool(limit and len(lines) >= limit and proof.get('limitations') == ['page_only'])
+        lines = collection_lines(lines, total=value.get('total'), complete=complete, limit=limit,
+                                 location='раздел заданий', delivery=delivery)
+        return '\n'.join(lines) + collection_link(proof, delivery)
     if intent == 'equipment_tasks':
+        if meta.get('summary_only') and type(value.get('total')) is int:
+            return f'Подходящих заданий: {value["total"]}.'
         rows = value['items']
         if meta['period'] == 'overdue':
             rows = [row for row in rows if row.get('isOverdue') is True]
-        lines = [f'- {_row(row, meta["fields"])} · ID {row["id"]}' for row in rows[:25]]
+        fields = list(dict.fromkeys([*meta['fields'], *(['id'] if not meta.get('exclude_id') else [])]))
+        lines = [f'- {_row(row, fields)}' for row in rows]
         if not lines and complete:
             return 'Подходящих заданий нет.'
-        if not complete or len(rows) > 25:
-            lines.append(f'Показано заданий: {min(len(rows), 25)}. Полный перечень не подтверждён.')
-        return '\n'.join(lines)
+        limit = meta.get('limit')
+        complete = complete or bool(limit and len(lines) >= limit and proof.get('limitations') == ['page_only'])
+        lines = collection_lines(lines, total=value.get('total'), complete=complete, limit=limit,
+                                 location='раздел заданий', delivery=delivery)
+        return '\n'.join(lines) + collection_link(proof, delivery)
     if intent == 'staff_details':
-        return _staff(value, meta)
+        return _row(value, meta['fields'], 'user_id') if goal['tool'] == 'staff_read' else _staff(value, meta)
     if intent in ('maintenance_history', 'latest_maintenance'):
         rows = [row for row in value.get('items', []) if row.get('actual_date_verified') and row.get('performed_at')
                 and row.get('accepted_at') and not row.get('actual_date_conflict')]
-        lines = [f'- {_instant(row["performed_at"])} · отчёт {row["report_id"]}' for row in rows[:25]]
+        lines = [f'- {_instant(row["performed_at"])} · отчёт {row["report_id"]}' for row in rows]
         if not lines:
-            lines.append('Принятых отчётов с подтверждённой датой в проверенной области нет.' if complete else
+            return ('Принятых отчётов с подтверждённой датой в проверенной области нет.' if complete else
                          'Дату фактического обслуживания по доступным отчётам подтвердить не удалось.')
-        if not complete or len(rows) > 25:
-            lines.append('Последнее фактическое обслуживание не установлено.' if intent == 'latest_maintenance' else
-                         'Полнота перечня дат не подтверждена.')
-        return '\n'.join(lines)
+        if intent == 'latest_maintenance':
+            return '\n'.join(lines if complete else [*lines, 'Последнее фактическое обслуживание не установлено.'])
+        lines = collection_lines(lines, total=value.get('total'), complete=complete,
+                                 limit=meta.get('limit'), location='карточку оборудования', delivery=delivery)
+        return '\n'.join(lines) + collection_link(proof, delivery)
     if intent in ('service_frequency', 'active_regulations'):
         lines = []
         for rule in value:
@@ -453,7 +558,8 @@ def render(goal, proofs, request=''):
                 frequency = pattern_description(CalendarPattern.model_validate_json(json.dumps(rule.get('pattern'))))
             except ValidationError:
                 frequency = 'периодичность в сохранённом регламенте не подтверждена'
-            reference = f' · привязка {rule["binding_id"]}, версия {rule["rule_version"]}' if intent == 'active_regulations' else ''
+            reference = (f' · привязка {rule["binding_id"]}, версия {rule["rule_version"]}'
+                         if intent == 'active_regulations' or re.search(r'\b(?:uuid|id|идентификатор\w*)\b', positive_text(request), re.I) else '')
             lines.append(f'- {label(rule["title"])}: {label(frequency)}{reference}.')
         if lines:
             return 'По сохранённому регламенту объекта.\n' + '\n'.join(lines)
@@ -470,10 +576,9 @@ def render(goal, proofs, request=''):
                 if meta['calendar_view'] == 'period' or effective >= meta['local_date']:
                     next_dates.append((effective, occurrence['source_date'], configuration['source']['binding_id']))
         if next_dates and meta['calendar_view'] == 'period':
-            lines.extend(f'- {effective} · исходная дата {source} · привязка {binding}.'
-                         for effective, source, binding in sorted(next_dates)[:25])
-            if len(next_dates) > 25:
-                lines.append('В ответе показаны первые 25 расчётных обязанностей.')
+            dates = [f'- {effective} · исходная дата {source} · привязка {binding}.'
+                     for effective, source, binding in sorted(next_dates)]
+            lines.extend(collection_lines(dates, complete=complete, limit=meta.get('limit'), delivery=delivery))
         elif next_dates:
             effective, source, binding = min(next_dates)
             prefix = 'Ближайшая расчётная обязанность' if complete else 'Дата в доступной части расчёта'

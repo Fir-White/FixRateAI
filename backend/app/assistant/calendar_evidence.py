@@ -7,7 +7,7 @@ evidence about saved equipment. Calculated obligations are not saved work orders
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import date, datetime, timezone as utc_timezone
+from datetime import date, datetime, timedelta, timezone as utc_timezone
 import json
 from typing import Any, Literal, TypedDict
 from zoneinfo import ZoneInfo
@@ -96,6 +96,7 @@ def explain_configuration(
     timezone: str,
     checked_at: datetime | None = None,
     max_dates: int = 366,
+    next_only: bool = False,
 ) -> CalendarEvidence:
     """Explain one real ``regulations_read`` row using the production generator.
 
@@ -164,7 +165,8 @@ def explain_configuration(
         result['semantics']['range_applies_to'] = 'not_calculated_without_accepted_history'
         return result
 
-    active_first, active_last = max(first, valid_first), min(last, valid_last) if valid_last else last
+    source_start = first - timedelta(days=2) if next_only and first.year > 1 else first
+    active_first, active_last = max(source_start, valid_first), min(last, valid_last) if valid_last else last
     if active_first <= active_last:
         result['active_range'] = dict(start=active_first.isoformat(), end=active_last.isoformat())
         try:
@@ -174,6 +176,9 @@ def explain_configuration(
             return result
     else:
         pairs = []
+    if next_only:
+        pairs = [pair for pair in pairs if first <= pair[1] <= last]
+        pairs = sorted(pairs, key=lambda pair: (pair[1], pair[0]))[:1]
     result.update(
         status='partial' if len(pairs) > max_dates else 'complete',
         reason='Calculated date list was truncated; increase max_dates or narrow the range.' if len(pairs) > max_dates else None,

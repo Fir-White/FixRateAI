@@ -91,6 +91,27 @@
       "optional_protected_inputs": []
     },
     {
+      "name": "work_order_analytics",
+      "title": "Рейтинг оборудования и исполнителей по нарядам или сравнение двух периодов планирования",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/work-order-analytics",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
       "name": "draft_changes",
       "title": "Фактические отличия двух версий черновика",
       "method": "GET",
@@ -579,6 +600,27 @@
         "assistant",
         "planner",
         "photo"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "task_acceptance_evidence",
+      "title": "Проверить материалы и препятствия приёмке текущей попытки задания",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/tasks/{task_id}/acceptance-evidence",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant"
       ],
       "requires_confirmation": false,
       "file_fields": [],

@@ -277,6 +277,11 @@ def record_result(state, goal, name, arguments, value, *, action_id=None, elapse
     complete, reasons = completeness(value)
     if name=='notifications_list' and isinstance(value,list) and len(value)>=100:
         complete=False;reasons.append('notification_limit_cannot_prove_full_list')
+    if name=='equipment_find' and goal.get('semantic') and name != goal.get('tool'):
+        reason = objective_scope(state, goal, name, arguments, value)
+        if reason:
+            complete = False
+            reasons.append(reason)
     if name==goal.get('tool') and goal.get('mode')=='read':
         from .outcome_contracts import validate_result
         valid,reason=validate_result(goal,name,value)
@@ -297,12 +302,38 @@ def record_result(state, goal, name, arguments, value, *, action_id=None, elapse
     if isinstance(value,dict) and value.get('status')=='awaiting_confirmation' and value.get('action_id'):
         proof.update(evidence_kind='action_proposal',complete=False)
     # Large reads stay explicitly incomplete, instead of losing rows silently.
-    encoded = json.dumps(proof, default=str, ensure_ascii=False)
-    if len(encoded) > 40000 or sum(len(json.dumps(e, default=str)) for e in state['evidence']) > 100000:
+    def size(item):
+        return len(json.dumps(item, default=str, ensure_ascii=False, separators=(',', ':')))
+
+    budget = min(40_000, max(0, 100_000 - sum(size(item) for item in state['evidence'])))
+    if size(proof) > budget and goal.get('semantic') and isinstance(value, dict) and isinstance(value.get('items'), list):
+        keys = {
+            'tasks_find': {'id', 'title', 'state', 'status', 'scheduledStart', 'mandatoryDueDate', 'crewSize',
+                           'assignees', 'revision', 'closedAt', 'isOverdue', 'equipmentIds'},
+            'equipment_service_history': {'report_id', 'performed_at', 'accepted_at', 'actual_date_verified',
+                                          'actual_date_conflict'},
+        }.get(name)
+        if keys and all(isinstance(row, dict) for row in value['items']):
+            original = proof['result']
+            projected = [{key: item for key, item in row.items() if key in keys} for row in original['items']]
+            proof['result'] = {**original, 'items': projected}
+            proof['projection'] = sorted(keys)
+            if size(proof) > budget:
+                proof.update(complete=False)
+                proof['limitations'].append('evidence_budget')
+                proof['result'].update(items=[], complete=False)
+                remaining = budget - size(proof)
+                for row in projected:
+                    remaining -= size(row) + 1
+                    if remaining < 0:
+                        break
+                    proof['result']['items'].append(row)
+    if size(proof) > budget:
         proof['result'] = {'retained': False, 'reason': 'evidence_budget'}
         proof['retained'] = False
         proof['complete'] = False
-        proof['limitations'].append('evidence_budget')
+        if 'evidence_budget' not in proof['limitations']:
+            proof['limitations'].append('evidence_budget')
     proof['status'] = result_status(value, proof['complete'], proof['limitations'])
     state['metrics']['evidence_seconds'] = state['metrics'].get('evidence_seconds', 0) + round(perf_counter()-started, 6)
     state['evidence'].append(proof)
@@ -479,7 +510,17 @@ def sanitize_workflow(state):
 
 def resume(state):
     state = sanitize_workflow(state)
+    analytical = [goal for goal in state['goals'] if goal['id'].startswith('analysis-')
+                  and ('analysis_query' in goal.get('semantic', {}) or goal.get('semantic', {}).get('selected_input'))]
+    if any(goal['status'] not in ('completed','cancelled') for goal in analytical):
+        for goal in analytical:
+            if goal['status']!='cancelled':
+                goal['status'] = 'planned' if goal['tool'] else 'blocked'
+                goal.pop('bindings', None)
+        state.pop('analytical_delivery', None)
     for goal in state['goals']:
+        if goal['status'] not in ('completed', 'answered'):
+            goal.pop('answer_delivery', None)
         blocker=required_blocker(goal)
         if blocker:
             goal.update(status='blocked',reason=blocker);continue
