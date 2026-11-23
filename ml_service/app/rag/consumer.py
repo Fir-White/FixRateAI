@@ -168,9 +168,36 @@ class DurableOutboxConsumer:
                 logger.info("Outbox event %s has empty or custom payload", evt_id)
 
         elif change_type in ("revoked", "deleted"):
-            doc_id = payload.get("document_id") or (str(event.entity_id) if event.entity_id else f"doc-{event.scope}")
+            candidates: list[str] = []
+            if "document_id" in payload and payload["document_id"]:
+                candidates.append(str(payload["document_id"]))
+
+            # For source_import or maintenance_catalog scope/entity, active catalog document is catalog-site-{site_id}
+            if event.entity_type in ("source_import", "maintenance_catalog") or event.scope == "maintenance_catalog":
+                candidates.append(f"catalog-site-{event.site_id}")
+
+            if event.entity_id:
+                candidates.append(str(event.entity_id))
+            if event.scope:
+                candidates.append(f"doc-{event.scope}")
+
             reason = payload.get("reason", f"Event {evt_id} marked {change_type}")
-            self.index.revoke_document(doc_id, reason=reason)
+
+            revoked = False
+            for target_id in candidates:
+                if target_id in self.index.documents:
+                    if change_type == "deleted":
+                        self.index.delete_document(target_id, reason=reason)
+                    else:
+                        self.index.revoke_document(target_id, reason=reason)
+                    revoked = True
+
+            if not revoked and candidates:
+                primary_id = candidates[0]
+                if change_type == "deleted":
+                    self.index.delete_document(primary_id, reason=reason)
+                else:
+                    self.index.revoke_document(primary_id, reason=reason)
 
         self.processed_event_ids.add(evt_id)
         return not gap

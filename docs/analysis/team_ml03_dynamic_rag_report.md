@@ -1,5 +1,5 @@
 # Отчёт о реализации задачи TEAM-ML03 (FRAI-173)
-## Динамический RAG и автоматическая актуализация индекса (Ревизия 4 / Финальный)
+## Динамический RAG и автоматическая актуализация индекса (Ревизия 5 / Финальный)
 
 * **Идентификатор задачи**: FRAI-173 (`5cc2bb6a-4437-4837-87f0-23a49453e4b7`)
 * **Исполнитель**: Muhammad / Мухаммад (`d1ba36a5-b2a2-428c-aa24-05ad8fffe4ad`)
@@ -20,8 +20,8 @@ ml_service/app/rag/
 ├── schemas.py            # DTO: Chunk, DocumentMetadata, RetrievalQuery, Citation, RetrievalResult, OutboxEvent, IndexSyncReport
 ├── extractor.py          # Иерархический парсер Markdown (H1 > H2 > H3), стабильные логические ID каталогов catalog-site-{site_id}, SHA-256
 ├── guardrails.py         # Защитные барьеры: AntiHallucinationGuardrail, PromptInjectionDefense, quoteattr для XML-атрибутов и escape для тела
-├── index.py              # Лексический индекс: стемминг, синонимы, обобщенный фильтр неутвержденного оборудования, ролевой и объектный ACL, архив ревизий
-├── consumer.py           # Durable Outbox Consumer: вложенные savepoints (begin_nested), резолвинг source_imports по session, проверка статуса БД (durable deduplication)
+├── index.py              # Лексический индекс: стемминг, синонимы, обобщенный фильтр неутвержденного оборудования, ролевой и объектный ACL, архив ревизий, revoke/delete_document с вытеснением из активного поиска
+├── consumer.py           # Durable Outbox Consumer: вложенные savepoints (begin_nested), резолвинг source_imports по session, проверка статуса БД (durable deduplication), резолвинг catalog-site-{site_id} при revoked/deleted
 └── service.py            # Оркестратор RAGService: канонический SHA-256 манифеста, rebuild_from_storage, авто-инициализация при старте (lifespan), синглтон
 ```
 
@@ -29,17 +29,16 @@ ml_service/app/rag/
 - Роут `GET /api/v1/maintenance/rag/search` в `backend/app/integration/ml.py` с автоматическим извлечением `v.principal.site_id` и `v.principal.role`, а также передачей `v.session` в сервис для автоматической актуализации.
 - Lifespan приложения в `backend/app/main.py`: автоматический прогрев и `rebuild_from_storage` динамического RAG-индекса при старте сервера из сессии БД.
 - Инструмент ассистента `rag_search` в `backend/app/assistant/capabilities.py`, покрытие 180 инструментов в `contracts/assistant-tools.json`.
-- Воркер очереди `backend/app/integration/source_revision_worker.py`: автоматический вызов `consumer.process_single_db_event` в savepoint при публикации событий.
+- Воркер очереди `backend/app/integration/source_revision_worker.py`: автоматический вызов `consumer.process_single_db_event` в savepoint при публикации событий, пропуск `index_source_rows` для `revoked`/`deleted`.
 
 ---
 
-### 2. Устранение замечаний аудита SHA `5bda4dd`
+### 2. Устранение замечаний аудита SHA `968e294`
 
 | № | Замечание аудита | Критичность | Внедрённое исправление | Статус |
 |:---:|:---|:---:|:---|:---:|
-| 5 | **Revision archive / restart rebuild**: генерация разных `document_id` (`catalog-import-rev1`, `catalog-import-rev2`) исключала архивацию старой редакции как версии того же документа; отсутствовал авто-rebuild при старте приложения | **critical** | 1) В `extractor.py` и `consumer.py` логический идентификатор документа каталога стандартизирован как стабильный `catalog-site-{site_id}` (независимо от номера ревизии). При импорте новой редакции `RAGIndex.add_document` корректно определяет обновление документа, архивирует чанки предыдущей редакции в `archived_chunks` с `is_stale=True`, удаляет их из активного индекса и возвращает актуальные нормативы новой ревизии.<br>2) В `backend/app/main.py` в обработчик `lifespan(app)` встроен вызов `get_rag_service(session=rag_init_session)`, который автоматически выполняет `rebuild_from_storage` при запуске приложения.<br>3) В `backend/app/integration/ml.py` роут `/api/v1/maintenance/rag/search` передает сессию БД в `get_rag_service(session=session)` для гарантированного fallback-восстановления при первом обращении. | **RESOLVED** |
-| 8 | **Durable Outbox / deduplication**: проверка дедупликации только по in-memory множеству `processed_event_ids` приводила к потере защиты при рестарте сервиса | **medium** | В `consumer.process_single_db_event` добавлена проверка статуса события непосредственно в базе данных: если `row.get("status") == "published"` и флаг `is_rebuild=False`, событие признается уже опубликованным и повторная обработка сбрасывается (`dropped`), гарантируя персистентную дедупликацию даже после очистки оперативной памяти. | **RESOLVED** |
-| 9 | **Тестовое покрытие**: отсутствовали тесты последовательных ревизий каталога с вытеснением в архив, автоматического старта из lifespan и персистентной дедупликации | **medium** | В `tests/ml/test_team_ml03_dynamic_rag.py` добавлены 3 сквозных теста:<br>1) `test_sequential_source_import_revisions_archive_old_revision`: проверка вытеснения ревизии 1 ревизией 2, исключение старых чанков из поиска, генерация `STALE_REVISION_WARNING` при запросе архива и `DOCUMENT_NOT_FOUND` для несуществующей ревизии.<br>2) `test_automatic_app_startup_rebuild_from_published_outbox`: проверка автоматического восстановления индекса при старте.<br>3) `test_durable_deduplication_drops_already_published_events`: проверка персистентного отсечения повторов при очистке RAM. Общее число тестов ML03 увеличено до 44. | **RESOLVED** |
+| 8 | **Durable Outbox: revoked/deleted для `source_import`**: обработчик отзыва искал `payload.document_id` либо UUID `entity_id` импорта вместо стабильного идентификатора `catalog-site-{site_id}`. При `deleted`/`revoked` каталог оставался активным (`is_archived=False`), а поиск продолжал возвращать его | **critical** | 1) В `consumer.py` в обработчик `change_type in ("revoked", "deleted")` добавлен автоматический резолвинг логического идентификатора: для `entity_type in ("source_import", "maintenance_catalog")` или `scope == "maintenance_catalog"` в список кандидатов включается `catalog-site-{event.site_id}`.<br>2) В `index.py` реализованы методы `revoke_document` (перевод в `is_archived=True, is_stale=True, status="stale"`) и `delete_document` (перевод в `is_archived=True, is_stale=True, status="deleted"`). При вызове оба метода извлекают чанки из активного словаря `self.chunks` и перемещают их в `self.archived_chunks` с `is_stale=True`, полностью исключая попадание в активный поиск (`DOCUMENT_NOT_FOUND`, fail-closed).<br>3) В `source_revision_worker.py` в функции `publish_event` добавлена проверка `event.get('change_type') not in ('revoked', 'deleted')` перед вызовом `index_source_rows`, а в `process_pending_revisions` в запрос включен столбец `change_type`. | **RESOLVED** |
+| 9 | **Тестовое покрытие**: отсутствовали сквозные тесты worker→consumer для `revoked` и `deleted` без `payload.document_id` | **medium** | В `tests/ml/test_team_ml03_dynamic_rag.py` добавлены 2 сквозных теста:<br>1) `test_source_import_worker_to_consumer_revoked_marks_stale_and_blocks_active_search`: проверка публикации через воркер события `revoked` для `source_import` без `document_id` в payload, подтверждение статуса в БД (`published`), смена метаданных каталога на `is_archived=True, status='stale'` и блокировка поиска (`DOCUMENT_NOT_FOUND`).<br>2) `test_source_import_worker_to_consumer_deleted_removes_from_active_search`: проверка публикации через воркер события `deleted` без `document_id`, подтверждение статуса `deleted`, исключение из активного поиска и верификация сохранения удалённого состояния после рестарта и `rebuild_from_storage`. Общее число тестов ML03 увеличено до 46. | **RESOLVED** |
 
 ---
 
@@ -51,18 +50,18 @@ ml_service/app/rag/
 | 2 | **BM-RAG-01 / BM-RAG-02** | 6 бенчмарков с перефразированием: манометры 1.5–6.0 бар и фильтры >0.3 бар с точным извлечением нормативов и ссылок. | **PASS** |
 | 3 | **Zero hallucination / Fail-closed** | Защита от подмены паспортов общими совпадениями. Неутвержденные бренды (KSB, Wilo, Grundfos, Danfoss) и типы оборудования (котлы, горелки, чиллеры) возвращают `DOCUMENT_NOT_FOUND`, пустые цитаты и `is_hallucination_blocked=True`. | **PASS** |
 | 4 | **Server Principal / ACL / capability** | Роут `/api/v1/maintenance/rag/search` берет `site_id` и `user_role` строго из `v.principal`. Зарегистрирован capability `rag_search`, покрыто 180 инструментов (100%), 0 неучтенных роутов. | **PASS** |
-| 5 | **Revision archive / restart rebuild** | Стабильный логический `catalog-site-{site_id}` гарантирует архивацию устаревших ревизий каталога с `is_stale=True`. Автоматический `rebuild_from_storage` при запуске в `lifespan(app)` и в роуте поиска. Запрос архива выдает предупреждение со ссылкой на активную ревизию. | **PASS** |
+| 5 | **Revision archive / auto-rebuild** | Стабильный логический `catalog-site-{site_id}` гарантирует архивацию устаревших ревизий каталога с `is_stale=True`. Автоматический `rebuild_from_storage` при запуске в `lifespan(app)` и в роуте поиска. Запрос архива выдает предупреждение со ссылкой на активную ревизию. | **PASS** |
 | 6 | **Prompt-injection / XML** | Атрибуты XML тегов `<source_evidence>` экранируются через `xml.sax.saxutils.quoteattr`, тело — через `escape`. Валидность проверена через `xml.etree.ElementTree`. | **PASS** |
 | 7 | **CR-17: опрессовка** | Опрессовка коллектора 8.0 бар (`doc-stp-manifold-05`) ограничена ролью `chief_engineer`. Роль `executor` получает `ACCESS_DENIED`. | **PASS** |
-| 8 | **Durable Outbox / worker** | `consumer.process_single_db_event` вызывается во вложенном savepoint воркера, загружает строки из `source_imports` по сессии, персистентно отсекает дубликаты опубликованных событий по статусу в БД. | **PASS** |
-| 9 | **Тестовое покрытие** | 44/44 тестов ML03 успешно пройдены (1.52 с). 304/304 теста ML-пакета пройдены. Все репозиторные верификаторы зеленые. | **PASS** |
+| 8 | **Durable Outbox / revoked & deleted** | При `revoked`/`deleted` событиях `source_import` consumer разрешает целевой документ как `catalog-site-{event.site_id}`, переводит метаданные в `is_archived=True, is_stale=True`, удаляет чанки из активного словаря `chunks`, блокируя выдачу в поиск. Воркер корректно переводит событие в `published`. | **PASS** |
+| 9 | **Тестовое покрытие** | 46/46 тестов ML03 успешно пройдены (1.59 с). 306/306 тестов ML-пакета пройдены. Все репозиторные верификаторы зеленые. | **PASS** |
 
 ---
 
 ### 4. Результаты контрольного тестирования
 
-* **Целевой набор тестов TEAM-ML03**: `tests/ml/test_team_ml03_dynamic_rag.py` — **44 из 44 успешно пройден** (1.52 с).
-* **Полный тестовый набор подсистемы ML**: `tests/ml` — **304 пройден без единого сбоя** (51.31 с).
+* **Целевой набор тестов TEAM-ML03**: `tests/ml/test_team_ml03_dynamic_rag.py` — **46 из 46 успешно пройден** (1.59 с).
+* **Полный тестовый набор подсистемы ML**: `tests/ml` — **306 пройден без единого сбоя** (52.28 с).
 * **Репозиторные верификаторы**:
   - `scripts/verify_photo_manifest.py`: SUCCESS (PASS, 14 фото, 0 реальных клиентов).
   - `scripts/verify_split_leakage.py -v`: SUCCESS (PASS, 0 утечек).

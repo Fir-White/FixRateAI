@@ -896,6 +896,202 @@ class TestDurableOutboxConsumer:
             # 4. Durable check ensured no duplicate chunks or re-archiving occurred
             assert len(service.index.chunks) == initial_count
 
+    def test_source_import_worker_to_consumer_revoked_marks_stale_and_blocks_active_search(self, tmp_path, monkeypatch):
+        """Worker->Consumer pipeline: 'revoked' event for source_import without payload.document_id
+
+        resolves catalog-site-{site_id}, marks document archived/stale, and blocks active search.
+        """
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
+        import json
+        import backend.app.integration.source_revision_worker as s_worker
+        from ml_service.app.rag import reset_rag_service, get_rag_service
+
+        db_path = tmp_path / "worker_revoked.db"
+        engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
+        with engine.begin() as conn:
+            conn.execute(text("""
+                CREATE TABLE source_revision_events (
+                    event_id TEXT PRIMARY KEY, site_id TEXT, scope TEXT,
+                    source_revision INTEGER, source_sha256 TEXT, entity_type TEXT,
+                    entity_id TEXT, change_type TEXT, payload TEXT, status TEXT DEFAULT 'pending',
+                    published_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE source_imports (
+                    source_import_id TEXT PRIMARY KEY, site_id TEXT, source_sha256 TEXT,
+                    source_name TEXT, source_revision INTEGER, status TEXT, row_count INTEGER,
+                    source_rows TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+
+        factory = sessionmaker(engine, expire_on_commit=False)
+        monkeypatch.setattr(s_worker, "index_source_rows", lambda *a, **kw: 1)
+        reset_rag_service()
+
+        site_id = "site-revoke-a"
+        imp_id, evt1_id, evt2_id = str(uuid4()), str(uuid4()), str(uuid4())
+        catalog_doc_id = f"catalog-site-{site_id}"
+
+        sample_rows = [{
+            "code": "OP-MANOMETER-01",
+            "title": "Проверка герметичности штуцера манометра",
+            "equipment_type": "pressure_gauge",
+            "norm_hours": "0.50",
+            "instructions": "Проверить штуцер манометра на герметичность рабочим давлением.",
+        }]
+
+        with factory() as session:
+            # 1. Insert and publish source_revision event
+            session.execute(text("""
+                INSERT INTO source_imports VALUES (:id, :site, 'sha1', 'cat1.xlsx', 1, 'imported', 1, :rows, CURRENT_TIMESTAMP)
+            """), {"id": imp_id, "site": site_id, "rows": json.dumps({"rows": sample_rows})})
+            session.execute(text("""
+                INSERT INTO source_revision_events VALUES (:eid, :site, 'maintenance_catalog', 1, 'sha1', 'source_import', :iid, 'source_revision', '{\"row_count\": 1}', 'pending', NULL, CURRENT_TIMESTAMP)
+            """), {"eid": evt1_id, "site": site_id, "iid": imp_id})
+            session.commit()
+
+            evt1 = session.execute(text("SELECT * FROM source_revision_events WHERE event_id=:id"), {"id": evt1_id}).mappings().one()
+            res1 = s_worker.publish_event(session, dict(evt1))
+            session.commit()
+            assert res1["status"] == "published"
+
+        service = get_rag_service()
+        # Active search works before revocation
+        r_active = service.query("Проверка герметичности штуцера OP-MANOMETER-01", site_id=site_id, user_role="chief_engineer")
+        assert r_active.status == "OK"
+        assert len(r_active.citations) == 1
+        assert service.index.documents[catalog_doc_id].is_archived is False
+        assert service.index.documents[catalog_doc_id].is_stale is False
+
+        # 2. Insert and publish 'revoked' event without document_id in payload
+        with factory() as session:
+            session.execute(text("""
+                INSERT INTO source_revision_events VALUES (:eid, :site, 'maintenance_catalog', 2, 'sha1', 'source_import', :iid, 'revoked', '{\"reason\": \"Регламент отозван приказом №42\"}', 'pending', NULL, CURRENT_TIMESTAMP)
+            """), {"eid": evt2_id, "site": site_id, "iid": imp_id})
+            session.commit()
+
+            evt2 = session.execute(text("SELECT * FROM source_revision_events WHERE event_id=:id"), {"id": evt2_id}).mappings().one()
+            res2 = s_worker.publish_event(session, dict(evt2))
+            session.commit()
+            assert res2["status"] == "published"
+
+        # 3. Assert document is now archived and stale in RAGIndex
+        doc_meta = service.index.documents[catalog_doc_id]
+        assert doc_meta.is_archived is True
+        assert doc_meta.is_stale is True
+        assert doc_meta.status == "stale"
+
+        # 4. Assert active search fail-closed: DOCUMENT_NOT_FOUND, no citations, hallucination blocked
+        r_revoked = service.query("Проверка герметичности штуцера OP-MANOMETER-01", site_id=site_id, user_role="chief_engineer")
+        assert r_revoked.status == "DOCUMENT_NOT_FOUND"
+        assert len(r_revoked.citations) == 0
+        assert r_revoked.is_hallucination_blocked is True
+
+    def test_source_import_worker_to_consumer_deleted_removes_from_active_search(self, tmp_path, monkeypatch):
+        """Worker->Consumer pipeline: 'deleted' event for source_import without payload.document_id
+
+        resolves catalog-site-{site_id}, marks document status='deleted', and blocks active search.
+        """
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
+        import json
+        import backend.app.integration.source_revision_worker as s_worker
+        from ml_service.app.rag import reset_rag_service, get_rag_service
+
+        db_path = tmp_path / "worker_deleted.db"
+        engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
+        with engine.begin() as conn:
+            conn.execute(text("""
+                CREATE TABLE source_revision_events (
+                    event_id TEXT PRIMARY KEY, site_id TEXT, scope TEXT,
+                    source_revision INTEGER, source_sha256 TEXT, entity_type TEXT,
+                    entity_id TEXT, change_type TEXT, payload TEXT, status TEXT DEFAULT 'pending',
+                    published_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE source_imports (
+                    source_import_id TEXT PRIMARY KEY, site_id TEXT, source_sha256 TEXT,
+                    source_name TEXT, source_revision INTEGER, status TEXT, row_count INTEGER,
+                    source_rows TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+
+        factory = sessionmaker(engine, expire_on_commit=False)
+        monkeypatch.setattr(s_worker, "index_source_rows", lambda *a, **kw: 1)
+        reset_rag_service()
+
+        site_id = "site-delete-b"
+        imp_id, evt1_id, evt2_id = str(uuid4()), str(uuid4()), str(uuid4())
+        catalog_doc_id = f"catalog-site-{site_id}"
+
+        sample_rows = [{
+            "code": "OP-MANOMETER-01",
+            "title": "Проверка герметичности штуцера манометра",
+            "equipment_type": "pressure_gauge",
+            "norm_hours": "0.50",
+            "instructions": "Проверить штуцер манометра на герметичность рабочим давлением.",
+        }]
+
+        with factory() as session:
+            # 1. Insert and publish source_revision event
+            session.execute(text("""
+                INSERT INTO source_imports VALUES (:id, :site, 'sha1', 'cat1.xlsx', 1, 'imported', 1, :rows, CURRENT_TIMESTAMP)
+            """), {"id": imp_id, "site": site_id, "rows": json.dumps({"rows": sample_rows})})
+            session.execute(text("""
+                INSERT INTO source_revision_events VALUES (:eid, :site, 'maintenance_catalog', 1, 'sha1', 'source_import', :iid, 'source_revision', '{\"row_count\": 1}', 'pending', NULL, CURRENT_TIMESTAMP)
+            """), {"eid": evt1_id, "site": site_id, "iid": imp_id})
+            session.commit()
+
+            evt1 = session.execute(text("SELECT * FROM source_revision_events WHERE event_id=:id"), {"id": evt1_id}).mappings().one()
+            res1 = s_worker.publish_event(session, dict(evt1))
+            session.commit()
+            assert res1["status"] == "published"
+
+        service = get_rag_service()
+        # Active search works before deletion
+        r_active = service.query("Проверка герметичности штуцера OP-MANOMETER-01", site_id=site_id, user_role="chief_engineer")
+        assert r_active.status == "OK"
+        assert len(r_active.citations) == 1
+
+        # 2. Insert and publish 'deleted' event without document_id in payload
+        with factory() as session:
+            session.execute(text("""
+                INSERT INTO source_revision_events VALUES (:eid, :site, 'maintenance_catalog', 2, 'sha1', 'source_import', :iid, 'deleted', '{\"reason\": \"Ошибочный импорт удален\"}', 'pending', NULL, CURRENT_TIMESTAMP)
+            """), {"eid": evt2_id, "site": site_id, "iid": imp_id})
+            session.commit()
+
+            evt2 = session.execute(text("SELECT * FROM source_revision_events WHERE event_id=:id"), {"id": evt2_id}).mappings().one()
+            res2 = s_worker.publish_event(session, dict(evt2))
+            session.commit()
+            assert res2["status"] == "published"
+
+        # 3. Assert document is archived, stale, and marked 'deleted'
+        doc_meta = service.index.documents[catalog_doc_id]
+        assert doc_meta.is_archived is True
+        assert doc_meta.is_stale is True
+        assert doc_meta.status == "deleted"
+
+        # 4. Assert active search fail-closed: DOCUMENT_NOT_FOUND
+        r_deleted = service.query("Проверка герметичности штуцера OP-MANOMETER-01", site_id=site_id, user_role="chief_engineer")
+        assert r_deleted.status == "DOCUMENT_NOT_FOUND"
+        assert len(r_deleted.citations) == 0
+        assert r_deleted.is_hallucination_blocked is True
+
+        # 5. Verify rebuild from storage also preserves deleted state
+        reset_rag_service()
+        with factory() as session:
+            rebuilt_service = get_rag_service(session=session)
+            assert rebuilt_service.rebuilt_from_storage is True
+            doc_meta_rebuilt = rebuilt_service.index.documents[catalog_doc_id]
+            assert doc_meta_rebuilt.is_archived is True
+            assert doc_meta_rebuilt.status == "deleted"
+            r_rebuilt = rebuilt_service.query("Проверка герметичности штуцера OP-MANOMETER-01", site_id=site_id, user_role="chief_engineer")
+            assert r_rebuilt.status == "DOCUMENT_NOT_FOUND"
+
+
 
 class DummyPrincipal:
     def __init__(self, role: str = "executor", site_id: str = "site-itp-severnaya-01"):

@@ -10,7 +10,7 @@ def publish_event(session, event):
     status = 'published'
     try:
         with session.begin_nested():
-            if event['entity_type'] == 'source_import':
+            if event['entity_type'] == 'source_import' and event.get('change_type') not in ('revoked', 'deleted'):
                 if not index_source_rows(session, site_id=event['site_id'], source_revision=event['source_revision'],
                                          source_sha256=event['source_sha256']):
                     raise ValueError('Missing source rows for revision')
@@ -32,7 +32,7 @@ def publish_event(session, event):
 def process_pending_revisions(app) -> int:
     with app.state.factory() as session:
         events = session.execute(text("""
-            SELECT event_id,site_id,source_sha256,source_revision,entity_type
+            SELECT event_id,site_id,source_sha256,source_revision,entity_type,change_type
             FROM source_revision_events
             WHERE status='pending' AND entity_type='source_import'
             ORDER BY created_at,event_id

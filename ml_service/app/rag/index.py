@@ -136,7 +136,7 @@ class RAGIndex:
                 self.eq_to_chunks[chunk.equipment_class].append(chunk.chunk_id)
 
     def revoke_document(self, doc_id: str, reason: str = "Регламент отозван") -> bool:
-        """Marks document and its chunks as stale / archived."""
+        """Marks document and its chunks as stale / archived, removing chunks from active search."""
         if doc_id not in self.documents:
             return False
 
@@ -144,12 +144,31 @@ class RAGIndex:
         updated_meta = meta.model_copy(update={"is_stale": True, "is_archived": True, "status": "stale"})
         self.documents[doc_id] = updated_meta
 
-        for cid in self.doc_to_chunks.get(doc_id, []):
-            chunk = self.chunks.get(cid)
+        for cid in list(self.doc_to_chunks.get(doc_id, [])):
+            chunk = self.chunks.pop(cid, None)
             if chunk:
                 stale_chunk = chunk.model_copy(update={"is_stale": True})
-                self.chunks[cid] = stale_chunk
                 self.archived_chunks[cid] = stale_chunk
+        self.doc_to_chunks[doc_id] = []
+        self.latest_revisions.pop(doc_id, None)
+        return True
+
+    def delete_document(self, doc_id: str, reason: str = "Регламент удален") -> bool:
+        """Deletes a document and removes its chunks from active search."""
+        if doc_id not in self.documents:
+            return False
+
+        meta = self.documents[doc_id]
+        updated_meta = meta.model_copy(update={"is_stale": True, "is_archived": True, "status": "deleted"})
+        self.documents[doc_id] = updated_meta
+
+        for cid in list(self.doc_to_chunks.get(doc_id, [])):
+            chunk = self.chunks.pop(cid, None)
+            if chunk:
+                stale_chunk = chunk.model_copy(update={"is_stale": True})
+                self.archived_chunks[cid] = stale_chunk
+        self.doc_to_chunks[doc_id] = []
+        self.latest_revisions.pop(doc_id, None)
         return True
 
     def retrieve(self, query: RetrievalQuery) -> RetrievalResult:
