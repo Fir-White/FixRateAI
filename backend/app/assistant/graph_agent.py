@@ -100,7 +100,7 @@ async def quality_gate(state: AgentState, runtime: Runtime[TurnExecution]):
     with execution.app.state.factory() as session:
         workflow.refresh_actions(session, execution.state)
     verify_evidence(execution.state)
-    if comparison_request(execution.question) and not comparison_result(execution.state):
+    if not execution.state.get('llm_dynamic') and comparison_request(execution.question) and not comparison_result(execution.state):
         for goal in execution.state['goals']:
             if goal['status'] == 'completed' and goal.get('semantic', {}).get('intent') == 'equipment_tasks':
                 goal.update(status='partial', reason='comparison_evidence_inconsistent')

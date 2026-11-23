@@ -7,6 +7,7 @@
 [Ассистент v3 на LangGraph, 23.11.2026](../releases/2026-11-23-assistant-architecture-v3.md) — checkpoint PostgreSQL, подтверждения и порядок включения.
 [Стенд надёжности Agent v3](../../agent_reliability_lab/README.md) — независимый SQL-oracle, прогоны на локальной модели и воспроизводимые проверки RBAC, подтверждений и отказов.
 [Изменения Agent v3](../releases/2026-11-23-agent-v3-reliability.md) — подтверждённые исправления маршрутизации, контекста и проверки фактов.
+[Сравнение пайплайнов ассистента](../releases/2026-11-23-assistant-pipeline-experiment.md) — синтетический корпус, опциональный цикл и права.
 
 [Зависимая аналитика ассистента](../architecture/assistant-dependent-analytics.md) — рейтинг на PostgreSQL, типизированные связи целей и доказательства по каждому выбранному объекту.
 

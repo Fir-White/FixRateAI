@@ -6,6 +6,7 @@ from pydantic import BaseModel,ConfigDict,Field
 from uuid import UUID
 from fastapi import Depends,Query,HTTPException,Request,Response
 from sqlalchemy import select,func,or_,and_,text
+from sqlalchemy.orm import aliased
 from app.security.sessions import has_role,SQL_ROLES
 from .management import equipment_response
 from app.assistant.analysis_contract import Group, MAX_AGGREGATE_ROWS, Metric
@@ -14,6 +15,32 @@ from app.schemas.assistant import MAX_COLLECTION_PAGE
 BASE='/api/v1/assistant/workspace'
 MaintenanceTypeKey = Annotated[str, Field(pattern=r'^то[0-9]{1,3}$')]
 MaintenanceTypeCode = Annotated[str, Field(min_length=1,max_length=100)]
+AcceptedMaintenance = Literal['present', 'none']
+
+
+def _accepted_maintenance(v, equipment_id):
+    """Evidence of a linked ТО report with an explicit authorized acceptance."""
+    links, orders, reports, reviews = (aliased(v.models[name]) for name in
+        ('work_order_equipment', 'work_orders', 'work_reports', 'acceptance_reviews'))
+    site_id = v.principal.site_id
+    history = (select(reviews.acceptance_review_id).select_from(links)
+        .join(orders, and_(orders.site_id == links.site_id, orders.work_order_id == links.work_order_id))
+        .join(reports, and_(reports.site_id == orders.site_id, reports.work_order_id == orders.work_order_id))
+        .join(reviews, and_(reviews.site_id == reports.site_id, reviews.work_order_id == orders.work_order_id,
+                            reviews.work_report_id == reports.work_report_id))
+        .where(links.site_id == site_id, links.equipment_id == equipment_id,
+               orders.maintenance_rule_id.is_not(None), reviews.decision == 'accepted'))
+    if v.principal.role == 'executor':
+        assignments = aliased(v.models['work_assignments'])
+        history = history.where(select(assignments.work_assignment_id).where(
+            assignments.site_id == site_id, assignments.work_order_id == orders.work_order_id,
+            assignments.user_id == v.principal.user_id, assignments.status.not_in(('cancelled', 'declined'))).exists())
+    return history.exists()
+
+
+def _accepted_scope(principal):
+    return dict(source='accepted_maintenance_reports',
+                visibility='assigned_orders' if principal.role == 'executor' else 'site')
 
 class AssignmentPreparation(BaseModel):
     model_config=ConfigDict(extra='forbid')
@@ -348,7 +375,8 @@ def register_routes(app,views):
         return result
 
     @app.get(BASE+'/equipment')
-    def equipment(q:str=Query('',max_length=200),offset:int=Query(0,ge=0),asset_code:str|None=Query(None,min_length=1,max_length=128),v=Depends(views)):
+    def equipment(q:str=Query('',max_length=200),offset:int=Query(0,ge=0),asset_code:str|None=Query(None,min_length=1,max_length=128),
+                  accepted_maintenance:AcceptedMaintenance|None=None,limit:int=Query(25,ge=1,le=25),v=Depends(views)):
         import json
         from sqlalchemy import cast,Text,literal
         from sqlalchemy.dialects.postgresql import JSONB,aggregate_order_by
@@ -367,6 +395,10 @@ def register_routes(app,views):
         if asset_code is not None:
             literal_code=asset_code.replace('\\','\\\\').replace('%','\\%').replace('_','\\_')
             filters.append(cls.asset_code.ilike(literal_code,escape='\\'))
+        if accepted_maintenance is not None:
+            accepted = _accepted_maintenance(v, cls.equipment_id)
+            filters.append(accepted if accepted_maintenance == 'present' else ~accepted)
+            filters.append(cls.status != 'retired')
         # Exactly equipment_response fields. Count, complete digest and selected
         # page use one statement, with no ORM hydration or per-row SQL.
         fields=('equipment_id','site_id','system_id','parent_equipment_id','equipment_type_id',
@@ -377,18 +409,22 @@ def register_routes(app,views):
         empty=cast(literal('[]'),JSONB)
         summary=select(func.count().label('total'),func.coalesce(func.jsonb_agg(
             aggregate_order_by(projected.c.payload,projected.c.equipment_id)),empty).label('rows')).cte('equipment_summary')
-        selected=select(projected).order_by(projected.c.asset_code,projected.c.equipment_id).offset(offset).limit(25).cte('equipment_page')
+        selected=select(projected).order_by(projected.c.asset_code,projected.c.equipment_id).offset(offset).limit(limit).cte('equipment_page')
         items=select(func.coalesce(func.jsonb_agg(aggregate_order_by(selected.c.payload,
             selected.c.asset_code,selected.c.equipment_id)),empty)).scalar_subquery()
         scope=dict(user_id=str(v.principal.user_id),site_id=str(v.principal.site_id),role=v.principal.role,timezone=v.principal.timezone)
         applied=dict(q=q.strip(),asset_code=asset_code)
+        source = {}
+        if accepted_maintenance is not None:
+            applied.update(accepted_maintenance=accepted_maintenance, exclude_retired=True)
+            source['history_basis'] = _accepted_scope(v.principal)
         context=func.jsonb_build_object('scope',cast(literal(json.dumps(scope)),JSONB),
                                       'filters',cast(literal(json.dumps(applied)),JSONB))
         document=func.jsonb_build_object('context',context,'rows',summary.c.rows)
         digest=func.encode(func.sha256(func.convert_to(cast(document,Text),'UTF8')),'hex')
         result=v.session.execute(select(summary.c.total,items.label('items'),digest.label('snapshot_id'))).mappings().one()
-        return dict(items=result['items'],total=result['total'],offset=offset,limit=25,
-                    snapshot_id=result['snapshot_id'],scope=scope,filters=applied,timezone=v.principal.timezone)
+        return dict(items=result['items'],total=result['total'],offset=offset,limit=limit,
+                    snapshot_id=result['snapshot_id'],scope=scope,filters=applied,timezone=v.principal.timezone, **source)
 
     @app.get(BASE+'/staff')
     def staff(q:str=Query('',max_length=200),offset:int=Query(0,ge=0),v=Depends(views)):
@@ -418,6 +454,7 @@ def register_routes(app,views):
               maintenance_only:bool=False, unassigned_only:bool=False,
               type_keys:list[MaintenanceTypeKey]|None=Query(None,max_length=12),
               type_codes:list[MaintenanceTypeCode]|None=Query(None,max_length=12),
+              equipment_accepted_maintenance:AcceptedMaintenance|None=None,
               on_days:list[date]|None=Query(None,max_length=31),
               v=Depends(views)):
         from .task_analytics import UNFINISHED
@@ -452,6 +489,17 @@ def register_routes(app,views):
             links=v.models['work_order_equipment']
             filters.append(select(links.work_order_id).where(links.site_id==orders.site_id,
                 links.work_order_id==orders.work_order_id,links.equipment_id==equipment_id).exists())
+        if equipment_accepted_maintenance is not None:
+            links = v.models['work_order_equipment']; assets = v.models['equipment']
+            accepted = _accepted_maintenance(v, links.equipment_id)
+            linked = (select(links.work_order_id).select_from(links)
+                      .join(assets, and_(assets.site_id == links.site_id, assets.equipment_id == links.equipment_id))
+                      .where(links.site_id == orders.site_id, links.work_order_id == orders.work_order_id,
+                             assets.status != 'retired',
+                             accepted if equipment_accepted_maintenance == 'present' else ~accepted))
+            if equipment_id is not None:
+                linked = linked.where(links.equipment_id == equipment_id)
+            filters.append(linked.exists())
         if starts_on and ends_on and ends_on<starts_on:
             raise HTTPException(422,'Конец периода раньше начала.')
         local_day=func.date(func.timezone(v.principal.timezone,instant))
@@ -491,6 +539,8 @@ def register_routes(app,views):
         if on_days:scope['on_days']=sorted(set(on_days))
         if type_keys:scope['type_keys']=sorted(set(type_keys))
         if type_codes:scope['type_codes']=sorted(set(type_codes))
+        if equipment_accepted_maintenance is not None:
+            scope.update(equipment_accepted_maintenance=equipment_accepted_maintenance)
         items = [v.task_view(order, checked_at=now) for order in selected]
         if equipment_id is not None or maintenance_only:
             for item, order in zip(items, selected, strict=True):
@@ -510,4 +560,5 @@ def register_routes(app,views):
                          **({'maintenance_only': True} if maintenance_only else {}),
                          **({'unassigned_only': True} if unassigned_only else {}),**scope),
             **({'day_counts': day_counts} if on_days else {}),
+            **({'history_basis': _accepted_scope(v.principal)} if equipment_accepted_maintenance is not None else {}),
             page_complete=offset==0 and len(selected)==count,analysis_tool='tasks_analyze')

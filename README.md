@@ -8,6 +8,7 @@
 
 [Ассистент v3 на LangGraph, 23.11.2026](docs/releases/2026-11-23-assistant-architecture-v3.md) — архитектура исполнения, подключение, миграция 028 и сравнение с v2.
 [Надёжность Agent v3](docs/releases/2026-11-23-agent-v3-reliability.md) — независимые сквозные проверки, результаты и ограничения.
+[Сравнение пайплайнов ассистента](docs/releases/2026-11-23-assistant-pipeline-experiment.md) — штатный v3, динамическая Qwen и динамическая DeepSeek на одном корпусе.
 
 [Завершение MVP, 21.11.2026](docs/releases/fixrate-mvp-finalization.md) — история действий ИИ, задания и отчёты исполнителя, проверки и состояние CR‑17.
 

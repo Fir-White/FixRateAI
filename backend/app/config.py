@@ -19,6 +19,7 @@ class RuntimeSettings:
     forecast_provider: str = "rf"
     active_roles: FrozenSet[str] = frozenset()
     assistant_agent_version: str = "v2"
+    assistant_v3_pipeline: str = "v3"
 
     @classmethod
     def from_environment(cls):
@@ -80,8 +81,11 @@ class RuntimeSettings:
         agent_version = os.environ.get("FIXRATE_ASSISTANT_AGENT_VERSION", "v2").strip().lower()
         if agent_version not in {"v2", "v3"}:
             raise ValueError("FIXRATE_ASSISTANT_AGENT_VERSION must be v2 or v3")
+        pipeline = os.environ.get("FIXRATE_ASSISTANT_V3_PIPELINE", "v3").strip().lower()
+        if pipeline not in {"v3", "llm_dynamic"} or (pipeline == "llm_dynamic" and agent_version != "v3"):
+            raise ValueError("FIXRATE_ASSISTANT_V3_PIPELINE must be v3 or llm_dynamic with Agent v3 enabled")
         return cls(secure == "true", storage, timeout,
             number("FORECAST_TIMEOUT_SECONDS", "90" if forecast_provider == "aitunnel" else "2", 120 if forecast_provider == "aitunnel" else 5),
             integer("PHOTO_REVIEW_MAX_FILES", "20", 2, 100),
             integer("PHOTO_REVIEW_MAX_BYTES", "52428800", 1, 524288000),
-            provider, forecast_provider, active_roles, agent_version)
+            provider, forecast_provider, active_roles, agent_version, pipeline)

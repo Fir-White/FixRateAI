@@ -474,6 +474,10 @@ class TurnExecution:
         question = (state or {}).get('request') or turn['content']
         planning_question = question
         planning_required=state is None or not state.get('decomposition_verified')
+        if self.graph_version and turn['prompt_version'] == svc.DYNAMIC_PROMPT_VERSION:
+            from .dynamic_dialogue import prepare
+            prepare(self, thread, turn, history, files, sent_files, question, server_time(principal.timezone))
+            return
         from .semantic_plan import (QUOTED, RequestedResults, RequestCoverageReview, compile_plan,
                                     AnalyticalRequestedResults, AnalyticalCoverageReview,
                                     bind_discussion_and_projections, explicit_results, ground_equipment_card,
@@ -893,6 +897,11 @@ class TurnExecution:
     async def execute_goal(self, goal):
         from . import service as svc
 
+        if self.state.get('llm_dynamic') and goal['id'] == 'dynamic':
+            from .dynamic_dialogue import execute
+            await execute(self, goal)
+            return
+
         app, principal, headers = self.app, self.principal, self.headers
         thread_id, turn_id, state = self.thread_id, self.turn_id, self.state
         trace, tools, check = self.trace, self.tools, self.check
@@ -1222,7 +1231,7 @@ class TurnExecution:
         check()
         started = time.monotonic()
         answer = _render(state)
-        if self.graph_version:
+        if self.graph_version and not state.get('llm_dynamic'):
             from .graph_context import comparison_answer, comparison_request
             from .graph_engineering import comparison_context_intro
             if comparison_request(question):
