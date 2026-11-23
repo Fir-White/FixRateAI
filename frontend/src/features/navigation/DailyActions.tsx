@@ -15,7 +15,7 @@ export function DailyActions() {
     {to:'/reports',title:'Оценить результаты',description:'Трудозатраты, качество и отчётность.',icon:'report',section:'reports'},
   ]:[
     {to:'/tasks?status=attention',title:'Разобрать очередь',description:'Просрочки, назначения и работы без исполнителя.',icon:'tasks',section:'tasks'},
-    {to:'/quality',title:'Принять выполненные работы',description:'Отчёты техников, фотографии и результат AI.',icon:'quality',section:'quality'},
+    {to:'/quality',title:profile?.role==='chief_engineer'?'Принять выполненные работы':'Проверить отчёты',description:'Отчёты техников, фотографии и результат AI.',icon:'quality',section:'quality'},
     {to:'/planning',title:profile?.role==='engineer'?'Проверить план ТО':'Подготовить план ТО',description:'Excel → состав работ → даты и бригады → выпуск.',icon:'calendar',section:'planning'},
   ];
   return <nav className="journey-launches" aria-label="Основные задачи">{choices.filter(item=>canOpenSection(profile?.role,item.section)).map(item=><Link key={item.to} className="journey-launch" to={item.to}><Icon name={item.icon} size={21}/><div><strong>{item.title}</strong><p>{item.description}</p></div></Link>)}</nav>;

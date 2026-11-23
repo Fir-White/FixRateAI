@@ -159,7 +159,7 @@ def main():
         before=command('counts_before','exec','-T','db','psql','-U','fixrate','-d','fixrate','-At','-c',counts_sql).strip()
         command('seed_repeat','exec','-T','-e','FIXRATE_DEMO_PASSWORD','app','python','-m','app.manage','seed-demo')
         after=command('counts_after','exec','-T','db','psql','-U','fixrate','-d','fixrate','-At','-c',counts_sql).strip()
-        assert before==after and before.split('|')[0]=='26'
+        assert before==after and before.split('|')[0]=='28'
         results.append(dict(check='seed_idempotence',passed=True,counts=before))
         prefix='/api/v1/maintenance'
         http('anonymous',plain,prefix+'/ui/equipment',401)

@@ -1,17 +1,17 @@
 {
   "format_version": 1,
-  "catalog_sha256": "7ffeb35051ba8e391861c10d2e67a692a557ab195ec98bd320b07cb76e0724c3",
+  "catalog_sha256": "d0248a1534f78deb8d4efa99e9280249180d753376e5f7d6f28b3cb604b209fc",
   "acceptance_rule": "A finished response, registered tool, HTTP 200, negative boundary test, mocked completion or successful individual call does not prove the user goal. Positive acceptance requires an independently verified final result and data state for this exact role/operation.",
   "generative_policy": "Installed local Ollama only; no external LLM/fallback, weight downloads or runtime user preference changes.",
   "summary": {
-    "operations": 178,
-    "role_operation_cells": 721,
+    "operations": 179,
+    "role_operation_cells": 722,
     "by_role": {
       "director": 90,
-      "chief_engineer": 173,
-      "engineer": 124,
+      "chief_engineer": 174,
+      "engineer": 123,
       "dispatcher": 135,
-      "admin": 145,
+      "admin": 146,
       "executor": 54
     },
     "verification": {
@@ -19,31 +19,31 @@
         "passed": 17,
         "failed": 0,
         "skipped": 0,
-        "not_run": 704
+        "not_run": 705
       },
       "positive_e2e": {
         "passed": 17,
         "failed": 0,
         "skipped": 0,
-        "not_run": 704
+        "not_run": 705
       },
       "negative": {
         "passed": 1,
         "failed": 0,
         "skipped": 0,
-        "not_run": 720
+        "not_run": 721
       },
       "mocked": {
         "passed": 0,
         "failed": 0,
         "skipped": 0,
-        "not_run": 721
+        "not_run": 722
       },
       "api_domain": {
         "passed": 0,
         "failed": 0,
         "skipped": 0,
-        "not_run": 721
+        "not_run": 722
       }
     }
   },
@@ -2472,11 +2472,11 @@
       "method": "POST",
       "path": "/api/v1/maintenance/tasks/{task_id}/review",
       "roles": [
-        "engineer",
         "chief_engineer"
       ],
       "denied_roles": [
         "director",
+        "engineer",
         "dispatcher",
         "admin",
         "executor"
@@ -2509,7 +2509,7 @@
         "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
         "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Review the exact target/diff and confirm only the intended action with its own payload hash.",
         "postconditions": [
-          "Chosen decision is persisted by an authorized independent engineer, attempts/history remain intact and only acceptance advances accepted maintenance fact.",
+          "The independent chief engineer's decision preserves attempts and history. Acceptance advances the accepted maintenance fact.",
           "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
           "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
         ],
@@ -2582,7 +2582,8 @@
       "candidate_test_mentions": [
         "tests/backend/test_assistant.py::test_catalog_is_explicit_and_each_tool_has_real_typed_endpoint",
         "tests/backend/test_assistant_action_outcomes.py::test_unknown_postconditions_remain_unverified_even_with_success_flag",
-        "tests/backend/test_assistant_capabilities.py::test_optional_provider_key_is_replaced_before_persistence"
+        "tests/backend/test_assistant_capabilities.py::test_optional_provider_key_is_replaced_before_persistence",
+        "tests/backend/test_runtime_integration.py::test_execution_photo_rework_acceptance_preserves_attempts"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -5417,6 +5418,70 @@
       "candidate_test_mentions": [
         "tests/backend/test_source_import.py::test_confirmed_source_import_round_trip_and_scoped_outbox"
       ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "source_search",
+      "title": "Поиск по сохранённому исходному каталогу с учетом объекта",
+      "method": "GET",
+      "path": "/api/v1/maintenance/source/search",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "denied_roles": [
+        "director",
+        "engineer",
+        "dispatcher",
+        "executor"
+      ],
+      "requires_confirmation": false,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Search the current site's source workbook catalog",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Do not confirm any unrelated mutation; this operation has a read-only outcome.",
+        "postconditions": [
+          "Search returns only indexed rows for the current site and keeps the source hash, revision and cell references.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "Business state is unchanged by this read/preview."
+        ]
+      },
+      "candidate_test_mentions": [],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
     {
@@ -17851,33 +17916,6 @@
     },
     {
       "operation": "report_review",
-      "role": "engineer",
-      "registered": true,
-      "verification": {
-        "reachability": {
-          "status": "not_run",
-          "records": []
-        },
-        "positive_e2e": {
-          "status": "not_run",
-          "records": []
-        },
-        "negative": {
-          "status": "not_run",
-          "records": []
-        },
-        "mocked": {
-          "status": "not_run",
-          "records": []
-        },
-        "api_domain": {
-          "status": "not_run",
-          "records": []
-        }
-      }
-    },
-    {
-      "operation": "report_review",
       "role": "chief_engineer",
       "registered": true,
       "verification": {
@@ -22421,6 +22459,60 @@
     },
     {
       "operation": "source_revision_publish",
+      "role": "admin",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "source_search",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "source_search",
       "role": "admin",
       "registered": true,
       "verification": {

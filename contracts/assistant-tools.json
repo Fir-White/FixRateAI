@@ -758,7 +758,6 @@
       "method": "POST",
       "path": "/api/v1/maintenance/tasks/{task_id}/review",
       "roles": [
-        "engineer",
         "chief_engineer"
       ],
       "agents": [
@@ -1639,6 +1638,24 @@
         "planner"
       ],
       "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "source_search",
+      "title": "Поиск по сохранённому исходному каталогу с учетом объекта",
+      "method": "GET",
+      "path": "/api/v1/maintenance/source/search",
+      "roles": [
+        "chief_engineer",
+        "admin"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
       "optional_protected_inputs": []

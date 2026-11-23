@@ -311,7 +311,7 @@ def image_bytes(seed):
 
 def test_execution_photo_rework_acceptance_preserves_attempts(runtime):
     engine, app = runtime
-    executor, engineer = login(app, "executor"), login(app, "engineer")
+    executor, engineer, chief = (login(app, role) for role in ("executor", "engineer", "chief_engineer"))
     transitions = f"/api/v1/maintenance_jobs/{TASK}/transitions"
     task = executor.get(PREFIX+f"/ui/tasks/{TASK}").json()["task"]
     assert executor.get(PREFIX+f"/ui/tasks/{TASK}").json()["allowedActions"] == ["start"]
@@ -378,8 +378,13 @@ def test_execution_photo_rework_acceptance_preserves_attempts(runtime):
         finally:
             with engine.begin() as conn:
                 conn.execute(text("UPDATE site_memberships SET role='technician' WHERE user_id=:id"), {"id": demo_id("user-1")})
-        response = engineer.post(transitions, json={"expected_revision": review["expected_revision"],
-            "status": "rework" if attempt == 1 else "accepted", "reason": review["reason"]})
+        command = {"expected_revision": review["expected_revision"],
+                   "status": "rework" if attempt == 1 else "accepted", "reason": review["reason"]}
+        engineer_actions = engineer.get(PREFIX+f"/ui/tasks/{TASK}").json()["allowedActions"]
+        assert "photo_review" in engineer_actions and "review" not in engineer_actions
+        assert "review" in chief.get(PREFIX+f"/ui/tasks/{TASK}").json()["allowedActions"]
+        assert engineer.post(transitions, json=command).status_code == 403
+        response = chief.post(transitions, json=command)
         assert response.status_code == 200, response.text
         bundle = engineer.get(PREFIX+f"/ui/tasks/{TASK}").json()
         if attempt == 1:
@@ -393,7 +398,7 @@ def test_execution_photo_rework_acceptance_preserves_attempts(runtime):
     assert bundle["task"]["state"] == "accepted"
     assert bundle["allowedActions"] == ["forecast"]
     assert executor.get(PREFIX+f"/ui/tasks/{TASK}").json()["allowedActions"] == []
-    assert engineer.post(PREFIX+f"/tasks/{TASK}/review", json=review).status_code == 409
+    assert chief.post(PREFIX+f"/tasks/{TASK}/review", json=review).status_code == 409
     assert all(executor.get(PREFIX+f"/photos/{identity}").status_code == 200 for identity in photo_ids)
     with engine.connect() as conn:
         reports = conn.execute(text("SELECT status,comment FROM work_reports WHERE work_order_id=:id ORDER BY revision_no"), {"id": UUID(TASK)}).all()
@@ -405,6 +410,7 @@ def test_execution_photo_rework_acceptance_preserves_attempts(runtime):
     assert engineer.get(PREFIX+f"/ui/equipment/{demo_id('equipment-2')}").json()["equipment"]["nextDueDate"] is None
     executor.close()
     engineer.close()
+    chief.close()
 
 
 def isolated_order(engine, state, *, report_author=None):
@@ -434,7 +440,7 @@ def test_invalid_transitions_leave_state_revision_and_audit_unchanged(runtime, s
     engine, app = runtime
     order, report = isolated_order(engine, state)
     endpoint = PREFIX + f"/tasks/{order}"
-    with closing(login(app, "executor")) as executor, closing(login(app, "engineer")) as engineer:
+    with closing(login(app, "executor")) as executor, closing(login(app, "chief_engineer")) as chief:
         replies = []
         if state not in ("assigned", "rework"):
             replies.append(executor.post(endpoint+"/start", json={"expected_revision": 1}))
@@ -445,8 +451,8 @@ def test_invalid_transitions_leave_state_revision_and_audit_unchanged(runtime, s
                 "checklist_item_id": str(demo_id("runtime-checklist")), "phase": "before", "view_key": "front"},
                 files={"file": ("photo.png", image_bytes(87), "image/png")}))
         if state != "in_review":
-            replies.append(engineer.post(endpoint+"/review", json={"expected_revision": 1, "execution_id": str(report), "verdict": "accepted", "reason": "Invalid transition"}))
-            replies.append(engineer.post(endpoint+"/photo-review", json={"expected_revision": 1}))
+            replies.append(chief.post(endpoint+"/review", json={"expected_revision": 1, "execution_id": str(report), "verdict": "accepted", "reason": "Invalid transition"}))
+            replies.append(chief.post(endpoint+"/photo-review", json={"expected_revision": 1}))
         assert replies and all(r.status_code == 409 for r in replies), [(r.status_code, r.text) for r in replies]
     with engine.connect() as conn:
         assert conn.execute(text("SELECT status,revision FROM work_orders WHERE work_order_id=:id"), {"id": order}).one() == (state, 1)
@@ -460,7 +466,7 @@ def test_every_workflow_mutation_enforces_role_before_state(runtime, role):
         commands = [
             ("start", {"executor"}, {"expected_revision": 1}),
             ("submit", {"executor"}, {"expected_revision": 1}),
-            ("review", {"engineer"}, {"expected_revision": 1, "execution_id": str(uuid4()), "verdict": "accepted", "reason": "Role test"}),
+            ("review", {"chief_engineer"}, {"expected_revision": 1, "execution_id": str(uuid4()), "verdict": "accepted", "reason": "Role test"}),
             ("photo-review", {"engineer"}, {"expected_revision": 1}),
             ("forecast", {"dispatcher", "engineer"}, {"expected_revision": 1}),
             ("cancel", {"dispatcher", "engineer"}, {"expected_revision": 1,"reason":"Role test"}),

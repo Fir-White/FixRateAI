@@ -191,12 +191,14 @@ def test_incident_execution_measurements_acts_acceptance_and_reopen_keep_history
         assert submitted.status_code==200,submitted.text
         bundle=submitted.json();report_id=bundle['execution']['id'];act=bundle['execution']['acts'][0]['id']
         assert executor.get(PREFIX+f'/photos/{act}').status_code==200
-        reviewed=engineer.post(PREFIX+f'/tasks/{task_id}/review',json=dict(expected_revision=bundle['task']['revision'],execution_id=report_id,verdict='accepted',reason='TEST reviewed'))
+        decision=dict(expected_revision=bundle['task']['revision'],execution_id=report_id,verdict='accepted',reason='TEST reviewed')
+        assert engineer.post(PREFIX+f'/tasks/{task_id}/review',json=decision).status_code==403
+        reviewed=admin.chief.post(PREFIX+f'/tasks/{task_id}/review',json=decision)
         assert reviewed.status_code==422 and 'акт' in reviewed.text,reviewed.text
         verified=engineer.post(PREFIX+f'/tasks/{task_id}/acts/{act}/verify',json=dict(expected_revision=bundle['task']['revision'],reason='TEST inspected original instrument protocol'))
         assert verified.status_code==200,verified.text
         bundle=verified.json()
-        accepted=engineer.post(PREFIX+f'/tasks/{task_id}/review',json=dict(expected_revision=bundle['task']['revision'],execution_id=report_id,verdict='accepted',reason='TEST reviewed',additional_evidence_refs=[act]))
+        accepted=admin.chief.post(PREFIX+f'/tasks/{task_id}/review',json=dict(expected_revision=bundle['task']['revision'],execution_id=report_id,verdict='accepted',reason='TEST reviewed',additional_evidence_refs=[act]))
         assert accepted.status_code==200,accepted.text
         old=accepted.json();assert old['task']['state']=='accepted'
         dashboard=engineer.get(PREFIX+'/overview')
@@ -265,11 +267,12 @@ def test_overdue_events_are_durable_and_late_acceptance_requires_chief(job):
         assert c.scalar(text("SELECT count(*) FROM maintenance_notifications n JOIN site_memberships m ON m.site_id=n.site_id AND m.user_id=n.user_id WHERE n.work_order_id=:id AND m.role='director'"),dict(id=task))==1
     with closing(login(app,'engineer')) as engineer,closing(login(app,'chief_engineer')) as chief:
         body=dict(expected_revision=1,execution_id=str(report),verdict='accepted',reason='TEST late acceptance')
-        blocked=engineer.post(PREFIX+f'/tasks/{task}/review',json=body)
+        assert engineer.post(PREFIX+f'/tasks/{task}/review',json=body).status_code==403
+        blocked=chief.post(PREFIX+f'/tasks/{task}/review',json=body)
         assert blocked.status_code==409 and 'LATE_ACCEPTANCE_REQUIRES_CHIEF' in blocked.text,blocked.text
         authorized=chief.post(PREFIX+f'/tasks/{task}/late-authorization',json=dict(expected_revision=1,reason='TEST documented delay'))
         assert authorized.status_code==200,authorized.text
-        accepted=engineer.post(PREFIX+f'/tasks/{task}/review',json=body|dict(expected_revision=authorized.json()['task']['revision']))
+        accepted=chief.post(PREFIX+f'/tasks/{task}/review',json=body|dict(expected_revision=authorized.json()['task']['revision']))
         assert accepted.status_code==200 and accepted.json()['task']['deadlineBreached'],accepted.text
         with engine.connect() as c:assert c.scalar(text('SELECT regulatory_deadline_at FROM work_orders WHERE work_order_id=:id'),dict(id=task))==deadline
     with closing(login(app,'director')) as director,closing(login(app,'engineer')) as engineer:

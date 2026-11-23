@@ -64,6 +64,7 @@ source_xlsx_preview|excel|Preview the selected private maintenance workbook|Rows
 source_xlsx_import|excel|Import this reviewed workbook as a draft for the selected system and date|After confirmation exactly one scoped source, draft rule set, audit record and pending event match the attachment; replay of the same hash creates no extra revision or live work.
 source_xlsx_export|excel|Download the selected saved source workbook|The exported workbook preserves the scoped source rows and unknown columns; a foreign hash yields no file.
 source_revisions|excel|List catalog indexing events with the requested status|Event identifiers, revisions and status match the selected site's persisted queue; another site's events are absent.
+source_search|excel|Search the current site's source workbook catalog|Search returns only indexed rows for the current site and keeps the source hash, revision and cell references.
 source_revision_publish|excel|Mark the selected completed indexing event as published|Only the scoped pending event acquires a publication timestamp after confirmation; repeating the action creates no new event or transition.
 equipment_list|registry|List equipment on the selected site|Set of returned equipment equals the authorized registry after complete pagination, including equipment without tasks.
 equipment_read|registry|Open the equipment card by its inventory code|Code, name, commissioned date, revision and identifiers match the one resolved equipment row, with no modification.
@@ -91,7 +92,7 @@ task_cancel|execution|Cancel the selected eligible task with this reason|Task re
 task_start|execution|Start my currently assigned TEST task|Only the executor's allowed assignment reaches in-progress once; actual start is server recorded and no report is implicitly accepted.
 report_save|execution|Save my checklist values and factual report as a draft|Persisted report contains exactly supplied values/units and attachment links; task is not submitted/accepted and previous attempt is retained.
 report_submit|execution|Submit my completed report to the engineer|Task/report reach submitted once with the same complete evidence; no engineering acceptance is created and replay adds no duplicate attempt.
-report_review|review|Accept the submitted report or return it with the stated reason|Chosen decision is persisted by an authorized independent engineer, attempts/history remain intact and only acceptance advances accepted maintenance fact.
+report_review|review|Accept the submitted report or return it with the stated reason|The independent chief engineer's decision preserves attempts and history. Acceptance advances the accepted maintenance fact.
 photo_review|ml|Analyze the saved report photos as advisory evidence|A new local-model assessment references exact photo hashes and is persisted; unsupported/uncertain results remain explicit and task acceptance is unchanged.
 forecast_run|ml|Calculate and save the supported forecast for this task|Stored forecast has actual deterministic/model provenance and input hash; no fabricated what-if or automatic schedule confirmation occurs.
 workforce_read|workforce|Show the site team, shifts and qualifications|Staff/membership/shift/qualification sets equal scoped records including dates and expired flags; query volume is bounded independently of staff count.

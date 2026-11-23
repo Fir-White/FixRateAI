@@ -42,7 +42,7 @@ def managed(runtime):
         if hasattr(admin,"chief"):admin.chief.close()
         admin.close()
         with engine.begin() as c:
-            for table in ('source_revision_events','source_imports'):
+            for table in ('source_catalog_index','catalog_revisions','source_revision_events','source_imports'):
                 c.execute(text(f'DELETE FROM {table} WHERE site_id=:site'),dict(site=site))
             c.execute(text("UPDATE draft_publication_proposals SET state=CASE WHEN state='published' THEN 'approved' ELSE state END,publication_id=NULL WHERE site_id=:site"),dict(site=site))
             for table in ('published_catalog_tasks','published_catalog_obligations','draft_publications','draft_publication_proposals'):

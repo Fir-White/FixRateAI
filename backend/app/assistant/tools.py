@@ -70,7 +70,7 @@ TOOLS=(
  Tool('task_start','Начать своё назначенное задание','POST',P+'/tasks/{task_id}/start',('executor',),'write',before='task_read'),
  Tool('report_save','Сохранить фактический отчёт','PUT',P+'/tasks/{task_id}/report',('executor',),'write',before='task_read'),
  Tool('report_submit','Передать свой отчёт на проверку','POST',P+'/tasks/{task_id}/submit',('executor',),'write',before='task_read'),
- Tool('report_review','Принять отчёт или вернуть с причиной','POST',P+'/tasks/{task_id}/review',('engineer','chief_engineer'),'write',before='task_read'),
+ Tool('report_review','Принять отчёт или вернуть с причиной','POST',P+'/tasks/{task_id}/review',('chief_engineer',),'write',before='task_read'),
  Tool('photo_review','Проанализировать сохранённые фотографии отчёта','POST',P+'/tasks/{task_id}/photo-review',('engineer','chief_engineer'),'write',('assistant','photo'),'task_read',optional_secrets=('api_key',)),
  Tool('forecast_run','Рассчитать и сохранить прогноз задания','POST',P+'/tasks/{task_id}/forecast',OPERATE,'write',before='task_read',optional_secrets=('api_key',)),
  Tool('workforce_read','Команда, смены и квалификации','GET',P+'/management/workforce',(*PLAN,'director')),

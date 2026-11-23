@@ -193,7 +193,7 @@ def register_analyst_routes(app,views,photo_path,editable):
         if v.principal.role not in ('chief_engineer', 'admin'):
             raise HTTPException(403, 'Экспорт источника доступен главному инженеру')
         source = v.session.execute(text("""
-            SELECT source_name, source_rows
+            SELECT source_name, source_rows, source_workbook
             FROM source_imports
             WHERE site_id=:site AND source_sha256=:sha
         """), {'site': v.principal.site_id, 'sha': source_sha256}).mappings().first()
@@ -204,8 +204,10 @@ def register_analyst_routes(app,views,photo_path,editable):
         if not filename.lower().endswith('.xlsx'):
             filename += '.xlsx'
         encoded_filename = quote(filename, safe='')
+        original = source['source_workbook']
+        content = bytes(original) if original is not None else export_workbook(source['source_rows'])
         return Response(
-            export_workbook(source['source_rows']),
+            content,
             media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             headers={'Content-Disposition': f"attachment; filename=\"source.xlsx\"; filename*=UTF-8''{encoded_filename}",
                      'Cache-Control': 'private, no-store'},
@@ -224,20 +226,41 @@ def register_analyst_routes(app,views,photo_path,editable):
         """), {'site': v.principal.site_id, 'status': status}).mappings().all()
         return [dict(row) for row in rows]
 
+    @app.get(PREFIX+'/source/search')
+    def source_search(q: str, limit: int=25, v=Depends(views)):
+        if v.principal.role not in ('chief_engineer', 'admin'):
+            raise HTTPException(403, 'Поиск по исходному каталогу доступен главному инженеру')
+        q = q.strip()
+        if not 1 <= len(q) <= 200:
+            raise HTTPException(422, 'Поисковый запрос должен содержать от 1 до 200 символов')
+        limit = min(max(limit, 1), 25)
+        rows = v.session.execute(text("""
+            SELECT source_sha256,source_revision,source_ref,search_text,
+                   ts_rank(search_vector,plainto_tsquery('russian',:q)) AS rank
+            FROM source_catalog_index
+            WHERE site_id=:site
+              AND search_vector @@ plainto_tsquery('russian',:q)
+            ORDER BY rank DESC,source_ref
+            LIMIT :limit
+        """), {'site': v.principal.site_id, 'q': q, 'limit': limit}).mappings().all()
+        return [dict(row) for row in rows]
+
     @app.post(PREFIX+'/source/revisions/{event_id}/published')
     def publish_source_revision(event_id: UUID, v=Depends(views)):
         if v.principal.role not in ('chief_engineer', 'admin'):
             raise HTTPException(403, 'Подтверждение индексации доступно главному инженеру')
-        result = v.session.execute(text("""
-            UPDATE source_revision_events
-            SET status='published',published_at=now()
+        event = v.session.execute(text("""
+            SELECT event_id,site_id,source_sha256,source_revision,entity_type
+            FROM source_revision_events
             WHERE site_id=:site AND event_id=:event AND status='pending'
-            RETURNING event_id,status,published_at
+            FOR UPDATE
         """), {'site': v.principal.site_id, 'event': event_id}).mappings().first()
-        if result is None:
+        if event is None:
             raise HTTPException(404, 'Событие не найдено или уже обработано')
+        from .source_revision_worker import publish_event
+        updated = publish_event(v.session, event)
         v.session.commit()
-        return dict(result)
+        return dict(updated)
 
     @app.get(PREFIX+'/checklist-catalog')
     def catalog(v=Depends(views)):
