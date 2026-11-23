@@ -2,8 +2,10 @@
 from dataclasses import replace
 import json
 
+from fastapi.testclient import TestClient
 from sqlalchemy import text
 
+from app.main import create_app
 from agent_reliability_lab.evals.test_agent_v3_e2e import lab
 from agent_reliability_lab.evals.test_maintenance_conversation import schedule
 from agent_reliability_lab.evals.test_pipeline_comparison import pipeline_fixture
@@ -138,10 +140,13 @@ def test_operator_assignment_requires_user_confirmation_and_rechecks(assistant_c
         before = db.execute(query, dict(task=task_id)).one()
     assert before.status == 'draft'
     assert confirm(clients['executor'], action).status_code in (403, 404)
-    for _ in range(2):
-        result = confirm(chief, action)
-        assert result.status_code == 200 and result.json()['status'] == 'succeeded', result.text
-        assert result.json()['result']['verification']['status'] == 'confirmed'
+    monkeypatch.setenv('FIXRATE_ASSISTANT_V3_PIPELINE', 'v3')
+    with TestClient(create_app(engine), cookies=chief.cookies,
+                    headers={'X-CSRF-Token': chief.headers['X-CSRF-Token']}) as restarted:
+        for _ in range(2):
+            result = confirm(restarted, action)
+            assert result.status_code == 200 and result.json()['status'] == 'succeeded', result.text
+            assert result.json()['result']['verification']['status'] == 'confirmed'
     with engine.connect() as db:
         assert db.execute(query, dict(task=task_id)).one() == ('assigned', before.revision + 1)
         assert db.scalar(text('''SELECT count(*) FROM audit_events

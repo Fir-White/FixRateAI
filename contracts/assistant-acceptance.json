@@ -1,49 +1,49 @@
 {
   "format_version": 1,
-  "catalog_sha256": "3601655c3ee0d883dc10b2b1d00467355d6252a47d8124f09c634d362f3be2fb",
+  "catalog_sha256": "264733cfb9fab6ee7a265df2cc0da869992cbe2b34dce29411783107e0caeda2",
   "acceptance_rule": "A finished response, registered tool, HTTP 200, negative boundary test, mocked completion or successful individual call does not prove the user goal. Positive acceptance requires an independently verified final result and data state for this exact role/operation.",
   "generative_policy": "Installed local Ollama only; no external LLM/fallback, weight downloads or runtime user preference changes.",
   "summary": {
-    "operations": 181,
-    "role_operation_cells": 739,
+    "operations": 182,
+    "role_operation_cells": 745,
     "by_role": {
-      "director": 93,
-      "chief_engineer": 176,
-      "engineer": 127,
-      "dispatcher": 138,
-      "admin": 148,
-      "executor": 57
+      "director": 94,
+      "chief_engineer": 177,
+      "engineer": 128,
+      "dispatcher": 139,
+      "admin": 149,
+      "executor": 58
     },
     "verification": {
       "reachability": {
         "passed": 17,
         "failed": 0,
         "skipped": 0,
-        "not_run": 722
+        "not_run": 728
       },
       "positive_e2e": {
         "passed": 17,
         "failed": 0,
         "skipped": 0,
-        "not_run": 722
+        "not_run": 728
       },
       "negative": {
         "passed": 1,
         "failed": 0,
         "skipped": 0,
-        "not_run": 738
+        "not_run": 744
       },
       "mocked": {
         "passed": 0,
         "failed": 0,
         "skipped": 0,
-        "not_run": 739
+        "not_run": 745
       },
       "api_domain": {
         "passed": 0,
         "failed": 0,
         "skipped": 0,
-        "not_run": 739
+        "not_run": 745
       }
     }
   },
@@ -298,6 +298,63 @@
         "tests/backend/test_assistant_task_analytics.py::test_tool_schema_and_registration_use_actual_route",
         "tests/backend/test_assistant_task_analytics.py::test_data_change_between_sections_never_yields_full_report"
       ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "maintenance_catalog_read",
+      "title": "Читаю действующие регламенты и операции ТО",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/maintenance-catalog",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "denied_roles": [],
+      "requires_confirmation": false,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "registry",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-02",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-01",
+          "PLN-03",
+          "PLN-24",
+          "PLN-26"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-01",
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "List the published maintenance types and operations for the selected type",
+        "fixture": "TEST equipment, system/type and versioned regulations; include equipment without tasks and a second inaccessible site.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Do not confirm any unrelated mutation; this operation has a read-only outcome.",
+        "postconditions": [
+          "Type counts and the selected operation codes and titles match the current approved editions bound to authorized active equipment; filtered pages, executor visibility and absence of business writes are verified.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "Business state is unchanged by this read/preview."
+        ]
+      },
+      "candidate_test_mentions": [],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
     {
@@ -12111,6 +12168,168 @@
     },
     {
       "operation": "tasks_analyze",
+      "role": "executor",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "maintenance_catalog_read",
+      "role": "director",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "maintenance_catalog_read",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "maintenance_catalog_read",
+      "role": "engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "maintenance_catalog_read",
+      "role": "dispatcher",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "maintenance_catalog_read",
+      "role": "admin",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "maintenance_catalog_read",
       "role": "executor",
       "registered": true,
       "verification": {
