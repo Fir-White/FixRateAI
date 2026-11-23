@@ -331,7 +331,8 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
             raise HTTPException(422, "Поисковый запрос должен содержать от 1 до 300 символов")
         limit = min(max(limit, 1), 20)
         from ml_service.app.rag import get_rag_service, RetrievalQuery
-        service = get_rag_service()
+        session = getattr(v, "session", None)
+        service = get_rag_service(session=session)
         query_obj = RetrievalQuery(
             query=q_str,
             site_id=str(v.principal.site_id),

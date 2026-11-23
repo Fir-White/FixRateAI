@@ -189,11 +189,12 @@ class DocumentExtractor:
         site_id: str,
         source_revision: int | str,
         catalog_sha256: str | None = None,
+        document_id: str | None = None,
     ) -> tuple[DocumentMetadata, list[Chunk]]:
         """Chunks tabular Excel catalog rows into verifiable chunks with collision-proof IDs."""
-        doc_id = f"catalog-import-rev{source_revision}"
-        title = f"Каталог регламентных операций (Ревизия {source_revision})"
-        rev_str = f"rev-{source_revision}"
+        doc_id = document_id or f"catalog-site-{site_id}"
+        title = f"Каталог ТО объекта {site_id}"
+        rev_str = f"rev-{source_revision}" if not str(source_revision).startswith("rev-") else str(source_revision)
 
         chunks: list[Chunk] = []
         for i, row in enumerate(rows):

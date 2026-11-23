@@ -122,6 +122,9 @@ class RAGIndex:
 
             # Clear current active map for this doc
             self.doc_to_chunks[doc_id] = []
+        elif old_meta and old_meta.source_revision == new_rev:
+            # Same revision already active -> idempotent skip
+            return
 
         self.documents[doc_id] = metadata
         self.latest_revisions[doc_id] = new_rev

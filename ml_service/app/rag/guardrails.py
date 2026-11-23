@@ -76,6 +76,15 @@ class AntiHallucinationGuardrail:
         stale_citations = [c for c in citations if c.is_stale or c.warning]
         status = "STALE_REVISION_WARNING" if stale_citations else "OK"
 
+        limitations = [
+            "Сведения приведены исключительно по утверждённым источникам.",
+            "ИИ является справочным ассистентом; окончательные решения принимает главный инженер.",
+        ]
+        if stale_citations:
+            for sc in stale_citations:
+                if sc.warning and sc.warning not in limitations:
+                    limitations.insert(0, sc.warning)
+
         # 4. Format verified context text wrapped in strict provenance boundaries with XML escaping
         formatted_context = cls.format_safe_context(citations)
 
@@ -85,10 +94,7 @@ class AntiHallucinationGuardrail:
             citations=list(citations),
             context_text=formatted_context,
             error_code=None,
-            limitations=[
-                "Сведения приведены исключительно по утверждённым источникам.",
-                "ИИ является справочным ассистентом; окончательные решения принимает главный инженер.",
-            ],
+            limitations=limitations,
             is_hallucination_blocked=False,
         )
 

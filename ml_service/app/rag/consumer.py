@@ -115,11 +115,13 @@ class DurableOutboxConsumer:
             # 3. Tabular Excel catalog ingestion directly from payload rows
             elif "rows" in payload and payload["rows"]:
                 rows = payload["rows"]
+                catalog_doc_id = payload.get("document_id") or f"catalog-site-{event.site_id}"
                 meta, chunks = DocumentExtractor.extract_from_catalog_rows(
                     rows,
                     site_id=str(event.site_id),
                     source_revision=event.source_revision,
                     catalog_sha256=event.source_sha256,
+                    document_id=catalog_doc_id,
                 )
                 self.index.add_document(meta, chunks)
 
@@ -147,17 +149,20 @@ class DurableOutboxConsumer:
                     if isinstance(sr, dict) and "rows" in sr:
                         rows_list = sr["rows"]
                         if isinstance(rows_list, list) and rows_list:
+                            catalog_doc_id = payload.get("document_id") or f"catalog-site-{event.site_id}"
                             meta, chunks = DocumentExtractor.extract_from_catalog_rows(
                                 rows_list,
                                 site_id=str(event.site_id),
                                 source_revision=event.source_revision,
                                 catalog_sha256=event.source_sha256,
+                                document_id=catalog_doc_id,
                             )
                             self.index.add_document(meta, chunks)
                             logger.info(
-                                "Indexed %d catalog chunks from source_imports for revision %d",
+                                "Indexed %d catalog chunks from source_imports for revision %d (doc_id=%s)",
                                 len(chunks),
                                 event.source_revision,
+                                catalog_doc_id,
                             )
             else:
                 logger.info("Outbox event %s has empty or custom payload", evt_id)
@@ -213,7 +218,7 @@ class DurableOutboxConsumer:
         )
 
     def process_single_db_event(
-        self, session: Any, event_id: str | UUID, update_status: bool = False
+        self, session: Any, event_id: str | UUID, update_status: bool = False, is_rebuild: bool = False
     ) -> bool:
         """Processes a single event from PostgreSQL source_revision_events table within a nested transaction."""
         from sqlalchemy import text
@@ -233,6 +238,13 @@ class DurableOutboxConsumer:
         if not row:
             logger.warning("Event %s not found in source_revision_events", evt_str)
             return False
+
+        # Durable deduplication against database state:
+        # If event is already marked published in DB and this is not a recovery rebuild, drop duplicate processing
+        if not is_rebuild and row.get("status") == "published":
+            logger.debug("DB Event %s already published in database; skipping duplicate", evt_str)
+            self.processed_event_ids.add(evt_str)
+            return True
 
         row_dict = dict(row)
         p = row_dict.get("payload")

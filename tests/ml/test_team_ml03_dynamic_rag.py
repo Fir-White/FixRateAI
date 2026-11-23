@@ -506,7 +506,7 @@ class TestDurableOutboxConsumer:
             source_revision=1,
         )
         assert len(chunks) == 2
-        assert meta.document_id == "catalog-import-rev1"
+        assert meta.document_id == "catalog-site-site-itp-severnaya-01"
 
         res = service.query(
             query="Очистить сетку фильтра от шлама",
@@ -653,6 +653,249 @@ class TestDurableOutboxConsumer:
             fresh_service.consumer.process_single_db_event(session, event_id, update_status=False)
         assert len(fresh_service.index.chunks) == initial_chunk_count
 
+    def test_sequential_source_import_revisions_archive_old_revision(self, tmp_path, monkeypatch):
+        """Verifies that sequential catalog revisions share logical doc_id, archiving old norms and serving new."""
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
+        import json
+        import backend.app.integration.source_revision_worker as s_worker
+        from ml_service.app.rag import reset_rag_service, get_rag_service
+
+        db_path = tmp_path / "sequential_catalog.db"
+        engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
+        with engine.begin() as conn:
+            conn.execute(text("""
+                CREATE TABLE source_revision_events (
+                    event_id TEXT PRIMARY KEY, site_id TEXT, scope TEXT,
+                    source_revision INTEGER, source_sha256 TEXT, entity_type TEXT,
+                    entity_id TEXT, change_type TEXT, payload TEXT, status TEXT DEFAULT 'pending',
+                    published_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE source_imports (
+                    source_import_id TEXT PRIMARY KEY, site_id TEXT, source_sha256 TEXT,
+                    source_name TEXT, source_revision INTEGER, status TEXT, row_count INTEGER,
+                    source_rows TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+
+        factory = sessionmaker(engine, expire_on_commit=False)
+        monkeypatch.setattr(s_worker, "index_source_rows", lambda *a, **kw: 1)
+        reset_rag_service()
+
+        site_id = str(uuid4())
+        imp1_id, evt1_id = str(uuid4()), str(uuid4())
+        imp2_id, evt2_id = str(uuid4()), str(uuid4())
+
+        # Revision 1: norm_hours = 0.25
+        rows_v1 = [{
+            "code": "OP-MANOMETER-01",
+            "title": "Проверка герметичности штуцера манометра",
+            "equipment_type": "pressure_gauge",
+            "norm_hours": "0.25",
+            "instructions": "Проверить штуцер манометра на герметичность. Старая норма 0.25ч.",
+        }]
+        # Revision 2: updated norm_hours = 0.50
+        rows_v2 = [{
+            "code": "OP-MANOMETER-01",
+            "title": "Проверка герметичности штуцера манометра",
+            "equipment_type": "pressure_gauge",
+            "norm_hours": "0.50",
+            "instructions": "Проверить штуцер манометра на герметичность. Новая утвержденная норма 0.50ч.",
+        }]
+
+        # 1. Publish Revision 1
+        with factory() as session:
+            session.execute(text("""
+                INSERT INTO source_imports VALUES (:id, :site, 'sha1', 'cat1.xlsx', 1, 'imported', 1, :rows, CURRENT_TIMESTAMP)
+            """), {"id": imp1_id, "site": site_id, "rows": json.dumps({"rows": rows_v1})})
+            session.execute(text("""
+                INSERT INTO source_revision_events VALUES (:eid, :site, 'maintenance_catalog', 1, 'sha1', 'source_import', :iid, 'source_revision', '{\"row_count\": 1}', 'pending', NULL, CURRENT_TIMESTAMP)
+            """), {"eid": evt1_id, "site": site_id, "iid": imp1_id})
+            session.commit()
+
+            evt1 = session.execute(text("SELECT * FROM source_revision_events WHERE event_id=:id"), {"id": evt1_id}).mappings().one()
+            res1 = s_worker.publish_event(session, dict(evt1))
+            session.commit()
+            assert res1["status"] == "published"
+
+        service = get_rag_service()
+        # Verify rev-1 is active
+        r1 = service.query("Проверка герметичности штуцера OP-MANOMETER-01", site_id=site_id, user_role="chief_engineer")
+        assert r1.status == "OK"
+        assert len(r1.citations) == 1
+        assert "0.25ч" in r1.citations[0].snippet
+        assert r1.citations[0].source_revision == "rev-1"
+        assert r1.citations[0].is_stale is False
+
+        # 2. Publish Revision 2 (supersedes Revision 1 under same logical document_id)
+        with factory() as session:
+            session.execute(text("""
+                INSERT INTO source_imports VALUES (:id, :site, 'sha2', 'cat2.xlsx', 2, 'imported', 1, :rows, CURRENT_TIMESTAMP)
+            """), {"id": imp2_id, "site": site_id, "rows": json.dumps({"rows": rows_v2})})
+            session.execute(text("""
+                INSERT INTO source_revision_events VALUES (:eid, :site, 'maintenance_catalog', 2, 'sha2', 'source_import', :iid, 'source_revision', '{\"row_count\": 1}', 'pending', NULL, CURRENT_TIMESTAMP)
+            """), {"eid": evt2_id, "site": site_id, "iid": imp2_id})
+            session.commit()
+
+            evt2 = session.execute(text("SELECT * FROM source_revision_events WHERE event_id=:id"), {"id": evt2_id}).mappings().one()
+            res2 = s_worker.publish_event(session, dict(evt2))
+            session.commit()
+            assert res2["status"] == "published"
+
+        # 3. Normal search MUST return rev-2 only, old norm 0.25ч must be completely absent
+        r2 = service.query("Проверка герметичности штуцера OP-MANOMETER-01", site_id=site_id, user_role="chief_engineer")
+        assert r2.status == "OK"
+        assert len(r2.citations) == 1
+        assert "0.50ч" in r2.citations[0].snippet
+        assert "0.25ч" not in r2.citations[0].snippet
+        assert r2.citations[0].source_revision == "rev-2"
+        assert r2.citations[0].is_stale is False
+
+        # 4. Search with requested_revision='rev-1' returns STALE_REVISION_WARNING citing rev-2
+        r_stale = service.query(
+            "Проверка герметичности штуцера OP-MANOMETER-01",
+            site_id=site_id,
+            user_role="chief_engineer",
+            requested_revision="rev-1",
+        )
+        assert r_stale.status == "STALE_REVISION_WARNING"
+        assert len(r_stale.citations) == 1
+        assert len(r_stale.limitations) > 0
+        assert any("rev-2" in lim for lim in r_stale.limitations)
+
+        # 5. Search with fantasy revision 'rev-999' returns DOCUMENT_NOT_FOUND
+        r_fantasy = service.query(
+            "Проверка герметичности штуцера OP-MANOMETER-01",
+            site_id=site_id,
+            user_role="chief_engineer",
+            requested_revision="rev-999",
+        )
+        assert r_fantasy.status == "DOCUMENT_NOT_FOUND"
+
+    def test_automatic_app_startup_rebuild_from_published_outbox(self, tmp_path):
+        """Verifies that get_rag_service(session=...) automatically restores dynamic state on startup."""
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
+        import json
+        from ml_service.app.rag import reset_rag_service, get_rag_service
+
+        db_path = tmp_path / "startup_rebuild.db"
+        engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
+        with engine.begin() as conn:
+            conn.execute(text("""
+                CREATE TABLE source_revision_events (
+                    event_id TEXT PRIMARY KEY, site_id TEXT, scope TEXT,
+                    source_revision INTEGER, source_sha256 TEXT, entity_type TEXT,
+                    entity_id TEXT, change_type TEXT, payload TEXT, status TEXT,
+                    published_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE source_imports (
+                    source_import_id TEXT PRIMARY KEY, site_id TEXT, source_sha256 TEXT,
+                    source_name TEXT, source_revision INTEGER, status TEXT, row_count INTEGER,
+                    source_rows TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+
+        factory = sessionmaker(engine, expire_on_commit=False)
+        site_id = "site-startup-auto-01"
+        imp_id, evt_id = str(uuid4()), str(uuid4())
+
+        sample_rows = [{
+            "code": "2.2",
+            "title": "Опрессовка пластинчатого теплообменника",
+            "equipment_type": "heat_exchanger",
+            "norm_hours": "2.0",
+            "instructions": "Испытание на прочность давлением 10 бар в течение 10 минут.",
+        }]
+
+        with factory() as session:
+            session.execute(text("""
+                INSERT INTO source_imports VALUES (:id, :site, 'sha-hex', 'hex.xlsx', 1, 'imported', 1, :rows, CURRENT_TIMESTAMP)
+            """), {"id": imp_id, "site": site_id, "rows": json.dumps({"rows": sample_rows})})
+            session.execute(text("""
+                INSERT INTO source_revision_events VALUES (:eid, :site, 'maintenance_catalog', 1, 'sha-hex', 'source_import', :iid, 'source_revision', '{\"row_count\": 1}', 'published', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """), {"eid": evt_id, "site": site_id, "iid": imp_id})
+            session.commit()
+
+        # Simulate fresh app startup after restart: reset singleton
+        reset_rag_service()
+
+        # Calling get_rag_service with session (as done by lifespan / HTTP route) automatically triggers rebuild
+        with factory() as session:
+            service = get_rag_service(session=session)
+            assert service.rebuilt_from_storage is True
+
+            res = service.query(
+                "Испытание на прочность давлением 10 бар",
+                site_id=site_id,
+                user_role="chief_engineer",
+            )
+            assert res.status == "OK"
+            assert len(res.citations) > 0
+            assert "2.2" in res.citations[0].snippet
+
+    def test_durable_deduplication_drops_already_published_events(self, tmp_path):
+        """Durable deduplication: process_single_db_event drops already published DB event even after RAM clear."""
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
+        import json
+        from ml_service.app.rag import RAGService
+
+        db_path = tmp_path / "dedup.db"
+        engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
+        with engine.begin() as conn:
+            conn.execute(text("""
+                CREATE TABLE source_revision_events (
+                    event_id TEXT PRIMARY KEY, site_id TEXT, scope TEXT,
+                    source_revision INTEGER, source_sha256 TEXT, entity_type TEXT,
+                    entity_id TEXT, change_type TEXT, payload TEXT, status TEXT,
+                    published_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE source_imports (
+                    source_import_id TEXT PRIMARY KEY, site_id TEXT, source_sha256 TEXT,
+                    source_name TEXT, source_revision INTEGER, status TEXT, row_count INTEGER,
+                    source_rows TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+
+        factory = sessionmaker(engine, expire_on_commit=False)
+        site_id = "site-dedup-01"
+        imp_id, evt_id = str(uuid4()), str(uuid4())
+
+        sample_rows = [{"code": "3.1", "title": "Калибровка датчика", "norm_hours": "0.5", "instructions": "Калибровка."}]
+
+        with factory() as session:
+            session.execute(text("""
+                INSERT INTO source_imports VALUES (:id, :site, 'sha-dedup', 'cal.xlsx', 1, 'imported', 1, :rows, CURRENT_TIMESTAMP)
+            """), {"id": imp_id, "site": site_id, "rows": json.dumps({"rows": sample_rows})})
+            session.execute(text("""
+                INSERT INTO source_revision_events VALUES (:eid, :site, 'maintenance_catalog', 1, 'sha-dedup', 'source_import', :iid, 'source_revision', '{\"row_count\": 1}', 'published', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            """), {"eid": evt_id, "site": site_id, "iid": imp_id})
+            session.commit()
+
+        service = RAGService()
+        with factory() as session:
+            # 1. Rebuild loads the published event
+            service.rebuild_from_storage(session)
+            initial_count = len(service.index.chunks)
+
+            # 2. Clear RAM deduplication cache
+            service.consumer.processed_event_ids.clear()
+            assert len(service.consumer.processed_event_ids) == 0
+
+            # 3. Call process_single_db_event on the already published event
+            dropped = service.consumer.process_single_db_event(session, evt_id, is_rebuild=False)
+            assert dropped is True
+
+            # 4. Durable check ensured no duplicate chunks or re-archiving occurred
+            assert len(service.index.chunks) == initial_count
+
 
 class DummyPrincipal:
     def __init__(self, role: str = "executor", site_id: str = "site-itp-severnaya-01"):
@@ -664,6 +907,7 @@ class DummyPrincipal:
 class DummyViews:
     def __init__(self, role: str = "executor", site_id: str = "site-itp-severnaya-01"):
         self.principal = DummyPrincipal(role=role, site_id=site_id)
+        self.session = None
 
 
 class TestAuthenticatedBackendRAGRoute:

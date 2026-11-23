@@ -28,6 +28,7 @@ class RAGService:
     ) -> None:
         self.index = index if index is not None else RAGIndex()
         self.consumer = consumer if consumer is not None else DurableOutboxConsumer(self.index)
+        self.rebuilt_from_storage: bool = False
 
     @classmethod
     def create_with_frozen_corpus(
@@ -176,8 +177,9 @@ class RAGService:
             """)).mappings().all()
 
             for row in published_events:
-                self.consumer.process_single_db_event(session, row["event_id"], update_status=False)
+                self.consumer.process_single_db_event(session, row["event_id"], update_status=False, is_rebuild=True)
 
+        self.rebuilt_from_storage = True
         return count
 
     def query(
@@ -228,6 +230,7 @@ class RAGService:
         site_id: str,
         source_revision: int | str,
         catalog_sha256: str | None = None,
+        document_id: str | None = None,
     ) -> tuple[DocumentMetadata, list[Chunk]]:
         """Extracts and indexes tabular Excel catalog rows for an operational site."""
         metadata, chunks = DocumentExtractor.extract_from_catalog_rows(
@@ -235,16 +238,36 @@ class RAGService:
             site_id=site_id,
             source_revision=source_revision,
             catalog_sha256=catalog_sha256,
+            document_id=document_id,
         )
         self.index.add_document(metadata, chunks)
         return metadata, chunks
 
 
-def get_rag_service() -> RAGService:
-    """Returns singleton instance of RAGService initialized with frozen corpus."""
+def get_rag_service(session: Any = None) -> RAGService:
+    """Returns singleton instance of RAGService initialized with frozen corpus and automatic database rebuild."""
     global _GLOBAL_RAG_SERVICE
     if _GLOBAL_RAG_SERVICE is None:
         _GLOBAL_RAG_SERVICE = RAGService.create_with_frozen_corpus()
+        if session is not None:
+            try:
+                _GLOBAL_RAG_SERVICE.rebuild_from_storage(session=session)
+            except Exception as exc:
+                logger.warning("Failed to auto-rebuild RAG from provided session: %s", exc)
+        else:
+            try:
+                from backend.app.db.session import make_session_factory, make_engine
+                engine = make_engine()
+                factory = make_session_factory(engine)
+                with factory() as s:
+                    _GLOBAL_RAG_SERVICE.rebuild_from_storage(session=s)
+            except Exception:
+                pass
+    elif session is not None and not _GLOBAL_RAG_SERVICE.rebuilt_from_storage:
+        try:
+            _GLOBAL_RAG_SERVICE.rebuild_from_storage(session=session)
+        except Exception as exc:
+            logger.warning("Failed to auto-rebuild RAG from session: %s", exc)
     return _GLOBAL_RAG_SERVICE
 
 
