@@ -1,5 +1,5 @@
 # Отчёт о реализации задачи TEAM-ML03 (FRAI-173)
-## Динамический RAG и автоматическая актуализация индекса (Ревизия 5 / Финальный)
+## Динамический RAG и автоматическая актуализация индекса (Ревизия 6 / Финальный)
 
 * **Идентификатор задачи**: FRAI-173 (`5cc2bb6a-4437-4837-87f0-23a49453e4b7`)
 * **Исполнитель**: Muhammad / Мухаммад (`d1ba36a5-b2a2-428c-aa24-05ad8fffe4ad`)
@@ -17,7 +17,7 @@
 ```
 ml_service/app/rag/
 ├── __init__.py           # Публичные интерфейсы, get_rag_service и reset_rag_service
-├── schemas.py            # DTO: Chunk, DocumentMetadata, RetrievalQuery, Citation, RetrievalResult, OutboxEvent, IndexSyncReport
+├── schemas.py            # DTO: Chunk, DocumentMetadata (статусы: active, stale, archived, deleted, pending, failed), RetrievalQuery, Citation, RetrievalResult, OutboxEvent, IndexSyncReport
 ├── extractor.py          # Иерархический парсер Markdown (H1 > H2 > H3), стабильные логические ID каталогов catalog-site-{site_id}, SHA-256
 ├── guardrails.py         # Защитные барьеры: AntiHallucinationGuardrail, PromptInjectionDefense, quoteattr для XML-атрибутов и escape для тела
 ├── index.py              # Лексический индекс: стемминг, синонимы, обобщенный фильтр неутвержденного оборудования, ролевой и объектный ACL, архив ревизий, revoke/delete_document с вытеснением из активного поиска
@@ -33,12 +33,12 @@ ml_service/app/rag/
 
 ---
 
-### 2. Устранение замечаний аудита SHA `968e294`
+### 2. Устранение замечаний аудита SHA `f64bc5c`
 
 | № | Замечание аудита | Критичность | Внедрённое исправление | Статус |
 |:---:|:---|:---:|:---|:---:|
-| 8 | **Durable Outbox: revoked/deleted для `source_import`**: обработчик отзыва искал `payload.document_id` либо UUID `entity_id` импорта вместо стабильного идентификатора `catalog-site-{site_id}`. При `deleted`/`revoked` каталог оставался активным (`is_archived=False`), а поиск продолжал возвращать его | **critical** | 1) В `consumer.py` в обработчик `change_type in ("revoked", "deleted")` добавлен автоматический резолвинг логического идентификатора: для `entity_type in ("source_import", "maintenance_catalog")` или `scope == "maintenance_catalog"` в список кандидатов включается `catalog-site-{event.site_id}`.<br>2) В `index.py` реализованы методы `revoke_document` (перевод в `is_archived=True, is_stale=True, status="stale"`) и `delete_document` (перевод в `is_archived=True, is_stale=True, status="deleted"`). При вызове оба метода извлекают чанки из активного словаря `self.chunks` и перемещают их в `self.archived_chunks` с `is_stale=True`, полностью исключая попадание в активный поиск (`DOCUMENT_NOT_FOUND`, fail-closed).<br>3) В `source_revision_worker.py` в функции `publish_event` добавлена проверка `event.get('change_type') not in ('revoked', 'deleted')` перед вызовом `index_source_rows`, а в `process_pending_revisions` в запрос включен столбец `change_type`. | **RESOLVED** |
-| 9 | **Тестовое покрытие**: отсутствовали сквозные тесты worker→consumer для `revoked` и `deleted` без `payload.document_id` | **medium** | В `tests/ml/test_team_ml03_dynamic_rag.py` добавлены 2 сквозных теста:<br>1) `test_source_import_worker_to_consumer_revoked_marks_stale_and_blocks_active_search`: проверка публикации через воркер события `revoked` для `source_import` без `document_id` в payload, подтверждение статуса в БД (`published`), смена метаданных каталога на `is_archived=True, status='stale'` и блокировка поиска (`DOCUMENT_NOT_FOUND`).<br>2) `test_source_import_worker_to_consumer_deleted_removes_from_active_search`: проверка публикации через воркер события `deleted` без `document_id`, подтверждение статуса `deleted`, исключение из активного поиска и верификация сохранения удалённого состояния после рестарта и `rebuild_from_storage`. Общее число тестов ML03 увеличено до 46. | **RESOLVED** |
+| 8 | **DocumentMetadata.status**: отсутствие литерала `deleted` в схеме Pydantic | **medium** | В `schemas.py` в поле `DocumentMetadata.status` добавлен литерал `"deleted"`: `Literal["active", "stale", "archived", "deleted", "pending", "failed"]`. Теперь сериализация/десериализация `DocumentMetadata.model_validate(meta.model_dump())` для удалённых объектов проходит без ошибок валидации. | **RESOLVED** |
+| 9 | **Тестовое покрытие**: отсутствовал тест Pydantic round-trip для удалённых метаданных | **medium** | В `tests/ml/test_team_ml03_dynamic_rag.py` добавлены проверки round-trip сериализации/валидации через Pydantic: в тесте `test_source_import_worker_to_consumer_deleted_removes_from_active_search` (для свежих и восстановленных метаданных), а также отдельный модульный тест `test_document_metadata_deleted_status_pydantic_roundtrip`. Общее число тестов ML03 увеличено до 47. | **RESOLVED** |
 
 ---
 
@@ -53,15 +53,15 @@ ml_service/app/rag/
 | 5 | **Revision archive / auto-rebuild** | Стабильный логический `catalog-site-{site_id}` гарантирует архивацию устаревших ревизий каталога с `is_stale=True`. Автоматический `rebuild_from_storage` при запуске в `lifespan(app)` и в роуте поиска. Запрос архива выдает предупреждение со ссылкой на активную ревизию. | **PASS** |
 | 6 | **Prompt-injection / XML** | Атрибуты XML тегов `<source_evidence>` экранируются через `xml.sax.saxutils.quoteattr`, тело — через `escape`. Валидность проверена через `xml.etree.ElementTree`. | **PASS** |
 | 7 | **CR-17: опрессовка** | Опрессовка коллектора 8.0 бар (`doc-stp-manifold-05`) ограничена ролью `chief_engineer`. Роль `executor` получает `ACCESS_DENIED`. | **PASS** |
-| 8 | **Durable Outbox / revoked & deleted** | При `revoked`/`deleted` событиях `source_import` consumer разрешает целевой документ как `catalog-site-{event.site_id}`, переводит метаданные в `is_archived=True, is_stale=True`, удаляет чанки из активного словаря `chunks`, блокируя выдачу в поиск. Воркер корректно переводит событие в `published`. | **PASS** |
-| 9 | **Тестовое покрытие** | 46/46 тестов ML03 успешно пройдены (1.59 с). 306/306 тестов ML-пакета пройдены. Все репозиторные верификаторы зеленые. | **PASS** |
+| 8 | **Durable Outbox / revoked & deleted** | При `revoked`/`deleted` событиях `source_import` consumer разрешает целевой документ как `catalog-site-{event.site_id}`, переводит метаданные в `is_archived=True, is_stale=True, status='stale'/'deleted'`, удаляет чанки из активного словаря `chunks`, блокируя выдачу в поиск. Схема `DocumentMetadata` включает `"deleted"`, Pydantic round-trip валидируется без ошибок. Воркер корректно переводит событие в `published`. | **PASS** |
+| 9 | **Тестовое покрытие** | 47/47 тестов ML03 успешно пройдены (1.48 с). 307/307 тестов ML-пакета пройдены. Все репозиторные верификаторы зеленые. | **PASS** |
 
 ---
 
 ### 4. Результаты контрольного тестирования
 
-* **Целевой набор тестов TEAM-ML03**: `tests/ml/test_team_ml03_dynamic_rag.py` — **46 из 46 успешно пройден** (1.59 с).
-* **Полный тестовый набор подсистемы ML**: `tests/ml` — **306 пройден без единого сбоя** (52.28 с).
+* **Целевой набор тестов TEAM-ML03**: `tests/ml/test_team_ml03_dynamic_rag.py` — **47 из 47 успешно пройден** (1.48 с).
+* **Полный тестовый набор подсистемы ML**: `tests/ml` — **307 пройден без единого сбоя** (49.88 с).
 * **Репозиторные верификаторы**:
   - `scripts/verify_photo_manifest.py`: SUCCESS (PASS, 14 фото, 0 реальных клиентов).
   - `scripts/verify_split_leakage.py -v`: SUCCESS (PASS, 0 утечек).

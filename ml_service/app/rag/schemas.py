@@ -23,7 +23,7 @@ class DocumentMetadata(BaseModel):
     file_path: str | None = None
     is_archived: bool = False
     is_stale: bool = False
-    status: Literal["active", "stale", "archived", "pending", "failed"] = "active"
+    status: Literal["active", "stale", "archived", "deleted", "pending", "failed"] = "active"
 
 
 class Chunk(BaseModel):

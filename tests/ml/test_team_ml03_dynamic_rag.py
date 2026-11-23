@@ -1074,6 +1074,14 @@ class TestDurableOutboxConsumer:
         assert doc_meta.is_stale is True
         assert doc_meta.status == "deleted"
 
+        # Assert Pydantic serialization / model_validate roundtrip succeeds for deleted metadata
+        from ml_service.app.rag.schemas import DocumentMetadata
+        dumped = doc_meta.model_dump()
+        revalidated = DocumentMetadata.model_validate(dumped)
+        assert revalidated.status == "deleted"
+        assert revalidated.is_archived is True
+        assert revalidated.is_stale is True
+
         # 4. Assert active search fail-closed: DOCUMENT_NOT_FOUND
         r_deleted = service.query("Проверка герметичности штуцера OP-MANOMETER-01", site_id=site_id, user_role="chief_engineer")
         assert r_deleted.status == "DOCUMENT_NOT_FOUND"
@@ -1088,8 +1096,29 @@ class TestDurableOutboxConsumer:
             doc_meta_rebuilt = rebuilt_service.index.documents[catalog_doc_id]
             assert doc_meta_rebuilt.is_archived is True
             assert doc_meta_rebuilt.status == "deleted"
+            # Verify roundtrip on rebuilt metadata as well
+            rebuilt_revalidated = DocumentMetadata.model_validate(doc_meta_rebuilt.model_dump())
+            assert rebuilt_revalidated.status == "deleted"
             r_rebuilt = rebuilt_service.query("Проверка герметичности штуцера OP-MANOMETER-01", site_id=site_id, user_role="chief_engineer")
             assert r_rebuilt.status == "DOCUMENT_NOT_FOUND"
+
+    def test_document_metadata_deleted_status_pydantic_roundtrip(self):
+        """Ensures DocumentMetadata schema explicitly supports 'deleted' status roundtrip serialization/validation."""
+        from ml_service.app.rag.schemas import DocumentMetadata
+        meta = DocumentMetadata(
+            document_id="doc-test-del",
+            title="Тестовый регламент",
+            source_revision="rev-1",
+            status="deleted",
+            is_archived=True,
+            is_stale=True,
+        )
+        data = meta.model_dump()
+        assert data["status"] == "deleted"
+        restored = DocumentMetadata.model_validate(data)
+        assert restored.status == "deleted"
+        assert restored.is_archived is True
+        assert restored.is_stale is True
 
 
 
