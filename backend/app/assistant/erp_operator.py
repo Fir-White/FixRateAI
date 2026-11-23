@@ -500,7 +500,13 @@ async def _build_read_contract(execution, decision, read_goal, tasks, today, wan
     reset = (latest is not None and request.scope == 'site' and
              await _review_clear(execution, execution.question, request.scope_quote, latest, 'equipment_scope'))
     if delta.mode == 'new' and (reset or request.scope.startswith('asset_')):
+        # Selecting a different asset changes the subject of an existing
+        # order search. It does not also erase the order date and state.
+        inherited = (task.constraints.get('tasks_find', {}).copy()
+                     if not reset and request.outcome == task.last_outcome == 'work_orders' else {})
         task = TaskState(task_id=execution.turn_id, original_request=execution.question)
+        if inherited:
+            task.constraints['tasks_find'] = inherited
     if latest and request.date and request.date.kind == 'clear':
         if not await _review_clear(execution, execution.question, request.date.quote, latest, 'date'):
             request = request.model_copy(update={'date': None})

@@ -189,10 +189,12 @@ def test_read_goal_binds_card_scope_day_and_count_independently_of_tool_request(
 
     def decide(context):
         if 'quote' in context:
-            assert context['quote'] == 'А теперь'
-            return {'independent': False}
+            return {'independent': context['quote'] == 'По всему объекту'}
         question = context['question']
-        if 'КС-62' in question:
+        mode = 'new'
+        if 'КС-63' in question:
+            request = dict(outcome='work_orders', scope='asset_code', selector='КС-63')
+        elif 'КС-62' in question:
             request = dict(outcome='equipment_card', scope='site', selector='КС-62')
         elif 'принятый отчёт' in question:
             request = dict(outcome='accepted_report', scope='inherit')
@@ -201,10 +203,13 @@ def test_read_goal_binds_card_scope_day_and_count_independently_of_tool_request(
         elif 'сдвинь' in question:
             request = dict(outcome='work_orders', scope='site', scope_quote='А теперь',
                            date={'kind': 'shift', 'days': 1})
+        elif 'По всему объекту' in question:
+            mode = 'continue'
+            request = dict(outcome='work_orders', output='count', scope='site', scope_quote='По всему объекту')
         else:
             request = dict(outcome='work_orders', output='count')
         reads.append(request['outcome'])
-        return dict(tool='equipment_find', read_goal=request, task_delta={'mode': 'new'})
+        return dict(tool='equipment_find', read_goal=request, task_delta={'mode': mode})
 
     configure(fixture[1], monkeypatch, lambda: Scripted(decide))
     client = clients['chief_engineer']
@@ -213,7 +218,9 @@ def test_read_goal_binds_card_scope_day_and_count_independently_of_tool_request(
     first, _, _ = turn(client, 'На завтра один самый ранний назначенный.', chat=chat)
     shifted, _, _ = turn(client, 'А теперь сдвинь на день.', chat=chat)
     count, _, _ = turn(client, 'Сколько их всего?', chat=chat)
-    assert len(reads) == 5
+    narrower, _, _ = turn(client, 'По КС-63 сохрани ту же дату и статус.', chat=chat)
+    all_count, _, _ = turn(client, 'По всему объекту сколько таких работ за ту же дату?', chat=chat)
+    assert len(reads) == 7
     assert selected['id'] in card['answer'] and 'карточка оборудования' in card['answer']
     assert 'записей нет' in history['answer']
     for response, day in ((first, days['tomorrow']), (shifted, days['next_day'])):
@@ -229,3 +236,10 @@ def test_read_goal_binds_card_scope_day_and_count_independently_of_tool_request(
         assert [row['id'] for row in proof['result']['items']] == expected[:1]
     assert 'Найдено **1**' in count['answer']
     assert count['workflow']['outcome'] == 'completed'
+    query = stored(fixture, narrower['turn_id'])['evidence'][0]['arguments']['query']
+    assert query['equipment_asset_code'] == 'КС-63' and query['starts_on'] == str(days['next_day'])
+    assert query['state'] == 'assigned' and query['limit'] == 1
+    expected_count = sum(order['start'].date() == days['next_day'] and order['status'] == 'assigned'
+                         for order in ledger['tasks'])
+    assert expected_count > 1 and all_count['workflow']['outcome'] == 'completed'
+    assert f'Найдено **{expected_count}**' in all_count['answer']

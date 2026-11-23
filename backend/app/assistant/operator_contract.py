@@ -154,7 +154,7 @@ class ReadContract(StrictModel):
         if self.source != 'tasks_find':
             return True
         applied = data.get('filters', {})
-        expected = {**self.query, **self.equipment_scope}
+        expected = arguments['query']
         for key in ('state', 'starts_on', 'ends_on', 'sort', 'scheduled_only', 'maintenance_only', 'unassigned_only',
                     'equipment_asset_code', 'equipment_q', 'equipment_id', 'equipment_accepted_maintenance'):
             if key in expected and applied.get(key, False) != expected[key]:
