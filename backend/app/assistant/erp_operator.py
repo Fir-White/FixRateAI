@@ -5,6 +5,7 @@ import json
 import re
 from time import monotonic
 from typing import Literal
+from uuid import UUID
 
 from fastapi import HTTPException
 from pydantic import Field, create_model
@@ -16,6 +17,7 @@ from . import service, workflow
 from .action_outcomes import SUPPORTED
 from .fact_presenter import present_facts
 from .intents import mutation_command_requested, primary_document_requested, prohibits_changes
+from .operator_contract import EQUIPMENT_PATH, GoalClarification, ReadContract, ReadGoal, contract_for, quoted_in
 from .operator_state import COLLECTIONS, ROWS, StrictModel, TaskDelta, TaskState
 from .tools import describe, invoke, validate_arguments
 
@@ -47,6 +49,7 @@ class Decision(StrictModel):
     result_source: str = Field(default='', max_length=75)
     arguments_json: str = Field(default='{}', max_length=4500)
     task_delta: TaskDelta | None = None
+    read_goal: ReadGoal | None = None
     receipt: str = Field(default='', max_length=12)
     presentation: Literal['continue', 'items', 'count', 'types', 'instructions'] = 'continue'
     clarification: Literal['', 'target', 'date', 'draft_policy', 'scope', 'unverified'] = ''
@@ -57,8 +60,17 @@ def _schema(names, initial):
     fields = {'tool': (Literal[(*names, 'reply', 'clarify', 'discover')], ...),
               'arguments_json': (str, ...), 'presentation': (Decision.model_fields['presentation'].annotation, ...)}
     if initial:
-        fields.update(task_delta=(TaskDelta, ...), result_source=(str, ...))
+        fields.update(read_goal=(ReadGoal | None, ...), task_delta=(TaskDelta | None, None))
     return create_model('OperatorPlan' if initial else 'OperatorStep', __base__=Decision, **fields)
+
+
+class ScopeReview(StrictModel):
+    independent: bool
+
+
+@lru_cache(maxsize=4)
+def _prompt(name):
+    return (service.PROMPTS / name).read_text(encoding='utf-8')
 
 
 def prepare(execution, thread, turn, history, files, sent_files, question, clock):
@@ -97,6 +109,11 @@ def _prior_tasks(execution):
         task = (previous.get('erp_operator') or {}).get('task')
         if task and turn['status'] == 'completed' and previous.get('scope') == execution.scope:
             saved = TaskState.model_validate(task)
+            if saved.equipment is None:
+                earlier_card = next((proof for proof in reversed(previous.get('evidence', ()))
+                                     if proof['tool'] == 'equipment_read' and proof.get('complete')), None)
+                if earlier_card:
+                    saved.observe(earlier_card)
             result.setdefault(str(saved.task_id), saved)
     return result
 
@@ -163,7 +180,16 @@ def _project(name, value):
             result['execution'] = presentation._pick(value['execution'], ('id', 'state', 'checklist'))
         return result
     if name in presentation.SOURCE_NAMES:
-        return presentation._project(name, value)
+        result = presentation._project(name, value)
+        if name == 'tasks_find':
+            result['period'] = value['period']
+            for row, source in zip(result['items'], value['items'], strict=True):
+                row['matchedAt'] = source['matchedAt']
+        if name == 'equipment_service_history':
+            result.update(presentation._pick(value, ('equipment_id', 'only_accepted', 'latest_only', 'starts_on', 'ends_on')))
+        if name == 'maintenance_catalog_read':
+            result.update(presentation._pick(value, ('type_codes', 'type_keys')))
+        return result
     if name == 'assignment_prepare':
         return presentation._project('assignment_preview', value)
     if name == 'staff_find':
@@ -175,8 +201,8 @@ def _project(name, value):
                                       'submission_blocks', 'ready', 'submission_ready', 'task_state', 'report_state'))
 
 
-async def _read(execution, goal, task, tool, arguments):
-    bound = task.bind(tool.name, arguments)
+async def _read(execution, goal, task, tool, arguments, *, semantic=False, observe=True):
+    bound = arguments if semantic else task.bind(tool.name, arguments)
     if tool.name in COLLECTIONS:
         query = bound['query']
         limit = query.get('limit', presentation.PAGE_SIZE)
@@ -184,8 +210,11 @@ async def _read(execution, goal, task, tool, arguments):
             raise HTTPException(422, 'Размер страницы от 1 до 25. Для полного перечня используйте страницы.')
         bound['query'] = {**query, 'limit': limit}
     checked = validate_arguments(execution.app, tool, bound)
-    if any(proof['tool'] == tool.name and proof['arguments'] == checked and proof.get('retained')
-           for proof in _observed(execution).values()):
+    previous = next((proof for proof in _observed(execution).values() if proof['tool'] == tool.name and
+                     proof['arguments'] == checked and proof.get('retained')), None)
+    if previous:
+        if semantic:
+            return previous
         raise HTTPException(409, 'Эта выборка уже проверена. Используйте её receipt.')
     execution.check()
     service.progress(execution.app, execution.turn_id, execution.trace, tool.name)
@@ -193,8 +222,10 @@ async def _read(execution, goal, task, tool, arguments):
     value = _project(tool.name, await invoke(execution.app, tool, checked, execution.headers))
     proof = workflow.record_result(execution.state, goal, tool.name, checked, value, elapsed=monotonic() - started)
     proof['operator_turn'] = str(execution.turn_id)
-    task.accept_query(tool.name, arguments)
-    task.observe(proof)
+    if not semantic:
+        task.accept_query(tool.name, arguments)
+    if observe:
+        task.observe(proof)
     execution.trace.append(dict(tool=tool.name, status='completed', arguments=checked,
                                 result=service.bounded(value), at=workflow.timestamp()))
     return proof
@@ -235,11 +266,13 @@ async def _propose(execution, goal, task, tool, proof, arguments):
         # Only the server preview may supply assignment participants and dates.
         if arguments or not proof or proof['tool'] not in ('assignment_preview', 'assignment_prepare'):
             raise HTTPException(422, 'Используйте receipt расчёта назначения без новых параметров.')
+        _guard_mutation_subject(execution, proof['arguments']['path'])
         await presentation._propose(execution, goal, {**proof, 'tool': 'assignment_preview'})
         goal['title'] = tool.title
         return
     if tool.before:
         _verified_target(arguments, proof)
+    _guard_mutation_subject(execution, arguments.get('path', {}))
     execution.check()
     with execution.app.state.factory() as session:
         action = await service.propose(execution.app, session, execution.principal, execution.thread, tool,
@@ -252,14 +285,26 @@ async def _propose(execution, goal, task, tool, proof, arguments):
     execution.trace.append(dict(tool=tool.name, status='proposed', at=workflow.timestamp()))
 
 
-def _deliver(execution, goal, task, proof, style):
+def _guard_mutation_subject(execution, path):
+    selection = execution.state['erp_operator'].get('mutation_target')
+    if not selection:
+        return
+    proved = _observed(execution).get(selection['receipt'])
+    if not proved or proved['tool'] != 'tasks_find' or not proved['retained']:
+        raise HTTPException(422, 'Сначала подтвердите выбор наряда по условиям поручения.')
+    items = proved['result']['items']
+    if len(items) != 1 or str(path.get('task_id')) != items[0]['id']:
+        raise HTTPException(422, 'Изменение возможно только для единственного проверенного наряда.')
+
+
+def _deliver(execution, goal, task, proof, style, *, semantic=False):
     if task.operation != 'read' or not proof or not proof.get('retained'):
         return False
     source = proof['tool']
     if source != execution.state['erp_operator'].get('result_source'):
         return False
     constraints = task.constraints.get(source, {})
-    if type(constraints.get('limit')) is int and style != 'items':
+    if not semantic and type(constraints.get('limit')) is int and style != 'items':
         return False
     if style == 'instructions' and source == 'task_read':
         instructions = proof['result'].get('instructions')
@@ -336,6 +381,106 @@ def _discover(execution, state, args):
     state['domain_capabilities'] = {name: tool.title for name, tool in matches.items()}
 
 
+async def _review_clear(execution, question, quote, latest, field):
+    if not quoted_in(quote, question):
+        return False
+    review = await execution.infer([dict(role='system', content=_prompt('erp-operator-scope.md')),
+        dict(role='user', content=service.dump({'message': question, 'quote': quote, 'field': field,
+                                               'prior_goal': latest.original_request[:500]}))], ScopeReview, 160)
+    return review.independent
+
+
+async def _build_read_contract(execution, decision, tasks, today):
+    request = decision.read_goal.bind_literal_selector(execution.question)
+    delta = decision.task_delta or TaskDelta()
+    latest = next(iter(tasks.values()), None)
+    if delta.mode == 'restore':
+        latest = tasks.get(str(delta.restore_task_id))
+        if latest is None:
+            raise HTTPException(422, 'Уточните, к какому поручению вернуться.')
+    task = latest.model_copy(deep=True) if latest else TaskState(task_id=execution.turn_id,
+                                                               original_request=execution.question)
+    reset = (latest is not None and request.scope == 'site' and
+             await _review_clear(execution, execution.question, request.scope_quote, latest, 'equipment_scope'))
+    if delta.mode == 'new' and (reset or request.scope.startswith('asset_')):
+        task = TaskState(task_id=execution.turn_id, original_request=execution.question)
+    if latest and request.date and request.date.kind == 'clear':
+        if not await _review_clear(execution, execution.question, request.date.quote, latest, 'date'):
+            request = request.model_copy(update={'date': None})
+    task.operation = delta.operation
+    task.last_outcome = request.outcome
+    contract = contract_for(task, request, execution.question, today, allow_scope_reset=reset)
+    if contract.source not in execution.tools:
+        raise HTTPException(403, 'Текущая роль не может прочитать этот источник.')
+    task.constraints[contract.source] = contract.query
+    state = execution.state['erp_operator']
+    state.update(task=task.model_dump(mode='json'), semantic=contract.model_dump(mode='json'),
+                 result_source=contract.source,
+                 transition={'from': str(latest.task_id) if latest else None, 'to': str(task.task_id),
+                             'scope_reset_verified': reset, 'proposal': decision.read_goal.model_dump(mode='json'),
+                             'selector_bound': request.selector if request.scope.startswith('asset_') else None})
+    return task, contract
+
+
+async def _resolve_asset(execution, goal, task, contract):
+    selector = contract.selector
+    if selector.kind == 'asset_id':
+        return selector.value
+    args = selector.arguments()
+    args['query']['limit'] = 2
+    proof = await _read(execution, goal, task, execution.tools['equipment_find'], args, semantic=True, observe=False)
+    if not proof['retained']:
+        raise HTTPException(422, 'Не удалось подтвердить выбранное оборудование.')
+    result = proof['result']
+    if result.get('total') == 0:
+        raise HTTPException(404, 'Указанное оборудование не найдено в доступной области.')
+    if result.get('total') != 1 or len(result.get('items', ())) != 1:
+        raise HTTPException(422, 'Уточните код или точное название оборудования.')
+    task.observe(proof)
+    return result['items'][0]['equipment_id']
+
+
+async def _fulfil_read(execution, goal, task, contract):
+    state = execution.state['erp_operator']
+    goal['title'] = execution.tools[contract.source].title
+    try:
+        needs_resolution = (contract.source in EQUIPMENT_PATH and not contract.equipment_id or
+                            contract.source == 'tasks_find' and contract.selector and
+                            contract.selector.kind == 'asset_name' and 'equipment_id' not in contract.equipment_scope)
+        if needs_resolution:
+            identity = UUID(await _resolve_asset(execution, goal, task, contract))
+            if contract.source in EQUIPMENT_PATH:
+                contract.equipment_id = identity
+            else:
+                contract.equipment_scope = {'equipment_id': str(identity), **contract.equipment_scope}
+            state.update(task=task.model_dump(mode='json'), semantic=contract.model_dump(mode='json'))
+            return False
+        proof = await _read(execution, goal, task, execution.tools[contract.source], contract.arguments(), semantic=True)
+        started = monotonic()
+        verified = contract.verifies(proof, execution.scope['timezone'])
+        execution.state['metrics']['goal_verification_seconds'] = round(monotonic() - started, 6)
+        if not verified:
+            presentation._blocked(goal, 'operator_goal_unverified', 'Результат источника не подтвердил условия поручения.')
+            return True
+        state['task'] = task.model_dump(mode='json')
+        state['verified_receipt'] = proof['id']
+        if task.operation == 'change':
+            state.pop('semantic')
+            state['mutation_target'] = dict(contract=contract.model_dump(mode='json'), receipt=proof['id'])
+            return False
+        if _deliver(execution, goal, task, proof, contract.output, semantic=True):
+            return True
+        presentation._blocked(goal, 'operator_goal_unverified', presentation.CLARIFICATIONS['unverified'])
+        return True
+    except HTTPException as exc:
+        reason = {403: 'permission_denied', 404: 'target_not_found', 422: 'operator_clarification'}.get(
+            exc.status_code, 'operator_source_failed')
+        execution.trace.append(dict(tool=contract.source, status='denied', code=exc.status_code, at=workflow.timestamp()))
+        presentation._blocked(goal, reason, str(exc.detail) if exc.status_code in (403, 404, 422) else
+                              presentation.CLARIFICATIONS['unverified'])
+        return True
+
+
 async def step(execution, goal):
     state = execution.state['erp_operator']
     if goal.get('action_id') or goal['status'] in END_STATUSES:
@@ -346,6 +491,9 @@ async def step(execution, goal):
     if primary_document_requested(execution.question):
         presentation._blocked(goal, 'operator_primary_document_required', 'Для проверки нужен оригинал документа производителя.')
         return True
+    if 'semantic' in state:
+        return await _fulfil_read(execution, goal, TaskState.model_validate(state['task']),
+                                 ReadContract.model_validate(state['semantic']))
     settings = execution.app.state.settings
     tokens = min(750, settings.assistant_operator_output_tokens - state['reserved_output_tokens'])
     if state['attempts'] >= settings.assistant_operator_steps or tokens < 300:
@@ -367,21 +515,29 @@ async def step(execution, goal):
         domain_capabilities=state.get('domain_capabilities', {}),
         tools={name: (presentation.TOOLS[name] if name in CORE else describe(execution.app, tool)['inputSchema'])
                for name, tool in enabled.items() if tool.mode == 'read' or task is None or task.operation == 'change'},
-        recent=[{'question': row['content'][:500], 'answer': (row['answer'] or '')[:600]}
-                for row in execution.history[:3] if (row.get('workflow') or {}).get('scope') == execution.scope],
+        recent=[{'question': row['content'][:500]}
+                for row in execution.history[:2] if (row.get('workflow') or {}).get('scope') == execution.scope],
         results=[dict(receipt=key, tool=proof['tool'], arguments=proof['arguments'], complete=proof['complete'],
                       result=_small(proof['result'])) for key, proof in observed.items() if proof['retained']],
         failures=state['errors'][-4:])
     state['attempts'] += 1
     state['reserved_output_tokens'] += tokens
-    instruction = (service.PROMPTS / 'erp-operator.md').read_text(encoding='utf-8')
+    instruction = _prompt('erp-operator-goal.md' if task is None else 'erp-operator.md')
     schema = _schema(tuple(context['tools']), task is None)
     decision = await execution.infer([dict(role='system', content=instruction),
                                       dict(role='user', content=service.dump(context))], schema, tokens)
     try:
         if task is None:
+            if decision.read_goal:
+                if decision.task_delta and decision.task_delta.operation == 'change' and (
+                        decision.read_goal.outcome != 'work_orders' or decision.read_goal.output != 'items'):
+                    raise HTTPException(422, 'Для изменения нужен план выбора одного наряда.')
+                started = monotonic()
+                await _build_read_contract(execution, decision, tasks, date.fromisoformat(execution.clock['local_date']))
+                execution.state['metrics']['goal_binding_seconds'] = round(monotonic() - started, 6)
+                return False
             task = _start_task(execution, goal, decision, tasks)
-        elif decision.task_delta is not None:
+        elif decision.task_delta is not None or decision.read_goal is not None:
             raise HTTPException(422, 'Изменения ограничений принимаются один раз на реплику.')
         proof = observed.get(decision.receipt)
         if decision.tool == 'clarify':
@@ -394,7 +550,10 @@ async def step(execution, goal):
             raise HTTPException(422, 'Выберите подтверждённый receipt, который отвечает на поручение.')
         arguments = _arguments(decision)
         if decision.tool == 'discover':
+            started = monotonic()
             _discover(execution, state, arguments)
+            metrics = execution.state['metrics']
+            metrics['discovery_seconds'] = metrics.get('discovery_seconds', 0) + round(monotonic() - started, 6)
             return False
         tool = enabled.get(decision.tool)
         if tool is None:
@@ -410,6 +569,9 @@ async def step(execution, goal):
         proof = await _read(execution, goal, task, tool, arguments)
         state['task'] = task.model_dump(mode='json')
         return decision.presentation != 'continue' and _deliver(execution, goal, task, proof, decision.presentation)
+    except GoalClarification as exc:
+        presentation._blocked(goal, 'operator_clarification', str(exc))
+        return True
     except (HTTPException, ValueError) as exc:
         code = exc.status_code if isinstance(exc, HTTPException) else 422
         detail = str(exc.detail)[:220] if isinstance(exc, HTTPException) and code < 500 else 'Проверьте схему аргументов.'

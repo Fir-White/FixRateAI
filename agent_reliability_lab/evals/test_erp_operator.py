@@ -28,8 +28,11 @@ class Scripted:
         self.decide = decide
 
     def chat(self, messages, schema, _budget):
+        context = json.loads(messages[-1]['content'])
+        if schema.__name__ == 'ScopeReview':
+            return schema.model_validate(self.decide(context))
         result = {'arguments_json': '{}', 'presentation': 'continue',
-                  'result_source': '', **self.decide(json.loads(messages[-1]['content']))}
+                  'result_source': '', 'read_goal': None, **self.decide(context)}
         # A provider could return a tool outside the advertised enum.
         return (schema.__base__ if result['tool'] == 'task_assign' else schema).model_validate(result)
 
@@ -111,9 +114,9 @@ def test_operator_assignment_requires_user_confirmation_and_rechecks(assistant_c
         if 'Ничего не меняй' in ctx['question']:
             return dict(tool='task_assign', task_delta=dict(mode='new', operation='change')) if not ctx['failures'] else dict(tool='clarify')
         if not results:
-            return dict(tool='tasks_find', task_delta=dict(mode='new', operation='change', source='tasks_find',
-                set=dict(state='draft', maintenance_only=True, unassigned_only=True, starts_on=ctx['tomorrow'],
-                         ends_on=ctx['tomorrow'], limit=1)))
+            return dict(tool='reply', task_delta=dict(mode='new', operation='change'),
+                        read_goal=dict(outcome='work_orders', scope='site', work_state='draft',
+                                       sort='earliest', maintenance_only=True, unassigned_only=True, limit=1))
         order = results[0]['result']['items'][0]
         path = dict(task_id=order['id'])
         if len(results) == 1:
@@ -134,6 +137,8 @@ def test_operator_assignment_requires_user_confirmation_and_rechecks(assistant_c
     action, = cards
     assert action['arguments']['path']['task_id'] == task_id
     assert action['arguments']['body']['executor_ids'] == [worker]
+    selected_target = stored(fixture, proposal['turn_id'])['erp_operator']['mutation_target']
+    assert selected_target['receipt'] == 'e1' and selected_target['contract']['query']['limit'] == 1
     engine, _, _, _, ids = fixture
     query = text('SELECT status,revision FROM work_orders WHERE work_order_id=:task')
     with engine.connect() as db:
@@ -172,3 +177,52 @@ def test_bounded_cohort_transfer_uses_sql_and_preserves_role_visibility(pipeline
     assert empty.status_code == 200 and empty.json()['total'] == 0
     conflict = executor.get(workspace, params={**common, 'equipment_id': visible, 'equipment_ids': [visible]})
     assert conflict.status_code == 422
+
+
+def test_read_goal_binds_card_scope_day_and_count_independently_of_tool_request(pipeline_fixture, monkeypatch):
+    fixture, clients, ledger, days, _ = pipeline_fixture
+    selected = next(item for item in ledger['equipment'] if item['code'] == 'КС-62')
+    reads = []
+
+    def decide(context):
+        if 'quote' in context:
+            assert context['quote'] == 'А теперь'
+            return {'independent': False}
+        question = context['question']
+        if 'КС-62' in question:
+            request = dict(outcome='equipment_card', scope='site', selector='КС-62')
+        elif 'принятый отчёт' in question:
+            request = dict(outcome='accepted_report', scope='inherit')
+        elif 'завтра' in question:
+            request = dict(outcome='work_orders', unassigned_only=True, sort='earliest', limit=1)
+        elif 'сдвинь' in question:
+            request = dict(outcome='work_orders', scope='site', scope_quote='А теперь',
+                           date={'kind': 'shift', 'days': 1})
+        else:
+            request = dict(outcome='work_orders', output='count')
+        reads.append(request['outcome'])
+        return dict(tool='equipment_find', read_goal=request, task_delta={'mode': 'new'})
+
+    configure(fixture[1], monkeypatch, lambda: Scripted(decide))
+    client = clients['chief_engineer']
+    card, _, chat = turn(client, 'Покажи карточку КС-62.')
+    history, _, _ = turn(client, 'Назови последний принятый отчёт этой установки.', chat=chat)
+    first, _, _ = turn(client, 'На завтра один самый ранний назначенный.', chat=chat)
+    shifted, _, _ = turn(client, 'А теперь сдвинь на день.', chat=chat)
+    count, _, _ = turn(client, 'Сколько их всего?', chat=chat)
+    assert len(reads) == 5
+    assert selected['id'] in card['answer'] and 'карточка оборудования' in card['answer']
+    assert 'записей нет' in history['answer']
+    for response, day in ((first, days['tomorrow']), (shifted, days['next_day'])):
+        result = stored(fixture, response['turn_id'])
+        assert result['outcome'] == 'completed', response
+        proof = result['evidence'][0]
+        assert proof['arguments']['query'] == {
+            'equipment_asset_code': 'КС-62', 'starts_on': str(day), 'ends_on': str(day),
+            'state': 'assigned', 'sort': 'earliest', 'limit': 1,
+        }
+        expected = [order['id'] for order in ledger['tasks'] if order['asset'] == selected['id'] and
+                    order['start'].date() == day and order['status'] == 'assigned']
+        assert [row['id'] for row in proof['result']['items']] == expected[:1]
+    assert 'Найдено **1**' in count['answer']
+    assert count['workflow']['outcome'] == 'completed'

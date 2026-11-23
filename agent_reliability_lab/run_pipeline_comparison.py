@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-from scripts.verify_agent_local import LOCAL_GUARD, ROOT, environment, installed_model, source_manifest
+from scripts.verify_agent_local import LOCAL_GUARD, ROOT, corpus_manifest, environment, installed_model, source_manifest
 
 
 def cloud_guard():
@@ -38,7 +38,9 @@ def main():
     parser.add_argument('--cloud-config', type=Path, help='AI Tunnel config file for the authorized synthetic corpus')
     parser.add_argument('--variants', help='A fixed Qwen, B dynamic Qwen, C dynamic DeepSeek, D ERP Qwen, E ERP DeepSeek')
     parser.add_argument('--cases', default='', help='Comma-separated IDs from the synthetic comparison corpus')
-    parser.add_argument('--operator-holdout', action='store_true', help='Use the separate multi-turn ERP validation corpus')
+    corpus = parser.add_mutually_exclusive_group()
+    corpus.add_argument('--operator-holdout', action='store_true', help='Use the separate multi-turn ERP validation corpus')
+    corpus.add_argument('--reliability-holdout', action='store_true', help='Use the 50 additional frozen ERP dialogues')
     args = parser.parse_args()
     output = args.output.resolve()
     if not output.is_relative_to(ROOT / 'reports'):
@@ -59,17 +61,22 @@ def main():
     if args.cloud_config:
         variables['FIXRATE_PIPELINE_CLOUD_CONFIG'] = str(args.cloud_config.resolve(strict=True))
     test = ('agent_reliability_lab/erp_operator_holdout.py' if args.operator_holdout
+            else 'agent_reliability_lab/erp_operator_reliability_holdout.py' if args.reliability_holdout
             else 'agent_reliability_lab/evals/test_pipeline_comparison.py')
+    harness_paths = [test, 'agent_reliability_lab/pipeline_cases.py',
+                     'agent_reliability_lab/run_pipeline_comparison.py']
+    harness = corpus_manifest(ROOT, harness_paths)
     before = source_manifest(ROOT)
     (output/'provenance.json').write_text(json.dumps(dict(source=before, local_model=model,
-        cloud_model='aitunnel:deepseek-v4-flash' if args.cloud_config else None, test=test,
+        cloud_model='aitunnel:deepseek-v4-flash' if args.cloud_config else None, test=test, harness=harness,
         started_at=datetime.now(timezone.utc).isoformat()), indent=2), encoding='utf-8')
     command = [sys.executable, '-B', str(ROOT/'scripts/verify.py'), '--pg-bin', str(args.pg_bin),
                '--agent-only', '--output', str(output/'run'), '--pytest-target', test]
     with (output/'runner.log').open('w', encoding='utf-8') as log:
         run = subprocess.run(command, cwd=ROOT, env=variables, stdout=log, stderr=subprocess.STDOUT, check=False)
     after = source_manifest(ROOT)
-    result = dict(exit_code=run.returncode, source_stable=before['sha256'] == after['sha256'],
+    result = dict(exit_code=run.returncode, source_stable=before['sha256'] == after['sha256']
+                  and harness == corpus_manifest(ROOT, harness_paths),
                   completed_at=datetime.now(timezone.utc).isoformat())
     (output/'verification.json').write_text(json.dumps(result, indent=2), encoding='utf-8')
     print(json.dumps(result))

@@ -70,6 +70,8 @@ class TaskState(StrictModel):
     equipment: EquipmentSelection | None = None
     use_equipment_selection: bool = False
     references: dict[str, list[Entity]] = Field(default_factory=dict)
+    maintenance_types: list[str] = Field(default_factory=list, max_length=25)
+    last_outcome: str = ''
 
     def apply(self, delta):
         allowed = COLLECTIONS.get(delta.source, set())
@@ -133,6 +135,12 @@ class TaskState(StrictModel):
             kind, field = ROWS[name]
             self.references[kind] = [Entity(kind=kind, identity=row[field])
                                      for row in value.get('items', []) if row.get(field)]
+        if name == 'equipment_read' and self.references['equipment']:
+            row = value['items'][0]
+            self.equipment = EquipmentSelection(receipt=proof['id'], filters={'asset_code': row['asset_code']},
+                                                members=[self.references['equipment'][0].identity], complete=True)
+        if name == 'maintenance_catalog_read' and not proof['arguments'].get('query', {}).get('type_codes'):
+            self.maintenance_types = [row['type_code'] for row in value.get('types', [])[:25]]
         if name == 'equipment_find':
             query = proof['arguments'].get('query', {})
             stable = dict(self.constraints.get(name, {}))

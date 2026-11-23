@@ -569,6 +569,9 @@ def register_routes(app,views):
         if equipment_accepted_maintenance is not None:
             scope.update(equipment_accepted_maintenance=equipment_accepted_maintenance)
         items = [v.task_view(order, checked_at=now) for order in selected]
+        for item, order in zip(items, selected, strict=True):
+            item['matchedAt'] = (order.regulatory_deadline_at if period == 'overdue' else
+                                 order.planned_start_at or order.regulatory_deadline_at)
         if equipment_id is not None or maintenance_only:
             for item, order in zip(items, selected, strict=True):
                 if equipment_id is not None:

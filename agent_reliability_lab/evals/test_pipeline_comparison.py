@@ -251,6 +251,7 @@ def test_pipeline_comparison(pipeline_fixture, monkeypatch):
                 for case in cases:
                     chat = None
                     observations = []
+                    prior_task = None
                     for check in case.turns:
                         started = perf_counter()
                         prompt = check.prompt.format(**days)
@@ -258,11 +259,15 @@ def test_pipeline_comparison(pipeline_fixture, monkeypatch):
                         state = stored(fixture, response['turn_id']) or {}
                         expected = _expected(check, ledger, days, case.role, worker)
                         failures = _judge(check, expected, response, state, actions)
+                        operator = state.get('erp_operator', {})
                         observations.append(dict(prompt=prompt, answer=response.get('answer'), expected=expected,
                             failures=failures, actions=len(actions), seconds=perf_counter()-started,
                             model=response.get('model_ref'), outcome=state.get('outcome'), error_code=response.get('error_code'),
                             trace=response.get('trace', []), metrics=state.get('metrics', {}),
-                            operator_errors=(state.get('erp_operator') or {}).get('errors', [])))
+                            operator_errors=operator.get('errors', []), operator_task_before=prior_task,
+                            operator_task=operator.get('task'), operator_transition=operator.get('transition'),
+                            operator_contract=operator.get('semantic'), verified_receipt=operator.get('verified_receipt')))
+                        prior_task = operator.get('task')
                     passed = all(not row['failures'] for row in observations)
                     counts.update(conversations=1, passed=int(passed), turns=len(observations),
                                   turns_passed=sum(not row['failures'] for row in observations),
