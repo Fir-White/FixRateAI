@@ -68,3 +68,13 @@ ml_service/app/rag/
   - `scripts/validate_artifacts.py`: OK.
   - `scripts/assistant_capabilities.py`: 180 инструментов, 100% покрытие API без неучтенных роутов.
   - `tests/backend/test_assistant_capabilities.py`: PASS.
+
+---
+
+### 5. Вердикт независимого аудита OpenAI Codex (GPT-6 Luna) по ревизии `6136b76`
+
+* **Критические дефекты (Critical issues)**: **0**
+* **Предупреждения (Warnings)**: **0**
+* **Готовность к приёмке (Ready for TEAM-ML03 QA acceptance)**: **YES**
+* **Итоговый вердикт**: реализация на `6136b76` полностью устраняет ранее выявленный дефект DTO-контракта `deleted`; требования FRAI-173, CR-17 и TL04 по всем проверенным контурам выполнены. Задача передана на финальную приёмку QA-инженеру Михаилу (`FRAI-173`).
+
