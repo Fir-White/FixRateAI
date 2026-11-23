@@ -758,7 +758,6 @@
       "method": "POST",
       "path": "/api/v1/maintenance/tasks/{task_id}/review",
       "roles": [
-        "engineer",
         "chief_engineer"
       ],
       "agents": [

@@ -710,7 +710,9 @@ def create_app(engine=None):
 
     @app.post(prefix + "/tasks/{task_id}/review")
     def review(task_id: UUID, payload: Review, v=Depends(views)):
-        require_role(v.principal, "engineer")
+        # The chief engineer is the accountable human decision-maker. Engineers
+        # may inspect evidence and verify acts, but cannot change the lifecycle.
+        require_role(v.principal, "chief_engineer")
         order = v.task(task_id, lock=True)
         check_revision(order, payload.expected_revision)
         reports = v.rows("work_reports", work_order_id=task_id)
