@@ -127,6 +127,7 @@ def _arguments(decision):
         args = {'query': args}
     if set(args) - {'path', 'query', 'body'}:
         raise HTTPException(422, 'Используйте только path, query и body.')
+    args = {key: value for key, value in args.items() if value is not None}
     if any(not isinstance(value, dict) for value in args.values()):
         raise HTTPException(422, 'Параметры path, query и body должны быть объектами.')
     if 'query' in args:
@@ -135,9 +136,7 @@ def _arguments(decision):
 
 
 def _start_task(execution, goal, decision, tasks):
-    delta = decision.task_delta
-    if delta is None:
-        raise HTTPException(422, 'В первом шаге укажите, начинается или продолжается поручение.')
+    delta = decision.task_delta or TaskDelta()
     task = None
     if delta.mode == 'restore':
         task = tasks.get(str(delta.restore_task_id))
@@ -236,12 +235,15 @@ def _observed(execution):
 
 
 def _can_prepare(execution, task):
+    return task.operation == 'change' and _explicit_change(execution.question)
+
+
+def _explicit_change(request):
     # This independent server check is a write safety gate, outside model routing.
     from .semantic_plan import QUOTED
 
-    question = QUOTED.sub(' ', execution.question)
-    return (task.operation == 'change' and not prohibits_changes(question) and
-            mutation_command_requested(question.replace(',', '.')))
+    question = QUOTED.sub(' ', request)
+    return not prohibits_changes(question) and mutation_command_requested(question.replace(',', '.'))
 
 
 def _verified_target(arguments, proof):
@@ -390,8 +392,29 @@ async def _review_clear(execution, question, quote, latest, field):
     return review.independent
 
 
-async def _build_read_contract(execution, decision, tasks, today):
-    request = decision.read_goal.bind_literal_selector(execution.question)
+def _read_goal_from_tool(decision):
+    # Some providers choose a registered read while omitting the optional
+    # semantic envelope. Its tool name can identify a result, never authorize a write.
+    outcomes = {'equipment_find': 'equipment_list', 'equipment_read': 'equipment_card',
+                'equipment_service_history': 'accepted_report', 'regulations_read': 'equipment_regulation'}
+    source = decision.result_source or decision.tool
+    if source not in outcomes or decision.task_delta and decision.task_delta.operation == 'change':
+        return None
+    if source == 'equipment_find':
+        if decision.task_delta is not None:
+            return None
+        query = _arguments(decision).get('query', {})
+        if set(query) - {'asset_code', 'accepted_maintenance'}:
+            return None
+        code = query.get('asset_code') or ''
+        return ReadGoal(outcome='equipment_list', scope='asset_code' if code else 'inherit',
+                        selector=code, accepted=query.get('accepted_maintenance'),
+                        output='count' if decision.presentation == 'count' else 'items')
+    return ReadGoal(outcome=outcomes[source])
+
+
+async def _build_read_contract(execution, decision, read_goal, tasks, today, wants_change):
+    request = read_goal.bind_literal_selector(execution.question)
     delta = decision.task_delta or TaskDelta()
     latest = next(iter(tasks.values()), None)
     if delta.mode == 'restore':
@@ -407,7 +430,7 @@ async def _build_read_contract(execution, decision, tasks, today):
     if latest and request.date and request.date.kind == 'clear':
         if not await _review_clear(execution, execution.question, request.date.quote, latest, 'date'):
             request = request.model_copy(update={'date': None})
-    task.operation = delta.operation
+    task.operation = 'change' if wants_change and request.outcome == 'work_orders' else 'read'
     task.last_outcome = request.outcome
     contract = contract_for(task, request, execution.question, today, allow_scope_reset=reset)
     if contract.source not in execution.tools:
@@ -417,7 +440,7 @@ async def _build_read_contract(execution, decision, tasks, today):
     state.update(task=task.model_dump(mode='json'), semantic=contract.model_dump(mode='json'),
                  result_source=contract.source,
                  transition={'from': str(latest.task_id) if latest else None, 'to': str(task.task_id),
-                             'scope_reset_verified': reset, 'proposal': decision.read_goal.model_dump(mode='json'),
+                             'scope_reset_verified': reset, 'proposal': read_goal.model_dump(mode='json'),
                              'selector_bound': request.selector if request.scope.startswith('asset_') else None})
     return task, contract
 
@@ -506,12 +529,14 @@ async def step(execution, goal):
     tasks = _prior_tasks(execution) if task is None else {}
     observed = _observed(execution)
     enabled = {name: tool for name, tool in execution.tools.items() if name in CORE or name in state['discovered']}
+    wants_change = _explicit_change(execution.question)
     context = dict(question=execution.question, task=state.get('task'),
         prior_tasks=[prior.model_dump(mode='json') if index == 0 else
                      dict(task_id=str(prior.task_id), original_request=prior.original_request)
                      for index, prior in enumerate(tasks.values())],
         clock=execution.clock, tomorrow=(date.fromisoformat(execution.clock['local_date']) + timedelta(days=1)).isoformat(),
-        role=execution.scope['role'], domains=sorted({workflow.specialist(name) for name in execution.tools}),
+        role=execution.scope['role'], explicit_change_requested=wants_change,
+        domains=sorted({workflow.specialist(name) for name in execution.tools}),
         domain_capabilities=state.get('domain_capabilities', {}),
         tools={name: (presentation.TOOLS[name] if name in CORE else describe(execution.app, tool)['inputSchema'])
                for name, tool in enabled.items() if tool.mode == 'read' or task is None or task.operation == 'change'},
@@ -528,12 +553,13 @@ async def step(execution, goal):
                                       dict(role='user', content=service.dump(context))], schema, tokens)
     try:
         if task is None:
-            if decision.read_goal:
-                if decision.task_delta and decision.task_delta.operation == 'change' and (
-                        decision.read_goal.outcome != 'work_orders' or decision.read_goal.output != 'items'):
+            read_goal = decision.read_goal or _read_goal_from_tool(decision)
+            if read_goal:
+                if wants_change and (read_goal.outcome != 'work_orders' or read_goal.output != 'items'):
                     raise HTTPException(422, 'Для изменения нужен план выбора одного наряда.')
                 started = monotonic()
-                await _build_read_contract(execution, decision, tasks, date.fromisoformat(execution.clock['local_date']))
+                await _build_read_contract(execution, decision, read_goal, tasks,
+                                           date.fromisoformat(execution.clock['local_date']), wants_change)
                 execution.state['metrics']['goal_binding_seconds'] = round(monotonic() - started, 6)
                 return False
             task = _start_task(execution, goal, decision, tasks)

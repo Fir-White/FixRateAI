@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 from fastapi import HTTPException
 from pydantic import Field
 
-from .operator_state import StrictModel
+from .operator_state import EquipmentSelector, StrictModel
 from .maintenance_subject import dates as calendar_literals, type_keys, without_types
 
 
@@ -58,10 +58,14 @@ class DateChange(StrictModel):
                 raise HTTPException(422, 'Укажите границы периода.')
             return {'starts_on': self.start.isoformat(), 'ends_on': end.isoformat()}
         if self.kind == 'shift':
-            if self.days is None or not previous.get('starts_on') or not previous.get('ends_on'):
+            if self.days is None or not any(previous.get(key) for key in ('starts_on', 'ends_on', 'on_days')):
                 raise GoalClarification('Укажите исходную дату или период для сдвига.')
-            return {key: (date.fromisoformat(previous[key]) + timedelta(days=self.days)).isoformat()
-                    for key in ('starts_on', 'ends_on')}
+            shift = timedelta(days=self.days)
+            result = {key: (date.fromisoformat(previous[key]) + shift).isoformat()
+                      for key in ('starts_on', 'ends_on') if previous.get(key)}
+            if previous.get('on_days'):
+                result['on_days'] = [(date.fromisoformat(day) + shift).isoformat() for day in previous['on_days']]
+            return result
         value = (today + timedelta(days={'today': 0, 'tomorrow': 1, 'yesterday': -1}[self.kind])).isoformat()
         return {'starts_on': value, 'ends_on': value}
 
@@ -104,21 +108,12 @@ class ReadGoal(StrictModel):
         return self
 
 
-class Selector(StrictModel):
-    kind: Literal['asset_code', 'asset_name', 'asset_id']
-    value: str = Field(min_length=1, max_length=180)
-
-    def arguments(self):
-        key = 'asset_code' if self.kind == 'asset_code' else 'q'
-        return {'query': {key: self.value}}
-
-
 class ReadContract(StrictModel):
     source: str
     outcome: str
     output: Literal['items', 'count', 'types']
     query: dict
-    selector: Selector | None = None
+    selector: EquipmentSelector | None = None
     equipment_id: UUID | None = None
     equipment_scope: dict = Field(default_factory=dict)
 
@@ -225,6 +220,19 @@ def _work_state(question):
     return next(iter(values)) if len(values) == 1 else None
 
 
+def _cardinality(goal, question):
+    words = set(re.findall(r'\w+', question.casefold()))
+    count = {'сколько', 'посчитай', 'посчитайте', 'подсчитай', 'подсчитайте', 'количество', 'число'}
+    list_commands = {'покажи', 'покажите', 'выведи', 'выведите', 'перечисли', 'перечислите', 'выпиши'}
+    count_units = {'минут', 'часов', 'суток', 'километров', 'дней', 'сотрудников', 'исполнителей'}
+    if (goal.outcome in ('work_orders', 'equipment_list') and count & words and
+            not (list_commands | count_units) & words):
+        return 'count', goal.limit
+    single = {'один', 'одна', 'одно', 'одну', 'единственный', 'единственную'}
+    limit = 1 if goal.outcome == 'work_orders' and single & words and goal.sort and goal.limit is None else goal.limit
+    return goal.output, limit
+
+
 def contract_for(task, goal, question, today, *, allow_scope_reset=False):
     source = SOURCES[goal.outcome]
     query = dict(task.constraints.get(source, {}))
@@ -232,7 +240,7 @@ def contract_for(task, goal, question, today, *, allow_scope_reset=False):
     if goal.scope in ('asset_code', 'asset_name', 'asset_id'):
         if not quoted_in(goal.selector, question):
             raise HTTPException(422, 'Имя или код оборудования должен быть указан в сообщении.')
-        selector = Selector(kind=goal.scope, value=goal.selector.strip())
+        selector = EquipmentSelector(kind=goal.scope, value=goal.selector.strip())
         if goal.scope == 'asset_id':
             UUID(selector.value)
         if source == 'equipment_find':
@@ -246,14 +254,18 @@ def contract_for(task, goal, question, today, *, allow_scope_reset=False):
             else:
                 raise HTTPException(422, 'Укажите инвентарный код для фильтрации выборки.')
         task.equipment = None
+        task.pending_equipment = selector
         task.use_equipment_selection = False
     if allow_scope_reset:
         task.equipment = None
+        task.pending_equipment = None
         task.use_equipment_selection = False
         if source == 'equipment_find':
             for field in ('q', 'asset_code', 'accepted_maintenance', 'offset', 'limit'):
                 query.pop(field, None)
-    output = 'types' if goal.outcome == 'maintenance_types' else goal.output
+    output, limit = _cardinality(goal, question)
+    if goal.outcome == 'maintenance_types':
+        output = 'types'
     if source == 'equipment_find' and goal.accepted:
         query['accepted_maintenance'] = goal.accepted
     if source == 'equipment_find' and not selector and task.equipment:
@@ -267,7 +279,10 @@ def contract_for(task, goal, question, today, *, allow_scope_reset=False):
         query['latest_only'] = True
     date_selection = _calendar_constraints(question, today) if source in ('tasks_find', 'equipment_service_history') else {}
     if goal.date and goal.date.kind == 'absolute':
-        date_selection = goal.date.dates(query, today, question)
+        if calendar_literals(question, today.isoformat()):
+            date_selection = goal.date.dates(query, today, question)
+        elif not date_selection and goal.date.start and goal.date.start.isoformat() == query.get('starts_on'):
+            date_selection = {key: value for key, value in query.items() if key in ('starts_on', 'ends_on')}
     if source == 'equipment_service_history' and 'on_days' in date_selection:
         raise HTTPException(422, 'Для истории укажите один день или период.')
     if source in ('tasks_find', 'equipment_service_history') and (goal.date or date_selection):
@@ -277,6 +292,8 @@ def contract_for(task, goal, question, today, *, allow_scope_reset=False):
         query.update(dates)
     equipment_scope = {}
     identity = None
+    if source in EQUIPMENT_PATH | {'tasks_find'} and not selector and not task.equipment:
+        selector = task.pending_equipment
     if source == 'tasks_find':
         for field in EQUIPMENT_SCOPE:
             query.pop(field, None)
@@ -321,8 +338,8 @@ def contract_for(task, goal, question, today, *, allow_scope_reset=False):
                     query.pop('type_keys', None)
                     query['type_codes'] = [goal.type_code]
     if source in ('equipment_find', 'tasks_find', 'maintenance_catalog_read'):
-        if goal.limit is not None:
-            query['limit'] = goal.limit
+        if limit is not None:
+            query['limit'] = limit
         if goal.offset is not None:
             query['offset'] = goal.offset
     return ReadContract(source=source, outcome=goal.outcome, output=output, query=query,

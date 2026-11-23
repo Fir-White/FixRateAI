@@ -43,6 +43,15 @@ class Entity(StrictModel):
     identity: UUID
 
 
+class EquipmentSelector(StrictModel):
+    kind: Literal['asset_code', 'asset_name', 'asset_id']
+    value: str = Field(min_length=1, max_length=180)
+
+    def arguments(self):
+        key = 'asset_code' if self.kind == 'asset_code' else 'q'
+        return {'query': {key: self.value}}
+
+
 class EquipmentSelection(StrictModel):
     receipt: str
     filters: dict[str, Constraint]
@@ -68,6 +77,7 @@ class TaskState(StrictModel):
     operation: Literal['read', 'change'] = 'read'
     constraints: dict[str, dict[str, Constraint]] = Field(default_factory=dict)
     equipment: EquipmentSelection | None = None
+    pending_equipment: EquipmentSelector | None = None
     use_equipment_selection: bool = False
     references: dict[str, list[Entity]] = Field(default_factory=dict)
     maintenance_types: list[str] = Field(default_factory=list, max_length=25)
@@ -88,6 +98,7 @@ class TaskState(StrictModel):
         if delta.clear_equipment_selection:
             self.use_equipment_selection = False
             self.equipment = None
+            self.pending_equipment = None
         elif delta.use_equipment_selection or (delta.source == 'tasks_find' and self.equipment):
             self.use_equipment_selection = True
 
@@ -139,6 +150,7 @@ class TaskState(StrictModel):
             row = value['items'][0]
             self.equipment = EquipmentSelection(receipt=proof['id'], filters={'asset_code': row['asset_code']},
                                                 members=[self.references['equipment'][0].identity], complete=True)
+            self.pending_equipment = None
         if name == 'maintenance_catalog_read' and not proof['arguments'].get('query', {}).get('type_codes'):
             self.maintenance_types = [row['type_code'] for row in value.get('types', [])[:25]]
         if name == 'equipment_find':
@@ -153,6 +165,8 @@ class TaskState(StrictModel):
                 members=[entity.identity for entity in self.references['equipment']],
                 complete=proof['complete'] or
                 (bool(stable.get('limit')) and len(value['items']) == stable['limit'] and not query.get('offset')))
+            if self.equipment.members:
+                self.pending_equipment = None
 
     def accept_query(self, name, raw):
         """Retain the actual successful filters. Transport defaults stay out of the task."""
