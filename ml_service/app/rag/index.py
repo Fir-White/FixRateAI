@@ -25,13 +25,28 @@ RUSSIAN_SYNONYMS: dict[str, list[str]] = {
     "очистка": ["чистка", "промывка", "разборка", "фильтр", "грязевик", "сетка", "крышка"],
 }
 
+# Stopwords and generic procedural words that cannot alone justify a match
+GENERIC_PROCEDURAL_TERMS: set[str] = {
+    "дай", "покажи", "найди", "инструкция", "регламент", "паспорт", "описание",
+    "параметры", "как", "что", "где", "когда", "для", "по", "в", "на", "с", "из",
+    "узла", "пункта", "итп", "обслуживание", "проверка", "работы", "то", "технологическая",
+    "карта", "стандарт", "предприятия", "порядок", "требования", "правила", "нормы",
+    "провести", "выполнить", "согласно", "утвержденный", "действующий", "подскажи",
+    "нужно", "следует", "документ", "документация", "информация", "сведения"
+}
+
+# Blacklist of unapproved equipment brands/models to fail-closed immediately (TL04)
+UNAPPROVED_EQUIPMENT_BRANDS: set[str] = {
+    "wilo", "grundfos", "danfoss", "dungs", "riello", "weishaupt", "baxi", "buderus",
+    "viessmann", "bosch", "vaillant", "protherm", "reflex", "valtec", "stratos"
+}
+
 
 def stem_russian_word(word: str) -> str:
     """Lightweight Russian stemmer stripping standard inflectional endings."""
     w = word.lower().strip()
     if len(w) <= 3:
         return w
-    # Common Russian suffixes / endings
     for suffix in [
         "ому", "ему", "ыми", "ями", "ого", "его", "ых", "их", "ая", "яя", "ое", "ее",
         "ам", "ям", "ом", "ем", "ах", "ях", "ов", "ев", "ей", "ий", "ый", "ой", "ать",
@@ -42,6 +57,8 @@ def stem_russian_word(word: str) -> str:
             return w[: -len(suffix)]
     return w
 
+
+GENERIC_STEMS: set[str] = {stem_russian_word(w) for w in GENERIC_PROCEDURAL_TERMS}
 
 # Precompute bidirectional synonym graph
 EXPANDED_SYNONYMS: dict[str, set[str]] = defaultdict(set)
@@ -63,31 +80,39 @@ class RAGIndex:
     def __init__(self) -> None:
         self.documents: dict[str, DocumentMetadata] = {}
         self.chunks: dict[str, Chunk] = {}
-        # Document ID -> list of chunk IDs
+        # Document ID -> list of active chunk IDs
         self.doc_to_chunks: dict[str, list[str]] = defaultdict(list)
         # Equipment class -> list of chunk IDs
         self.eq_to_chunks: dict[str, list[str]] = defaultdict(list)
         # Document ID -> latest active revision string
         self.latest_revisions: dict[str, str] = {}
-        # History: (doc_id, revision) -> list of chunk IDs
+        # Document ID -> set of all registered revisions (historical + current)
+        self.document_revisions: dict[str, set[str]] = defaultdict(set)
+        # Immutable historical chunk storage: chunk_id -> Chunk
+        self.archived_chunks: dict[str, Chunk] = {}
+        # History map: (doc_id, revision) -> list of chunk IDs
         self.archived_revisions: dict[tuple[str, str], list[str]] = defaultdict(list)
 
     def add_document(self, metadata: DocumentMetadata, chunks: list[Chunk]) -> None:
-        """Indexes or updates a document and its chunks, archiving previous revisions if updated."""
+        """Indexes or updates a document and its chunks, preserving immutable historical revisions."""
         doc_id = metadata.document_id
         new_rev = metadata.source_revision
 
-        # If previous revision exists and is different -> archive old chunks
+        self.document_revisions[doc_id].add(new_rev)
+
+        # If previous revision exists and is different -> archive old chunks immutably
         old_meta = self.documents.get(doc_id)
         if old_meta and old_meta.source_revision != new_rev:
             old_rev = old_meta.source_revision
-            old_chunk_ids = self.doc_to_chunks.get(doc_id, [])
+            old_chunk_ids = list(self.doc_to_chunks.get(doc_id, []))
             for cid in old_chunk_ids:
                 old_chunk = self.chunks.get(cid)
                 if old_chunk:
                     stale_chunk = old_chunk.model_copy(update={"is_stale": True})
-                    self.chunks[cid] = stale_chunk
+                    self.archived_chunks[cid] = stale_chunk
                     self.archived_revisions[(doc_id, old_rev)].append(cid)
+                    # Remove from active chunks map
+                    self.chunks.pop(cid, None)
 
             # Clear current active map for this doc
             self.doc_to_chunks[doc_id] = []
@@ -113,7 +138,9 @@ class RAGIndex:
         for cid in self.doc_to_chunks.get(doc_id, []):
             chunk = self.chunks.get(cid)
             if chunk:
-                self.chunks[cid] = chunk.model_copy(update={"is_stale": True})
+                stale_chunk = chunk.model_copy(update={"is_stale": True})
+                self.chunks[cid] = stale_chunk
+                self.archived_chunks[cid] = stale_chunk
         return True
 
     def retrieve(self, query: RetrievalQuery) -> RetrievalResult:
@@ -145,30 +172,42 @@ class RAGIndex:
                     ),
                 )
 
-        # 3. Detect stale/outdated revision request (RAG-NEG-03)
+        # 3. Check for unapproved equipment brands (Fail-closed on unapproved equipment)
+        q_lower = query.query.lower()
+        if any(brand in q_lower for brand in UNAPPROVED_EQUIPMENT_BRANDS):
+            return AntiHallucinationGuardrail.evaluate(query, [])
+
+        # 4. Detect stale/outdated revision request (RAG-NEG-03)
         stale_request_detected = False
         stale_rev_name = query.requested_revision
         if query.requested_revision:
             stale_request_detected = True
-        elif re.search(r"редакци[иея]\s+202[0-5]|старо[йму]\s+регламент|прошлогодн", query.query.lower()):
+        elif re.search(r"редакци[иея]\s+202[0-5]|старо[йму]\s+регламент|прошлогодн", q_lower):
             stale_request_detected = True
             m_rev = re.search(r"rev-202[0-5]\d{4}-\d+", query.query)
             if m_rev:
                 stale_rev_name = m_rev.group(0)
 
-        # 4. Tokenize and expand query with bidirectional synonyms
+        # 5. Tokenize and expand query
         q_norm = normalize_search_text(query.query)
         q_tokens = [w for w in q_norm.split() if len(w) >= 2]
         if not q_tokens:
             return AntiHallucinationGuardrail.evaluate(query, [])
 
         core_q_stems = {stem_russian_word(w) for w in q_tokens}
+        # Isolate specific domain stems vs generic stems
+        specific_q_stems = {s for s in core_q_stems if s not in GENERIC_STEMS}
+
+        # Build expanded search stems including synonyms
         all_q_stems: set[str] = set(core_q_stems)
+        all_specific_stems: set[str] = set(specific_q_stems)
         for st in core_q_stems:
             syn_stems = EXPANDED_SYNONYMS.get(st, set())
             all_q_stems.update(syn_stems)
+            if st in specific_q_stems:
+                all_specific_stems.update(syn_stems)
 
-        # 5. Score candidate chunks and track ACL denials
+        # 6. Score candidate chunks and track ACL denials
         candidates: list[tuple[float, Chunk, str | None]] = []
         is_acl_denied = False
         denied_reason = None
@@ -180,18 +219,22 @@ class RAGIndex:
             if query.equipment_class and chunk.equipment_class and chunk.equipment_class != query.equipment_class:
                 continue
 
-            # Token overlap check
             chunk_tokens = chunk.clean_text.split()
             chunk_stems = [stem_russian_word(w) for w in chunk_tokens]
             chunk_stem_set = set(chunk_stems)
+
+            # If user specified domain words, chunk MUST match at least one specific stem
+            if specific_q_stems and not all_specific_stems.intersection(chunk_stem_set):
+                continue
 
             overlap = all_q_stems.intersection(chunk_stem_set)
             if not overlap:
                 continue
 
-            # Scoring: TF with diminishing returns + overlap coverage
+            # Scoring: TF with diminishing returns + specific overlap coverage
             tf = sum(chunk_stems.count(s) for s in overlap)
-            base_score = (tf / (tf + 1.5)) * (len(overlap) / max(len(core_q_stems), 1))
+            coverage = len(overlap) / max(len(core_q_stems), 1)
+            base_score = (tf / (tf + 1.5)) * coverage
 
             # Boosts
             sec_lower = chunk.section_title.lower()
@@ -236,6 +279,13 @@ class RAGIndex:
 
             if stale_request_detected:
                 latest_rev = self.latest_revisions.get(chunk.document_id, chunk.source_revision)
+                registered_revs = self.document_revisions.get(chunk.document_id, set())
+
+                # If specific revision was requested, verify if it was ever registered
+                if stale_rev_name and stale_rev_name not in registered_revs and not is_stale_chunk:
+                    # Requested revision never existed for this document -> skip
+                    continue
+
                 if is_stale_chunk or (stale_rev_name and stale_rev_name != latest_rev) or (stale_rev_name is None):
                     stale_warning = (
                         f"Запрошена архивная/устаревшая редакция регламента ({stale_rev_name or 'предыдущих лет'}). "
@@ -251,13 +301,13 @@ class RAGIndex:
                     max_allowed_score = base_score
                 candidates.append((base_score, chunk, stale_warning))
 
-        # 6. ACL precedence: if primary matching document was denied by ACL, don't fall back to secondary generic chunks
+        # 7. ACL precedence: if primary matching document was denied by ACL, don't fall back to secondary generic chunks
         if is_acl_denied and (max_denied_score >= max_allowed_score or not candidates):
             return AntiHallucinationGuardrail.evaluate(
                 query, [], is_acl_denied=True, denied_reason=denied_reason
             )
 
-        # 7. Sort and select top_k citations
+        # 8. Sort and select top_k citations
         candidates.sort(key=lambda x: x[0], reverse=True)
         top_candidates = candidates[: query.top_k]
 
@@ -269,6 +319,7 @@ class RAGIndex:
                     document_title=chunk.document_title,
                     source_revision=chunk.source_revision,
                     section_title=chunk.section_title,
+                    section_path=chunk.section_path,
                     source_ref=chunk.source_ref,
                     snippet=chunk.content,
                     relevance_score=round(score, 4),

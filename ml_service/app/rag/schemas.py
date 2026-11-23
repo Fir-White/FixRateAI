@@ -16,6 +16,7 @@ class DocumentMetadata(BaseModel):
     title: str
     source_revision: str
     source_sha256: str | None = None
+    expected_sha256: str | None = None
     equipment_class: str | None = None
     site_acl: list[str] = Field(default_factory=list, description="Allowed site IDs (empty = global)")
     role_acl: list[str] = Field(default_factory=lambda: ["chief_engineer", "executor"])
@@ -34,6 +35,8 @@ class Chunk(BaseModel):
     document_title: str
     source_revision: str
     section_title: str
+    section_path: str = Field(default="", description="Full hierarchical heading breadcrumb")
+    chunk_index: int = 0
     content: str
     clean_text: str = Field(description="Normalized lowercase text for search matching")
     equipment_class: str | None = None
@@ -50,7 +53,7 @@ class RetrievalQuery(BaseModel):
 
     query: str = Field(min_length=1, description="Natural language search query or question")
     site_id: str | None = Field(default=None, description="Active site context of the requesting user")
-    user_role: Literal["chief_engineer", "executor", "admin", "unauthorized"] = Field(
+    user_role: Literal["chief_engineer", "executor", "admin", "unauthorized"] | str = Field(
         default="executor", description="CR-17 user role"
     )
     equipment_class: str | None = Field(default=None, description="Optional equipment filter")
@@ -67,6 +70,7 @@ class Citation(BaseModel):
     document_title: str
     source_revision: str
     section_title: str
+    section_path: str = ""
     source_ref: str
     snippet: str
     relevance_score: float
@@ -108,7 +112,7 @@ class OutboxEvent(BaseModel):
     source_sha256: str | None = None
     entity_type: str
     entity_id: UUID | str | None = None
-    change_type: Literal["created", "updated", "revoked", "deleted"] = "created"
+    change_type: Literal["created", "updated", "revoked", "deleted", "source_revision", "text_change"] | str = "created"
     payload: dict[str, Any] = Field(default_factory=dict)
     status: Literal["pending", "published", "failed"] = "pending"
     created_at: datetime | None = None

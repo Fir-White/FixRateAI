@@ -1,6 +1,7 @@
-"""Durable outbox consumer for source_revision_events table and RAG auto-indexing."""
+"""Durable outbox consumer for source_revision_events table with transaction savepoints and SHA validation."""
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from datetime import datetime, timezone
@@ -16,7 +17,7 @@ logger = logging.getLogger("fixrate.rag.consumer")
 
 
 class DurableOutboxConsumer:
-    """Consumes and indexes source revision events with strict idempotency and gap detection."""
+    """Consumes and indexes source revision events with strict idempotency, gap detection, and nested savepoints."""
 
     def __init__(self, index: RAGIndex) -> None:
         self.index = index
@@ -29,7 +30,7 @@ class DurableOutboxConsumer:
         return f"{event.site_id}:{event.scope}:{ent}"
 
     def process_single_event(self, event: OutboxEvent) -> bool:
-        """Processes a single outbox event, updating index and tracking streams."""
+        """Processes a single outbox event, verifying SHA integrity, updating index, and tracking streams."""
         evt_id = str(event.event_id)
         if evt_id in self.processed_event_ids:
             logger.debug("Event %s already processed; skipping (idempotent)", evt_id)
@@ -52,7 +53,17 @@ class DurableOutboxConsumer:
         payload = event.payload or {}
         change_type = event.change_type
 
-        if change_type in ("created", "updated"):
+        # Verify SHA-256 if provided
+        if event.source_sha256:
+            content_to_check = payload.get("markdown_text") or payload.get("content")
+            if content_to_check:
+                actual_sha = hashlib.sha256(content_to_check.encode("utf-8")).hexdigest()
+                if actual_sha != event.source_sha256:
+                    raise ValueError(
+                        f"Event {evt_id} SHA256 mismatch: expected {event.source_sha256}, got {actual_sha}"
+                    )
+
+        if change_type in ("created", "updated", "source_revision", "text_change"):
             # 1. Markdown document ingestion
             if "markdown_text" in payload or "content" in payload:
                 text_content = payload.get("markdown_text") or payload.get("content", "")
@@ -63,6 +74,7 @@ class DurableOutboxConsumer:
                     "site_acl": [str(event.site_id)] if event.site_id else [],
                     "role_acl": payload.get("role_acl", ["chief_engineer", "executor"]),
                     "equipment_class": payload.get("equipment_class"),
+                    "expected_sha256": event.source_sha256,
                 }
                 meta, chunks = DocumentExtractor.extract_from_markdown(
                     text_content,
@@ -76,6 +88,12 @@ class DurableOutboxConsumer:
                 fpath = Path(payload["file_path"])
                 if fpath.exists():
                     text_content = fpath.read_text(encoding="utf-8")
+                    if event.source_sha256:
+                        actual_sha = hashlib.sha256(text_content.encode("utf-8")).hexdigest()
+                        if actual_sha != event.source_sha256:
+                            raise ValueError(
+                                f"File {fpath} SHA256 mismatch: expected {event.source_sha256}, got {actual_sha}"
+                            )
                     override_meta = {
                         "document_id": payload.get("document_id") or f"doc-{event.scope}",
                         "title": payload.get("title"),
@@ -83,6 +101,7 @@ class DurableOutboxConsumer:
                         "site_acl": [str(event.site_id)] if event.site_id else [],
                         "role_acl": payload.get("role_acl", ["chief_engineer", "executor"]),
                         "equipment_class": payload.get("equipment_class"),
+                        "expected_sha256": event.source_sha256,
                     }
                     meta, chunks = DocumentExtractor.extract_from_markdown(
                         text_content,
@@ -104,7 +123,7 @@ class DurableOutboxConsumer:
                 )
                 self.index.add_document(meta, chunks)
             else:
-                logger.info("Outbox event %s has empty or unsupported payload structure", evt_id)
+                logger.info("Outbox event %s has empty or custom payload", evt_id)
 
         elif change_type in ("revoked", "deleted"):
             doc_id = payload.get("document_id") or (str(event.entity_id) if event.entity_id else f"doc-{event.scope}")
@@ -159,7 +178,7 @@ class DurableOutboxConsumer:
     def process_db_events(
         self, session: Any, site_id: str | UUID | None = None, limit: int = 100
     ) -> IndexSyncReport:
-        """Pulls pending events from PostgreSQL source_revision_events table and marks them published."""
+        """Pulls pending events from PostgreSQL source_revision_events table using nested savepoints."""
         from sqlalchemy import text
 
         query_str = """
@@ -167,7 +186,6 @@ class DurableOutboxConsumer:
                    entity_type, entity_id, change_type, payload, status, created_at, published_at
             FROM source_revision_events
             WHERE status = 'pending'
-              AND entity_type IN ('regulation_doc', 'source_document', 'equipment_manual', 'knowledge_doc', 'source_import')
         """
         params: dict[str, Any] = {"limit": limit}
         if site_id:
@@ -188,30 +206,32 @@ class DurableOutboxConsumer:
             processed += 1
             row_dict = dict(row)
             try:
-                # Handle jsonb payload parsed or raw string
-                p = row_dict.get("payload")
-                if isinstance(p, str):
-                    row_dict["payload"] = json.loads(p)
-                elif p is None:
-                    row_dict["payload"] = {}
+                # Nested transaction / savepoint prevents aborting outer transaction on error
+                with session.begin_nested():
+                    p = row_dict.get("payload")
+                    if isinstance(p, str):
+                        row_dict["payload"] = json.loads(p)
+                    elif p is None:
+                        row_dict["payload"] = {}
 
-                evt = OutboxEvent.model_validate(row_dict)
-                no_gap = self.process_single_event(evt)
-                if not no_gap:
-                    gap_detected = True
+                    evt = OutboxEvent.model_validate(row_dict)
+                    no_gap = self.process_single_event(evt)
+                    if not no_gap:
+                        gap_detected = True
 
-                session.execute(
-                    text("""
-                        UPDATE source_revision_events
-                        SET status = 'published', published_at = now()
-                        WHERE event_id = :event_id AND status = 'pending'
-                    """),
-                    {"event_id": evt.event_id},
-                )
+                    session.execute(
+                        text("""
+                            UPDATE source_revision_events
+                            SET status = 'published', published_at = now()
+                            WHERE event_id = :event_id AND status = 'pending'
+                        """),
+                        {"event_id": evt.event_id},
+                    )
                 published += 1
             except Exception as exc:
                 failed += 1
                 details.append(f"DB event {row_dict.get('event_id')} failed: {exc}")
+                # Savepoint was rolled back, outer transaction remains valid
                 session.execute(
                     text("""
                         UPDATE source_revision_events

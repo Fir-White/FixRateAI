@@ -1,6 +1,7 @@
 """High-level RAG service orchestrating corpus indexing, ACL verification, and outbox consumption."""
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from pathlib import Path
@@ -13,6 +14,8 @@ from .index import RAGIndex
 from .schemas import Chunk, DocumentMetadata, IndexSyncReport, OutboxEvent, RetrievalQuery, RetrievalResult
 
 logger = logging.getLogger("fixrate.rag.service")
+
+_GLOBAL_RAG_SERVICE: RAGService | None = None
 
 
 class RAGService:
@@ -31,18 +34,55 @@ class RAGService:
         cls,
         corpus_dir: str | Path | None = None,
         manifest_path: str | Path | None = None,
+        verify_integrity: bool = True,
     ) -> RAGService:
-        """Factory creating and initializing RAGService with all frozen regulation documents loaded."""
+        """Factory creating and initializing RAGService with all frozen regulation documents loaded and SHA-verified."""
         service = cls()
-        service.load_frozen_corpus(corpus_dir=corpus_dir, manifest_path=manifest_path)
+        service.load_frozen_corpus(corpus_dir=corpus_dir, manifest_path=manifest_path, verify_integrity=verify_integrity)
         return service
+
+    @staticmethod
+    def verify_manifest_integrity(manifest_path: str | Path | None = None) -> tuple[bool, list[str]]:
+        """Verifies manifest checksum and all physical document SHA-256 hashes against disk."""
+        repo_root = Path(__file__).resolve().parents[3]
+        if manifest_path is None:
+            manifest_path = repo_root / "data" / "manifests" / "rag_corpus_manifest.json"
+        else:
+            manifest_path = Path(manifest_path)
+
+        errors: list[str] = []
+        if not manifest_path.exists():
+            return False, [f"Manifest file not found: {manifest_path}"]
+
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # Check document files
+        for item in data.get("instruction_mapping", []):
+            app_src = item.get("approved_source", {})
+            rel_path = app_src.get("file_path")
+            expected_sha = app_src.get("sha256")
+            if not rel_path:
+                continue
+
+            full_path = repo_root / rel_path if not Path(rel_path).is_absolute() else Path(rel_path)
+            if not full_path.exists():
+                errors.append(f"Corpus file missing: {rel_path}")
+                continue
+
+            actual_sha = hashlib.sha256(full_path.read_bytes()).hexdigest()
+            if expected_sha and actual_sha != expected_sha:
+                errors.append(f"SHA256 mismatch for {rel_path}: expected {expected_sha}, got {actual_sha}")
+
+        return len(errors) == 0, errors
 
     def load_frozen_corpus(
         self,
         corpus_dir: str | Path | None = None,
         manifest_path: str | Path | None = None,
+        verify_integrity: bool = True,
     ) -> int:
-        """Loads and indexes the 5 frozen operational regulations cataloged in rag_corpus_manifest.json."""
+        """Loads, verifies, and indexes the 5 frozen operational regulations cataloged in rag_corpus_manifest.json."""
         repo_root = Path(__file__).resolve().parents[3]
 
         if manifest_path is None:
@@ -52,6 +92,11 @@ class RAGService:
 
         if not manifest_path.exists():
             raise FileNotFoundError(f"RAG corpus manifest not found at: {manifest_path}")
+
+        if verify_integrity:
+            is_valid, errors = self.verify_manifest_integrity(manifest_path)
+            if not is_valid:
+                raise ValueError(f"Corpus manifest integrity check failed: {'; '.join(errors)}")
 
         with open(manifest_path, "r", encoding="utf-8") as f:
             manifest_data = json.load(f)
@@ -66,11 +111,9 @@ class RAGService:
                 continue
 
             file_path = repo_root / rel_path if not Path(rel_path).is_absolute() else Path(rel_path)
-            if not file_path.exists():
-                logger.warning("Corpus file does not exist: %s", file_path)
-                continue
-
             content = file_path.read_text(encoding="utf-8")
+            expected_sha = app_src.get("sha256")
+
             override_meta = {
                 "document_id": app_src.get("document_id"),
                 "title": app_src.get("title"),
@@ -78,6 +121,7 @@ class RAGService:
                 "site_acl": item.get("site_acl", []),
                 "role_acl": item.get("role_acl", ["chief_engineer", "executor"]),
                 "equipment_class": item.get("equipment_class"),
+                "expected_sha256": expected_sha,
             }
 
             metadata, chunks = DocumentExtractor.extract_from_markdown(
@@ -90,7 +134,7 @@ class RAGService:
             self.index.add_document(metadata, chunks)
             indexed_count += 1
 
-        logger.info("Successfully loaded %d frozen regulation documents into RAGIndex", indexed_count)
+        logger.info("Successfully loaded %d verified frozen regulations into RAGIndex", indexed_count)
         return indexed_count
 
     def query(
@@ -108,7 +152,7 @@ class RAGService:
             q_obj = RetrievalQuery(
                 query=query,
                 site_id=site_id,
-                user_role=user_role,  # type: ignore[arg-type]
+                user_role=user_role,
                 equipment_class=equipment_class,
                 requested_revision=requested_revision,
                 top_k=top_k,
@@ -151,3 +195,11 @@ class RAGService:
         )
         self.index.add_document(metadata, chunks)
         return metadata, chunks
+
+
+def get_rag_service() -> RAGService:
+    """Returns singleton instance of RAGService initialized with frozen corpus."""
+    global _GLOBAL_RAG_SERVICE
+    if _GLOBAL_RAG_SERVICE is None:
+        _GLOBAL_RAG_SERVICE = RAGService.create_with_frozen_corpus()
+    return _GLOBAL_RAG_SERVICE
