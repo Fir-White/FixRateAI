@@ -324,6 +324,25 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
     def photo_review(task_id: UUID,command:MLCommand,v=Depends(views)):
         return analyze_photo_review(task_id,command,v)
 
+    @app.get("/api/v1/maintenance/rag/search")
+    def rag_search(q: str, limit: int = 5, equipment_class: str | None = None, requested_revision: str | None = None, v=Depends(views)):
+        q_str = q.strip()
+        if not 1 <= len(q_str) <= 300:
+            raise HTTPException(422, "Поисковый запрос должен содержать от 1 до 300 символов")
+        limit = min(max(limit, 1), 20)
+        from ml_service.app.rag import get_rag_service, RetrievalQuery
+        session = getattr(v, "session", None)
+        service = get_rag_service(session=session)
+        query_obj = RetrievalQuery(
+            query=q_str,
+            site_id=str(v.principal.site_id),
+            user_role=v.principal.role,
+            equipment_class=equipment_class,
+            requested_revision=requested_revision,
+            top_k=limit,
+        )
+        return service.query(query_obj).model_dump(mode="json")
+
     def automatic_photo_review(task_id,revision,principal):
         from .projections import Views
         with app.state.factory() as session:

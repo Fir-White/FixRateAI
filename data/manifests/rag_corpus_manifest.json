@@ -23,7 +23,8 @@
         "title": "Регламент ТО узла ввода и теплового пункта (Раздел 3: Манометры)",
         "source_revision": "rev-20261117-01",
         "file_format": "markdown",
-        "file_path": "docs/analysis/rag_corpus/reg_itp_gauges.md"
+        "file_path": "docs/analysis/rag_corpus/reg_itp_gauges.md",
+        "sha256": "664405147bc10bc4d87b5d73bcf0cc5261a89880464a9c53033c5565e626f072"
       },
       "site_acl": ["site-itp-severnaya-01", "site-itp-vostochnaya-02"],
       "role_acl": ["chief_engineer", "executor"],
@@ -52,7 +53,8 @@
         "title": "Инструкция по снятию архивных и текущих параметров тепловычислителя ВКТ-7",
         "source_revision": "rev-20261101-02",
         "file_format": "markdown",
-        "file_path": "docs/analysis/rag_corpus/manual_vkt7_readout.md"
+        "file_path": "docs/analysis/rag_corpus/manual_vkt7_readout.md",
+        "sha256": "0ed3e364fb398b8aaece75f3838e6d0eecd01963a618efde47d16c2e6a149401"
       },
       "site_acl": ["site-itp-severnaya-01"],
       "role_acl": ["chief_engineer", "executor"],
@@ -81,7 +83,8 @@
         "title": "Технологический регламент обслуживания щитов автоматизации ИТП",
         "source_revision": "rev-20261110-01",
         "file_format": "markdown",
-        "file_path": "docs/analysis/rag_corpus/reg_automation_cabinet.md"
+        "file_path": "docs/analysis/rag_corpus/reg_automation_cabinet.md",
+        "sha256": "685f75fb53f84765e2b0b15aa50e87852d3cc2eb6806502bf13fa73c622328e1"
       },
       "site_acl": ["site-itp-severnaya-01", "site-itp-vostochnaya-02"],
       "role_acl": ["chief_engineer", "executor"],
@@ -108,7 +111,8 @@
         "title": "Технологическая карта разборки, промывки и сборки сетчатых фильтров ИТП (ТК-ТО2-05)",
         "source_revision": "rev-20261115-01",
         "file_format": "markdown",
-        "file_path": "docs/analysis/rag_corpus/tk_mesh_filter_cleaning.md"
+        "file_path": "docs/analysis/rag_corpus/tk_mesh_filter_cleaning.md",
+        "sha256": "9c2a9b185703614a739a9a0d5a73770b4a18d697d70be4f4a101a28673de07a1"
       },
       "site_acl": ["site-itp-severnaya-01", "site-itp-vostochnaya-02"],
       "role_acl": ["chief_engineer", "executor"],
@@ -136,7 +140,8 @@
         "title": "Стандарт предприятия: Гидравлические испытания и опрессовка коллекторов ИТП",
         "source_revision": "rev-20261025-01",
         "file_format": "markdown",
-        "file_path": "docs/analysis/rag_corpus/stp_manifold_pressurization.md"
+        "file_path": "docs/analysis/rag_corpus/stp_manifold_pressurization.md",
+        "sha256": "8435856dc2d99e9813392795fb8aeeefe69621c055f28231ec07c982c4eb7217"
       },
       "site_acl": ["site-itp-severnaya-01"],
       "role_acl": ["chief_engineer"],
@@ -220,5 +225,5 @@
       "expected_key_facts": ["перепад давления > 0.3 бар", "перекрытие входных задвижек", "промывка сетки под давлением"]
     }
   ],
-  "checksum": "sha256:d84f938b29c9a63e9f4560b712351ab648834919133b320d91295b9d3752e001"
+  "checksum": "sha256:af531af7afafae79895643514555538461a88982c9914d41602a614888c10427"
 }

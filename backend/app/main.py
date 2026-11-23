@@ -152,6 +152,12 @@ def create_app(engine=None):
                     app.state.forecaster = load_verified_forecaster()
                 except Exception as exc:
                     logger.error("RF artifact unavailable: %s", type(exc).__name__)
+            try:
+                from ml_service.app.rag import get_rag_service
+                with app.state.factory() as rag_init_session:
+                    get_rag_service(session=rag_init_session)
+            except Exception as rag_init_exc:
+                logger.warning("RAG dynamic index auto-rebuild skipped or failed at startup: %s", rag_init_exc)
             import asyncio
             from app.integration.scheduler import run as run_scheduler
             scheduler=asyncio.create_task(run_scheduler(app)) if os.environ.get("MAINTENANCE_SCHEDULER","true").lower()=="true" and engine is None else None
