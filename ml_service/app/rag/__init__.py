@@ -14,7 +14,7 @@ from .schemas import (
     RetrievalQuery,
     RetrievalResult,
 )
-from .service import RAGService, get_rag_service
+from .service import RAGService, get_rag_service, reset_rag_service
 
 __all__ = [
     "AntiHallucinationGuardrail",
@@ -33,5 +33,6 @@ __all__ = [
     "compute_content_sha256",
     "get_rag_service",
     "normalize_search_text",
+    "reset_rag_service",
     "stem_russian_word",
 ]

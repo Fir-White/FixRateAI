@@ -43,7 +43,7 @@ class RAGService:
 
     @staticmethod
     def verify_manifest_integrity(manifest_path: str | Path | None = None) -> tuple[bool, list[str]]:
-        """Verifies manifest checksum and all physical document SHA-256 hashes against disk."""
+        """Verifies manifest canonical checksum and all physical document SHA-256 hashes against disk."""
         repo_root = Path(__file__).resolve().parents[3]
         if manifest_path is None:
             manifest_path = repo_root / "data" / "manifests" / "rag_corpus_manifest.json"
@@ -57,7 +57,21 @@ class RAGService:
         with open(manifest_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        # Check document files
+        # 1. Verify manifest's own canonical checksum
+        declared_checksum = data.get("checksum", "")
+        if not declared_checksum or not declared_checksum.startswith("sha256:"):
+            errors.append("Manifest missing valid 'checksum' field (expected 'sha256:<hash>')")
+        else:
+            expected_hash = declared_checksum.split(":", 1)[1]
+            data_copy = {k: v for k, v in data.items() if k != "checksum"}
+            canonical_blob = json.dumps(data_copy, sort_keys=True, ensure_ascii=False).encode("utf-8")
+            actual_hash = hashlib.sha256(canonical_blob).hexdigest()
+            if actual_hash != expected_hash:
+                errors.append(
+                    f"Manifest canonical checksum mismatch: declared {declared_checksum}, calculated sha256:{actual_hash}"
+                )
+
+        # 2. Check each referenced document file on disk
         for item in data.get("instruction_mapping", []):
             app_src = item.get("approved_source", {})
             rel_path = app_src.get("file_path")
@@ -137,6 +151,35 @@ class RAGService:
         logger.info("Successfully loaded %d verified frozen regulations into RAGIndex", indexed_count)
         return indexed_count
 
+    def rebuild_from_storage(
+        self,
+        session: Any = None,
+        corpus_dir: str | Path | None = None,
+        manifest_path: str | Path | None = None,
+    ) -> int:
+        """Rebuilds RAG index from verified manifest and published PostgreSQL outbox events upon restart."""
+        # Reset current index and consumer state
+        self.index = RAGIndex()
+        self.consumer.index = self.index
+        self.consumer.processed_event_ids.clear()
+        self.consumer.stream_revisions.clear()
+        count = self.load_frozen_corpus(corpus_dir=corpus_dir, manifest_path=manifest_path, verify_integrity=True)
+
+        if session is not None:
+            from sqlalchemy import text
+            published_events = session.execute(text("""
+                SELECT event_id, site_id, scope, source_revision, source_sha256,
+                       entity_type, entity_id, change_type, payload, status
+                FROM source_revision_events
+                WHERE status = 'published'
+                ORDER BY source_revision, event_id
+            """)).mappings().all()
+
+            for row in published_events:
+                self.consumer.process_single_db_event(session, row["event_id"], update_status=False)
+
+        return count
+
     def query(
         self,
         query: RetrievalQuery | dict[str, Any] | str,
@@ -203,3 +246,9 @@ def get_rag_service() -> RAGService:
     if _GLOBAL_RAG_SERVICE is None:
         _GLOBAL_RAG_SERVICE = RAGService.create_with_frozen_corpus()
     return _GLOBAL_RAG_SERVICE
+
+
+def reset_rag_service() -> None:
+    """Resets global singleton instance of RAGService."""
+    global _GLOBAL_RAG_SERVICE
+    _GLOBAL_RAG_SERVICE = None

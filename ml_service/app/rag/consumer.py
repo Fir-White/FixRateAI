@@ -29,7 +29,7 @@ class DurableOutboxConsumer:
         ent = str(event.entity_id) if event.entity_id else event.entity_type
         return f"{event.site_id}:{event.scope}:{ent}"
 
-    def process_single_event(self, event: OutboxEvent) -> bool:
+    def process_single_event(self, event: OutboxEvent, session: Any = None) -> bool:
         """Processes a single outbox event, verifying SHA integrity, updating index, and tracking streams."""
         evt_id = str(event.event_id)
         if evt_id in self.processed_event_ids:
@@ -53,7 +53,7 @@ class DurableOutboxConsumer:
         payload = event.payload or {}
         change_type = event.change_type
 
-        # Verify SHA-256 if provided
+        # Verify SHA-256 if provided for raw text payloads
         if event.source_sha256:
             content_to_check = payload.get("markdown_text") or payload.get("content")
             if content_to_check:
@@ -112,8 +112,8 @@ class DurableOutboxConsumer:
                 else:
                     raise FileNotFoundError(f"Referenced regulation file not found: {fpath}")
 
-            # 3. Tabular Excel catalog ingestion
-            elif "rows" in payload:
+            # 3. Tabular Excel catalog ingestion directly from payload rows
+            elif "rows" in payload and payload["rows"]:
                 rows = payload["rows"]
                 meta, chunks = DocumentExtractor.extract_from_catalog_rows(
                     rows,
@@ -122,6 +122,43 @@ class DurableOutboxConsumer:
                     catalog_sha256=event.source_sha256,
                 )
                 self.index.add_document(meta, chunks)
+
+            # 4. Production source_import path: fetch source_rows from source_imports table
+            elif event.entity_type == "source_import" and session is not None:
+                from sqlalchemy import text
+                stmt = text("""
+                    SELECT source_rows
+                    FROM source_imports
+                    WHERE site_id = :site AND (source_import_id = :id OR source_revision = :rev)
+                    LIMIT 1
+                """)
+                row_match = session.execute(stmt, {
+                    "site": str(event.site_id),
+                    "id": str(event.entity_id) if event.entity_id else "",
+                    "rev": event.source_revision,
+                }).mappings().first()
+                if row_match and row_match.get("source_rows"):
+                    sr = row_match["source_rows"]
+                    if isinstance(sr, str):
+                        try:
+                            sr = json.loads(sr)
+                        except Exception:
+                            sr = None
+                    if isinstance(sr, dict) and "rows" in sr:
+                        rows_list = sr["rows"]
+                        if isinstance(rows_list, list) and rows_list:
+                            meta, chunks = DocumentExtractor.extract_from_catalog_rows(
+                                rows_list,
+                                site_id=str(event.site_id),
+                                source_revision=event.source_revision,
+                                catalog_sha256=event.source_sha256,
+                            )
+                            self.index.add_document(meta, chunks)
+                            logger.info(
+                                "Indexed %d catalog chunks from source_imports for revision %d",
+                                len(chunks),
+                                event.source_revision,
+                            )
             else:
                 logger.info("Outbox event %s has empty or custom payload", evt_id)
 
@@ -175,6 +212,52 @@ class DurableOutboxConsumer:
             synced_at=datetime.now(timezone.utc),
         )
 
+    def process_single_db_event(
+        self, session: Any, event_id: str | UUID, update_status: bool = False
+    ) -> bool:
+        """Processes a single event from PostgreSQL source_revision_events table within a nested transaction."""
+        from sqlalchemy import text
+
+        evt_str = str(event_id)
+        if evt_str in self.processed_event_ids:
+            logger.debug("DB Event %s already in processed_event_ids; skipping (idempotent)", evt_str)
+            return True
+
+        stmt = text("""
+            SELECT event_id, site_id, scope, source_revision, source_sha256,
+                   entity_type, entity_id, change_type, payload, status
+            FROM source_revision_events
+            WHERE event_id = :event_id
+        """)
+        row = session.execute(stmt, {"event_id": evt_str}).mappings().first()
+        if not row:
+            logger.warning("Event %s not found in source_revision_events", evt_str)
+            return False
+
+        row_dict = dict(row)
+        p = row_dict.get("payload")
+        if isinstance(p, str):
+            try:
+                row_dict["payload"] = json.loads(p)
+            except Exception:
+                row_dict["payload"] = {}
+        elif p is None:
+            row_dict["payload"] = {}
+
+        evt = OutboxEvent.model_validate(row_dict)
+        with session.begin_nested():
+            no_gap = self.process_single_event(evt, session=session)
+            if update_status:
+                session.execute(
+                    text("""
+                        UPDATE source_revision_events
+                        SET status = 'published', published_at = CURRENT_TIMESTAMP
+                        WHERE event_id = :event_id AND status = 'pending'
+                    """),
+                    {"event_id": evt_str},
+                )
+        return no_gap
+
     def process_db_events(
         self, session: Any, site_id: str | UUID | None = None, limit: int = 100
     ) -> IndexSyncReport:
@@ -215,14 +298,14 @@ class DurableOutboxConsumer:
                         row_dict["payload"] = {}
 
                     evt = OutboxEvent.model_validate(row_dict)
-                    no_gap = self.process_single_event(evt)
+                    no_gap = self.process_single_event(evt, session=session)
                     if not no_gap:
                         gap_detected = True
 
                     session.execute(
                         text("""
                             UPDATE source_revision_events
-                            SET status = 'published', published_at = now()
+                            SET status = 'published', published_at = CURRENT_TIMESTAMP
                             WHERE event_id = :event_id AND status = 'pending'
                         """),
                         {"event_id": evt.event_id},

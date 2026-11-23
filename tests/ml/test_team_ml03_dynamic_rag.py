@@ -56,6 +56,32 @@ class TestCorpusLoadingAndExtraction:
         assert is_valid, f"Manifest integrity failed: {errors}"
         assert len(errors) == 0
 
+    def test_manifest_tampering_detected(self, tmp_path):
+        """Cryptographic checksum detects any tampering with manifest payload or declared checksum."""
+        from pathlib import Path
+        import json
+
+        orig_path = Path(__file__).resolve().parents[2] / "data" / "manifests" / "rag_corpus_manifest.json"
+        data = json.loads(orig_path.read_text(encoding="utf-8"))
+
+        # 1. Tampering with declared checksum fails
+        data_bad_checksum = dict(data)
+        data_bad_checksum["checksum"] = "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        p1 = tmp_path / "bad_checksum.json"
+        p1.write_text(json.dumps(data_bad_checksum), encoding="utf-8")
+        valid1, err1 = RAGService.verify_manifest_integrity(p1)
+        assert not valid1
+        assert any("canonical checksum mismatch" in e for e in err1)
+
+        # 2. Tampering with role ACL in payload while keeping declared checksum fails
+        data_bad_acl = json.loads(orig_path.read_text(encoding="utf-8"))
+        data_bad_acl["instruction_mapping"][4]["role_acl"] = ["chief_engineer", "executor"]
+        p2 = tmp_path / "bad_acl.json"
+        p2.write_text(json.dumps(data_bad_acl), encoding="utf-8")
+        valid2, err2 = RAGService.verify_manifest_integrity(p2)
+        assert not valid2
+        assert any("canonical checksum mismatch" in e for e in err2)
+
     def test_hierarchical_chunking_and_breadcrumbs(self, rag_service: RAGService):
         for chunk_id, chunk in rag_service.index.chunks.items():
             assert chunk.sha256 == compute_content_sha256(chunk.content)
@@ -216,6 +242,60 @@ class TestNegativeAndBoundaryCases:
         assert "&lt;script&gt;" in safe_context
         # Fake closing evidence tags must be escaped in snippet
         assert safe_context.count("</source_evidence>") == 1
+
+    def test_xml_attribute_quoteattr_injection_prevented(self):
+        """XML attributes with double quotes cannot break out to inject new XML attributes."""
+        import xml.etree.ElementTree as ET
+
+        citation = Citation(
+            document_id='doc" injected="yes" malicious="true',
+            document_title="Инъекция в ID",
+            source_revision='rev-1" evil="1',
+            section_title='Секция" fake="attrib',
+            source_ref='ref" pwn="1',
+            snippet="Обычный текст регламента",
+            relevance_score=0.9,
+        )
+        safe_context = AntiHallucinationGuardrail.format_safe_context([citation])
+
+        # Extract only the <source_evidence ...> opening tag line
+        for line in safe_context.splitlines():
+            if line.startswith("<source_evidence"):
+                xml_snippet = f"{line}</source_evidence>"
+                elem = ET.fromstring(xml_snippet)
+                assert "injected" not in elem.attrib
+                assert "malicious" not in elem.attrib
+                assert "evil" not in elem.attrib
+                assert "fake" not in elem.attrib
+                assert "pwn" not in elem.attrib
+                assert elem.attrib["id"] == 'doc" injected="yes" malicious="true'
+                assert elem.attrib["revision"] == 'rev-1" evil="1'
+                break
+
+    @pytest.mark.parametrize(
+        "query_text",
+        [
+            "Дай инструкцию по насосу KSB",
+            "Паспорт насоса KSB",
+            "Инструкция по котлу",
+            "Регламент по горелке",
+            "Паспорт чиллера",
+            "Дай инструкцию по насосу Grundfos",
+            "Паспорт насоса Wilo",
+        ],
+    )
+    def test_unapproved_ksb_pump_and_arbitrary_equipment_rejected(
+        self, rag_service: RAGService, query_text: str
+    ):
+        """Zero hallucination: queries for missing/unapproved equipment categories and brands fail-closed."""
+        res = rag_service.query(
+            query=query_text,
+            site_id="site-itp-severnaya-01",
+            user_role="chief_engineer",
+        )
+        assert res.status == "DOCUMENT_NOT_FOUND"
+        assert res.is_hallucination_blocked is True
+        assert res.citations == []
 
 
 class TestRoleAclRestrictions:
@@ -436,6 +516,142 @@ class TestDurableOutboxConsumer:
         assert res.status == "OK"
         assert len(res.citations) > 0
         assert "1.4" in res.citations[0].snippet
+
+    def test_producer_worker_rag_pipeline_and_restart(self, tmp_path, monkeypatch):
+        """Simulates production flow: source_import event processed by worker and persistent restart rebuild."""
+        from sqlalchemy import create_engine, text
+        from sqlalchemy.orm import sessionmaker
+        import json
+        import backend.app.integration.source_revision_worker as s_worker
+        from ml_service.app.rag import reset_rag_service, get_rag_service
+
+        db_path = tmp_path / "rag_pipeline.db"
+        engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
+        with engine.begin() as conn:
+            conn.execute(text("""
+                CREATE TABLE source_revision_events (
+                    event_id TEXT PRIMARY KEY,
+                    site_id TEXT NOT NULL,
+                    scope TEXT NOT NULL,
+                    source_revision INTEGER NOT NULL,
+                    source_sha256 TEXT,
+                    entity_type TEXT NOT NULL,
+                    entity_id TEXT,
+                    change_type TEXT NOT NULL,
+                    payload TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    published_at TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+            conn.execute(text("""
+                CREATE TABLE source_imports (
+                    source_import_id TEXT PRIMARY KEY,
+                    site_id TEXT NOT NULL,
+                    source_sha256 TEXT NOT NULL,
+                    source_name TEXT,
+                    source_revision INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    row_count INTEGER NOT NULL,
+                    source_rows TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """))
+
+        factory = sessionmaker(engine, expire_on_commit=False)
+        reset_rag_service()
+        site_id = "site-test-pipeline-01"
+        import_id = str(uuid4())
+        event_id = str(uuid4())
+        source_sha = "aabbccddee00112233445566778899aabbccddee00112233445566778899aabb"
+
+        sample_rows = [
+            {
+                "code": "OP-VALVE-01",
+                "title": "Проверка плавности хода регулирующего клапана",
+                "equipment_type": "control_valve",
+                "norm_hours": "0.75",
+                "instructions": "Проверить отсутствие заеданий штока и герметичность сальника клапана.",
+            }
+        ]
+
+        with factory() as session:
+            # 1. Producer inserts into source_imports
+            session.execute(text("""
+                INSERT INTO source_imports
+                    (source_import_id, site_id, source_sha256, source_name, source_revision,
+                     status, row_count, source_rows)
+                VALUES (:id, :site, :sha, 'test_catalog.xlsx', 1,
+                        'imported', 1, :rows)
+            """), {
+                "id": import_id,
+                "site": site_id,
+                "sha": source_sha,
+                "rows": json.dumps({"sourceSha256": source_sha, "rows": sample_rows}, ensure_ascii=False),
+            })
+
+            # 2. Producer enqueues outbox event with only row_count in payload (production behavior)
+            session.execute(text("""
+                INSERT INTO source_revision_events
+                    (event_id, site_id, scope, source_revision, source_sha256,
+                     entity_type, entity_id, change_type, payload, status)
+                VALUES (:event_id, :site, 'maintenance_catalog', 1, :sha,
+                        'source_import', :import_id, 'source_revision', :payload, 'pending')
+            """), {
+                "event_id": event_id,
+                "site": site_id,
+                "sha": source_sha,
+                "import_id": import_id,
+                "payload": json.dumps({"row_count": 1}),
+            })
+            session.commit()
+
+        # 3. Mock PostgreSQL-specific tsvector index_source_rows on SQLite
+        monkeypatch.setattr(s_worker, "index_source_rows", lambda *a, **kw: 1)
+
+        # 4. Worker publishes event: invokes publish_event
+        with factory() as session:
+            event_row = session.execute(text("""
+                SELECT event_id, site_id, source_sha256, source_revision, entity_type
+                FROM source_revision_events
+                WHERE event_id = :id
+            """), {"id": event_id}).mappings().one()
+
+            result = s_worker.publish_event(session, dict(event_row))
+            session.commit()
+            assert result["status"] == "published"
+
+        # 5. Verify RAG search immediately returns the newly indexed catalog item
+        service = get_rag_service()
+        res = service.query(
+            "Проверить отсутствие заеданий штока клапана",
+            site_id=site_id,
+            user_role="chief_engineer",
+        )
+        assert res.status == "OK"
+        assert len(res.citations) > 0
+        assert "OP-VALVE-01" in res.citations[0].snippet
+
+        # 6. Simulate service restart and rebuild_from_storage
+        fresh_service = RAGService()
+        with factory() as session:
+            fresh_service.rebuild_from_storage(session)
+
+        # 7. Verify restored service serves the catalog chunk after restart
+        res_after_restart = fresh_service.query(
+            "Проверить отсутствие заеданий штока клапана",
+            site_id=site_id,
+            user_role="chief_engineer",
+        )
+        assert res_after_restart.status == "OK"
+        assert len(res_after_restart.citations) > 0
+        assert "OP-VALVE-01" in res_after_restart.citations[0].snippet
+
+        # 8. Verify persistent idempotency: re-processing already indexed event does not duplicate
+        initial_chunk_count = len(fresh_service.index.chunks)
+        with factory() as session:
+            fresh_service.consumer.process_single_db_event(session, event_id, update_status=False)
+        assert len(fresh_service.index.chunks) == initial_chunk_count
 
 
 class DummyPrincipal:

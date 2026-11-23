@@ -35,10 +35,15 @@ GENERIC_PROCEDURAL_TERMS: set[str] = {
     "нужно", "следует", "документ", "документация", "информация", "сведения"
 }
 
-# Blacklist of unapproved equipment brands/models to fail-closed immediately (TL04)
-UNAPPROVED_EQUIPMENT_BRANDS: set[str] = {
-    "wilo", "grundfos", "danfoss", "dungs", "riello", "weishaupt", "baxi", "buderus",
-    "viessmann", "bosch", "vaillant", "protherm", "reflex", "valtec", "stratos"
+# Unapproved equipment stems missing from the frozen corpus (TL04 / Zero Hallucination)
+UNAPPROVED_EQUIPMENT_KEYWORDS: set[str] = {
+    "насос", "помпа", "котел", "горелка", "теплообменник", "элеватор",
+    "деаэратор", "компрессор", "чиллер", "вентилятор", "калорифер"
+}
+
+# Terms identifying control cabinet queries which may mention connected pumps
+CONTROL_CABINET_MARKERS: set[str] = {
+    "шкаф", "шау", "щит", "автоматизация", "автоматика", "модуль", "управляющий"
 }
 
 
@@ -59,6 +64,8 @@ def stem_russian_word(word: str) -> str:
 
 
 GENERIC_STEMS: set[str] = {stem_russian_word(w) for w in GENERIC_PROCEDURAL_TERMS}
+UNAPPROVED_EQUIPMENT_STEMS: set[str] = {stem_russian_word(w) for w in UNAPPROVED_EQUIPMENT_KEYWORDS}
+CONTROL_CABINET_STEMS: set[str] = {stem_russian_word(w) for w in CONTROL_CABINET_MARKERS}
 
 # Precompute bidirectional synonym graph
 EXPANDED_SYNONYMS: dict[str, set[str]] = defaultdict(set)
@@ -111,7 +118,6 @@ class RAGIndex:
                     stale_chunk = old_chunk.model_copy(update={"is_stale": True})
                     self.archived_chunks[cid] = stale_chunk
                     self.archived_revisions[(doc_id, old_rev)].append(cid)
-                    # Remove from active chunks map
                     self.chunks.pop(cid, None)
 
             # Clear current active map for this doc
@@ -172,33 +178,40 @@ class RAGIndex:
                     ),
                 )
 
-        # 3. Check for unapproved equipment brands (Fail-closed on unapproved equipment)
-        q_lower = query.query.lower()
-        if any(brand in q_lower for brand in UNAPPROVED_EQUIPMENT_BRANDS):
-            return AntiHallucinationGuardrail.evaluate(query, [])
-
-        # 4. Detect stale/outdated revision request (RAG-NEG-03)
-        stale_request_detected = False
-        stale_rev_name = query.requested_revision
-        if query.requested_revision:
-            stale_request_detected = True
-        elif re.search(r"редакци[иея]\s+202[0-5]|старо[йму]\s+регламент|прошлогодн", q_lower):
-            stale_request_detected = True
-            m_rev = re.search(r"rev-202[0-5]\d{4}-\d+", query.query)
-            if m_rev:
-                stale_rev_name = m_rev.group(0)
-
-        # 5. Tokenize and expand query
+        # 3. Detect unapproved equipment category queries (pumps, boilers, etc.)
         q_norm = normalize_search_text(query.query)
         q_tokens = [w for w in q_norm.split() if len(w) >= 2]
         if not q_tokens:
             return AntiHallucinationGuardrail.evaluate(query, [])
 
+        q_stems = {stem_russian_word(w) for w in q_tokens}
+
+        has_unapproved_equipment = any(s in UNAPPROVED_EQUIPMENT_STEMS for s in q_stems)
+        has_cabinet_intent = any(s in CONTROL_CABINET_STEMS for s in q_stems)
+
+        if has_unapproved_equipment and not has_cabinet_intent:
+            return AntiHallucinationGuardrail.evaluate(query, [])
+
+        # 4. Extract foreign or model entity markers (e.g. Wilo, KSB, Danfoss, Grundfos, TRM, etc.)
+        raw_entity_markers = re.findall(r"\b[a-zA-Z][a-zA-Z0-9\.\-]+\b", query.query.lower())
+        ignored_en = {"site", "rev", "doc", "bar", "ok", "id"}
+        domain_entity_markers = [m for m in raw_entity_markers if m not in ignored_en]
+
+        # 5. Detect stale/outdated revision request (RAG-NEG-03)
+        stale_request_detected = False
+        stale_rev_name = query.requested_revision
+        if query.requested_revision:
+            stale_request_detected = True
+        elif re.search(r"редакци[иея]\s+202[0-5]|старо[йму]\s+регламент|прошлогодн", query.query.lower()):
+            stale_request_detected = True
+            m_rev = re.search(r"rev-202[0-5]\d{4}-\d+", query.query)
+            if m_rev:
+                stale_rev_name = m_rev.group(0)
+
+        # 6. Build query stems and synonym expansions
         core_q_stems = {stem_russian_word(w) for w in q_tokens}
-        # Isolate specific domain stems vs generic stems
         specific_q_stems = {s for s in core_q_stems if s not in GENERIC_STEMS}
 
-        # Build expanded search stems including synonyms
         all_q_stems: set[str] = set(core_q_stems)
         all_specific_stems: set[str] = set(specific_q_stems)
         for st in core_q_stems:
@@ -207,7 +220,7 @@ class RAGIndex:
             if st in specific_q_stems:
                 all_specific_stems.update(syn_stems)
 
-        # 6. Score candidate chunks and track ACL denials
+        # 7. Score candidate chunks and enforce strict entity marker matching
         candidates: list[tuple[float, Chunk, str | None]] = []
         is_acl_denied = False
         denied_reason = None
@@ -218,6 +231,12 @@ class RAGIndex:
             # Equipment class filter if specified
             if query.equipment_class and chunk.equipment_class and chunk.equipment_class != query.equipment_class:
                 continue
+
+            # Strict Entity Marker validation: if user asked for a specific foreign brand/model (KSB, Wilo, etc.),
+            # the chunk MUST contain that entity marker!
+            if domain_entity_markers:
+                if not all(marker in chunk.clean_text for marker in domain_entity_markers):
+                    continue
 
             chunk_tokens = chunk.clean_text.split()
             chunk_stems = [stem_russian_word(w) for w in chunk_tokens]
@@ -283,7 +302,6 @@ class RAGIndex:
 
                 # If specific revision was requested, verify if it was ever registered
                 if stale_rev_name and stale_rev_name not in registered_revs and not is_stale_chunk:
-                    # Requested revision never existed for this document -> skip
                     continue
 
                 if is_stale_chunk or (stale_rev_name and stale_rev_name != latest_rev) or (stale_rev_name is None):
@@ -301,13 +319,13 @@ class RAGIndex:
                     max_allowed_score = base_score
                 candidates.append((base_score, chunk, stale_warning))
 
-        # 7. ACL precedence: if primary matching document was denied by ACL, don't fall back to secondary generic chunks
+        # 8. ACL precedence: if primary matching document was denied by ACL, don't fall back to secondary generic chunks
         if is_acl_denied and (max_denied_score >= max_allowed_score or not candidates):
             return AntiHallucinationGuardrail.evaluate(
                 query, [], is_acl_denied=True, denied_reason=denied_reason
             )
 
-        # 8. Sort and select top_k citations
+        # 9. Sort and select top_k citations
         candidates.sort(key=lambda x: x[0], reverse=True)
         top_candidates = candidates[: query.top_k]
 
