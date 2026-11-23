@@ -208,7 +208,11 @@ def create_app(engine=None):
             try:
                 response = await call_next(request)
             except Exception as exc:
-                logger.error("Request failed id=%s type=%s", request.state.request_id, type(exc).__name__)
+                logger.exception(
+                    "Request failed id=%s type=%s",
+                    request.state.request_id,
+                    type(exc).__name__,
+                )
                 response = error_response(request, 500, "Внутренняя ошибка сервера", code="INTERNAL_ERROR")
         response.headers['X-Request-ID']=request.state.request_id
         if request.url.path.startswith('/api/v1/assistant/'):
@@ -263,11 +267,15 @@ def create_app(engine=None):
     def views(request: Request, who=Depends(principal), session=Depends(db)):
         return Views(session, request.app.state.models, who)
 
-    def audit(view, order, action):
+    def audit(view, order, action, details=None):
         view.repo.add("audit_events", site_id=view.principal.site_id, actor_type="user",
                       actor_user_id=view.principal.user_id, entity_type="work_orders",
                       entity_id=order.work_order_id, action=action,
-                      after_snapshot={"status": order.status, "revision": order.revision})
+                      after_snapshot={
+                          "status": order.status,
+                          "revision": order.revision,
+                          **(details or {}),
+                      })
 
     @app.exception_handler(IntegrityError)
     async def integrity_error(request, exc):
@@ -698,8 +706,6 @@ def create_app(engine=None):
                 "revision": order.revision,
                 "key": payload.idempotency_key,
             }).mappings().one()
-        order.revision += 1
-        v.session.flush()
         audit(v, order, "record_consumption", {
             "consumptionId": str(identity),
             "executionId": str(payload.execution_id),
