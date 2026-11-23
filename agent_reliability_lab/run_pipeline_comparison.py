@@ -1,4 +1,4 @@
-"""Compare fixed v3, dynamic Qwen, and optionally dynamic DeepSeek in disposable PostgreSQL."""
+"""Compare assistant pipelines and providers in disposable PostgreSQL."""
 import argparse
 from datetime import datetime, timezone
 import json
@@ -20,7 +20,7 @@ def cloud_guard():
             raise PermissionError('FIXRATE_UNAPPROVED_TUNNEL_HOST')
         return''')
             .replace('    return _open(self, fullurl, *args, **kwargs)', '''    url = urlsplit(fullurl.full_url if hasattr(fullurl, 'full_url') else str(fullurl))
-    if (os.getenv('FIXRATE_PIPELINE_VARIANTS') == 'CAB'
+    if (os.getenv('FIXRATE_PIPELINE_CLOUD_CONFIG')
             and url.geturl() == 'https://api.aitunnel.ru/v1/chat/completions'
             and getattr(fullurl, 'get_method', lambda: None)() == 'POST'):
         _TUNNEL.request = True
@@ -36,24 +36,33 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--pg-bin', type=Path, default=Path('C:/Program Files/PostgreSQL/18/bin'))
     parser.add_argument('--cloud-config', type=Path, help='AI Tunnel config file for the authorized synthetic corpus')
+    parser.add_argument('--variants', help='A fixed Qwen, B dynamic Qwen, C dynamic DeepSeek, D ERP Qwen, E ERP DeepSeek')
+    parser.add_argument('--cases', default='', help='Comma-separated IDs from the synthetic comparison corpus')
+    parser.add_argument('--operator-holdout', action='store_true', help='Use the separate multi-turn ERP validation corpus')
     args = parser.parse_args()
     output = args.output.resolve()
     if not output.is_relative_to(ROOT / 'reports'):
         parser.error('--output must be inside reports/')
+    variants = args.variants or ('CAB' if args.cloud_config else 'AB')
+    if not variants or len(variants) != len(set(variants)) or set(variants) - set('ABCDE'):
+        parser.error('--variants must be a sequence of distinct letters A through E')
+    if set('CE') & set(variants) and not args.cloud_config:
+        parser.error('Cloud variants require --cloud-config')
     guard = output / 'policy'
     guard.mkdir(parents=True, exist_ok=False)
     (guard/'sitecustomize.py').write_text(cloud_guard() if args.cloud_config else LOCAL_GUARD, encoding='utf-8')
     model = installed_model('qwen3.5:4b-q4_K_M')
     variables = environment(dict(os.environ), guard, model, live=True)
     variables.update(FIXRATE_ASSISTANT_AGENT_VERSION='v3', FIXRATE_ASSISTANT_V3_PIPELINE='v3',
-                     FIXRATE_PIPELINE_COMPARE='1', FIXRATE_PIPELINE_CASES='', PYTHON_DOTENV_DISABLED='1',
-                     FIXRATE_PIPELINE_VARIANTS='CAB' if args.cloud_config else 'AB')
+                     FIXRATE_PIPELINE_COMPARE='1', FIXRATE_PIPELINE_CASES=args.cases, PYTHON_DOTENV_DISABLED='1',
+                     FIXRATE_PIPELINE_VARIANTS=variants)
     if args.cloud_config:
         variables['FIXRATE_PIPELINE_CLOUD_CONFIG'] = str(args.cloud_config.resolve(strict=True))
-    test = 'agent_reliability_lab/evals/test_pipeline_comparison.py'
+    test = ('agent_reliability_lab/erp_operator_holdout.py' if args.operator_holdout
+            else 'agent_reliability_lab/evals/test_pipeline_comparison.py')
     before = source_manifest(ROOT)
     (output/'provenance.json').write_text(json.dumps(dict(source=before, local_model=model,
-        cloud_model='aitunnel:deepseek-v4-flash' if args.cloud_config else None,
+        cloud_model='aitunnel:deepseek-v4-flash' if args.cloud_config else None, test=test,
         started_at=datetime.now(timezone.utc).isoformat()), indent=2), encoding='utf-8')
     command = [sys.executable, '-B', str(ROOT/'scripts/verify.py'), '--pg-bin', str(args.pg_bin),
                '--agent-only', '--output', str(output/'run'), '--pytest-target', test]

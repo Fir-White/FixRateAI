@@ -52,7 +52,7 @@ async def plan(state: AgentState, runtime: Runtime[TurnExecution]):
     return Command(update=dict(plan=[stage.model_dump() for stage in stages],
                                workspace_revision=execution.state['revision'],
                                requirement_registry=[r.model_dump() for r in requirements(execution.state)]),
-                   goto='next_requirement')
+                   goto='operator_step' if execution.state.get('erp_operator') else 'next_requirement')
 
 
 def next_requirement(state: AgentState):
@@ -94,13 +94,23 @@ async def task(state: AgentState, runtime: Runtime[TurnExecution]):
     return await _execute(state, runtime, TurnExecution.execute_task)
 
 
+async def operator_step(state: AgentState, runtime: Runtime[TurnExecution]):
+    from .erp_operator import step
+
+    execution = await _prepare(runtime, state)
+    finished = await step(execution, execution.state['goals'][0])
+    execution.save()
+    return Command(update={'workspace_revision': execution.state['revision']},
+                   goto='quality_gate' if finished else 'operator_step')
+
+
 async def quality_gate(state: AgentState, runtime: Runtime[TurnExecution]):
     execution = await _prepare(runtime, state)
     service.progress(execution.app, execution.turn_id, execution.trace, '__quality_gate')
     with execution.app.state.factory() as session:
         workflow.refresh_actions(session, execution.state)
     verify_evidence(execution.state)
-    if not execution.state.get('llm_dynamic') and comparison_request(execution.question) and not comparison_result(execution.state):
+    if not (execution.state.get('llm_dynamic') or execution.state.get('erp_operator')) and comparison_request(execution.question) and not comparison_result(execution.state):
         for goal in execution.state['goals']:
             if goal['status'] == 'completed' and goal.get('semantic', {}).get('intent') == 'equipment_tasks':
                 goal.update(status='partial', reason='comparison_evidence_inconsistent')
@@ -141,7 +151,8 @@ def _stage(node):
 
 def build_graph(saver):
     graph = StateGraph(AgentState, context_schema=TurnExecution)
-    graph.add_node('plan', _stage(plan), destinations=('next_requirement', END))
+    graph.add_node('plan', _stage(plan), destinations=('next_requirement', 'operator_step', END))
+    graph.add_node('operator_step', _stage(operator_step), destinations=('operator_step', 'quality_gate'))
     graph.add_node('next_requirement', next_requirement,
                    destinations=('read', 'action', 'selection', 'projection', 'task', 'quality_gate'))
     for node in (read, action, selection, projection, task):

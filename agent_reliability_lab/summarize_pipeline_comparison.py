@@ -6,6 +6,7 @@ from math import ceil
 from pathlib import Path
 import re
 from statistics import median
+import sys
 
 
 def reports_quantity(answer, count):
@@ -24,7 +25,7 @@ def reports_quantity(answer, count):
 
 def summarize(directory):
     result = {}
-    for variant in ('A', 'B', 'C'):
+    for variant in ('A', 'B', 'C', 'D', 'E'):
         path = directory/f'{variant}.jsonl'
         if not path.exists():
             continue
@@ -33,6 +34,7 @@ def summarize(directory):
             continue
         times = []
         counters = Counter()
+        failure_reasons = Counter()
         examples = {}
         for row in rows:
             turn_results = []
@@ -42,21 +44,30 @@ def summarize(directory):
                 if count is not None and not reports_quantity(turn['answer'] or '', count):
                     errors.append('quantity_not_reported')
                 turn_results.append(errors)
+                failure_reasons.update(errors)
                 times.append(turn['seconds'])
                 counters.update(turns=1, turns_passed=int(not errors), unexpected_actions=turn['actions'])
                 counters.update(turn_failures=bool(errors))
             counters.update(cases=1, passed=int(not any(turn_results)))
+            if not any(turn_results):
+                counters.update(successful_dialogue_tool_calls=sum(
+                    turn.get('metrics', {}).get('tool_calls', 0) for turn in row['turns']))
             if row['case'] == 'reported':
                 examples[row['case']] = dict(passed=int(sum(not errors for errors in turn_results)),
                                             turns=len(turn_results), failures=turn_results)
         times.sort()
         result[variant] = {**counters, 'turn_p50': round(median(times), 2),
                            'turn_p95': round(times[ceil(len(times)*.95)-1], 2),
-                           'total_seconds': round(sum(times), 1), **examples}
+                           'total_seconds': round(sum(times), 1),
+                           'tool_calls_per_successful_dialogue': (round(
+                               counters['successful_dialogue_tool_calls'] / counters['passed'], 2
+                           ) if counters['passed'] else None),
+                           'failure_reasons': dict(failure_reasons.most_common()), **examples}
     return result
 
 
 def main():
+    sys.stdout.reconfigure(encoding='utf-8')
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('directory', type=Path)
     args = parser.parse_args()

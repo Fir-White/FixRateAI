@@ -478,6 +478,10 @@ class TurnExecution:
             from .dynamic_dialogue import prepare
             prepare(self, thread, turn, history, files, sent_files, question, server_time(principal.timezone))
             return
+        if self.graph_version and turn['prompt_version'] == svc.OPERATOR_PROMPT_VERSION:
+            from .erp_operator import prepare
+            prepare(self, thread, turn, history, files, sent_files, question, server_time(principal.timezone))
+            return
         from .semantic_plan import (QUOTED, RequestedResults, RequestCoverageReview, compile_plan,
                                     AnalyticalRequestedResults, AnalyticalCoverageReview,
                                     bind_discussion_and_projections, explicit_results, ground_equipment_card,
@@ -776,7 +780,7 @@ class TurnExecution:
             state['metrics'] = metrics
             if route:
                 state['dialogue_route'] = route.model_dump(include=set(dialogue.DialogueRoute.model_fields))
-            if getattr(client, 'supports_dialogue_routing', False):
+            if getattr(client, 'supports_dialogue_routing', False) and not state.get('erp_operator'):
                 state['display_plan'] = dialogue.show_plan(state)
             wf.save(app, turn_id, state)
             if not semantic and any(goal.get('reason')=='plan_outcome_tool_mismatch' for goal in state['goals']):
@@ -1231,7 +1235,7 @@ class TurnExecution:
         check()
         started = time.monotonic()
         answer = _render(state)
-        if self.graph_version and not state.get('llm_dynamic'):
+        if self.graph_version and not (state.get('llm_dynamic') or state.get('erp_operator')):
             from .graph_context import comparison_answer, comparison_request
             from .graph_engineering import comparison_context_intro
             if comparison_request(question):

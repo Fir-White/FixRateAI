@@ -42,6 +42,18 @@ def _accepted_scope(principal):
     return dict(source='accepted_maintenance_reports',
                 visibility='assigned_orders' if principal.role == 'executor' else 'site')
 
+
+def _equipment_search_filters(model, q, asset_code):
+    filters = []
+    if q and q.strip():
+        filters.append(or_(*(column.icontains(q.strip(), autoescape=True)
+                             for column in (model.name, model.asset_code, model.location))))
+    if asset_code is not None:
+        code = asset_code.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+        filters.append(model.asset_code.ilike(code, escape='\\'))
+    return filters
+
+
 class AssignmentPreparation(BaseModel):
     model_config=ConfigDict(extra='forbid')
     executor_ids:list[UUID]|None=Field(default=None,min_length=1,max_length=50)
@@ -389,12 +401,7 @@ def register_routes(app,views):
                 links.site_id==v.principal.site_id,assignments.site_id==v.principal.site_id,
                 assignments.user_id==v.principal.user_id,assignments.status.not_in(('cancelled','declined')))
             filters.append(cls.equipment_id.in_(visible))
-        if q.strip():
-            filters.append(or_(*(column.icontains(q.strip(), autoescape=True)
-                                 for column in (cls.name, cls.asset_code, cls.location))))
-        if asset_code is not None:
-            literal_code=asset_code.replace('\\','\\\\').replace('%','\\%').replace('_','\\_')
-            filters.append(cls.asset_code.ilike(literal_code,escape='\\'))
+        filters.extend(_equipment_search_filters(cls, q, asset_code))
         if accepted_maintenance is not None:
             accepted = _accepted_maintenance(v, cls.equipment_id)
             filters.append(accepted if accepted_maintenance == 'present' else ~accepted)
@@ -455,7 +462,11 @@ def register_routes(app,views):
               type_keys:list[MaintenanceTypeKey]|None=Query(None,max_length=12),
               type_codes:list[MaintenanceTypeCode]|None=Query(None,max_length=12),
               equipment_accepted_maintenance:AcceptedMaintenance|None=None,
+              equipment_ids:list[UUID]|None=Query(None,min_length=1,max_length=25),
+              equipment_q:str|None=Query(None,min_length=1,max_length=200),
+              equipment_asset_code:str|None=Query(None,min_length=1,max_length=128),
               on_days:list[date]|None=Query(None,max_length=31),
+              sort:Literal['earliest','latest']|None=None,
               v=Depends(views)):
         from .task_analytics import UNFINISHED
         orders=v.models['work_orders'];assignments=v.models['work_assignments'];rules=v.models['maintenance_rules'];operations=v.models['operation_templates']
@@ -489,16 +500,26 @@ def register_routes(app,views):
             links=v.models['work_order_equipment']
             filters.append(select(links.work_order_id).where(links.site_id==orders.site_id,
                 links.work_order_id==orders.work_order_id,links.equipment_id==equipment_id).exists())
-        if equipment_accepted_maintenance is not None:
+        if equipment_ids is not None:
+            if equipment_id is not None:
+                raise HTTPException(422,'Укажите одну форму выборки оборудования.')
+            links = v.models['work_order_equipment']
+            filters.append(select(links.work_order_id).where(links.site_id==orders.site_id,
+                links.work_order_id==orders.work_order_id, links.equipment_id.in_(equipment_ids)).exists())
+        if equipment_accepted_maintenance is not None or equipment_q is not None or equipment_asset_code is not None:
             links = v.models['work_order_equipment']; assets = v.models['equipment']
-            accepted = _accepted_maintenance(v, links.equipment_id)
             linked = (select(links.work_order_id).select_from(links)
                       .join(assets, and_(assets.site_id == links.site_id, assets.equipment_id == links.equipment_id))
-                      .where(links.site_id == orders.site_id, links.work_order_id == orders.work_order_id,
-                             assets.status != 'retired',
-                             accepted if equipment_accepted_maintenance == 'present' else ~accepted))
+                      .where(links.site_id == orders.site_id, links.work_order_id == orders.work_order_id))
+            if equipment_accepted_maintenance is not None:
+                accepted = _accepted_maintenance(v, links.equipment_id)
+                linked = linked.where(assets.status != 'retired',
+                                      accepted if equipment_accepted_maintenance == 'present' else ~accepted)
+            linked = linked.where(*_equipment_search_filters(assets, equipment_q, equipment_asset_code))
             if equipment_id is not None:
                 linked = linked.where(links.equipment_id == equipment_id)
+            if equipment_ids is not None:
+                linked = linked.where(links.equipment_id.in_(equipment_ids))
             filters.append(linked.exists())
         if starts_on and ends_on and ends_on<starts_on:
             raise HTTPException(422,'Конец периода раньше начала.')
@@ -529,14 +550,20 @@ def register_routes(app,views):
         if on_days:
             grouping = source.with_only_columns(local_day.label('day'), func.count()).group_by(local_day)
             day_counts = {day.isoformat(): total for day, total in v.session.execute(grouping)}
-        selected=v.session.scalars(source.order_by(instant.asc().nulls_last() if period!='overdue' else instant.desc(),orders.work_order_id).offset(offset).limit(limit)).all()
+        ordering = (instant.asc().nulls_last() if sort == 'earliest' or (sort is None and period != 'overdue')
+                    else instant.desc().nulls_last())
+        selected=v.session.scalars(source.order_by(ordering,orders.work_order_id).offset(offset).limit(limit)).all()
         v.prepare_task_views(selected)
         scope = {}
         if equipment_id is not None:scope['equipment_id']=str(equipment_id)
+        if equipment_ids is not None:scope['equipment_ids']=sorted({str(identity) for identity in equipment_ids})
+        if equipment_q is not None:scope['equipment_q']=equipment_q
+        if equipment_asset_code is not None:scope['equipment_asset_code']=equipment_asset_code
         if unfinished_only:scope['unfinished_only']=True
         if starts_on is not None:scope['starts_on']=starts_on
         if ends_on is not None:scope['ends_on']=ends_on
         if on_days:scope['on_days']=sorted(set(on_days))
+        if sort:scope['sort']=sort
         if type_keys:scope['type_keys']=sorted(set(type_keys))
         if type_codes:scope['type_codes']=sorted(set(type_codes))
         if equipment_accepted_maintenance is not None:

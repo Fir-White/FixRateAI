@@ -21,7 +21,37 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.assistant_models:register_routes.<locals>.models",
+      "operation_id": "models_api_v1_assistant_models_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "q",
+          "refresh"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "chat_model_preference",
@@ -43,7 +73,29 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.assistant_models:register_routes.<locals>.preference",
+      "operation_id": "preference_api_v1_assistant_model_preference_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "chat_model_select",
@@ -65,7 +117,31 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.assistant_models:register_routes.<locals>.choose",
+      "operation_id": "choose_api_v1_assistant_model_preference_post",
+      "argument_fields": {
+        "path": [],
+        "query": [],
+        "body": [
+          "expected_revision",
+          "model",
+          "provider"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "chat_model_preference",
+      "operator": "unavailable"
     },
     {
       "name": "tasks_analyze",
@@ -88,7 +164,41 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "operations",
+      "handler": "app.integration.assistant_workspace:register_routes.<locals>.task_analysis",
+      "operation_id": "task_analysis_api_v1_assistant_workspace_task_analysis_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "cohort",
+          "ends_on",
+          "offset",
+          "origin",
+          "section",
+          "starts_on"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "maintenance_catalog_read",
@@ -110,7 +220,39 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.assistant_workspace:register_routes.<locals>.maintenance_catalog",
+      "operation_id": "maintenance_catalog_api_v1_assistant_workspace_maintenance_catalog_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "limit",
+          "offset",
+          "type_codes",
+          "type_keys"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "work_order_analytics",
@@ -131,7 +273,49 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.assistant_workspace:register_routes.<locals>.work_order_analytics",
+      "operation_id": "work_order_analytics_api_v1_assistant_workspace_work_order_analytics_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "as_of",
+          "ends_on",
+          "first_equipment_code",
+          "group_by",
+          "include_assignments",
+          "include_overdue_tasks",
+          "limit",
+          "metric",
+          "offset",
+          "second_ends_on",
+          "second_equipment_code",
+          "second_starts_on",
+          "starts_on",
+          "tie_breaker"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "draft_changes",
@@ -152,7 +336,39 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.assistant_workspace:register_routes.<locals>.draft_changes",
+      "operation_id": "draft_changes_api_v1_assistant_workspace_draft_changes_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "after_revision",
+          "before_revision",
+          "identity",
+          "offset"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "drafts_find",
@@ -173,7 +389,36 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.assistant_workspace:register_routes.<locals>.drafts",
+      "operation_id": "drafts_api_v1_assistant_workspace_drafts_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "offset"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "planning_context",
@@ -194,7 +439,37 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.assistant_workspace:register_routes.<locals>.planning_context",
+      "operation_id": "planning_context_api_v1_assistant_workspace_planning_context_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "ends_on",
+          "starts_on"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "inventory_read",
@@ -217,7 +492,38 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.integration.assistant_workspace:register_routes.<locals>.inventory",
+      "operation_id": "inventory_api_v1_assistant_workspace_inventory_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "current_only",
+          "offset",
+          "site_offset"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "attachment_read",
@@ -240,7 +546,45 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.assistant:register_routes.<locals>.attachment_read",
+      "operation_id": "attachment_read_api_v1_assistant_conversations__identity__attachments__attachment_id__content_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "attachment_id",
+          "identity"
+        ],
+        "query": [
+          "coordinates_mode",
+          "full_book",
+          "limit",
+          "offset",
+          "q",
+          "row",
+          "sheet"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "equipment_list",
@@ -263,7 +607,38 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.integration.management:register_routes.<locals>.equipment_list",
+      "operation_id": "equipment_list_api_v1_maintenance_equipment_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "limit",
+          "offset",
+          "status"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "equipment_read",
@@ -286,7 +661,36 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.integration.management:register_routes.<locals>.equipment_get",
+      "operation_id": "equipment_get_api_v1_maintenance_equipment__equipment_id__get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "equipment_id"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "catalog_read",
@@ -307,7 +711,29 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.management:register_routes.<locals>.catalog",
+      "operation_id": "catalog_api_v1_maintenance_management_catalog_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "equipment_create",
@@ -326,7 +752,39 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.integration.management:register_routes.<locals>.equipment_create",
+      "operation_id": "equipment_create_api_v1_maintenance_equipment_post",
+      "argument_fields": {
+        "path": [],
+        "query": [],
+        "body": [
+          "asset_code",
+          "commissioned_on",
+          "data_origin",
+          "equipment_type_id",
+          "location",
+          "name",
+          "parent_equipment_id",
+          "properties",
+          "serial_number",
+          "status",
+          "system_id"
+        ]
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "confirmation"
     },
     {
       "name": "equipment_edit",
@@ -345,7 +803,42 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.integration.management:register_routes.<locals>.equipment_update",
+      "operation_id": "equipment_update_api_v1_maintenance_equipment__equipment_id__patch",
+      "argument_fields": {
+        "path": [
+          "equipment_id"
+        ],
+        "query": [],
+        "body": [
+          "asset_code",
+          "commissioned_on",
+          "data_origin",
+          "equipment_type_id",
+          "expected_revision",
+          "location",
+          "name",
+          "parent_equipment_id",
+          "properties",
+          "serial_number",
+          "status",
+          "system_id"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "equipment_read",
+      "operator": "confirmation"
     },
     {
       "name": "equipment_retire",
@@ -364,7 +857,28 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.integration.management:register_routes.<locals>.equipment_retire",
+      "operation_id": "equipment_retire_api_v1_maintenance_equipment__equipment_id__delete",
+      "argument_fields": {
+        "path": [
+          "equipment_id"
+        ],
+        "query": [
+          "expected_revision"
+        ]
+      },
+      "response_schemas": {
+        "204": {},
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "equipment_read",
+      "operator": "unavailable"
     },
     {
       "name": "regulations_read",
@@ -387,7 +901,36 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.integration.management:register_routes.<locals>.configs",
+      "operation_id": "configs_api_v1_maintenance_equipment__equipment_id__service_configurations_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "equipment_id"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "calendar_evidence",
@@ -410,7 +953,41 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.integration.assistant_workspace:register_routes.<locals>.calendar_evidence",
+      "operation_id": "calendar_evidence_api_v1_assistant_workspace_equipment__equipment_id__calendar_evidence_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "equipment_id"
+        ],
+        "query": [
+          "approved_only",
+          "ends_on",
+          "next_only",
+          "starts_on"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "equipment_service_history",
@@ -433,7 +1010,43 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.integration.assistant_workspace:register_routes.<locals>.equipment_history",
+      "operation_id": "equipment_history_api_v1_assistant_workspace_equipment__equipment_id__history_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "equipment_id"
+        ],
+        "query": [
+          "ends_on",
+          "latest_only",
+          "limit",
+          "offset",
+          "only_accepted",
+          "starts_on"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "workbook_readiness",
@@ -456,7 +1069,37 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.assistant_workspace:register_routes.<locals>.workbook_readiness",
+      "operation_id": "workbook_readiness_api_v1_assistant_workspace_workbook_readiness_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "attachment_ids",
+          "conversation_id"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "regulation_create",
@@ -474,7 +1117,51 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.integration.management:register_routes.<locals>.config_create",
+      "operation_id": "config_create_api_v1_maintenance_equipment__equipment_id__service_configurations_post",
+      "argument_fields": {
+        "path": [
+          "equipment_id"
+        ],
+        "query": [],
+        "body": [
+          "allowed_lead_days",
+          "basis",
+          "checklist",
+          "code",
+          "crew_size",
+          "duration_minutes",
+          "enabled",
+          "expected_revision",
+          "instructions",
+          "maintenance_type",
+          "measurement_requirements",
+          "methodology_ref",
+          "norm_unit",
+          "norm_value",
+          "operation_id",
+          "pattern",
+          "qualification_ids",
+          "required_acts",
+          "title",
+          "valid_from",
+          "valid_until"
+        ]
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "regulation_edit",
@@ -492,7 +1179,52 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.integration.management:register_routes.<locals>.config_update",
+      "operation_id": "config_update_api_v1_maintenance_equipment__equipment_id__service_configurations__binding_id__put",
+      "argument_fields": {
+        "path": [
+          "binding_id",
+          "equipment_id"
+        ],
+        "query": [],
+        "body": [
+          "allowed_lead_days",
+          "basis",
+          "checklist",
+          "code",
+          "crew_size",
+          "duration_minutes",
+          "enabled",
+          "expected_revision",
+          "instructions",
+          "maintenance_type",
+          "measurement_requirements",
+          "methodology_ref",
+          "norm_unit",
+          "norm_value",
+          "operation_id",
+          "pattern",
+          "qualification_ids",
+          "required_acts",
+          "title",
+          "valid_from",
+          "valid_until"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "regulations_read",
+      "operator": "unavailable"
     },
     {
       "name": "tasks_list",
@@ -515,7 +1247,29 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "operations",
+      "handler": "app.main:create_app.<locals>.task_list",
+      "operation_id": "task_list_api_v1_maintenance_ui_tasks_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "tasks_find",
@@ -538,7 +1292,56 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "operations",
+      "handler": "app.integration.assistant_workspace:register_routes.<locals>.tasks",
+      "operation_id": "tasks_api_v1_assistant_workspace_tasks_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "active_only",
+          "ends_on",
+          "equipment_accepted_maintenance",
+          "equipment_asset_code",
+          "equipment_id",
+          "equipment_ids",
+          "equipment_q",
+          "limit",
+          "maintenance_only",
+          "offset",
+          "on_days",
+          "period",
+          "q",
+          "scheduled_only",
+          "sort",
+          "starts_on",
+          "state",
+          "type_codes",
+          "type_keys",
+          "unassigned_only",
+          "unfinished_only"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "equipment_find",
@@ -561,7 +1364,40 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.integration.assistant_workspace:register_routes.<locals>.equipment",
+      "operation_id": "equipment_api_v1_assistant_workspace_equipment_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "accepted_maintenance",
+          "asset_code",
+          "limit",
+          "offset",
+          "q"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "staff_find",
@@ -582,7 +1418,37 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "workforce",
+      "handler": "app.integration.assistant_workspace:register_routes.<locals>.staff",
+      "operation_id": "staff_api_v1_assistant_workspace_staff_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "offset",
+          "q"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "staff_read",
@@ -603,7 +1469,36 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "workforce",
+      "handler": "app.integration.assistant_workspace:register_routes.<locals>.person",
+      "operation_id": "person_api_v1_assistant_workspace_staff__user_id__get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "user_id"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "task_read",
@@ -626,7 +1521,36 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "operations",
+      "handler": "app.main:create_app.<locals>.task_detail",
+      "operation_id": "task_detail_api_v1_maintenance_ui_tasks__task_id__get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "task_id"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "task_acceptance_evidence",
@@ -647,7 +1571,39 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "operations",
+      "handler": "app.integration.assistant_workspace:register_routes.<locals>.acceptance_evidence",
+      "operation_id": "acceptance_evidence_api_v1_assistant_workspace_tasks__task_id__acceptance_evidence_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "task_id"
+        ],
+        "query": [
+          "execution_id",
+          "expected_revision"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "calendar_read",
@@ -668,7 +1624,37 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "operations",
+      "handler": "app.main:create_app.<locals>.calendar",
+      "operation_id": "calendar_api_v1_maintenance_ui_calendar_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "month",
+          "year"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "assignment_context",
@@ -687,7 +1673,36 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "operations",
+      "handler": "app.main:create_app.<locals>.crew_context",
+      "operation_id": "crew_context_api_v1_maintenance_ui_tasks__task_id__assignment_context_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "task_id"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "assignment_prepare",
@@ -706,7 +1721,40 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "operations",
+      "handler": "app.integration.assistant_workspace:register_routes.<locals>.prepare_assignment",
+      "operation_id": "prepare_assignment_api_v1_assistant_workspace_tasks__task_id__prepare_assignment_post",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "task_id"
+        ],
+        "query": [],
+        "body": [
+          "executor_ids",
+          "one_person_only"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "assignment_preview",
@@ -725,7 +1773,44 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "operations",
+      "handler": "app.main:create_app.<locals>.crew_preview",
+      "operation_id": "crew_preview_api_v1_maintenance_tasks__task_id__assignment_preview_post",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "task_id"
+        ],
+        "query": [],
+        "body": [
+          "crew_id",
+          "end_local",
+          "executor_ids",
+          "expected_revision",
+          "individual_only",
+          "start_local"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "task_assign",
@@ -744,7 +1829,37 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "operations",
+      "handler": "app.main:create_app.<locals>.assign_crew",
+      "operation_id": "assign_crew_api_v1_maintenance_tasks__task_id__assign_post",
+      "argument_fields": {
+        "path": [
+          "task_id"
+        ],
+        "query": [],
+        "body": [
+          "crew_id",
+          "end_at",
+          "executor_ids",
+          "expected_revision",
+          "reason",
+          "schema_version",
+          "start_at"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "task_read",
+      "operator": "confirmation"
     },
     {
       "name": "task_cancel",
@@ -763,7 +1878,32 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "operations",
+      "handler": "app.main:create_app.<locals>.task_cancel",
+      "operation_id": "task_cancel_api_v1_maintenance_tasks__task_id__cancel_post",
+      "argument_fields": {
+        "path": [
+          "task_id"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision",
+          "reason"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "task_read",
+      "operator": "confirmation"
     },
     {
       "name": "task_start",
@@ -780,7 +1920,31 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "operations",
+      "handler": "app.main:create_app.<locals>.start",
+      "operation_id": "start_api_v1_maintenance_tasks__task_id__start_post",
+      "argument_fields": {
+        "path": [
+          "task_id"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "task_read",
+      "operator": "confirmation"
     },
     {
       "name": "report_save",
@@ -797,7 +1961,35 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "operations",
+      "handler": "app.main:create_app.<locals>.save_report",
+      "operation_id": "save_report_api_v1_maintenance_tasks__task_id__report_put",
+      "argument_fields": {
+        "path": [
+          "task_id"
+        ],
+        "query": [],
+        "body": [
+          "actual",
+          "answers",
+          "expected_revision",
+          "narrative",
+          "readings"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "task_read",
+      "operator": "confirmation"
     },
     {
       "name": "report_submit",
@@ -814,7 +2006,31 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "operations",
+      "handler": "app.main:create_app.<locals>.submit",
+      "operation_id": "submit_api_v1_maintenance_tasks__task_id__submit_post",
+      "argument_fields": {
+        "path": [
+          "task_id"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "task_read",
+      "operator": "confirmation"
     },
     {
       "name": "report_review",
@@ -832,7 +2048,38 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "operations",
+      "handler": "app.main:create_app.<locals>.review",
+      "operation_id": "review_api_v1_maintenance_tasks__task_id__review_post",
+      "argument_fields": {
+        "path": [
+          "task_id"
+        ],
+        "query": [],
+        "body": [
+          "additional_evidence_refs",
+          "execution_id",
+          "expected_revision",
+          "late_reason",
+          "reason",
+          "reviewed_ai_result_id",
+          "schema_version",
+          "verdict"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "task_read",
+      "operator": "confirmation"
     },
     {
       "name": "photo_review",
@@ -852,7 +2099,35 @@
       "protected_inputs": [],
       "optional_protected_inputs": [
         "api_key"
-      ]
+      ],
+      "domain": "operations",
+      "handler": "app.integration.ml:register_ml_routes.<locals>.photo_review",
+      "operation_id": "photo_review_api_v1_maintenance_tasks__task_id__photo_review_post",
+      "argument_fields": {
+        "path": [
+          "task_id"
+        ],
+        "query": [],
+        "body": [
+          "api_key",
+          "comparability_confirmed",
+          "expected_revision",
+          "model",
+          "provider"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "task_read",
+      "operator": "unavailable"
     },
     {
       "name": "forecast_run",
@@ -873,7 +2148,35 @@
       "protected_inputs": [],
       "optional_protected_inputs": [
         "api_key"
-      ]
+      ],
+      "domain": "administration",
+      "handler": "app.integration.ml:register_ml_routes.<locals>.forecast",
+      "operation_id": "forecast_api_v1_maintenance_tasks__task_id__forecast_post",
+      "argument_fields": {
+        "path": [
+          "task_id"
+        ],
+        "query": [],
+        "body": [
+          "api_key",
+          "comparability_confirmed",
+          "expected_revision",
+          "model",
+          "provider"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "task_read",
+      "operator": "unavailable"
     },
     {
       "name": "workforce_read",
@@ -894,7 +2197,29 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "workforce",
+      "handler": "app.integration.management:register_workforce_routes.<locals>.workforce",
+      "operation_id": "workforce_api_v1_maintenance_management_workforce_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "catalogs_list",
@@ -915,7 +2240,39 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.catalog_imports:register_routes.<locals>.list_imports",
+      "operation_id": "list_imports_api_v1_maintenance_catalog_imports_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "limit",
+          "offset"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/CatalogList"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "portfolio_list",
@@ -936,7 +2293,38 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.portfolio_plans:register_routes.<locals>.listing",
+      "operation_id": "listing_api_v1_maintenance_portfolio_plans_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "offset"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/DraftList"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "portfolio_preview",
@@ -956,7 +2344,41 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.portfolio_plans:register_routes.<locals>.preview",
+      "operation_id": "preview_api_v1_maintenance_portfolio_plans_preview_post",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [],
+        "body": [
+          "kind",
+          "policy",
+          "requirements"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/PortfolioPreview"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "portfolio_save",
@@ -975,7 +2397,35 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.portfolio_plans:register_routes.<locals>.create",
+      "operation_id": "create_api_v1_maintenance_portfolio_plans_post",
+      "argument_fields": {
+        "path": [],
+        "query": [],
+        "body": [
+          "idempotency_key",
+          "input",
+          "preview_sha256",
+          "reason",
+          "title"
+        ]
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {
+            "$ref": "#/components/schemas/DraftRecord"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "draft_list",
@@ -996,7 +2446,39 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.draft_plans:register_routes.<locals>.listing",
+      "operation_id": "listing_api_v1_maintenance_draft_plans_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "import_id",
+          "offset"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/DraftList"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "draft_read",
@@ -1017,7 +2499,40 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.draft_plans:register_routes.<locals>.overview",
+      "operation_id": "overview_api_v1_maintenance_draft_plans__identity__get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity"
+        ],
+        "query": [
+          "revision"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/DraftOverview"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "draft_occurrences",
@@ -1038,7 +2553,43 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.draft_plans:register_routes.<locals>.occurrences_page",
+      "operation_id": "occurrences_page_api_v1_maintenance_draft_plans__identity__occurrences_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity"
+        ],
+        "query": [
+          "offset",
+          "period",
+          "q",
+          "revision"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/OccurrencePage"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "draft_policy",
@@ -1059,7 +2610,40 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.draft_plans:register_routes.<locals>.policy_view",
+      "operation_id": "policy_view_api_v1_maintenance_draft_plans__identity__policy_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity"
+        ],
+        "query": [
+          "revision"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/DraftPolicyView"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "draft_load",
@@ -1079,7 +2663,40 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.plan_load:register_routes.<locals>.load",
+      "operation_id": "load_api_v1_maintenance_draft_plans__identity__load_preview_post",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity"
+        ],
+        "query": [
+          "revision"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/PlanLoadPreview"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "draft_policy_edit",
@@ -1098,7 +2715,36 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.draft_plans:register_routes.<locals>.change_policy",
+      "operation_id": "change_policy_api_v1_maintenance_draft_plans__identity__policy_post",
+      "argument_fields": {
+        "path": [
+          "identity"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision",
+          "idempotency_key",
+          "policy",
+          "reason"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/DraftRecord"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "draft_read",
+      "operator": "unavailable"
     },
     {
       "name": "draft_place",
@@ -1117,7 +2763,40 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.draft_plans:register_routes.<locals>.place",
+      "operation_id": "place_api_v1_maintenance_draft_plans__identity__placements_post",
+      "argument_fields": {
+        "path": [
+          "identity"
+        ],
+        "query": [],
+        "body": [
+          "end_local",
+          "expected_revision",
+          "locked",
+          "reason",
+          "segment_id",
+          "start_local",
+          "unlock",
+          "worker_ids"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/DraftRecord"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "draft_read",
+      "operator": "unavailable"
     },
     {
       "name": "draft_undo_preview",
@@ -1136,7 +2815,40 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.draft_undo:register_routes.<locals>.preview",
+      "operation_id": "preview_api_v1_maintenance_draft_plans__identity__undo_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity"
+        ],
+        "query": [
+          "revision"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/UndoDraftView"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "draft_undo",
@@ -1155,7 +2867,36 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.draft_undo:register_routes.<locals>.undo",
+      "operation_id": "undo_api_v1_maintenance_draft_plans__identity__undo_post",
+      "argument_fields": {
+        "path": [
+          "identity"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision",
+          "idempotency_key",
+          "reason",
+          "unlock"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/DraftRecord"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "draft_read",
+      "operator": "unavailable"
     },
     {
       "name": "catalog_read_saved",
@@ -1176,7 +2917,38 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.catalog_imports:register_routes.<locals>.detail",
+      "operation_id": "detail_api_v1_maintenance_catalog_imports__identity__get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/CatalogDetail"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "catalog_operations",
@@ -1197,7 +2969,44 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.catalog_imports:register_routes.<locals>.operations",
+      "operation_id": "operations_api_v1_maintenance_catalog_imports__identity__operations_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity"
+        ],
+        "query": [
+          "group_id",
+          "kind",
+          "limit",
+          "offset",
+          "q"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/CatalogOperations"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "draft_preview",
@@ -1217,7 +3026,44 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.draft_plans:register_routes.<locals>.preview",
+      "operation_id": "preview_api_v1_maintenance_draft_plans_preview_post",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [],
+        "body": [
+          "ends_on",
+          "expansion",
+          "import_id",
+          "policy",
+          "row_numbers",
+          "starts_on"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/GenerationPreview"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "draft_save",
@@ -1236,7 +3082,35 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.draft_plans:register_routes.<locals>.create",
+      "operation_id": "create_api_v1_maintenance_draft_plans_post",
+      "argument_fields": {
+        "path": [],
+        "query": [],
+        "body": [
+          "idempotency_key",
+          "input",
+          "preview_sha256",
+          "reason",
+          "title"
+        ]
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {
+            "$ref": "#/components/schemas/DraftRecord"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "draft_segments",
@@ -1257,7 +3131,42 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.draft_plans:register_routes.<locals>.segment_page",
+      "operation_id": "segment_page_api_v1_maintenance_draft_plans__identity__occurrences__occurrence_id__segments_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity",
+          "occurrence_id"
+        ],
+        "query": [
+          "offset",
+          "revision"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/SegmentPage"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "draft_versions",
@@ -1278,7 +3187,40 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.draft_plans:register_routes.<locals>.versions",
+      "operation_id": "versions_api_v1_maintenance_draft_plans__identity__versions_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity"
+        ],
+        "query": [
+          "offset"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/DraftList"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "draft_split",
@@ -1297,7 +3239,38 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.draft_plans:register_routes.<locals>.edit",
+      "operation_id": "edit_api_v1_maintenance_draft_plans__identity__segments_post",
+      "argument_fields": {
+        "path": [
+          "identity"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision",
+          "occurrence_id",
+          "reason",
+          "replace_segment_ids",
+          "segments",
+          "unlock"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/DraftRecord"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "draft_read",
+      "operator": "unavailable"
     },
     {
       "name": "draft_validate",
@@ -1317,7 +3290,40 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.draft_plans:register_routes.<locals>.validate_version",
+      "operation_id": "validate_version_api_v1_maintenance_draft_plans__identity__validate_post",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity"
+        ],
+        "query": [
+          "revision"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/PlanValidation"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "optimization_start",
@@ -1336,7 +3342,35 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.optimization:register_routes.<locals>.start",
+      "operation_id": "start_api_v1_maintenance_draft_plans__identity__optimization_runs_post",
+      "argument_fields": {
+        "path": [
+          "identity"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision",
+          "idempotency_key",
+          "options"
+        ]
+      },
+      "response_schemas": {
+        "202": {
+          "application/json": {
+            "$ref": "#/components/schemas/OptimizationRun"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "draft_read",
+      "operator": "unavailable"
     },
     {
       "name": "optimization_list",
@@ -1357,7 +3391,40 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.optimization:register_routes.<locals>.history",
+      "operation_id": "history_api_v1_maintenance_draft_plans__identity__optimization_runs_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity"
+        ],
+        "query": [
+          "offset"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/OptimizationRunList"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "optimization_read",
@@ -1378,7 +3445,38 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.optimization:register_routes.<locals>.detail",
+      "operation_id": "detail_api_v1_maintenance_optimization_runs__run_id__get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "run_id"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/OptimizationRun"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "optimization_placements",
@@ -1399,7 +3497,41 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.optimization:register_routes.<locals>.placements",
+      "operation_id": "placements_api_v1_maintenance_optimization_runs__run_id__placements_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "run_id"
+        ],
+        "query": [
+          "kind",
+          "offset"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/OptimizationPlacements"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "optimization_apply",
@@ -1418,7 +3550,35 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.optimization:register_routes.<locals>.apply",
+      "operation_id": "apply_api_v1_maintenance_optimization_runs__run_id__apply_post",
+      "argument_fields": {
+        "path": [
+          "run_id"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision",
+          "kind",
+          "reason"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/DraftRecord"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "optimization_read",
+      "operator": "unavailable"
     },
     {
       "name": "optimization_cancel",
@@ -1437,7 +3597,30 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.optimization:register_routes.<locals>.cancel",
+      "operation_id": "cancel_api_v1_maintenance_optimization_runs__run_id__cancel_post",
+      "argument_fields": {
+        "path": [
+          "run_id"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/OptimizationRun"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "optimization_read",
+      "operator": "unavailable"
     },
     {
       "name": "publication_regulations",
@@ -1458,7 +3641,41 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.publication:register_routes.<locals>.regulations",
+      "operation_id": "regulations_api_v1_maintenance_draft_plans__identity__publication_regulations_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity"
+        ],
+        "query": [
+          "offset",
+          "revision"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/RegulationPublicationChoices"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "publication_profiles",
@@ -1479,7 +3696,41 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.publication:register_routes.<locals>.profiles",
+      "operation_id": "profiles_api_v1_maintenance_draft_plans__identity__publication_profiles_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity"
+        ],
+        "query": [
+          "offset",
+          "revision"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/PublicationProfileChoices"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "publication_prepare",
@@ -1498,7 +3749,31 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.publication:register_routes.<locals>.create",
+      "operation_id": "create_api_v1_maintenance_draft_plans__identity__publication_proposals_post",
+      "argument_fields": {
+        "path": [
+          "identity"
+        ],
+        "query": [],
+        "body": []
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {
+            "$ref": "#/components/schemas/PublicationProposal"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "draft_read",
+      "operator": "unavailable"
     },
     {
       "name": "publication_list",
@@ -1519,7 +3794,40 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.publication:register_routes.<locals>.history",
+      "operation_id": "history_api_v1_maintenance_draft_plans__identity__publication_proposals_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity"
+        ],
+        "query": [
+          "offset"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/PublicationProposalList"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "publication_read",
@@ -1540,7 +3848,38 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.publication:register_routes.<locals>.detail",
+      "operation_id": "detail_api_v1_maintenance_publication_proposals__identity__get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/PublicationProposal"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "publication_changes",
@@ -1561,7 +3900,40 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.publication:register_routes.<locals>.changes",
+      "operation_id": "changes_api_v1_maintenance_publication_proposals__identity__changes_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity"
+        ],
+        "query": [
+          "offset"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/PublicationChangePage"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "publication_approve",
@@ -1578,7 +3950,34 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.publication:register_routes.<locals>.approve",
+      "operation_id": "approve_api_v1_maintenance_publication_proposals__identity__approve_post",
+      "argument_fields": {
+        "path": [
+          "identity"
+        ],
+        "query": [],
+        "body": [
+          "expected_digest",
+          "reason"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/PublicationProposal"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "publication_read",
+      "operator": "unavailable"
     },
     {
       "name": "publication_reject",
@@ -1595,7 +3994,34 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.publication:register_routes.<locals>.reject",
+      "operation_id": "reject_api_v1_maintenance_publication_proposals__identity__reject_post",
+      "argument_fields": {
+        "path": [
+          "identity"
+        ],
+        "query": [],
+        "body": [
+          "expected_digest",
+          "reason"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/PublicationProposal"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "publication_read",
+      "operator": "unavailable"
     },
     {
       "name": "publication_publish",
@@ -1612,7 +4038,35 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.publication:register_routes.<locals>.publish",
+      "operation_id": "publish_api_v1_maintenance_publication_proposals__identity__publish_post",
+      "argument_fields": {
+        "path": [
+          "identity"
+        ],
+        "query": [],
+        "body": [
+          "approval_token",
+          "expected_digest",
+          "idempotency_key"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/PublicationProposal"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "publication_read",
+      "operator": "unavailable"
     },
     {
       "name": "source_xlsx_preview",
@@ -1632,7 +4086,37 @@
         "file"
       ],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.source_preview",
+      "operation_id": "source_preview_api_v1_maintenance_source_xlsx_preview_post",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [],
+        "body": [
+          "file"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "source_xlsx_import",
@@ -1651,7 +4135,31 @@
         "file"
       ],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.source_import",
+      "operation_id": "source_import_api_v1_maintenance_source_xlsx_import_post",
+      "argument_fields": {
+        "path": [],
+        "query": [],
+        "body": [
+          "effective_from",
+          "file",
+          "system_id"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "source_xlsx_export",
@@ -1669,7 +4177,36 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.source_export",
+      "operation_id": "source_export_api_v1_maintenance_source_xlsx_export_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "source_sha256"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "source_revisions",
@@ -1687,7 +4224,36 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.source_revisions",
+      "operation_id": "source_revisions_api_v1_maintenance_source_revisions_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "status"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "source_revision_publish",
@@ -1705,7 +4271,28 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.publish_source_revision",
+      "operation_id": "publish_source_revision_api_v1_maintenance_source_revisions__event_id__published_post",
+      "argument_fields": {
+        "path": [
+          "event_id"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "assistant_action_history",
@@ -1727,7 +4314,36 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.assistant:register_routes.<locals>.actions",
+      "operation_id": "actions_api_v1_assistant_actions_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "offset"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "sites_list",
@@ -1749,7 +4365,29 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.registry:register_routes.<locals>.sites",
+      "operation_id": "sites_api_v1_auth_sites_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "site_switch",
@@ -1771,7 +4409,29 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.registry:register_routes.<locals>.switch_site",
+      "operation_id": "switch_site_api_v1_auth_site_post",
+      "argument_fields": {
+        "path": [],
+        "query": [],
+        "body": [
+          "site_id"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "session_logout",
@@ -1793,7 +4453,19 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.main:create_app.<locals>.logout",
+      "operation_id": "logout_api_v1_auth_logout_post",
+      "argument_fields": {
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "204": {}
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "profile_read",
@@ -1815,7 +4487,29 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.management:register_workforce_routes.<locals>.me",
+      "operation_id": "me_api_v1_maintenance_users_me_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "profile_email",
@@ -1839,7 +4533,30 @@
       "protected_inputs": [
         "current_password"
       ],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.management:register_workforce_routes.<locals>.update_email",
+      "operation_id": "update_email_api_v1_maintenance_users_me_email_patch",
+      "argument_fields": {
+        "path": [],
+        "query": [],
+        "body": [
+          "current_password",
+          "email"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "profile_read",
+      "operator": "unavailable"
     },
     {
       "name": "roles_list",
@@ -1861,7 +4578,29 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.management:register_workforce_routes.<locals>.roles",
+      "operation_id": "roles_api_v1_maintenance_users_roles_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "user_roles",
@@ -1883,7 +4622,36 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.management:register_workforce_routes.<locals>.user_roles",
+      "operation_id": "user_roles_api_v1_maintenance_users__user_id__roles_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "user_id"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "users_list",
@@ -1901,7 +4669,29 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.management:register_workforce_routes.<locals>.users",
+      "operation_id": "users_api_v1_maintenance_users_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "enrollment_read",
@@ -1919,7 +4709,29 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.management:register_workforce_routes.<locals>.enrollment",
+      "operation_id": "enrollment_api_v1_maintenance_management_enrollment_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "enrollment_create",
@@ -1937,7 +4749,21 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.management:register_workforce_routes.<locals>.enrollment_create",
+      "operation_id": "enrollment_create_api_v1_maintenance_management_enrollment_post",
+      "argument_fields": {
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "application_decide",
@@ -1955,7 +4781,36 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "workforce",
+      "handler": "app.integration.management:register_workforce_routes.<locals>.application_decision",
+      "operation_id": "application_decision_api_v1_maintenance_management_applications__application_id__decision_post",
+      "argument_fields": {
+        "path": [
+          "application_id"
+        ],
+        "query": [],
+        "body": [
+          "decision",
+          "employed_from",
+          "employed_until",
+          "expected_revision",
+          "is_active",
+          "role"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "staff_edit",
@@ -1973,7 +4828,35 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "workforce",
+      "handler": "app.integration.management:register_workforce_routes.<locals>.staff_edit",
+      "operation_id": "staff_edit_api_v1_maintenance_management_staff__user_id__put",
+      "argument_fields": {
+        "path": [
+          "user_id"
+        ],
+        "query": [],
+        "body": [
+          "employed_from",
+          "employed_until",
+          "expected_revision",
+          "is_active",
+          "role"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "staff_read",
+      "operator": "confirmation"
     },
     {
       "name": "shift_create",
@@ -1993,7 +4876,38 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "workforce",
+      "handler": "app.integration.management:register_workforce_routes.<locals>.shift_create",
+      "operation_id": "shift_create_api_v1_maintenance_management_staff__user_id__shifts_post",
+      "argument_fields": {
+        "path": [
+          "user_id"
+        ],
+        "query": [],
+        "body": [
+          "ends_local",
+          "is_active",
+          "label",
+          "pattern",
+          "starts_local",
+          "status",
+          "valid_from",
+          "valid_until"
+        ]
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "shift_edit",
@@ -2013,7 +4927,40 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "workforce",
+      "handler": "app.integration.management:register_workforce_routes.<locals>.shift_update",
+      "operation_id": "shift_update_api_v1_maintenance_management_staff__user_id__shifts__shift_id__put",
+      "argument_fields": {
+        "path": [
+          "shift_id",
+          "user_id"
+        ],
+        "query": [],
+        "body": [
+          "ends_local",
+          "expected_revision",
+          "is_active",
+          "label",
+          "pattern",
+          "starts_local",
+          "status",
+          "valid_from",
+          "valid_until"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "availability_create",
@@ -2033,7 +4980,34 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "workforce",
+      "handler": "app.integration.management:register_workforce_routes.<locals>.availability",
+      "operation_id": "availability_api_v1_maintenance_management_staff__user_id__availability_post",
+      "argument_fields": {
+        "path": [
+          "user_id"
+        ],
+        "query": [],
+        "body": [
+          "end_local",
+          "reason",
+          "start_local",
+          "status"
+        ]
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "availability_cancel",
@@ -2053,7 +5027,31 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "workforce",
+      "handler": "app.integration.management:register_workforce_routes.<locals>.cancel_availability",
+      "operation_id": "cancel_availability_api_v1_maintenance_management_staff__user_id__availability__availability_id__cancel_post",
+      "argument_fields": {
+        "path": [
+          "availability_id",
+          "user_id"
+        ],
+        "query": [
+          "expected_revision"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "staff_calendar",
@@ -2075,7 +5073,39 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "workforce",
+      "handler": "app.integration.management:register_workforce_routes.<locals>.employee_calendar",
+      "operation_id": "employee_calendar_api_v1_maintenance_management_staff__user_id__calendar_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "user_id"
+        ],
+        "query": [
+          "end",
+          "start"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "skill_create",
@@ -2095,7 +5125,31 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.management:register_workforce_routes.<locals>.skill_create",
+      "operation_id": "skill_create_api_v1_maintenance_management_skills_post",
+      "argument_fields": {
+        "path": [],
+        "query": [],
+        "body": [
+          "code",
+          "name",
+          "validity_required"
+        ]
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "qualification_set",
@@ -2115,7 +5169,35 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "workforce",
+      "handler": "app.integration.management:register_workforce_routes.<locals>.qualification",
+      "operation_id": "qualification_api_v1_maintenance_management_staff__user_id__qualifications__skill_id__put",
+      "argument_fields": {
+        "path": [
+          "skill_id",
+          "user_id"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision",
+          "valid_until",
+          "verified_at",
+          "verified_local"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "qualification_revoke",
@@ -2135,7 +5217,32 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "workforce",
+      "handler": "app.integration.management:register_workforce_routes.<locals>.revoke_qualification",
+      "operation_id": "revoke_qualification_api_v1_maintenance_management_staff__user_id__qualifications__skill_id__revoke_post",
+      "argument_fields": {
+        "path": [
+          "skill_id",
+          "user_id"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "crew_create",
@@ -2155,7 +5262,31 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.management:register_workforce_routes.<locals>.crew_create",
+      "operation_id": "crew_create_api_v1_maintenance_management_crews_post",
+      "argument_fields": {
+        "path": [],
+        "query": [],
+        "body": [
+          "is_active",
+          "members",
+          "name"
+        ]
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "crew_edit",
@@ -2175,7 +5306,34 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.management:register_workforce_routes.<locals>.crew_update",
+      "operation_id": "crew_update_api_v1_maintenance_management_crews__crew_id__put",
+      "argument_fields": {
+        "path": [
+          "crew_id"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision",
+          "is_active",
+          "members",
+          "name"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "pattern_preview",
@@ -2195,7 +5353,39 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.management:register_routes.<locals>.pattern_preview",
+      "operation_id": "pattern_preview_api_v1_maintenance_management_calendar_pattern_preview_post",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [],
+        "body": [
+          "month",
+          "pattern",
+          "year"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "system_create",
@@ -2214,7 +5404,31 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.management:register_routes.<locals>.system_create",
+      "operation_id": "system_create_api_v1_maintenance_management_systems_post",
+      "argument_fields": {
+        "path": [],
+        "query": [],
+        "body": [
+          "code",
+          "name",
+          "system_group"
+        ]
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "equipment_type_create",
@@ -2232,7 +5446,30 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.integration.management:register_routes.<locals>.type_create",
+      "operation_id": "type_create_api_v1_maintenance_management_equipment_types_post",
+      "argument_fields": {
+        "path": [],
+        "query": [],
+        "body": [
+          "code",
+          "name"
+        ]
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "registry_read",
@@ -2253,7 +5490,29 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.registry:register_routes.<locals>.registry",
+      "operation_id": "registry_api_v1_maintenance_registry_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "system_classify",
@@ -2271,7 +5530,32 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.registry:register_routes.<locals>.classify",
+      "operation_id": "classify_api_v1_maintenance_registry_systems__system_id__patch",
+      "argument_fields": {
+        "path": [
+          "system_id"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision",
+          "system_group"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "building_create",
@@ -2289,7 +5573,31 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.registry:register_routes.<locals>.create_building",
+      "operation_id": "create_building_api_v1_maintenance_registry_buildings_post",
+      "argument_fields": {
+        "path": [],
+        "query": [],
+        "body": [
+          "address",
+          "name",
+          "timezone"
+        ]
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "components_read",
@@ -2311,7 +5619,36 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.integration.registry:register_routes.<locals>.components",
+      "operation_id": "components_api_v1_maintenance_equipment__equipment_id__components_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "equipment_id"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "component_install",
@@ -2329,7 +5666,39 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.integration.registry:register_routes.<locals>.install",
+      "operation_id": "install_api_v1_maintenance_equipment__equipment_id__components_post",
+      "argument_fields": {
+        "path": [
+          "equipment_id"
+        ],
+        "query": [],
+        "body": [
+          "initial_usage",
+          "installed_on",
+          "name",
+          "part_number",
+          "position_code",
+          "resource_basis",
+          "resource_limit",
+          "serial_number",
+          "usage_unit"
+        ]
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "equipment_read",
+      "operator": "unavailable"
     },
     {
       "name": "component_edit",
@@ -2347,7 +5716,36 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.integration.registry:register_routes.<locals>.edit_component",
+      "operation_id": "edit_component_api_v1_maintenance_registry_components__component_id__patch",
+      "argument_fields": {
+        "path": [
+          "component_id"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision",
+          "name",
+          "part_number",
+          "resource_basis",
+          "resource_limit",
+          "serial_number"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "component_replace",
@@ -2365,7 +5763,34 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.integration.registry:register_routes.<locals>.replace",
+      "operation_id": "replace_api_v1_maintenance_registry_components__component_id__replace_post",
+      "argument_fields": {
+        "path": [
+          "component_id"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision",
+          "reason",
+          "removed_on",
+          "replacement"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "component_reading",
@@ -2388,7 +5813,32 @@
         "photo"
       ],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.integration.registry:register_routes.<locals>.record_reading",
+      "operation_id": "record_reading_api_v1_maintenance_registry_components__component_id__readings_post",
+      "argument_fields": {
+        "path": [
+          "component_id"
+        ],
+        "query": [],
+        "body": [
+          "payload",
+          "photo"
+        ]
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "reading_photo",
@@ -2410,7 +5860,36 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.registry:register_routes.<locals>.reading_photo",
+      "operation_id": "reading_photo_api_v1_maintenance_registry_readings__reading_id__photo_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "reading_id"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "registry_export",
@@ -2431,7 +5910,36 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.registry_excel:register_routes.<locals>.export",
+      "operation_id": "export_api_v1_maintenance_registry_excel_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "template"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "registry_import_preview",
@@ -2451,7 +5959,37 @@
         "file"
       ],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.registry_excel:register_routes.<locals>.inspect",
+      "operation_id": "inspect_api_v1_maintenance_registry_excel_preview_post",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [],
+        "body": [
+          "file"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "registry_import",
@@ -2471,7 +6009,30 @@
         "file"
       ],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.registry_excel:register_routes.<locals>.apply",
+      "operation_id": "apply_api_v1_maintenance_registry_excel_import_post",
+      "argument_fields": {
+        "path": [],
+        "query": [],
+        "body": [
+          "file",
+          "preview_token"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "catalog_import_preview",
@@ -2491,7 +6052,39 @@
         "file"
       ],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.catalog_imports:register_routes.<locals>.preview",
+      "operation_id": "preview_api_v1_maintenance_catalog_imports_preview_post",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [],
+        "body": [
+          "file"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/CatalogPreview"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "catalog_import",
@@ -2511,7 +6104,32 @@
         "file"
       ],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.catalog_imports:register_routes.<locals>.save",
+      "operation_id": "save_api_v1_maintenance_catalog_imports_post",
+      "argument_fields": {
+        "path": [],
+        "query": [],
+        "body": [
+          "file",
+          "preview_token"
+        ]
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {
+            "$ref": "#/components/schemas/CatalogSaved"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "catalog_operation_source",
@@ -2532,7 +6150,39 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.catalog_imports:register_routes.<locals>.operation",
+      "operation_id": "operation_api_v1_maintenance_catalog_imports__identity__operations__row_number__get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity",
+          "row_number"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/CatalogOperationSource"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "catalog_source_file",
@@ -2553,7 +6203,36 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.catalog_imports:register_routes.<locals>.source",
+      "operation_id": "source_api_v1_maintenance_catalog_imports__identity__source_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "catalog_binding_options",
@@ -2574,7 +6253,41 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.catalog_decisions:register_routes.<locals>.options",
+      "operation_id": "options_api_v1_maintenance_catalog_imports__identity__binding_options_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity"
+        ],
+        "query": [
+          "offset",
+          "q"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/BindingOptions"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "catalog_preparation",
@@ -2595,7 +6308,38 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.catalog_decisions:register_routes.<locals>.progress",
+      "operation_id": "progress_api_v1_maintenance_catalog_imports__identity__preparation_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/DecisionProgress"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "catalog_decision_read",
@@ -2616,7 +6360,39 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.catalog_decisions:register_routes.<locals>.read",
+      "operation_id": "read_api_v1_maintenance_catalog_imports__identity__operations__number__decision_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity",
+          "number"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/DecisionRecord"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "catalog_decision",
@@ -2634,7 +6410,37 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.catalog_decisions:register_routes.<locals>.write",
+      "operation_id": "write_api_v1_maintenance_catalog_imports__identity__operations__number__decision_post",
+      "argument_fields": {
+        "path": [
+          "identity",
+          "number"
+        ],
+        "query": [],
+        "body": [
+          "confirm",
+          "decision",
+          "expected_revision",
+          "reason"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/DecisionRecord"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "catalog_decision_read",
+      "operator": "unavailable"
     },
     {
       "name": "catalog_decision_history",
@@ -2655,7 +6461,41 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.catalog_decisions:register_routes.<locals>.history",
+      "operation_id": "history_api_v1_maintenance_catalog_imports__identity__operations__number__decision_history_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity",
+          "number"
+        ],
+        "query": [
+          "offset"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/DecisionHistory"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "draft_source_choices",
@@ -2676,7 +6516,41 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.draft_plans:register_routes.<locals>.source_choices",
+      "operation_id": "source_choices_api_v1_maintenance_draft_plans_source_choices__import_id__get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "import_id"
+        ],
+        "query": [
+          "offset",
+          "q"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/PreparedSourceChoices"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "draft_choices",
@@ -2697,7 +6571,41 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.draft_plans:register_routes.<locals>.choices",
+      "operation_id": "choices_api_v1_maintenance_draft_plans_choices__kind__get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "kind"
+        ],
+        "query": [
+          "offset",
+          "q"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/PlanningChoices"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "requirements_preview",
@@ -2717,7 +6625,47 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "planning",
+      "handler": "app.integration.requirements:register_routes.<locals>.requirements_preview",
+      "operation_id": "requirements_preview_api_v1_maintenance_planning_requirements_preview_post",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [],
+        "body": [
+          "binding_ids",
+          "catalog",
+          "ends_on",
+          "include_regulations",
+          "issue_offset",
+          "offset",
+          "q",
+          "starts_on",
+          "state"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/RequirementsPreview"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "jobs_list",
@@ -2739,7 +6687,42 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.main:create_app.<locals>.maintenance_job_list",
+      "operation_id": "maintenance_job_list_api_v1_maintenance_jobs_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "status"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaintenanceJobResponse"
+            },
+            "title": "Response Maintenance Job List Api V1 Maintenance Jobs Get"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "job_create",
@@ -2759,7 +6742,34 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.main:create_app.<locals>.maintenance_job_create",
+      "operation_id": "maintenance_job_create_api_v1_maintenance_jobs_post",
+      "argument_fields": {
+        "path": [],
+        "query": [],
+        "body": [
+          "equipment_id",
+          "maintenance_rule_id",
+          "planned_start_at",
+          "schedule_entry_id"
+        ]
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {
+            "$ref": "#/components/schemas/MaintenanceJobResponse"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "job_read",
@@ -2781,7 +6791,38 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.main:create_app.<locals>.maintenance_job_detail",
+      "operation_id": "maintenance_job_detail_api_v1_maintenance_jobs__job_id__get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "job_id"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/MaintenanceJobResponse"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "job_transition",
@@ -2802,7 +6843,35 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.main:create_app.<locals>.maintenance_job_transition",
+      "operation_id": "maintenance_job_transition_api_v1_maintenance_jobs__job_id__transitions_post",
+      "argument_fields": {
+        "path": [
+          "job_id"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision",
+          "reason",
+          "status"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/MaintenanceJobResponse"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "job_read",
+      "operator": "unavailable"
     },
     {
       "name": "job_history",
@@ -2824,7 +6893,42 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.main:create_app.<locals>.maintenance_job_history",
+      "operation_id": "maintenance_job_history_api_v1_maintenance_jobs__job_id__history_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "job_id"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaintenanceJobHistoryItem"
+            },
+            "title": "Response Maintenance Job History Api V1 Maintenance Jobs  Job Id  History Get"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "equipment_ui_list",
@@ -2846,7 +6950,29 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.main:create_app.<locals>.equipment_list",
+      "operation_id": "equipment_list_api_v1_maintenance_ui_equipment_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "equipment_history",
@@ -2868,7 +6994,36 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.main:create_app.<locals>.equipment_detail",
+      "operation_id": "equipment_detail_api_v1_maintenance_ui_equipment__equipment_id__get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "equipment_id"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "calendar_preview",
@@ -2887,7 +7042,37 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.main:create_app.<locals>.calendar_preview",
+      "operation_id": "calendar_preview_api_v1_maintenance_ui_calendar_preview_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "month",
+          "year"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "workload_read",
@@ -2908,7 +7093,40 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.main:create_app.<locals>.planning_workload",
+      "operation_id": "planning_workload_api_v1_maintenance_planning_workload_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "capacity_hours_per_24h",
+          "month",
+          "year"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/WorkloadResponse"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "calendar_generate",
@@ -2927,7 +7145,32 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.main:create_app.<locals>.calendar_generate",
+      "operation_id": "calendar_generate_api_v1_maintenance_calendar_generate_post",
+      "argument_fields": {
+        "path": [],
+        "query": [],
+        "body": [
+          "idempotency_key",
+          "month",
+          "preview_token",
+          "year"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "comparisons_list",
@@ -2948,7 +7191,29 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.main:create_app.<locals>.comparisons",
+      "operation_id": "comparisons_api_v1_maintenance_ui_comparisons_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "comparison_read",
@@ -2969,7 +7234,36 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.main:create_app.<locals>.comparison",
+      "operation_id": "comparison_api_v1_maintenance_ui_comparisons__run_id__get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "run_id"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "quality_list",
@@ -2987,7 +7281,29 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.main:create_app.<locals>.quality",
+      "operation_id": "quality_api_v1_maintenance_ui_quality_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "photo_upload",
@@ -3006,7 +7322,35 @@
         "file"
       ],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "operations",
+      "handler": "app.main:create_app.<locals>.upload_photo",
+      "operation_id": "upload_photo_api_v1_maintenance_tasks__task_id__photos_post",
+      "argument_fields": {
+        "path": [
+          "task_id"
+        ],
+        "query": [],
+        "body": [
+          "checklist_item_id",
+          "expected_revision",
+          "file",
+          "phase",
+          "view_key"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "task_read",
+      "operator": "unavailable"
     },
     {
       "name": "photo_read",
@@ -3028,7 +7372,36 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "operations",
+      "handler": "app.main:create_app.<locals>.download_photo",
+      "operation_id": "download_photo_api_v1_maintenance_photos__photo_id__get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "photo_id"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "act_upload",
@@ -3047,7 +7420,33 @@
         "file"
       ],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.upload_act",
+      "operation_id": "upload_act_api_v1_maintenance_tasks__task_id__acts_post",
+      "argument_fields": {
+        "path": [
+          "task_id"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision",
+          "file",
+          "kind"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "task_read",
+      "operator": "unavailable"
     },
     {
       "name": "act_verify",
@@ -3065,7 +7464,33 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.verify_act",
+      "operation_id": "verify_act_api_v1_maintenance_tasks__task_id__acts__identity__verify_post",
+      "argument_fields": {
+        "path": [
+          "identity",
+          "task_id"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision",
+          "reason"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "task_read",
+      "operator": "unavailable"
     },
     {
       "name": "task_attempts",
@@ -3087,7 +7512,36 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "operations",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.attempts",
+      "operation_id": "attempts_api_v1_maintenance_tasks__task_id__attempts_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "task_id"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "task_reopen",
@@ -3104,7 +7558,32 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "operations",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.reopen",
+      "operation_id": "reopen_api_v1_maintenance_tasks__task_id__reopen_post",
+      "argument_fields": {
+        "path": [
+          "task_id"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision",
+          "reason"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "task_read",
+      "operator": "unavailable"
     },
     {
       "name": "late_authorize",
@@ -3121,7 +7600,32 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.late_authorization",
+      "operation_id": "late_authorization_api_v1_maintenance_tasks__task_id__late_authorization_post",
+      "argument_fields": {
+        "path": [
+          "task_id"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision",
+          "reason"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "task_read",
+      "operator": "unavailable"
     },
     {
       "name": "late_execution",
@@ -3138,7 +7642,33 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.permit_late_execution",
+      "operation_id": "permit_late_execution_api_v1_maintenance_tasks__task_id__late_execution_post",
+      "argument_fields": {
+        "path": [
+          "task_id"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision",
+          "reason",
+          "until"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "task_read",
+      "operator": "unavailable"
     },
     {
       "name": "plans_list",
@@ -3160,7 +7690,37 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.plans",
+      "operation_id": "plans_api_v1_maintenance_plans_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "month",
+          "year"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "plan_approve",
@@ -3177,7 +7737,32 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.approve_plan",
+      "operation_id": "approve_plan_api_v1_maintenance_plans__identity__approve_post",
+      "argument_fields": {
+        "path": [
+          "identity"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision",
+          "reason"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "overview_read",
@@ -3198,7 +7783,29 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.overview",
+      "operation_id": "overview_api_v1_maintenance_overview_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "report_export",
@@ -3219,7 +7826,38 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "operations",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.export",
+      "operation_id": "export_api_v1_maintenance_export_xlsx_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "kind",
+          "month",
+          "year"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "schedule_matrix",
@@ -3240,7 +7878,37 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.matrix",
+      "operation_id": "matrix_api_v1_maintenance_schedule_matrix_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "month",
+          "year"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "comparison_confirm",
@@ -3259,7 +7927,32 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.confirm_forecast",
+      "operation_id": "confirm_forecast_api_v1_maintenance_comparisons__run_id__confirm_post",
+      "argument_fields": {
+        "path": [
+          "run_id"
+        ],
+        "query": [],
+        "body": [
+          "reason",
+          "selected_date"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "checklist_catalog",
@@ -3279,7 +7972,29 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.catalog",
+      "operation_id": "catalog_api_v1_maintenance_checklist_catalog_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "notifications_list",
@@ -3301,7 +8016,29 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.inbox",
+      "operation_id": "inbox_api_v1_maintenance_notifications_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "notifications_read_all",
@@ -3323,7 +8060,21 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.read_all_notifications",
+      "operation_id": "read_all_notifications_api_v1_maintenance_notifications_read_all_post",
+      "argument_fields": {
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "notifications_clear",
@@ -3345,7 +8096,21 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.clear_notifications",
+      "operation_id": "clear_notifications_api_v1_maintenance_notifications_clear_post",
+      "argument_fields": {
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "notification_delete",
@@ -3367,7 +8132,28 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.delete_notification",
+      "operation_id": "delete_notification_api_v1_maintenance_notifications__identity__delete_post",
+      "argument_fields": {
+        "path": [
+          "identity"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "notification_read",
@@ -3389,7 +8175,28 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.analyst:register_analyst_routes.<locals>.read_notification",
+      "operation_id": "read_notification_api_v1_maintenance_notifications__identity__read_post",
+      "argument_fields": {
+        "path": [
+          "identity"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "incidents_list",
@@ -3411,7 +8218,29 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.incidents:register_incident_routes.<locals>.listing",
+      "operation_id": "listing_api_v1_maintenance_incidents_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "incident_create",
@@ -3433,7 +8262,31 @@
         "file"
       ],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.incidents:register_incident_routes.<locals>.create",
+      "operation_id": "create_api_v1_maintenance_incidents_post",
+      "argument_fields": {
+        "path": [],
+        "query": [],
+        "body": [
+          "description",
+          "equipment_id",
+          "file"
+        ]
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "incident_photo",
@@ -3455,7 +8308,36 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.incidents:register_incident_routes.<locals>.photo",
+      "operation_id": "photo_api_v1_maintenance_incidents__identity__photo_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "identity"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "incident_analyze",
@@ -3474,7 +8356,28 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.incidents:register_incident_routes.<locals>.analyze",
+      "operation_id": "analyze_api_v1_maintenance_incidents__identity__analyze_post",
+      "argument_fields": {
+        "path": [
+          "identity"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "incident_task",
@@ -3491,7 +8394,33 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.incidents:register_incident_routes.<locals>.create_task",
+      "operation_id": "create_task_api_v1_maintenance_incidents__identity__create_task_post",
+      "argument_fields": {
+        "path": [
+          "identity"
+        ],
+        "query": [],
+        "body": [
+          "binding_id",
+          "planned_date",
+          "reason"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "operations_list",
@@ -3512,7 +8441,29 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.maintenance_api:register_routes.<locals>.operations",
+      "operation_id": "operations_api_v1_maintenance_operations_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "operation_read",
@@ -3533,7 +8484,36 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.maintenance_api:register_routes.<locals>.operation",
+      "operation_id": "operation_api_v1_maintenance_operations__operation_id__get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "operation_id"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "operation_create",
@@ -3550,7 +8530,45 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.maintenance_api:register_routes.<locals>.operation_create",
+      "operation_id": "operation_create_api_v1_maintenance_operations_post",
+      "argument_fields": {
+        "path": [],
+        "query": [
+          "system_id"
+        ],
+        "body": [
+          "checklist",
+          "code",
+          "crew_size",
+          "data_origin",
+          "duration_basis",
+          "instructions",
+          "maintenance_type",
+          "norm_unit",
+          "operation_id",
+          "planning_duration_minutes",
+          "qualification_ids",
+          "raw_norm_value",
+          "source_ref",
+          "status",
+          "title"
+        ]
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "operation_edit",
@@ -3567,7 +8585,46 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.maintenance_api:register_routes.<locals>.operation_update",
+      "operation_id": "operation_update_api_v1_maintenance_operations__operation_id__patch",
+      "argument_fields": {
+        "path": [
+          "operation_id"
+        ],
+        "query": [],
+        "body": [
+          "checklist",
+          "code",
+          "crew_size",
+          "data_origin",
+          "duration_basis",
+          "expected_revision",
+          "instructions",
+          "maintenance_type",
+          "norm_unit",
+          "operation_id",
+          "planning_duration_minutes",
+          "qualification_ids",
+          "raw_norm_value",
+          "source_ref",
+          "status",
+          "title"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "operation_read",
+      "operator": "unavailable"
     },
     {
       "name": "operation_retire",
@@ -3584,7 +8641,28 @@
       "requires_confirmation": true,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.maintenance_api:register_routes.<locals>.operation_delete",
+      "operation_id": "operation_delete_api_v1_maintenance_operations__operation_id__delete",
+      "argument_fields": {
+        "path": [
+          "operation_id"
+        ],
+        "query": [
+          "expected_revision"
+        ]
+      },
+      "response_schemas": {
+        "204": {},
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "operation_read",
+      "operator": "unavailable"
     },
     {
       "name": "regulations_list",
@@ -3605,7 +8683,29 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.integration.maintenance_api:register_routes.<locals>.regulations",
+      "operation_id": "regulations_api_v1_maintenance_regulations_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "canonical_tasks",
@@ -3627,7 +8727,36 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.maintenance_api:register_routes.<locals>.planned_tasks",
+      "operation_id": "planned_tasks_api_v1_maintenance_tasks_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "status"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "canonical_calendar",
@@ -3649,7 +8778,37 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.maintenance_api:register_routes.<locals>.calendar",
+      "operation_id": "calendar_api_v1_maintenance_calendar_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "month",
+          "year"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     },
     {
       "name": "equipment_executions",
@@ -3671,7 +8830,39 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "equipment",
+      "handler": "app.integration.maintenance_api:register_routes.<locals>.executions",
+      "operation_id": "executions_api_v1_maintenance_equipment__equipment_id__executions_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "equipment_id"
+        ],
+        "query": [
+          "limit",
+          "offset"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "read"
     },
     {
       "name": "ai_models",
@@ -3693,7 +8884,29 @@
       "requires_confirmation": false,
       "file_fields": [],
       "protected_inputs": [],
-      "optional_protected_inputs": []
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.ml:register_ml_routes.<locals>.list_ai_models",
+      "operation_id": "list_ai_models_api_v1_maintenance_ai_models_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
     }
   ],
   "excluded": [

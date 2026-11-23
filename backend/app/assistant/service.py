@@ -16,12 +16,14 @@ from .read_transport import read as read_tool,safe_arguments,result_summary
 PROMPT_VERSION='fixrate-orchestrator-v1'
 GRAPH_PROMPT_VERSION='fixrate-langgraph-v3'
 DYNAMIC_PROMPT_VERSION='fixrate-llm-dynamic-v1'
+OPERATOR_PROMPT_VERSION='fixrate-erp-operator-v1'
 
 
 def prompt_version(settings):
     if settings.assistant_agent_version != 'v3':
         return PROMPT_VERSION
-    return DYNAMIC_PROMPT_VERSION if settings.assistant_v3_pipeline == 'llm_dynamic' else GRAPH_PROMPT_VERSION
+    return {'llm_dynamic': DYNAMIC_PROMPT_VERSION, 'erp_operator': OPERATOR_PROMPT_VERSION}.get(
+        settings.assistant_v3_pipeline, GRAPH_PROMPT_VERSION)
 PROMPTS=Path(__file__).parent/'prompts'
 SLOTS=threading.BoundedSemaphore(2)
 logger=logging.getLogger(__name__)

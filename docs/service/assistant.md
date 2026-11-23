@@ -1,5 +1,7 @@
 # ИИ-помощник и агенты
 
+Экспериментальный режим ERP-оператора запускается в существующем чате при `FIXRATE_ASSISTANT_AGENT_VERSION=v3` и `FIXRATE_ASSISTANT_V3_PIPELINE=erp_operator`. Порядок запуска, покрытие ролей и результат сравнения приведены в [описании эксперимента](../releases/2026-11-23-erp-operator.md).
+
 [Архитектура v3](../architecture/assistant-architecture-v3.md) описывает этапы LangGraph, хранение PostgreSQL и продолжение. [Порядок запуска и сравнение](../releases/2026-11-23-assistant-architecture-v3.md).
 
 [Аудит пяти реальных ответов v3](../architecture/assistant-v3-user-audit-2026-11-23.md) сопоставляет пользовательские реплики, узлы, доказательства и исправленные предметные сценарии.

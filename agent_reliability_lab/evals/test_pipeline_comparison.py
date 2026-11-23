@@ -233,9 +233,7 @@ def test_pipeline_comparison(pipeline_fixture, monkeypatch):
     cases = [case for case in CASES if not selected or case.id in selected]
     assert cases and (not selected or {case.id for case in cases} == selected)
     variants = os.getenv('FIXRATE_PIPELINE_VARIANTS', 'AB')
-    assert variants in ('AB', 'CAB', 'A', 'B')
-    if 'C' in variants:
-        assert len(cases) == len(CASES), 'Cloud projection is limited to the frozen synthetic corpus'
+    assert variants and len(variants) == len(set(variants)) and not set(variants) - set('ABCDE')
     manifest = dict(corpus=_hash([asdict(case) for case in cases]), sql_snapshot=_hash(ledger), days=days,
                     variants=variants, cases=len(cases), synthetic=True)
     (output/'manifest.json').write_text(json.dumps(manifest, default=str, indent=2), encoding='utf-8')
@@ -244,9 +242,10 @@ def test_pipeline_comparison(pipeline_fixture, monkeypatch):
     for variant in variants:
         counts = Counter()
         with monkeypatch.context() as settings:
-            settings.setattr(app.state, 'settings', replace(app.state.settings,
-                              assistant_v3_pipeline='v3' if variant == 'A' else 'llm_dynamic'))
-            if variant == 'C':
+            pipeline = {'A': 'v3', 'B': 'llm_dynamic', 'C': 'llm_dynamic',
+                        'D': 'erp_operator', 'E': 'erp_operator'}[variant]
+            settings.setattr(app.state, 'settings', replace(app.state.settings, assistant_v3_pipeline=pipeline))
+            if variant in ('C', 'E'):
                 settings.setattr(app.state, 'assistant_provider_factory', _cloud(), raising=False)
             with (output/f'{variant}.jsonl').open('w', encoding='utf-8') as log:
                 for case in cases:
@@ -261,8 +260,9 @@ def test_pipeline_comparison(pipeline_fixture, monkeypatch):
                         failures = _judge(check, expected, response, state, actions)
                         observations.append(dict(prompt=prompt, answer=response.get('answer'), expected=expected,
                             failures=failures, actions=len(actions), seconds=perf_counter()-started,
-                            model=response.get('model_ref'), outcome=state.get('outcome'),
-                            trace=response.get('trace', []), metrics=state.get('metrics', {})))
+                            model=response.get('model_ref'), outcome=state.get('outcome'), error_code=response.get('error_code'),
+                            trace=response.get('trace', []), metrics=state.get('metrics', {}),
+                            operator_errors=(state.get('erp_operator') or {}).get('errors', [])))
                     passed = all(not row['failures'] for row in observations)
                     counts.update(conversations=1, passed=int(passed), turns=len(observations),
                                   turns_passed=sum(not row['failures'] for row in observations),
