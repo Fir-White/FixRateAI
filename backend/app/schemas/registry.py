@@ -58,6 +58,8 @@ class ComponentReplacement(Revision):
     removed_on: date
     reason: str = Field(min_length=1, max_length=2000)
     replacement: ComponentCreate | None = None
+    work_order_id: UUID | None = None
+    work_report_id: UUID | None = None
 
 
 class ComponentMetadata(Revision):

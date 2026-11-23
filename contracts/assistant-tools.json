@@ -736,6 +736,62 @@
       "optional_protected_inputs": []
     },
     {
+      "name": "consumption_record",
+      "title": "Записать фактический расход материала в свою попытку",
+      "method": "POST",
+      "path": "/api/v1/maintenance/tasks/{task_id}/consumptions",
+      "roles": [
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "consumptions_read",
+      "title": "Прочитать фактический расход наряда и попытки",
+      "method": "GET",
+      "path": "/api/v1/maintenance/tasks/{task_id}/consumptions",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "consumption_correct",
+      "title": "Исправить принятый факт расхода с причиной",
+      "method": "POST",
+      "path": "/api/v1/maintenance/consumptions/{consumption_id}/correction",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
       "name": "report_submit",
       "title": "Передать свой отчёт на проверку",
       "method": "POST",
@@ -2988,6 +3044,62 @@
       "roles": [
         "chief_engineer",
         "engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "consumption_record",
+      "title": "Записать фактический расход материала в свою попытку",
+      "method": "POST",
+      "path": "/api/v1/maintenance/tasks/{task_id}/consumptions",
+      "roles": [
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "consumptions_read",
+      "title": "Прочитать фактический расход наряда и попытки",
+      "method": "GET",
+      "path": "/api/v1/maintenance/tasks/{task_id}/consumptions",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
+      "name": "consumption_correct",
+      "title": "Исправить принятый факт расхода с причиной",
+      "method": "POST",
+      "path": "/api/v1/maintenance/consumptions/{consumption_id}/correction",
+      "roles": [
+        "chief_engineer"
       ],
       "agents": [
         "assistant",

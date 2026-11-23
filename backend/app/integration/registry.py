@@ -42,7 +42,9 @@ def component_response(v, row):
     value = latest.usage_value if latest else row.initial_usage
     remaining = None if row.resource_limit is None else max(Decimal(0), row.resource_limit - value)
     result = {key: getattr(row, key) for key in ('component_id', 'equipment_id', 'position_code', 'name', 'part_number', 'serial_number',
-        'installed_on', 'removed_on', 'removal_reason', 'usage_unit', 'resource_basis', 'revision')}
+        'installed_on', 'removed_on', 'removal_reason', 'usage_unit', 'resource_basis', 'revision',
+        'replaced_by_component_id', 'replacement_source_component_id',
+        'replacement_work_order_id', 'replacement_work_report_id', 'replacement_reason')}
     result.update(initial_usage=f'{row.initial_usage:.3f}', resource_limit=f'{row.resource_limit:.3f}' if row.resource_limit is not None else None,
         current_usage=f'{value:.3f}', remaining_usage=f'{remaining:.3f}' if remaining is not None else None,
         resource_state='removed' if row.removed_on else 'unknown' if remaining is None else 'exhausted' if remaining == 0 else 'available',
@@ -172,6 +174,21 @@ def register_routes(app, views, storage, runtime_settings):
             visible_equipment(v, part.equipment_id, True)
             part = component(v, component_id, True)
             _revision(part, command.expected_revision)
+            if (command.work_order_id is None) != (command.work_report_id is None):
+                raise HTTPException(422, 'Связка замены требует наряд и конкретную попытку')
+            if command.work_order_id is not None:
+                work_order = v.task(command.work_order_id, lock=True)
+                work_report = v.one(
+                    'work_reports',
+                    work_order_id=command.work_order_id,
+                    work_report_id=command.work_report_id,
+                )
+                if not any(link.equipment_id == part.equipment_id for link in v.rows(
+                    'work_order_equipment', work_order_id=command.work_order_id
+                )):
+                    raise HTTPException(422, 'Замена не относится к оборудованию наряда')
+                if work_report.status not in ('submitted', 'reviewed'):
+                    raise HTTPException(409, 'Замена привязывается к отправленной или принятой попытке')
             readings = v.rows('component_usage_readings', component_id=component_id)
             last_date = max([part.installed_on] + [r.measured_at.astimezone(ZoneInfo(v.principal.timezone)).date() for r in readings])
             if part.removed_on: raise HTTPException(409, 'Деталь уже снята')
@@ -183,6 +200,17 @@ def register_routes(app, views, storage, runtime_settings):
             part.revision += 1
             v.session.flush()
             new = add_component(v, part.equipment_id, command.replacement) if command.replacement else None
+            if new is not None:
+                new.replacement_source_component_id = part.component_id
+                if command.work_order_id is not None:
+                    new.replacement_work_order_id = command.work_order_id
+                    new.replacement_work_report_id = command.work_report_id
+                    new.replacement_reason = command.reason
+                part.replaced_by_component_id = new.component_id
+                if command.work_order_id is not None:
+                    part.replacement_work_order_id = command.work_order_id
+                    part.replacement_work_report_id = command.work_report_id
+                    part.replacement_reason = command.reason
             _audit(v, 'equipment_components', part.component_id, 'replace' if new else 'remove', command.model_dump(mode='json'))
             return dict(removed=component_response(v, part), installed=component_response(v, new) if new else None)
 

@@ -6,7 +6,7 @@ from calendar import monthrange
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, text
 from sqlalchemy.orm import joinedload
 
 from app.db.repository import MaintenanceRepository
@@ -239,6 +239,16 @@ class Views:
                     state="draft" if report.status == "draft" else "submitted", narrative=report.comment or "",
                     checklist=checklist, photos=photos, submittedAt=iso(report.submitted_at),actual=report.execution_context,
                     readings=[dict(equipment_id=str(r.equipment_id),parameter_code=r.parameter_code,value=str(r.numeric_value),unit=r.unit_code,measured_at=iso(r.measured_at),phase=r.phase) for r in self.rows("work_readings",work_report_id=report.work_report_id)],
+                    consumptions=[dict(id=str(r.consumption_id), materialName=r.material_name, quantity=str(r.quantity), unit=r.unit,
+                                       equipmentId=str(r.equipment_id) if r.equipment_id else None, authorId=str(r.recorded_by),
+                                       taskRevision=r.task_revision, status=r.status, idempotencyKey=str(r.idempotency_key),
+                                       supersedesId=str(r.supersedes_consumption_id) if r.supersedes_consumption_id else None,
+                                       supersededById=str(r.superseded_by_consumption_id) if r.superseded_by_consumption_id else None,
+                                       correctionReason=r.correction_reason, createdAt=iso(r.created_at))
+                                  for r in self.session.execute(
+                                      text("SELECT * FROM work_consumptions WHERE site_id=:site AND work_order_id=:task AND work_report_id=:report ORDER BY created_at,consumption_id"),
+                                      dict(site=self.principal.site_id, task=report.work_order_id, report=report.work_report_id)
+                                  ).mappings()],
                     acts=[dict(id=str(p.evidence_file_id),kind=p.verification_context.get("kind"),verified=bool(p.verification_context.get("verified_by")),
                         url=f"/api/v1/maintenance/photos/{p.evidence_file_id}") for p in self.rows("evidence_files",work_report_id=report.work_report_id) if p.stage=="other"])
 
