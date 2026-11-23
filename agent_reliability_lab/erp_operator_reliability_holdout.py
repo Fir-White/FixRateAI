@@ -1,4 +1,5 @@
 """Additional frozen prompts, evaluated with the existing SQL oracle."""
+import os
 from random import Random
 
 from agent_reliability_lab.evals import test_pipeline_comparison as comparison
@@ -76,7 +77,37 @@ def corpus():
 
 
 def test_reliability_holdout(pipeline_fixture, monkeypatch):
-    cases = corpus()
-    assert len(cases) == len({case.id for case in cases}) == 50
+    long = os.getenv('FIXRATE_PIPELINE_LONG_HOLDOUT') == '1'
+    cases = long_corpus() if long else corpus()
+    assert len(cases) == len({case.id for case in cases}) == (10 if long else 50)
     monkeypatch.setattr(comparison, 'CASES', cases)
     comparison.test_pipeline_comparison(pipeline_fixture, monkeypatch)
+
+
+def long_corpus():
+    cases = []
+    roles = ('director', 'engineer', 'executor', 'chief_engineer', 'engineer')
+    for index, seed in enumerate((157, 313, 627, 943, 1259)):
+        rng = Random(seed)
+        code = rng.choice(('КС-61', 'КС-62', 'КС-64', 'КС-65'))
+        role = roles[index]
+        cases.append(Conversation(f'L{seed}-catalog-order', role, (
+            step('Сначала сверим доступные виды регулярного обслуживания.', 'types'),
+            step('Раскрой по операциям первый вид из выведенных.', 'operations', position=1),
+            step(f'Для экземпляра {code} открой карточку с местом размещения.', 'card', code=code),
+            step('Теперь журнал этого экземпляра: нужен номер последнего принятого отчёта ТО.', 'history', code=code),
+            step('Для этого же экземпляра дай ровно один назначенный наряд с самым ранним началом завтра.', 'tasks',
+                 code=code, state='assigned', day='tomorrow', limit=1),
+        )))
+        cases.append(Conversation(f'L{seed}-dates-and-scope', role, (
+            step('За {next_day} сколько доступных назначенных нарядов?', 'tasks',
+                 state='assigned', day='next_day', count=True),
+            step('Из подсчитанных выведи только самый ранний.', 'tasks',
+                 state='assigned', day='next_day', limit=1),
+            step('Выбери на один день раньше, всё ещё ровно один.', 'tasks',
+                 state='assigned', day='tomorrow', limit=1),
+            step(f'Сохрани день и статус, сузь выбор до оборудования {code}.', 'tasks',
+                 code=code, state='assigned', day='tomorrow', limit=1),
+            step('А по этой единице выведи регламент обслуживания.', 'regulation', code=code),
+        )))
+    return cases

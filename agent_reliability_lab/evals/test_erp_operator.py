@@ -118,13 +118,14 @@ def test_operator_assignment_requires_user_confirmation_and_rechecks(assistant_c
                         read_goal=dict(outcome='work_orders', scope='site', work_state='draft',
                                        sort='earliest', maintenance_only=True, unassigned_only=True, limit=1))
         order = results[0]['result']['items'][0]
-        path = dict(task_id=order['id'])
         if len(results) == 1:
-            return dict(tool='assignment_context', arguments_json=json.dumps(dict(path=path)))
+            if not ctx['failures']:
+                return dict(tool='assignment_context', arguments_json=json.dumps(
+                    dict(path=dict(task_id='00000000-0000-0000-0000-000000000001'))))
+            return dict(tool='assignment_context')
         if len(results) == 2:
-            return dict(tool='assignment_preview', arguments_json=json.dumps(dict(path=path,
-                body=dict(expected_revision=results[1]['result']['expectedRevision'],
-                          start_local=order['scheduledStart'][:19], end_local=order['scheduledEnd'][:19]))))
+            return dict(tool='assignment_preview', arguments_json=json.dumps(
+                dict(body=dict(start_local=order['scheduledStart'], end_local=order['scheduledEnd']))))
         return dict(tool='task_assign', receipt=results[-1]['receipt'])
 
     configure(app, monkeypatch, lambda: Scripted(decide))
@@ -137,8 +138,10 @@ def test_operator_assignment_requires_user_confirmation_and_rechecks(assistant_c
     action, = cards
     assert action['arguments']['path']['task_id'] == task_id
     assert action['arguments']['body']['executor_ids'] == [worker]
-    selected_target = stored(fixture, proposal['turn_id'])['erp_operator']['mutation_target']
+    operator = stored(fixture, proposal['turn_id'])['erp_operator']
+    selected_target = operator['mutation_target']
     assert selected_target['receipt'] == 'e1' and selected_target['contract']['query']['limit'] == 1
+    assert operator['errors'][0]['status'] == 422
     engine, _, _, _, ids = fixture
     query = text('SELECT status,revision FROM work_orders WHERE work_order_id=:task')
     with engine.connect() as db:

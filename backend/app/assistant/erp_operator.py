@@ -1,11 +1,12 @@
 """LLM chooses a step. The ERP validates, previews, executes and verifies."""
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from functools import lru_cache
 import json
 import re
 from time import monotonic
 from typing import Literal
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
 from pydantic import Field, create_model
@@ -31,6 +32,7 @@ FACT_READS = {
     'schedule_matrix', 'staff_calendar', 'task_attempts', 'tasks_analyze', 'work_order_analytics', 'workforce_read',
 }
 TARGET_KIND = {'task_id': 'task', 'equipment_id': 'equipment', 'user_id': 'staff'}
+ASSIGNMENT_READS = {'assignment_context', 'assignment_preview', 'assignment_prepare'}
 EXTRA_LABELS = {'staff_find': 'поиск сотрудников', 'staff_read': 'карточка сотрудника',
                 'task_acceptance_evidence': 'материалы приёмки', 'assignment_prepare': 'серверный расчёт назначения'}
 END_STATUSES = {'completed', 'partial', 'blocked', 'awaiting_confirmation', 'cancelled'}
@@ -201,6 +203,8 @@ def _project(name, value):
 
 
 async def _read(execution, goal, task, tool, arguments, *, semantic=False, observe=True):
+    if tool.name in ASSIGNMENT_READS and execution.state['erp_operator'].get('mutation_target'):
+        arguments = _bind_assignment(execution, tool.name, arguments)
     bound = arguments if semantic else task.bind(tool.name, arguments)
     if tool.name in COLLECTIONS:
         query = bound['query']
@@ -269,6 +273,12 @@ async def _propose(execution, goal, task, tool, proof, arguments):
         if arguments or not proof or proof['tool'] not in ('assignment_preview', 'assignment_prepare'):
             raise HTTPException(422, 'Используйте receipt расчёта назначения без новых параметров.')
         _guard_mutation_subject(execution, proof['arguments']['path'])
+        if execution.state['erp_operator'].get('mutation_target') and proof['result'].get('status') == 'ok':
+            selected = _selected_work(execution)
+            window = _guard_assignment_window(execution, proof['result']['startAt'], proof['result']['endAt'])
+            planned = (selected.get('scheduledStart'), selected.get('scheduledEnd'))
+            if all(planned) and window != tuple(_local_instant(value, execution.scope['timezone']) for value in planned):
+                raise HTTPException(422, 'Расчёт назначения изменил проверенное время наряда.')
         await presentation._propose(execution, goal, {**proof, 'tool': 'assignment_preview'})
         goal['title'] = tool.title
         return
@@ -287,16 +297,80 @@ async def _propose(execution, goal, task, tool, proof, arguments):
     execution.trace.append(dict(tool=tool.name, status='proposed', at=workflow.timestamp()))
 
 
-def _guard_mutation_subject(execution, path):
-    selection = execution.state['erp_operator'].get('mutation_target')
-    if not selection:
-        return
+def _selected_work(execution):
+    selection = execution.state['erp_operator']['mutation_target']
     proved = _observed(execution).get(selection['receipt'])
     if not proved or proved['tool'] != 'tasks_find' or not proved['retained']:
         raise HTTPException(422, 'Сначала подтвердите выбор наряда по условиям поручения.')
     items = proved['result']['items']
-    if len(items) != 1 or str(path.get('task_id')) != items[0]['id']:
+    if len(items) != 1:
         raise HTTPException(422, 'Изменение возможно только для единственного проверенного наряда.')
+    return items[0]
+
+
+def _guard_mutation_subject(execution, path):
+    if execution.state['erp_operator'].get('mutation_target'):
+        if str(path.get('task_id')) != _selected_work(execution)['id']:
+            raise HTTPException(422, 'Карточка должна относиться к проверенному наряду.')
+
+
+def _local_instant(value, timezone):
+    if not isinstance(value, str):
+        raise HTTPException(422, 'Укажите местное время объекта.')
+    instant = datetime.fromisoformat(value)
+    return instant.astimezone(ZoneInfo(timezone)).replace(tzinfo=None) if instant.tzinfo else instant
+
+
+def _guard_assignment_window(execution, start, end):
+    zone = execution.scope['timezone']
+    window = (_local_instant(start, zone), _local_instant(end, zone))
+    day = window[0].date().isoformat()
+    query = execution.state['erp_operator']['mutation_target']['contract']['query']
+    if (day < query.get('starts_on', day) or day > query.get('ends_on', day) or
+            ('on_days' in query and day not in query['on_days'])):
+        raise HTTPException(422, 'Доступное время назначения выходит за проверенный период поручения.')
+    mentioned = set(re.findall(r'(?<![\d:])(?:[01]\d|2[0-3]):[0-5]\d(?![\d:])', execution.question))
+    if mentioned - {instant.strftime('%H:%M') for instant in window}:
+        raise HTTPException(422, 'Запрошенное время отличается от проверенного расписания наряда.')
+    return window
+
+
+def _bind_assignment(execution, name, arguments):
+    selected = _selected_work(execution)
+    path = arguments.get('path', {})
+    if 'task_id' in path and path['task_id'] != selected['id']:
+        raise HTTPException(422, 'Предпросмотр должен относиться к проверенному наряду.')
+    path = {**path, 'task_id': selected['id']}
+    result = {**arguments, 'path': path}
+    if name != 'assignment_preview':
+        return result
+    proof = next((item for item in _observed(execution).values() if item['tool'] == 'assignment_context' and
+                  item['retained'] and item['arguments']['path'] == path), None)
+    context = proof['result'] if proof else {}
+    revision = context.get('expectedRevision')
+    if revision is None:
+        raise HTTPException(422, 'Сначала получите доступный период и ревизию из assignment_context.')
+    if revision != selected['revision']:
+        raise HTTPException(409, 'Наряд изменился после выбора. Проверьте его заново.')
+    zone = execution.scope['timezone']
+    defaults = {'start_local': context.get('defaultStartLocal'), 'end_local': context.get('defaultEndLocal')}
+    scheduled = {'start_local': selected.get('scheduledStart'), 'end_local': selected.get('scheduledEnd')}
+    window = scheduled if all(scheduled.values()) else defaults
+    if not all(window.values()):
+        raise HTTPException(422, 'Для назначения нужен подтверждённый интервал наряда.')
+    local = dict(zip(window, _guard_assignment_window(execution, window['start_local'], window['end_local']), strict=True))
+    body = result.get('body', {})
+    if body.get('expected_revision', revision) != revision:
+        raise HTTPException(409, 'Используйте проверенную ревизию наряда.')
+    for key, wanted in local.items():
+        if key not in body:
+            continue
+        provided = _local_instant(body[key], zone)
+        default = _local_instant(defaults[key], zone) if defaults[key] else None
+        if provided not in (wanted, default):
+            raise HTTPException(422, 'Период предпросмотра должен совпадать с нарядом.')
+    canonical = {key: instant.isoformat() for key, instant in local.items()}
+    return {**result, 'body': {**body, **canonical, 'expected_revision': revision}}
 
 
 def _deliver(execution, goal, task, proof, style, *, semantic=False):
@@ -563,7 +637,7 @@ async def step(execution, goal):
                 execution.state['metrics']['goal_binding_seconds'] = round(monotonic() - started, 6)
                 return False
             task = _start_task(execution, goal, decision, tasks)
-        elif decision.task_delta is not None or decision.read_goal is not None:
+        elif not state.get('mutation_target') and (decision.task_delta is not None or decision.read_goal is not None):
             raise HTTPException(422, 'Изменения ограничений принимаются один раз на реплику.')
         proof = observed.get(decision.receipt)
         if decision.tool == 'clarify':

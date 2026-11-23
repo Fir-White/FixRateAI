@@ -41,6 +41,8 @@ def main():
     corpus = parser.add_mutually_exclusive_group()
     corpus.add_argument('--operator-holdout', action='store_true', help='Use the separate multi-turn ERP validation corpus')
     corpus.add_argument('--reliability-holdout', action='store_true', help='Use the 50 additional frozen ERP dialogues')
+    corpus.add_argument('--long-reliability-holdout', action='store_true', help='Use 10 additional five-turn dialogues')
+    corpus.add_argument('--operator-live-action', action='store_true', help='Run confirmed assignment on the synthetic fixture')
     args = parser.parse_args()
     output = args.output.resolve()
     if not output.is_relative_to(ROOT / 'reports'):
@@ -50,6 +52,8 @@ def main():
         parser.error('--variants must be a sequence of distinct letters A through E')
     if set('CE') & set(variants) and not args.cloud_config:
         parser.error('Cloud variants require --cloud-config')
+    if args.operator_live_action and (not args.cloud_config or variants != 'E' or args.cases):
+        parser.error('--operator-live-action requires --variants E and --cloud-config, without --cases')
     guard = output / 'policy'
     guard.mkdir(parents=True, exist_ok=False)
     (guard/'sitecustomize.py').write_text(cloud_guard() if args.cloud_config else LOCAL_GUARD, encoding='utf-8')
@@ -57,11 +61,13 @@ def main():
     variables = environment(dict(os.environ), guard, model, live=True)
     variables.update(FIXRATE_ASSISTANT_AGENT_VERSION='v3', FIXRATE_ASSISTANT_V3_PIPELINE='v3',
                      FIXRATE_PIPELINE_COMPARE='1', FIXRATE_PIPELINE_CASES=args.cases, PYTHON_DOTENV_DISABLED='1',
-                     FIXRATE_PIPELINE_VARIANTS=variants)
+                     FIXRATE_PIPELINE_VARIANTS=variants, FIXRATE_PIPELINE_LONG_HOLDOUT=str(int(args.long_reliability_holdout)),
+                     FIXRATE_PIPELINE_ACTION_CHECK=str(int(args.operator_live_action)))
     if args.cloud_config:
         variables['FIXRATE_PIPELINE_CLOUD_CONFIG'] = str(args.cloud_config.resolve(strict=True))
-    test = ('agent_reliability_lab/erp_operator_holdout.py' if args.operator_holdout
-            else 'agent_reliability_lab/erp_operator_reliability_holdout.py' if args.reliability_holdout
+    test = ('agent_reliability_lab/evals/test_erp_operator_live_actions.py' if args.operator_live_action
+            else 'agent_reliability_lab/erp_operator_holdout.py' if args.operator_holdout
+            else 'agent_reliability_lab/erp_operator_reliability_holdout.py' if args.reliability_holdout or args.long_reliability_holdout
             else 'agent_reliability_lab/evals/test_pipeline_comparison.py')
     harness_paths = [test, 'agent_reliability_lab/pipeline_cases.py',
                      'agent_reliability_lab/run_pipeline_comparison.py']
