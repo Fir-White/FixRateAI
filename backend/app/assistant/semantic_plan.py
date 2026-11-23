@@ -109,6 +109,10 @@ EQUIPMENT_REFS = {'equipment_details', 'equipment_exists', 'maintenance_history'
 UUID = r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}'
 ASSET = r'[A-ZА-ЯЁ][A-ZА-ЯЁ0-9]{0,23}(?:[-_][A-ZА-ЯЁ0-9]{1,24})+'
 QUOTED = re.compile(r'«([^»\n]+)»|"([^"\n]+)"')
+NAMED_ASSET = r'(?:с|по)\s+(?:точн\w*\s+)?(?:названи|наименован)\w*\s+'
+EXACT_NAME = re.compile(NAMED_ASSET + rf'(?:{QUOTED.pattern})', re.I)
+SOURCE_ONLY = re.compile(r'\s*(?:(?:укаж|привед|назов|покаж)(?:и|ите)|нужен)\s+'
+                         r'(?:точн\w*\s+)?источник[.!?]?\s*', re.I)
 EXTERNAL_CALENDAR = re.compile(r'\b(?:из|по)\s+(?:неподключ[её]нн\w*\s+)?'
                                r'(?:внешн|сторонн)\w*\s+(?:календар|расписани)\w*', re.I)
 WRITE_VERBS = {
@@ -137,7 +141,7 @@ FIELD_PATTERNS = {
     'role': r'\bрол(?:ь|и|ей|ью|ям|ями|ях)\b|\bдолжност\w*',
     'site': r'(?:текущ\w*|мо[её]|выбранн\w*)\s+(?:здани\w*|объект\w*)|(?:здани\w*|объект\w*)\s+(?:сейчас\s+)?(?:выбран\w*|открыт\w*|актив\w*)',
     'email': r'e-?mail\b|электронн\w*\s+(?:почт|адрес)\w*|рабоч\w*\s+почт\w*',
-    'code': r'инвентарн\w*\s+код\w*',
+    'code': r'\b(?:инвентарн\w*\s+код\w*|asset_code|код)\b',
     'state': r'статус\w*|состояни\w*',
     'start': r'(?:врем[яени]+|дат\w*|день)\s+начала|(?:планов\w*|запланированн\w*)\s+начал\w*|когда\s+начн',
     'deadline': r'(?:нормативн\w*|крайн\w*)\s+срок\w*|дедлайн\w*',
@@ -179,6 +183,7 @@ EQUIPMENT_CHANGE = re.compile(
 SECRET_WORD = r'\b(?:парол\w*|password|токен\w*|секрет\w*|api[ -]?ключ\w*)\b'
 TASK_WORD = r'\b(?:задани|наряд|работ)[а-яё]*\b|\btask_id\b'
 EQUIPMENT_WORD = r'\b(?:оборудовани|агрегат)[а-яё]*\b|\bequipment_id\b'
+OWN = r'\b(?:(?:мо|сво)(?:и(?:х|м|ми)?|й|ё|е|я|ю)|у\s+меня)\b'
 SHEET_LIST = r'\b(?:список|перечень|названи\w*)\s+лист\w*|\b(?:какие|все)\s+листы\b'
 
 
@@ -345,7 +350,8 @@ def equipment_references(text):
         return list(dict.fromkeys(ids))
     marked_codes = re.findall(r'\b(?:инвентарн\w*\s+код|asset_code)\w*\s*[:=№]?\s*(' + ASSET + r')\b', clean, re.I)
     quoted = re.finditer(r'\b(?:найди|отыщи|открой|проверь|покажи|find|open|show)\w*\s+'
-                         r'(?:(?:оборудовани\w*|агрегат\w*|equipment)\s+)?(?:«([^»\n]+)»|"([^"\n]+)"|“([^”\n]+)”)', text, re.I)
+                         rf'(?:(?:оборудовани\w*|агрегат\w*|equipment)\s+)?(?:{NAMED_ASSET})?'
+                         r'(?:«([^»\n]+)»|"([^"\n]+)"|“([^”\n]+)”)', text, re.I)
     names = [normalize_reference(next(group for group in match.groups() if group)) for match in quoted]
     return list(dict.fromkeys(names or marked_codes or asset_references(clean)))
 
@@ -423,6 +429,12 @@ def _projection_text(question, intent, subject):
     return question
 
 
+def equipment_report_fields(clause):
+    return (_matches(r'\b(?:нужн\w*|требу\w*|включи\w*|добавь\w*|укажи\w*)\b', clause) and
+            len(re.findall(r'\b(?:состояни\w*|нормативн\w*\s+срок\w*|действующ\w*\s+регламент\w*|'
+                           r'принят\w*\s+то\b)', clause, re.I)) >= 2)
+
+
 def normalize_equipment_requirements(interpretation, question):
     """Bind explicit task cohorts and accepted dates to literal equipment references."""
     clean = QUOTED.sub(' ', question)
@@ -436,14 +448,24 @@ def normalize_equipment_requirements(interpretation, question):
     latest_words = r'\b(?:последн\w*|наиболее\s+свеж\w*|сам\w*\s+свеж\w*)\b'
     actual_words = r'\b(?:подтвержд\w*|принят\w*|фактическ\w*|выполненн\w*|состоялось)\b'
     clauses = [clause.strip() for clause in re.split(r'(?<=[.!?;])\s+(?!\d)|\n+', question) if clause.strip()]
-    relevant = [clause for clause in clauses if _literal(clause, code)]
+    relevant = [clause for clause in clauses if _literal(clause, code) or
+                not _matches(UUID, clean) and equipment_report_fields(clause)]
     task_clause = next((clause for clause in relevant if (_matches(task_words, clause) or _matches(r'\bпросрочк\w*\b', clause))
                         and (_matches(overdue_words, clause) or _matches(open_words, clause))
                         and not _matches(UUID, clause)), None)
-    date_clause = next((clause for clause in relevant if _matches(latest_words, clause)
+    # A latest-service request can refer back to the only equipment named in
+    # the history clause. A separate explicit ID remains its own operand.
+    history_context = any(_matches(r'\bистори\w*\s+(?:(?:принят|фактическ|подтвержд)\w*\s+)*(?:то\b|обслуживан\w*)', clause)
+                          for clause in relevant)
+    date_clauses = clauses if history_context and not _matches(UUID, clean) else relevant
+    date_clause = next((clause for clause in date_clauses if _matches(latest_words, clause)
                         and _matches(actual_words, clause)
                         and _matches(r'\b(?:то|обслужива\w*|работ\w*|отч[её]т\w*)\b', clause)), None)
-    if not task_clause and not date_clause:
+    active_rule = next((clause for clause in clauses if _matches(
+        r'\b(?:действующ\w*|актуальн\w*|утвержд[её]нн\w*)\s+регламент\w*\b', positive_text(clause))
+        and _matches(r'\b(?:нуж\w*|покаж\w*|назов\w*|привед\w*|сверь|проверь|выпиши|прочитай)\b', clause)
+        and not _matches(r'\b(?:без|не\s+нуж\w*|не\s+показывай)\s+(?:действующ\w*|актуальн\w*|утвержд[её]нн\w*)\s+регламент', clause)), None)
+    if not task_clause and not date_clause and not active_rule:
         return interpretation
     results = list(interpretation.results)
     if task_clause:
@@ -481,18 +503,30 @@ def normalize_equipment_requirements(interpretation, question):
     if date_clause:
         calendar_requested = _matches(r'календар\w*|(?:покажи|назови|когда|проверь)\s+(?:ближайш|следующ|запланир)\w*\s+то\b', clean)
         discussion_requested = _matches(r'\b(?:поясни|объясни|порекомендуй|предложи)\w*\b', clean)
+        history_requested = history_context or _matches(r'\bистори\w*|\b(?:все|перечень|список)\s+принят\w*\b', clean)
         def duplicates_or_unrequested(result):
+            if result.intent == 'other' and result.source_text and re.fullmatch(
+                    r'\s*(?:(?:укажи|назови|покажи|приведи|выпиши|нужен)\s+)?(?:его\s+)?'
+                    r'(?:uuid|id|идентификатор\w*)\s+отч[её]та[.!?]?\s*', result.source_text, re.I):
+                return True  # The exact verified report ID is part of latest_maintenance.
             if result.intent == 'latest_maintenance':
                 return not result.subjects or _subjects(result, question) == [code]
             if result.intent == 'maintenance_history':
-                return (not result.source_text or result.source_text in date_clause) and not _matches(
-                    r'\b(?:перечен\w*|всю\s+истори\w*)\b', date_clause)
+                same_asset = not result.subjects or all(value.casefold() == code.casefold() for value in result.subjects)
+                if same_asset and not history_requested:
+                    return True
+                return (not result.source_text and not history_context or
+                        result.source_text and result.source_text in date_clause) and not _matches(
+                    r'\b(?:перечен\w*|истори\w*)\b', date_clause)
             return (result.intent == 'maintenance_calendar' and not calendar_requested or
                     result.intent in DISCUSSION and not discussion_requested and not result.source_text or
                     result.intent in ('other', 'quoted_command', 'reference_details') and not result.source_text or
                     result.intent == 'equipment_tasks' and not task_clause and not _matches(task_words, clean))
         results = [result for result in results if not duplicates_or_unrequested(result)]
         results.append(RequestedResult(intent='latest_maintenance', subjects=[code], source_text=date_clause[:700]))
+    if active_rule and not any(result.intent == 'active_regulations' and
+                               (not result.subjects or _subjects(result, question) == [code]) for result in results):
+        results.append(RequestedResult(intent='active_regulations', subjects=[code], source_text=active_rule[:700]))
     has_card = _matches(r'\b(?:карточк\w*|состояни\w*|статус\w*|место\s+установки|наименован\w*|точн\w*\s+(?:id|uuid))\b', clean)
     if not has_card:
         results = [result for result in results if result.intent not in ('equipment_details', 'equipment_exists')]
@@ -532,7 +566,7 @@ def _merge_equipment_card(interpretation, question, references, clauses, card, q
         duplicate = result.intent in ('equipment_details', 'equipment_exists') and (not bound or bound == references)
         clause = result.source_text or ''
         redundant = result.intent in ('other', 'general_explanation', 'explain_results') and (
-            clause == source or not clause and quoted_lookup or
+            clause == source or not clause and quoted_lookup or intent == 'equipment_details' and SOURCE_ONLY.fullmatch(clause) or
             _matches(r'\b(?:уточни\w*|проверь\w*)\b', clause) and _matches(
                 r'неоднознач\w*|код\w*.{0,50}карточк\w*|точн\w*\s+код\w*\s+по\s+актуальн\w*\s+реестр\w*', clause))
         if duplicate:
@@ -550,8 +584,12 @@ def _merge_equipment_card(interpretation, question, references, clauses, card, q
 
 
 def preserve_requested_source(interpretation, question):
-    """An external schedule request cannot be answered with an internal calculation."""
+    """Keep requested sources grounded in the user's literal provenance constraints."""
     clean = QUOTED.sub(' ', question)
+    if not _matches(r'\b(?:паспорт\w*|производител\w*|изготовител\w*|manufacturer|заводск\w*\s+инструкци\w*)\b', clean):
+        results = [result for result in interpretation.results if result.intent != 'manufacturer_source']
+        if len(results) != len(interpretation.results):
+            interpretation = interpretation.model_copy(update={'results': results or [RequestedResult(intent='other')]})
     external = EXTERNAL_CALENDAR.search(clean)
     if not external:
         return interpretation
@@ -574,6 +612,19 @@ def task_card_read_subject(question):
     return None
 
 
+def executor_list_cohort(question):
+    clean = positive_text(QUOTED.sub(' ', question))
+    if (not _matches(TASK_WORD, clean) or not _matches(OWN, clean)
+            or mutation_command_requested(clean)):
+        return None
+    today = _matches(r'\bсегодня\b', clean)
+    overdue = _matches(r'\b(?:просроч\w*|ист[её]к\w*\s+(?:нормативн\w*\s+)?срок\w*|'
+                       r'нарушенн\w*\s+(?:нормативн\w*\s+)?срок\w*)\b', clean)
+    if today and not overdue and not _matches(r'\b(?:вчера|завтра|будущ\w*|следующ\w*|недел\w*)\b', clean):
+        return 'all'
+    return 'overdue' if overdue and not today else None
+
+
 def bind_discussion_and_projections(interpretation, question, *, role):
     """Bind commentary to saved facts and keep distinct field projections."""
     clean = QUOTED.sub(' ', question)
@@ -585,10 +636,34 @@ def bind_discussion_and_projections(interpretation, question, *, role):
     if (len(task_ids) == 1 and not asset_codes and _matches(TASK_WORD, clean) and
             not _matches(EQUIPMENT_WORD + r'|\b(?:сотрудник|исполнител|работник)\w*', clean)):
         single_card = ('task_details', tuple(task_ids))
+    own_cohort = executor_list_cohort(question) if role == 'executor' else None
+    own_listing = own_cohort and any(result.intent in ('task_list', 'maintenance_calendar')
+                                     for result in interpretation.results)
+    clauses = re.split(r'(?<=[.!?;])\s+|\n+', clean)
+    selected_overdue = None
+    if isinstance(interpretation, AnalyticalRequestedResults):
+        from .analysis_selection import EQUIPMENT, has, ranked_clause
+        rank = ranked_clause(clauses)
+        if rank and has(EQUIPMENT, rank):
+            selected_overdue = next((clause.strip() for clause in clauses if _matches(
+                r'\bдля\s+(?:(?:кажд|все)\w*\s+)?выбран\w*', clause)
+                and _matches(r'\bпросроч\w*\s+(?:задани|наряд|работ)\w*\b', clause)), None)
+    dated_rules = any(result.intent == 'active_regulations' for result in interpretation.results) and _matches(
+        r'\b(?:действующ\w*\s+на|регламент\w*\s+на)\s+\d', clean)
     results = []
     for result in interpretation.results:
         source = result.source_text if result.source_text and result.source_text in question else ''
         intent = result.intent
+        if (selected_overdue and intent in ('task_details', 'task_list', 'equipment_tasks') and
+                (not source or source.rstrip('.!?') in selected_overdue) and
+                not any(re.fullmatch(UUID, value, re.I) for value in result.subjects)):
+            continue
+        if dated_rules and intent == 'other' and re.fullmatch(
+                r'\s*(?:(?:укажи|покажи|приведи)\s+)?версии?\s+(?:их\s+)?привязок[.!?]?\s*', source, re.I):
+            continue
+        if (own_listing and intent == 'staff_details' and not result.subjects and
+                not _matches(r'\b(?:профил\w*|сотрудник\w*|исполнител\w*|фио|email)\b', clean)):
+            continue
         if intent in CHANGES and not authorizes_operation(intent, question):
             subject = task_card_read_subject(question) if intent in TASK_REFS else None
             if not subject:
@@ -623,11 +698,21 @@ def bind_discussion_and_projections(interpretation, question, *, role):
                 result = result.model_copy(update={'subjects': list(subjects), 'fields': fields})
                 intent = card
         options = {'intent': intent}
+        if intent == 'task_list' and own_cohort:
+            options['period'] = own_cohort
         if intent in ('explain_results', 'recommend_actions') and len(task_ids) == 1 and not asset_codes:
             options['subjects'] = task_ids
             if intent == 'recommend_actions' and not result.recommendation_count and _matches(r'\bдля\s+обсуждения\b', source):
                 options['recommendation_count'] = 2
         results.append(result.model_copy(update=options))
+    if selected_overdue and len(results) < 12:
+        results.append(RequestedResult(intent='equipment_tasks', period='overdue', source_text=selected_overdue[:700]))
+    if len(asset_codes) == 1 and not task_ids and any(equipment_report_fields(clause) for clause in re.split(r'[.!?;\n]', clean)):
+        from .analysis_selection import recommendation_count
+        if count := recommendation_count(clean):
+            results = [result for result in results if result.intent != 'recommend_actions']
+            if len(results) < 12:
+                results.append(RequestedResult(intent='recommend_actions', subjects=asset_codes, recommendation_count=count))
     return interpretation.model_copy(update={'results': results})
 
 
@@ -637,13 +722,17 @@ def _metadata(result, question, clock, current_files, subject=None):
     source_text = result.source_text if result.source_text and result.source_text in question else None
     field_request = (source_text if source_text and intent in EQUIPMENT_ANALYSIS else
                      _projection_text(question, intent, subject))
-    positive_fields = positive_text(field_request)
+    exact_name = (subject and intent in EQUIPMENT_REFS and not _matches(UUID, subject) and any(
+        normalize_reference(left or right).casefold() == subject.casefold() for left, right in EXACT_NAME.findall(question)))
+    positive_fields = positive_text(EXACT_NAME.sub(' ', field_request) if exact_name else field_request)
     explicit_fields = [field for field in allowed_fields if _matches(FIELD_PATTERNS[field], positive_fields)]
     if intent == 'self_profile' and _matches(r'\b(?:здани\w*|объект\w*)\b', positive_fields):
         explicit_fields = list(dict.fromkeys((*explicit_fields, 'site')))
         if not _matches(r'\b(?:фио|им[яе]\w*|фамили\w*)\b', positive_fields):
             explicit_fields = [field for field in explicit_fields if field != 'name']
     exclusive = re.search(r'\b(?:только|исключительно)\s+([^.!?;]+)', positive_fields, re.I)
+    if intent == 'task_list' and exclusive and _matches('^' + OWN, exclusive[1]):
+        exclusive = None
     if exclusive:
         only_fields = [field for field in allowed_fields if _matches(FIELD_PATTERNS[field], exclusive[1])]
         if only_fields:
@@ -663,6 +752,8 @@ def _metadata(result, question, clock, current_files, subject=None):
     if explicit_fields or intent == 'task_list':
         fields = explicit_fields
     meta = {'intent': intent, 'fields': list(dict.fromkeys(fields or DEFAULT_FIELDS.get(intent, ())))}
+    if exact_name:
+        meta['exact_name'] = True
     blocked_fields = set()
     if allowed_fields:
         excluded = re.findall(r'\b(?:без|не\s+(?:путай\s+с|показывай|выводи|добавляй))\s+([^.!?;\n]+)',
@@ -682,6 +773,13 @@ def _metadata(result, question, clock, current_files, subject=None):
         meta['recommendation_count'] = result.recommendation_count or 3
     if intent in EQUIPMENT_ANALYSIS:
         meta['local_date'] = clock['local_date']
+    if intent == 'active_regulations':
+        from .analysis_selection import anchored_date
+        try:
+            if cutoff := anchored_date(source_text or question):
+                meta.update(local_date=cutoff.isoformat(), show_regulation_cutoff=True)
+        except ValueError:
+            meta['block'] = 'Укажите допустимую календарную дату проверки регламента.'
     if intent in ('equipment_tasks', 'latest_maintenance', 'maintenance_calendar'):
         try:
             dates = selectors(source_text or question, clock, equipment_scoped=True)
@@ -701,9 +799,14 @@ def _metadata(result, question, clock, current_files, subject=None):
             meta['calendar_view'] = ('next' if _matches(r'\b(?:следующ|ближайш)\w*\b', source_text or question)
                                      else 'period')
     if intent in ('task_list', 'assign_task'):
-        meta['period'] = ('overdue' if _matches(r'\bпросроч\w*\b', question) else
+        own_cohort = executor_list_cohort(question) if intent == 'task_list' and result.period else None
+        meta['period'] = (own_cohort or ('overdue' if _matches(r'\bпросроч\w*\b', question) else
                           'upcoming' if _matches(r'\b(?:предстоящ|ближайш|будущ)\w*\b', question) else
-                          result.period or 'upcoming')
+                          result.period or 'upcoming'))
+        if own_cohort:
+            meta['query'] = {'unfinished_only': True}
+        if own_cohort == 'all':
+            meta['query'].update(starts_on=clock['local_date'], ends_on=clock['local_date'])
     if intent in ('task_list', 'equipment_tasks', 'maintenance_history', 'maintenance_calendar'):
         numbers = ('один', 'два', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять', 'десять')
         limit = re.search(r'\bпервые\s+(\d+|' + '|'.join(numbers) + r')\b|\b(\d+|' + '|'.join(numbers) + r')\s+первых\b',
@@ -718,7 +821,9 @@ def _metadata(result, question, clock, current_files, subject=None):
             if meta['summary_only']:
                 meta['full'] = False
     if intent == 'task_list':
-        meta['scheduled_only'] = meta['period'] == 'upcoming' and _matches(r'\b(?:запланированн\w*\s+|планов\w*\s+)(?:работ|наряд|задан)\w*\b', positive_fields)
+        meta['scheduled_only'] = (meta['period'] == 'upcoming' and _matches(
+            r'\b(?:запланированн\w*\s+|планов\w*\s+)(?:работ|наряд|задан)\w*\b', positive_fields) or
+            meta['period'] == 'all' and _matches(r'\bзапланирован\w*\s+на\s+сегодня\b', positive_fields))
     if intent in ('task_count', 'maintenance_history'):
         try:
             meta['query'] = selectors(source_text or question, clock, equipment_scoped=intent == 'maintenance_history')
@@ -823,10 +928,11 @@ def _metadata(result, question, clock, current_files, subject=None):
     return meta
 
 
-def compile_plan(interpreted, question, tools, clock, current_files, *, preserve_unknown=False):
+def compile_plan(interpreted, question, tools, clock, current_files, *, preserve_unknown=False, allow_analysis=True):
     """Compile typed user results to fixed existing transports; decline unsupported requests."""
     from .dependent_planning import compile_analysis
-    goals, metadata, results = compile_analysis(interpreted, question, tools, clock)
+    goals, metadata, results = (compile_analysis(interpreted, question, tools, clock) if allow_analysis else
+                                ([], {}, list(interpreted.results)))
     clean = QUOTED.sub(' ', question)
     if preserve_unknown:
         recommendations = {result.source_text for result in results if result.intent == 'recommend_actions' and result.source_text}
@@ -887,7 +993,7 @@ def compile_plan(interpreted, question, tools, clock, current_files, *, preserve
                     else:
                         converted.append(result)
                 results = converted
-        if asset_codes and not explicit_ids:
+        if results and asset_codes and not explicit_ids:
             presence = _matches(r'\b(?:существует\s+ли|есть\s+ли|наличи\w*)\b', clean)
             scopes = ('task_details', 'equipment_exists', 'equipment_details', 'service_frequency', 'other', 'staff_details')
             equipment_fields = any(_matches(FIELD_PATTERNS[field], positive_text(clean)) for field in ('name', 'location', 'state', 'revision', 'code'))

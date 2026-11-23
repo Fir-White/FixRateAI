@@ -1,16 +1,19 @@
 """Bounded search over the whole authorized dataset, not just a model's first page."""
 from datetime import date,datetime,timezone
-from typing import Literal
+from typing import Annotated, Literal
+from zoneinfo import ZoneInfo
 from pydantic import BaseModel,ConfigDict,Field
 from uuid import UUID
-from fastapi import Depends,Query,HTTPException,Request
-from sqlalchemy import select,func,or_,and_
+from fastapi import Depends,Query,HTTPException,Request,Response
+from sqlalchemy import select,func,or_,and_,text
 from app.security.sessions import has_role,SQL_ROLES
 from .management import equipment_response
 from app.assistant.analysis_contract import Group, MAX_AGGREGATE_ROWS, Metric
 from app.schemas.assistant import MAX_COLLECTION_PAGE
 
 BASE='/api/v1/assistant/workspace'
+MaintenanceTypeKey = Annotated[str, Field(pattern=r'^то[0-9]{1,3}$')]
+MaintenanceTypeCode = Annotated[str, Field(min_length=1,max_length=100)]
 
 class AssignmentPreparation(BaseModel):
     model_config=ConfigDict(extra='forbid')
@@ -18,6 +21,55 @@ class AssignmentPreparation(BaseModel):
     one_person_only:bool=False
 
 def register_routes(app,views):
+    @app.get(BASE+'/maintenance-catalog')
+    def maintenance_catalog(response: Response, offset: int=Query(0,ge=0),
+                            type_keys: list[MaintenanceTypeKey]|None=Query(None,max_length=12),
+                            type_codes: list[MaintenanceTypeCode]|None=Query(None,max_length=12),
+                            limit: int=Query(50,ge=1,le=100), v=Depends(views)):
+        """Published operation definitions bound to the actor's visible equipment today."""
+        response.headers['Cache-Control'] = 'private, no-store'
+        day = datetime.now(ZoneInfo(v.principal.timezone)).date()
+        visible = ''
+        if v.principal.role == 'executor':
+            visible = '''AND EXISTS (SELECT 1 FROM work_order_equipment w
+                JOIN work_assignments a USING (site_id, work_order_id)
+                WHERE w.site_id=e.site_id AND w.equipment_id=e.equipment_id
+                  AND a.user_id=:user_id AND a.status NOT IN ('declined','cancelled'))'''
+        rows = v.session.execute(text(f'''WITH operations AS MATERIALIZED (
+            SELECT DISTINCT op.operation_template_id AS operation_id, mt.code AS type_code, mt.name AS type_name,
+                COALESCE(NULLIF(r.schedule_parameters->'operation_metadata'->>'code',''), op.code) AS code,
+                COALESCE(NULLIF(r.schedule_parameters->'operation_metadata'->>'title',''), op.title) AS title
+            FROM rule_equipment b
+            JOIN equipment e USING (site_id, equipment_id)
+            JOIN maintenance_rules r USING (site_id, maintenance_rule_id)
+            JOIN regulation_editions ed USING (site_id, regulation_edition_id)
+            JOIN operation_templates op USING (site_id, operation_template_id)
+            JOIN maintenance_types mt USING (maintenance_type_id)
+            WHERE b.site_id=:site AND e.status<>'retired' AND op.is_active
+              AND (NOT :filtered OR CAST(:type_keys AS text[]) && ARRAY[
+                  translate(regexp_replace(mt.code,'[[:space:]‑–-]','','g'),'TOТОto','тотото'),
+                  translate(regexp_replace(mt.name,'[[:space:]‑–-]','','g'),'TOТОto','тотото')])
+              AND (NOT :coded OR mt.code=ANY(CAST(:type_codes AS text[])))
+              AND r.publication_status='published' AND ed.is_approved
+              AND COALESCE(r.schedule_parameters->>'superseded_binding','') IN ('','false')
+              AND b.valid_from<=:day AND (b.valid_to IS NULL OR b.valid_to>=:day)
+              AND r.active_from<=:day AND (r.active_until IS NULL OR r.active_until>=:day)
+              AND ed.effective_from<=:day AND (ed.effective_to IS NULL OR ed.effective_to>=:day)
+              {visible}
+        ), page AS (
+            SELECT * FROM operations ORDER BY type_code,code,title,operation_id OFFSET :offset LIMIT :limit
+        ) SELECT (SELECT count(*) FROM operations) AS total,
+                 (SELECT COALESCE(jsonb_agg(to_jsonb(page) ORDER BY type_code,code,title,operation_id),'[]') FROM page) AS items,
+                 (SELECT encode(sha256(convert_to(COALESCE(jsonb_agg(to_jsonb(o)
+                      ORDER BY type_code,code,title,operation_id),'[]')::text,'UTF8')),'hex') FROM operations o) AS snapshot_id,
+                 (SELECT COALESCE(jsonb_agg(to_jsonb(kinds) ORDER BY type_code,type_name),'[]') FROM (
+                     SELECT type_code,type_name,count(*) AS operations FROM operations GROUP BY type_code,type_name
+                 ) kinds) AS types'''), dict(site=v.principal.site_id,user_id=v.principal.user_id,
+                                              filtered=bool(type_keys),type_keys=type_keys or [],
+                                              coded=bool(type_codes),type_codes=type_codes or [],
+                                              day=day,offset=offset,limit=limit)).mappings().one()
+        return dict(**rows, date=day,offset=offset,limit=limit,type_keys=type_keys or [],type_codes=type_codes or [])
+
     @app.get(BASE+'/work-order-analytics')
     def work_order_analytics(
         group_by: Group,
@@ -31,6 +83,9 @@ def register_routes(app,views):
         second_ends_on: date|None=None,
         include_overdue_tasks: bool=False,
         include_assignments: bool=False,
+        first_equipment_code: str|None=Query(None,min_length=1,max_length=128),
+        second_equipment_code: str|None=Query(None,min_length=1,max_length=128),
+        tie_breaker: Literal['uuid']|None=None,
         v=Depends(views),
     ):
         from app.assistant.analysis_contract import AggregateQuery, Window
@@ -43,7 +98,8 @@ def register_routes(app,views):
             windows = [Window(starts_on=start, ends_on=end) for start,end in pairs if start or end]
             query = AggregateQuery(group_by=group_by, metric=metric, limit=limit, offset=offset, as_of=as_of,
                                    windows=windows, include_overdue_tasks=include_overdue_tasks,
-                                   include_assignments=include_assignments)
+                                   include_assignments=include_assignments, first_equipment_code=first_equipment_code,
+                                   second_equipment_code=second_equipment_code, tie_breaker=tie_breaker)
         except ValueError:
             raise HTTPException(422, 'Выберите допустимую группировку, метрику и периоды.') from None
         return aggregate(v, query)
@@ -359,6 +415,10 @@ def register_routes(app,views):
     @app.get(BASE+'/tasks')
     def tasks(period:Literal['upcoming','overdue','undated','all']='upcoming',state:Literal['draft','assigned','clarification','rework','in_progress','in_review','completed','cancelled']|None=None,active_only:bool=True,q:str=Query('',max_length=200),offset:int=Query(0,ge=0),limit:int=Query(25,ge=1,le=MAX_COLLECTION_PAGE),scheduled_only:bool=False,
               equipment_id:UUID|None=None,unfinished_only:bool=False,starts_on:date|None=None,ends_on:date|None=None,
+              maintenance_only:bool=False, unassigned_only:bool=False,
+              type_keys:list[MaintenanceTypeKey]|None=Query(None,max_length=12),
+              type_codes:list[MaintenanceTypeCode]|None=Query(None,max_length=12),
+              on_days:list[date]|None=Query(None,max_length=31),
               v=Depends(views)):
         from .task_analytics import UNFINISHED
         orders=v.models['work_orders'];assignments=v.models['work_assignments'];rules=v.models['maintenance_rules'];operations=v.models['operation_templates']
@@ -368,6 +428,22 @@ def register_routes(app,views):
             instant=orders.regulatory_deadline_at
             active_states.extend(('in_progress','in_review'))
         filters=[orders.site_id==v.principal.site_id]
+        if maintenance_only:
+            filters.append(orders.maintenance_rule_id.is_not(None))
+        if type_keys or type_codes:
+            kinds = v.models['maintenance_types']
+            def type_key(column):
+                return func.translate(func.regexp_replace(column, '[[:space:]‑–-]', '', 'g'), 'TOТОto', 'тотото')
+            selected_types = select(kinds.maintenance_type_id).where(kinds.maintenance_type_id==operations.maintenance_type_id)
+            if type_keys:
+                selected_types = selected_types.where(or_(type_key(kinds.code).in_(type_keys),type_key(kinds.name).in_(type_keys)))
+            if type_codes:
+                selected_types = selected_types.where(kinds.code.in_(type_codes))
+            filters.append(selected_types.exists())
+        if unassigned_only:
+            filters.append(~select(assignments.work_assignment_id).where(assignments.site_id==orders.site_id,
+                assignments.work_order_id==orders.work_order_id,
+                assignments.status.not_in(('cancelled','declined'))).exists())
         if equipment_id is not None:
             from .management import _equipment
             _equipment(v,equipment_id)
@@ -378,10 +454,12 @@ def register_routes(app,views):
                 links.work_order_id==orders.work_order_id,links.equipment_id==equipment_id).exists())
         if starts_on and ends_on and ends_on<starts_on:
             raise HTTPException(422,'Конец периода раньше начала.')
+        local_day=func.date(func.timezone(v.principal.timezone,instant))
         if starts_on or ends_on:
-            local_day=func.date(func.timezone(v.principal.timezone,instant))
             if starts_on:filters.append(local_day>=starts_on)
             if ends_on:filters.append(local_day<=ends_on)
+        if on_days:
+            filters.append(local_day.in_(on_days))
         if scheduled_only:
             filters.append(orders.planned_start_at.is_not(None))
         if unfinished_only:
@@ -399,6 +477,10 @@ def register_routes(app,views):
                 operations.title, operations.code))))
         source=source.where(*filters)
         count=v.session.scalar(select(func.count()).select_from(source.subquery()))
+        day_counts = {}
+        if on_days:
+            grouping = source.with_only_columns(local_day.label('day'), func.count()).group_by(local_day)
+            day_counts = {day.isoformat(): total for day, total in v.session.execute(grouping)}
         selected=v.session.scalars(source.order_by(instant.asc().nulls_last() if period!='overdue' else instant.desc(),orders.work_order_id).offset(offset).limit(limit)).all()
         v.prepare_task_views(selected)
         scope = {}
@@ -406,13 +488,26 @@ def register_routes(app,views):
         if unfinished_only:scope['unfinished_only']=True
         if starts_on is not None:scope['starts_on']=starts_on
         if ends_on is not None:scope['ends_on']=ends_on
+        if on_days:scope['on_days']=sorted(set(on_days))
+        if type_keys:scope['type_keys']=sorted(set(type_keys))
+        if type_codes:scope['type_codes']=sorted(set(type_codes))
         items = [v.task_view(order, checked_at=now) for order in selected]
-        if equipment_id is not None:
+        if equipment_id is not None or maintenance_only:
             for item, order in zip(items, selected, strict=True):
-                item['equipmentIds'] = [str(link.equipment_id) for link in
-                                        v.rows('work_order_equipment', work_order_id=order.work_order_id)]
-                item['regulatoryDeadlineAt'] = order.regulatory_deadline_at
+                if equipment_id is not None:
+                    item['equipmentIds'] = [str(link.equipment_id) for link in
+                                            v.rows('work_order_equipment', work_order_id=order.work_order_id)]
+                item['regulatoryDeadlineAt'] = (order.regulatory_deadline_at.astimezone(ZoneInfo(v.principal.timezone))
+                                                if maintenance_only and order.regulatory_deadline_at else order.regulatory_deadline_at)
+        if on_days:
+            zone = ZoneInfo(v.principal.timezone)
+            for item, order in zip(items, selected, strict=True):
+                instant_value = order.regulatory_deadline_at if period == 'overdue' else order.planned_start_at or order.regulatory_deadline_at
+                item['matchedDay'] = instant_value.astimezone(zone).date().isoformat()
         return dict(items=items,total=count,period=period,timezone=v.principal.timezone,checked_at=now,offset=offset,limit=limit,
             filters=dict(state=state,active_only=active_only,states=[state] if state else list(UNFINISHED) if unfinished_only else active_states if active_only else 'all_including_completed_and_cancelled',
-                         **({'scheduled_only': True} if scheduled_only else {}),**scope),
+                         **({'scheduled_only': True} if scheduled_only else {}),
+                         **({'maintenance_only': True} if maintenance_only else {}),
+                         **({'unassigned_only': True} if unassigned_only else {}),**scope),
+            **({'day_counts': day_counts} if on_days else {}),
             page_complete=offset==0 and len(selected)==count,analysis_tool='tasks_analyze')

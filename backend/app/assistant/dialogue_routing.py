@@ -6,7 +6,7 @@ from pydantic import Field
 
 from app.schemas.assistant import Input
 
-from .semantic_plan import FIELD_PATTERNS, QUOTED, UUID, asset_references
+from .semantic_plan import FIELD_PATTERNS, QUOTED, UUID, asset_references, equipment_report_fields
 from .intents import primary_document_requested
 
 
@@ -14,16 +14,84 @@ Kind = Literal['conversation', 'system_question', 'data_query', 'single_action',
                'multi_step_task', 'unsupported_request', 'clarification']
 Unavailable = Literal['repository', 'shell', 'unattached_files', 'internet',
                       'external_message', 'other']
+MaintenanceIntent = Literal['other', 'types', 'operations', 'upcoming', 'overdue', 'assignees', 'recommendation', 'reason']
 
 
 class DialogueRoute(Input):
     kind: Kind
     explain: bool = False
     previous_workflow: bool = False
+    depends_on_object_data: bool = False
+    maintenance_intent: MaintenanceIntent = 'other'
     unavailable: list[Unavailable] = Field(default_factory=list, max_length=6)
 
 
 WORK_KINDS = {'data_query', 'single_action', 'multi_step_task'}
+SOURCE_NEEDED = ('Пока не удалось подтвердить ответ данными текущего объекта. '
+                 'Если нужен конкретный наряд, регламент или период, укажите его название или дату.')
+DOMAIN = (r'\b(?:то|техобслуживани\w*|обслуживани\w*|регламент\w*|наряд\w*|задани\w*|'
+          r'оборудовани\w*|просроч\w*|исполнител\w*|сотрудник\w*|смен\w*|отч[её]т\w*|календар\w*)\b')
+OBJECT = (r'\b(?:у\s+(?:нас|меня)|(?:на|по|для|у)\s+(?:(?:текущ\w*|выбранн\w*|наш\w*|этом|эту|этого)\s+)?объект\w*|'
+          r'в\s+(?:наш\w*\s+)?(?:реестр\w*|календар\w*|системе)|по\s+данным\s+(?:систем\w*|fixrate|реестр\w*|объект\w*)|'
+          r'мо[ийяею]\s+(?:наряд\w*|задани\w*|смен\w*|отч[её]т\w*))\b')
+FOLLOW_UP = (r'^\s*(?:а\s+)?(?:конкретнее|подробнее|поподробнее|детальнее|покажи\s+вс[её]|все\s+по\s+пунктам|'
+             r'кто\s+(?:их|это|из\s+них)|какие\s+(?:из\s+них|просроч\w*)|кого\s+лучше|почему\s+именно)\b')
+
+
+def object_data_requested(question, history=()):
+    """Identify claims that require the current principal's persisted records."""
+    source = QUOTED.sub(' ', question)
+    if re.match(r'^\s*(?:как\s+(?:найти|открыть|посмотреть|узнать)\b|что\s+такое\b|'
+                r'(?:переведи|перефразируй|разбери)\s+(?:эту\s+)?(?:цитат\w*|фраз\w*|текст\w*))', source, re.I):
+        return False
+    if asks_saved_facts(question) or re.search(OBJECT, source, re.I) and re.search(DOMAIN, source, re.I):
+        return True
+    if re.search(r'\b(?:какие|какой|кто|когда|найди|покажи|проверь|выбери|подбери)\b', source, re.I) and re.search(
+            r'\b(?:ближайш\w*|просроч\w*|запланирован\w*|действующ\w*|сегодня|завтра|текущ\w*)\b', source, re.I):
+        if re.search(DOMAIN, source, re.I):
+            return True
+    if history and re.search(FOLLOW_UP, source, re.I):
+        previous = history[0]
+        state = previous.get('workflow') or {}
+        route = state.get('dialogue_route') or {}
+        return (route.get('kind') in WORK_KINDS or bool(state.get('object_data_request')) or
+                bool(state.get('maintenance_dialogue')) or object_data_requested(previous['content']))
+    return False
+
+
+def unauthorised_site_claim(answer):
+    """A response-only model cannot assert what is saved on the selected object."""
+    for part in re.split(r'[.!?\n]+', QUOTED.sub(' ', answer)):
+        if re.search(OBJECT, part, re.I) and re.search(DOMAIN, part, re.I) and re.search(
+                r'\b(?:указан\w*|зарегистрирован\w*|сохранен\w*|найден\w*|запланирован\w*|провод\w*|'
+                r'выполня\w*|числ\w*|назначен\w*|подтвержд[её]н\w*|отсутству\w*|нет|имеются|есть)\b', part, re.I):
+            if not re.search(r'\b(?:если|допустим|например|проверить|посмотреть|откройте|можно)\b', part, re.I):
+                return True
+    return False
+
+
+def planning_history(question, history):
+    """Expose prior requests and verified selectors, never past prose as evidence."""
+    from .service import needs_history
+
+    if not history or not (needs_history(question) or re.search(FOLLOW_UP, question, re.I)):
+        return []
+    prior = []
+    for row in reversed(history[:4]):
+        state = row.get('workflow') or {}
+        sources = [dict(tool=item['tool'], entity=item.get('entity', {}), period=item.get('period', {}))
+                   for item in state.get('evidence', []) if item.get('complete') and item.get('retained')
+                   and item.get('status') in ('FOUND', 'EMPTY')]
+        prior.append(dict(request=row['content'][:1000], prior_verified_refs=sources[:8],
+                          subject=saved_subject(state)))
+    return prior
+
+
+def saved_subject(workflow):
+    context = workflow.get('maintenance_dialogue') or {}
+    return {key: context[key] for key in ('kind', 'type_keys', 'type_codes', 'resolved_types', 'period', 'days', 'task_id')
+            if key in context and context[key]}
+
 LIMITS = {
     'repository': 'У меня нет доступа к Git и исходникам репозитория.',
     'shell': 'Из этого чата нельзя запускать команды и тесты.',
@@ -91,6 +159,7 @@ def asks_saved_facts(question):
         return True
     personal = r'\b(?:мо[йяеию]|сво[йяеию])\s+(?:\w+\s+){0,2}(?:профил\w*|рол[ьиью]\b|задани\w*|наряд\w*|уведомлени\w*|email|электронн\w*\s+адрес)'
     lookup = r'\b(?:посмотри|найди|проверь|покажи|открой|прочитай|назови|сверь|выпиши|какие|сколько)\b'
+    has_named_equipment = len(asset_references(unquoted)) == 1
     for portion in re.split(r'[.!?;\n]+|,?\s+и\s+(?=помоги|объясни|предложи|запусти|передай|отправь)', unquoted, flags=re.I):
         if re.search(r'\b(?:как|где)\s+(?:в\s+\S+\s+)?(?:посмотреть|проверить|открыть|найти)\b'
                      r'|\b(?:объясни|разбери|переведи|перескажи|перефразируй)\s+(?:эту\s+)?(?:фраз|цитат|текст|пример|команд)\w*'
@@ -99,6 +168,10 @@ def asks_saved_facts(question):
         if re.search(personal, portion, re.I) and re.search(lookup, portion, re.I):
             return True
         if _asks_for_selected_record(portion):
+            return True
+        # In a report request the literal equipment often appears in a lead-in
+        # before the clause that lists the persisted facts to retrieve.
+        if has_named_equipment and equipment_report_fields(portion):
             return True
     return False
 
@@ -182,6 +255,8 @@ def history_context(history, *, diagnostic=False):
                 steps=[dict(title=goal['title'], status=goal['status'], reason=goal.get('reason'),
                             explanation=message_for(goal) if workflow.get('task_execution') else goal.get('message'))
                        for goal in workflow.get('goals', [])])
+            if subject := saved_subject(workflow):
+                message['subject'] = subject
         messages.append(message)
     return messages
 

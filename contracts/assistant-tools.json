@@ -91,6 +91,28 @@
       "optional_protected_inputs": []
     },
     {
+      "name": "maintenance_catalog_read",
+      "title": "Читаю действующие регламенты и операции ТО",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/maintenance-catalog",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": []
+    },
+    {
       "name": "work_order_analytics",
       "title": "Рейтинг оборудования и исполнителей по нарядам или сравнение двух периодов планирования",
       "method": "GET",

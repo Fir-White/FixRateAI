@@ -32,7 +32,26 @@ def missing(goal, proof):
     return f'{title} · {cause or "результат не подтверждён."}'
 
 
-def row_detail(goal, proof, selection):
+def assignment_page_lines(value, source, page=1):
+    from .graph_engineering import PAGE_SIZE
+
+    total, items = value['total'], value['items']
+    start = (page - 1) * PAGE_SIZE
+    if start >= len(items):
+        return [f'Страница {page} отсутствует в сохранённом снимке. Доступно {len(items)} из {total}. {source}']
+    page_rows = items[start:start + PAGE_SIZE]
+    end = start + len(page_rows)
+    lines = [f'Страница {page}. Показано {start + 1}–{end} из {total} заданий. {source}']
+    lines.extend(f'- `{row["task_id"]}` · {display(row["title"])} · {display(TASK_STATES.get(row["state"], row["state"]))} · '
+                 f'нормативный срок {row.get("deadline_on") or "не указан"}.' for row in page_rows)
+    if end < len(items):
+        lines.append(f'Следующая страница — «Покажи страницу {page + 1} назначений».')
+    elif end < total:
+        lines.append(f'Снимок содержит {len(items)} из {total} заданий. Полный перечень не подтверждён.')
+    return lines
+
+
+def row_detail(goal, proof, selection, engineering):
     if not proof or not proof['retained'] or proof['status'] not in ('FOUND','EMPTY','PARTIAL'):
         return [missing(goal, proof)], None
     if set(proof['limitations']) - {'partial_result', 'undated_facts', 'conflicting_facts', 'page_only', 'blocked_result'}:
@@ -48,7 +67,7 @@ def row_detail(goal, proof, selection):
                      f'задание `{row["task_id"]}`.' for row in rows)
         if not complete:
             lines.append('Показана часть работ. Число просрочек посчитано по всей выборке.')
-        return lines, None
+        return lines, source if complete else None
     if projection in ('latest_maintenance', 'maintenance_history'):
         period = f'{value["starts_on"]} — {value["ends_on"]}'
         verified = [item for item in value['items'] if item['actual_date_verified'] and not item['actual_date_conflict']]
@@ -70,10 +89,12 @@ def row_detail(goal, proof, selection):
                   'по доступным отчётам фактическая дата не подтверждена')
         return [f'Фактическое ТО ({period}) · {result}. {source}'], source
     if projection == 'active_regulations':
-        day = selection.as_of.isoformat()
+        day = goal['semantic'].get('local_date') or selection.as_of.isoformat()
         active = [item for item in value if item['enabled'] and item['valid_from']<=day and
                   (item['valid_until'] is None or item['valid_until']>=day)]
         lines = [f'Действующие регламенты на {day}. {source}']
+        if goal['semantic'].get('show_regulation_cutoff'):
+            lines.append('Проверены даты действия опубликованных сейчас записей. История публикаций на эту дату не подтверждена.')
         lines.extend(f'- {display(item["title"])} · версия {item["rule_version"]}, '
                      f'привязка `{item["binding_id"]}`.' for item in active)
         if not active and complete:
@@ -96,6 +117,8 @@ def row_detail(goal, proof, selection):
     if projection == 'staff_details':
         return [f'Профиль исполнителя · {display(value["full_name"])}. {source}'], source
     if projection == 'staff_assignments':
+        if engineering == 'assigned_workload':
+            return assignment_page_lines(value, source), None
         lines = [f'Открытые назначения · показано {len(value["items"])} из {value["total"]}. {source}']
         lines.extend(f'- {display(row["title"])} · задание `{row["task_id"]}` · назначение `{row["assignment_id"]}`'
                      + (f' · {row["start_at"]} — {row["end_at"]}.' if row['start_at'] else ' · время начала не задано.')
@@ -109,7 +132,9 @@ def row_detail(goal, proof, selection):
         lines = [f'Отчёт · {report_status[value["report_state"]]}' +
                  (f' · попытка `{value["execution_id"]}`' if value['execution_id'] else '') + f'. {source}',
                  f'Чек-лист · {len(value["checklist"])} пунктов.']
-        lines.extend(f'- {display(item["text"])} · ' +
+        lines.extend(f'- {display(item["text"])} · '
+                     + (('обязательный · ' if item.get('required') else 'дополнительный · ')
+                        if engineering == 'acceptance_readiness' else '') +
                      (f'ответ: {display(item["answer"])}.' if item.get('answer') is not None else 'ответ отсутствует.')
                      for item in value['checklist'])
         lines.append(f'Доступные файлы фото · {len(value["photos"])}. Состояние сохранённого анализа · '
@@ -120,6 +145,27 @@ def row_detail(goal, proof, selection):
         if value['photo_classification']:
             lines.append(f'Оценка сохранённого анализа фото · {display(value["photo_classification"])}.')
         blocks = [*value['missing_materials'], *value['acceptance_blocks']]
+        if engineering == 'acceptance_readiness':
+            lines.insert(0, 'Связанное оборудование · ' + (
+                ', '.join(f'{display(item["code"])} {display(item["name"])} · `{item["id"]}`'
+                          for item in value.get('linked_equipment', [])) or 'нет связей') + '.')
+            lines.insert(1, 'Назначенные исполнители · ' + (
+                ', '.join(f'{display(person["name"])} · `{person["executorId"]}`'
+                          for person in value.get('assignees', [])) or 'нет назначений') + '.')
+            if value.get('saved_reports'):
+                lines.append('Сохранённые попытки отчёта · ' + ', '.join(
+                    f'`{item["id"]}` · {display({"draft":"черновик","submitted":"отправлен","reviewed":"проверен"}.get(item["state"],item["state"]))}'
+                    for item in value['saved_reports']) + '.')
+            if value.get('submission_ready') is True:
+                lines.append(f'Материалы готовы к передаче автором черновика. {source}')
+            else:
+                lines.append(f'Передача на приёмку сейчас недоступна по следующим условиям. {source}')
+                lines.extend(f'- {display(item)}. {source}' for item in
+                             [*value['submission_blocks'], *value['missing_materials']])
+            if value['report_state'] == 'submitted':
+                lines.extend(f'- Для решения по приёмке · {display(item)}. {source}'
+                             for item in value['acceptance_blocks'])
+            return lines, None
         lines.append('Готовность к приёмке · препятствия по доступным данным:' if blocks else
                      'Готовность к приёмке · по проверенным материалам препятствий не найдено. Решение принимает контролёр.')
         lines.extend(f'- {display(item)}.' for item in blocks)
@@ -142,6 +188,7 @@ def render(state):
     main_ref = reference(proof)
     root['answer_delivery'] = {'complete': True}
     meta = root['semantic']
+    engineering = state.get('engineering_request', {}).get('kind')
     groups = selection.groups
     projections = [goal for goal in goals if goal['id']!=root['id']]
     evidence = {proof['id']: proof for proof in state['evidence']}
@@ -151,7 +198,14 @@ def render(state):
     conclusions = []
     observations = []
     if selection.historical_cutoff:
-        facts.append('Нормативные сроки сопоставлены с запрошенной датой. Состояния заданий взяты из текущего реестра.')
+        facts.append('Нормативные сроки сопоставлены с запрошенной датой. Состояния заданий взяты из текущего реестра. Исторический статус заданий на эту дату не подтверждён.')
+    if engineering == 'comparison_recheck' and len(groups) == 2:
+        from .graph_engineering import comparison_context_intro
+        winner, other = groups
+        facts.append(comparison_context_intro(dict(code=winner.code, equipment_id=winner.id,
+            counts=[winner.overdue,other.overdue], comparison_day=selection.as_of,
+            historical=selection.historical_cutoff,source=proof['id'])).replace('предыдущее сравнение','проверка исходной пары'))
+        groups = groups[:1]
     if selection.query.group_by=='period':
         for row in groups:
             facts.append(f'- {row.window.starts_on} — {row.window.ends_on}: запланировано {row.planned}, '
@@ -193,7 +247,7 @@ def render(state):
             for goal in projections:
                 bound = bindings[goal['id']].get(str(row.id))
                 observed = evidence.get(bound['evidence_id']) if bound else None
-                lines, source = row_detail(goal, observed, selection)
+                lines, source = row_detail(goal, observed, selection, engineering)
                 facts.extend(lines)
                 if (observed and observed.get('complete') and lines and any(reference(observed) in line for line in lines)
                         and lines != [missing(goal, observed)]):
@@ -210,6 +264,8 @@ def render(state):
             if getattr(first, metric) > getattr(second, metric):
                 conclusions.append(f'Первым проверьте {display(first.label)} · {getattr(first, metric)} '
                                    f'{attribute} против {getattr(second, metric)} у {display(second.label)}. {main_ref}')
+            elif engineering == 'equipment_comparison':
+                conclusions.append(f'Равенство: по {first.overdue} просроченных заданий у каждой единицы. {main_ref}')
             elif first.oldest_due and (not second.oldest_due or first.oldest_due < second.oldest_due):
                 conclusions.append(f'При равном числе {attribute} первым проверьте {display(first.label)} · '
                                    f'самый ранний нарушенный срок {first.oldest_due}. {main_ref}')
@@ -259,16 +315,27 @@ def render(state):
             action = ('Сверьте применимость действующих регламентов перед назначением ТО'
                       if active else 'Проверьте публикацию применимого регламента. Действующей конфигурации в источнике нет')
             recommendations.append(f'{action} для «{display(row.label)}». {src}')
-        elif observations:
-            row, projection, src, _ = observations[0]
-            action = {'latest_maintenance': 'сверьте фактическое ТО по принятым отчётам',
-                      'maintenance_history': 'сверьте фактическое ТО по принятым отчётам',
-                      'maintenance_calendar': 'сверьте следующий нормативный срок по календарю',
-                      'staff_details': 'сверьте распределение работ по найденному профилю'}[projection]
-            recommendations.append(f'Для «{display(row.label)}» {action}. {src}')
+        checks = {'latest_maintenance': 'сверьте фактическое ТО по принятым отчётам',
+                  'maintenance_history': 'сверьте фактическое ТО по принятым отчётам',
+                  'maintenance_calendar': 'проверьте следующий нормативный срок по календарю',
+                  'staff_details': 'сверьте распределение работ по найденному профилю'}
+        seen = set()
+        for row, projection, src, _ in observations:
+            action = checks.get(projection)
+            key = (row.id, action)
+            if action and key not in seen:
+                recommendations.append(f'Для «{display(row.label)}» {action}. {src}')
+                seen.add(key)
+        for row, projection, src, value in observations:
+            if projection == 'overdue_tasks' and value['items']:
+                task = value['items'][0]
+                recommendations.append(f'По заданию «{display(task["title"])}» `{task["task_id"]}` уточните фактическую '
+                                       f'причину просрочки и проверьте доступное окно с ответственными. {src}')
     for goal in projections:
         goal['answer_delivery'] = dict(complete=len(delivered[goal['id']]) == len(groups), rows=len(delivered[goal['id']]))
     comparable = selection.query.group_by == 'period' or len(groups) >= 2 and selection.query.metric in ('overdue', 'unfinished')
+    if engineering in ('equipment_comparison', 'comparison_recheck') and selection.eligible_groups != 2:
+        root['answer_delivery'] = {'complete': False}
     state['analytical_delivery'] = dict(compare='completed' if meta['compare'] and comparable else 'incomplete',
                                         recommendations='completed' if count and len(recommendations)>=count else 'incomplete')
     sections = ['## Подтверждённые факты', '\n'.join(facts)]

@@ -1,0 +1,90 @@
+{
+  "updated_on": "2026-11-23",
+  "model": "ollama:qwen3.5:4b-q4_K_M@sha256:d8b0f5e9760cd1682034f292d7ef72ec46f432149be0df7574bf2d6e92e38c04",
+  "postgresql": "18.6",
+  "acceptance_achieved": true,
+  "acceptance_scope": "isolated_local_postgresql_and_one_pinned_ollama_model",
+  "final": {
+    "new_e2e_passed": 252,
+    "new_e2e_total": 252,
+    "persisted_v3_turns_in_broad_and_control": 345,
+    "fresh_control_pass_rate": 1.0,
+    "fresh_control_threshold": 0.95,
+    "mandatory_regressions_passed": 19,
+    "mandatory_regressions_total": 19,
+    "observed_confirmed_rbac_violations": 0,
+    "observed_unauthorized_mutations": 0,
+    "observed_duplicate_mutations": 0,
+    "observed_fabricated_critical_ids_or_facts": 0,
+    "external_paid_model_requests": 0,
+    "validated_manifest_sha256": "29dab3a6e2470b1b119b8f11136a3d0a0dbbc29c3f695064205ff8f9c6905a09",
+    "working_tree_manifest_sha256": "7c0e9a9e4ccf2dcd2ed8a44b1ec4c363f078043f70e4f5ff51167e3d3efaffe1",
+    "normalized_manifest_differences": ["tests/sql/test_runtime_schema.sql"]
+  },
+  "runs": {
+    "baseline-01": {"existing_passed": 11, "existing_total": 11},
+    "browser-02": {"browser_passed": 2, "browser_total": 2, "viewports_px": [1440, 390]},
+    "independent-04": {"passed": 12, "cases": 17, "turns": 23, "oracle_false_failure": 1, "api_p50_s": 0.2642, "api_p95_s": 13.7839},
+    "independent-05": {"passed": 15, "cases": 17, "existing_passed": 45, "turns": 23},
+    "independent-06": {"development_and_frozen_passed": 17, "development_and_frozen_total": 17, "holdout_passed": 5, "holdout_total": 9, "mutation_passed": 5, "mutation_total": 5},
+    "independent-07": {
+      "passed": 34,
+      "cases": 39,
+      "turns": 60,
+      "development_and_frozen_passed": 17,
+      "development_and_frozen_total": 17,
+      "holdout_passed": 9,
+      "holdout_total": 9,
+      "metamorphic_passed": 8,
+      "metamorphic_total": 13,
+      "existing_passed": 11,
+      "mutation_passed": 5,
+      "fault_passed": 3,
+      "llm_invocations": 46,
+      "llm_http_requests": 46,
+      "prompt_tokens": 42159,
+      "completion_tokens": 3508,
+      "tool_calls": 172,
+      "api_p50_s": 0.3413,
+      "api_p95_s": 12.2853,
+      "read_only_cases_with_subject_table_changes": 0
+    },
+    "calendar-01": {"passed": 36, "cases": 36, "turns": 36, "tool_calls": 36, "llm_invocations": 0, "api_p50_s": 0.2227, "api_p95_s": 0.4189},
+    "executor-01": {"existing_passed": 4, "existing_total": 4, "inference_allowed": false},
+    "state-01": {"passed": 9, "cases": 10},
+    "executor-matrix-01": {"passed": 32, "cases": 32, "turns": 64},
+    "full-backend-01": {"passed": 3092, "skipped": 65, "expected_failure": 1, "pytest_seconds": 1328.81, "source_stable": true},
+    "browser-03": {"passed": 16, "skipped": 3, "v3_live_browser": 2},
+    "release-holdout-01": {"seed": 843510, "passed": 18, "cases": 26, "source_stable": true},
+    "release-replay": {"seed": 843510, "passed": 26, "cases": 26, "existing_passed": 11, "source_stable": true},
+    "wide-01": {"passed": 218, "cases": 218, "persisted_v3_turns": 312, "metamorphic_cases": 13, "pytest_seconds": 1806.01, "source_stable": true, "corpus_stable": true},
+    "wide-release": {
+      "passed": 244, "cases": 244, "persisted_v3_turns": 345,
+      "pytest_seconds": 2114.24, "exit_code": 0, "source_stable": true, "corpus_stable": true,
+      "detailed_read_oracle": {
+        "passed": 137, "cases": 137, "turns": 206, "llm_calls": 77, "llm_requests": 77,
+        "turns_with_llm": 31, "tool_calls": 353, "prompt_tokens": 72462, "completion_tokens": 6310,
+        "api_p50_s": 0.2182, "api_p95_s": 11.5052, "cases_with_domain_table_changes": 0,
+        "by_role": {
+          "chief_engineer": {"passed": 40, "cases": 40},
+          "engineer": {"passed": 29, "cases": 29},
+          "executor": {"passed": 44, "cases": 44},
+          "director": {"passed": 24, "cases": 24}
+        }
+      }
+    },
+    "wide-release-control": {
+      "seed": 384075, "passed": 26, "cases": 26, "turns": 33,
+      "llm_invocations": 31, "tool_calls": 57, "prompt_tokens": 30309, "completion_tokens": 2802,
+      "api_p50_s": 0.2858, "api_p95_s": 29.6335
+    },
+    "full-release": {"passed": 3092, "skipped": 65, "expected_failure": 1, "pytest_seconds": 1510.69, "exit_code": 0, "source_stable": true, "corpus_stable": true},
+    "runtime-release": {"passed": 8, "cases": 8, "pytest_seconds": 429.2, "exit_code": 0, "source_stable": true, "corpus_stable": true},
+    "working-tree-final": {"passed": 19, "cases": 19, "pytest_seconds": 204.47, "exit_code": 0, "source_stable": true, "corpus_stable": true},
+    "browser-final": {"passed": 2, "cases": 2, "viewports_px": [1440, 390], "exit_code": 0},
+    "upgrade-final-02": {"fresh_schema": 28, "upgrade_from": 1, "upgrade_to": 28, "application_primary_keys": 61, "pytest_passed": 6, "exit_code": 0},
+    "wire-01": {"passed": 3, "cases": 3},
+    "wire-restart": {"passed": 1, "cases": 1},
+    "model-limits": {"passed": 3, "cases": 3, "minimum_num_ctx": 4096}
+  }
+}

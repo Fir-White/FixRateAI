@@ -33,6 +33,7 @@ function activity(tool:string,names:Record<string,string>){
   if(tool==='__planning')return 'Разбираю поручение на пункты';
   if(tool==='__routing')return 'Разбираюсь в запросе';
   if(tool==='__responding')return 'Сопоставляю данные и готовлю ответ';
+  if(tool==='__quality_gate')return 'Проверяю выполнение пунктов и источники';
   if(tool==='describe_tool')return 'Уточняю параметры действия';
   if(tool==='tasks_find'||tool==='tasks_list')return 'Ищу подходящие задания и ближайшее ТО';
   if(tool==='assignment_context')return 'Проверяю условия назначения и доступных работников';

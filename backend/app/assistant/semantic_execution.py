@@ -21,7 +21,8 @@ from .semantic_plan import EQUIPMENT_ANALYSIS, UUID, positive_text
 TASK_STATES = {'draft': 'черновик', 'assigned': 'назначено', 'in_progress': 'в работе',
                'rework': 'на доработке', 'rework_required': 'на доработке', 'in_review': 'на проверке',
                'submitted': 'на проверке', 'completed': 'завершено', 'accepted': 'принято',
-               'cancelled': 'отменено', 'active': 'в эксплуатации', 'retired': 'выведено из эксплуатации'}
+               'cancelled': 'отменено', 'active': 'в эксплуатации', 'under_repair': 'в ремонте',
+               'retired': 'выведено из эксплуатации'}
 ROLES = {'chief_engineer': 'главный инженер', 'executor': 'исполнитель', 'engineer': 'инженер',
          'director': 'директор', 'dispatcher': 'диспетчер', 'admin': 'администратор'}
 LABELS = {'id': 'ID', 'name': 'Название', 'location': 'Место установки', 'role': 'Роль', 'site': 'Здание',
@@ -55,7 +56,7 @@ class EquipmentResolution:
     candidates: tuple[dict, ...] = ()
 
 
-def resolve_equipment(proof, subject):
+def resolve_equipment(proof, subject, *, exact_name=False):
     from .semantic_plan import ASSET, normalize_reference
 
     value = proof.get('result')
@@ -67,9 +68,12 @@ def resolve_equipment(proof, subject):
             len({row['equipment_id'] for row in rows}) != len(rows)):
         return EquipmentResolution('partial')
     subject = normalize_reference(subject).casefold()
-    exact = tuple(row for row in rows if subject in (str(row.get('asset_code') or '').casefold(),
-                                                    str(row.get('name') or '').casefold()))
-    candidates = exact or (() if re.fullmatch(ASSET, subject, re.I) else tuple(rows))
+    if exact_name:
+        candidates = tuple(row for row in rows if subject == str(row.get('name') or '').casefold())
+    else:
+        exact = tuple(row for row in rows if subject in (str(row.get('asset_code') or '').casefold(),
+                                                        str(row.get('name') or '').casefold()))
+        candidates = exact or (() if re.fullmatch(ASSET, subject, re.I) else tuple(rows))
     status = 'ambiguous' if len(candidates) > 1 else 'exact' if candidates else 'empty'
     return EquipmentResolution(status, candidates)
 
@@ -104,9 +108,9 @@ def _equipment(goal, meta, proofs):
     else:
         lookup = next((proof for proof in reversed(proofs) if proof['tool'] == 'equipment_find'), None)
         if lookup is None:
-            query = {'asset_code': subject} if re.fullmatch(ASSET, subject, re.I) else {'q': subject}
+            query = {'asset_code': subject} if not meta.get('exact_name') and re.fullmatch(ASSET, subject, re.I) else {'q': subject}
             return _call(goal, 'equipment_find', {'query': query})
-        resolution = resolve_equipment(lookup, subject)
+        resolution = resolve_equipment(lookup, subject, exact_name=bool(meta.get('exact_name')))
         goal['resolution'] = dict(status=resolution.status,
                                   evidence_id=lookup['id'])
         if resolution.status != 'exact' or target == 'equipment_find':
@@ -201,7 +205,7 @@ def next_step(goal, state, *, turn_evidence_start=None):
             body['expected_revision'] = meta['expected_revision']
         return _call(goal, target, {'path': {'task_id': meta['subject']}, 'body': body})
     if target == 'tasks_find':
-        query = {'period': meta.get('list_period') or meta['period']}
+        query = {**meta.get('query', {}), 'period': meta.get('list_period') or meta['period']}
         if meta.get('scheduled_only'):
             query['scheduled_only'] = True
         if meta.get('list_period') or meta.get('summary_only'):
@@ -488,7 +492,8 @@ def render(goal, proofs, request='', *, delivery=None):
     if intent == 'equipment_exists':
         if goal['tool'] == 'equipment_read':
             return f'Оборудование {label(meta["subject"])} найдено.'
-        result = equipment_resolution_text(resolve_equipment(proof, meta['subject']), meta['subject'])
+        resolution = resolve_equipment(proof, meta['subject'], exact_name=bool(meta.get('exact_name')))
+        result = equipment_resolution_text(resolution, meta['subject'])
         if meta.get('external_registry_unavailable'):
             result += '\nУпомянутая выгрузка отсутствует среди вложений. Проверен актуальный реестр.'
         return result
@@ -542,16 +547,19 @@ def render(goal, proofs, request='', *, delivery=None):
             return ('Принятых отчётов с подтверждённой датой в проверенной области нет.' if complete else
                          'Дату фактического обслуживания по доступным отчётам подтвердить не удалось.')
         if intent == 'latest_maintenance':
-            return '\n'.join(lines if complete else [*lines, 'Последнее фактическое обслуживание не установлено.'])
+            period = [f'Период принятых работ {value["starts_on"]} — {value["ends_on"]}.'] if meta.get('show_history_period') else []
+            return '\n'.join([*period, *lines] if complete else [*period, *lines, 'Последнее фактическое обслуживание не установлено.'])
         lines = collection_lines(lines, total=value.get('total'), complete=complete,
                                  limit=meta.get('limit'), location='карточку оборудования', delivery=delivery)
+        if meta.get('show_history_period'):
+            lines.insert(0, f'Период принятых работ {value["starts_on"]} — {value["ends_on"]}.')
         return '\n'.join(lines) + collection_link(proof, delivery)
     if intent in ('service_frequency', 'active_regulations'):
         lines = []
+        day = meta.get('local_date')
         for rule in value:
             if not rule.get('enabled'):
                 continue
-            day = meta.get('local_date')
             if day and not (rule['valid_from'] <= day and (rule['valid_until'] is None or rule['valid_until'] >= day)):
                 continue
             try:
@@ -562,7 +570,11 @@ def render(goal, proofs, request='', *, delivery=None):
                          if intent == 'active_regulations' or re.search(r'\b(?:uuid|id|идентификатор\w*)\b', positive_text(request), re.I) else '')
             lines.append(f'- {label(rule["title"])}: {label(frequency)}{reference}.')
         if lines:
-            return 'По сохранённому регламенту объекта.\n' + '\n'.join(lines)
+            dated = (' По датам действия опубликованных сейчас записей на ' + day + '. '
+                     'История публикаций на эту дату не подтверждена.') if meta.get('show_regulation_cutoff') and day else ''
+            return 'По сохранённому регламенту объекта.' + dated + '\n' + '\n'.join(lines)
+        if meta.get('show_regulation_cutoff') and day and complete:
+            return f'Среди опубликованных сейчас записей регламент на {day} не найден. История публикаций на эту дату не подтверждена.'
         return ('Действующий сохранённый регламент не найден.' if complete else
                 'Наличие действующего регламента не подтверждено.')
     if intent == 'maintenance_calendar':

@@ -50,6 +50,21 @@ ASSIGNEE_LINK = '''
     JOIN users u ON u.user_id=m.user_id
 '''
 
+EQUIPMENT_COMPARISON = '''
+SELECT e.equipment_id AS id, e.name AS label, e.asset_code AS code, e.status AS state,
+       count(w.work_order_id) AS unfinished, count(w.work_order_id) FILTER (WHERE w.is_overdue) AS overdue,
+       count(w.work_order_id) FILTER (WHERE w.deadline_on IS NULL AND w.deadline_at IS NULL) AS undated,
+       min(w.deadline_on) FILTER (WHERE w.is_overdue) AS oldest_due
+FROM equipment e
+LEFT JOIN work_order_equipment l USING (site_id,equipment_id)
+LEFT JOIN work w ON w.site_id=l.site_id AND w.work_order_id=l.work_order_id AND w.is_unfinished
+WHERE e.site_id=:site AND upper(e.asset_code) IN (upper(:first_code),upper(:second_code))
+  AND (NOT :own_only OR EXISTS (SELECT 1 FROM work lw JOIN work_order_equipment ll USING (site_id,work_order_id)
+                                WHERE ll.site_id=e.site_id AND ll.equipment_id=e.equipment_id))
+GROUP BY e.equipment_id,e.name,e.asset_code,e.status
+ORDER BY overdue DESC,e.equipment_id
+'''
+
 GROUPING = '''
 , linked AS MATERIALIZED (
     SELECT DISTINCT {identity} AS id, {label} AS label, {code} AS code, {state} AS state,
@@ -66,7 +81,7 @@ GROUPING = '''
     GROUP BY id,label,code,state
 ), ranked AS (
     SELECT *,
-           row_number() OVER (ORDER BY {metric} DESC, oldest_due NULLS LAST, code NULLS LAST, id) AS position
+           row_number() OVER (ORDER BY {metric} DESC, {rank_tie}) AS position
     FROM counts
     WHERE {metric} > 0
     ORDER BY position LIMIT :limit OFFSET :offset
@@ -81,17 +96,16 @@ SELECT ranked.*, totals.eligible_groups, CASE WHEN :details AND ranked.id IS NOT
 ) END AS overdue_tasks, CASE WHEN :assignments THEN (
     SELECT coalesce(jsonb_agg(to_jsonb(d) ORDER BY d.start_at NULLS LAST, d.task_id), '[]')
     FROM (
-        SELECT a.work_assignment_id AS assignment_id, l.work_order_id AS task_id, l.title, l.status AS state,
-               a.status,a.start_at,a.end_at
+        SELECT * FROM (
+        SELECT DISTINCT ON (l.work_order_id) a.work_assignment_id AS assignment_id,
+               l.work_order_id AS task_id,l.title,l.status AS state,a.status,a.start_at,a.end_at,l.deadline_on
         FROM linked l JOIN work_assignments a ON a.site_id=:site AND a.work_order_id=l.work_order_id
           AND a.user_id=ranked.id AND a.status NOT IN ('cancelled','declined')
         WHERE l.id=ranked.id
-        ORDER BY a.start_at NULLS LAST,l.work_order_id LIMIT :details_limit
+        ORDER BY l.work_order_id,a.work_assignment_id
+        ) unique_tasks ORDER BY start_at NULLS LAST,task_id LIMIT :details_limit
     ) d
-) END AS assignments, CASE WHEN :assignments THEN (
-    SELECT count(*) FROM linked l JOIN work_assignments a ON a.site_id=:site AND a.work_order_id=l.work_order_id
-      AND a.user_id=ranked.id AND a.status NOT IN ('cancelled','declined') WHERE l.id=ranked.id
-) END AS assignment_total
+) END AS assignments, CASE WHEN :assignments THEN ranked.unfinished END AS assignment_total
 FROM (SELECT count(*) AS eligible_groups FROM counts WHERE {metric} > 0) totals
 LEFT JOIN ranked ON true ORDER BY position
 '''
@@ -207,8 +221,8 @@ TASK_SELECTION = '''
     SELECT work_order_id AS id,title AS label,status AS state,deadline_at,deadline_on,
            deadline_on AS oldest_due,1 AS unfinished, is_overdue::integer AS overdue,
            (deadline_on IS NULL)::integer AS undated,count(*) OVER () AS eligible_groups,
-           count(*) OVER (PARTITION BY deadline_on,deadline_at) AS tied_groups,
-           row_number() OVER (ORDER BY deadline_on NULLS LAST, deadline_at NULLS LAST, work_order_id) AS position
+           count(*) OVER (PARTITION BY {tie_columns}) AS tied_groups,
+           row_number() OVER (ORDER BY {rank_order}) AS position
     FROM candidates
 )
 SELECT * FROM ranked ORDER BY position LIMIT :limit
@@ -234,7 +248,14 @@ def aggregate(views, query: AggregateQuery, *, now=None):
     window = query.windows[0] if query.windows else None
     scope = dict(starts_on=window.starts_on if window else None, ends_on=window.ends_on if window else None,
                  limit=query.limit, offset=query.offset)
-    if query.group_by == 'period':
+    if query.first_equipment_code:
+        records = views.session.execute(text(LEDGER + EQUIPMENT_COMPARISON),
+            {**params,'first_code':query.first_equipment_code,'second_code':query.second_equipment_code}).mappings().all()
+        if len(records) != len({row['code'].casefold() for row in records}):
+            raise HTTPException(409, 'Инвентарный код неоднозначен в пределах текущего объекта.')
+        groups = [dict(row) for row in records]
+        eligible = len(groups)
+    elif query.group_by == 'period':
         first, second = query.windows
         records = views.session.execute(text(LEDGER + PERIODS), {
             **params, 'start_one': first.starts_on, 'end_one': first.ends_on,
@@ -245,7 +266,10 @@ def aggregate(views, query: AggregateQuery, *, now=None):
         eligible = 2
     elif query.group_by == 'task':
         predicate = MATERIAL_FILTER if query.metric=='missing_materials' else 'WHERE w.is_overdue'
-        records = views.session.execute(text(LEDGER + TASK_SELECTION.format(predicate=predicate)),
+        by_day = query.tie_breaker == 'uuid'
+        rank_order = 'deadline_on NULLS LAST, work_order_id' if by_day else 'deadline_on NULLS LAST, deadline_at NULLS LAST, work_order_id'
+        records = views.session.execute(text(LEDGER + TASK_SELECTION.format(predicate=predicate,
+                                        tie_columns='deadline_on' if by_day else 'deadline_on,deadline_at',rank_order=rank_order)),
                                         {**params, **scope}).mappings().all()
         eligible = records[0]['eligible_groups'] if records else 0
         extra['tied_groups'] = records[0]['tied_groups'] if records else 0
@@ -263,7 +287,8 @@ def aggregate(views, query: AggregateQuery, *, now=None):
         else:
             columns = dict(identity='u.user_id', label='u.full_name', code='NULL::text', state='NULL::text',
                            joins=ASSIGNEE_LINK)
-        sql = GROUPING.format(**columns, metric={'unfinished':'unfinished', 'overdue':'overdue'}[query.metric])
+        rank_tie = 'id' if query.tie_breaker == 'uuid' else 'oldest_due NULLS LAST, code NULLS LAST, id'
+        sql = GROUPING.format(**columns, metric={'unfinished':'unfinished', 'overdue':'overdue'}[query.metric], rank_tie=rank_tie)
         records = views.session.execute(text(LEDGER + sql), {
             **params, **scope, 'details': query.include_overdue_tasks, 'details_limit': OVERDUE_DETAILS_LIMIT,
             'assignments': query.include_assignments,

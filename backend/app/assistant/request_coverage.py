@@ -83,6 +83,11 @@ def bind_requirements(state, interpretation, *, reviewed, review_required):
                 if not primary_document_requested(request):
                     continue
         linked_goals = [goal for goal in state['goals'] if goal['id'] in matching]
+        if source:
+            same_source = [goal for goal in linked_goals if goal['semantic'].get('source_text') == source]
+            if same_source:
+                linked_goals = same_source
+                matching = [goal['id'] for goal in linked_goals]
         # Compiler fields are grounded in literal request text, including fields
         # omitted by the interpreter. Default display fields aren't obligations.
         fields = list(dict.fromkeys(field for goal in linked_goals for field in

@@ -1,5 +1,6 @@
 """Intent routing through real chat endpoints with a controlled inference provider."""
 import json
+from dataclasses import replace
 from uuid import uuid4
 
 import pytest
@@ -8,6 +9,7 @@ from sqlalchemy import text
 from app.assistant.dialogue_routing import DialogueRoute, asks_about_previous, grounded_limits, mixed_read_portion
 from app.assistant.semantic_plan import RequestedResult, RequestedResults
 from app.assistant.tools import TOOLS
+from app.schemas.assistant import GoalSpec, ToolSelection
 from tests.backend.test_assistant import B, assistant_case, managed, runtime, thread
 
 
@@ -43,6 +45,43 @@ def send(client, conversation, question):
     turn = next(row for row in view['turns'] if row['turn_id'] == response.json()['turn_id'])
     assert turn['status'] == 'completed', turn
     return turn, view['actions']
+
+
+def test_v3_replans_a_site_request_misclassified_as_conversation(assistant_case, monkeypatch):
+    _, app, admin, _, _ = assistant_case
+
+    class NoVerifiedSource(RoutedProvider):
+        def chat(self, messages, schema, budget):
+            if schema is ToolSelection:
+                self.calls.append((schema, json.loads(messages[-1]['content'])))
+                return ToolSelection(tools=[], goals=[GoalSpec(id='reply', title='Придуманный ответ', tool='', kind='conversation')])
+            return super().chat(messages, schema, budget)
+
+    provider = NoVerifiedSource(DialogueRoute(kind='conversation'), results=[
+        RequestedResult(intent='general_explanation', source_text='Объясни сведения о сменах'),
+    ])
+    monkeypatch.setattr(app.state, 'settings', replace(app.state.settings, assistant_agent_version='v3'))
+    monkeypatch.setattr(app.state, 'assistant_provider_factory', lambda: provider, raising=False)
+    result, actions = send(admin.chief, thread(admin.chief), 'Какие сведения о сменах есть на нашем объекте?')
+    assert not actions and result['workflow']['outcome'] == 'blocked'
+    assert 'не удалось подтвердить' in result['answer'] and provider.reply not in result['answer']
+    assert [item[0] for item in provider.calls] == [DialogueRoute, RequestedResults, ToolSelection]
+    assert provider.calls[-1][1]['context']['tools']
+
+
+@pytest.mark.parametrize(('reply', 'blocked'), [
+    ('На объекте есть три вида технического обслуживания.', True),
+    ('Техническое обслуживание включает регулярные проверки и плановые работы.', False),
+])
+def test_v3_response_only_cannot_claim_unread_site_data(assistant_case, monkeypatch, reply, blocked):
+    _, app, admin, _, _ = assistant_case
+    provider = RoutedProvider(DialogueRoute(kind='conversation'), reply=reply)
+    monkeypatch.setattr(app.state, 'settings', replace(app.state.settings, assistant_agent_version='v3'))
+    monkeypatch.setattr(app.state, 'assistant_provider_factory', lambda: provider, raising=False)
+    result, actions = send(admin.chief, thread(admin.chief), 'Что такое техническое обслуживание?')
+    assert not actions and result['workflow'] is None
+    assert (reply not in result['answer']) == blocked
+    assert ('не удалось подтвердить' in result['answer']) == blocked
 
 
 @pytest.mark.parametrize(('kind','prompt'), [

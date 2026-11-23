@@ -23,6 +23,16 @@ def objective_scope(state,goal,name,arguments,value):
         if any(str(query.get(field)) != str(filters.get(field)) or
                str(query.get(field)) != str(selector.get(field)) for field in ('starts_on', 'ends_on')):
             return 'requested_period_mismatch'
+    if name == 'tasks_find' and goal.get('semantic', {}).get('intent') == 'task_list':
+        required = goal['semantic'].get('query', {})
+        if required:
+            period = goal['semantic']['period']
+            filters = value.get('filters') if isinstance(value, dict) else None
+            if (not isinstance(filters, dict) or value.get('period') != period
+                    or value.get('timezone') != state['scope']['timezone']
+                    or any(query.get(key) != expected or filters.get(key) != expected
+                           for key, expected in required.items())):
+                return 'requested_task_scope_not_verified'
     if name in ('profile_read','staff_read'):
         if goal.get('selector',{}).get('search') and name=='staff_read':
             from .domain_adapters import staff_context

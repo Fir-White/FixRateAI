@@ -165,10 +165,16 @@ def create_app(engine=None):
                 except Exception as exc:
                     logger.error("RF artifact unavailable: %s", type(exc).__name__)
             import asyncio
+            from app.assistant.graph_actions import build_graph as build_action_graph
+            from app.assistant.graph_agent import build_graph as build_turn_graph
+            from app.assistant.graph_persistence import open_saver
             from app.integration.scheduler import run as run_scheduler
             scheduler=asyncio.create_task(run_scheduler(app)) if os.environ.get("MAINTENANCE_SCHEDULER","true").lower()=="true" and engine is None else None
             try:
-                yield
+                with open_saver(app.state.engine) as saver:
+                    app.state.assistant_turn_graph = build_turn_graph(saver)
+                    app.state.assistant_action_graph = build_action_graph(saver)
+                    yield
             finally:
                 if app.state.optimizer: app.state.optimizer.stop()
                 if scheduler:

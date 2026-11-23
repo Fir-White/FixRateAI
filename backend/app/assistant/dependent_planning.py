@@ -80,6 +80,9 @@ def compile_analysis(interpretation, question, tools, clock):
         limit = MAX_AGGREGATE_ROWS if request.all_groups else min(request.limit or 5, MAX_AGGREGATE_ROWS)
         query = AggregateQuery(group_by=request.group_by, metric=request.metric,
                                limit=limit, as_of=request.as_of, windows=request.windows,
+                               first_equipment_code=request.first_equipment_code,
+                               second_equipment_code=request.second_equipment_code,
+                               tie_breaker=request.tie_breaker,
                                include_overdue_tasks='overdue_tasks' in projections and request.group_by=='equipment',
                                include_assignments='staff_assignments' in projections)
     except ValueError:

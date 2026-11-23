@@ -14,6 +14,7 @@ from .attachments import SCOPE,COOKIE_EFFECTS,HUMAN_SECRET,owned,public as publi
 from .read_transport import read as read_tool,safe_arguments,result_summary
 
 PROMPT_VERSION='fixrate-orchestrator-v1'
+GRAPH_PROMPT_VERSION='fixrate-langgraph-v3'
 PROMPTS=Path(__file__).parent/'prompts'
 SLOTS=threading.BoundedSemaphore(2)
 logger=logging.getLogger(__name__)
@@ -26,7 +27,7 @@ def dump(value):return json.dumps(value,ensure_ascii=False,default=str)
 
 def progress_fact(tool,value):
     """Bounded, factual summary of a tool result; never expose arguments or reasoning."""
-    if tool in ('tasks_find','staff_find','equipment_find') and isinstance(value,dict):
+    if tool in ('tasks_find','staff_find','equipment_find','maintenance_catalog_read') and isinstance(value,dict):
         total=value.get('total');items=value.get('items')
         if isinstance(total,int) and not isinstance(total,bool) and total>=0 and isinstance(items,list):
             return {'total':total,'shown':len(items)}
@@ -142,9 +143,9 @@ async def propose(app,session,principal,thread,tool,args,explanation,headers,tur
             workflow_root_turn_id=workflow_root_turn_id or turn_id
             root=session.scalar(text('SELECT turn_id FROM assistant_turns WHERE turn_id=:root AND conversation_id=:chat FOR UPDATE'),dict(root=workflow_root_turn_id,chat=thread['conversation_id']))
             if root is None:raise HTTPException(404,'Поручение не найдено')
-        source=session.execute(text('SELECT status,content FROM assistant_turns WHERE turn_id=:id FOR UPDATE'),dict(id=turn_id)).mappings().first()
-        if source is None or source['status']!='running':raise HTTPException(409,'Ответ уже прерван. Отправьте новый запрос.')
-        question=source['content']
+        turn_source=session.execute(text('SELECT status,content,execution_engine FROM assistant_turns WHERE turn_id=:id FOR UPDATE'),dict(id=turn_id)).mappings().first()
+        if turn_source is None or turn_source['status']!='running':raise HTTPException(409,'Ответ уже прерван. Отправьте новый запрос.')
+        question=turn_source['content']
         if workflow_root_turn_id:
             question=session.scalar(text('SELECT content FROM assistant_turns WHERE turn_id=:root AND conversation_id=:chat'),dict(root=workflow_root_turn_id,chat=thread['conversation_id'])) or question
         if workflow_goal_id:
@@ -205,6 +206,10 @@ async def propose(app,session,principal,thread,tool,args,explanation,headers,tur
         VALUES (:id,:conversation,:turn,:tool,CAST(:args AS jsonb),:sha,CAST(:before AS jsonb),:explanation,'proposed',:expires,:goal,:root)'''),
         dict(id=identity,conversation=thread['conversation_id'],turn=turn_id,tool=tool.name,args=dump(args),sha=sha,before=dump(snapshot),explanation=explanation[:3000],expires=expires,goal=workflow_goal_id,root=workflow_root_turn_id))
     audit(session,principal,identity,'proposed',dict(tool=tool.name,payload_sha256=sha))
+    if turn_id and turn_source['execution_engine'] == 'v3':
+        from .graph_persistence import register_thread, thread_config
+        config = thread_config(principal, thread['conversation_id'], 'action', identity)
+        register_thread(session, config, thread['conversation_id'])
     session.commit()
     return public_action(action(session,principal,identity))
 
@@ -309,7 +314,12 @@ async def finish_answer(app,client,turn_id,question,history,observations,trace,r
         return incomplete_answer(question,trace,reason)
 
 async def agent_turn(app,principal,thread_id,turn_id,headers):
-    from .orchestrator import run
+    with app.state.factory() as session:
+        engine = session.scalar(text('SELECT execution_engine FROM assistant_turns WHERE turn_id=:id'), dict(id=turn_id))
+    if engine == 'v3':
+        from .graph_agent import run
+    else:
+        from .orchestrator import run
     return await run(app,principal,thread_id,turn_id,headers)
 
 
@@ -381,3 +391,19 @@ async def confirm(app,session,principal,row,headers,secret_values=None):
     audit(session,principal,row['action_id'],status,dict(tool=tool.name,payload_sha256=row['payload_sha256']))
     session.commit()
     return public_action(action(session,principal,row['action_id']))
+
+
+def reject(session, principal, row):
+    identity = row['action_id']
+    if row['status'] == 'proposed':
+        session.execute(text("UPDATE assistant_actions SET status='rejected',finished_at=now() WHERE action_id=:id"),
+                        dict(id=identity))
+        audit(session, principal, identity, 'rejected', dict(tool=row['tool_name']))
+        session.commit()
+    return public_action(action(session, principal, identity))
+
+
+def action_uses_graph(session, row):
+    return row['turn_id'] is not None and session.scalar(text(
+        'SELECT execution_engine FROM assistant_turns WHERE turn_id=:id'
+    ), dict(id=row['turn_id'])) == 'v3'

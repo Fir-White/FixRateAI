@@ -6,6 +6,7 @@ from typing import Literal
 from fastapi import BackgroundTasks,Depends,HTTPException,Query,Request,Response,UploadFile,File
 from fastapi.responses import JSONResponse,FileResponse
 from sqlalchemy import text
+from starlette.concurrency import run_in_threadpool
 from app.schemas.assistant import ConversationCreate,MessageCreate,ConfirmAction
 from app.assistant import service as svc
 from app.assistant.tools import available,catalog,describe,validate_arguments,invoke,bounded,EXPECTED_PRINCIPAL
@@ -30,7 +31,8 @@ def register_routes(app,views):
     def capabilities(response:Response,v=Depends(views)):
         response.headers['Cache-Control']='private, no-store'
         preference=model_preferences.read(v.session,v.principal)
-        return dict(**svc.configured(preference['selection']),model_preference=preference,prompt_version=svc.PROMPT_VERSION,agents=AGENTS,
+        version = svc.GRAPH_PROMPT_VERSION if app.state.settings.assistant_agent_version == 'v3' else svc.PROMPT_VERSION
+        return dict(**svc.configured(preference['selection']),model_preference=preference,prompt_version=version,agents=AGENTS,
             tools={a['id']:catalog(app,v.principal.role,a['id']) for a in AGENTS})
 
     @app.get(BASE+'/conversations')
@@ -219,16 +221,21 @@ def register_routes(app,views):
                 raise HTTPException(409,'Ключ повтора принадлежит продолжению другого поручения')
             return dict(turn_id=previous['turn_id'],status=previous['status'])
         resumed_workflow=None
+        execution_engine=app.state.settings.assistant_agent_version
         if command.resume_turn_id is not None:
             from app.assistant import workflow as wf
-            source=v.session.execute(text('SELECT status,workflow FROM assistant_turns WHERE turn_id=:turn AND conversation_id=:chat'),dict(turn=command.resume_turn_id,chat=identity)).mappings().first()
+            source=v.session.execute(text('SELECT status,error_code,workflow,execution_engine FROM assistant_turns WHERE turn_id=:turn AND conversation_id=:chat'),dict(turn=command.resume_turn_id,chat=identity)).mappings().first()
             if not source or not source['workflow']:raise HTTPException(404,'Сохранённое поручение не найдено в этом диалоге')
             if source['status']=='running':raise HTTPException(409,'Поручение ещё выполняется')
             root=source['workflow'].get('root_turn_id')
             latest=v.session.execute(text("SELECT workflow FROM assistant_turns WHERE conversation_id=:chat AND workflow->>'root_turn_id'=:root ORDER BY created_at DESC,turn_id DESC LIMIT 1"),dict(chat=identity,root=root)).scalar()
             if latest:source=dict(source,workflow=latest)
             wf.refresh_actions(v.session,source['workflow'])
-            if source['workflow']['outcome'] in ('completed','cancelled'):raise HTTPException(409,'Это поручение уже завершено или остановлено')
+            execution_engine=source['execution_engine']
+            unfinished_delivery=execution_engine=='v3' and source['error_code']=='ASSISTANT_INTERRUPTED'
+            stopped=execution_engine=='v3' and source['error_code']=='ASSISTANT_STOPPED'
+            if stopped or source['workflow']['outcome']=='cancelled' or source['workflow']['outcome']=='completed' and not unfinished_delivery:
+                raise HTTPException(409,'Это поручение уже завершено или остановлено')
             resumed_workflow=wf.resume(source['workflow'])
         preference=model_preferences.read(v.session,v.principal)
         if command.model_preference_revision is not None and preference['revision']!=command.model_preference_revision:
@@ -249,8 +256,8 @@ def register_routes(app,views):
         if not svc.SLOTS.acquire(blocking=False):raise HTTPException(429,'ИИ сейчас занят. Попробуйте через несколько секунд.')
         turn=uuid4()
         try:
-            v.session.execute(text("INSERT INTO assistant_turns(turn_id,conversation_id,request_key,content,status,prompt_version,model_selection,deadline_at,workflow,resume_turn_id) VALUES (:id,:conversation,:key,:content,'running',:prompt,CAST(:model AS jsonb),:deadline,CAST(:workflow AS jsonb),:resume)"),
-                dict(id=turn,conversation=identity,key=command.idempotency_key,content=message_content,prompt=svc.PROMPT_VERSION,model=svc.dump(selected_model) if selected_model is not None else None,deadline=svc.now()+timedelta(seconds=svc.turn_timeout_seconds(preference['selection'])),workflow=svc.dump(resumed_workflow) if resumed_workflow else None,resume=command.resume_turn_id))
+            v.session.execute(text("INSERT INTO assistant_turns(turn_id,conversation_id,request_key,content,status,prompt_version,model_selection,deadline_at,workflow,resume_turn_id,execution_engine) VALUES (:id,:conversation,:key,:content,'running',:prompt,CAST(:model AS jsonb),:deadline,CAST(:workflow AS jsonb),:resume,:engine)"),
+                dict(id=turn,conversation=identity,key=command.idempotency_key,content=message_content,prompt=svc.GRAPH_PROMPT_VERSION if execution_engine=='v3' else svc.PROMPT_VERSION,model=svc.dump(selected_model) if selected_model is not None else None,deadline=svc.now()+timedelta(seconds=svc.turn_timeout_seconds(preference['selection'])),workflow=svc.dump(resumed_workflow) if resumed_workflow else None,resume=command.resume_turn_id,engine=execution_engine))
             if selected:
                 v.session.execute(text('INSERT INTO assistant_turn_attachments(turn_id,attachment_id,conversation_id,position) VALUES (:turn,:file,:conversation,:position)'),
                     [dict(turn=turn,file=file_id,conversation=identity,position=position) for position,file_id in enumerate(selected)])
@@ -262,21 +269,26 @@ def register_routes(app,views):
         return dict(turn_id=turn,status='running')
 
     @app.post(BASE+'/actions/{identity}/reject')
-    def reject(identity:UUID,v=Depends(views)):
-        row=svc.action(v.session,v.principal,identity,lock=True)
-        if row['status']=='proposed':
-            v.session.execute(text("UPDATE assistant_actions SET status='rejected',finished_at=now() WHERE action_id=:id"),dict(id=identity))
-            svc.audit(v.session,v.principal,identity,'rejected',dict(tool=row['tool_name']));v.session.commit()
-        return svc.public_action(svc.action(v.session,v.principal,identity))
+    async def reject(identity:UUID,v=Depends(views)):
+        row=await run_in_threadpool(svc.action,v.session,v.principal,identity,lock=True)
+        if row['status']=='proposed' and svc.action_uses_graph(v.session,row):
+            from app.assistant.graph_actions import decide
+            return await decide(app,v.session,v.principal,row,'reject')
+        return svc.reject(v.session,v.principal,row)
 
     @app.post(BASE+'/actions/{identity}/confirm')
     async def confirm(identity:UUID,command:ConfirmAction,request:Request,response:Response,v=Depends(views)):
-        row=svc.action(v.session,v.principal,identity,lock=True)
+        row=await run_in_threadpool(svc.action,v.session,v.principal,identity,lock=True)
         if command.payload_sha256!=row['payload_sha256']:raise HTTPException(409,'Состав предложения изменился')
         if row['status']!='proposed':return svc.public_action(row)
         if row['expires_at']<svc.now():raise HTTPException(409,'Предложение истекло. Подготовьте новое по свежим данным.')
         cookies=[];token=COOKIE_EFFECTS.set(cookies)
-        try:result=await svc.confirm(app,v.session,v.principal,row,forwarded(request),command.secret_values)
+        try:
+            if svc.action_uses_graph(v.session,row):
+                from app.assistant.graph_actions import decide
+                result=await decide(app,v.session,v.principal,row,'confirm',forwarded(request),command.secret_values)
+            else:
+                result=await svc.confirm(app,v.session,v.principal,row,forwarded(request),command.secret_values)
         finally:COOKIE_EFFECTS.reset(token)
         for cookie in cookies:response.raw_headers.append((b'set-cookie',cookie.encode('latin-1')))
         return result

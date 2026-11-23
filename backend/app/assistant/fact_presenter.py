@@ -63,6 +63,41 @@ def _inline(value):
     return result
 
 
+def observed_pages(proofs):
+    """Return contiguous observed rows of the latest collection for presentation.
+
+    This projection cannot turn separate reads into an atomic server snapshot.
+    The workflow still decides completeness from its original evidence.
+    """
+    final = proofs[-1]['result']
+    if (not isinstance(final, dict) or not isinstance(final.get('items'), list)
+            or type(final.get('total')) is not int or not final.get('offset')):
+        return final
+
+    def selectors(proof):
+        args = proof.get('arguments') or {}
+        return {key: {name: value for name, value in (args.get(key) or {}).items() if name not in ('offset', 'limit')}
+                for key in ('path', 'query', 'view')}
+
+    target = selectors(proofs[-1])
+    common = ('total', 'snapshot_id', 'scope', 'filters', 'source_path')
+    pages = {}
+    for proof in proofs:
+        value = proof.get('result')
+        if (selectors(proof) == target and isinstance(value, dict) and isinstance(value.get('items'), list)
+                and type(value.get('offset')) is int and all(value.get(key) == final.get(key) for key in common)):
+            pages[value['offset']] = value['items']
+    rows = []
+    while pages.get(len(rows)):
+        page = pages[len(rows)]
+        if len(rows) + len(page) > final['total']:
+            return final
+        rows.extend(page)
+    if not rows:
+        return final
+    return dict(items=rows, total=final['total'], complete=False)
+
+
 def _details(tool, arguments):
     paths = {
         'staff_read': ('/api/v1/assistant/workspace/staff/', 'user_id'),

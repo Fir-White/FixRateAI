@@ -36,13 +36,20 @@ def validate_selection(value, query, principal):
             raise ValueError('Invalid identities or result count')
         if query.group_by=='task':
             latest = datetime.max.replace(tzinfo=timezone.utc)
-            rank_keys = [(row.deadline_on or date.max, row.deadline_at or latest, row.id) for row in groups]
+            rank_keys = [(row.deadline_on or date.max, row.id) if query.tie_breaker == 'uuid'
+                         else (row.deadline_on or date.max, row.deadline_at or latest, row.id) for row in groups]
             if query.metric=='earliest_overdue' and any(row.overdue!=1 or not row.deadline_on for row in groups):
                 raise ValueError('Non-overdue task in selected cohort')
         elif query.metric=='without_service':
             rank_keys = []  # Registry code order uses the database collation.
         else:
-            rank_keys = [(-getattr(row, query.metric), row.oldest_due or date.max) for row in groups]
+            rank_keys = [(-getattr(row, query.metric), row.id if query.tie_breaker == 'uuid'
+                          else row.oldest_due or date.max) for row in groups]
+        if query.first_equipment_code:
+            wanted = {query.first_equipment_code.casefold(), query.second_equipment_code.casefold()}
+            actual = {str(row.code or '').casefold() for row in groups}
+            if len(actual) != len(groups) or not actual <= wanted or any(not row.state or not row.label for row in groups):
+                raise ValueError('Equipment comparison returned a different card')
         if rank_keys != sorted(rank_keys):
             raise ValueError('Invalid rank order')
     for row in groups:
@@ -58,7 +65,7 @@ def validate_selection(value, query, principal):
         if (assignments is not None) != query.include_assignments:
             raise ValueError('Assignment projection does not match the request')
         if assignments is not None and (row.assignment_total is None or len(assignments)>row.assignment_total or
-                len({item.assignment_id for item in assignments})!=len(assignments)):
+                row.assignment_total != row.unfinished or len({item.task_id for item in assignments})!=len(assignments)):
             raise ValueError('Inconsistent assignment rows')
     return output
 
@@ -95,7 +102,10 @@ def resource_inputs(state, binding):
         kind = selection.query.group_by
         if kind=='period' or binding.resource and kind!=binding.resource:
             raise ValueError('Resource type does not match edge')
-        return selection.as_of, [(ResourceRef(kind=kind,id=row.id), proof) for row in selection.groups], False
+        if binding.first_only and selection.eligible_groups != 2:
+            raise ValueError('Both equipment cards are required to select a winner')
+        rows = selection.groups[:1] if binding.first_only else selection.groups
+        return selection.as_of, [(ResourceRef(kind=kind,id=row.id), proof) for row in rows], False
     source = next((goal for goal in state['goals'] if goal['id']==binding.source_goal), None)
     if source is None or binding.resource is None or 'analysis_query' in source.get('semantic',{}):
         raise ValueError('No compatible source')
@@ -226,6 +236,9 @@ class DataflowRunner:
                         if (receipt.task_id!=reference.id or receipt.revision!=reference.revision or
                                 receipt.execution_id!=reference.execution_id):
                             raise HTTPException(502, 'Материалы не соответствуют выбранной попытке')
+                        if self.state.get('engineering_request', {}).get('kind') == 'acceptance_readiness' and (
+                                'submission_ready' not in receipt.model_fields_set or receipt.submission_ready is None):
+                            raise HTTPException(502, 'Источник не подтвердил готовность к передаче')
                     ref = None
                     if name=='task_read':
                         card = value.get('task') if isinstance(value,dict) else None

@@ -39,9 +39,17 @@ class AggregateQuery(AnalyticsModel):
     windows: list[Window] = Field(default_factory=list, max_length=2)
     include_overdue_tasks: bool = False
     include_assignments: bool = False
+    first_equipment_code: str | None = Field(default=None, min_length=1, max_length=128)
+    second_equipment_code: str | None = Field(default=None, min_length=1, max_length=128)
+    tie_breaker: Literal['uuid'] | None = None
 
     @model_validator(mode='after')
     def supported(self):
+        pair = (self.first_equipment_code, self.second_equipment_code)
+        if any(pair) and (not all(pair) or pair[0].lower() == pair[1].lower() or self.group_by != 'equipment'
+                          or self.metric != 'overdue' or self.limit != 2 or self.offset or self.windows
+                          or self.include_assignments or self.include_overdue_tasks or self.tie_breaker != 'uuid'):
+            raise ValueError('An exact comparison requires two different codes and UUID tie breaking')
         if self.as_of and not 2 <= self.as_of.year <= 9997:
             raise ValueError('As-of date is out of range')
         if self.offset and (self.group_by not in ('equipment', 'assignee') or self.metric not in ('unfinished', 'overdue')):
@@ -77,6 +85,9 @@ class AnalysisRequest(AnalyticsModel):
     calendar_months: int | None = Field(default=None, ge=1, le=120)
     compare: bool = False
     recommendations: int | None = Field(default=None, ge=1, le=10)
+    first_equipment_code: str | None = Field(default=None, min_length=1, max_length=128)
+    second_equipment_code: str | None = Field(default=None, min_length=1, max_length=128)
+    tie_breaker: Literal['uuid'] | None = None
 
 
 class OverdueTask(AnalyticsModel):
@@ -95,6 +106,7 @@ class AssignmentRow(AnalyticsModel):
     status: str
     start_at: str | None
     end_at: str | None
+    deadline_on: date | None = None
 
 
 class AggregateRow(AnalyticsModel):
@@ -142,6 +154,7 @@ class SelectedInput(AnalyticsModel):
     months: int | None = Field(default=None, ge=1, le=120)
     window: Window | None = None
     resource: Resource | None = None
+    first_only: bool = False
 
 
 class TaskAcceptanceReceipt(AnalyticsModel):
@@ -158,9 +171,16 @@ class TaskAcceptanceReceipt(AnalyticsModel):
     saved_photo_analysis: str
     photo_classification: str | None
     ready: bool
+    linked_equipment: list[dict] = Field(default_factory=list)
+    assignees: list[dict] = Field(default_factory=list)
+    saved_reports: list[dict] = Field(default_factory=list)
+    submission_blocks: list[str] = Field(default_factory=list)
+    submission_ready: bool | None = None
 
     @model_validator(mode='after')
     def consistent(self):
         if self.ready != (not self.missing_materials and not self.acceptance_blocks):
             raise ValueError('Inconsistent acceptance evidence')
+        if self.submission_ready is not None and self.submission_ready != (not self.missing_materials and not self.submission_blocks):
+            raise ValueError('Inconsistent submission evidence')
         return self

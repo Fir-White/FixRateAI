@@ -30,6 +30,26 @@ def inspect(views, task_id, revision, execution_id, storage_root):
         gaps.insert(0, 'Фактический отчёт отсутствует')
     gaps.extend(f'Файл {identity} зарегистрирован, но отсутствует в хранилище' for identity in sorted(absent))
 
+    assignees = task['assignees']
+    reports = sorted(views.rows('work_reports', work_order_id=task_id), key=lambda item: item.revision_no)
+    submission = []
+    if order.status == 'in_review' and report and report['state'] == 'submitted':
+        submission.append('Текущая попытка уже передана на приёмку')
+    elif order.status != 'in_progress' or not report or report['state'] != 'draft':
+        submission.append('Для передачи нужна текущая работа в исполнении с черновиком отчёта')
+    else:
+        draft = next((item for item in reports
+                      if item.work_report_id == execution_id), None)
+        if draft is None or str(draft.submitted_by) not in {person['executorId'] for person in assignees}:
+            submission.append('Автор черновика не подтверждён как назначенный исполнитель')
+    links = views.models['work_order_equipment']
+    assets = views.models['equipment']
+    linked_equipment = [dict(id=str(identity), code=code, name=name) for identity, code, name in views.session.execute(
+        select(assets.equipment_id, assets.asset_code, assets.name)
+        .join(links, (links.site_id == assets.site_id) & (links.equipment_id == assets.equipment_id))
+        .where(links.site_id == views.principal.site_id, links.work_order_id == task_id)
+        .order_by(assets.asset_code, assets.equipment_id))]
+
     acceptance = []
     if order.status != 'in_review' or not report or report['state']!='submitted':
         acceptance.append('Текущая попытка не находится на приёмке')
@@ -56,4 +76,7 @@ def inspect(views, task_id, revision, execution_id, storage_root):
                 missing_materials=gaps, acceptance_blocks=acceptance,
                 saved_photo_analysis=bundle['photoAnalysisStatus'],
                 photo_classification=(bundle['review'] or {}).get('classification'),
-                ready=not gaps and not acceptance)
+                ready=not gaps and not acceptance,linked_equipment=linked_equipment,assignees=assignees,
+                submission_blocks=submission,submission_ready=not gaps and not submission,
+                saved_reports=[dict(id=str(item.work_report_id), state=item.status,
+                    submitted_at=item.submitted_at.isoformat() if item.submitted_at else None) for item in reports])

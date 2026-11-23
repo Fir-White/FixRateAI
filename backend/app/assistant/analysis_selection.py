@@ -17,7 +17,8 @@ NUMBERS = (r'одну|один|одного|one', r'две|два|двух|two',
 ISO_DAY = r'\b\d{4}-\d{2}-\d{2}\b'
 PLANNING = r'период\w*\s+планир\w*|запланирован\w*|планов\w*\s+работ\w*|planning\s+period'
 TASK = r'задани\w*|наряд\w*|task\w*|work\s+order\w*'
-EARLIEST = r'ранн\w*|старейш\w*|стар\w*\s+просроч\w*|earliest|oldest|давн\w*'
+EARLIEST = r'ранн\w*|старейш\w*|стар\w*\s+просроч\w*|сам\w*\s+просроч\w*|наибольш\w*\s+просроч\w*|earliest|oldest|давн\w*'
+OVERDUE_TASK = r'просроч\w*|overdue|нормативн\w*\s+срок\w*|наруш\w*\s+нормативн\w*\s+дат\w*'
 GAP = r'недоста\w*|неполн\w*|не\s+хватает|без\s+(?:отч[её]т\w*|фото|материал\w*)|missing|incomplete'
 MATERIAL = r'материал\w*|фото\w*|отч[её]т\w*|чек[-‑– ]?лист\w*|акт\w*|при[её]мк\w*|evidence|report'
 SERVICE_GAP = r'без\s+(?:фактическ\w*\s+)?(?:подтвержд[её]нн\w*|принят\w*)|не\s+(?:проводил\w*|подтвержд\w*)'
@@ -47,7 +48,7 @@ def selection_clause(phrases):
         if has(UUID, phrase):
             continue
         if has(TASK, phrase):
-            if has(EARLIEST, phrase) and has(r'просроч\w*|overdue|нормативн\w*\s+срок', phrase):
+            if has(EARLIEST, phrase) and has(OVERDUE_TASK, phrase):
                 return 'task', 'earliest_overdue', phrase
             if has(GAP, phrase) and has(MATERIAL, phrase):
                 return 'task', 'missing_materials', phrase
@@ -68,7 +69,7 @@ def amount(phrase):
 
 
 def anchored_date(question):
-    prefix = r'\b(?:на дату|по состоянию на|сегодня|as of)\s+'
+    prefix = r'\b(?:на(?: дату)?|по состоянию на|сегодня|as of)\s+'
     if match := re.search(prefix + '(' + ISO_DAY + ')', question, re.I):
         return date.fromisoformat(match[1])
     months = '|'.join(rf'(?P<m{i}>{month}\w*)' for i, month in enumerate(MONTHS, 1))
@@ -82,12 +83,19 @@ def grounded_analysis(question, interpretation, clock):
     existing = getattr(interpretation, 'analysis', None)
     if existing and existing.source_text not in question:
         existing = None
+    if existing and existing.first_equipment_code:
+        from .semantic_plan import asset_references
+        codes = {value.casefold() for value in asset_references(question)}
+        if (existing.second_equipment_code and
+                {existing.first_equipment_code.casefold(), existing.second_equipment_code.casefold()} <= codes):
+            return existing
+        existing = None
     phrases = clauses(question)
     selected = selection_clause(phrases)
     if selected:
         group, metric, anchor = selected
-        if group=='task' and metric=='earliest_overdue' and not has(r'просроч\w*|overdue', anchor):
-            if not has(r'просроч\w*|overdue', question):
+        if group=='task' and metric=='earliest_overdue' and not has(r'просроч\w*|overdue|наруш\w*', anchor):
+            if not has(r'просроч\w*|overdue|наруш\w*', question):
                 return existing
         given_window = []
         if metric=='without_service':
@@ -117,6 +125,8 @@ def grounded_analysis(question, interpretation, clock):
         all_groups = not limit and bool(has(r'(?:всех|все|all)\s+(?:(?:подходящ|доступн|единиц|активн)\w*\s+){0,2}(?:' + entity + r')', rank))
         options = dict(source_text=rank.strip(), group_by=group, metric=metric, limit=None if all_groups else count,
                        all_groups=all_groups, as_of=explicit_as_of)
+        if has(r'при\s+равенств\w*|при\s+одинаков\w*', question) and has(r'(?:меньш|наименьш|минимальн)\w*\s+uuid\b', question):
+            options['tie_breaker'] = 'uuid'
         singular = (r'(?:какое\s+оборудовани[ея]|какой\s+агрегат|како[йе].*наибольш\w*)' if group=='equipment' else
                     r'(?:исполнител[ьяю]|работник[ау]?|сотрудник[ау]?|assignee|worker)\s+(?:с|with)\b')
         if not limit and not all_groups and has(singular, rank):
@@ -151,7 +161,8 @@ def requested_projections(question, request):
     found = {}
     history_months = None
     for clause in clauses(question):
-        if has(r'инвентарн\w*\s+код\w*|состояни\w*\s+оборудован\w*|(?:укажи|покажи|проверь|сверь)\w*[^.!?;]{0,65}\bсостояни\w*', clause):
+        if has(r'инвентарн\w*\s+код\w*|состояни\w*\s+оборудован\w*|(?:прочитай|проверь|открой)\w*\s+карточк\w*|'
+               r'(?:укажи|покажи|проверь|сверь)\w*[^.!?;]{0,65}\bсостояни\w*', clause):
             found['equipment_details'] = clause.strip()
         if has(r'названи\w*|перечисл\w*|перечень', clause) and has(r'просроч\w*|наруш\w*\s+срок', clause):
             found['overdue_tasks'] = clause.strip()
@@ -172,4 +183,9 @@ def recommendation_count(question):
     numbers = '|'.join(NUMBERS)
     match = has(r'(?:предлож\w*|сформулиру\w*|рекоменду\w*)\s+(?:(\d{1,2}|' + numbers +
                 r')\s+)?(?:\w+\s+){0,4}(?:действ\w*|рекомендаци\w*|шаг\w*)', question)
-    return amount(match[1]) if match and match[1] else 3 if match else None
+    if match:
+        return amount(match[1]) if match[1] else 3
+    request = has(r'(?:нужн\w*|требу\w*|включи\w*|добавь\w*)\b[^.!?;\n]{0,300}?\b(\d{1,2}|' + numbers +
+                  r')\s+(?:(?:конкретн|практич|обоснован)\w*\s+)?рекомендац\w*', question)
+    count = amount(request[1]) if request else None
+    return count if count is not None and 1 <= count <= 10 else None

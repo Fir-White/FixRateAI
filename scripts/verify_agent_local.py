@@ -183,7 +183,8 @@ def source_manifest(root: Path) -> dict:
     git = ['git', '-c', 'safe.directory=' + root.as_posix()]
     paths = subprocess.check_output([*git, 'ls-files', '-co', '--exclude-standard', '-z'], cwd=root).decode('utf-8').split('\0')
     entries = {name: hashlib.sha256((root / name).read_bytes()).hexdigest()
-               for name in sorted(set(paths)) if (name.startswith(('backend/', 'ml_service/', 'scripts/', 'tests/', 'contracts/', 'database/'))
+               for name in sorted(set(paths)) if (name.startswith(('backend/', 'ml_service/', 'scripts/', 'tests/', 'contracts/', 'database/',
+                                                                   'agent_reliability_lab/evals/', 'agent_reliability_lab/acceptance/'))
                or name in ('pytest.ini', 'requirements.txt', 'requirements-solver.txt')) and (root / name).is_file()}
     return dict(head=subprocess.check_output([*git, 'rev-parse', 'HEAD'], cwd=root, text=True).strip(),
                 sha256=hashlib.sha256(json.dumps(entries, sort_keys=True).encode()).hexdigest(), files=entries)

@@ -38,6 +38,7 @@ TOOLS=(
  Tool('chat_model_preference','Мой сохранённый выбор модели чата','GET','/api/v1/assistant/model-preference',ALL),
  Tool('chat_model_select','Выбрать мою модель чата для следующих сообщений','POST','/api/v1/assistant/model-preference',ALL,'write',before='chat_model_preference'),
  Tool('tasks_analyze','Полный серверный анализ незавершённых заданий: сроки, нагрузка, бизнес-дубли и единицы норм','GET','/api/v1/assistant/workspace/task-analysis',agents=('assistant','planner','photo')),
+ Tool('maintenance_catalog_read','Читаю действующие регламенты и операции ТО','GET','/api/v1/assistant/workspace/maintenance-catalog'),
  Tool('work_order_analytics','Рейтинг оборудования и исполнителей по нарядам или сравнение двух периодов планирования','GET','/api/v1/assistant/workspace/work-order-analytics',agents=('assistant',)),
  Tool('draft_changes','Фактические отличия двух версий черновика','GET','/api/v1/assistant/workspace/draft-changes',(*PLAN,'director')),
  Tool('drafts_find','Все доступные черновики текущего объекта из регламентов и каталогов','GET','/api/v1/assistant/workspace/drafts',(*PLAN,'director')),
@@ -132,9 +133,33 @@ def file_fields(app,tool):
     if not multipart(app,tool):return set()
     return {f.name for f in route_for(app,tool).dependant.body_params if f.field_info.__class__.__name__=='File'}
 
-def catalog(app,role,agent):
+def relevant_tools(question, tools, *, limit=38):
+    """Limit model context while keeping the full authorized server registry."""
+    from .workflow import specialist
+
+    def words(value):
+        return {word[:5] for word in re.findall(r'[^\W\d_]+', value.casefold()) if len(word) >= 4}
+
+    terms = words(question)
+    anchors = {
+        'equipment': words('оборудование агрегат установка регламент обслуживание календарь компонент'),
+        'operations': words('задание наряд исполнитель отчёт приёмка чеклист назначить просрочка фото'),
+        'planning': words('планирование черновик оптимизация портфель публикация'),
+        'workforce': words('сотрудник исполнитель работник смена доступ квалификация нагрузка'),
+        'documents': words('вложение файл таблица документ каталог импорт экспорт xlsx'),
+        'administration': words('настройка профиль уведомление компания объект регистрация модель'),
+    }
+    def rank(tool):
+        return (len(terms & words(tool.title)) * 3 + len(terms & anchors[specialist(tool.name)]),
+                tool.mode == 'read')
+
+    ordered = sorted(tools.values(), key=rank, reverse=True)
+    return {tool.name: tool for tool in ordered[:limit]}
+
+
+def catalog(app,role,agent,*,tools=None):
     result=[]
-    for tool in available(app,role,agent).values():
+    for tool in (available(app,role,agent) if tools is None else tools).values():
         entry=dict(name=tool.name,title=tool.title,requires_confirmation=tool.mode=='write')
         if tool.mode=='write':
             body=describe(app,tool)['inputSchema'].get('properties',{}).get('body',{})
@@ -178,7 +203,7 @@ def describe(app,tool):
         inputSchema=dict(type='object',properties=props,additionalProperties=False,required=required),
         annotations=dict(readOnlyHint=tool.mode=='read',destructiveHint=tool.mode=='write',idempotentHint=tool.mode=='read',openWorldHint=False))
 
-DOMAIN_PAGE_LIMITS = {'tasks_find', 'equipment_service_history', 'work_order_analytics'}
+DOMAIN_PAGE_LIMITS = {'tasks_find', 'equipment_service_history', 'work_order_analytics', 'maintenance_catalog_read'}
 
 
 def validate_arguments(app,tool,arguments):
