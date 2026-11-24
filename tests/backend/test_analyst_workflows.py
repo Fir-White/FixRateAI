@@ -187,6 +187,16 @@ def test_consumption_is_attempt_bound_idempotent_and_not_silently_editable(runti
                ),
            )
            assert blocked.status_code == 409
+       with engine.begin() as c:
+           c.execute(text("""INSERT INTO work_reports
+               (site_id,work_order_id,revision_no,submitted_by,status)
+               VALUES (:site,:task,2,:author,'draft')"""),
+               {"site": demo_id("site"), "task": UUID(TASK), "author": author_id})
+       with closing(login(app, "executor")) as executor:
+           obsolete = executor.post(PREFIX+f"/tasks/{TASK}/consumptions",
+                                    json=body | {"idempotency_key": str(uuid4())})
+           assert obsolete.status_code == 409
+           assert len(executor.get(PREFIX+f"/tasks/{TASK}/consumptions").json()) == 1
    finally:
        with engine.begin() as c:
            c.execute(text("DELETE FROM work_consumptions WHERE work_order_id=:id"), {"id": UUID(TASK)})

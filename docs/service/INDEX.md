@@ -1,5 +1,7 @@
 # Узлы сервиса
 
+[Интеграция dev, 25.11.2026](../releases/2026-11-25-dev-integration.md) — ассистент v4, CR‑17, ML, фактический расход, E3 и совместимость PostgreSQL.
+
 [Динамический RAG и автоактуализация индекса (TEAM-ML03 / FRAI-173), 23.11.2026](../analysis/team_ml03_dynamic_rag_report.md) — лексический поиск регламентов и каталогов, TL04 fail-closed, CR-17 ролевой допуск, Durable Outbox consumer и авто-rebuild.
 
 [Обновление CR‑17 в dev, 23.11.2026](../releases/2026-11-23-dev-cr17-catalog-and-acceptance.md) — слияние ветки Яны, исходный каталог, миграции и приёмка главным инженером.

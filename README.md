@@ -2,6 +2,8 @@
 
 # FixRate AI
 
+[Объединение ассистента, CR‑17, ML, материалов и E3, 25.11.2026](docs/releases/2026-11-25-dev-integration.md) — состав интеграции, миграции и проверки.
+
 [Обновление CR‑17 в dev, 23.11.2026](docs/releases/2026-11-23-dev-cr17-catalog-and-acceptance.md) — исходные XLSX, поиск в каталоге и приёмка главным инженером.
 
 [ИИ-агент v4](AI_AGENT_ARCHITECTURE.md) · [Срез итерации](docs/releases/2026-11-24-assistant-tool-agent-v4.md) · [Готовность и запуск](AI_AGENT_MVP_READINESS.md) · [Живые проверки](AI_AGENT_MVP_BENCHMARK.md).

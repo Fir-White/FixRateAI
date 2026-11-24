@@ -82,7 +82,12 @@ def test_upgrade_keeps_both_migration_histories_and_existing_rows(tmp_path, monk
         assert ledger() == after
         assert all(after[name] == entry for name, entry in before.items())
         assert set((*CATALOG, *ASSISTANT, MATERIALS)) <= after.keys()
-        with engine.connect() as conn:
+        columns = text("""SELECT table_schema,table_name,column_name,data_type,udt_name,is_nullable,column_default
+            FROM information_schema.columns WHERE table_schema IN ('public','assistant_checkpoints')
+            ORDER BY table_schema,table_name,column_name""")
+        with engine.connect() as conn, admin.connect() as fresh:
+            assert conn.execute(columns).all() == fresh.execute(columns).all()
+            assert conn.scalar(text('SELECT work_order_id FROM work_orders WHERE work_order_id=:task'), ids) == ids['task']
             assert conn.scalar(text('SELECT comment FROM work_reports WHERE work_report_id=:report'), ids) == 'TEST retained report'
             assert conn.execute(text("""SELECT content,execution_engine,agent_context FROM assistant_turns
                 WHERE turn_id=:turn"""), ids).one() == ('TEST retained reply', 'v2', None)

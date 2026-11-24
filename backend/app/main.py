@@ -685,16 +685,9 @@ def create_app(engine=None):
 
     @app.post(prefix + "/tasks/{task_id}/consumptions")
     def record_consumption(task_id: UUID, payload: ConsumptionEdit, v=Depends(views)):
-        require_role(v.principal, "executor")
-        order = v.task(task_id, lock=True)
-        check_revision(order, payload.expected_revision)
-        report = v.one("work_reports", work_order_id=task_id, work_report_id=payload.execution_id)
-        if (
-            order.status != "in_progress"
-            or report.status != "draft"
-            or report.submitted_by != v.principal.user_id
-        ):
-            raise HTTPException(409, "Расход можно записывать только в текущий черновик автора")
+        order, report = editable(v, task_id, payload.expected_revision)
+        if report.work_report_id != payload.execution_id:
+            raise HTTPException(409, "Текущая попытка изменилась")
         equipment_id = payload.equipment_id
         if equipment_id is not None:
             links = {link.equipment_id for link in v.rows("work_order_equipment", work_order_id=task_id)}
