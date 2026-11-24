@@ -20,6 +20,7 @@ import {Modal} from '@/shared/ui/Modal';
 import {ActionCard} from '@/features/assistant/ActionCard';
 import {ActionHistory} from '@/features/assistant/ActionHistory';
 import {attachmentUrl,ChatPhoto,isChatPhoto} from '@/features/assistant/ChatPhoto';
+import {ChatFileDrop} from '@/features/assistant/ChatFileDrop';
 import {SavedAnswer} from '@/features/assistant/SavedAnswer';
 import {WorkflowStatus} from '@/features/assistant/WorkflowStatus';
 import '@/features/assistant/assistant.css';
@@ -178,7 +179,7 @@ function Chat({identity,capabilities,initialDraft,onDraftChange,onRefreshList,ti
       setRefresh(n=>n+1);
     }finally{setSending(false);}
   };
-  return <section className="assistant-chat" data-composer-entry={entryRect ? "" : undefined} aria-label="Диалог с ИИ"><div className="assistant-body"><div className="assistant-transcript" ref={scroll} role="region" aria-label="Сообщения" tabIndex={0} onScroll={()=>{const el=scroll.current;if(el){pinned.current=el.scrollHeight-el.scrollTop-el.clientHeight<72;updateJump(el);}}}><div className="assistant-transcript-inner" ref={transcript}>
+  return <ChatFileDrop className="assistant-chat" data-composer-entry={entryRect ? "" : undefined} aria-label="Диалог с ИИ" blocked={sending||running||uploading} onFiles={batch=>void upload(batch)}><div className="assistant-body"><div className="assistant-transcript" ref={scroll} role="region" aria-label="Сообщения" tabIndex={0} onScroll={()=>{const el=scroll.current;if(el){pinned.current=el.scrollHeight-el.scrollTop-el.clientHeight<72;updateJump(el);}}}><div className="assistant-transcript-inner" ref={transcript}>
     {data.total>25&&<div className="assistant-pagination"><Button size="sm" variant="ghost" disabled={offset+25>=data.total} onClick={()=>{last.current=null;setOffset(n=>n+25);}}>Ранее</Button><span>{offset+1}–{Math.min(offset+25,data.total)} из {data.total}</span><Button size="sm" variant="ghost" disabled={offset===0} onClick={()=>{last.current=null;setOffset(0);}}>К последним</Button></div>}
     {!data.turns.length&&<div className="assistant-thread-empty"><Icon name="assistant" size={28}/><h2>{data.conversation.subject_task_id?'Вопрос по выбранному наряду':'С чего начнём?'}</h2><p>Опишите задачу или прикрепите файл.</p></div>}
     <ChatMessages turns={data.turns} actions={data.actions} attachments={data.attachments} names={names}
@@ -186,7 +187,7 @@ function Chat({identity,capabilities,initialDraft,onDraftChange,onRefreshList,ti
     {showJump&&<button className="assistant-jump" type="button" onClick={toBottom} aria-label="К последним сообщениям">↓ К последним сообщениям</button>}
     </div>
     {(error||query.status==='error')&&<div className="assistant-inline-error" role="alert"><Callout tone="danger">{error||(query.status==='error'?query.error:'')}</Callout><Button size="sm" variant="ghost" onClick={()=>setRefresh(n=>n+1)}>Обновить диалог</Button></div>}
-    <AssistantComposer compact entryRect={entryRect} onEntryComplete={onEntryComplete} ref={composer} initialDraft={initialDraft} onDraftChange={text=>onDraftChange(identity,text)} onSend={text=>void send(text)} onUpload={file=>void upload(file)} onRemove={id=>setExcludedFiles(ids=>[...ids,id])} onStop={()=>void stop()} busy={sending} uploading={uploading} running={running} available={capabilities.available} attachments={files} modelPreference={modelPreference} onModelChange={onModelChange}/></section>;
+    <AssistantComposer compact entryRect={entryRect} onEntryComplete={onEntryComplete} ref={composer} initialDraft={initialDraft} onDraftChange={text=>onDraftChange(identity,text)} onSend={text=>void send(text)} onUpload={file=>void upload(file)} onRemove={id=>setExcludedFiles(ids=>[...ids,id])} onStop={()=>void stop()} busy={sending} uploading={uploading} running={running} available={capabilities.available} attachments={files} modelPreference={modelPreference} onModelChange={onModelChange}/></ChatFileDrop>;
 }
 function HistoryDrawer({open,onClose,children}:{open:boolean;onClose:()=>void;children:ReactNode}){
   const focus=useDialogFocus<HTMLDivElement>(open,onClose);if(!open)return null;
@@ -270,7 +271,8 @@ function Workspace(){
       {caps.status==='success'&&<>
     {!(modelPreference?.available??caps.data.available)&&<div className="assistant-inline-error"><Callout tone="warning">ИИ пока не подключён. История доступна; выберите доступную модель рядом с кнопкой «Файл».</Callout></div>}
     {identity ? <Chat key={identity} identity={identity} entryRect={entryRect} onEntryComplete={completeEntry} capabilities={caps.data} initialDraft={drafts.get(identity)??''} onDraftChange={rememberDraft} onRefreshList={refreshList} timezone={timezone} modelPreference={modelPreference} onModelChange={setModelOverride}/> :
-      <section className="assistant-welcome" aria-label="Новый чат">
+      <ChatFileDrop className="assistant-welcome" aria-label="Новый чат" blocked={!!launch.operation}
+        onFiles={files=>void launch.start(welcomeDraft.current,{files})}>
         <div ref={welcome} className="assistant-welcome-content">
           <div className="assistant-greeting"><h2>С чего начнём?</h2></div>
           <p className="assistant-welcome-caption">{subjectTaskId?"Диалог по выбранному наряду: задайте вопрос или приложите фото.":executor?"Инструкции, фото и вопросы по вашим заданиям.":"Работы, оборудование, команда и планы."}</p>
@@ -281,7 +283,7 @@ function Workspace(){
             onClick={()=>void launch.start(preset.prompt,{remainingDraft:welcomeDraft.current})}>{preset.label}</button>)}</div>
           {inlineHistory&&!(narrow&&historyOpen)&&<div className="assistant-recent">{history}</div>}
         </div>
-      </section>}
+      </ChatFileDrop>}
     {launch.error&&<div className="assistant-inline-error" role="alert"><Callout tone="danger">{launch.error}</Callout></div>}
     </>}
   </div></div>{narrow?<HistoryDrawer open={drawerOpen} onClose={()=>setHistoryOpen(false)}>{history}</HistoryDrawer>:<aside id="assistant-history" className="assistant-history" aria-label="История диалогов" hidden={showActions||!showDesktopHistory}>{history}</aside>}<Modal open={!!deleting&&!showActions} title="Удалить чат?" description="Переписка и прикреплённые файлы будут удалены без возможности восстановления." onClose={()=>{if(!deleteBusy)setDeleting(null);}} tone="danger" instant footer={<><Button variant="secondary" disabled={deleteBusy} onClick={()=>setDeleting(null)}>Отмена</Button><Button disabled={deleteBusy} onClick={()=>void remove()}>{deleteBusy?'Удаление…':'Удалить чат'}</Button></>}><p className="assistant-delete-title">{deleting?.title}</p>{deleteError&&<Callout tone="danger">{deleteError}</Callout>}</Modal></div>;

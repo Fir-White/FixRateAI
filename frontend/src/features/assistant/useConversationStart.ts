@@ -32,7 +32,11 @@ export function useConversationStart({model, subjectTaskId, readDraft, onModelCh
   async function start(text: string, {files = [], remainingDraft = files.length ? text : ''}: {files?: File[]; remainingDraft?: string} = {}) {
     const message = text.trim();
     if (running.current || (!files.length && !message)) return;
-    if (files.length > 4) {
+    if (files.length > 20) {
+      setError('К одному сообщению можно прикрепить не больше 20 файлов');
+      return;
+    }
+    if (files.filter(file=>file.type.startsWith('image/')).length > 4) {
       setError('К одному сообщению можно отправить не больше четырёх изображений');
       return;
     }

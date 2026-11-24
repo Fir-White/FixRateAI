@@ -71,6 +71,9 @@
 .assistant-starters button:hover{color:var(--color-ink);background:var(--color-surface)}
 .assistant-starters button>span{color:var(--color-accent)}
 .assistant-chat{display:flex;flex:1;flex-direction:column;min-height:0;min-width:0;position:relative}
+.assistant-file-drop{position:relative}
+.assistant-file-drop-hint{position:absolute;inset:0;z-index:2;display:grid;place-items:center;padding:12px;pointer-events:none;border:2px dashed var(--color-accent);border-radius:16px;background:color-mix(in srgb,var(--color-canvas) 86%,transparent)}
+.assistant-file-drop-hint span{padding:10px 16px;border-radius:12px;background:var(--color-surface-raised);color:var(--color-ink);font-size:14px;text-align:center}
 .assistant-body{flex:1;min-height:0;position:relative}
 .assistant-transcript{height:100%;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;overflow-anchor:none}
 .assistant-transcript-inner{width:100%;padding:14px 12px 24px 0;margin:0 auto}

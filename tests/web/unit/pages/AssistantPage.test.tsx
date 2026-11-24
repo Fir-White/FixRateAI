@@ -11,6 +11,47 @@ const chat={conversation_id:'chat',title:'Мой диалог',agent:'assistant'
 const view:ChatView={conversation:chat,turns:[],total:0,actions:[]};
 beforeEach(()=>{vi.restoreAllMocks();vi.spyOn(api,'capabilities').mockResolvedValue(caps);vi.spyOn(api,'list').mockResolvedValue({items:[chat],total:1});vi.spyOn(api,'read').mockResolvedValue(view);vi.spyOn(api,'send').mockResolvedValue({turn_id:'new',status:'running'});});
 function show(path='/assistant?chat=chat'){return render(<WorkspaceStateScope.Provider value="TEST:TEST-SITE:chief_engineer"><MemoryRouter initialEntries={[path]}><AssistantPage/></MemoryRouter></WorkspaceStateScope.Provider>);}
+it.each([true,false])('stages a dropped workbook without submitting (open chat: %s)',async(existing)=>{
+  const user=userEvent.setup();
+  const mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const book=new File(['test'],'План.xlsx',{type:mime});
+  const saved={attachment_id:'workbook',original_name:book.name,mime_type:mime,size_bytes:book.size,created_at:'2026-11-14',sha256:'a'.repeat(64)};
+  const upload=vi.spyOn(api,'upload').mockResolvedValue(saved);
+  if(!existing){
+    vi.spyOn(api,'create').mockResolvedValue(chat);
+    vi.mocked(api.read).mockResolvedValue({...view,pending_attachments:[saved]});
+  }
+  show(existing?'/assistant?chat=chat':'/assistant');
+  const input=await screen.findByLabelText('Сообщение помощнику');
+  await user.type(input,'Проверь план');
+  const target=existing?screen.getByRole('region',{name:'Сообщения'}):screen.getByRole('heading',{name:'С чего начнём?'});
+  const dataTransfer={types:['Files'],files:[book],dropEffect:'none'};
+  fireEvent.dragEnter(target,{dataTransfer});
+  expect(fireEvent.dragOver(target,{dataTransfer})).toBe(false);
+  expect(fireEvent.drop(target,{dataTransfer})).toBe(false);
+  const files=await screen.findByRole('list',{name:'Вложения к сообщению'});
+  expect(within(files).getByRole('link',{name:'План.xlsx'})).toBeVisible();
+  expect(upload).toHaveBeenCalledExactlyOnceWith('chat',book);
+  expect(screen.getByLabelText('Сообщение помощнику')).toHaveValue('Проверь план');
+  expect(api.send).not.toHaveBeenCalled();
+});
+it('does not intercept a drop of plain text into the composer',async()=>{
+  const upload=vi.spyOn(api,'upload');
+  show();
+  const input=await screen.findByLabelText('Сообщение помощнику');
+  const dataTransfer={types:['text/plain'],files:[]};
+  expect(fireEvent.dragOver(input,{dataTransfer})).toBe(true);
+  expect(fireEvent.drop(input,{dataTransfer})).toBe(true);
+  expect(upload).not.toHaveBeenCalled();
+});
+it('clears the file drop hint when leaving the chat even if the drag data was cleared',async()=>{
+  show();
+  const zone=await screen.findByRole('region',{name:'Диалог с ИИ'});
+  fireEvent.dragEnter(zone,{dataTransfer:{types:['Files'],files:[]}});
+  expect(screen.getByText('Отпустите, чтобы прикрепить файлы')).toBeVisible();
+  fireEvent.dragLeave(zone,{dataTransfer:{types:[],files:[]}});
+  expect(screen.queryByText('Отпустите, чтобы прикрепить файлы')).not.toBeInTheDocument();
+});
 it('stages pasted screenshots without sending or changing the draft',async()=>{
   const user=userEvent.setup();
   const file=new File(['image'],'clipboard.png',{type:'image/png'});
