@@ -12,7 +12,18 @@ from app.services.demand import get_monthly_demand
 
 router = APIRouter()
 
-@router.get("/demand/monthly", summary="Monthly material demand")
+from pydantic import BaseModel
+
+class DemandRecord(BaseModel):
+    material_id: str
+    quantity: float
+    unit: str
+    month: int
+    work_id: str
+    equipment_id: str | None = None
+    basis: str | None = None
+
+@router.get("/demand/monthly", summary="Monthly material demand", response_model=list[DemandRecord])
 def read_monthly_demand(db: Session = Depends(get_db)):
     demand = get_monthly_demand(db)
     if not demand:

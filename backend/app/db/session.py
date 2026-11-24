@@ -9,6 +9,24 @@ from sqlalchemy.orm import Session, sessionmaker, SessionTransactionOrigin
 
 
 def make_engine(url: str | None = None) -> Engine:
+    """Create a SQLAlchemy engine.
+
+    In production ``DATABASE_URL`` must be a PostgreSQL URL with the
+    ``psycopg`` driver.  For local tests we also allow SQLite URLs so the
+    test suite can run against an in‑memory database.
+    """
+    url = url or os.environ.get("DATABASE_URL")
+    if not url:
+        raise RuntimeError("DATABASE_URL is required")
+    try:
+        parsed = make_url(url)
+        _ = parsed.port
+    except Exception:
+        raise ValueError("Invalid DATABASE_URL") from None
+    # Allow SQLite for testing; otherwise require PostgreSQL.
+    if not parsed.drivername.startswith("sqlite") and parsed.drivername != "postgresql+psycopg":
+        raise ValueError("Use a PostgreSQL URL with the psycopg driver (or sqlite for tests)")
+    return create_engine(parsed, pool_pre_ping=True, hide_parameters=True)
     url = url or os.environ.get("DATABASE_URL")
     if not url:
         raise RuntimeError("DATABASE_URL is required")
@@ -33,6 +51,36 @@ def transaction(factory: sessionmaker[Session]) -> Iterator[Session]:
 
 
 def session_dependency(factory: sessionmaker[Session]):
+    """FastAPI dependency: services must commit before returning a response.
+    """
+    def dependency() -> Iterator[Session]:
+        with factory() as session:
+            try:
+                yield session
+            except Exception:
+                session.rollback()
+                raise
+    return dependency
+
+# FastAPI dependency to provide a DB session per request.
+def get_db() -> Iterator[Session]:
+    """Yield a database session for FastAPI endpoints.
+
+    This creates an engine using the ``DATABASE_URL`` environment variable,
+    builds a session factory, and yields a session that is committed on
+    successful exit or rolled back on error. It mirrors the behaviour of
+    ``session_dependency`` but is directly usable with ``Depends`` in the
+    route definitions.
+    """
+    engine = make_engine()
+    factory = make_session_factory(engine)
+    with factory() as session:
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
     """FastAPI dependency: services must commit before returning a response."""
     def dependency() -> Iterator[Session]:
         with factory() as session:

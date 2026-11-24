@@ -149,7 +149,11 @@ def create_app(engine=None):
     runtime_settings = RuntimeSettings.from_environment()
     @asynccontextmanager
     async def lifespan(app):
-        app.state.engine = engine if engine is not None else make_engine()
+        if app.state.engine.dialect.name != "sqlite":
+            with app.state.engine.connect() as conn:
+                if not conn.scalar(text("SELECT to_regclass('public.maintenance_notifications')")):
+                    raise RuntimeError("Apply migrations through 009 before starting the API")
+
         try:
             app.state.models = map_schema(app.state.engine)
             with app.state.engine.connect() as conn:
@@ -185,7 +189,9 @@ def create_app(engine=None):
             if engine is None:
                 app.state.engine.dispose()
 
+    from app.api.v1 import demand
     app = FastAPI(title="FixRate AI", version="dev-0.1", lifespan=lifespan)
+    app.include_router(demand.router, prefix="/api/v1")
     cors_origins = configured_cors_origins()
     if cors_origins:
         app.add_middleware(
