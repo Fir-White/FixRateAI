@@ -19,6 +19,7 @@ services:
       DATABASE_URL: postgresql+psycopg://fixrate:${POSTGRES_PASSWORD:?Set a unique URL-safe database password}@db:5432/fixrate
       PHOTO_STORAGE_ROOT: /app/var/photos
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      FIXRATE_DEFAULT_TIMEZONE: ${FIXRATE_DEFAULT_TIMEZONE:-Asia/Yekaterinburg}
       FIXRATE_ACTIVE_ROLES: ${FIXRATE_ACTIVE_ROLES:-chief_engineer,executor,admin}
       FIXRATE_ASSISTANT_AGENT_VERSION: ${FIXRATE_ASSISTANT_AGENT_VERSION:-v4}
       MAINTENANCE_SCHEDULER: ${MAINTENANCE_SCHEDULER:-true}

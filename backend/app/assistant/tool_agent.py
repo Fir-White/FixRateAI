@@ -287,9 +287,11 @@ async def run(app, principal, thread_id, turn_id, headers):
                 JOIN assistant_turn_attachments f USING (conversation_id,attachment_id)
                 WHERE f.turn_id=:id ORDER BY f.position'''), dict(id=turn_id)).mappings().all()
             known = conversation_enrollment_values(session, principal, thread_id)
-        timezone = ZoneInfo(principal.timezone)
-        stamp = datetime.now(timezone)
-        messages = [dict(role='system', content=(service.PROMPTS/'tool-agent.md').read_text(encoding='utf-8'))]
+        stamp = datetime.now(ZoneInfo(principal.timezone))
+        prompt = (service.PROMPTS/'tool-agent.md').read_text(encoding='utf-8')
+        messages = [dict(role='system', content=(
+            f'Текущая дата объекта: {stamp.date()}. Местное время: {stamp.isoformat(timespec="seconds")} '
+            f'({principal.timezone}). Завтра: {stamp.date()+timedelta(days=1)}.\n\n{prompt}'))]
         previous_results = []
         last_search, assignment_check = None, None
         for position, prior in enumerate(reversed(history), start=1):
@@ -309,7 +311,7 @@ async def run(app, principal, thread_id, turn_id, headers):
                 previous_results.append(dict(turn=position, tool_results=results))
         while len(previous_results) > 1 and len(service.dump(previous_results)) > 24000:
             previous_results.pop(0)
-        tools = ToolSession(app, principal, thread, turn_id, headers, files)
+        tools = ToolSession(app, principal, thread, turn_id, headers, files, local_date=stamp.date())
         subject = None
         if thread.get('subject_task_id'):
             check()
@@ -323,9 +325,7 @@ async def run(app, principal, thread_id, turn_id, headers):
             check()
         dialogue = messages[1:]
         messages.append(dict(role='user', content=service.dump(mask_known_outputs(dict(
-            kind='context_data', local_date=stamp.date(), local_time=stamp.isoformat(), timezone=principal.timezone,
-            tomorrow=stamp.date()+timedelta(days=1), day_after_tomorrow=stamp.date()+timedelta(days=2),
-            role=principal.role, site_name=principal.site_name, previous_results=previous_results,
+            kind='context_data', role=principal.role, site_name=principal.site_name, previous_results=previous_results,
             last_work_order_filters=last_search,
             action_cards=[dict(row) for row in actions], selected_work_order=subject), known))))
         question = mask_known_outputs(turn['content'], known)

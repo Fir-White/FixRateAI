@@ -2,7 +2,9 @@
 import asyncio
 import base64
 import io
+import json
 from contextlib import closing
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import HTTPException
@@ -131,12 +133,75 @@ def send(client, chat, content):
     return client.get(f'{B}/conversations/{chat}').json()
 
 
+@pytest.mark.parametrize(('utc_hour', 'local_day', 'expected_day_total'), [
+    (12, '2026-11-24', 0),
+    (19, '2026-11-25', 1),
+])
+def test_relative_day_uses_site_clock_not_first_order_in_all_time_search(monkeypatch, jobs,
+                                                                        utc_hour, local_day, expected_day_total):
+    from app.assistant import tool_agent
+    from app.config import RuntimeSettings
+
+    engine, app, create = jobs
+    task = create()
+    with engine.begin() as db:
+        db.execute(text("""UPDATE work_orders SET planned_start_at='2026-11-25 06:00:00+00',
+            planned_end_at='2026-11-25 06:30:00+00',
+            operation_snapshot=operation_snapshot || '{"title":"TEST relative day only"}'::jsonb WHERE work_order_id=:id"""),
+            dict(id=task))
+        counts = dict(db.execute(text('SELECT status,count(*) FROM work_orders WHERE site_id='
+                                      '(SELECT site_id FROM work_orders WHERE work_order_id=:id) GROUP BY status'),
+                                 dict(id=task)).all())
+        on_day = db.scalar(text("""SELECT count(*) FROM work_orders w
+            LEFT JOIN schedule_entries e USING (site_id, schedule_entry_id)
+            WHERE w.site_id=(SELECT site_id FROM work_orders WHERE work_order_id=:id)
+            AND coalesce((w.planned_start_at AT TIME ZONE 'Asia/Yekaterinburg')::date,e.planned_date)=:day"""),
+                           dict(id=task, day=local_day))
+        total = sum(counts.values())
+
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime(2026, 11, 24, utc_hour, 51, tzinfo=timezone.utc).astimezone(tz)
+
+    class Provider:
+        def tool_chat(self, messages, tools, tokens):
+            if messages[-1]['role'] == 'user':
+                assert f'Текущая дата объекта: {local_day}' in messages[0]['content']
+                assert 'Asia/Yekaterinburg' in messages[0]['content']
+                return dict(tool_calls=[
+                    dict(id='all', function=dict(name='find_work_orders', arguments={'limit': 1})),
+                    dict(id='today', function=dict(name='find_work_orders',
+                                                  arguments={'relative_day': 'today', 'q': 'TEST relative day only'})),
+                ])
+            all_orders, today = [json.loads(message['content']) for message in messages if message['role'] == 'tool']
+            assert all_orders['total'] == total > len(all_orders['items'])
+            full = all_orders['summary']
+            assert full['status_counts'] == {key: counts.get(key, 0) for key in (
+                'draft', 'assigned', 'clarification', 'rework', 'in_progress', 'in_review', 'completed', 'cancelled')}
+            assert full['today'] == {'date': local_day, 'total': on_day}
+            assert today['local_date'] == today['resolved_day'] == local_day
+            assert today['timezone'] == 'Asia/Yekaterinburg' and today['total'] == expected_day_total
+            assert [item['id'] for item in today['items']] == ([str(task)] if expected_day_total else [])
+            return dict(content='Данные проверены.')
+
+    monkeypatch.setenv('FIXRATE_ASSISTANT_AGENT_VERSION', 'v4')
+    monkeypatch.delenv('FIXRATE_ASSISTANT_V3_PIPELINE', raising=False)
+    monkeypatch.setitem(app.state._state, 'settings', RuntimeSettings.from_environment())
+    monkeypatch.setattr(tool_agent, 'datetime', Clock)
+    monkeypatch.setattr(app.state, 'assistant_provider_factory', Provider, raising=False)
+    with closing(login(app, 'engineer')) as client:
+        turn = send(client, thread(client), 'Сколько нарядов за всё время и что запланировано на сегодня?')['turns'][-1]
+    assert turn['status'] == 'completed', turn
+    assert turn['answer'] == 'Данные проверены.'
+
+
 def test_v4_default_makes_no_workflow_and_keeps_results_private(monkeypatch, runtime):
     from app.config import RuntimeSettings
     engine, app = runtime
     monkeypatch.delenv('FIXRATE_ASSISTANT_AGENT_VERSION', raising=False)
     monkeypatch.delenv('FIXRATE_ASSISTANT_V3_PIPELINE', raising=False)
-    monkeypatch.setattr(app.state, 'settings', RuntimeSettings.from_environment())
+    monkeypatch.setitem(app.state._state, 'settings', RuntimeSettings.from_environment())
 
     class Provider:
         response_model = 'test:transport'
@@ -167,7 +232,7 @@ def test_v4_executor_cannot_read_foreign_order_or_propose_assignment(monkeypatch
     task = str(create())
     monkeypatch.setenv('FIXRATE_ASSISTANT_AGENT_VERSION', 'v4')
     monkeypatch.delenv('FIXRATE_ASSISTANT_V3_PIPELINE', raising=False)
-    monkeypatch.setattr(app.state, 'settings', RuntimeSettings.from_environment())
+    monkeypatch.setitem(app.state._state, 'settings', RuntimeSettings.from_environment())
 
     class Provider:
         def tool_chat(self, messages, tools, tokens):
@@ -191,7 +256,7 @@ def test_v4_assignment_card_has_no_effect_until_authenticated_confirmation(monke
     from dataclasses import replace
     engine, app, create = jobs
     task = create()
-    monkeypatch.setattr(app.state, 'settings', replace(app.state.settings, assistant_agent_version='v4', assistant_v3_pipeline='v3'))
+    monkeypatch.setitem(app.state._state, 'settings', replace(app.state.settings, assistant_agent_version='v4', assistant_v3_pipeline='v3'))
 
     class Provider:
         def tool_chat(self, messages, tools, tokens):
@@ -231,7 +296,7 @@ def test_v4_assignment_followup_creates_one_real_card_and_reuses_it(monkeypatch,
     from dataclasses import replace
     engine, app, create = jobs
     task = create()
-    monkeypatch.setattr(app.state, 'settings', replace(app.state.settings, assistant_agent_version='v4', assistant_v3_pipeline='v3'))
+    monkeypatch.setitem(app.state._state, 'settings', replace(app.state.settings, assistant_agent_version='v4', assistant_v3_pipeline='v3'))
 
     class Provider:
         def tool_chat(self, messages, tools, tokens):
@@ -293,7 +358,7 @@ def test_v4_task_context_requires_access_when_chat_is_created(monkeypatch, jobs)
     from dataclasses import replace
     _, app, create = jobs
     task = create()
-    monkeypatch.setattr(app.state, 'settings', replace(app.state.settings, assistant_agent_version='v4', assistant_v3_pipeline='v3'))
+    monkeypatch.setitem(app.state._state, 'settings', replace(app.state.settings, assistant_agent_version='v4', assistant_v3_pipeline='v3'))
     with closing(login(app, 'engineer')) as engineer, closing(login(app, 'executor')) as executor:
         payload = dict(subject_task_id=str(task))
         allowed = engineer.post(f'{B}/conversations', json=payload)
@@ -306,7 +371,7 @@ def test_executor_context_is_not_replayed_after_assignment_is_revoked(monkeypatc
     from app.integration.demo import demo_id
     engine, app, create = jobs
     task = create()
-    monkeypatch.setattr(app.state, 'settings', replace(app.state.settings, assistant_agent_version='v4', assistant_v3_pipeline='v3'))
+    monkeypatch.setitem(app.state._state, 'settings', replace(app.state.settings, assistant_agent_version='v4', assistant_v3_pipeline='v3'))
     marker = 'Внутренний регламент задвижки М-91'
     active = {'value': True}
 

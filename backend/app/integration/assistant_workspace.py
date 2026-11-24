@@ -487,8 +487,9 @@ def register_routes(app,views):
               equipment_ids:list[UUID]|None=Query(None,min_length=1,max_length=25),
               equipment_q:str|None=Query(None,min_length=1,max_length=200),
               equipment_asset_code:str|None=Query(None,min_length=1,max_length=128),
-              on_days:list[date]|None=Query(None,max_length=31),
+               on_days:list[date]|None=Query(None,max_length=31),
                sort:Literal['earliest','latest']|None=None,attention_only:bool=False,use_planned_date:bool=False,
+              summary_on:date|None=Query(None,description='Счётчики выборки по статусам и за указанный день до пагинации.'),
               v=Depends(views)):
         from .task_analytics import UNFINISHED
         orders=v.models['work_orders'];assignments=v.models['work_assignments'];rules=v.models['maintenance_rules'];operations=v.models['operation_templates']
@@ -592,7 +593,19 @@ def register_routes(app,views):
                 orders.operation_snapshot['title'].astext, orders.operation_snapshot['label'].astext,
                 operations.title, operations.code))))
         source=source.where(*filters)
-        count=v.session.scalar(select(func.count()).select_from(source.subquery()))
+        summary = None
+        if summary_on is not None:
+            grouped = source.with_only_columns(orders.status, func.count(),
+                                               func.count().filter(local_day == summary_on)).group_by(orders.status)
+            by_status = dict.fromkeys((*UNFINISHED, 'completed', 'cancelled'), 0)
+            on_day = 0
+            for status, total, day_total in v.session.execute(grouped):
+                by_status[status] = total
+                on_day += day_total
+            count = sum(by_status.values())
+            summary = dict(status_counts=by_status, day=dict(date=summary_on, total=on_day))
+        else:
+            count=v.session.scalar(select(func.count()).select_from(source.subquery()))
         day_counts = {}
         if on_days:
             grouping = source.with_only_columns(local_day.label('day'), func.count()).group_by(local_day)
@@ -640,5 +653,6 @@ def register_routes(app,views):
                          **({'maintenance_only': True} if maintenance_only else {}),
                          **({'unassigned_only': True} if unassigned_only else {}),**scope),
             **({'day_counts': day_counts} if on_days else {}),
+            **({'summary': summary} if summary is not None else {}),
             **({'history_basis': _accepted_scope(v.principal)} if equipment_accepted_maintenance is not None else {}),
             page_complete=offset==0 and len(selected)==count,analysis_tool='tasks_analyze')

@@ -1325,6 +1325,7 @@
           "sort",
           "starts_on",
           "state",
+          "summary_on",
           "type_codes",
           "type_keys",
           "unassigned_only",

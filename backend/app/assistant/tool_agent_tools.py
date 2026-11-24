@@ -25,6 +25,8 @@ class WorkOrders(Arguments):
     unassigned_only: bool = False
     attention_only: bool = False
     maintenance_only: bool = False
+    relative_day: Literal['today', 'tomorrow', 'yesterday', 'day_after_tomorrow'] | None = Field(
+        default=None, description='День по серверным часам объекта: сегодня, завтра, вчера, послезавтра. Без явных дат.')
     on_date: date | None = Field(default=None, description='Ровно один день, YYYY-MM-DD')
     starts_on: date | None = Field(default=None, description='Первый включённый день многодневного диапазона, требуется ends_on')
     ends_on: date | None = Field(default=None, description='Последний включённый день многодневного диапазона, требуется starts_on')
@@ -37,6 +39,8 @@ class WorkOrders(Arguments):
 
     @model_validator(mode='after')
     def date_range(self):
+        if self.relative_day is not None and any(day is not None for day in (self.on_date, self.starts_on, self.ends_on)):
+            raise ValueError('relative_day cannot be combined with explicit dates')
         if (self.starts_on is None) != (self.ends_on is None):
             raise ValueError('A date range needs both endpoints; use on_date for a single day')
         if self.starts_on is not None and (self.on_date is not None or self.starts_on > self.ends_on):
@@ -91,7 +95,9 @@ class Workbook(Arguments):
 
 # Public model vocabulary; transport names and write command bodies are never model-selected.
 COMMON = {
-    'find_work_orders': (WorkOrders, 'Найти наряды. Для одного дня используйте on_date и period=all. Фильтры пересекаются. '
+    'find_work_orders': (WorkOrders, 'Найти наряды. Для «сегодня» и «завтра» используйте relative_day и period=all; '
+                          'on_date — только для конкретной календарной даты. Фильтры пересекаются. '
+                          'Поиск за всё время без фильтров сразу даёт общий итог, статистику статусов и число работ сегодня. '
                          'Дата — сохранённая плановая дата; для overdue — обязательный срок. '
                          'Для ближайшего ТО: period=upcoming, maintenance_only=true, unfinished_only=true, sort=earliest. '
                          'attention_only: просрочено, нет назначенного состава, на уточнении или доработке.'),
@@ -128,8 +134,9 @@ def _same_assignment(before, after):
 
 
 class ToolSession:
-    def __init__(self, app, principal, thread, turn_id, headers, files):
+    def __init__(self, app, principal, thread, turn_id, headers, files, *, local_date: date):
         self.app, self.principal, self.thread, self.turn_id, self.headers = app, principal, thread, turn_id, headers
+        self.local_date = local_date
         self.files = {row['attachment_id']: row for row in files}
         self.registry = available(app, principal.role, 'assistant')
         self.definition = dict(COMMON) if principal.role in ('engineer', 'executor') else {}
@@ -165,9 +172,15 @@ class ToolSession:
         return value if isinstance(value, Observation) else service.compact(value, 10500)
 
     async def find_work_orders(self, args):
-        query = args.model_dump(mode='json', exclude={'on_date'}, exclude_none=True)
-        if args.on_date:
-            query.update(starts_on=args.on_date, ends_on=args.on_date)
+        query = args.model_dump(mode='json', exclude={'on_date', 'relative_day'}, exclude_none=True)
+        if not args.model_dump(exclude_defaults=True, exclude={'sort', 'offset', 'limit'}):
+            query['summary_on'] = self.local_date
+        day = args.on_date
+        if args.relative_day is not None:
+            shift = {'yesterday': -1, 'today': 0, 'tomorrow': 1, 'day_after_tomorrow': 2}[args.relative_day]
+            day = self.local_date + timedelta(days=shift)
+        if day is not None:
+            query.update(starts_on=day, ends_on=day)
         page = await self.backend('tasks_find', query={**query, 'active_only': False, 'use_planned_date': True})
         items = []
         for row in page['items']:
@@ -182,7 +195,12 @@ class ToolSession:
         for item in page['items']:
             self.scope['tasks'].add(item['id'])
             item['assignees'] = [{k: person[k] for k in ('executorId', 'name')} for person in item.get('assignees', ())]
-        return {key: page[key] for key in ('items', 'total', 'offset', 'limit', 'period', 'filters', 'page_complete')}
+        result = dict(local_date=self.local_date.isoformat(), timezone=self.principal.timezone,
+                      resolved_day=day.isoformat() if day is not None else None,
+                      **{key: page[key] for key in ('items', 'total', 'offset', 'limit', 'period', 'filters', 'page_complete')})
+        if 'summary' in page:
+            result['summary'] = dict(status_counts=page['summary']['status_counts'], today=page['summary']['day'])
+        return result
 
     async def read_work_order(self, args):
         data = await self.backend('task_read', path=dict(task_id=args.task_id))
