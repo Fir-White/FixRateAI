@@ -374,6 +374,15 @@ def register_routes(app,views):
             items.append(dict(id=str(eq['equipment_id']),name=eq['name'],asset_code=eq['asset_code'],system_id=str(eq['system_id']),data_origin=eq['properties'].get('data_origin'),operations=len(services),published_operations=len(active),pending_tasks=len(pending),execution_pending_tasks=sum(o.status in PENDING for o in pending),in_review_tasks=sum(o.status=='in_review' for o in pending),planning_gaps=gaps))
         return dict(site_total=len(sites),site=dict(meta,status='ok'),systems=registry['systems'],items=items,total=len(registry['items']),offset=offset,limit=25,assessment='Configuration gaps only; does not certify schedule feasibility')
 
+    @app.get(BASE+'/workforce-load')
+    def daily_workforce_load(day:date,response:Response,window_start:time|None=None,window_end:time|None=None,
+                             offset:int=Query(0,ge=0),limit:int=Query(12,ge=1,le=50),v=Depends(views)):
+        from .assignment import workforce_load
+        if not has_role(v.principal.role,('dispatcher',)):
+            raise HTTPException(403,'Действие недоступно для текущей роли')
+        response.headers['Cache-Control'] = 'private, no-store'
+        return workforce_load(v,day,window_start,window_end,offset,limit)
+
     @app.post(BASE+'/tasks/{task_id}/prepare-assignment')
     def prepare_assignment(task_id:UUID,command:AssignmentPreparation,v=Depends(views)):
         from .assignment import assignment_context,assignment_preview
@@ -533,7 +542,7 @@ def register_routes(app,views):
         if unassigned_only:
             filters.append(~has_assignment)
         if attention_only:
-            filters.extend((orders.status.in_(UNFINISHED), or_(~has_assignment, orders.regulatory_deadline_at<now,
+            filters.extend((orders.status.in_(UNFINISHED), or_(~has_assignment, orders.regulatory_deadline_at<=now,
                             orders.status.in_(('clarification','rework')))))
         if equipment_id is not None:
             from .management import _equipment
@@ -583,7 +592,7 @@ def register_routes(app,views):
             filters.append(or_(orders.planned_start_at>=now,
                                and_(orders.planned_start_at.is_(None),entries.planned_date>=now.astimezone(zone).date()))
                            if schedule_basis else instant>=now)
-        elif period=='overdue':filters.extend((instant<now,orders.status.not_in(('completed','cancelled'))))
+        elif period=='overdue':filters.extend((instant<=now,orders.status.not_in(('completed','cancelled'))))
         elif period=='undated':filters.append(instant.is_(None))
         source=select(orders).outerjoin(rules,and_(rules.maintenance_rule_id==orders.maintenance_rule_id,rules.site_id==v.principal.site_id)).outerjoin(operations,operations.operation_template_id==rules.operation_template_id)
         if schedule_basis:
@@ -594,6 +603,7 @@ def register_routes(app,views):
                 operations.title, operations.code))))
         source=source.where(*filters)
         summary = None
+        planned_duration = None
         if summary_on is not None:
             grouped = source.with_only_columns(orders.status, func.count(),
                                                func.count().filter(local_day == summary_on)).group_by(orders.status)
@@ -604,6 +614,12 @@ def register_routes(app,views):
                 on_day += day_total
             count = sum(by_status.values())
             summary = dict(status_counts=by_status, day=dict(date=summary_on, total=on_day))
+        elif schedule_basis and starts_on is not None and starts_on == ends_on:
+            known = orders.planned_end_at > orders.planned_start_at
+            minutes = func.extract('epoch', orders.planned_end_at - orders.planned_start_at) / 60
+            count, known_count, summed = v.session.execute(source.with_only_columns(
+                func.count(), func.count().filter(known), func.coalesce(func.ceil(func.sum(minutes).filter(known)), 0))).one()
+            planned_duration = dict(known_minutes=int(summed), unknown_count=count-known_count, complete=count==known_count)
         else:
             count=v.session.scalar(select(func.count()).select_from(source.subquery()))
         day_counts = {}
@@ -635,6 +651,22 @@ def register_routes(app,views):
         for item, order in zip(items, selected, strict=True):
             item['matchedAt'] = task_instant(order)
             item['rawStatus'] = order.status
+            item['priority'] = order.priority
+            if order.planned_start_at is not None:
+                item['plannedDate'] = order.planned_start_at.astimezone(zone).date()
+            elif order.schedule_entry_id:
+                item['plannedDate'] = v.one('schedule_entries',schedule_entry_id=order.schedule_entry_id).planned_date
+            else:
+                item['plannedDate'] = None
+            reasons = []
+            if order.status in UNFINISHED:
+                if item['isOverdue']:
+                    reasons.append('overdue')
+                if not item['assignees']:
+                    reasons.append('unassigned')
+                if order.status in ('clarification','rework'):
+                    reasons.append(order.status)
+            item['attentionReasons'] = reasons
             item['overdueMinutes'] = int((now-order.regulatory_deadline_at).total_seconds()//60) if item['isOverdue'] else None
         if equipment_id is not None or maintenance_only:
             for item, order in zip(items, selected, strict=True):
@@ -653,6 +685,7 @@ def register_routes(app,views):
                          **({'maintenance_only': True} if maintenance_only else {}),
                          **({'unassigned_only': True} if unassigned_only else {}),**scope),
             **({'day_counts': day_counts} if on_days else {}),
-            **({'summary': summary} if summary is not None else {}),
+             **({'summary': summary} if summary is not None else {}),
+             **({'planned_duration': planned_duration} if planned_duration is not None else {}),
             **({'history_basis': _accepted_scope(v.principal)} if equipment_accepted_maintenance is not None else {}),
             page_complete=offset==0 and len(selected)==count,analysis_tool='tasks_analyze')

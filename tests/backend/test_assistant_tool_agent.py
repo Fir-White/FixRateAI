@@ -109,6 +109,49 @@ def test_ollama_wire_failure_can_recover_with_structured_model_output(monkeypatc
     assert result['tool_calls'][0]['function'] == dict(name='orders', arguments={'limit': 1})
 
 
+@pytest.mark.parametrize('finish_reason', ['length', 'content_filter'])
+def test_v4_retries_only_truncated_cloud_output_without_dispatching_it(finish_reason):
+    from app.assistant.tool_agent import run_loop
+    from ml_service.app.providers.aitunnel import AITunnelClient, AITunnelConfig, AITunnelFailure
+
+    client = AITunnelClient(AITunnelConfig('deepseek-v4.1-flash-1017', 'isolated-test'))
+    calls = []
+    replies = iter([
+        dict(finish_reason='tool_calls', message=dict(content='', tool_calls=[
+            dict(id='order-1', function=dict(name='orders', arguments='{}'))])),
+        dict(finish_reason=finish_reason, message=dict(content='Незавершённый текст', tool_calls=[
+            dict(id='order-2', function=dict(name='orders', arguments='{"extra": true}'))])),
+        dict(finish_reason='stop', message=dict(content='В реестре один проверенный наряд.')),
+    ])
+
+    class Opener:
+        def open(self, request, timeout):
+            calls.append(json.loads(request.data))
+            result = dict(model='deepseek-v4.1-flash-1017', choices=[next(replies)])
+            return io.BytesIO(json.dumps(result).encode())
+
+    client.opener = Opener()
+    seen = []
+
+    async def dispatch(name, args):
+        seen.append((name, args))
+        return {'total': 1}
+
+    def run():
+        return asyncio.run(run_loop(client, [dict(role='user', content='Сделай сводку.')],
+            [dict(type='function', function=dict(name='orders', parameters=dict(type='object')))],
+            dispatch, lambda: None))
+
+    if finish_reason == 'length':
+        assert run()[0] == 'В реестре один проверенный наряд.'
+        assert len(calls) == 3
+    else:
+        with pytest.raises(AITunnelFailure):
+            run()
+        assert len(calls) == 2
+    assert seen == [('orders', {})]
+
+
 def test_rejected_tool_arguments_are_model_observations_not_success():
     from app.assistant.tool_agent import run_loop
 

@@ -39,7 +39,7 @@ def test_external_ci_output_retains_a_resolvable_log_reference(tmp_path, monkeyp
     workspace = tmp_path / "workspace"
     reports, logs = prepare_run(tmp_path / "ci-artifacts", root=workspace)
     assert reports == tmp_path / "ci-artifacts"
-    assert logs == workspace / "logs/verification/ci-artifacts"
+    assert logs.is_relative_to(workspace / "logs/verification")
     assert (reports / log_reference(reports, logs / "api.log")).resolve() == logs / "api.log"
     with monkeypatch.context() as patch:
         def different_volumes(*args):
@@ -48,3 +48,16 @@ def test_external_ci_output_retains_a_resolvable_log_reference(tmp_path, monkeyp
         reference = log_reference(reports, logs / "api.log")
     assert Path(reference).is_absolute()
     assert (reports / reference).resolve() == logs / "api.log"
+
+
+def test_external_nested_runs_with_same_name_keep_separate_logs(tmp_path):
+    workspace = tmp_path / "workspace"
+    first = tmp_path / "first" / "orchestration"
+    second = tmp_path / "second" / "orchestration"
+    _, first_logs = prepare_run(first, root=workspace)
+    (first_logs / "orchestration.log").write_text("first", encoding="utf-8")
+    _, second_logs = prepare_run(second, root=workspace)
+    assert first_logs != second_logs
+    assert (first_logs / "orchestration.log").read_text(encoding="utf-8") == "first"
+    with pytest.raises(ValueError, match="already has logs"):
+        prepare_run(first, root=workspace)

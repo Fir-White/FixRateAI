@@ -3,7 +3,7 @@ import asyncio
 import json
 import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Literal
 from uuid import UUID
 from zoneinfo import ZoneInfo
@@ -131,7 +131,12 @@ async def run_loop(client, messages, specs, dispatch, check, *, evidence=None, o
             raise TimeoutError
         offered = specs if step < MAX_ROUNDS - 1 and used < MAX_CALLS else []
         started = time.monotonic()
-        reply = await asyncio.wait_for(asyncio.to_thread(client.tool_chat, list(messages), offered, 1500), remaining)
+        turn_messages = list(messages)
+        if specs and not offered:
+            turn_messages[0:0] = [dict(role='system', content=(
+                'Лимит чтений достигнут. Не вызывай инструменты. Дай краткий ответ только по уже проверенным '
+                'данным и назови непроверенную часть, если она существенна.'))]
+        reply = await asyncio.wait_for(asyncio.to_thread(client.tool_chat, turn_messages, offered, 1500), remaining)
         check()
         if on_event:
             on_event(dict(tool='__model', status='completed', seconds=round(time.monotonic() - started, 3),
@@ -293,7 +298,7 @@ async def run(app, principal, thread_id, turn_id, headers):
             f'Текущая дата объекта: {stamp.date()}. Местное время: {stamp.isoformat(timespec="seconds")} '
             f'({principal.timezone}). Завтра: {stamp.date()+timedelta(days=1)}.\n\n{prompt}'))]
         previous_results = []
-        last_search, assignment_check = None, None
+        last_search, last_selected_day, assignment_check = None, None, None
         for position, prior in enumerate(reversed(history), start=1):
             context = prior['agent_context'] or {}
             if principal.role == 'executor':
@@ -302,8 +307,17 @@ async def run(app, principal, thread_id, turn_id, headers):
             results = context.get('results', [])
             assignment_check = _last_assignment_check(results) or assignment_check
             for result in results:
-                if result['tool'] == 'find_work_orders' and 'total' in result['result']:
-                    last_search = {key: value for key, value in result['arguments'].items() if key not in ('offset', 'limit')}
+                if result['tool'] != 'find_work_orders' or not isinstance(result['result'], dict):
+                    continue
+                value = result['result'].get('data', result['result'])
+                if isinstance(value, dict) and 'total' in value:
+                    last_selected_day = date.fromisoformat(value['resolved_day']) if value.get('resolved_day') else None
+                    last_search = {key: item for key, item in result['arguments'].items()
+                                   if key not in ('offset', 'limit', 'day_offset_from_last_selection')}
+                    if last_selected_day:
+                        last_search = {key: item for key, item in last_search.items()
+                                       if key not in ('relative_day','starts_on','ends_on')}
+                        last_search['on_date'] = last_selected_day.isoformat()
             messages.append(dict(role='user', content=mask_known_outputs(prior['content'][:2500], known)))
             if prior['answer']:
                 messages.append(dict(role='assistant', content=mask_known_outputs(prior['answer'][:3500], known)))
@@ -311,7 +325,8 @@ async def run(app, principal, thread_id, turn_id, headers):
                 previous_results.append(dict(turn=position, tool_results=results))
         while len(previous_results) > 1 and len(service.dump(previous_results)) > 24000:
             previous_results.pop(0)
-        tools = ToolSession(app, principal, thread, turn_id, headers, files, local_date=stamp.date())
+        tools = ToolSession(app, principal, thread, turn_id, headers, files, local_date=stamp.date(),
+                            last_selected_day=last_selected_day)
         subject = None
         if thread.get('subject_task_id'):
             check()

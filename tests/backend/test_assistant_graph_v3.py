@@ -25,8 +25,8 @@ class UnexpectedInference:
 @pytest.fixture
 def graph_case(assistant_case, monkeypatch):
     app = assistant_case[1]
-    monkeypatch.setattr(app.state, 'settings', replace(app.state.settings, assistant_agent_version='v3'))
-    monkeypatch.setattr(app.state, 'assistant_provider_factory', UnexpectedInference, raising=False)
+    monkeypatch.setitem(app.state._state, 'settings', replace(app.state.settings, assistant_agent_version='v3'))
+    monkeypatch.setitem(app.state._state, 'assistant_provider_factory', UnexpectedInference)
     return assistant_case
 
 

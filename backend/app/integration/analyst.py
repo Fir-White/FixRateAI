@@ -111,6 +111,11 @@ def validate_execution(v,order,report,payload,submitting=False):
         raise HTTPException(422,'Прикрепите обязательные акты или протоколы инструментальных проверок')
 
 
+def late_acceptance_needs_chief(order, report_id, now):
+    return bool(report_id and order.regulatory_deadline_at and now >= order.regulatory_deadline_at
+                and order.exception_context.get('late_acceptance', {}).get('report_id') != str(report_id))
+
+
 def validate_acceptance(v,order,report,payload):
     if payload.verdict!='accepted': return
     evidence=v.rows('evidence_files',work_report_id=report.work_report_id)
@@ -120,13 +125,11 @@ def validate_acceptance(v,order,report,payload):
     valid_refs={str(p.evidence_file_id) for p in evidence}
     if set(payload.additional_evidence_refs)-valid_refs: raise HTTPException(422,'Акт относится к другой попытке')
     now=datetime.now(timezone.utc)
-    if order.regulatory_deadline_at and now>order.regulatory_deadline_at:
-        authorization=order.exception_context.get('late_acceptance',{})
-        allowed=authorization.get('report_id')==str(report.work_report_id)
+    if order.regulatory_deadline_at and now>=order.regulatory_deadline_at:
         if v.principal.role=='chief_engineer' and payload.late_reason:
             order.exception_context=dict(order.exception_context,late_acceptance=dict(report_id=str(report.work_report_id),
                 approved_by=str(v.principal.user_id),reason=payload.late_reason,approved_at=now.isoformat()))
-        elif not allowed:
+        elif late_acceptance_needs_chief(order, report.work_report_id, now):
             raise HTTPException(409,'LATE_ACCEPTANCE_REQUIRES_CHIEF: нужно разрешение главного инженера с причиной задержки')
 
 

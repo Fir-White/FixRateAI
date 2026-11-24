@@ -1,5 +1,5 @@
 """Small typed maintenance vocabulary over the authenticated capability registry."""
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import Literal
 from uuid import UUID
 
@@ -18,6 +18,10 @@ class Arguments(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
 
+RelativeDay = Literal['today', 'tomorrow', 'yesterday', 'day_after_tomorrow']
+DAY_SHIFTS = {'yesterday': -1, 'today': 0, 'tomorrow': 1, 'day_after_tomorrow': 2}
+
+
 class WorkOrders(Arguments):
     period: Literal['all', 'upcoming', 'overdue', 'undated'] = 'all'
     state: Literal['draft', 'assigned', 'clarification', 'rework', 'in_progress', 'in_review', 'completed', 'cancelled'] | None = None
@@ -25,8 +29,10 @@ class WorkOrders(Arguments):
     unassigned_only: bool = False
     attention_only: bool = False
     maintenance_only: bool = False
-    relative_day: Literal['today', 'tomorrow', 'yesterday', 'day_after_tomorrow'] | None = Field(
+    relative_day: RelativeDay | None = Field(
         default=None, description='День по серверным часам объекта: сегодня, завтра, вчера, послезавтра. Без явных дат.')
+    day_offset_from_last_selection: int | None = Field(
+        default=None, ge=-31, le=31, description='Сдвиг от дня последней выборки: -1 предыдущий, 0 тот же, 1 следующий.')
     on_date: date | None = Field(default=None, description='Ровно один день, YYYY-MM-DD')
     starts_on: date | None = Field(default=None, description='Первый включённый день многодневного диапазона, требуется ends_on')
     ends_on: date | None = Field(default=None, description='Последний включённый день многодневного диапазона, требуется starts_on')
@@ -39,6 +45,9 @@ class WorkOrders(Arguments):
 
     @model_validator(mode='after')
     def date_range(self):
+        if self.day_offset_from_last_selection is not None and any(value is not None for value in
+                (self.relative_day, self.on_date, self.starts_on, self.ends_on)):
+            raise ValueError('Combining relative and explicit day reference is not allowed')
         if self.relative_day is not None and any(day is not None for day in (self.on_date, self.starts_on, self.ends_on)):
             raise ValueError('relative_day cannot be combined with explicit dates')
         if (self.starts_on is None) != (self.ends_on is None):
@@ -54,6 +63,12 @@ class WorkOrder(Arguments):
 
 class ReportPhotos(WorkOrder):
     phases: list[Literal['before', 'after']] = Field(default_factory=lambda: ['before', 'after'], min_length=1, max_length=2)
+    compare_with_attachment: bool = Field(default=False, description='Только если пользователь явно просит сопоставить сообщение со снимками отчёта.')
+
+
+class AcceptanceReadiness(WorkOrder):
+    expected_revision: int = Field(ge=1)
+    execution_id: UUID | None = None
 
 
 class Equipment(Arguments):
@@ -83,6 +98,27 @@ class Assignment(WorkOrder):
         description='Только если нужен конкретный полный состав. Иначе сервер подбирает автоматически.')
 
 
+class WorkforceLoad(Arguments):
+    day: date | None = Field(default=None, description='Точная календарная дата объекта.')
+    relative_day: RelativeDay | None = Field(default=None, description='День относительно серверных часов объекта.')
+    window_start: time | None = Field(default=None, description='Местное время HH:MM без смещения, вместе с window_end.')
+    window_end: time | None = None
+    offset: int = Field(default=0, ge=0, le=10000)
+    limit: int = Field(default=12, ge=1, le=15)
+
+    @model_validator(mode='after')
+    def day_source(self):
+        if (self.day is None) == (self.relative_day is None):
+            raise ValueError('Use exactly one of day and relative_day')
+        return self
+
+
+class WorkOrderAnalysis(Arguments):
+    starts_on: date | None = Field(default=None, description='Первый день интересующего периода по местному времени.')
+    ends_on: date | None = Field(default=None, description='Последний включённый день интересующего периода.')
+    cohort: Literal['unfinished', 'execution_pending', 'in_review'] = 'unfinished'
+
+
 class ProposedAssignment(Assignment):
     reason: str = Field(min_length=1, max_length=500, description='Краткая причина именно этого назначения.')
 
@@ -103,16 +139,25 @@ COMMON = {
                          'attention_only: просрочено, нет назначенного состава, на уточнении или доработке.'),
     'read_work_order': (WorkOrder, 'Свежая карточка указанного наряда, применённые инструкции, чек-лист, отчёт, замечания и список материалов.'),
     'find_equipment': (EquipmentSearch, 'Поиск доступного оборудования по подстроке названия, кода или места либо точному инвентарному коду.'),
-    'read_equipment': (Equipment, 'Паспортные поля, место, состояние и доступные реквизиты конкретного оборудования.'),
+    'read_equipment': (Equipment, 'Паспортные поля, место, состояние и реквизиты оборудования. '
+                       'Для инженера также последнее подтверждённое обслуживание этой единицы.'),
     'read_regulations': (Equipment, 'Настройки регламентов и чек-листы конкретного оборудования. Отличайте действующие версии от остальных.'),
+    'read_equipment_service_history': (Equipment, 'Последнее подтверждённое обслуживание по принятому отчёту. '
+                                       'Не подменяет дату выполнения датой сдачи, приёмки или плана.'),
+    'check_acceptance_readiness': (AcceptanceReadiness, 'Прочитать комплектность и препятствия приёмке или сдаче '
+                                   'актуальной попытки. Передать ревизию и идентификатор из свежей карточки. Без записи.'),
     'find_calendar_events': (Calendar, 'Запланированные календарные события ТО, включая события без сформированного наряда. '
                              'Включённые даты объекта, не более 92 дней; по плановой дате от раннего к позднему.'),
     'calculate_due_dates': (CalculatedDates, 'Расчёт дат ТО по утверждённым привязкам конкретного оборудования, а не реальные наряды.'),
-    'read_report_photos': (ReportPhotos, 'Получить реальные изображения последней попытки доступного наряда, до двух на фазу. '
-                           'Вызывайте только для визуальной оценки; учитывайте соответствие ракурса и фазы.'),
+    'read_report_photos': (ReportPhotos, 'Получить архивные снимки последней попытки наряда, до двух на фазу. '
+                            'Не используйте для оценки приложенного кадра, если не попросили сопоставить источники.'),
     'read_workbook': (Workbook, 'Без записи прочитать страницу строк личного XLSX, отправленного в текущем сообщении.'),
 }
 ENGINEER = {
+    'read_work_order_analysis': (WorkOrderAnalysis, 'Обзор всего реестра и сводка незавершённых нарядов за выбранный период: '
+                                'статусы, обязательные сроки, план и трудоёмкость. Это не оптимизация расписания.'),
+    'read_workforce_load': (WorkforceLoad, 'Загрузка всей команды за день и свободно ли конкретное окно. '
+                            'Ноль подтверждённых минут и неизвестная загрузка различаются; допуски не проверяются.'),
     'check_assignment': (Assignment, 'Рассчитать доступный состав на сохранённую плановую дату наряда без записи. '
                          'Проверяются длительность, смены, пересечения и допуски; результат содержит причины и нагрузку.'),
     'propose_assignment': (ProposedAssignment, 'Подготовить карточку назначения или переназначения на сохранённую дату. '
@@ -121,9 +166,22 @@ ENGINEER = {
 
 ORDER_FIELDS = (
     'id', 'code', 'title', 'summary', 'equipmentIds', 'equipmentName', 'scheduledStart', 'scheduledEnd', 'plannedDate',
-    'mandatoryDueDate', 'matchedAt', 'state', 'rawStatus', 'priority', 'createdBy', 'assignees', 'isOverdue',
-    'overdueSince', 'attentionReasons', 'durationMinutes', 'maintenanceType',
+    'mandatoryDueDate', 'mandatoryDeadlineAt', 'plannedWindowEnded', 'deadlineRemainingMinutes',
+    'matchedAt', 'state', 'rawStatus', 'priority', 'createdBy', 'assignees', 'isOverdue',
+    'overdueSince', 'attentionReasons', 'durationMinutes', 'maintenanceType', 'lateAcceptanceBlocked',
 )
+
+
+def _page_for_model(value, budget):
+    page = service.bounded(value)
+    items = page['items']
+    for count in range(len(items), 0 if items else -1, -1):
+        end = page['offset'] + count
+        result = dict(page, items=items[:count], page_complete=page['offset'] == 0 and end == page['total'],
+                      next_offset=end if count and end < page['total'] else None)
+        if len(service.dump(result)) <= budget:
+            return result
+    raise HTTPException(413, 'Строка не помещается в выдачу. Откройте карточку или уточните поиск.')
 
 
 def _same_assignment(before, after):
@@ -134,9 +192,11 @@ def _same_assignment(before, after):
 
 
 class ToolSession:
-    def __init__(self, app, principal, thread, turn_id, headers, files, *, local_date: date):
+    def __init__(self, app, principal, thread, turn_id, headers, files, *, local_date: date,
+                 last_selected_day: date | None = None):
         self.app, self.principal, self.thread, self.turn_id, self.headers = app, principal, thread, turn_id, headers
         self.local_date = local_date
+        self.last_selected_day = last_selected_day
         self.files = {row['attachment_id']: row for row in files}
         self.registry = available(app, principal.role, 'assistant')
         self.definition = dict(COMMON) if principal.role in ('engineer', 'executor') else {}
@@ -169,19 +229,30 @@ class ToolSession:
                            type=e['type']) for e in exc.errors(include_input=False, include_context=False, include_url=False)[:6]]
             raise HTTPException(422, dict(message='Исправьте параметры по схеме инструмента.', issues=issues)) from None
         value = await getattr(self, name)(parsed)
+        if name in ('find_work_orders', 'find_calendar_events', 'read_workforce_load'):
+            return _page_for_model(value, 10500)
         return value if isinstance(value, Observation) else service.compact(value, 10500)
 
     async def find_work_orders(self, args):
-        query = args.model_dump(mode='json', exclude={'on_date', 'relative_day'}, exclude_none=True)
+        query = args.model_dump(mode='json', exclude={'on_date', 'relative_day', 'day_offset_from_last_selection'},
+                                exclude_none=True)
         if not args.model_dump(exclude_defaults=True, exclude={'sort', 'offset', 'limit'}):
             query['summary_on'] = self.local_date
         day = args.on_date
-        if args.relative_day is not None:
-            shift = {'yesterday': -1, 'today': 0, 'tomorrow': 1, 'day_after_tomorrow': 2}[args.relative_day]
-            day = self.local_date + timedelta(days=shift)
+        if args.day_offset_from_last_selection is not None:
+            if self.last_selected_day is None:
+                raise HTTPException(422, 'В текущем диалоге нет последней выборки ровно за один день.')
+            try:
+                day = self.last_selected_day + timedelta(days=args.day_offset_from_last_selection)
+            except OverflowError:
+                raise HTTPException(422, 'Сдвиг выходит за допустимые даты.') from None
+        elif args.relative_day is not None:
+            day = self.local_date + timedelta(days=DAY_SHIFTS[args.relative_day])
         if day is not None:
             query.update(starts_on=day, ends_on=day)
         page = await self.backend('tasks_find', query={**query, 'active_only': False, 'use_planned_date': True})
+        day = day or (args.starts_on if args.starts_on == args.ends_on else None)
+        self.last_selected_day = day
         items = []
         for row in page['items']:
             item = {key: row[key] for key in ORDER_FIELDS if key in row}
@@ -197,15 +268,38 @@ class ToolSession:
             item['assignees'] = [{k: person[k] for k in ('executorId', 'name')} for person in item.get('assignees', ())]
         result = dict(local_date=self.local_date.isoformat(), timezone=self.principal.timezone,
                       resolved_day=day.isoformat() if day is not None else None,
-                      **{key: page[key] for key in ('items', 'total', 'offset', 'limit', 'period', 'filters', 'page_complete')})
+                      **{key: page[key] for key in ('items', 'total', 'offset', 'limit', 'period', 'filters', 'page_complete', 'checked_at')})
         if 'summary' in page:
             result['summary'] = dict(status_counts=page['summary']['status_counts'], today=page['summary']['day'])
+        if 'planned_duration' in page:
+            result['planned_duration'] = page['planned_duration']
         return result
 
     async def read_work_order(self, args):
         data = await self.backend('task_read', path=dict(task_id=args.task_id))
         self.scope['tasks'].add(str(args.task_id))
         data['task']['regulation_equipment_ids'] = data['task'].get('equipmentIds', [])
+        decision, report = data.get('decision'), data.get('execution')
+        if decision and (report is None or decision['executionId'] != report['id']):
+            data['previousDecision'], data['decision'] = decision, None
+        task = data['task']
+        if report and task['state'] in ('in_progress', 'submitted'):
+            try:
+                readiness = await self.check_acceptance_readiness(AcceptanceReadiness(
+                    task_id=args.task_id, expected_revision=task['revision'], execution_id=report['id']))
+            except HTTPException as exc:
+                if exc.status_code != 409:
+                    raise
+                data['readiness'] = dict(status='stale')
+            else:
+                data['readiness'] = {key: readiness[key] for key in ('revision', 'execution_id', 'ready',
+                    'submission_ready', 'missing_materials', 'acceptance_blocks', 'submission_blocks')}
+        return data
+
+    async def check_acceptance_readiness(self, args):
+        data = await self.backend('task_acceptance_evidence', path=dict(task_id=args.task_id),
+            query=args.model_dump(mode='json', exclude={'task_id'}, exclude_none=True))
+        self.scope['tasks'].add(str(args.task_id))
         return data
 
     async def find_equipment(self, args):
@@ -216,11 +310,20 @@ class ToolSession:
     async def read_equipment(self, args):
         data = await self.backend('equipment_read', path=dict(equipment_id=args.equipment_id))
         self.scope['equipment'].add(str(args.equipment_id))
+        if self.principal.role == 'engineer':
+            data['latestAcceptedService'] = await self.read_equipment_service_history(args)
         return data
 
     async def read_regulations(self, args):
         data = await self.backend('regulations_read', path=dict(equipment_id=args.equipment_id))
         self.scope['equipment'].add(str(args.equipment_id))
+        return data
+
+    async def read_equipment_service_history(self, args):
+        data = await self.backend('equipment_service_history', path=dict(equipment_id=args.equipment_id),
+                                  query=dict(only_accepted=True, latest_only=True))
+        self.scope['equipment'].add(str(args.equipment_id))
+        self.scope['tasks'].update(str(item['task_id']) for item in data.get('items', []) if item.get('task_id'))
         return data
 
     async def find_calendar_events(self, args):
@@ -250,6 +353,20 @@ class ToolSession:
         self.scope['equipment'].add(str(args.equipment_id))
         return data
 
+    async def read_workforce_load(self, args):
+        day = args.day or self.local_date + timedelta(days=DAY_SHIFTS[args.relative_day])
+        return await self.backend('workforce_load', query={**args.model_dump(mode='json',
+            exclude={'day', 'relative_day'}, exclude_none=True), 'day': day.isoformat()})
+
+    async def read_work_order_analysis(self, args):
+        result = await self.backend('tasks_analyze', query=args.model_dump(mode='json', exclude_none=True))
+        fields = ('checked_at', 'timezone', 'scope', 'complete', 'selected_tasks', 'due', 'scheduled',
+                  'known_person_hours', 'unknown_effort_tasks', 'limitations')
+        sample = result.get('sample', [])[:5]
+        return {**{key: result[key] for key in fields}, 'site_counters': result['counters'],
+                'illustrative_sample': sample, 'sample_truncated': result['selected_tasks'] > len(sample),
+                'schedule_optimization_performed': False}
+
     async def check_assignment(self, args):
         preview = await self._assignment(args)
         return self._assignment_facts(preview)
@@ -269,10 +386,13 @@ class ToolSession:
         selected_ids = {worker['executorId'] for worker in result.get('selectedWorkers', [])}
         result['selectedWorkers'] = [{key: worker[key] for key in ('name', 'executorId', 'loadMinutes')}
                                      for worker in result.get('selectedWorkers', [])]
-        result['eligibleAlternatives'] = [{key: worker[key] for key in ('name', 'executorId', 'loadMinutes', 'earliestStart')}
-            for worker in workers if worker['status'] == 'available' and worker['executorId'] not in selected_ids][:6]
-        result['excludedWorkers'] = [dict(name=worker['name'], reason=worker['explanation'])
-                                     for worker in workers if worker['status'] == 'excluded'][:6]
+        alternatives = [{key: worker[key] for key in ('name', 'executorId', 'loadMinutes', 'earliestStart')}
+            for worker in workers if worker['status'] == 'available' and worker['executorId'] not in selected_ids]
+        excluded = [dict(name=worker['name'], reason=worker['explanation'])
+                    for worker in workers if worker['status'] == 'excluded']
+        result.update(eligibleAlternatives=alternatives[:6], eligibleAlternativeCount=len(alternatives),
+                      excludedWorkers=excluded[:6], excludedWorkerCount=len(excluded),
+                      candidateDetailsTruncated=max(len(alternatives), len(excluded)) > 6)
         result['candidateCount'] = len(workers)
         result['ranking'] = ['loadMinutes', 'earliestStart', 'technical_tie_breaker'] if preview.get('recommendationMode') == 'automatic' else None
         context = preview.get('context', {})
@@ -321,6 +441,8 @@ class ToolSession:
             query={**args.model_dump(mode='json', exclude={'attachment_id'}, exclude_none=True), 'limit': 8})
 
     async def read_report_photos(self, args):
+        if not args.compare_with_attachment and any(row['mime_type'].startswith('image/') for row in self.files.values()):
+            raise HTTPException(422, 'Оцените приложенное изображение отдельно. Архив откройте только для явно запрошенного сравнения.')
         bundle = await self.backend('task_read', path=dict(task_id=args.task_id))
         self.scope['tasks'].add(str(args.task_id))
         report = bundle.get('execution') or {}
@@ -347,4 +469,5 @@ class ToolSession:
                             except HTTPException:
                                 pass
                 data.append(outcome)
-        return Observation(dict(report_id=report.get('id'), total_available=len(photos), photos=data), tuple(images))
+        return Observation(dict(source='saved_report_photos', report_id=report.get('id'),
+                                total_available=len(photos), photos=data), tuple(images))

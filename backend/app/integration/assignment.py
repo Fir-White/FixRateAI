@@ -1,4 +1,5 @@
 """Site-scoped, read-only ALG03 boundary; input facts come from PostgreSQL."""
+from collections import defaultdict
 from datetime import date, datetime, time, timedelta, timezone
 import json
 from uuid import UUID
@@ -6,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
 from pydantic import ValidationError
-from sqlalchemy import select
+from sqlalchemy import and_, func, or_, select
 
 from app.assignment import AssignmentRequest, select_crew
 from .calendar import _json_value
@@ -171,46 +172,76 @@ def _workers(v, order, start, end, now, worker_ids=None):
                               excluded_task_id=order.work_order_id, worker_ids=worker_ids)
 
 
-def workers_for_period(v, site_id, start, end, now, *, excluded_task_id=None, worker_ids=None):
+def workers_for_period(v, site_id, start, end, now, *, excluded_task_id=None, worker_ids=None, qualifications=True):
     """Copy resource facts for calculations without requiring a persisted task."""
     from app.scheduling.shifts import expand_shift, employment_availability
     tz = ZoneInfo(v.one("sites", site_id=site_id).timezone)
     day_start = datetime.combine(start.astimezone(tz).date(), time.min, tz)
-    day_end = datetime.combine(end.astimezone(tz).date() + timedelta(days=1), time.min, tz)
+    last_day = (end.astimezone(timezone.utc) - timedelta(microseconds=1)).astimezone(tz).date()
+    day_end = datetime.combine(last_day + timedelta(days=1), time.min, tz)
+    member_model, users = v.models["site_memberships"], v.models["users"]
+    members_query = (select(member_model, users).join(users, users.user_id == member_model.user_id)
+                     .where(member_model.site_id == site_id, member_model.role.in_(("technician", "executor"))))
+    if worker_ids is not None:
+        members_query = members_query.where(member_model.user_id.in_(worker_ids))
+    members = v.session.execute(members_query).all()
+    ids = [member.user_id for member, _ in members]
+    if not ids:
+        return []
+
+    def by_worker(rows, key):
+        groups = defaultdict(list)
+        for row in rows:
+            groups[key(row)].append(row)
+        return groups
+
+    def site_rows(table, *filters):
+        model = v.models[table]
+        return v.session.scalars(select(model).where(model.site_id == site_id, model.user_id.in_(ids), *filters))
+
+    slot = v.models["availability_slots"]
+    slots = by_worker(site_rows("availability_slots", slot.starts_at < day_end, slot.ends_at > day_start),
+                      lambda row: row.user_id)
+    shifts = by_worker(site_rows("employee_shift_rules"), lambda row: row.user_id) if "employee_shift_rules" in v.models.classes else {}
+    skills = {}
+    if qualifications:
+        record, skill = v.models["user_skills"], v.models["skills"]
+        facts = v.session.execute(select(record, skill).join(skill, skill.skill_id == record.skill_id)
+            .where(record.site_id == site_id, record.user_id.in_(ids)))
+        skills = by_worker(facts, lambda row: row[0].user_id)
+
+    # Read other sites' booking intervals for these workers only. Never expose the
+    # other site, order or assignment to the consumer of a workload summary.
+    assignment, order = v.models["work_assignments"], v.models["work_orders"]
+    facts = (select(assignment, order).join(order, and_(order.site_id == assignment.site_id,
+             order.work_order_id == assignment.work_order_id))
+             .where(assignment.user_id.in_(ids), assignment.status.not_in(("cancelled", "declined")),
+                    order.status != "cancelled",
+                    or_(order.status == "in_progress", assignment.start_at.is_(None), assignment.end_at.is_(None),
+                        and_(order.status.in_(("completed", "in_review")), order.completed_at.is_not(None)),
+                        and_(assignment.start_at < day_end, assignment.end_at > day_start))))
+    if excluded_task_id is not None:
+        facts = facts.where(assignment.work_order_id != excluded_task_id)
+    bookings = by_worker(v.session.execute(facts), lambda row: row[0].user_id)
     result = []
-    for member in v.rows("site_memberships"):
-        if worker_ids is not None and member.user_id not in worker_ids:
-            continue
-        if member.role not in ("technician", "executor"):
-            continue
-        user = v.one("users", user_id=member.user_id)
+    for member, user in members:
         worker = dict(worker_id=user.user_id, site_id=member.site_id, name=user.full_name,
             active=user.is_active, membership_active=member.is_active, can_execute=True,
             booking_data_complete=True, workload_data_complete=True, qualifications=[],
             availability=[dict(start_at=slot.starts_at, end_at=slot.ends_at, status=slot.status)
-                          for slot in v.rows("availability_slots", user_id=user.user_id) if getattr(slot,'is_active',True)], bookings=[])
+                          for slot in slots[user.user_id] if getattr(slot,'is_active',True)], bookings=[])
         worker['availability_data_complete'] = bool(worker['availability'])
-        if "employee_shift_rules" in v.models.classes:
-            for shift in v.rows("employee_shift_rules", user_id=user.user_id):
-                if shift.is_active:
-                    worker['availability_data_complete'] = True
-                intervals, _ = expand_shift(shift, day_start.date(), day_end.date(), str(tz))
-                worker["availability"].extend(intervals)
+        for shift in shifts.get(user.user_id, ()):
+            if shift.is_active:
+                worker['availability_data_complete'] = True
+            intervals, _ = expand_shift(shift, day_start.date(), day_end.date(), str(tz))
+            worker["availability"].extend(intervals)
         worker["availability"] = employment_availability(worker["availability"],
             getattr(member,"employed_from",None),getattr(member,"employed_until",None),str(tz))
-        for record in v.rows("user_skills", user_id=user.user_id):
-            skill = v.one("skills", skill_id=record.skill_id)
+        for record, skill in skills.get(user.user_id, ()):
             worker["qualifications"].append(dict(skill_id=skill.skill_id, verified_at=record.verified_at,
                                                 valid_until=record.valid_until, validity_required=skill.validity_required))
-        # A person cannot work on two sites simultaneously. Only private interval
-        # facts cross the site boundary; foreign tasks/clients are never returned.
-        assignment_model = v.models["work_assignments"]
-        for assignment in v.session.scalars(select(assignment_model).where(assignment_model.user_id == user.user_id)):
-            if assignment.work_order_id == excluded_task_id or assignment.status in ("cancelled", "declined"):
-                continue
-            other = v.session.get(v.models["work_orders"], assignment.work_order_id)
-            if other.status == "cancelled":
-                continue
+        for assignment, other in bookings[user.user_id]:
             completed = other.completed_at is not None and other.status in ("completed", "in_review")
             if completed and other.started_at:
                 begin, finish = other.started_at, other.completed_at
@@ -241,6 +272,52 @@ def workers_for_period(v, site_id, start, end, now, *, excluded_task_id=None, wo
                                                 blocks_time=not completed and assignment.status != "finished"))
         result.append(worker)
     return result
+
+
+def workforce_load(v, day, window_start, window_end, offset, limit):
+    from app.assignment.schemas import Worker
+    from app.assignment.selection import daily_load
+
+    site_id = v.principal.site_id
+    tz = ZoneInfo(v.principal.timezone)
+    if (window_start is None) != (window_end is None) or day in (date.min, date.max):
+        raise HTTPException(422, "Укажите допустимый день и обе границы окна либо не указывайте окно")
+    start = datetime.combine(day, time.min, tz)
+    end = datetime.combine(day + timedelta(days=1), time.min, tz)
+    window = None
+    if window_start is not None:
+        window = tuple(local_time(datetime.combine(day, edge), tz) for edge in (window_start, window_end))
+        if window[0] >= window[1]:
+            raise HTTPException(422, "Конец окна должен быть позже начала")
+
+    member, users = v.models["site_memberships"], v.models["users"]
+    candidates = (select(users.user_id).join(member, member.user_id == users.user_id)
+                  .where(member.site_id == site_id, member.role.in_(("technician", "executor")),
+                         member.is_active.is_(True), users.is_active.is_(True)))
+    total = v.session.scalar(select(func.count()).select_from(candidates.subquery()))
+    ids = v.session.scalars(candidates.order_by(users.full_name, users.user_id).offset(offset).limit(limit)).all()
+    facts = {worker['worker_id']: worker for worker in workers_for_period(v, site_id, start, end,
+             datetime.now(timezone.utc), worker_ids=ids, qualifications=False)}
+    items = []
+    for identity in ids:
+        try:
+            worker = Worker.model_validate(facts[identity])
+        except ValidationError:
+            items.append(dict(executorId=identity,name=facts[identity]['name'],loadMinutes=None,windowAvailable=None,
+                              reasons=['Некорректные сохранённые рабочие интервалы.']))
+            continue
+        minutes, available, reasons = daily_load(worker, start, tz, window)
+        items.append(dict(executorId=identity, name=worker.name, loadMinutes=minutes, windowAvailable=available, reasons=reasons))
+    complete = offset == 0 and len(items) == total
+    window_counts = None if window is None else dict(
+        available=sum(row['windowAvailable'] is True for row in items),
+        unavailable=sum(row['windowAvailable'] is False for row in items),
+        unknown=sum(row['windowAvailable'] is None for row in items),
+        complete=complete,
+    )
+    return dict(day=day, timezone=str(tz), windowStart=window[0] if window else None, windowEnd=window[1] if window else None,
+                qualificationChecked=False, items=items, total=total, offset=offset, limit=limit,
+                page_complete=complete, windowCounts=window_counts)
 
 
 def assignment_preview(v, order, start_local, end_local, crew_id=None, executor_ids=None, individual_only=False,

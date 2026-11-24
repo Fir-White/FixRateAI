@@ -4,6 +4,8 @@
 
 [ИИ-агент v4](AI_AGENT_ARCHITECTURE.md) · [Срез итерации](docs/releases/2026-11-24-assistant-tool-agent-v4.md) · [Готовность и запуск](AI_AGENT_MVP_READINESS.md) · [Живые проверки](AI_AGENT_MVP_BENCHMARK.md).
 
+[Демонстрационный срез v4](docs/releases/2026-11-24-v4-demo-stability.md) — критические исправления, возможности исполнителя и ограничения показа.
+
 [Итерация надёжности ERP-оператора](agent_reliability_lab/OPERATOR_RELIABILITY.md) — анализ длинных диалогов и проверка условий до чтения.
 
 [Экспериментальный ERP-оператор](docs/releases/2026-11-23-erp-operator.md) — сохранение условий поручения, подтверждения, покрытие и проверка качества.

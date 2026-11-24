@@ -85,6 +85,39 @@ def _load(worker, start, tz, excluded_task):
     return ceil(sum((end - begin).total_seconds() for begin, end in intervals) / 60)
 
 
+def _available(worker):
+    return _merge([(_utc(slot.start_at), _utc(slot.end_at)) for slot in worker.availability if slot.status == "available"])
+
+
+def _free(worker, intervals, available, excluded_task=None):
+    exclusions = [(_utc(slot.start_at), _utc(slot.end_at)) for slot in worker.availability if slot.status == "unavailable"]
+    exclusions += [(_utc(b.start_at), _utc(b.end_at)) for b in worker.bookings if b.blocks_time and b.task_id != excluded_task]
+    return _subtract(_intersect(intervals, available), exclusions)
+
+
+def daily_load(worker, start, tz, window=None):
+    """Report occupied minutes separately from the ability to cover a fixed interval."""
+    reasons = []
+    if not worker.booking_data_complete:
+        reasons.append('BOOKING_UNCONFIRMED')
+    if not worker.workload_data_complete:
+        reasons.append('WORKLOAD_UNCONFIRMED')
+    minutes = _load(worker, start, tz, None) if not reasons else None
+    available = None
+    if window is not None:
+        begin, end = map(_utc, window)
+        if not worker.availability_data_complete:
+            reasons.append('NO_AVAILABILITY')
+        else:
+            free = _free(worker, [(begin, end)], _available(worker))
+            if not any(a <= begin and end <= b for a, b in free):
+                available = False
+                reasons.append('NO_FREE_INTERVAL')
+            elif worker.booking_data_complete:
+                available = True
+    return minutes, available, [REASONS[reason] for reason in reasons]
+
+
 def select_crew(request: AssignmentRequest) -> AssignmentSelection:
     """Choose the earliest complete team, then least daily load and stable IDs.
 
@@ -145,13 +178,10 @@ def select_crew(request: AssignmentRequest) -> AssignmentSelection:
                     else "QUALIFICATION_EXPIRY_MISSING" if all(q.validity_required and q.valid_until is None for q in certificates)
                     else "QUALIFICATION_OUTSIDE_WINDOW")
             intervals = _intersect(intervals, _merge(valid))
-        available = _merge([(_utc(slot.start_at), _utc(slot.end_at)) for slot in worker.availability if slot.status == "available"])
+        available = _available(worker)
         if not available:
             reasons.append("NO_AVAILABILITY")
-        intervals = _intersect(intervals, available)
-        exclusions = [(_utc(slot.start_at), _utc(slot.end_at)) for slot in worker.availability if slot.status == "unavailable"]
-        exclusions += [(_utc(b.start_at), _utc(b.end_at)) for b in worker.bookings if b.blocks_time and b.task_id != request.task_id]
-        intervals = _subtract(intervals, exclusions)
+        intervals = _free(worker, intervals, available, request.task_id)
         intervals = [(a, b) for a, b in intervals if b - _ceil_minute(a) >= duration]
         if not intervals and not reasons:
             reasons.append("NO_FREE_INTERVAL")

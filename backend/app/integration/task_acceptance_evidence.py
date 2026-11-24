@@ -1,6 +1,4 @@
 """Read the current report material and quality gates for one authorized task."""
-from datetime import datetime, timezone
-
 from fastapi import HTTPException
 from sqlalchemy import select
 
@@ -59,9 +57,7 @@ def inspect(views, task_id, revision, execution_id, storage_root):
     present = {item['kind'] for item in material['acts']}
     acceptance.extend(f'Контролёр ещё не проверил акт «{kind}»'
                       for kind in sorted((set(task['requiredActs']) & present) - verified))
-    authorization = order.exception_context.get('late_acceptance', {})
-    if (report and order.status=='in_review' and order.regulatory_deadline_at and
-            order.regulatory_deadline_at < datetime.now(timezone.utc) and authorization.get('report_id')!=report['id']):
+    if task['lateAcceptanceBlocked']:
         acceptance.append('Для просроченной приёмки требуется разрешение главного инженера с причиной')
     orders = views.models['work_orders']
     current = views.session.scalar(select(orders.revision).where(

@@ -190,6 +190,8 @@ class Views:
             self._task_refs.extend(self.session.scalars(select(cls).where(getattr(cls, key).in_(ids))).all())
 
     def task_view(self, order, *, checked_at=None):
+        from .analyst import late_acceptance_needs_chief
+
         tz = ZoneInfo(self.principal.timezone)
         rule, title, code, kind = self.operation(order)
         links = self.rows("work_order_equipment", work_order_id=order.work_order_id)
@@ -204,23 +206,32 @@ class Views:
                 qualifications.append(self.session.get(self.models["skills"], skill.skill_id).name)
             assignees.append(dict(executorId=str(a.user_id), name=user.full_name, qualifications=qualifications))
         reports = sorted(self.rows("work_reports", work_order_id=order.work_order_id), key=lambda r: r.revision_no)
+        latest = reports[-1] if reports else None
         deadline = order.regulatory_deadline_at
         # A calendar deadline_at is the exclusive end of the due day, often
         # midnight on the following date. Display the persisted normative day.
         entry = self.one("schedule_entries", schedule_entry_id=order.schedule_entry_id) if order.schedule_entry_id else None
-        due_date = entry.regulatory_deadline_on if entry else order.operation_snapshot.get("earliest_date") or (deadline.astimezone(tz).date() if deadline else None)
+        due_date = entry.regulatory_deadline_on if entry else (deadline.astimezone(tz).date() if deadline else None)
         now = checked_at or datetime.now(timezone.utc)
-        overdue = bool(deadline and deadline < now and order.status not in ("completed", "cancelled"))
+        open_order = order.status not in ("completed", "cancelled")
+        overdue = bool(open_order and deadline is not None and deadline <= now)
+        remaining = max(0, int((deadline-now).total_seconds()//60)) if open_order and deadline is not None else None
         return dict(id=str(order.work_order_id), code=str(order.work_order_id)[:8], title=title,
-            equipmentId=str(eq.equipment_id) if eq else None, equipmentName=eq.name if eq else "Не указано",
+             equipmentId=str(eq.equipment_id) if eq else None, equipmentIds=[str(link.equipment_id) for link in links],
+             equipmentName=eq.name if eq else "Не указано",
             operationCode=code, maintenanceType=kind, state=TASK_STATES.get(order.status, order.status),
-            isOverdue=overdue, deadlineBreached=bool(deadline and any(r.decision=="accepted" and r.reviewed_at>deadline for r in self.rows("acceptance_reviews",work_order_id=order.work_order_id))),
-            mandatoryDueDate=iso(due_date),sourceDate=iso(entry.source_date or entry.regulatory_deadline_on) if entry else None,
+             isOverdue=overdue, deadlineBreached=bool(deadline and any(r.decision=="accepted" and r.reviewed_at>=deadline for r in self.rows("acceptance_reviews",work_order_id=order.work_order_id))),
+             mandatoryDueDate=iso(due_date),sourceDate=iso(entry.source_date or entry.regulatory_deadline_on) if entry else None,
+             mandatoryDeadlineAt=iso(deadline.astimezone(tz)) if deadline else None,
+             plannedWindowEnded=order.planned_end_at <= now if order.planned_end_at is not None else None,
+             deadlineRemainingMinutes=remaining,
+             lateAcceptanceBlocked=bool(order.status == "in_review" and latest and latest.status == "submitted"
+                                        and late_acceptance_needs_chief(order, latest.work_report_id, now)),
             scheduledStart=iso(order.planned_start_at.astimezone(tz)) if order.planned_start_at else None,
             scheduledEnd=iso(order.planned_end_at.astimezone(tz)) if order.planned_end_at else None,
             closedAt=iso(order.completed_at.astimezone(tz)) if order.status == "completed" and order.completed_at else None,
             crewSize=order.required_people_snapshot, assignees=assignees,
-            activeExecutionId=str(reports[-1].work_report_id) if reports else None,
+             activeExecutionId=str(latest.work_report_id) if latest else None,
             revision=order.revision, dataOrigin=order.operation_snapshot.get("data_origin") or (rule.data_origin if rule else None),
             summary=order.operation_snapshot.get("label", ""),instructions=order.operation_snapshot.get("instructions") or (rule.operation.description if rule else None),
             normHours=str(order.norm_hours_snapshot),normUnit=order.operation_snapshot.get("norm_unit","unconfirmed"),
@@ -244,7 +255,8 @@ class Views:
                         url=f"/api/v1/maintenance/photos/{p.evidence_file_id}") for p in self.rows("evidence_files",work_report_id=report.work_report_id) if p.stage=="other"])
 
     def bundle(self, order):
-        task = self.task_view(order)
+        checked_at = datetime.now(ZoneInfo(self.principal.timezone))
+        task = self.task_view(order, checked_at=checked_at)
         reports = self.rows("work_reports", work_order_id=order.work_order_id)
         report = max(reports, key=lambda r: r.revision_no) if reports else None
         reviews = self.rows("acceptance_reviews", work_order_id=order.work_order_id)
@@ -285,7 +297,8 @@ class Views:
                 actions.append("review")
         analysis_status=("failed" if review.get("status") in ("failed","unavailable") else "ready") if review else (
             "pending" if report and report.status=="submitted" and order.status=="in_review" and report.execution_context.get("photo_analysis_requested_at") else "not_requested")
-        return dict(task=task, execution=self.report_view(report) if report else None, review=review,
+        return dict(task=task, timingCheckedAt=iso(checked_at), execution=self.report_view(report) if report else None, review=review,
+                    plannedChecklist=order.operation_snapshot.get("checklist", []) if report is None else [],
                     decision=decision_view, allowedActions=actions, photoAnalysisStatus=analysis_status,
                     actualRequired=bool(order.operation_snapshot.get('methodology_ref')))
 

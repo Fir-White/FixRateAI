@@ -1504,6 +1504,57 @@
       "operator": "read"
     },
     {
+      "name": "workforce_load",
+      "title": "Загрузка и временная доступность исполнителей за день без проверки квалификации",
+      "method": "GET",
+      "path": "/api/v1/assistant/workspace/workforce-load",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher"
+      ],
+      "agents": [
+        "assistant"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "workforce",
+      "handler": "app.integration.assistant_workspace:register_routes.<locals>.daily_workforce_load",
+      "operation_id": "daily_workforce_load_api_v1_assistant_workspace_workforce_load_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "day",
+          "limit",
+          "offset",
+          "window_end",
+          "window_start"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
+    },
+    {
       "name": "task_read",
       "title": "Задание, инструкции и состояние отчёта",
       "method": "GET",

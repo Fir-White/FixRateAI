@@ -62,6 +62,7 @@ TOOLS=(
  Tool('equipment_find','Поиск оборудования по всему реестру','GET','/api/v1/assistant/workspace/equipment',agents=('assistant','planner','photo')),
  Tool('staff_find','Поиск сотрудников по имени и email','GET','/api/v1/assistant/workspace/staff',(*PLAN,'director')),
  Tool('staff_read','Подробные сведения о сотруднике','GET','/api/v1/assistant/workspace/staff/{user_id}',(*PLAN,'director')),
+ Tool('workforce_load','Загрузка и временная доступность исполнителей за день без проверки квалификации','GET','/api/v1/assistant/workspace/workforce-load',OPERATE,agents=('assistant',)),
  Tool('task_read','Задание, инструкции и состояние отчёта','GET',P+'/ui/tasks/{task_id}',agents=('assistant','planner','photo')),
  Tool('task_acceptance_evidence','Проверить материалы и препятствия приёмке текущей попытки задания','GET','/api/v1/assistant/workspace/tasks/{task_id}/acceptance-evidence',agents=('assistant',)),
  Tool('calendar_read','Календарь работ','GET',P+'/ui/calendar',(*OPERATE,'director','executor')),
@@ -414,6 +415,15 @@ async def preflight(app,tool,args,headers):
     fields={f.name for f in route_for(app,before).dependant.path_params}
     params=dict(path={k:v for k,v in args.get('path',{}).items() if k in fields},query={})
     snapshot=await invoke(app,before,validate_arguments(app,before,params),headers)
+    if before.name=='task_read' and isinstance(snapshot.get('task'),dict):
+        # Display clock fields are not part of the stable preflight contract.
+        # The revision, real slot, business state and assignment preview still
+        # participate in validation; keep already issued hashes compatible.
+        task=snapshot['task']
+        snapshot.pop('timingCheckedAt',None)
+        snapshot.pop('plannedChecklist',None)
+        for key in ('mandatoryDeadlineAt','plannedWindowEnded','deadlineRemainingMinutes','equipmentIds','lateAcceptanceBlocked'):
+            task.pop(key,None)
     if tool.name=='task_assign':
         from datetime import datetime
         from zoneinfo import ZoneInfo

@@ -1,4 +1,4 @@
-"""Bounded AI Tunnel transport. No redirects, retries, response-body logs or client secrets."""
+"""Bounded AI Tunnel transport, with no redirects, body logs or client secrets."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -232,4 +232,15 @@ class AITunnelClient:
         return self.chat(messages, None, tokens)
 
     def tool_chat(self, messages, tools, tokens):
-        return self.chat(messages, None, tokens, tools=tools)
+        try:
+            return self.chat(messages, None, tokens, tools=tools)
+        except AITunnelFailure as exc:
+            diagnostic = self.response_diagnostics[-1]
+            if str(exc) != 'AITUNNEL_INVALID_RESPONSE' or diagnostic.get('finish_reason') != 'length' or self.deadline-time.monotonic() < 8:
+                raise
+            # The incomplete reply has not left the transport or dispatched tools.
+            diagnostic['repair_requested'] = True
+            return self.chat([*messages, dict(role='system', content=(
+                'Предыдущий ответ не уместился в лимит. Ответь коротко по уже проверенным данным; '
+                'не повторяй историю, не додумывай отсутствующие факты. Если без чтения нельзя ответить, '
+                'сделай не более одного необходимого вызова из доступных инструментов.'))], None, tokens, tools=tools)
