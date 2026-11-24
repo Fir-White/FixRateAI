@@ -92,6 +92,8 @@
   padding: clamp(18px, 2vw, 30px) var(--e3-gutter) 48px;
 }
 .e3-shell .ops-main--assistant { padding-block: 0; }
+.e3-shell:has(.ops-main--assistant) .e3-context { min-height: 0; }
+.e3-shell:has(.ops-main--assistant) .e3-context > :is(.e3-context-date, .e3-context-role) { display: none; }
 
 .e3-shell:has(.e3-workday-context) .e3-context { min-height: 0; }
 .e3-shell:has(.e3-workday-context) .e3-context > :is(.e3-context-date, .e3-context-role) { display: none; }

@@ -286,7 +286,7 @@ def register_routes(app,views):
         return svc.reject(v.session,v.principal,row)
 
     @app.post(BASE+'/actions/{identity}/confirm')
-    async def confirm(identity:UUID,command:ConfirmAction,request:Request,response:Response,v=Depends(views)):
+    async def confirm(identity:UUID,command:ConfirmAction,request:Request,response:Response,background:BackgroundTasks,v=Depends(views)):
         row=await run_in_threadpool(svc.action,v.session,v.principal,identity,lock=True)
         if command.payload_sha256!=row['payload_sha256']:raise HTTPException(409,'Состав предложения изменился')
         if row['status']!='proposed':return svc.public_action(row)
@@ -304,6 +304,10 @@ def register_routes(app,views):
             else:
                 result=await svc.confirm(app,v.session,v.principal,row,forwarded(request),command.secret_values)
         finally:COOKIE_EFFECTS.reset(token)
+        if row['tool_name']=='report_attach_and_submit' and result['status']=='succeeded':
+            data=result['result']['data']
+            if data.get('photo_analysis_requested'):
+                background.add_task(app.state.automatic_photo_review,UUID(data['task']['id']),data['task']['revision'],v.principal)
         for cookie in cookies:response.raw_headers.append((b'set-cookie',cookie.encode('latin-1')))
         return result
 
@@ -333,6 +337,7 @@ def register_routes(app,views):
         elif method=='tools/list':
             tools=[]
             for tool in available(app,v.principal.role).values():
+                if tool.name=='report_attach_and_submit':continue  # Native v4 dialogue only.
                 description=describe(app,tool)
                 from app.assistant.tools import file_fields
                 if tool.mode=='write' or file_fields(app,tool):
@@ -347,7 +352,7 @@ def register_routes(app,views):
         elif method=='tools/call':
             if not isinstance(params.get('name'),str):return error(-32602,'Tool name must be a string')
             tool=available(app,v.principal.role).get(params.get('name'))
-            if tool is None:return error(-32602,'Unknown or unavailable tool')
+            if tool is None or tool.name=='report_attach_and_submit':return error(-32602,'Unknown or unavailable tool')
             try:
                 arguments=params.get('arguments',{})
                 if not isinstance(arguments,dict):raise HTTPException(422,'Аргументы должны быть объектом')

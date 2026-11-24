@@ -40,6 +40,24 @@ class ConfirmAction(Input):
     confirmed:Literal[True]
     secret_values:dict[str,str]=Field(default_factory=dict,max_length=3)
 
+class ReportPhotoBinding(Input):
+    model_config=ConfigDict(extra='forbid',str_strip_whitespace=True)
+    attachment_id:UUID
+    checklist_item_id:UUID
+    phase:Literal['before','after']
+    view_key:str=Field(min_length=1,max_length=200)
+
+class ReportAttachAndSubmit(Input):
+    expected_revision:int=Field(gt=0)
+    execution_id:UUID
+    photos:list[ReportPhotoBinding]=Field(min_length=1,max_length=4)
+
+    @model_validator(mode='after')
+    def unique_photos(self):
+        if len({item.attachment_id for item in self.photos})!=len(self.photos):
+            raise ValueError('Файл указан повторно')
+        return self
+
 class AgentCall(Input):
     tool:str=Field(min_length=1,max_length=100)
     goal_id:str|None=Field(default=None,max_length=40,description='ID of the planned user objective served by this call.')

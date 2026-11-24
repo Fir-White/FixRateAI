@@ -19,11 +19,13 @@ import {Callout} from '@/shared/ui/Callout';
 import {Modal} from '@/shared/ui/Modal';
 import {ActionCard} from '@/features/assistant/ActionCard';
 import {ActionHistory} from '@/features/assistant/ActionHistory';
+import {attachmentUrl,ChatPhoto,isChatPhoto} from '@/features/assistant/ChatPhoto';
 import {SavedAnswer} from '@/features/assistant/SavedAnswer';
 import {WorkflowStatus} from '@/features/assistant/WorkflowStatus';
 import '@/features/assistant/assistant.css';
 
 const safeResource=(url:string)=>/^\/api\/v1\/(maintenance\/|assistant\/attachments\/)/.test(url);
+const safePhoto=(url:string)=>/^\/api\/v1\/(?:maintenance\/photos\/[0-9a-f-]+(?:\/content)?|assistant\/attachments\/[0-9a-f-]+)$/i.test(url);
 const Timestamp=memo(function Timestamp({at,timezone}:{at:string;timezone:string}){
   const date=new Date(at);if(Number.isNaN(date.getTime()))return null;
   const label=dateTimeFormatter('ru-RU',{timeZone:timezone,day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(date);
@@ -67,7 +69,17 @@ const Elapsed=memo(function Elapsed({start,end,status}:{start:string;end?:string
 });
 function SentFiles({files}:{files?:ChatAttachment[]}){
   if(!files?.length)return null;
-  return <ul className="assistant-sent-files" aria-label="Отправленные файлы">{files.map(file=><li key={file.attachment_id}><a href={`/api/v1/assistant/attachments/${encodeURIComponent(file.attachment_id)}`} target="_blank" rel="noreferrer">{file.original_name}</a><span>{Math.ceil(file.size_bytes/1024)} КБ</span></li>)}</ul>;
+  return <ul className="assistant-sent-files" aria-label="Отправленные файлы">{files.map(file=><li key={file.attachment_id}>{isChatPhoto(file.mime_type)?
+    <ChatPhoto url={attachmentUrl(file.attachment_id)} title={file.original_name}/>:
+    <><a href={attachmentUrl(file.attachment_id)} target="_blank" rel="noreferrer">{file.original_name}</a><span>{Math.ceil(file.size_bytes/1024)} КБ</span></>}</li>)}</ul>;
+}
+function ChatResources({trace}:{trace:ChatTurn['trace']}){
+  const resources=new Map(trace.flatMap(step=>step.resource?[[step.resource.url,step.resource] as const]:[]));
+  if(!resources.size)return null;
+  return <div className="assistant-chat-resources">{[...resources.values()].filter(resource=>safeResource(resource.url)).map(resource=>
+    isChatPhoto(resource.mime)&&safePhoto(resource.url)?
+      <ChatPhoto key={resource.url} url={resource.url} title={resource.title}/>:
+      <a key={resource.url} className="assistant-resource" href={resource.url} target="_blank" rel="noreferrer">{resource.title}<span aria-hidden="true"> ↗</span></a>)}</div>;
 }
 // The transcript only changes with the conversation, not with each composer keystroke.
 const ChatMessages = memo(function ChatMessages({turns,actions,attachments,names,timezone,busy,onResume,onRetry,onChanged}:{
@@ -85,7 +97,7 @@ const ChatMessages = memo(function ChatMessages({turns,actions,attachments,names
     return groups;
   }, [actions]);
   return <>
-    {turns.map(turn=><article key={turn.turn_id} className="assistant-turn"><div className="assistant-user-message"><div className="assistant-message-meta"><span>Вы</span><Timestamp at={turn.created_at} timezone={timezone}/></div><p>{turn.content}</p><SentFiles files={turn.attachments}/></div><div className="assistant-reply"><div className="assistant-message-meta"><span className="assistant-author"><Icon name="assistant" size={16}/>FixRate AI</span><Timestamp at={turn.finished_at??turn.created_at} timezone={timezone}/></div><Progress turn={turn} names={names}/><WorkflowStatus workflow={turn.workflow} disabled={busy} onResume={onResume?()=>void onResume(turn):undefined}/>{turn.status!=='running'&&<SavedAnswer answer={turn.answer} facts={turn.workflow?.answer_format==='facts'} older={turn!==turns.at(-1)}/>}{turn.trace.filter(step=>step.resource&&safeResource(step.resource.url)).map((step,i)=><a key={i} className="assistant-resource" href={step.resource!.url} target="_blank" rel="noreferrer">{step.resource!.title}<span aria-hidden="true"> ↗</span></a>)}{turn.error_code&&turn.error_code!=='ASSISTANT_STOPPED'&&<details className="assistant-error-code"><summary>Технические сведения</summary><p>Код: {turn.error_code}</p></details>}{turn.status==='failed'&&!turn.workflow&&<Button size="sm" variant="secondary" onClick={()=>onRetry(turn.content)}>Повторить запрос</Button>}{(actionsByTurn.get(turn.turn_id)??[]).map(action=><ActionCard key={action.action_id} action={action} title={names[action.tool_name]??action.tool_name} attachments={attachments} onChanged={onChanged}/>)}</div></article>)}
+    {turns.map(turn=><article key={turn.turn_id} className="assistant-turn"><div className="assistant-user-message"><div className="assistant-message-meta"><span>Вы</span><Timestamp at={turn.created_at} timezone={timezone}/></div><p>{turn.content}</p><SentFiles files={turn.attachments}/></div><div className="assistant-reply"><div className="assistant-message-meta"><span className="assistant-author"><Icon name="assistant" size={16}/>FixRate AI</span><Timestamp at={turn.finished_at??turn.created_at} timezone={timezone}/></div><Progress turn={turn} names={names}/><WorkflowStatus workflow={turn.workflow} disabled={busy} onResume={onResume?()=>void onResume(turn):undefined}/>{turn.status!=='running'&&<SavedAnswer answer={turn.answer} facts={turn.workflow?.answer_format==='facts'} older={turn!==turns.at(-1)}/>}<ChatResources trace={turn.trace}/>{turn.error_code&&turn.error_code!=='ASSISTANT_STOPPED'&&<details className="assistant-error-code"><summary>Технические сведения</summary><p>Код: {turn.error_code}</p></details>}{turn.status==='failed'&&!turn.workflow&&<Button size="sm" variant="secondary" onClick={()=>onRetry(turn.content)}>Повторить запрос</Button>}{(actionsByTurn.get(turn.turn_id)??[]).map(action=><ActionCard key={action.action_id} action={action} title={names[action.tool_name]??action.tool_name} attachments={attachments} onChanged={onChanged}/>)}</div></article>)}
     {(actionsByTurn.get(null)??[]).map(action=><ActionCard key={action.action_id} action={action} title={names[action.tool_name]??action.tool_name} attachments={attachments} onChanged={onChanged}/>)}
   </>;
 });
@@ -93,6 +105,7 @@ function Chat({identity,capabilities,initialDraft,onDraftChange,onRefreshList,ti
   const toolCalling=capabilities.prompt_version==='fixrate-tool-calling-v4';
   const [refresh,setRefresh]=useState(0),[offset,setOffset]=useState(0),[sending,setSending]=useState(false),[uploading,setUploading]=useState(false),[error,setError]=useState(''),[showJump,setShowJump]=useState(false);
   const composer = useRef<ComposerHandle>(null);
+  const uploadInFlight=useRef(false);
   const [localFiles,setLocalFiles]=useState<ChatAttachment[]>([]),[excludedFiles,setExcludedFiles]=useState<string[]>([]);
   const attempt=useRef({signature:'',key:crypto.randomUUID()}),last=useRef<ChatView|null>(null);
   const resumeAttempts=useRef(new Map<string,string>());
@@ -116,9 +129,24 @@ function Chat({identity,capabilities,initialDraft,onDraftChange,onRefreshList,ti
   if(!data)return query.status==='error'?<ErrorState description={query.error} action={<Button onClick={()=>setRefresh(n=>n+1)}>Повторить загрузку</Button>}/>:<LoadingState label="Загрузка диалога"/>;
   const stop=async()=>{const turn=data.turns.find(t=>t.status==='running');if(!turn||sending)return;setSending(true);setError('');try{await api.stop(identity,turn.turn_id);refreshAll();}catch(e){setError(e instanceof Error?e.message:'Не удалось остановить ответ');}finally{setSending(false);}};
   const files=Array.from(new Map([...(data.pending_attachments??[]),...localFiles].map(file=>[file.attachment_id,file])).values()).filter(file=>!excludedFiles.includes(file.attachment_id)).sort((a,b)=>a.created_at.localeCompare(b.created_at)||a.attachment_id.localeCompare(b.attachment_id));
-  const upload=async(file:File)=>{if(file.type.startsWith('image/')&&files.filter(f=>f.mime_type.startsWith('image/')).length>=4){setError('К одному сообщению можно отправить не больше четырёх изображений');return;}setUploading(true);setError('');try{const saved=await api.upload(identity,file);setLocalFiles(current=>[...current.filter(f=>f.attachment_id!==saved.attachment_id),saved]);setExcludedFiles(ids=>ids.filter(id=>id!==saved.attachment_id));refreshAll();}catch(e){setError(e instanceof Error?e.message:'Не удалось прикрепить файл');}finally{setUploading(false);}};
+  const upload=async(batch:File[])=>{
+    if(uploadInFlight.current||sending||running)return;
+    if(files.length+batch.length>20){setError('К одному сообщению можно прикрепить не больше 20 файлов');return;}
+    if(files.filter(f=>isChatPhoto(f.mime_type)).length+batch.filter(f=>f.type.startsWith('image/')).length>4){
+      setError('К одному сообщению можно отправить не больше четырёх изображений');return;
+    }
+    uploadInFlight.current=true;setUploading(true);setError('');
+    try{
+      for(const file of batch){
+        const saved=await api.upload(identity,file);
+        setLocalFiles(current=>[...current.filter(f=>f.attachment_id!==saved.attachment_id),saved]);
+        setExcludedFiles(ids=>ids.filter(id=>id!==saved.attachment_id));
+      }
+    }catch(e){setError(e instanceof Error?e.message:'Не удалось прикрепить файл');}
+    finally{uploadInFlight.current=false;setUploading(false);refreshAll();}
+  };
   const send=async(draft:string)=>{
-    if((!draft.trim()&&!files.length)||sending||running||uploading)return;
+    if((!draft.trim()&&!files.length)||sending||running||uploadInFlight.current)return;
     const text=draft.trim(),ids=files.map(f=>f.attachment_id);
     let resumeTurnId: string | undefined;
     if(!toolCalling&&/^факты\s*:/i.test(text)){
@@ -208,7 +236,7 @@ function Workspace(){
   const refreshList=useCallback(()=>setRefresh(n=>n+1),[]);
   const select=(id:string)=>{setParams({chat:id});setHistoryOpen(false);};
   const launch=useConversationStart({
-    model:modelPreference,subjectTaskId,onModelChange:setModelOverride,
+    model:modelPreference,subjectTaskId,onModelChange:setModelOverride,readDraft:()=>welcomeDraft.current,
     onOpen(id,remainingDraft){
       const rect=welcome.current?.querySelector('form')?.getBoundingClientRect();
       setEntry({id,draft:remainingDraft,rect});
@@ -228,13 +256,13 @@ function Workspace(){
   return <div className="assistant-workspace" data-chat-open={identity&&!showActions ? "" : undefined} data-composer-pending={entryRect ? "" : undefined} data-history-visible={!showActions&&(narrow?historyOpen:showDesktopHistory)}>
     <div className="assistant-center" inert={drawerOpen} aria-hidden={drawerOpen||undefined}>
       <header className="assistant-toolbar">
-        <h1>ИИ-помощник</h1>
+        <h1 className="sr-only">ИИ-помощник</h1>
+        <nav className="assistant-sections" aria-label="Разделы помощника">
+          <Link to={{search:chatParams.toString()}} aria-current={showActions?undefined:'page'}>Диалоги</Link>
+          <Link to={{search:actionParams.toString()}} aria-current={showActions?'page':undefined}>История действий</Link>
+        </nav>
         {!showActions&&caps.status==='success'&&<div className="assistant-toolbar-pill" role="group" aria-label="Управление чатом"><button type="button" aria-label={narrow?'Открыть историю чатов':showDesktopHistory?'Свернуть историю чатов':'Развернуть историю чатов'} title={narrow?'История чатов':showDesktopHistory?'Свернуть историю':'Развернуть историю'} aria-expanded={narrow?historyOpen:showDesktopHistory} aria-controls="assistant-history" onClick={toggleHistory}><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M15 3v18"/></svg></button><button type="button" aria-label="Новый чат" title="Новый чат" onClick={fresh}><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 20l-3 1 1-4a9 9 0 1 1 4 3"/><path d="M12 7v8m-4-4h8"/></svg></button></div>}
       </header>
-      <nav className="assistant-sections" aria-label="Разделы помощника">
-        <Link to={{search:chatParams.toString()}} aria-current={showActions?undefined:'page'}>Диалоги</Link>
-        <Link to={{search:actionParams.toString()}} aria-current={showActions?'page':undefined}>История действий</Link>
-      </nav>
       {showActions&&<ActionHistory timezone={timezone}/>}
       <div className="assistant-dialog-panel" hidden={showActions}>
       {caps.status==='loading'&&<LoadingState label="Загрузка помощника"/>}
@@ -247,7 +275,7 @@ function Workspace(){
           <div className="assistant-greeting"><h2>С чего начнём?</h2></div>
           <p className="assistant-welcome-caption">{subjectTaskId?"Диалог по выбранному наряду: задайте вопрос или приложите фото.":executor?"Инструкции, фото и вопросы по вашим заданиям.":"Работы, оборудование, команда и планы."}</p>
           <AssistantComposer ref={welcomeComposer} showMark initialDraft={welcomeDraft.current} onDraftChange={text=>{welcomeDraft.current=text;}} onSend={text=>void launch.start(text)}
-            onUpload={(file,text)=>void launch.start(text,{file})} busy={launch.operation==="send"} uploading={launch.operation==="upload"}
+            onUpload={(files,text)=>void launch.start(text,{files})} busy={launch.operation==="send"} uploading={launch.operation==="upload"}
             running={false} available={caps.data.available} modelPreference={modelPreference} onModelChange={setModelOverride}/>
           <div className="assistant-starters">{starters.map(preset=><button type="button" key={preset.label} disabled={!!launch.operation||!(modelPreference?.available??caps.data.available)}
             onClick={()=>void launch.start(preset.prompt,{remainingDraft:welcomeDraft.current})}>{preset.label}</button>)}</div>

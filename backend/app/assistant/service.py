@@ -165,6 +165,8 @@ async def propose(app,session,principal,thread,tool,args,explanation,headers,tur
         if workflow_goal_id:
             existing=session.scalar(text('SELECT action_id FROM assistant_actions WHERE workflow_root_turn_id=:root AND workflow_goal_id=:goal'),dict(root=workflow_root_turn_id,goal=workflow_goal_id))
             if existing:return public_action(action(session,principal,existing))
+    if tool.name=='report_attach_and_submit' and (not turn_id or legacy_turn):
+        raise HTTPException(403,'Подготовьте действие в диалоге v4.')
     args=validate_arguments(app,tool,args)
     explicit=None
     if legacy_turn:
@@ -405,7 +407,12 @@ async def confirm(app,session,principal,row,headers,secret_values=None):
     # Claim before dispatch. Repeated confirmation will never dispatch this action twice.
     session.commit()
     try:
-        value=await invoke(app,tool,arguments,headers)
+        from .attachments import CONFIRMED_REPORT
+        confirmed=CONFIRMED_REPORT.set(tool.name=='report_attach_and_submit')
+        try:
+            value=await invoke(app,tool,arguments,headers)
+        finally:
+            CONFIRMED_REPORT.reset(confirmed)
         from .action_outcomes import verify_action
         verification=await verify_action(app,tool,arguments,value,headers,before=before)
         if tool.name=='profile_email' or (tool.name=='staff_edit' and str(arguments.get('path',{}).get('user_id'))==str(principal.user_id)):

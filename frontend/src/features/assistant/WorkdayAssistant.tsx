@@ -23,6 +23,7 @@ export function WorkdayAssistant({executor = false}: {executor?: boolean}) {
   const preference = model && model.revision >= (serverModel?.revision ?? 0) ? model : serverModel;
   const start = useConversationStart({
     model: preference,
+    readDraft: () => draft.current,
     onModelChange: setModel,
     onOpen(id, remainingDraft) {
       transferAssistantDraft(cache, id, remainingDraft, entry.current?.querySelector('form')?.getBoundingClientRect());
@@ -37,7 +38,7 @@ export function WorkdayAssistant({executor = false}: {executor?: boolean}) {
   return <section ref={entry} className="e3-workday-assistant" aria-label="FixRate AI" onFocus={warm} onPointerEnter={warm}>
     <AssistantComposer ref={composer} showMark available={available} running={false} onDraftChange={text => { draft.current = text; }}
       busy={start.operation === 'send'} uploading={start.operation === 'upload'}
-      onSend={text => void start.start(text)} onUpload={(file, text) => void start.start(text, {file})}
+      onSend={text => void start.start(text)} onUpload={(files, text) => void start.start(text, {files})}
       modelPreference={preference} onModelChange={setModel}/>
     <div className="e3-starters">
       {starters.map(preset => <button type="button" key={preset.label} disabled={!!start.operation || !(preference?.available ?? available)}

@@ -15,7 +15,7 @@ from uuid import UUID
 from sqlalchemy import text
 
 EQUIPMENT = {'equipment_create', 'equipment_edit'}
-TASKS = {'task_assign', 'task_cancel', 'task_start', 'report_save', 'report_submit', 'report_review'}
+TASKS = {'task_assign', 'task_cancel', 'task_start', 'report_save', 'report_submit', 'report_review', 'report_attach_and_submit'}
 SUPPORTED = EQUIPMENT | TASKS | {'staff_edit'}
 _SUMMARIES = {
     'confirmed': 'Изменение проверено по сохранённому состоянию.',
@@ -321,13 +321,41 @@ def verify_postcondition(tool_name, arguments, receipt, before=None, after=None)
     if old and _revision(old.get('revision')) != expected_revision - 1:
         return result('unverified', 'before_revision_mismatch')
     try:
-        check = _equipment_checks if equipment else _task_checks
-        checks = check(tool_name, body, before, receipt) + check(tool_name, body, before, after)
+        if tool_name == 'report_attach_and_submit':
+            ids = receipt['attached_photo_ids']
+            outcome = receipt['submission']
+            state = {'submitted':'submitted', 'draft_incomplete':'in_progress'}[outcome]
+            old_photos = {p['id'] for p in before['execution']['photos']}
+            checks = [len(set(ids)) == len(body['photos']) == len(ids), not set(ids) & old_photos,
+                      all(_uuid(identity) for identity in ids)]
+            for value in (receipt, after):
+                report = value['execution']
+                photos = {p['id']: p for p in report['photos']}
+                checks += [value['task']['state'] == state, report['id'] == body['execution_id'],
+                           value['task']['activeExecutionId'] == report['id'],
+                           set(photos) == old_photos | set(ids),
+                           (_instant(report['submittedAt']) is not None) == (outcome == 'submitted')]
+                for identity, binding in zip(ids, body['photos'], strict=True):
+                    photo = photos.get(identity, {})
+                    checks += [photo.get('phase') == binding['phase'],
+                               photo.get('viewKey') == binding['view_key'],
+                               photo.get('checklistItemId') == binding['checklist_item_id']]
+        else:
+            check = _equipment_checks if equipment else _task_checks
+            checks = check(tool_name, body, before, receipt) + check(tool_name, body, before, after)
     except (ValueError, TypeError, KeyError, AttributeError):
         return result('unverified', 'unsupported_result_shape')
     if not checks or not all(checks):
         return result('failed', 'postcondition_mismatch', checks)
-    return result('confirmed', 'postcondition_verified', checks)
+    verified = result('confirmed', 'postcondition_verified', checks)
+    if tool_name == 'report_attach_and_submit':
+        if receipt['submission'] == 'submitted':
+            verified['summary'] = 'Фото прикреплены. Отчёт передан инженеру на проверку.'
+        else:
+            details = '; '.join(receipt.get('missing_materials', [])[:12]) or receipt.get('submission_block')
+            verified['summary'] = ('Фото сохранены в черновике. Отчёт не отправлен: '
+                                   + (details or 'комплект неполный.'))[:1800]
+    return verified
 
 
 async def verify_action(app, tool, arguments, receipt, headers, before=None):

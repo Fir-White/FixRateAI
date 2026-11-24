@@ -7408,6 +7408,49 @@
       "operator": "unavailable"
     },
     {
+      "name": "report_attach_and_submit",
+      "title": "Прикрепить фото и сдать полный отчёт",
+      "method": "POST",
+      "path": "/api/v1/assistant/workspace/tasks/{task_id}/attach-and-submit",
+      "roles": [
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "operations",
+      "handler": "app.main:create_app.<locals>.attach_and_submit",
+      "operation_id": "attach_and_submit_api_v1_assistant_workspace_tasks__task_id__attach_and_submit_post",
+      "argument_fields": {
+        "path": [
+          "task_id"
+        ],
+        "query": [],
+        "body": [
+          "execution_id",
+          "expected_revision",
+          "photos"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "task_read",
+      "operator": "confirmation"
+    },
+    {
       "name": "photo_read",
       "title": "Открыть фотографию отчёта",
       "method": "GET",

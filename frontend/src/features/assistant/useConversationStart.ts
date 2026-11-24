@@ -5,11 +5,12 @@ import { ApiError } from '@/shared/api/request';
 type StartOptions = {
   model?: ChatModelPreference;
   subjectTaskId?: string;
+  readDraft?: () => string;
   onModelChange: (model: ChatModelPreference) => void;
   onOpen: (id: string, draft: string) => void;
 };
 
-export function useConversationStart({model, subjectTaskId, onModelChange, onOpen}: StartOptions) {
+export function useConversationStart({model, subjectTaskId, readDraft, onModelChange, onOpen}: StartOptions) {
   const creation = useRef<Promise<string> | null>(null);
   const attempt = useRef<{payload: string; key: string} | null>(null);
   const version = useRef(0);
@@ -28,13 +29,17 @@ export function useConversationStart({model, subjectTaskId, onModelChange, onOpe
     setOperation(null);
   }
 
-  async function start(text: string, {file, remainingDraft = file ? text : ''}: {file?: File; remainingDraft?: string} = {}) {
+  async function start(text: string, {files = [], remainingDraft = files.length ? text : ''}: {files?: File[]; remainingDraft?: string} = {}) {
     const message = text.trim();
-    if (running.current || (!file && !message)) return;
+    if (running.current || (!files.length && !message)) return;
+    if (files.length > 4) {
+      setError('К одному сообщению можно отправить не больше четырёх изображений');
+      return;
+    }
     const activeVersion = version.current;
     running.current = true;
     setError('');
-    setOperation(file ? 'upload' : 'send');
+    setOperation(files.length ? 'upload' : 'send');
     try {
       if (!creation.current) {
         const created = subjectTaskId ? api.create('assistant', subjectTaskId) : api.create('assistant');
@@ -45,14 +50,17 @@ export function useConversationStart({model, subjectTaskId, onModelChange, onOpe
       }
       const id = await creation.current;
       if (activeVersion !== version.current) return;
-      if (file) {
-        await api.upload(id, file);
+      if (files.length) {
+        for (const file of files) {
+          if (activeVersion !== version.current) return;
+          await api.upload(id, file);
+        }
       } else {
         const payload = JSON.stringify([id, message, model?.revision]);
         if (attempt.current?.payload !== payload) attempt.current = {payload, key: crypto.randomUUID()};
         await api.send(id, message, attempt.current.key, [], model?.revision);
       }
-      if (activeVersion === version.current) onOpen(id, remainingDraft);
+      if (activeVersion === version.current) onOpen(id, files.length ? readDraft?.() ?? remainingDraft : remainingDraft);
     } catch (failure) {
       if (activeVersion !== version.current) return;
       setError(failure instanceof Error ? failure.message : 'Не удалось начать диалог');

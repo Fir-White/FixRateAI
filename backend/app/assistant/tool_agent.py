@@ -114,6 +114,7 @@ async def _continue_assignment(client, tools, dialogue, current, historical_chec
 class Observation:
     result: dict
     images: tuple[str, ...] = ()
+    resources: tuple[dict, ...] = ()
 
 
 async def run_loop(client, messages, specs, dispatch, check, *, evidence=None, on_event=None, seconds=120):
@@ -185,10 +186,12 @@ async def run_loop(client, messages, specs, dispatch, check, *, evidence=None, o
             else:
                 started = time.monotonic()
                 used += 1
+                resources = ()
                 try:
                     observed = await asyncio.wait_for(dispatch(name, args), max(0, deadline-time.monotonic()))
                     if isinstance(observed, Observation):
                         result = observed.result
+                        resources = observed.resources
                         selected = observed.images[:max(0, 4 - image_count)]
                         image_count += len(selected)
                         photos = []
@@ -212,8 +215,13 @@ async def run_loop(client, messages, specs, dispatch, check, *, evidence=None, o
                     on_event(dict(tool=name, status='denied' if isinstance(result, dict) and result.get('ok') is False
                         else 'proposed' if isinstance(result, dict) and result.get('status') == 'awaiting_confirmation'
                         else 'completed', seconds=round(time.monotonic() - started, 3)))
+                    for resource in resources:
+                        on_event(dict(tool='__photo_resource', status='completed', resource=resource))
                 if name == 'propose_assignment' and result.get('action_id') and result.get('status') == 'awaiting_confirmation':
                     return _assignment_answer(result), evidence
+                if name == 'propose_report_attach_and_submit' and result.get('action_id') and result.get('status') == 'awaiting_confirmation':
+                    return ('Проверьте привязку снимков в карточке. После подтверждения фото сохранятся, '
+                            'а отчёт уйдёт инженеру только при полном комплекте.'), evidence
             messages.append(dict(role='tool', tool_call_id=call['id'], tool_name=name, content=service.dump(result)))
         messages.extend(visual_messages)
     raise TimeoutError
@@ -270,7 +278,8 @@ async def run(app, principal, thread_id, turn_id, headers):
 
     def event(value):
         trace.append(value)
-        service.progress(app, turn_id, trace)
+        if value['tool'] != '__photo_resource':
+            service.progress(app, turn_id, trace)
 
     try:
         with app.state.factory() as session:
@@ -291,6 +300,15 @@ async def run(app, principal, thread_id, turn_id, headers):
             files = session.execute(text('''SELECT a.* FROM assistant_attachments a
                 JOIN assistant_turn_attachments f USING (conversation_id,attachment_id)
                 WHERE f.turn_id=:id ORDER BY f.position'''), dict(id=turn_id)).mappings().all()
+            earlier_photos = []
+            if principal.role == 'executor' and not any(row['mime_type'].startswith('image/') for row in files):
+                earlier_photos = session.execute(text("""SELECT a.* FROM assistant_turn_attachments f
+                    JOIN assistant_attachments a USING (conversation_id,attachment_id)
+                    WHERE a.mime_type LIKE 'image/%' AND f.turn_id=(
+                        SELECT t.turn_id FROM assistant_turns t
+                        WHERE t.conversation_id=:chat AND t.status='completed'
+                        ORDER BY t.created_at DESC,t.turn_id DESC LIMIT 1)
+                    ORDER BY f.position LIMIT 4"""), dict(chat=thread_id)).mappings().all()
             known = conversation_enrollment_values(session, principal, thread_id)
         stamp = datetime.now(ZoneInfo(principal.timezone))
         prompt = (service.PROMPTS/'tool-agent.md').read_text(encoding='utf-8')
@@ -326,7 +344,8 @@ async def run(app, principal, thread_id, turn_id, headers):
         while len(previous_results) > 1 and len(service.dump(previous_results)) > 24000:
             previous_results.pop(0)
         tools = ToolSession(app, principal, thread, turn_id, headers, files, local_date=stamp.date(),
-                            last_selected_day=last_selected_day)
+                             last_selected_day=last_selected_day, earlier_photos=earlier_photos,
+                             question=turn['content'])
         subject = None
         if thread.get('subject_task_id'):
             check()
@@ -342,6 +361,7 @@ async def run(app, principal, thread_id, turn_id, headers):
         messages.append(dict(role='user', content=service.dump(mask_known_outputs(dict(
             kind='context_data', role=principal.role, site_name=principal.site_name, previous_results=previous_results,
             last_work_order_filters=last_search,
+            earlier_report_photos=[public(row) for row in earlier_photos],
             action_cards=[dict(row) for row in actions], selected_work_order=subject), known))))
         question = mask_known_outputs(turn['content'], known)
         current = dict(role='user', content=question)

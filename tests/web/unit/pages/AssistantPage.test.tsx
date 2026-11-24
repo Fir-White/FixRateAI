@@ -1,5 +1,5 @@
 import {beforeEach,expect,it,vi} from 'vitest';
-import {render,screen,waitFor} from '@testing-library/react';
+import {fireEvent,render,screen,waitFor,within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {MemoryRouter} from 'react-router-dom';
 import {AssistantPage} from '@/pages/AssistantPage';
@@ -11,6 +11,47 @@ const chat={conversation_id:'chat',title:'Мой диалог',agent:'assistant'
 const view:ChatView={conversation:chat,turns:[],total:0,actions:[]};
 beforeEach(()=>{vi.restoreAllMocks();vi.spyOn(api,'capabilities').mockResolvedValue(caps);vi.spyOn(api,'list').mockResolvedValue({items:[chat],total:1});vi.spyOn(api,'read').mockResolvedValue(view);vi.spyOn(api,'send').mockResolvedValue({turn_id:'new',status:'running'});});
 function show(path='/assistant?chat=chat'){return render(<WorkspaceStateScope.Provider value="TEST:TEST-SITE:chief_engineer"><MemoryRouter initialEntries={[path]}><AssistantPage/></MemoryRouter></WorkspaceStateScope.Provider>);}
+it('stages pasted screenshots without sending or changing the draft',async()=>{
+  const user=userEvent.setup();
+  const file=new File(['image'],'clipboard.png',{type:'image/png'});
+  const upload=vi.spyOn(api,'upload').mockResolvedValue({attachment_id:'photo',original_name:'clipboard.png',mime_type:'image/png',size_bytes:5,created_at:'2026-11-14',sha256:'a'.repeat(64)});
+  show();const input=await screen.findByLabelText('Сообщение помощнику');
+  await user.type(input,'Проверь снимок');
+  fireEvent.paste(input,{clipboardData:{files:[file]}});
+  expect(await screen.findByRole('button',{name:'Открыть фото: clipboard.png'})).toBeVisible();
+  expect(upload).toHaveBeenCalledWith('chat',file);
+  expect(input).toHaveValue('Проверь снимок');
+  expect(api.send).not.toHaveBeenCalled();
+});
+it('keeps text typed while the first screenshot uploads in a new chat',async()=>{
+  const user=userEvent.setup();
+  const photo={attachment_id:'photo',original_name:'clip.png',mime_type:'image/png',size_bytes:5,created_at:'2026-11-14',sha256:'a'.repeat(64)};
+  vi.spyOn(api,'create').mockResolvedValue(chat);
+  let finish!: (value:typeof photo)=>void;
+  const upload=vi.spyOn(api,'upload').mockReturnValue(new Promise(resolve=>{finish=resolve;}));
+  vi.mocked(api.read).mockResolvedValue({...view,pending_attachments:[photo]});
+  show('/assistant');
+  const input=await screen.findByLabelText('Сообщение помощнику');
+  fireEvent.paste(input,{clipboardData:{files:[new File(['image'],'clip.png',{type:'image/png'})]}});
+  await waitFor(()=>expect(upload).toHaveBeenCalledOnce());
+  await user.type(input,'Уточнение');
+  finish(photo);
+  await screen.findByRole('list',{name:'Вложения к сообщению'});
+  expect(screen.getByLabelText('Сообщение помощнику')).toHaveValue('Уточнение');
+  expect(api.send).not.toHaveBeenCalled();
+});
+it('opens a previously sent photo in the chat and returns focus on Escape',async()=>{
+  const user=userEvent.setup();
+  vi.mocked(api.read).mockResolvedValue({...view,total:1,turns:[{turn_id:'sent',content:'Фото до работы',answer:'Получено',status:'completed',error_code:null,trace:[],created_at:'2026-11-14T08:15:00Z',model_ref:null,attachments:[{attachment_id:'photo',original_name:'до.png',mime_type:'image/png',size_bytes:5,created_at:'2026-11-14',sha256:'a'.repeat(64)}]}]});
+  show();
+  const thumbnail=await screen.findByRole('button',{name:'Открыть фото: до.png'});
+  await user.click(thumbnail);
+  const preview=within(screen.getByRole('dialog',{name:'до.png'})).getByRole('img',{name:'до.png'});
+  expect(preview).toHaveAttribute('src','/api/v1/assistant/attachments/photo');
+  await user.keyboard('{Escape}');
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(thumbnail).toHaveFocus();
+});
 it('resumes the saved task with a stable source and keeps the composer draft',async()=>{
   const user=userEvent.setup();
   vi.mocked(api.read).mockResolvedValue({...view,total:1,turns:[{turn_id:'saved-task',content:'Проверь два пункта',answer:'Первый проверен',status:'completed',error_code:null,trace:[],created_at:'2026-11-14T08:15:00Z',model_ref:null,workflow:{outcome:'partial',goals:[{id:'done',title:'Первый пункт',status:'completed'},{id:'pending',title:'Второй пункт',status:'blocked'}]}}]});

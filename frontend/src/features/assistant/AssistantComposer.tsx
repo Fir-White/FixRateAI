@@ -2,12 +2,13 @@ import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, u
 import type { ChatModelPreference, ChatView } from '@/shared/api/assistant';
 import { Icon } from '@/shared/ui/Icon';
 import { ChatModelPicker } from './ChatModelPicker';
+import { attachmentUrl, ChatPhoto, isChatPhoto } from './ChatPhoto';
 import './assistant.css';
 
 export type ModelControls={modelPreference?:ChatModelPreference;onModelChange:(value:ChatModelPreference)=>void};
 export type ComposerHandle = { replaceDraft: (text: string) => void; focus: () => void };
 
-export function AssistantComposer({ref,initialDraft='',onDraftChange,onSend,onUpload,onRemove,onStop,busy,uploading,running,available,attachments,compact=false,showMark=false,entryRect,onEntryComplete,modelPreference,onModelChange}:{ref?:Ref<ComposerHandle>;initialDraft?:string;onDraftChange?:(text:string)=>void;onSend:(text:string)=>void;onUpload:(file:File,text:string)=>void;onRemove?:(id:string)=>void;onStop?:()=>void;busy:boolean;uploading:boolean;running:boolean;available:boolean;attachments?:ChatView['attachments'];compact?:boolean;showMark?:boolean;entryRect?:DOMRectReadOnly;onEntryComplete?:()=>void}&ModelControls){
+export function AssistantComposer({ref,initialDraft='',onDraftChange,onSend,onUpload,onRemove,onStop,busy,uploading,running,available,attachments,compact=false,showMark=false,entryRect,onEntryComplete,modelPreference,onModelChange}:{ref?:Ref<ComposerHandle>;initialDraft?:string;onDraftChange?:(text:string)=>void;onSend:(text:string)=>void;onUpload:(files:File[],text:string)=>void;onRemove?:(id:string)=>void;onStop?:()=>void;busy:boolean;uploading:boolean;running:boolean;available:boolean;attachments?:ChatView['attachments'];compact?:boolean;showMark?:boolean;entryRect?:DOMRectReadOnly;onEntryComplete?:()=>void}&ModelControls){
   const input=useRef<HTMLTextAreaElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const form=useRef<HTMLFormElement>(null);
@@ -69,14 +70,20 @@ export function AssistantComposer({ref,initialDraft='',onDraftChange,onSend,onUp
     return () => animation.cancel();
   }, [entryRect, onEntryComplete]);
   const [modelSaving,setModelSaving]=useState(false);
+  const uploadBlocked=busy||uploading||running||modelSaving;
   const canSend=(modelPreference?.available??available)&&!modelSaving&&!busy&&!running&&!uploading&&(hasText||!!attachments?.length);
   const submit = () => { if (canSend && input.current) onSend(input.current.value); };
   return <div className="assistant-composer-wrap">
-    <form ref={form} className="assistant-composer" onSubmit={e=>{e.preventDefault();submit();}} aria-label="Написать помощнику">
+    <form ref={form} className="assistant-composer" onSubmit={e=>{e.preventDefault();submit();}} aria-label="Написать помощнику" onPaste={e=>{
+      const images=Array.from(e.clipboardData.files).filter(file=>file.type.startsWith('image/'));
+      if(!images.length)return;
+      e.preventDefault();
+      if(!uploadBlocked)onUpload(images,input.current?.value??'');
+    }}>
       {showMark && <div className="assistant-composer-mark"><Icon name="assistant" size={20}/>FixRate AI</div>}
-      {(attachments?.length??0)>0&&<ul aria-label="Вложения к сообщению" className="assistant-attachments">{attachments?.map(file=><li key={file.attachment_id}><a href={`/api/v1/assistant/attachments/${encodeURIComponent(file.attachment_id)}`} target="_blank" rel="noreferrer">{file.original_name}</a><span>{Math.ceil(file.size_bytes/1024)} КБ</span>{onRemove&&<button type="button" aria-label={`Убрать файл ${file.original_name}`} disabled={busy} onClick={()=>onRemove(file.attachment_id)}><Icon name="close" size={14}/></button>}</li>)}</ul>}
+      {(attachments?.length??0)>0&&<ul aria-label="Вложения к сообщению" className="assistant-attachments">{attachments?.map(file=><li key={file.attachment_id}>{isChatPhoto(file.mime_type)?<ChatPhoto url={attachmentUrl(file.attachment_id)} title={file.original_name} compact/>:<a href={attachmentUrl(file.attachment_id)} target="_blank" rel="noreferrer">{file.original_name}</a>}<span>{Math.ceil(file.size_bytes/1024)} КБ</span>{onRemove&&<button className="assistant-attachment-remove" type="button" aria-label={`Убрать файл ${file.original_name}`} disabled={busy} onClick={()=>onRemove(file.attachment_id)}><Icon name="close" size={14}/></button>}</li>)}</ul>}
       <label className="sr-only" htmlFor="assistant-message">Сообщение помощнику</label><textarea ref={input} id="assistant-message" defaultValue={startingText.current} maxLength={12000} rows={compact?1:2} placeholder={compact?"Сообщение помощнику":"Что нужно сделать сегодня?"} disabled={busy} onChange={e=>draftChanged(e.currentTarget.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();submit();}}}/>
-      <div className="assistant-composer-actions"><label className={`assistant-attach ${busy||uploading||running||modelSaving?'is-disabled':''}`} title="XLSX, JPEG, PNG, WebP до 10 МиБ"><Icon name="plus" size={20}/><span>{uploading?'Загрузка…':'Файл или фото'}</span><input ref={fileInput} className="sr-only" type="file" accept=".xlsx,.png,.jpg,.jpeg,.webp" aria-label="Прикрепить файл" disabled={busy||uploading||running||modelSaving} onChange={e=>{const file=e.target.files?.[0];if(file)onUpload(file,input.current?.value??'');e.currentTarget.value='';}}/></label><ChatModelPicker preference={modelPreference} disabled={busy||uploading||running} onChange={onModelChange} onBusy={setModelSaving}/>{running?<button className="assistant-send" type="button" aria-label="Остановить ответ" title="Остановить ответ" disabled={busy} onClick={onStop}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>:<button className="assistant-send" type="submit" aria-label="Отправить" disabled={!canSend} title="Отправить сообщение"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg></button>}</div>
+      <div className="assistant-composer-actions"><label className={`assistant-attach ${uploadBlocked?'is-disabled':''}`} title="Выберите файл или вставьте снимок (Ctrl+V / ⌘V). XLSX, JPEG, PNG, WebP до 10 МиБ"><Icon name="plus" size={20}/><span>{uploading?'Загрузка…':'Файл или фото'}</span><input ref={fileInput} className="sr-only" type="file" accept=".xlsx,.png,.jpg,.jpeg,.webp" aria-label="Прикрепить файл" disabled={uploadBlocked} onChange={e=>{const file=e.target.files?.[0];if(file)onUpload([file],input.current?.value??'');e.currentTarget.value='';}}/></label><ChatModelPicker preference={modelPreference} disabled={busy||uploading||running} onChange={onModelChange} onBusy={setModelSaving}/>{running?<button className="assistant-send" type="button" aria-label="Остановить ответ" title="Остановить ответ" disabled={busy} onClick={onStop}><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>:<button className="assistant-send" type="submit" aria-label="Отправить" disabled={!canSend} title="Отправить сообщение"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg></button>}</div>
     </form><p className="assistant-disclaimer">Изменения — только после вашего подтверждения. Проверяйте ответы ИИ.</p>
   </div>;
 }

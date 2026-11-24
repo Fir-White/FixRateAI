@@ -74,6 +74,8 @@ def extra_tools(T,P,ALL,PLAN,EDIT,OPERATE):
       T('comparison_read','Объяснение выбранного прогноза','GET',P+'/ui/comparisons/{run_id}',READ),
       T('quality_list','Очередь отчётов на приёмку','GET',P+'/ui/quality',('chief_engineer','engineer')),
       T('photo_upload','Прикрепить фотографию к отчёту','POST',P+'/tasks/{task_id}/photos',WORKER,'write',before='task_read'),
+      T('report_attach_and_submit','Прикрепить фото и сдать полный отчёт','POST',
+        '/api/v1/assistant/workspace/tasks/{task_id}/attach-and-submit',('executor',),'write',before='task_read'),
       T('photo_read','Открыть фотографию отчёта','GET',P+'/photos/{photo_id}',ALL),
       T('act_upload','Прикрепить подтверждающий акт','POST',P+'/tasks/{task_id}/acts',WORKER,'write',before='task_read'),
       T('act_verify','Проверить подтверждающий акт','POST',P+'/tasks/{task_id}/acts/{identity}/verify',('chief_engineer','engineer'),'write',before='task_read'),

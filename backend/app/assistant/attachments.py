@@ -9,6 +9,7 @@ from app.storage import safe_storage_path
 
 SCOPE=ContextVar('assistant_attachment_scope',default=None)
 COOKIE_EFFECTS=ContextVar('assistant_cookie_effects',default=None)
+CONFIRMED_REPORT=ContextVar('assistant_confirmed_report',default=False)
 HUMAN_SECRET='__human_secret__'
 MAX_FILE=10485760
 

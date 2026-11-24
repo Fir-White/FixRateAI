@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 from sqlalchemy import text
 
+from app.schemas.assistant import ReportAttachAndSubmit
 from . import service
 from .attachments import MAX_FILE, jpeg_input
 from .tool_agent import Observation
@@ -58,6 +59,9 @@ class WorkOrders(Arguments):
 
 
 class WorkOrder(Arguments):
+    task_id: UUID
+
+class ProposedReport(ReportAttachAndSubmit):
     task_id: UUID
 
 
@@ -191,13 +195,41 @@ def _same_assignment(before, after):
     return comparable(before) == comparable(after)
 
 
+_PHASES = {'до':'before', 'после':'after'}
+_PHOTO_SOURCE_WORDS = {'фото', 'снимок', 'кадр', 'скриншот'}
+
+
+def _photo_labels(question, allow_single):
+    """Accept only explicit labels, e.g. «фото 1 — до; фото 2 — после»."""
+    clauses = question.casefold().translate(str.maketrans('.,:;!?', '\n'*6)).splitlines()
+    values = {}
+    for clause in clauses:
+        words = clause.translate(str.maketrans({symbol:' ' for symbol in '—–()[]"«»'})).split()
+        if words[-1:] == ['работы']:
+            words.pop()
+        if not words or words[-1] not in _PHASES:
+            continue
+        phase = _PHASES[words.pop()]
+        if words[-1:] == ['-']:
+            words.pop()
+        if len(words)>=2 and words[-2] in _PHOTO_SOURCE_WORDS and words[-1] in ('1','2','3','4'):
+            values.setdefault(int(words[-1]),set()).add(phase)
+        elif allow_single and words and words[-1] in _PHOTO_SOURCE_WORDS:
+            values.setdefault(1,set()).add(phase)
+    return {index:next(iter(phases)) for index,phases in values.items()} if all(len(phases)==1 for phases in values.values()) else {}
+
+
 class ToolSession:
     def __init__(self, app, principal, thread, turn_id, headers, files, *, local_date: date,
-                 last_selected_day: date | None = None):
+                 last_selected_day: date | None = None, earlier_photos=(), question=''):
         self.app, self.principal, self.thread, self.turn_id, self.headers = app, principal, thread, turn_id, headers
         self.local_date = local_date
         self.last_selected_day = last_selected_day
+        self.question = question
         self.files = {row['attachment_id']: row for row in files}
+        self.report_files = {row['attachment_id']: row for row in files if row['mime_type'].startswith('image/')}
+        if not self.report_files:
+            self.report_files = {row['attachment_id']: row for row in earlier_photos}
         self.registry = available(app, principal.role, 'assistant')
         self.definition = dict(COMMON) if principal.role in ('engineer', 'executor') else {}
         if not any(row['mime_type'] == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -207,10 +239,16 @@ class ToolSession:
             self.definition.update(ENGINEER)
             if files:
                 self.definition.pop('propose_assignment')
+        if principal.role == 'executor' and self.report_files:
+            self.definition['propose_report_attach_and_submit'] = (ProposedReport,
+                'Подготовить одно подтверждение прикрепления явно отправленных фото и сдачи, только если отчёт полный. '
+                'Только по просьбе исполнителя. Сначала прочитайте выбранный наряд, его ревизию, попытку и пункты. '
+                'Не угадывайте фазу, ракурс и пункт. Не меняет наряд без клика.')
         self.specs = [dict(type='function', function=dict(name=name, description=description,
                       parameters=model.model_json_schema())) for name, (model, description) in self.definition.items()]
         self.proposal = None
         self.scope = {'tasks': set(), 'equipment': set()}
+        self.read_tasks = set()
 
     async def backend(self, name, **args):
         tool = self.registry.get(name)
@@ -278,6 +316,7 @@ class ToolSession:
     async def read_work_order(self, args):
         data = await self.backend('task_read', path=dict(task_id=args.task_id))
         self.scope['tasks'].add(str(args.task_id))
+        self.read_tasks.add(args.task_id)
         data['task']['regulation_equipment_ids'] = data['task'].get('equipmentIds', [])
         decision, report = data.get('decision'), data.get('execution')
         if decision and (report is None or decision['executionId'] != report['id']):
@@ -295,6 +334,55 @@ class ToolSession:
                 data['readiness'] = {key: readiness[key] for key in ('revision', 'execution_id', 'ready',
                     'submission_ready', 'missing_materials', 'acceptance_blocks', 'submission_blocks')}
         return data
+
+    async def propose_report_attach_and_submit(self, args):
+        subject = self.thread.get('subject_task_id')
+        tool = self.registry.get('report_attach_and_submit')
+        if tool is None or (subject and subject != args.task_id):
+            raise HTTPException(403, 'Этот наряд не относится к открытому диалогу.')
+        if self.proposal:
+            raise HTTPException(409, 'Карточка уже подготовлена.')
+        if args.task_id not in self.read_tasks:
+            raise HTTPException(422, 'Сначала прочитайте нужный наряд.')
+        if any(p.attachment_id not in self.report_files for p in args.photos):
+            raise HTTPException(404, 'Используйте только явно отправленные фотографии этого диалога.')
+        positions = {identity:index for index,identity in enumerate(self.report_files, 1)}
+        labels = _photo_labels(self.question, len(positions)==1 and bool(self.files))
+        if {positions[p.attachment_id]:p.phase for p in args.photos} != labels:
+            raise HTTPException(422, 'Укажите фазу каждого выбранного снимка, например: «фото 1 — до, фото 2 — после».')
+        data = await self.backend('task_read', path=dict(task_id=args.task_id))
+        task, report = data['task'], data.get('execution')
+        if not subject:
+            tokens = set(self.question.casefold().translate(str.maketrans(
+                {symbol:' ' for symbol in '/?#&=.,:;!?()[]{}«»„“”"\'`'})).split())
+            tokens = [token for token in tokens if len(token) in (8,36)
+                      and all(symbol in '0123456789abcdef-' for symbol in token)]
+            with self.app.state.factory() as session:
+                targets = session.scalars(text("""SELECT DISTINCT a.work_order_id FROM work_assignments a
+                    WHERE a.site_id=:site AND a.user_id=:user AND a.status NOT IN ('cancelled','declined')
+                    AND (CAST(a.work_order_id AS text)=ANY(:tokens) OR left(CAST(a.work_order_id AS text),8)=ANY(:tokens))
+                    LIMIT 2"""),dict(site=self.principal.site_id,user=self.principal.user_id,tokens=tokens)).all() if tokens else []
+            if self.read_tasks != {args.task_id} or targets != [args.task_id]:
+                raise HTTPException(422, 'Укажите точный код наряда или откройте «Спросить ИИ по наряду».')
+        if (not report or report['id'] != str(args.execution_id) or task['revision'] != args.expected_revision
+                or 'upload_photo' not in data['allowedActions'] or 'submit' not in data['allowedActions']):
+            raise HTTPException(409, 'Действие доступно только автору актуального черновика отчёта.')
+        items = {row['id']:row['text'] for row in report['checklist']}
+        if any(str(p.checklist_item_id) not in items for p in args.photos):
+            raise HTTPException(422, 'Укажите пункт чек-листа текущей попытки.')
+        lines = [f"{task['title'][:360]} — попытка №{report['attemptNumber']}."]
+        bindings = sorted(args.photos, key=lambda p: positions[p.attachment_id])
+        for index, p in enumerate(bindings, 1):
+            phase = 'до' if p.phase == 'before' else 'после'
+            lines.append(f"Снимок {index}: {self.report_files[p.attachment_id]['original_name'][:160]} — {items[str(p.checklist_item_id)][:240]}, {phase}, ракурс: {p.view_key}.")
+        lines.append('Если комплект неполный, фото сохранятся в черновике, отчёт не будет отправлен.')
+        arguments = dict(path=dict(task_id=args.task_id), body=args.model_copy(update={'photos':bindings}).model_dump(
+            mode='json', exclude={'task_id'}))
+        with self.app.state.factory() as session:
+            action = await service.propose(self.app, session, self.principal, self.thread, tool,
+                                           arguments, '\n'.join(lines), self.headers, self.turn_id)
+        self.proposal = action['action_id']
+        return dict(status='awaiting_confirmation', action_id=str(self.proposal))
 
     async def check_acceptance_readiness(self, args):
         data = await self.backend('task_acceptance_evidence', path=dict(task_id=args.task_id),
@@ -449,7 +537,7 @@ class ToolSession:
         photos = sorted(report.get('photos', []), key=lambda row: (row['viewKey'], row['id']))
         selected = [row for phase in dict.fromkeys(args.phases) for row in
                     [entry for entry in photos if entry.get('phase') == phase][:2]]
-        data, images = [], []
+        data, images, resources = [], [], []
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=self.app, raise_app_exceptions=False),
                                      base_url='http://assistant.internal', follow_redirects=False) as client:
             for row in selected:
@@ -466,8 +554,11 @@ class ToolSession:
                             try:
                                 images.append(jpeg_input(blob))
                                 outcome['image_index'] = len(images)
+                                phase = 'до работы' if row['phase'] == 'before' else 'после работы'
+                                resources.append(dict(url=path, mime=response.headers['content-type'],
+                                                      title=f"Фото из отчёта · {phase} · {row['viewKey']}"))
                             except HTTPException:
                                 pass
                 data.append(outcome)
         return Observation(dict(source='saved_report_photos', report_id=report.get('id'),
-                                total_available=len(photos), photos=data), tuple(images))
+                                total_available=len(photos), photos=data), tuple(images), tuple(resources))
