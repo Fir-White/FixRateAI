@@ -81,8 +81,9 @@ class AITunnelClient:
         self.response_model = None
         self.response_diagnostics = []
 
-    def chat(self, messages, schema, tokens):
-        diagnostic = {"schema": schema.__name__ if schema else "text", "max_tokens": tokens, "stage": "request"}
+    def chat(self, messages, schema, tokens, *, tools=None):
+        diagnostic = {"schema": schema.__name__ if schema else "tools" if tools is not None else "text",
+                      "max_tokens": tokens, "stage": "request"}
         self.response_diagnostics.append(diagnostic)
         if not self.config.api_key:
             raise AITunnelFailure("AITUNNEL_NOT_CONFIGURED")
@@ -97,7 +98,16 @@ class AITunnelClient:
                 content = [{"type": "text", "text": content}, *[
                     {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + data}}
                     for data in message["images"]]]
-            converted.append({"role": message["role"], "content": content})
+            entry = {"role": message["role"], "content": content}
+            if tools is not None and message["role"] == "assistant" and message.get("tool_calls"):
+                entry["tool_calls"] = [
+                    {"id": call["id"], "type": "function", "function": {
+                        "name": call["function"]["name"],
+                        "arguments": json.dumps(call["function"]["arguments"], ensure_ascii=False)}}
+                    for call in message["tool_calls"]]
+            if tools is not None and message["role"] == "tool":
+                entry["tool_call_id"] = message["tool_call_id"]
+            converted.append(entry)
         instructions = "\n\n".join(message["content"] for message in converted if message["role"] == "system")
         converted = [message for message in converted if message["role"] != "system"]
         output_instructions = ("\n\n" +
@@ -112,6 +122,9 @@ class AITunnelClient:
         if schema:
             payload["response_format"] = {"type": "json_schema", "json_schema": {
                 "name": schema.__name__, "strict": True, "schema": schema.model_json_schema()}}
+        if tools:
+            payload["tools"] = tools
+            payload["tool_choice"] = "auto"
         request = Request(self.config.base_url + "/chat/completions",
                           data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
                           headers={"Content-Type": "application/json", "Authorization": "Bearer " + self.config.api_key})
@@ -131,15 +144,16 @@ class AITunnelClient:
             if isinstance(choices, list) and len(choices) == 1 and isinstance(choices[0], dict):
                 reason = choices[0].get("finish_reason")
                 diagnostic["finish_reason"] = reason if reason in ("stop", "length", "content_filter", "tool_calls", "function_call") else "unknown"
-            if not isinstance(choices, list) or len(choices) != 1 or choices[0].get("finish_reason") != "stop":
+            allowed_reasons = ("stop", "tool_calls") if tools else ("stop",)
+            if not isinstance(choices, list) or len(choices) != 1 or choices[0].get("finish_reason") not in allowed_reasons:
                 raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE")
             diagnostic["stage"] = "message"
             message = choices[0]["message"]
             if message.get("refusal"):
                 raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE", reason='refusal')
-            if not isinstance(message.get("content"), str):
+            if not isinstance(message.get("content"), str) and not (tools and message.get("tool_calls")):
                 raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE", reason='invalid_message')
-            diagnostic["content_characters"] = len(message["content"])
+            diagnostic["content_characters"] = len(message.get("content") or "")
             diagnostic["stage"] = "model"
             actual_model = envelope.get("model")
             if not isinstance(actual_model, str) or not actual_model or len(actual_model) > 200:
@@ -149,7 +163,8 @@ class AITunnelClient:
             if not self.config.allow_model_alias and actual_model != self.config.model and not actual_model.startswith(self.config.model + "-"):
                 raise AITunnelFailure("AITUNNEL_MODEL_MISMATCH")
             diagnostic["stage"] = "schema"
-            if schema:result = schema.model_validate_json(message["content"])
+            if tools is not None:result = message
+            elif schema:result = schema.model_validate_json(message["content"])
             else:
                 result = message["content"].strip()
                 if not result or len(result)>32000:raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE")
@@ -215,3 +230,6 @@ class AITunnelClient:
     def text(self, messages, tokens=8192):
         """User-facing prose shares the same deadline, envelope checks and privacy rules."""
         return self.chat(messages, None, tokens)
+
+    def tool_chat(self, messages, tools, tokens):
+        return self.chat(messages, None, tokens, tools=tools)

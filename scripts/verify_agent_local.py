@@ -152,7 +152,8 @@ def installed_model(model: str | None = None) -> dict[str, str]:
     return dict(provider='ollama', base_url='http://127.0.0.1:11434', model=name, digest='sha256:' + digest)
 
 
-def environment(parent: dict[str, str], guard_directory: Path, model: dict[str, str], *, live: bool) -> dict[str, str]:
+def environment(parent: dict[str, str], guard_directory: Path, model: dict[str, str], *, live: bool,
+                num_ctx: int = 32768) -> dict[str, str]:
     """Build a process-local environment; caller settings and files stay intact."""
     variables = dict(parent)
     for key in list(variables):
@@ -169,7 +170,7 @@ def environment(parent: dict[str, str], guard_directory: Path, model: dict[str, 
         FIXRATE_LOCAL_INFERENCE_ALLOWED='1' if live else '0',
         ASSISTANT_PROVIDER='ollama', OLLAMA_CHAT_BASE_URL=model['base_url'],
         OLLAMA_CHAT_MODEL=model['model'], OLLAMA_CHAT_DIGEST=model['digest'],
-        OLLAMA_CHAT_TIMEOUT_SECONDS='180' if live else '240', OLLAMA_CHAT_NUM_CTX='32768',
+        OLLAMA_CHAT_TIMEOUT_SECONDS='180' if live else '240', OLLAMA_CHAT_NUM_CTX=str(num_ctx),
         PHOTO_REVIEW_PROVIDER='clip', FORECAST_PROVIDER='rf',
         HF_HUB_OFFLINE='1', TRANSFORMERS_OFFLINE='1', HF_DATASETS_OFFLINE='1',
         FIXRATE_AGENT_LIVE='1' if live else '0', FIXRATE_SCENARIOS_LIVE='0',
@@ -229,11 +230,14 @@ def main(argv=None) -> int:
     parser.add_argument('--source-root', type=Path, default=ROOT, help='Baseline or changed worktree; no source files are modified')
     parser.add_argument('--pg-bin', type=Path, default=Path('C:/Program Files/PostgreSQL/18/bin') if os.name == 'nt' else Path('/usr/lib/postgresql/16/bin'))
     parser.add_argument('--model', help='Exact installed local tag; omission prefers installed Qwen 4B')
+    parser.add_argument('--num-ctx', type=int, default=32768, help='Ollama context size; lower values can keep the whole model on GPU')
     parser.add_argument('--output', type=Path)
     parser.add_argument('--live', action='store_true', help='Enable real inference; default is deterministic regression')
     parser.add_argument('--check-only', action='store_true', help='Discover metadata and validate network policy without inference or PostgreSQL')
     parser.add_argument('--pytest-target', nargs='+', help='Selected pytest nodes; absolute test paths permit the same corpus against baseline')
     args = parser.parse_args(argv)
+    if not 4096 <= args.num_ctx <= 65536:
+        parser.error('--num-ctx must be between 4096 and 65536')
     root = args.source_root.resolve()
     if not (root / 'scripts/verify.py').is_file():
         parser.error('source-root must contain the existing disposable verification runner')
@@ -245,7 +249,7 @@ def main(argv=None) -> int:
     guard.mkdir()
     (guard / 'sitecustomize.py').write_text(LOCAL_GUARD, encoding='utf-8')
     model = installed_model(args.model)
-    variables = environment(dict(os.environ), guard, model, live=args.live)
+    variables = environment(dict(os.environ), guard, model, live=args.live, num_ctx=args.num_ctx)
     # An absolute corpus file in another worktree must not cause pytest to load
     # that worktree's config/pythonpath and mix changed code with baseline SQL.
     variables['PYTEST_ADDOPTS'] = shlex.join(['-c', str(root / 'pytest.ini'), '--rootdir', str(root)])
@@ -267,7 +271,7 @@ def main(argv=None) -> int:
     manifest = dict(source_root=str(root), source_head=before['head'], source_sha256=before['sha256'],
                     python_version=sys.version,dependencies=dependencies,
                     runner_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), corpus_files=corpus,
-                    model=model, local_network_guard=True, environment_files_read=False,
+                     model=model, ollama_num_ctx=args.num_ctx, local_network_guard=True, environment_files_read=False,
                     automatic_downloads=False, live=args.live, check_only=args.check_only,
                     inference_allowed=args.live,
                     targets=targets,

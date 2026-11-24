@@ -4,10 +4,22 @@ import json,math,os,re,time,logging
 from urllib.parse import urlsplit
 from urllib.request import Request,build_opener,ProxyHandler,HTTPRedirectHandler
 from urllib.error import HTTPError,URLError
-from pydantic import ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 
 logger=logging.getLogger(__name__)
+
+
+class ToolCallReply(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    name: str = Field(min_length=1, max_length=100)
+    arguments: dict
+
+
+class ToolReply(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    answer: str = Field(max_length=16000)
+    calls: list[ToolCallReply] = Field(max_length=6)
 
 
 def _string_choices(field,definitions):
@@ -221,7 +233,9 @@ class OllamaClient:
             if len(raw)>1_048_576:raise OllamaFailure('OLLAMA_INVALID_RESPONSE',reason='response_too_large')
             return json.loads(raw)
         except OllamaFailure:raise
-        except HTTPError as exc:raise OllamaFailure('OLLAMA_MODEL_NOT_READY' if exc.code==404 else 'OLLAMA_UNAVAILABLE') from None
+        except HTTPError as exc:
+            raise OllamaFailure('OLLAMA_MODEL_NOT_READY' if exc.code==404 else 'OLLAMA_UNAVAILABLE',
+                                reason='server_error' if exc.code==500 else 'http_error') from None
         except TimeoutError:raise OllamaFailure('OLLAMA_TIMEOUT') from None
         except (URLError,OSError) as exc:
             raise OllamaFailure('OLLAMA_TIMEOUT' if isinstance(getattr(exc,'reason',None),TimeoutError) else 'OLLAMA_UNAVAILABLE') from None
@@ -287,3 +301,47 @@ class OllamaClient:
                 if reason=='token_limit':payload['options']['num_predict']=min(tokens*2,7000)
 
     def text(self,messages,tokens=8192):return self.chat(messages,None,tokens)
+
+    def tool_chat(self, messages, tools, tokens):
+        if getattr(self, '_structured_tools', False):
+            return self._tool_chat_json(messages, tools, tokens)
+        self.check_model()
+        converted = [{key: message[key] for key in ('role', 'content', 'images', 'tool_calls', 'tool_name')
+                      if key in message} for message in messages]
+        try:
+            raw = self.request('/api/chat', dict(
+                model=self.config.model, messages=_merge_system_messages(converted), tools=tools,
+                stream=False, think=False, keep_alive='10m', options=dict(
+                    temperature=0, num_ctx=self.config.num_ctx, num_predict=tokens, repeat_penalty=1.05,
+                    presence_penalty=0)))
+        except OllamaFailure as exc:
+            if not tools or exc.diagnostic['reason'] != 'server_error' or self.deadline - time.monotonic() < 5:
+                raise
+            # Ollama can reject malformed native call markup before returning an
+            # envelope. The same model gets a JSON schema for the rest of this turn.
+            self._structured_tools = True
+            return self._tool_chat_json(messages, tools, tokens)
+        if (not isinstance(raw, dict) or raw.get('model') != self.config.model
+                or raw.get('done') is not True or raw.get('done_reason') == 'length'
+                or not isinstance(raw.get('message'), dict)):
+            raise OllamaFailure('OLLAMA_INVALID_RESPONSE', reason='invalid_tool_reply')
+        self.response_model = self.config.model_ref
+        return raw['message']
+
+    def _tool_chat_json(self, messages, tools, tokens):
+        converted = []
+        for item in messages:
+            if item['role'] == 'tool':
+                converted.append(dict(role='user', content=json.dumps(dict(kind='tool_result',
+                    tool=item['tool_name'], data=json.loads(item['content'])), ensure_ascii=False)))
+            elif item.get('tool_calls'):
+                converted.append(dict(role='assistant', content=json.dumps(dict(answer='', calls=[
+                    call['function'] for call in item['tool_calls']]), ensure_ascii=False)))
+            else:
+                converted.append(item)
+        converted.append(dict(role='system', content=(
+            'Верни JSON: либо заполни answer и оставь calls пустым, либо заполни calls и оставь answer пустым. '
+            'name — имя объявленного инструмента; arguments — объект по его схеме. Только эти инструменты: '
+            + json.dumps([spec['function'] for spec in tools], ensure_ascii=False))))
+        reply = self.chat(converted, ToolReply, tokens)
+        return dict(content=reply.answer, tool_calls=[dict(function=call.model_dump()) for call in reply.calls])

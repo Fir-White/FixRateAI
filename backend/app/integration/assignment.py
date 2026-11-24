@@ -243,7 +243,8 @@ def workers_for_period(v, site_id, start, end, now, *, excluded_task_id=None, wo
     return result
 
 
-def assignment_preview(v, order, start_local, end_local, crew_id=None, executor_ids=None, individual_only=False):
+def assignment_preview(v, order, start_local, end_local, crew_id=None, executor_ids=None, individual_only=False,
+                       prefer_low_load=False):
     context = _job(v, order)
     base = dict(context=context, status="needs_input", code=context["code"], explanation=context["explanation"],
                 recommendationMode='manual' if executor_ids is not None else 'automatic',
@@ -272,7 +273,8 @@ def assignment_preview(v, order, start_local, end_local, crew_id=None, executor_
         earliest_at=context["earliestAt"], deadline_at=context["deadlineAt"],
         duration_minutes=context["durationMinutes"], duration_basis=context["durationBasis"],
         crew_size=context["crewSize"], qualification_ids=context["qualificationIds"],
-        workers=_workers(v, order, start, end, now), crews=crews, crew_id=crew_id,requested_worker_ids=executor_ids)
+        workers=_workers(v, order, start, end, now), crews=crews, crew_id=crew_id,requested_worker_ids=executor_ids,
+        prefer_low_load=prefer_low_load)
     if executor_ids is not None:
         if len(executor_ids) != context['crewSize'] or len(set(executor_ids)) != len(executor_ids):
             raise HTTPException(422, 'Выберите полный состав без повторов по требуемой численности')

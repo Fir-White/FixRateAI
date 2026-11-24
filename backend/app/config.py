@@ -18,7 +18,7 @@ class RuntimeSettings:
     photo_review_provider: str = "clip"
     forecast_provider: str = "rf"
     active_roles: FrozenSet[str] = frozenset()
-    assistant_agent_version: str = "v2"
+    assistant_agent_version: str = "v4"
     assistant_v3_pipeline: str = "v3"
     assistant_operator_steps: int = 8
     assistant_operator_output_tokens: int = 6000
@@ -80,9 +80,9 @@ class RuntimeSettings:
                 "FIXRATE_ACTIVE_ROLES contains unsupported roles: "
                 + ", ".join(sorted(unknown_roles))
             )
-        agent_version = os.environ.get("FIXRATE_ASSISTANT_AGENT_VERSION", "v2").strip().lower()
-        if agent_version not in {"v2", "v3"}:
-            raise ValueError("FIXRATE_ASSISTANT_AGENT_VERSION must be v2 or v3")
+        agent_version = os.environ.get("FIXRATE_ASSISTANT_AGENT_VERSION", "v4").strip().lower()
+        if agent_version not in {"v2", "v3", "v4"}:
+            raise ValueError("FIXRATE_ASSISTANT_AGENT_VERSION must be v2, v3 or v4")
         pipeline = os.environ.get("FIXRATE_ASSISTANT_V3_PIPELINE", "v3").strip().lower()
         if pipeline not in {"v3", "llm_dynamic", "erp_operator"} or (pipeline != "v3" and agent_version != "v3"):
             raise ValueError("FIXRATE_ASSISTANT_V3_PIPELINE must be v3, llm_dynamic or erp_operator with Agent v3 enabled")

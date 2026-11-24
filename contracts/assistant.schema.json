@@ -148,6 +148,19 @@
           "minLength": 1,
           "title": "Title",
           "type": "string"
+        },
+        "subject_task_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subject Task Id"
         }
       },
       "title": "ConversationCreate",

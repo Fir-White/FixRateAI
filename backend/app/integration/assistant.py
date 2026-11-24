@@ -53,8 +53,12 @@ def register_routes(app,views):
     @app.post(BASE+'/conversations',status_code=201)
     def create(command:ConversationCreate,v=Depends(views)):
         identity=uuid4()
-        v.session.execute(text('INSERT INTO assistant_conversations(conversation_id,site_id,user_id,role,title,agent) VALUES (:id,:site,:user,:role,:title,:agent)'),
-            dict(id=identity,site=v.principal.site_id,user=v.principal.user_id,role=v.principal.role,title=command.title,agent=command.agent))
+        if command.subject_task_id is not None:
+            if app.state.settings.assistant_agent_version!='v4' or v.principal.role not in ('engineer','executor'):
+                raise HTTPException(403,'Привязка чата к наряду недоступна.')
+            v.task(command.subject_task_id)
+        v.session.execute(text('INSERT INTO assistant_conversations(conversation_id,site_id,user_id,role,title,agent,subject_task_id) VALUES (:id,:site,:user,:role,:title,:agent,:task)'),
+            dict(id=identity,site=v.principal.site_id,user=v.principal.user_id,role=v.principal.role,title=command.title,agent=command.agent,task=command.subject_task_id))
         v.session.commit()
         return svc.conversation(v.session,v.principal,identity)
 
@@ -82,6 +86,7 @@ def register_routes(app,views):
         for row in turns:
             item=dict(row);state=item.get('workflow')
             item.pop('worker_claimed_at', None)
+            item.pop('agent_context', None)
             if state:
                 scoped_actions={str(a['action_id']):a for a in workflow_actions if str(a['workflow_root_turn_id'])==state.get('root_turn_id')}
                 if state.get('task_execution'):
@@ -224,6 +229,8 @@ def register_routes(app,views):
         execution_engine=app.state.settings.assistant_agent_version
         version=svc.prompt_version(app.state.settings)
         if command.resume_turn_id is not None:
+            if execution_engine=='v4':
+                raise HTTPException(409,'Этот формат поручений больше не выполняется. Отправьте новое сообщение в текущем диалоге.')
             from app.assistant import workflow as wf
             source=v.session.execute(text('SELECT status,error_code,workflow,execution_engine,prompt_version FROM assistant_turns WHERE turn_id=:turn AND conversation_id=:chat'),dict(turn=command.resume_turn_id,chat=identity)).mappings().first()
             if not source or not source['workflow']:raise HTTPException(404,'Сохранённое поручение не найдено в этом диалоге')
@@ -284,6 +291,11 @@ def register_routes(app,views):
         if command.payload_sha256!=row['payload_sha256']:raise HTTPException(409,'Состав предложения изменился')
         if row['status']!='proposed':return svc.public_action(row)
         if row['expires_at']<svc.now():raise HTTPException(409,'Предложение истекло. Подготовьте новое по свежим данным.')
+        if row['turn_id']:
+            source=v.session.execute(text('SELECT execution_engine,status FROM assistant_turns WHERE turn_id=:id'),
+                                     dict(id=row['turn_id'])).first()
+            if source and source.execution_engine=='v4' and source.status!='completed':
+                raise HTTPException(409,'Дождитесь завершения ответа. Если он прерван, подготовьте новое предложение.')
         cookies=[];token=COOKIE_EFFECTS.set(cookies)
         try:
             if svc.action_uses_graph(v.session,row):

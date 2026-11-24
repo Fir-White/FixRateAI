@@ -3,6 +3,7 @@ import io,json,os
 from contextlib import closing
 from pathlib import Path
 from uuid import uuid4
+from datetime import datetime, timedelta, timezone
 import pytest
 from fastapi.routing import APIRoute
 from sqlalchemy import text
@@ -212,6 +213,26 @@ def test_nearest_tasks_are_scoped_sorted_and_bounded(runtime):
             dates=[datetime.fromisoformat(item['scheduledStart']) for item in data['items'] if item['scheduledStart']]
             if period=='upcoming':assert dates==sorted(dates)
             if period=='overdue':assert dates==sorted(dates,reverse=True)
+
+def test_upcoming_unfinished_tasks_use_deadline_when_planned_start_passed(assistant_case):
+    engine, _, client, _, ids = assistant_case
+    identity = uuid4()
+    undated = uuid4()
+    past = datetime.now(timezone.utc) - timedelta(days=1)
+    future = datetime.now(timezone.utc) + timedelta(days=2)
+    with engine.begin() as db:
+        for task, start, deadline in ((identity, past, future), (undated, future, None)):
+            db.execute(text("""INSERT INTO work_orders(work_order_id,site_id,system_id,origin,status,
+                required_people_snapshot,norm_hours_snapshot,operation_snapshot,planned_start_at,regulatory_deadline_at)
+                VALUES (:id,:site,:system,'manual','assigned',1,1,CAST(:snapshot AS jsonb),:start,:deadline)"""),
+                dict(id=task, site=ids['site'], system=ids['system'],
+                     snapshot=json.dumps({'title': 'Проверить резервную индикацию'}),
+                     start=start, deadline=deadline))
+    result = client.get(B + '/workspace/tasks', params=dict(period='upcoming', unfinished_only=True))
+    assert result.status_code == 200, result.text
+    found = {item['id'] for item in result.json()['items']}
+    assert {str(identity), str(undated)} <= found
+
 
 def test_chat_lists_real_task_ids_after_missing_task_parameter(runtime):
     from tests.backend.test_runtime_integration import login

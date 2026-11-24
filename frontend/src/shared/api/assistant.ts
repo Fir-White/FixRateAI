@@ -5,7 +5,7 @@ export interface ChatModelPreference {selection:ChatModelChoice|null;revision:nu
 export interface ChatModelCatalog {providers:{id:'ollama'|'aitunnel';name:string;status:'ready'|'not_configured'|'unavailable';error_code:string|null;models:{id:string;name:string;description:string;selectable:boolean;digest?:string}[]}[]}
 export interface ChatTool {name:string;title:string;requires_confirmation:boolean}
 export interface ChatCapabilities {available:boolean;model_ref:string|null;prompt_version:string;agents:{id:AgentId;title:string;description:string}[];tools:Record<AgentId,ChatTool[]>;model_preference?:ChatModelPreference}
-export interface Conversation {conversation_id:string;title:string;agent:AgentId;created_at:string;updated_at:string}
+export interface Conversation {conversation_id:string;title:string;agent:AgentId;created_at:string;updated_at:string;subject_task_id?:string|null}
 export interface ChatWorkflow {answer_format?:'facts';kind?:'task_execution';root_turn_id?:string;display_plan?:boolean;outcome:string;goals:{id:string;title:string;status:string;reason?:string|null;message?:string|null;action_id?:string|null}[];metrics?:{llm_calls:number;llm_seconds:number;tool_calls:number;tool_seconds:number};stop_reason?:string|null;revision?:number}
 export interface ChatTurn {turn_id:string;content:string;answer:string;status:'running'|'completed'|'failed';error_code:string|null;workflow?:ChatWorkflow|null;trace:{tool:string;status:string;at?:string;code?:number;fact?:{total?:number;shown?:number;ready?:boolean};resource?:{url:string;title:string;mime:string}}[];created_at:string;finished_at?:string|null;model_ref:string|null;attachments?:ChatAttachment[]}
 export interface ChatAction {action_id:string;conversation_id:string;turn_id:string|null;tool_name:string;arguments:{path?:Record<string,unknown>;query?:Record<string,unknown>;body?:Record<string,unknown>};payload_sha256:string;secret_fields?:string[];before_snapshot:{sha256:string;preview:unknown}|null;explanation:string;status:'proposed'|'rejected'|'executing'|'succeeded'|'failed'|'uncertain'|'stale';result:{data?:unknown;message?:string;status_code?:number;verification?:{status:'confirmed'|'failed'|'unverified';summary:string;reason?:string}}|null;expires_at:string;created_at:string}
@@ -33,7 +33,7 @@ export const assistantApi={
   selectModel:(choice:ChatModelChoice,expected_revision:number)=>request<ChatModelPreference>(base+'/model-preference',{method:'POST',body:JSON.stringify({provider:choice.provider,model:choice.model,expected_revision})}),
   list:(offset=0)=>request<{items:Conversation[];total:number}>(base+`/conversations?offset=${offset}`),
   actionHistory:(offset:number)=>request<ActionHistoryPage>(base+`/actions?offset=${offset}`),
-  create:(agent:AgentId)=>request<Conversation>(base+'/conversations',{method:'POST',body:JSON.stringify({agent})}),
+  create:(agent:AgentId,subject_task_id?:string)=>request<Conversation>(base+'/conversations',{method:'POST',body:JSON.stringify({agent,...(subject_task_id?{subject_task_id}:{})})}),
   read:(id:string,offset=0)=>request<ChatView>(`${base}/conversations/${encodeURIComponent(id)}?offset=${offset}`),
   stop:(id:string,turn:string)=>request<{stopped:boolean}>(`${base}/conversations/${encodeURIComponent(id)}/turns/${encodeURIComponent(turn)}/stop`,{method:'POST'}),
   remove:(id:string)=>request<{deleted:boolean}>(`${base}/conversations/${encodeURIComponent(id)}`,{method:'DELETE'}),

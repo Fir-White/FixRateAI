@@ -4,11 +4,12 @@ import { ApiError } from '@/shared/api/request';
 
 type StartOptions = {
   model?: ChatModelPreference;
+  subjectTaskId?: string;
   onModelChange: (model: ChatModelPreference) => void;
   onOpen: (id: string, draft: string) => void;
 };
 
-export function useConversationStart({model, onModelChange, onOpen}: StartOptions) {
+export function useConversationStart({model, subjectTaskId, onModelChange, onOpen}: StartOptions) {
   const creation = useRef<Promise<string> | null>(null);
   const attempt = useRef<{payload: string; key: string} | null>(null);
   const version = useRef(0);
@@ -36,7 +37,8 @@ export function useConversationStart({model, onModelChange, onOpen}: StartOption
     setOperation(file ? 'upload' : 'send');
     try {
       if (!creation.current) {
-        creation.current = api.create('assistant').then(chat => chat.conversation_id).catch(error => {
+        const created = subjectTaskId ? api.create('assistant', subjectTaskId) : api.create('assistant');
+        creation.current = created.then(chat => chat.conversation_id).catch(error => {
           if (activeVersion === version.current) creation.current = null;
           throw error;
         });

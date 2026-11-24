@@ -1,5 +1,7 @@
 # ИИ-помощник и агенты
 
+**Текущий dev-маршрут — v4.** [Архитектура](../../AI_AGENT_ARCHITECTURE.md) и [проверка запуска](../../AI_AGENT_MVP_READINESS.md). Ниже — справка о прежних профилях и совместимых HTTP API; семантические маршруты v2/v3 в v4 не выполняются.
+
 Экспериментальный режим ERP-оператора запускается в существующем чате при `FIXRATE_ASSISTANT_AGENT_VERSION=v3` и `FIXRATE_ASSISTANT_V3_PIPELINE=erp_operator`. Порядок запуска, покрытие ролей и результат сравнения приведены в [описании эксперимента](../releases/2026-11-23-erp-operator.md).
 
 [Архитектура v3](../architecture/assistant-architecture-v3.md) описывает этапы LangGraph, хранение PostgreSQL и продолжение. [Порядок запуска и сравнение](../releases/2026-11-23-assistant-architecture-v3.md).

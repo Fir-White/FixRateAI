@@ -1,5 +1,7 @@
 # Узлы сервиса
 
+[ИИ-агент v4](../../AI_AGENT_ARCHITECTURE.md) — основной dev-контур tool calling, приватный контекст и подтверждения. [Срез итерации](../releases/2026-11-24-assistant-tool-agent-v4.md) · [Приёмка](../../AI_AGENT_MVP_READINESS.md).
+
 [Надёжность ERP-оператора](../../agent_reliability_lab/OPERATOR_RELIABILITY.md) — причины провалов длинных диалогов, проверяемые цели и повторные испытания.
 
 [Экспериментальный ERP-оператор](../releases/2026-11-23-erp-operator.md) — контур LangGraph, карта возможностей, сравнительные испытания и переключение.

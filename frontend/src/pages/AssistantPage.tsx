@@ -73,7 +73,7 @@ function SentFiles({files}:{files?:ChatAttachment[]}){
 const ChatMessages = memo(function ChatMessages({turns,actions,attachments,names,timezone,busy,onResume,onRetry,onChanged}:{
   turns: ChatView['turns']; actions: ChatView['actions']; attachments: ChatView['attachments'];
   names: Record<string,string>; timezone: string; busy: boolean;
-  onResume: (turn:ChatTurn)=>Promise<void>; onRetry: (content:string)=>void; onChanged: ()=>void;
+  onResume?: (turn:ChatTurn)=>Promise<void>; onRetry: (content:string)=>void; onChanged: ()=>void;
 }){
   const actionsByTurn = useMemo(() => {
     const groups = new Map<string|null, ChatView['actions']>();
@@ -85,11 +85,12 @@ const ChatMessages = memo(function ChatMessages({turns,actions,attachments,names
     return groups;
   }, [actions]);
   return <>
-    {turns.map(turn=><article key={turn.turn_id} className="assistant-turn"><div className="assistant-user-message"><div className="assistant-message-meta"><span>Вы</span><Timestamp at={turn.created_at} timezone={timezone}/></div><p>{turn.content}</p><SentFiles files={turn.attachments}/></div><div className="assistant-reply"><div className="assistant-message-meta"><span className="assistant-author"><Icon name="assistant" size={16}/>FixRate AI</span><Timestamp at={turn.finished_at??turn.created_at} timezone={timezone}/></div><Progress turn={turn} names={names}/><WorkflowStatus workflow={turn.workflow} disabled={busy} onResume={()=>void onResume(turn)}/>{turn.status!=='running'&&<SavedAnswer answer={turn.answer} facts={turn.workflow?.answer_format==='facts'} older={turn!==turns.at(-1)}/>}{turn.trace.filter(step=>step.resource&&safeResource(step.resource.url)).map((step,i)=><a key={i} className="assistant-resource" href={step.resource!.url} target="_blank" rel="noreferrer">{step.resource!.title}<span aria-hidden="true"> ↗</span></a>)}{turn.error_code&&turn.error_code!=='ASSISTANT_STOPPED'&&<details className="assistant-error-code"><summary>Технические сведения</summary><p>Код: {turn.error_code}</p></details>}{turn.status==='failed'&&!turn.workflow&&<Button size="sm" variant="secondary" onClick={()=>onRetry(turn.content)}>Повторить запрос</Button>}{(actionsByTurn.get(turn.turn_id)??[]).map(action=><ActionCard key={action.action_id} action={action} title={names[action.tool_name]??action.tool_name} attachments={attachments} onChanged={onChanged}/>)}</div></article>)}
+    {turns.map(turn=><article key={turn.turn_id} className="assistant-turn"><div className="assistant-user-message"><div className="assistant-message-meta"><span>Вы</span><Timestamp at={turn.created_at} timezone={timezone}/></div><p>{turn.content}</p><SentFiles files={turn.attachments}/></div><div className="assistant-reply"><div className="assistant-message-meta"><span className="assistant-author"><Icon name="assistant" size={16}/>FixRate AI</span><Timestamp at={turn.finished_at??turn.created_at} timezone={timezone}/></div><Progress turn={turn} names={names}/><WorkflowStatus workflow={turn.workflow} disabled={busy} onResume={onResume?()=>void onResume(turn):undefined}/>{turn.status!=='running'&&<SavedAnswer answer={turn.answer} facts={turn.workflow?.answer_format==='facts'} older={turn!==turns.at(-1)}/>}{turn.trace.filter(step=>step.resource&&safeResource(step.resource.url)).map((step,i)=><a key={i} className="assistant-resource" href={step.resource!.url} target="_blank" rel="noreferrer">{step.resource!.title}<span aria-hidden="true"> ↗</span></a>)}{turn.error_code&&turn.error_code!=='ASSISTANT_STOPPED'&&<details className="assistant-error-code"><summary>Технические сведения</summary><p>Код: {turn.error_code}</p></details>}{turn.status==='failed'&&!turn.workflow&&<Button size="sm" variant="secondary" onClick={()=>onRetry(turn.content)}>Повторить запрос</Button>}{(actionsByTurn.get(turn.turn_id)??[]).map(action=><ActionCard key={action.action_id} action={action} title={names[action.tool_name]??action.tool_name} attachments={attachments} onChanged={onChanged}/>)}</div></article>)}
     {(actionsByTurn.get(null)??[]).map(action=><ActionCard key={action.action_id} action={action} title={names[action.tool_name]??action.tool_name} attachments={attachments} onChanged={onChanged}/>)}
   </>;
 });
 function Chat({identity,capabilities,initialDraft,onDraftChange,onRefreshList,timezone,modelPreference,onModelChange,entryRect,onEntryComplete}:{identity:string;capabilities:ChatCapabilities;initialDraft:string;onDraftChange:(id:string,text:string)=>void;onRefreshList:()=>void;timezone:string;entryRect?:DOMRectReadOnly;onEntryComplete:()=>void}&ModelControls){
+  const toolCalling=capabilities.prompt_version==='fixrate-tool-calling-v4';
   const [refresh,setRefresh]=useState(0),[offset,setOffset]=useState(0),[sending,setSending]=useState(false),[uploading,setUploading]=useState(false),[error,setError]=useState(''),[showJump,setShowJump]=useState(false);
   const composer = useRef<ComposerHandle>(null);
   const [localFiles,setLocalFiles]=useState<ChatAttachment[]>([]),[excludedFiles,setExcludedFiles]=useState<string[]>([]);
@@ -120,7 +121,7 @@ function Chat({identity,capabilities,initialDraft,onDraftChange,onRefreshList,ti
     if((!draft.trim()&&!files.length)||sending||running||uploading)return;
     const text=draft.trim(),ids=files.map(f=>f.attachment_id);
     let resumeTurnId: string | undefined;
-    if(/^факты\s*:/i.test(text)){
+    if(!toolCalling&&/^факты\s*:/i.test(text)){
       const workflows = new Map<string,ChatTurn>();
       for(const turn of data.turns){
         const root=turn.workflow?.root_turn_id;
@@ -151,9 +152,9 @@ function Chat({identity,capabilities,initialDraft,onDraftChange,onRefreshList,ti
   };
   return <section className="assistant-chat" data-composer-entry={entryRect ? "" : undefined} aria-label="Диалог с ИИ"><div className="assistant-body"><div className="assistant-transcript" ref={scroll} role="region" aria-label="Сообщения" tabIndex={0} onScroll={()=>{const el=scroll.current;if(el){pinned.current=el.scrollHeight-el.scrollTop-el.clientHeight<72;updateJump(el);}}}><div className="assistant-transcript-inner" ref={transcript}>
     {data.total>25&&<div className="assistant-pagination"><Button size="sm" variant="ghost" disabled={offset+25>=data.total} onClick={()=>{last.current=null;setOffset(n=>n+25);}}>Ранее</Button><span>{offset+1}–{Math.min(offset+25,data.total)} из {data.total}</span><Button size="sm" variant="ghost" disabled={offset===0} onClick={()=>{last.current=null;setOffset(0);}}>К последним</Button></div>}
-    {!data.turns.length&&<div className="assistant-thread-empty"><Icon name="assistant" size={28}/><h2>С чего начнём?</h2><p>Опишите задачу или прикрепите файл.</p></div>}
+    {!data.turns.length&&<div className="assistant-thread-empty"><Icon name="assistant" size={28}/><h2>{data.conversation.subject_task_id?'Вопрос по выбранному наряду':'С чего начнём?'}</h2><p>Опишите задачу или прикрепите файл.</p></div>}
     <ChatMessages turns={data.turns} actions={data.actions} attachments={data.attachments} names={names}
-      timezone={timezone} busy={sending||running||uploading} onResume={resume} onRetry={retry} onChanged={refreshAll}/></div></div>
+      timezone={timezone} busy={sending||running||uploading} onResume={toolCalling?undefined:resume} onRetry={retry} onChanged={refreshAll}/></div></div>
     {showJump&&<button className="assistant-jump" type="button" onClick={toBottom} aria-label="К последним сообщениям">↓ К последним сообщениям</button>}
     </div>
     {(error||query.status==='error')&&<div className="assistant-inline-error" role="alert"><Callout tone="danger">{error||(query.status==='error'?query.error:'')}</Callout><Button size="sm" variant="ghost" onClick={()=>setRefresh(n=>n+1)}>Обновить диалог</Button></div>}
@@ -170,8 +171,9 @@ function Workspace(){
   const cache=useApiQueryCache();
   const [params,setParams]=useSearchParams(),[refresh,setRefresh]=useState(0),[listOffset,setListOffset]=useState(0),[historyOpen,setHistoryOpen]=useState(false);
   const identity=params.get('chat')??'';
+  const subjectTaskId=identity?undefined:params.get('task')??undefined;
   const showActions=params.get('view')==='actions';
-  const chatParams=new URLSearchParams(identity ? {chat:identity} : {});
+  const chatParams=new URLSearchParams(identity ? {chat:identity} : subjectTaskId ? {task:subjectTaskId} : {});
   const actionParams=new URLSearchParams(chatParams);
   actionParams.set('view','actions');
   const [capsRetry, retryCaps]=useState(0);
@@ -206,7 +208,7 @@ function Workspace(){
   const refreshList=useCallback(()=>setRefresh(n=>n+1),[]);
   const select=(id:string)=>{setParams({chat:id});setHistoryOpen(false);};
   const launch=useConversationStart({
-    model:modelPreference,onModelChange:setModelOverride,
+    model:modelPreference,subjectTaskId,onModelChange:setModelOverride,
     onOpen(id,remainingDraft){
       const rect=welcome.current?.querySelector('form')?.getBoundingClientRect();
       setEntry({id,draft:remainingDraft,rect});
@@ -218,7 +220,7 @@ function Workspace(){
   useEffect(()=>{
     launch.reset();
     setEntry(current=>current?.id===identity?current:undefined);
-  },[identity]);
+  },[identity,subjectTaskId]);
   const fresh=()=>{launch.reset();welcomeDraft.current='';welcomeComposer.current?.replaceDraft('');setParams({});setHistoryOpen(false);};
   const remove=async()=>{if(!deleting||deleteBusy)return;setDeleteBusy(true);setDeleteError('');try{await api.remove(deleting.id);if(identity===deleting.id)fresh();drafts.delete(deleting.id);setDeleting(null);setListOffset(0);setRefresh(n=>n+1);}catch(e){setDeleteError(e instanceof Error?e.message:'Не удалось удалить чат');}finally{setDeleteBusy(false);}};
   const history=<><div className="assistant-history-heading"><h2>{inlineHistory&&!historyOpen?"Недавние диалоги":"История чатов"}</h2></div><button type="button" className="assistant-history-new" onClick={fresh}><span>＋</span>Новый чат</button><div className="assistant-history-list">{list.status==='loading'?<p className="assistant-history-empty">Загрузка…</p>:list.status==='error'?<ErrorState description={list.error} action={<Button size="sm" onClick={()=>setRefresh(n=>n+1)}>Повторить</Button>}/>:<>{list.data.items.map(chat=><div className="assistant-history-row" key={chat.conversation_id}><button type="button" aria-current={identity===chat.conversation_id?'true':undefined} className={`assistant-history-item ${identity===chat.conversation_id?'is-active':''}`} onClick={()=>select(chat.conversation_id)}><span>{chat.title}</span><Timestamp at={chat.updated_at} timezone={timezone}/></button><button type="button" className="assistant-history-delete" title="Удалить чат" aria-label={`Удалить чат ${chat.title}`} onClick={()=>{setDeleteError('');setHistoryOpen(false);setDeleting({id:chat.conversation_id,title:chat.title});}}><Icon name="trash" size={17}/></button></div>)}{!list.data.total&&<p className="assistant-history-empty">Диалогов пока нет.</p>}</>}</div>{list.status==='success'&&list.data.total>25&&<div className="assistant-history-pages"><Button size="sm" variant="ghost" disabled={!listOffset} onClick={()=>setListOffset(n=>Math.max(0,n-25))}>Назад</Button><Button size="sm" variant="ghost" disabled={listOffset+25>=list.data.total} onClick={()=>setListOffset(n=>n+25)}>Далее</Button></div>}</>;
@@ -243,7 +245,7 @@ function Workspace(){
       <section className="assistant-welcome" aria-label="Новый чат">
         <div ref={welcome} className="assistant-welcome-content">
           <div className="assistant-greeting"><h2>С чего начнём?</h2></div>
-          <p className="assistant-welcome-caption">{executor?"Инструкции, фото и вопросы по вашим заданиям.":"Работы, оборудование, команда и планы."}</p>
+          <p className="assistant-welcome-caption">{subjectTaskId?"Диалог по выбранному наряду: задайте вопрос или приложите фото.":executor?"Инструкции, фото и вопросы по вашим заданиям.":"Работы, оборудование, команда и планы."}</p>
           <AssistantComposer ref={welcomeComposer} showMark initialDraft={welcomeDraft.current} onDraftChange={text=>{welcomeDraft.current=text;}} onSend={text=>void launch.start(text)}
             onUpload={(file,text)=>void launch.start(text,{file})} busy={launch.operation==="send"} uploading={launch.operation==="upload"}
             running={false} available={caps.data.available} modelPreference={modelPreference} onModelChange={setModelOverride}/>

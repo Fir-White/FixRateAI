@@ -1,11 +1,11 @@
 """Bounded search over the whole authorized dataset, not just a model's first page."""
-from datetime import date,datetime,timezone
+from datetime import date,datetime,time,timedelta,timezone
 from typing import Annotated, Literal
 from zoneinfo import ZoneInfo
 from pydantic import BaseModel,ConfigDict,Field
 from uuid import UUID
 from fastapi import Depends,Query,HTTPException,Request,Response
-from sqlalchemy import select,func,or_,and_,text
+from sqlalchemy import DateTime,cast,select,func,or_,and_,text
 from sqlalchemy.orm import aliased
 from app.security.sessions import has_role,SQL_ROLES
 from .management import equipment_response
@@ -58,6 +58,7 @@ class AssignmentPreparation(BaseModel):
     model_config=ConfigDict(extra='forbid')
     executor_ids:list[UUID]|None=Field(default=None,min_length=1,max_length=50)
     one_person_only:bool=False
+    use_planned_day:bool=False
 
 def register_routes(app,views):
     @app.get(BASE+'/maintenance-catalog')
@@ -378,12 +379,33 @@ def register_routes(app,views):
         from .assignment import assignment_context,assignment_preview
         if not has_role(v.principal.role,('dispatcher',)):raise HTTPException(403,'Действие недоступно для текущей роли')
         order=v.task(task_id);context=assignment_context(v,order)
+        if command.use_planned_day and order.status in ('in_progress','rework') and v.principal.role!='chief_engineer':
+            return dict(status='needs_input',code='CHIEF_HANDOFF_REQUIRED',command=None,context=context,
+                        explanation='Переназначение начатой работы подтверждает главный инженер.')
         if context.get('status')!='ready':return dict(status='needs_input',explanation=context.get('explanation'),context=context,command=None)
         if command.one_person_only and context.get('crewSize')!=1:
             return dict(status='needs_input',explanation=f"Для этого задания требуется {context.get('crewSize')} исполнителей; одного недостаточно.",context=context,command=None)
-        start=datetime.fromisoformat(context['defaultStartLocal']);end=datetime.fromisoformat(context['defaultEndLocal'])
-        result=assignment_preview(v,order,start,end,executor_ids=command.executor_ids,individual_only=True)
-        result['taskTitle']=order.operation_snapshot.get('label') or 'Задание'
+        day=None
+        if command.use_planned_day:
+            zone=ZoneInfo(context['timezone'])
+            if order.planned_start_at is not None:
+                day=order.planned_start_at.astimezone(zone).date()
+            elif order.schedule_entry_id is not None:
+                day=v.one('schedule_entries',schedule_entry_id=order.schedule_entry_id).planned_date
+            if day is None:
+                return dict(status='needs_input',code='PLANNED_DAY_UNKNOWN',command=None,context=context,
+                            explanation='У наряда нет подтверждённой плановой даты. Обязательный срок не заменяет дату выполнения.')
+            start=datetime.combine(day,time.min);end=start+timedelta(days=1)
+            if order.planned_start_at is not None and order.planned_end_at is not None:
+                start=order.planned_start_at.astimezone(zone).replace(tzinfo=None)
+                end=order.planned_end_at.astimezone(zone).replace(tzinfo=None)
+        else:
+            start=datetime.fromisoformat(context['defaultStartLocal']);end=datetime.fromisoformat(context['defaultEndLocal'])
+        result=assignment_preview(v,order,start,end,executor_ids=command.executor_ids,
+                                  individual_only=True, prefer_low_load=command.use_planned_day)
+        result['taskTitle']=v.operation(order)[1] if command.use_planned_day else order.operation_snapshot.get('label') or 'Задание'
+        if day is not None:
+            result.update(plannedDay=day,windowStartLocal=start,windowEndLocal=end)
         return result
 
     @app.get(BASE+'/equipment')
@@ -466,11 +488,27 @@ def register_routes(app,views):
               equipment_q:str|None=Query(None,min_length=1,max_length=200),
               equipment_asset_code:str|None=Query(None,min_length=1,max_length=128),
               on_days:list[date]|None=Query(None,max_length=31),
-              sort:Literal['earliest','latest']|None=None,
+               sort:Literal['earliest','latest']|None=None,attention_only:bool=False,use_planned_date:bool=False,
               v=Depends(views)):
         from .task_analytics import UNFINISHED
         orders=v.models['work_orders'];assignments=v.models['work_assignments'];rules=v.models['maintenance_rules'];operations=v.models['operation_templates']
+        entries=v.models['schedule_entries']
+        zone=ZoneInfo(v.principal.timezone)
         instant=func.coalesce(orders.planned_start_at,orders.regulatory_deadline_at);now=datetime.now(timezone.utc)
+        schedule_basis=use_planned_date and period!='overdue'
+        deadline_basis=period=='overdue' or (unfinished_only and period=='upcoming' and not schedule_basis)
+        if schedule_basis:
+            instant=func.coalesce(orders.planned_start_at,func.timezone(v.principal.timezone,cast(entries.planned_date,DateTime)))
+        elif deadline_basis:
+            instant=(orders.regulatory_deadline_at if period=='overdue' else
+                     func.coalesce(orders.regulatory_deadline_at,orders.planned_start_at))
+        def task_instant(order):
+            if period=='overdue':return order.regulatory_deadline_at
+            if deadline_basis:return order.regulatory_deadline_at or order.planned_start_at
+            if schedule_basis:
+                return order.planned_start_at or (v.one('schedule_entries',schedule_entry_id=order.schedule_entry_id).planned_date
+                                                  if order.schedule_entry_id else None)
+            return order.planned_start_at or order.regulatory_deadline_at
         active_states=['draft','assigned','clarification','rework']
         if period=='overdue':
             instant=orders.regulatory_deadline_at
@@ -488,10 +526,14 @@ def register_routes(app,views):
             if type_codes:
                 selected_types = selected_types.where(kinds.code.in_(type_codes))
             filters.append(selected_types.exists())
-        if unassigned_only:
-            filters.append(~select(assignments.work_assignment_id).where(assignments.site_id==orders.site_id,
+        has_assignment=select(assignments.work_assignment_id).where(assignments.site_id==orders.site_id,
                 assignments.work_order_id==orders.work_order_id,
-                assignments.status.not_in(('cancelled','declined'))).exists())
+                assignments.status.not_in(('cancelled','declined'))).exists()
+        if unassigned_only:
+            filters.append(~has_assignment)
+        if attention_only:
+            filters.extend((orders.status.in_(UNFINISHED), or_(~has_assignment, orders.regulatory_deadline_at<now,
+                            orders.status.in_(('clarification','rework')))))
         if equipment_id is not None:
             from .management import _equipment
             _equipment(v,equipment_id)
@@ -536,10 +578,15 @@ def register_routes(app,views):
         if state:filters.append(orders.status==state)
         elif active_only and not unfinished_only:filters.append(orders.status.in_(active_states))
         if v.principal.role=='executor':filters.append(select(assignments.work_order_id).where(assignments.work_order_id==orders.work_order_id,assignments.user_id==v.principal.user_id,assignments.status.not_in(('cancelled','declined'))).exists())
-        if period=='upcoming':filters.append(instant>=now)
+        if period=='upcoming':
+            filters.append(or_(orders.planned_start_at>=now,
+                               and_(orders.planned_start_at.is_(None),entries.planned_date>=now.astimezone(zone).date()))
+                           if schedule_basis else instant>=now)
         elif period=='overdue':filters.extend((instant<now,orders.status.not_in(('completed','cancelled'))))
         elif period=='undated':filters.append(instant.is_(None))
         source=select(orders).outerjoin(rules,and_(rules.maintenance_rule_id==orders.maintenance_rule_id,rules.site_id==v.principal.site_id)).outerjoin(operations,operations.operation_template_id==rules.operation_template_id)
+        if schedule_basis:
+            source=source.outerjoin(entries,and_(entries.site_id==orders.site_id,entries.schedule_entry_id==orders.schedule_entry_id))
         if q.strip():
             filters.append(or_(*(column.icontains(q.strip(), autoescape=True) for column in (
                 orders.operation_snapshot['title'].astext, orders.operation_snapshot['label'].astext,
@@ -559,7 +606,10 @@ def register_routes(app,views):
         if equipment_ids is not None:scope['equipment_ids']=sorted({str(identity) for identity in equipment_ids})
         if equipment_q is not None:scope['equipment_q']=equipment_q
         if equipment_asset_code is not None:scope['equipment_asset_code']=equipment_asset_code
+        if q:scope['q']=q
         if unfinished_only:scope['unfinished_only']=True
+        if attention_only:scope['attention_only']=True
+        if use_planned_date:scope['date_basis']='deadline' if period=='overdue' else 'planned'
         if starts_on is not None:scope['starts_on']=starts_on
         if ends_on is not None:scope['ends_on']=ends_on
         if on_days:scope['on_days']=sorted(set(on_days))
@@ -570,8 +620,9 @@ def register_routes(app,views):
             scope.update(equipment_accepted_maintenance=equipment_accepted_maintenance)
         items = [v.task_view(order, checked_at=now) for order in selected]
         for item, order in zip(items, selected, strict=True):
-            item['matchedAt'] = (order.regulatory_deadline_at if period == 'overdue' else
-                                 order.planned_start_at or order.regulatory_deadline_at)
+            item['matchedAt'] = task_instant(order)
+            item['rawStatus'] = order.status
+            item['overdueMinutes'] = int((now-order.regulatory_deadline_at).total_seconds()//60) if item['isOverdue'] else None
         if equipment_id is not None or maintenance_only:
             for item, order in zip(items, selected, strict=True):
                 if equipment_id is not None:
@@ -580,10 +631,9 @@ def register_routes(app,views):
                 item['regulatoryDeadlineAt'] = (order.regulatory_deadline_at.astimezone(ZoneInfo(v.principal.timezone))
                                                 if maintenance_only and order.regulatory_deadline_at else order.regulatory_deadline_at)
         if on_days:
-            zone = ZoneInfo(v.principal.timezone)
             for item, order in zip(items, selected, strict=True):
-                instant_value = order.regulatory_deadline_at if period == 'overdue' else order.planned_start_at or order.regulatory_deadline_at
-                item['matchedDay'] = instant_value.astimezone(zone).date().isoformat()
+                instant_value = task_instant(order)
+                item['matchedDay'] = (instant_value.astimezone(zone).date() if isinstance(instant_value,datetime) else instant_value).isoformat()
         return dict(items=items,total=count,period=period,timezone=v.principal.timezone,checked_at=now,offset=offset,limit=limit,
             filters=dict(state=state,active_only=active_only,states=[state] if state else list(UNFINISHED) if unfinished_only else active_states if active_only else 'all_including_completed_and_cancelled',
                          **({'scheduled_only': True} if scheduled_only else {}),

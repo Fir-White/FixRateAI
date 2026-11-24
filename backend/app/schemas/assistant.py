@@ -13,6 +13,7 @@ class Input(BaseModel):
 class ConversationCreate(Input):
     agent:Literal['assistant','planner','photo']='assistant'
     title:str=Field(default='Новый диалог',min_length=1,max_length=160)
+    subject_task_id:UUID|None=None
 
 class MessageCreate(Input):
     idempotency_key:UUID

@@ -1308,6 +1308,7 @@
         "path": [],
         "query": [
           "active_only",
+          "attention_only",
           "ends_on",
           "equipment_accepted_maintenance",
           "equipment_asset_code",
@@ -1327,7 +1328,8 @@
           "type_codes",
           "type_keys",
           "unassigned_only",
-          "unfinished_only"
+          "unfinished_only",
+          "use_planned_date"
         ]
       },
       "response_schemas": {
@@ -1740,7 +1742,8 @@
         "query": [],
         "body": [
           "executor_ids",
-          "one_person_only"
+          "one_person_only",
+          "use_planned_day"
         ]
       },
       "response_schemas": {
