@@ -15,7 +15,7 @@ it('opens the protected current API resource after confirmation without exposing
   expect(link).toHaveAttribute('href',url);expect(link).toHaveAttribute('target','_blank');
   expect(link).toHaveAttribute('rel','noopener noreferrer');
   expect(link).toHaveTextContent('Защищённый просмотр');
-  expect(screen.getByRole('status')).toHaveTextContent('результат требует проверки');
+  expect(screen.getByRole('status')).toHaveTextContent(/результат требует проверки/i);
 });
 
 it.each(['https://external.test/code','//external.test/code','javascript:alert(1)','data:text/html,x','/settings/company','api/v1/maintenance/management/enrollment','/api/v1/../../auth/session','/api/v1/%2e%2e/%2e%2e/auth/session','/api/v1/\\external.test/code','/api/v1/maintenance/\ncode'])('rejects an unsafe resource URL %j',unsafe=>{

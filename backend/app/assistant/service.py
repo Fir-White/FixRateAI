@@ -14,6 +14,19 @@ from .attachments import SCOPE,COOKIE_EFFECTS,HUMAN_SECRET,owned,public as publi
 from .read_transport import read as read_tool,safe_arguments,result_summary
 
 PROMPT_VERSION='fixrate-orchestrator-v1'
+GRAPH_PROMPT_VERSION='fixrate-langgraph-v3'
+DYNAMIC_PROMPT_VERSION='fixrate-llm-dynamic-v1'
+OPERATOR_PROMPT_VERSION='fixrate-erp-operator-v1'
+
+
+def prompt_version(settings):
+    if settings.assistant_agent_version == 'v4':
+        from .tool_agent import PROMPT_VERSION as version
+        return version
+    if settings.assistant_agent_version != 'v3':
+        return PROMPT_VERSION
+    return {'llm_dynamic': DYNAMIC_PROMPT_VERSION, 'erp_operator': OPERATOR_PROMPT_VERSION}.get(
+        settings.assistant_v3_pipeline, GRAPH_PROMPT_VERSION)
 PROMPTS=Path(__file__).parent/'prompts'
 SLOTS=threading.BoundedSemaphore(2)
 logger=logging.getLogger(__name__)
@@ -26,7 +39,7 @@ def dump(value):return json.dumps(value,ensure_ascii=False,default=str)
 
 def progress_fact(tool,value):
     """Bounded, factual summary of a tool result; never expose arguments or reasoning."""
-    if tool in ('tasks_find','staff_find','equipment_find') and isinstance(value,dict):
+    if tool in ('tasks_find','staff_find','equipment_find','maintenance_catalog_read') and isinstance(value,dict):
         total=value.get('total');items=value.get('items')
         if isinstance(total,int) and not isinstance(total,bool) and total>=0 and isinstance(items,list):
             return {'total':total,'shown':len(items)}
@@ -137,46 +150,73 @@ def audit(session,principal,identity,event,details):
 
 async def propose(app,session,principal,thread,tool,args,explanation,headers,turn_id=None,workflow_goal_id=None,workflow_root_turn_id=None):
     question=''
+    legacy_turn=False
     if turn_id:
         if workflow_goal_id:
             workflow_root_turn_id=workflow_root_turn_id or turn_id
             root=session.scalar(text('SELECT turn_id FROM assistant_turns WHERE turn_id=:root AND conversation_id=:chat FOR UPDATE'),dict(root=workflow_root_turn_id,chat=thread['conversation_id']))
             if root is None:raise HTTPException(404,'Поручение не найдено')
-        source=session.execute(text('SELECT status,content FROM assistant_turns WHERE turn_id=:id FOR UPDATE'),dict(id=turn_id)).mappings().first()
-        if source is None or source['status']!='running':raise HTTPException(409,'Ответ уже прерван. Отправьте новый запрос.')
-        question=source['content']
+        turn_source=session.execute(text('SELECT status,content,execution_engine FROM assistant_turns WHERE turn_id=:id FOR UPDATE'),dict(id=turn_id)).mappings().first()
+        if turn_source is None or turn_source['status']!='running':raise HTTPException(409,'Ответ уже прерван. Отправьте новый запрос.')
+        legacy_turn=turn_source['execution_engine'] in ('v2','v3')
+        question=turn_source['content'] if legacy_turn else ''
         if workflow_root_turn_id:
             question=session.scalar(text('SELECT content FROM assistant_turns WHERE turn_id=:root AND conversation_id=:chat'),dict(root=workflow_root_turn_id,chat=thread['conversation_id'])) or question
         if workflow_goal_id:
             existing=session.scalar(text('SELECT action_id FROM assistant_actions WHERE workflow_root_turn_id=:root AND workflow_goal_id=:goal'),dict(root=workflow_root_turn_id,goal=workflow_goal_id))
             if existing:return public_action(action(session,principal,existing))
+    if tool.name=='report_attach_and_submit' and (not turn_id or legacy_turn):
+        raise HTTPException(403,'Подготовьте действие в диалоге v4.')
     args=validate_arguments(app,tool,args)
-    from .explicit_draft import specification,arguments as explicit_arguments
-    explicit=specification(question) if turn_id else None
+    explicit=None
+    if legacy_turn:
+        from .explicit_draft import specification,arguments as explicit_arguments
+        explicit=specification(question)
     if explicit and (tool.name!=explicit['tool'] or any(str(args.get('path',{}).get(key,'')).casefold()!=value.casefold() for key,value in explicit['path'].items())):
         raise HTTPException(422,'Операция или карточка не соответствует явной команде пользователя. Используйте указанные действие и идентификатор.')
     from .tools import file_fields
     for name in file_fields(app,tool):
         if args.get('body',{}).get(name):owned(app,args['body'][name])
     before=await preflight(app,tool,args,headers)
+    if legacy_turn and tool.name == 'equipment_edit':
+        from .semantic_plan import QUOTED, UUID, asset_references, equipment_changes
+        changes, incomplete = equipment_changes(question)
+        business_fields = {key: value for key, value in args.get('body', {}).items() if key != 'expected_revision'}
+        if incomplete or len(changes) > 1 and business_fields != changes:
+            raise HTTPException(422, 'Карточка должна содержать все явно запрошенные изменения оборудования.')
+        if len(changes) > 1 and isinstance(before, dict):
+            if args.get('body', {}).get('expected_revision') != before.get('revision'):
+                raise HTTPException(409, 'Ревизия оборудования изменилась. Откройте свежую карточку.')
+            source = QUOTED.sub(' ', question)
+            codes = {code.casefold() for code in asset_references(source)}
+            ids = {value.lower() for value in re.findall(r'\b' + UUID + r'\b', source, re.I)}
+            if ids:
+                matches = ids == {str(before.get('equipment_id'))}
+            elif codes:
+                matches = codes == {str(before.get('asset_code')).casefold()}
+            else:
+                name = str(before.get('name') or '')
+                matches = bool(name and re.search(r'(?<!\w)' + re.escape(name) + r'(?!\w)', source, re.I))
+            if not matches:
+                raise HTTPException(422, 'Не удалось однозначно связать изменения с указанной карточкой оборудования.')
     if explicit:
         exact=explicit_arguments(explicit,before)
         if exact is None:raise HTTPException(422,'Явная команда не подтверждена текущим состоянием карточки')
         if set(args.get('body',{}))-set(exact['body']):raise HTTPException(422,'Для этой явной команды переданы непрошенные поля. Подготовьте только указанное изменение.')
         args=validate_arguments(app,tool,{**args,'body':exact['body']})
-    from .intents import mutation_requested
-    if turn_id and mutation_requested(question) and tool.name in ('equipment_edit','staff_edit') and isinstance(before,dict):
-        from .intents import literal_rename,explicit_revision
-        parts=re.split(r'\b(?:затем|после этого|then)\b',question,maxsplit=1,flags=re.I)
-        source_action=parts[-1] if len(parts)==2 and not mutation_requested(parts[0]) else question
-        body=dict(args.get('body',{}));revision=before.get('revision')
-        # Supply the technical token while preparing the reviewable draft, not
-        # during confirmation. Explicit user/MCP conditions remain authoritative.
-        if type(revision) is int and revision>0 and not explicit_revision(source_action):body['expected_revision']=revision
-        if tool.name=='equipment_edit' and 'name' in body:
-            requested_name=literal_rename(source_action)
-            if requested_name is not None:body['name']=requested_name
-        args=validate_arguments(app,tool,{**args,'body':body})
+    if legacy_turn and tool.name in ('equipment_edit','staff_edit') and isinstance(before,dict):
+        from .intents import literal_rename,explicit_revision,mutation_requested
+        if mutation_requested(question):
+            parts=re.split(r'\b(?:затем|после этого|then)\b',question,maxsplit=1,flags=re.I)
+            source_action=parts[-1] if len(parts)==2 and not mutation_requested(parts[0]) else question
+            body=dict(args.get('body',{}));revision=before.get('revision')
+            # Supply the technical token while preparing the reviewable draft, not
+            # during confirmation. Explicit user/MCP conditions remain authoritative.
+            if type(revision) is int and revision>0 and not explicit_revision(source_action):body['expected_revision']=revision
+            if tool.name=='equipment_edit' and 'name' in body:
+                requested_name=literal_rename(source_action)
+                if requested_name is not None:body['name']=requested_name
+            args=validate_arguments(app,tool,{**args,'body':body})
     snapshot=None if before is None else dict(sha256=fingerprint(before),preview=bounded(before))
     identity=uuid4();expires=now()+timedelta(minutes=15)
     sha=fingerprint(dict(tool=tool.name,arguments=args,before=snapshot,actor=str(principal.user_id),site=str(principal.site_id)))
@@ -184,6 +224,10 @@ async def propose(app,session,principal,thread,tool,args,explanation,headers,tur
         VALUES (:id,:conversation,:turn,:tool,CAST(:args AS jsonb),:sha,CAST(:before AS jsonb),:explanation,'proposed',:expires,:goal,:root)'''),
         dict(id=identity,conversation=thread['conversation_id'],turn=turn_id,tool=tool.name,args=dump(args),sha=sha,before=dump(snapshot),explanation=explanation[:3000],expires=expires,goal=workflow_goal_id,root=workflow_root_turn_id))
     audit(session,principal,identity,'proposed',dict(tool=tool.name,payload_sha256=sha))
+    if turn_id and turn_source['execution_engine'] == 'v3':
+        from .graph_persistence import register_thread, thread_config
+        config = thread_config(principal, thread['conversation_id'], 'action', identity)
+        register_thread(session, config, thread['conversation_id'])
     session.commit()
     return public_action(action(session,principal,identity))
 
@@ -288,13 +332,55 @@ async def finish_answer(app,client,turn_id,question,history,observations,trace,r
         return incomplete_answer(question,trace,reason)
 
 async def agent_turn(app,principal,thread_id,turn_id,headers):
-    from .orchestrator import run
+    with app.state.factory() as session:
+        engine = session.scalar(text('SELECT execution_engine FROM assistant_turns WHERE turn_id=:id'), dict(id=turn_id))
+    if engine == 'v4':
+        from .tool_agent import run
+    elif engine == 'v3':
+        from .graph_agent import run
+    elif engine == 'v2':
+        from .orchestrator import run
+    else:
+        raise RuntimeError('Unknown assistant execution engine')
     return await run(app,principal,thread_id,turn_id,headers)
 
 
 def run_turn(app,principal,thread_id,turn_id,headers):
-    try:asyncio.run(agent_turn(app,principal,thread_id,turn_id,headers))
-    finally:SLOTS.release()
+    try:
+        with app.state.factory() as session:
+            claimed = session.execute(text("""UPDATE assistant_turns SET worker_claimed_at=now()
+                WHERE turn_id=:turn AND conversation_id=:chat AND status='running'
+                  AND worker_claimed_at IS NULL AND (deadline_at IS NULL OR deadline_at>now())
+                RETURNING turn_id"""), dict(turn=turn_id, chat=thread_id)).scalar()
+            session.commit()
+        if claimed:
+            asyncio.run(agent_turn(app,principal,thread_id,turn_id,headers))
+    finally:
+        SLOTS.release()
+
+
+def expire_turns(session, conversation_id):
+    """Expire a lost execution lease; recovery uses a fresh authorized message."""
+    cutoff = now()
+    expired = session.execute(text("""UPDATE assistant_turns
+        SET status='failed', error_code='ASSISTANT_INTERRUPTED', finished_at=now(),
+            answer=CASE WHEN workflow IS NOT NULL
+                THEN 'Ответ прерван. Поручение сохранено, его можно продолжить.'
+                ELSE 'Ответ прерван. Сообщение сохранено, его можно отправить повторно.' END
+        WHERE conversation_id=:chat AND status='running'
+          AND ((deadline_at IS NOT NULL AND deadline_at<=:now) OR
+               (deadline_at IS NULL AND created_at<=:legacy_cutoff))
+        RETURNING turn_id,execution_engine"""),
+        dict(chat=conversation_id, now=cutoff,
+             legacy_cutoff=cutoff-timedelta(seconds=turn_timeout_seconds()))).all()
+    reject_turn_proposals(session, [row.turn_id for row in expired if row.execution_engine == 'v4'])
+    return len(expired)
+
+
+def reject_turn_proposals(session, turn_ids):
+    if turn_ids:
+        session.execute(text("""UPDATE assistant_actions SET status='rejected',finished_at=now()
+            WHERE turn_id=ANY(CAST(:ids AS uuid[])) AND status='proposed'"""), dict(ids=turn_ids))
 
 async def confirm(app,session,principal,row,headers,secret_values=None):
     EXPECTED_PRINCIPAL.set((principal.user_id,principal.site_id,principal.role))
@@ -321,7 +407,12 @@ async def confirm(app,session,principal,row,headers,secret_values=None):
     # Claim before dispatch. Repeated confirmation will never dispatch this action twice.
     session.commit()
     try:
-        value=await invoke(app,tool,arguments,headers)
+        from .attachments import CONFIRMED_REPORT
+        confirmed=CONFIRMED_REPORT.set(tool.name=='report_attach_and_submit')
+        try:
+            value=await invoke(app,tool,arguments,headers)
+        finally:
+            CONFIRMED_REPORT.reset(confirmed)
         from .action_outcomes import verify_action
         verification=await verify_action(app,tool,arguments,value,headers,before=before)
         if tool.name=='profile_email' or (tool.name=='staff_edit' and str(arguments.get('path',{}).get('user_id'))==str(principal.user_id)):
@@ -336,3 +427,19 @@ async def confirm(app,session,principal,row,headers,secret_values=None):
     audit(session,principal,row['action_id'],status,dict(tool=tool.name,payload_sha256=row['payload_sha256']))
     session.commit()
     return public_action(action(session,principal,row['action_id']))
+
+
+def reject(session, principal, row):
+    identity = row['action_id']
+    if row['status'] == 'proposed':
+        session.execute(text("UPDATE assistant_actions SET status='rejected',finished_at=now() WHERE action_id=:id"),
+                        dict(id=identity))
+        audit(session, principal, identity, 'rejected', dict(tool=row['tool_name']))
+        session.commit()
+    return public_action(action(session, principal, identity))
+
+
+def action_uses_graph(session, row):
+    return row['turn_id'] is not None and session.scalar(text(
+        'SELECT execution_engine FROM assistant_turns WHERE turn_id=:id'
+    ), dict(id=row['turn_id'])) == 'v3'

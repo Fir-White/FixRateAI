@@ -1,13 +1,16 @@
 import {act, fireEvent, render, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {expect, it} from 'vitest';
+import {beforeAll, expect, it} from 'vitest';
 import {SavedAnswer} from '@/features/assistant/SavedAnswer';
 
 const answer = '### Сохранённая инструкция\n\n' + '- Исходное поле: полный текст без выдуманных единиц.\n'.repeat(80);
 
-it('renders the newest long answer eagerly and preserves already visible content when it becomes older', () => {
+// Browser coverage exercises the cold fallback. These assertions check the rendered answer.
+beforeAll(async () => { await import('@/features/assistant/AssistantAnswer'); }, 15_000);
+
+it('formats the newest long answer and preserves already visible content when it becomes older', async () => {
   const {container, rerender} = render(<SavedAnswer answer={answer}/>);
-  expect(screen.getByRole('heading', {name: 'Сохранённая инструкция'})).toBeVisible();
+  expect(await screen.findByRole('heading', {name: 'Сохранённая инструкция'})).toBeVisible();
   expect(container.querySelector('details')).toHaveAttribute('open');
   const body=container.querySelector('.assistant-answer');
   rerender(<SavedAnswer answer={answer} older/>);

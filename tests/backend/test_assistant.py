@@ -308,7 +308,7 @@ def test_live_progress_is_durable_and_legacy_profiles_use_unified_role_tools(ass
         dict(answer='TEST ONLY proposal',calls=[dict(tool='equipment_create',arguments=dict(body=equipment_body(ids)),explanation='TEST ONLY create')])])
     app.state.assistant_provider_factory=lambda:script
     try:
-        r=admin.post(B+'/conversations/'+t+'/messages',json=dict(idempotency_key=str(uuid4()),content='TEST ONLY unified legacy chat'))
+        r=admin.post(B+'/conversations/'+t+'/messages',json=dict(idempotency_key=str(uuid4()),content='TEST ONLY create equipment using unified legacy chat'))
         assert r.status_code==202
         view=admin.get(B+'/conversations/'+t).json();turn=view['turns'][0]
         assert observed[0][-1]['tool']=='__planning' and observed[0][-1]['status']=='running'

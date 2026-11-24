@@ -12,6 +12,12 @@ import re
 LEGACY_SUPPORTED={'equipment_read','equipment_edit','regulations_read','calendar_evidence','equipment_service_history','inventory_read','staff_edit','attachment_read','workbook_readiness','task_assign','tasks_find'}
 SUPPORTED=LEGACY_SUPPORTED|{'equipment_find','staff_read','staff_find','workforce_read','operations_list','operation_read','components_read','catalog_read','profile_read','notifications_list','enrollment_read','task_read','task_start'}
 
+NEAREST_ONE_PERSON_ASSIGNMENT = re.compile(
+    r'(?:привет[,!]\s*)?назнач(?:ь|ьте)\s+'
+    r'(?:одного|самого\s+малозагруженного)\s+(?:работника|сотрудника|исполнителя)\s+'
+    r'на\s+ближайшее\s+то[.!]?', re.I,
+)
+
 
 def equipment_context(goal, state):
     """Reuse a verified identity explicitly named in this objective and request.
@@ -78,7 +84,13 @@ def next_step(goal,state):
         search=(selector.get('search') or '').strip()
         if search and not re.fullmatch(r'(?:ближайш\w*|предстоящ\w*|активн\w*|просрочен\w*|все|то|работ\w*|задан\w*|план\w*|список)',search,re.I):
             query['q']=search
-        query['period']='all' if re.search(r'\b(?:все|просрочен\w*|истори\w*|прошл\w*)\b',state.get('request',''),re.I) else 'upcoming'
+        request=state.get('request','')
+        if (re.search(r'\bпросрочен\w*\b',request,re.I)
+                and re.search(r'\bпросрочен\w*\b',goal['title'],re.I)
+                and not re.search(r'\b(?:без|не)\s+просрочен\w*\b',request,re.I)):
+            query['period']='overdue'
+        else:
+            query['period']='all' if re.search(r'\b(?:все|истори\w*|прошл\w*)\b',request,re.I) else 'upcoming'
         return call(target,dict(query=query))
     if target=='task_start':
         changes=goal.get('changes') or {}
@@ -87,38 +99,31 @@ def next_step(goal,state):
         if revision is not None and type(revision) is not int:return None
         return call(target,dict(path=dict(task_id=selector['task_id']),body={} if revision is None else dict(expected_revision=revision)))
     if target=='task_assign':
-        evidence=[proof for proof in state.get('evidence',[]) if proof['goal_id']==goal['id'] or proof['goal_id'] in goal.get('depends_on',[])]
-        task_id=selector.get('task_id')
-        found_in_goal=any(proof.get('tool')=='tasks_find' and proof.get('goal_id')==goal['id'] for proof in evidence)
-        if task_id and not found_in_goal:
+        if (selector or set(goal.get('changes') or {})-{'reason'}
+                or not re.search(r'\bближайш\w*',goal['title'],re.I)
+                or not NEAREST_ONE_PERSON_ASSIGNMENT.fullmatch(state.get('request','').strip())):
             return None
-        if not task_id:
-            finds=[proof for proof in evidence if proof.get('tool')=='tasks_find']
-            if not finds:
-                return call('tasks_find',dict(query=dict(period='upcoming')))
-            last_find=finds[-1]
-            last_result=last_find.get('result') if isinstance(last_find.get('result'),dict) else {}
-            items=last_result.get('items') if isinstance(last_result.get('items'),list) else []
-            if not items and (last_find.get('arguments',{}).get('query') or {}).get('period','upcoming')!='all':
-                return call('tasks_find',dict(query=dict(period='all')))
-            if not items:
-                return None
-            drafts=[item for item in items if isinstance(item,dict) and item.get('state')=='draft' and item.get('id')]
-            active=[item for item in items if isinstance(item,dict) and item.get('state') in ('draft','assigned','rework') and item.get('id')]
-            candidates=drafts or active
-            if not candidates:
-                return None
-            if len(candidates)==1 or re.search(r'ближайш',state.get('request',''),re.I):
-                task_id=str(candidates[0]['id'])
-            else:
-                return None
+        evidence=[proof for proof in state.get('evidence',[]) if proof['goal_id']==goal['id']]
+        query=dict(period='upcoming')
+        find=next((proof for proof in reversed(evidence) if proof['tool']=='tasks_find' and proof['arguments'].get('query')==query),None)
+        if not find:
+            return call('tasks_find',dict(query=query))
+        items=find['result'].get('items') if isinstance(find.get('result'),dict) else None
+        if not items:
+            message='Ближайшие работы не найдены. Укажите другое задание.' if items==[] else 'Не удалось проверить список ближайших работ.'
+            return AgentStep(answer=message,calls=[])
+        first=items[0]
+        if first.get('state') not in ('draft','assigned','rework','rework_required') or not first.get('id'):
+            return AgentStep(answer='Уточните задание для назначения. Ближайшая работа не готова к назначению.',calls=[])
+        if len(items)>1:
+            start=first.get('scheduledStart') or first.get('mandatoryDueDate')
+            other=items[1].get('scheduledStart') or items[1].get('mandatoryDueDate')
+            if not start or not other or start==other:
+                return AgentStep(answer='Уточните название или ID задания. Ближайшую работу нельзя определить однозначно.',calls=[])
+        task_id=first['id']
         prep=next((proof for proof in reversed(evidence) if proof.get('tool')=='assignment_prepare' and (proof.get('arguments',{}).get('path') or {}).get('task_id')==task_id),None)
         if prep is None:
-            request_text=state.get('request','')
-            one_person=bool(re.search(r'\b(?:одного|1\s+человек\w*|самого\s+\w+\s+работника|одного\s+работника|одного\s+исполнителя)\b',request_text,re.I)
-                            and not re.search(r'\b(?:бригад\w*|сотрудников|работников|исполнителей)\b',request_text,re.I))
-            body=dict(one_person_only=True) if one_person else {}
-            return call('assignment_prepare',dict(path=dict(task_id=task_id),body=body))
+            return call('assignment_prepare',dict(path=dict(task_id=task_id),body=dict(one_person_only=True)))
         prep_result=prep.get('result') if isinstance(prep.get('result'),dict) else {}
         if prep_result.get('status') in ('ok','ready') and isinstance(prep_result.get('command'),dict):
             cmd=prep_result['command']
@@ -126,7 +131,7 @@ def next_step(goal,state):
             if cmd.get('crew_id'):body['crew_id']=cmd['crew_id']
             body['reason']=str((goal.get('changes') or {}).get('reason') or goal.get('title') or 'Назначение исполнителей')[:500]
             return call('task_assign',dict(path=dict(task_id=task_id),body=body))
-        return None
+        return AgentStep(answer='',calls=[])
     if target=='equipment_find':
         query={}
         if selector.get('equipment_code'):query['asset_code']=selector['equipment_code']

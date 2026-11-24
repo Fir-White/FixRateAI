@@ -18,11 +18,20 @@ for(const [role,home] of Object.entries(homes)){
       await expect(page.getByRole('heading',{name:'Мои задания'})).toBeVisible();
       await expect(menu.getByRole('link')).toHaveCount(4);
       await expect(menu.getByRole('link',{name:'Планирование ТО'})).toHaveCount(0);
-      await menu.getByRole('link',{name:'Мой календарь'}).click();
+      await menu.getByRole('link',{name:'Мои отчёты'}).click();
+      await expect(page.getByRole('heading',{name:'Мои отчёты'})).toBeVisible();
+      await expect(page.getByText('Сохранённых отчётов пока нет')).toBeVisible();
+      await page.getByRole('link',{name:'Открыть задания'}).click();
+      await expect(menu.getByRole('link',{name:'Мои задания'})).toHaveAttribute('aria-current','page');
+      await menu.getByRole('link',{name:'Мой день'}).click();
+      await page.getByRole('link',{name:'Мой календарь'}).click();
+      await expect(page.getByRole('navigation',{name:'Мой график'}).getByRole('link',{name:'Мои смены'})).toBeVisible();
       await expect(page.getByRole('navigation',{name:'Разделы планирования'})).toHaveCount(0);
       await page.goto('/planning');await expect(page.getByRole('heading',{name:'Раздел недоступен'})).toBeVisible();
     }else{
-      await expect(page.getByRole('navigation',{name:'Основные задачи'})).toBeVisible();
+      const shortcuts=page.getByRole('navigation',{name:'Основные задачи'});
+      if(role==='admin'||role==='director')await expect(shortcuts).toBeVisible();
+      else await expect(shortcuts).toHaveCount(0);
       await menu.getByRole('link',{name:'Планирование ТО'}).click();
       await expect(page.getByRole('heading',{name:'Планирование ТО',exact:true})).toBeVisible();
       const sections=page.getByRole('navigation',{name:'Разделы планирования'});
@@ -40,6 +49,43 @@ for(const [role,home] of Object.entries(homes)){
   });
 }
 
+for (const [width, height] of [[1440, 900], [390, 844]]) {
+  test(`executor opens saved reports at ${width}×${height}`, async ({ page }, info) => {
+    await page.setViewportSize({ width, height });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const profile = {
+      role: "executor", userId: "qa-executor", name: "Мария Волкова", siteId: "qa-site",
+      siteName: "Учебный объект", timezone: "Asia/Yekaterinburg",
+    };
+    const job = {
+      id: "11111111-1111-4111-8111-111111111111", title: "Проверка манометров", code: "ТО-017",
+      equipmentName: "Тепловой пункт", mandatoryDueDate: "2026-11-21", state: "submitted",
+      activeExecutionId: "22222222-2222-4222-8222-222222222222", assignees: [],
+    };
+    await page.route("**/api/**", route => {
+      const { pathname } = new URL(route.request().url());
+      if (pathname.endsWith("/auth/session")) return route.fulfill({ json: { profile } });
+      if (pathname.endsWith("/ui/tasks")) return route.fulfill({ json: [
+        job, { ...job, id: "no-report", title: "Очистка сетчатого фильтра", state: "assigned", activeExecutionId: null },
+      ] });
+      return route.fulfill({ json: [] });
+    });
+    await page.goto("/executor");
+    if (width < 1100) await page.getByRole("button", { name: "Открыть меню" }).click();
+    await page.getByRole("navigation", { name: "Основная навигация" }).getByRole("link", { name: "Мои отчёты" }).click();
+    const report = page.getByRole("link", { name: job.title });
+    await expect(report).toHaveAttribute("href", `/executor/tasks/${job.id}`);
+    await expect(page.getByText("Очистка сетчатого фильтра")).toHaveCount(0);
+    await expect(page.getByText("На проверке", { exact: true })).toBeVisible();
+    await page.reload();
+    await expect(report).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+    await page.screenshot({ path: info.outputPath(`executor-reports-${width}.png`) });
+    await page.goBack();
+    await expect(page.getByRole("heading", { name: "С чего начнём рабочий день?" })).toBeVisible();
+  });
+}
+
 for(const width of [1440,390,320]){
   test(`isolated saved Excel → plan → stages → reload, without business mutations at ${width}px`,async({page,context},testInfo)=>{
     test.skip(!process.env.FIXRATE_JOURNEY_LIVE,'Requires the prepared manual QA fixture');
@@ -50,8 +96,10 @@ for(const width of [1440,390,320]){
     const login=await context.request.post('/api/v1/auth/login',{data:{email:'chief@test.local',password:'Test-FixRate-2026!'}});expect(login.ok()).toBe(true);
     const auth=await login.json();
     try{
-      await page.goto('/');await expect(page.getByRole('navigation',{name:'Основные задачи'})).toBeVisible();
-      await page.getByRole('link',{name:/Подготовить план ТО/}).click();
+      await page.goto('/');
+      const openMenu=page.getByRole('button',{name:'Открыть меню',exact:true});
+      if(width<768)await openMenu.click();
+      await page.getByRole('navigation',{name:'Основная навигация'}).getByRole('link',{name:'Планирование ТО',exact:true}).click();
       const file=page.getByRole('button',{name:/TEST_HVAC.xlsx · 217 операций/});await expect(file).toBeVisible();
       await expect(page.getByLabel('Excel каталога СВиК')).toHaveCount(0);
       await page.screenshot({path:testInfo.outputPath(`planning-files-${width}.png`)});

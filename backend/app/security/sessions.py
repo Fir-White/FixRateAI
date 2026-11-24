@@ -78,7 +78,7 @@ class Principal:
                     name=self.name, email=self.email, siteName=self.site_name, timezone=self.timezone)
 
 
-def authenticate(request: Request, session) -> Principal:
+def authenticate(request: Request, session, *, lock: bool = False) -> Principal:
     token = request.cookies.get(COOKIE)
     if not token:
         raise HTTPException(401, "Сессия отсутствует")
@@ -89,7 +89,7 @@ def authenticate(request: Request, session) -> Principal:
         JOIN sites s ON s.site_id=m.site_id
         WHERE x.token_hash=:token AND x.expires_at>now()
           AND u.is_active AND m.is_active AND s.is_active
-    """), {"token": digest(token)}).mappings().first()
+    """ + (' FOR SHARE OF x,u,m,s' if lock else '')), {"token": digest(token)}).mappings().first()
     if not row or row["role"] not in SQL_ROLES or not role_is_enabled(SQL_ROLES.get(row["role"], row["role"])):
         raise HTTPException(401, "Сессия истекла или доступ отозван")
     # Personal chat lifecycle is not a write to the operational domain. Ownership

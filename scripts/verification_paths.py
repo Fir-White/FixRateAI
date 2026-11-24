@@ -1,5 +1,6 @@
 """Shared output locations for verification tools, independent of the caller's cwd."""
 from datetime import datetime
+from hashlib import sha256
 from pathlib import Path
 from uuid import uuid4
 import os
@@ -15,7 +16,11 @@ def prepare_run(output=None, *, prefix="verify", root=ROOT):
         raise ValueError("Verification output inside the repository must be under reports/")
     if (reports / "results.json").exists() or (reports / "orchestration_cases.json").exists():
         raise ValueError("This run already has results; choose a new output directory")
-    relative = reports.relative_to(root / "reports") if reports.is_relative_to(root / "reports") else Path("verification") / reports.name
+    if reports.is_relative_to(root / "reports"):
+        relative = reports.relative_to(root / "reports")
+    else:
+        identity = sha256(os.fsencode(os.path.normcase(reports))).hexdigest()[:16]
+        relative = Path("verification") / f"{reports.name}-{identity}"
     logs = root / "logs" / relative
     if logs.exists() and any(logs.iterdir()):
         raise ValueError("This run already has logs; choose a new output directory")

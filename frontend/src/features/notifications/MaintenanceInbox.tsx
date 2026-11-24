@@ -233,7 +233,7 @@ export function MaintenanceInbox() {
 
   return <div className="inbox" ref={root}>
     <button ref={trigger} type="button" className={`inbox-trigger${open ? " is-open" : ""}`} aria-label={loading || (error && !items.length) ? "Уведомления" : `Уведомления, непрочитанных: ${unread.length}`} aria-haspopup="dialog" aria-expanded={open} aria-controls={id} onClick={() => { if (!open) { place(); setPanelMounted(true); setPresent(true); } setOpen(value => !value); }}>
-      <Icon name="bell" size={20}/>{unread.length > 0 && <span className="inbox-count" aria-hidden="true">{unread.length > 99 ? "99+" : unread.length}</span>}
+      <Icon name="bell" size={23}/>{unread.length > 0 && <span className="inbox-count" aria-hidden="true">{unread.length > 99 ? "99+" : unread.length}</span>}
       {error && !unread.length && <span className="inbox-error-dot" aria-hidden="true"/>}
       <span className="topbar-hint" aria-hidden="true">Уведомления</span>
     </button>

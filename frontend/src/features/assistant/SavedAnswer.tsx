@@ -1,6 +1,7 @@
-import {memo, startTransition, useEffect, useLayoutEffect, useRef, useState} from 'react';
-import {AssistantAnswer} from './AssistantAnswer';
+import {lazy, memo, startTransition, Suspense, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {FactsAnswer} from './FactsAnswer';
+
+const MarkdownAnswer = lazy(() => import('./AssistantAnswer').then(module => ({default: module.AssistantAnswer})));
 
 /** Only older long answer bodies fold; prompts, workflow and action cards stay outside. */
 export const SavedAnswer = memo(function SavedAnswer({answer, facts = false, older = false}: {
@@ -23,7 +24,10 @@ export const SavedAnswer = memo(function SavedAnswer({answer, facts = false, old
     element.addEventListener('beforematch', expose);
     return () => element.removeEventListener('beforematch', expose);
   }, [folded]);
-  const formatted = facts ? <FactsAnswer answer={answer}/> : <AssistantAnswer answer={answer}/>;
+  const formatted = facts ? <FactsAnswer answer={answer}/> :
+    <Suspense fallback={<div className="assistant-answer whitespace-pre-wrap">{answer}</div>}>
+      <MarkdownAnswer answer={answer}/>
+    </Suspense>;
   if (answer.length < 2500) return formatted;
   return <details ref={details} open={!older || undefined} className="assistant-saved-answer">
     <summary hidden={!older} onClick={() => {if (!details.current?.open) startTransition(() => setRich(true));}}>

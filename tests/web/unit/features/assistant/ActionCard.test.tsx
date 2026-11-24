@@ -9,7 +9,7 @@ beforeEach(()=>{vi.restoreAllMocks();vi.spyOn(api,'confirm').mockResolvedValue({
 function show(action=record){const changed=vi.fn();render(<MemoryRouter><ActionCard action={action} title="Изменить оборудование" onChanged={changed}/></MemoryRouter>);return changed;}
 it('distinguishes an acknowledged write from a verified postcondition',()=>{
   show({...record,status:'succeeded',result:{data:{revision:3},verification:{status:'unverified',summary:'Нужна проверка состояния данных.'}}});
-  expect(screen.getByRole('status')).toHaveTextContent('Запись выполнена; результат требует проверки');
+  expect(screen.getByRole('status')).toHaveTextContent('Действие завершилось. Результат требует проверки');
   expect(screen.queryByText('Выполнено и проверено')).not.toBeInTheDocument();
   expect(screen.queryByRole('button',{name:'Подтвердить и выполнить'})).not.toBeInTheDocument();
 });
@@ -18,6 +18,21 @@ it('shows exact parameters and requires human consent before confirming the stor
   const button=screen.getByRole('button',{name:'Подтвердить и выполнить'});expect(button).toBeDisabled();expect(api.confirm).not.toHaveBeenCalled();
   await user.click(screen.getByRole('checkbox'));await user.click(button);
   expect(api.confirm).toHaveBeenCalledExactlyOnceWith(record);expect(changed).toHaveBeenCalledOnce();
+});
+it('confirms report photos in one explicit click and shows when submission was blocked',async()=>{
+  const user=userEvent.setup();
+  const action:ChatAction={...record,tool_name:'report_attach_and_submit',
+    arguments:{path:{task_id:'task'},body:{expected_revision:2,execution_id:'attempt',photos:[{attachment_id:'photo'}]}},
+    explanation:'Наряд — попытка №1.\nСнимок.png — осмотр, после, ракурс: общий.'};
+  vi.mocked(api.confirm).mockResolvedValue({...action,status:'succeeded',result:{data:{submission:'draft_incomplete'},
+    verification:{status:'confirmed',summary:'Фото сохранены в черновике. Отчёт не отправлен: фактическое окончание.'}}});
+  show(action);
+  expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  expect(screen.getByRole('link',{name:'Открыть задание'})).toHaveAttribute('href','/executor/tasks/task');
+  await user.click(screen.getByRole('button',{name:'Подтвердить прикрепление и сдачу'}));
+  expect(api.confirm).toHaveBeenCalledExactlyOnceWith(action);
+  expect(await screen.findByRole('status')).toHaveTextContent('Отчёт не отправлен');
+  expect(screen.getByText(/фактическое окончание\./)).toBeVisible();
 });
 it('rejects without approving and preserves the immutable proposal after an error',async()=>{
   const user=userEvent.setup();vi.mocked(api.confirm).mockRejectedValue(new Error('Данные изменились'));

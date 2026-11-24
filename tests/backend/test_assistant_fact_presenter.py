@@ -1,10 +1,25 @@
 """Outcome-based presenter checks; no model or exact tool-sequence assertions."""
 from copy import deepcopy
 import pytest
-from app.assistant.fact_presenter import present_facts
+from app.assistant.fact_presenter import observed_pages, present_facts
 
 USER = '11111111-1111-4111-8111-111111111111'
 TASK = '22222222-2222-4222-8222-222222222222'
+
+
+def test_last_empty_page_retains_previous_rows_for_the_same_selection():
+    def page(month, offset, items):
+        return dict(arguments=dict(query=dict(year=2026, month=month), view=dict(offset=offset, limit=2, path=[])),
+                    result=dict(items=items, total=3, offset=offset, limit=2, source_path=[]))
+
+    first = page(11, 0, [{'name': 'A'}, {'name': 'B'}])
+    foreign = page(12, 0, [{'name': 'Wrong month'}])
+    later = page(11, 2, [{'name': 'C'}])
+    final = page(11, 3, [])
+    assert observed_pages([first, foreign, later, final]) == {
+        'items': [{'name': 'A'}, {'name': 'B'}, {'name': 'C'}], 'total': 3, 'complete': False,
+    }
+    assert observed_pages([foreign, final]) == final['result']
 
 
 def text(value, tool, **kwargs):

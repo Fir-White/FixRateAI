@@ -6,10 +6,13 @@ export interface WorkflowGoalView {
   title: string;
   status: string;
   reason?: string | null;
+  message?: string | null;
   action_id?: string | null;
 }
 
 export interface WorkflowStatusView {
+  kind?: 'task_execution';
+  display_plan?: boolean;
   outcome: string;
   goals: readonly WorkflowGoalView[];
 }
@@ -30,11 +33,15 @@ const labels: Record<string, string> = {
   partial: 'Выполнено частично',
   skipped: 'Пропущено',
   awaiting_confirmation: 'Ожидает вашего подтверждения',
+  awaiting_input: 'Нужны данные исполнителя',
   uncertain: 'Результат изменения требует проверки',
   cancelled: 'Остановлено',
 };
 
-const resumable = new Set(['planned', 'partial', 'blocked', 'failed', 'skipped']);
+const resumable = new Set(['planned', 'partial', 'blocked', 'failed', 'skipped', 'awaiting_input']);
+const newTaskRequest = new Set(['action_rejected', 'action_stale', 'action_failed', 'action_expired_request_fresh_proposal',
+  'action_unavailable', 'postcondition_unverified', 'read_only_reconciliation_required', 'task_selection_required',
+  'executor_role_required', 'task_ambiguous', 'task_title_mismatch', 'equipment_mismatch', 'report_attempt_changed']);
 
 /**
  * The engineer/executor first sees which requested outcomes remain open, then
@@ -43,7 +50,7 @@ const resumable = new Set(['planned', 'partial', 'blocked', 'failed', 'skipped']
  */
 export const WorkflowStatus = memo(function WorkflowStatus({workflow, onResume, disabled = false}: Props) {
   const headingId = useId();
-  if (!workflow) return null;
+  if (!workflow || workflow.display_plan === false) return null;
 
   const goals = workflow.goals.slice(0, 12);
   const completed = goals.filter(goal => goal.status === 'completed').length;
@@ -51,12 +58,16 @@ export const WorkflowStatus = memo(function WorkflowStatus({workflow, onResume, 
   const finished = workflow.outcome === 'completed' && workflow.goals.length > 0 &&
     workflow.goals.length <= 12 && completed === goals.length;
   const needsConfirmation = goals.some(goal => goal.status === 'awaiting_confirmation');
+  const needsInput = goals.some(goal => goal.status === 'awaiting_input');
   const uncertain = goals.some(goal => goal.status === 'uncertain');
   const running = workflow.outcome === 'running' || goals.some(goal => goal.status === 'running');
   const responseOnly = workflow.outcome === 'response_only' && goals.length > 0 && goals.every(goal => goal.status === 'answered');
-  const canResume = !stopped && !finished && !running && goals.some(goal => resumable.has(goal.status));
+  const hasTaskBlocker = workflow.kind === 'task_execution' &&
+    (needsConfirmation || goals.some(goal => goal.reason && newTaskRequest.has(goal.reason)));
+  const canResume = !stopped && !finished && !running && !hasTaskBlocker && goals.some(goal => resumable.has(goal.status));
   const summary = finished ? 'Поручение выполнено' : stopped ? 'Поручение остановлено' :
-    running ? 'Поручение выполняется' : needsConfirmation ? 'Поручение ожидает подтверждения' : responseOnly ? 'Ответ подготовлен' : 'Поручение не завершено';
+    running ? 'Поручение выполняется' : needsConfirmation ? 'Поручение ожидает подтверждения' : needsInput ? 'Нужны фактические данные' :
+    responseOnly ? 'Ответ подготовлен' : 'Поручение не завершено';
 
   return <section aria-labelledby={headingId} className="min-w-0 space-y-3 rounded-xl border border-line bg-surface p-3 text-sm sm:p-4">
     <h3 id={headingId} className="font-semibold">Состояние поручения</h3>
@@ -67,6 +78,8 @@ export const WorkflowStatus = memo(function WorkflowStatus({workflow, onResume, 
       {goals.map(goal => <li key={goal.id} className="min-w-0 pl-1">
         <span className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{goal.title}</span>
         <span className="mt-0.5 block text-xs text-muted">{labels[goal.status] ?? 'Статус требует проверки'}</span>
+        {(goal.status === 'blocked' || goal.status === 'failed' || goal.status === 'partial') && goal.message &&
+          <span className="mt-0.5 block text-xs text-muted">{goal.message}</span>}
       </li>)}
     </ol> : <p className="text-muted">Проверенный план пока не получен. Исходное поручение сохранено.</p>}
     {workflow.goals.length > 12 && <p className="text-muted">Показаны первые 12 пунктов из {workflow.goals.length}. Полнота поручения требует проверки.</p>}

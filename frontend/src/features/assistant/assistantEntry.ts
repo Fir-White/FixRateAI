@@ -1,11 +1,12 @@
 import type { ApiQueryCache } from '@/shared/lib/apiQueryCache';
+import type { ChatAttachment } from '@/shared/api/assistant';
 
 // A file selected on the workday opens the same private chat with its draft.
 // Scope the handoff to the authenticated workspace and keep it in memory.
-const transfers = new WeakMap<ApiQueryCache, { id: string; draft: string; rect?: DOMRectReadOnly }>();
+const transfers = new WeakMap<ApiQueryCache, { id: string; draft: string; rect?: DOMRectReadOnly; attachments?: ChatAttachment[] }>();
 
-export function transferAssistantDraft(cache: ApiQueryCache | null, id: string, draft: string, rect?: DOMRectReadOnly) {
-  if (cache) transfers.set(cache, {id, draft, rect});
+export function transferAssistantDraft(cache: ApiQueryCache | null, id: string, draft: string, rect?: DOMRectReadOnly, attachments?: ChatAttachment[]) {
+  if (cache) transfers.set(cache, {id, draft, rect, attachments});
 }
 
 export function assistantTransfer(cache: ApiQueryCache | null, id: string) {

@@ -37,6 +37,8 @@ const byPath: Record<string, () => Promise<unknown>> = {
   "/profile": pageLoaders.ProfilePage,
   "/my-shifts": pageLoaders.PersonalShiftsPage,
   "/executor": pageLoaders.ExecutorPage,
+  "/executor/tasks": pageLoaders.ExecutorPage,
+  "/executor/reports": pageLoaders.ExecutorPage,
   "/chief-engineer": pageLoaders.DispatcherPage,
   "/director": pageLoaders.DispatcherPage,
   "/dispatcher": pageLoaders.DispatcherPage,

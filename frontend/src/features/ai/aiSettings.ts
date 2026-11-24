@@ -20,28 +20,31 @@ export const DEFAULT_AI_SETTINGS: AiSettings = {
   model: "",
   apiKey: "",
 };
-let memoryPreferences = { provider: DEFAULT_AI_SETTINGS.provider, model: DEFAULT_AI_SETTINGS.model };
+let memoryPreferences: Pick<AiSettings, "provider" | "model"> | undefined;
 
-export function getStoredAiSettings(): AiSettings {
+export function getPhotoReviewOptions(): AiSettings | undefined {
   try {
     const raw = typeof window !== "undefined" ? window.localStorage?.getItem(AI_SETTINGS_STORAGE_KEY) : null;
-    if (!raw) return { ...DEFAULT_AI_SETTINGS, apiKey: readAiKey() };
-    const parsed = JSON.parse(raw);
-    if (typeof parsed?.apiKey === "string") {
-      if (!readAiKey()) writeAiKey(parsed.apiKey);
-      delete parsed.apiKey;
-      window.localStorage.setItem(AI_SETTINGS_STORAGE_KEY, JSON.stringify(parsed));
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed?.apiKey === "string") {
+        if (!readAiKey()) writeAiKey(parsed.apiKey);
+        delete parsed.apiKey;
+        window.localStorage.setItem(AI_SETTINGS_STORAGE_KEY, JSON.stringify(parsed));
+      }
+      const validProviders: AiProvider[] = ["clip", "ollama", "aitunnel"];
+      if (validProviders.includes(parsed?.provider)) {
+        memoryPreferences = { provider: parsed.provider, model: typeof parsed?.model === "string" ? parsed.model : "" };
+      }
     }
-    const validProviders: AiProvider[] = ["clip", "ollama", "aitunnel"];
-    const provider: AiProvider = validProviders.includes(parsed?.provider) ? parsed.provider : "clip";
-    memoryPreferences = { provider, model: typeof parsed?.model === "string" ? parsed.model : "" };
-    return {
-      ...memoryPreferences,
-      apiKey: readAiKey(),
-    };
   } catch {
-    return { ...memoryPreferences, apiKey: readAiKey() };
+    // Preserve an explicit preference if the browser blocks storage.
   }
+  return memoryPreferences && { ...memoryPreferences, apiKey: readAiKey() };
+}
+
+export function getStoredAiSettings(): AiSettings {
+  return getPhotoReviewOptions() ?? { ...DEFAULT_AI_SETTINGS, apiKey: readAiKey() };
 }
 
 export function saveStoredAiSettings(settings: AiSettings): void {
@@ -84,20 +87,14 @@ export function useAiSettings(autoFetch = true) {
       const resp = await maintenanceApi.getAiModels();
       if (resp && Array.isArray(resp.providers)) {
         setModelsData(resp);
-        // If current model is not set or doesn't belong to the active provider, set smart default
-        setSettingsState(curr => {
-          const providerInfo = resp.providers.find(p => p.id === curr.provider);
-          if (providerInfo && providerInfo.models.length > 0) {
-            const existsInProvider = providerInfo.models.some(m => m.id === curr.model);
-            if (!curr.model || !existsInProvider) {
-              const defaultModel = providerInfo.models[0].id;
-              const updated = { ...curr, model: defaultModel };
-              saveStoredAiSettings(updated);
-              return updated;
-            }
-          }
-          return curr;
-        });
+        const stored = getPhotoReviewOptions();
+        const defaultProvider = resp.providers.find(item => item.id === resp.current_provider)?.id ?? DEFAULT_AI_SETTINGS.provider;
+        const provider = stored?.provider ?? defaultProvider;
+        const models = resp.providers.find(item => item.id === provider)?.models ?? [];
+        const selected = models.find(item => item.id === stored?.model);
+        const settings = { provider, model: selected?.id ?? models[0]?.id ?? "", apiKey: readAiKey() };
+        if (stored && settings.model && !selected) saveStoredAiSettings(settings);
+        setSettingsState(settings);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось получить список моделей");

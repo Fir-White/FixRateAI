@@ -1,4 +1,5 @@
 """At most two repairs for GET reads. Never retries a dispatched write."""
+import asyncio
 import hashlib,json,re,time
 from datetime import datetime,timezone
 from fastapi import HTTPException
@@ -55,7 +56,7 @@ def repair(app,tool,args,inspect_projection=False):
     if view:fixed['view']=view
     return fixed if fixed!=args else None
 
-async def read(app,tool,args,headers,trace,publish=lambda:None):
+async def read(app,tool,args,headers,trace,publish=lambda:None, *, retry_temporary=False):
     if tool.mode!='read' or tool.method!='GET':raise ValueError('GET read required')
     current=args
     for attempt in range(3):
@@ -73,6 +74,10 @@ async def read(app,tool,args,headers,trace,publish=lambda:None):
             entry['stage']='validation' if checked is None else 'backend_or_projection'
             if isinstance(exc.detail,dict) and exc.detail.get('code')=='INVALID_VIEW':entry['validation']=exc.detail
             trace.append(entry);publish()
+            if retry_temporary and attempt == 0 and checked is not None and exc.status_code in (502, 503, 504):
+                entry['repair']='retry_same_authorized_read'
+                await asyncio.sleep(0.05)
+                continue
             projection_error=exc.detail=='Неизвестное поле результата. Используйте имена из прочитанного ответа.'
             # One envelope/pagination repair, followed only by projection recovery.
             # A normalization error and an unknown nested key may coexist.

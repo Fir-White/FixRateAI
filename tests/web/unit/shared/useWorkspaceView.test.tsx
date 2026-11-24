@@ -21,9 +21,11 @@ describe("workspace view restoration", () => {
     const scroll = vi.fn(); vi.stubGlobal("scrollTo", scroll);
     const view = render(page(true));
     expect(JSON.parse(sessionStorage.getItem(key)!)).toEqual(saved);
+    expect(scroll).not.toHaveBeenCalled();
     view.rerender(page(false));
     await waitFor(() => expect(screen.getByTestId("table").scrollLeft).toBe(160));
     expect(view.container.querySelector("details")).toHaveAttribute("open");
+    expect(scroll).toHaveBeenCalledTimes(1);
     expect(scroll).toHaveBeenLastCalledWith({ left: 0, top: 450, behavior: "instant" });
   });
   it("does not jump back after the user starts scrolling during loading", async () => {

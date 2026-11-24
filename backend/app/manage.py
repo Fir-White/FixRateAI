@@ -61,6 +61,8 @@ def migrate(engine, adopt_existing=False):
                     raw.execute(sql)
                     raw.execute("INSERT INTO fixrate_schema_migrations(filename,sha256) VALUES (%s,%s)", (file.name, checksum))
                 print(f"Applied {file.name}")
+            from app.assistant.graph_persistence import migrate as migrate_checkpoints
+            migrate_checkpoints(engine)
         finally:
             try:
                 raw.execute("SELECT pg_advisory_unlock(6813092026)")

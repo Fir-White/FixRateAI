@@ -20,7 +20,6 @@ import { useScrollBoundary } from "@/shared/lib/useScrollBoundary";
 import { isBoolean, useWorkspaceState } from "@/shared/lib/workspaceState";
 import { isAuthEntryNavigation } from "@/shared/motion/authEntry";
 import { Sidebar } from "./Sidebar";
-import { useWorkspaceBack } from "./WorkspaceNavigation";
 import { NAVIGATION_ITEMS } from "./navigation";
 import "./operations.css";
 import { ContentTheme } from "@/shared/ui/ContentTheme";
@@ -29,7 +28,6 @@ import { SectionNavigation } from "./SectionNavigation";
 import { AccessBrand } from "@/shared/ui/Brand";
 import { useApiQueryCache } from "@/shared/lib/ApiQueryProvider";
 import { warmWorkspacePath } from "@/features/navigation/warmWorkspacePath";
-import { WorkspaceSite } from "./WorkspaceSite";
 import { WorkspaceSearch } from "./WorkspaceSearch";
 import { canOpenSection } from "@/shared/lib/roles";
 import { dateLabel, DEMO_DATE } from "@/shared/lib/operations";
@@ -41,7 +39,6 @@ const ROLES: Role[] = ["director","chief_engineer","dispatcher", "engineer", "ex
 export function AppShell({ executor = false }: { executor?: boolean }) {
   const { profile, switchRole } = useSession();
   const navigate = useNavigate();
-  const workspaceBack = useWorkspaceBack();
   const location = useLocation();
   const navigationType = useNavigationType();
   const cache = useApiQueryCache();
@@ -85,7 +82,7 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
   const searchItems = [...items];
   if(profile.role!=="executor"&&canOpenSection(profile.role,"calendar")) searchItems.push({to:"/calendar",label:"Действующий календарь",icon:"calendar",roles:[profile.role]});
   if(canOpenSection(profile.role,"service_settings")) searchItems.push({to:"/settings/equipment",label:"Настройка обслуживания",icon:"equipment",roles:[profile.role]});
-  const warm = (path: string) => warmWorkspacePath(cache,path,profile.timezone);
+  const warm = (path: string) => warmWorkspacePath(cache,path,profile.timezone,profile.role);
   const initials = profile.name.trim().split(/\s+/).slice(0,2).map(part => [...part][0]).join("").toLocaleUpperCase("ru-RU");
   const handleRoleChange = (role: Role) => {
     switchRole(role);
@@ -104,6 +101,7 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
       </a>
 
       {isMobile && <Sidebar
+        role={profile.role}
         timezone={profile.timezone}
         items={items}
         open={mobileOpen}
@@ -125,9 +123,15 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
               })}
             </nav>}
             <div className="fr-topbar-actions">
-              <NavLink to="/assistant" className="e3-assistant-trigger" aria-label="ИИ-помощник" onMouseEnter={()=>warm("/assistant")} onFocus={()=>warm("/assistant")}><Icon name="assistant" size={22}/></NavLink>
+              <NavLink to="/assistant" className="e3-assistant-trigger" aria-label="ИИ-помощник" onMouseEnter={()=>warm("/assistant")} onFocus={()=>warm("/assistant")}>
+                <Icon name="assistant" size={22}/>
+                <span className="topbar-hint" aria-hidden="true">ИИ-помощник</span>
+              </NavLink>
               <MaintenanceInbox/>
-              <NavLink to="/profile" className="e3-profile-trigger" aria-label="Учётная запись" onMouseEnter={warmProfile} onFocus={warmProfile} onPointerDown={warmProfile}><span aria-hidden="true">{initials}</span></NavLink>
+              <NavLink to="/profile" className="e3-profile-trigger" aria-label="Учётная запись" onMouseEnter={warmProfile} onFocus={warmProfile} onPointerDown={warmProfile}>
+                <span className="e3-profile-initials" aria-hidden="true">{initials}</span>
+                <span className="topbar-hint" aria-hidden="true">Учётная запись</span>
+              </NavLink>
               {DEMO_MODE && (
                 <div className="fr-topbar-actions">
                   <span className="fr-demo-badge">DEMO</span>
@@ -152,10 +156,8 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
           </div>
         </header>
         <div className="e3-context">
-          <WorkspaceSite name={profile.siteName} selected={profile.siteId}/>
-          <span className="e3-context-role">{ROLE_LABELS[profile.role]}</span>
-          {location.pathname.replace(/\/+$/, "") !== home && <button type="button" className="e3-context-back" onClick={workspaceBack}><Icon name="back" size={14}/>Назад</button>}
           <span className="e3-context-date">{dateLabel(DEMO_MODE?DEMO_DATE:todayAt(profile.timezone), {day:"numeric",month:"long",year:"numeric",weekday:"long"})}</span>
+          <span className="e3-context-role">{ROLE_LABELS[profile.role]}</span>
           <WorkspaceSearch items={searchItems}/>
         </div>
 

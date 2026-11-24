@@ -46,6 +46,17 @@ def command(**changes):
     return FirstAdministrator(**values)
 
 
+def test_default_site_timezone_from_environment(monkeypatch):
+    monkeypatch.delenv('FIXRATE_DEFAULT_TIMEZONE', raising=False)
+    assert command().timezone == 'Asia/Yekaterinburg'
+    monkeypatch.setenv('FIXRATE_DEFAULT_TIMEZONE', 'Europe/Moscow')
+    assert command().timezone == 'Europe/Moscow'
+    assert command(timezone='UTC').timezone == 'UTC'
+    monkeypatch.setenv('FIXRATE_DEFAULT_TIMEZONE', 'Not/AZone')
+    with pytest.raises(ValueError, match='Неизвестный часовой пояс'):
+        command()
+
+
 def test_wrong_secret_is_denied_without_partial_data(installation):
     engine,token=installation
     with pytest.raises(HTTPException) as error:create_first_administrator(engine,command(),'wrong-token')

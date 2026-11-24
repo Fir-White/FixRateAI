@@ -5,12 +5,15 @@ import json
 from uuid import UUID
 from pydantic import BaseModel,ConfigDict,Field,field_validator,model_validator
 
+MAX_COLLECTION_PAGE = 200
+
 class Input(BaseModel):
     model_config=ConfigDict(extra='forbid')
 
 class ConversationCreate(Input):
     agent:Literal['assistant','planner','photo']='assistant'
     title:str=Field(default='Новый диалог',min_length=1,max_length=160)
+    subject_task_id:UUID|None=None
 
 class MessageCreate(Input):
     idempotency_key:UUID
@@ -36,6 +39,24 @@ class ConfirmAction(Input):
     payload_sha256:str=Field(pattern=r'^[0-9a-f]{64}$')
     confirmed:Literal[True]
     secret_values:dict[str,str]=Field(default_factory=dict,max_length=3)
+
+class ReportPhotoBinding(Input):
+    model_config=ConfigDict(extra='forbid',str_strip_whitespace=True)
+    attachment_id:UUID
+    checklist_item_id:UUID
+    phase:Literal['before','after']
+    view_key:str=Field(min_length=1,max_length=200)
+
+class ReportAttachAndSubmit(Input):
+    expected_revision:int=Field(gt=0)
+    execution_id:UUID
+    photos:list[ReportPhotoBinding]=Field(min_length=1,max_length=4)
+
+    @model_validator(mode='after')
+    def unique_photos(self):
+        if len({item.attachment_id for item in self.photos})!=len(self.photos):
+            raise ValueError('Файл указан повторно')
+        return self
 
 class AgentCall(Input):
     tool:str=Field(min_length=1,max_length=100)

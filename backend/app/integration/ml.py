@@ -5,6 +5,7 @@ import hashlib
 import json
 import logging
 import os
+from dataclasses import replace
 from typing import Literal
 from uuid import UUID
 
@@ -227,6 +228,7 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
                     vision_config = LocalVisionConfig.resolve_model(command.model)
                 else:
                     vision_config = LocalVisionConfig.from_environment()
+                vision_config = replace(vision_config, timeout=limits.photo_review_timeout_seconds)
             except ValueError:
                 raise HTTPException(503, "LOCAL_VISION_CONFIGURATION_INVALID") from None
             except Exception as e:
@@ -239,7 +241,6 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
         elif selected_provider == "aitunnel":
             from ml_service.app.cv.aitunnel import PROMPT_VERSION, review_cloud_photos
             from ml_service.app.providers.aitunnel import AITunnelConfig
-            from dataclasses import replace
             env = dict(os.environ)
             if command.api_key:
                 env["AITUNNEL_API_KEY"] = command.api_key

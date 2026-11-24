@@ -35,6 +35,7 @@ from app.integration.assignments import save_assignment, lock_workers
 from app.integration.maintenance_jobs import _job_payload, create_job, job_history
 from app.maintenance_jobs import InvalidJobTransition, ensure_transition, public_status
 from app.schemas.maintenance import AssignmentCommand, ErrorResponse
+from app.schemas.assistant import ReportAttachAndSubmit
 from app.schemas.maintenance_api import (
     MaintenanceJobCreate,
     MaintenanceJobHistoryItem,
@@ -129,6 +130,18 @@ def check_revision(order, revision):
         raise HTTPException(409, "REVISION_CONFLICT: обновите данные")
 
 
+class FrontendAssets(StaticFiles):
+    """Keep versioned build assets in the browser across workspace visits."""
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code in (200, 206, 304) and re.fullmatch(
+            r"[^/\\]+-[A-Za-z0-9_-]{8}\.(?:js|css|woff2|ttf|svg|png|ico|webp)", path
+        ):
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
+
+
 def create_app(engine=None):
     runtime_settings = RuntimeSettings.from_environment()
     @asynccontextmanager
@@ -159,10 +172,16 @@ def create_app(engine=None):
             except Exception as rag_init_exc:
                 logger.warning("RAG dynamic index auto-rebuild skipped or failed at startup: %s", rag_init_exc)
             import asyncio
+            from app.assistant.graph_actions import build_graph as build_action_graph
+            from app.assistant.graph_agent import build_graph as build_turn_graph
+            from app.assistant.graph_persistence import open_saver
             from app.integration.scheduler import run as run_scheduler
             scheduler=asyncio.create_task(run_scheduler(app)) if os.environ.get("MAINTENANCE_SCHEDULER","true").lower()=="true" and engine is None else None
             try:
-                yield
+                with open_saver(app.state.engine) as saver:
+                    app.state.assistant_turn_graph = build_turn_graph(saver)
+                    app.state.assistant_action_graph = build_action_graph(saver)
+                    yield
             finally:
                 if app.state.optimizer: app.state.optimizer.stop()
                 if scheduler:
@@ -303,7 +322,8 @@ def create_app(engine=None):
         if not user or not verify_password(payload.password, user["password_hash"]):
             raise HTTPException(401, "Неверный email или пароль")
         memberships = session.execute(text("""SELECT m.site_id,m.role,s.name,s.timezone FROM site_memberships m
-            JOIN sites s USING(site_id) WHERE m.user_id=:user AND m.is_active AND s.is_active"""),
+            JOIN sites s USING(site_id) WHERE m.user_id=:user AND m.is_active AND s.is_active
+            ORDER BY s.name,s.site_id"""),
             {"user": user["user_id"]}).mappings().all()
         if payload.site_id:
             memberships = [m for m in memberships if m["site_id"] == payload.site_id]
@@ -313,8 +333,7 @@ def create_app(engine=None):
         ]
         if not memberships:
             raise HTTPException(403, "Нет доступа к объекту")
-        if len(memberships) != 1:
-            raise HTTPException(409, "Укажите site_id: у пользователя несколько объектов")
+        # The building switcher can select another authorized membership after sign-in.
         member = memberships[0]
         old = request.cookies.get(COOKIE)
         if old:
@@ -622,55 +641,72 @@ def create_app(engine=None):
             raise HTTPException(404, "Файл не найден")
         return path
 
-    @app.post(prefix + "/tasks/{task_id}/photos")
-    def upload_photo(task_id: UUID, expected_revision: int = Form(...), checklist_item_id: UUID = Form(...),
-                     phase: Literal["before", "after"] = Form(...), view_key: str = Form(...),
-                     file: UploadFile = File(...), v=Depends(views)):
-        order, report = editable(v, task_id, expected_revision)
+    def photo_mime(order, report, checklist_item_id, view_key, data, filename, content_type):
         if str(checklist_item_id) not in {i["id"] for i in report.checklist_snapshot} or not view_key.strip() or len(view_key) > 200:
             raise HTTPException(422, "Укажите пункт чек-листа и ракурс")
         try:
-            data = file.file.read(10_485_761)
-            mime = validate_upload(data, file.filename, file.content_type)
+            mime = validate_upload(data, filename, content_type)
         except Exception:
             raise HTTPException(422, "Недопустимое изображение") from None
         if order.operation_snapshot.get("methodology_ref"):
             from ml_service.app.cv.quality import ImageQualityGuard
             quality=ImageQualityGuard().assess_bytes(data)
             if not quality.is_acceptable:raise HTTPException(422,"PHOTO_QUALITY: "+str(quality.issue))
+        return mime
+
+    def photo_equipment(v, task_id):
         links = v.rows("work_order_equipment", work_order_id=task_id)
         if len(links) != 1:
             raise HTTPException(422, "Фото API требует ровно одно оборудование в задании")
+        return links[0].equipment_id
+
+    def store_report_photo(v, task_id, report, equipment_id, checklist_item_id, phase, view_key, data, mime, paths):
         identity = uuid4()
         key = f"{v.principal.site_id}/{identity}"
         try:
             path = safe_storage_path(storage, key)
         except ValueError:
             raise HTTPException(503, "PHOTO_STORAGE_UNAVAILABLE") from None
+        paths.append(path)
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(data)
         except OSError:
+            raise HTTPException(503, "PHOTO_STORAGE_UNAVAILABLE") from None
+        v.repo.add("evidence_files", evidence_file_id=identity, site_id=v.principal.site_id,
+            work_order_id=task_id, work_report_id=report.work_report_id, uploaded_by=v.principal.user_id,
+            stage=phase, storage_key=key, mime_type=mime, file_size=len(data), sha256=hashlib.sha256(data).hexdigest(),
+            checklist_item_id=checklist_item_id, view_key=view_key.strip(), equipment_id=equipment_id)
+        return str(identity)
+
+    def cleanup_photos(paths):
+        for path in paths:
             try:
                 path.unlink(missing_ok=True)
             except OSError:
-                pass
-            raise HTTPException(503, "PHOTO_STORAGE_UNAVAILABLE") from None
+                logger.error("Photo cleanup failed")
+
+    @app.post(prefix + "/tasks/{task_id}/photos")
+    def upload_photo(task_id: UUID, expected_revision: int = Form(...), checklist_item_id: UUID = Form(...),
+                     phase: Literal["before", "after"] = Form(...), view_key: str = Form(...),
+                     file: UploadFile = File(...), v=Depends(views)):
+        order, report = editable(v, task_id, expected_revision)
         try:
-            v.repo.add("evidence_files", evidence_file_id=identity, site_id=v.principal.site_id,
-                work_order_id=task_id, work_report_id=report.work_report_id, uploaded_by=v.principal.user_id,
-                stage=phase, storage_key=key, mime_type=mime, file_size=len(data), sha256=hashlib.sha256(data).hexdigest(),
-                checklist_item_id=checklist_item_id, view_key=view_key.strip(), equipment_id=links[0].equipment_id)
+            data = file.file.read(10_485_761)
+        except OSError:
+            raise HTTPException(422, "Недопустимое изображение") from None
+        mime = photo_mime(order, report, checklist_item_id, view_key, data, file.filename, file.content_type)
+        equipment_id = photo_equipment(v, task_id)
+        paths = []
+        try:
+            store_report_photo(v, task_id, report, equipment_id, checklist_item_id, phase, view_key, data, mime, paths)
             order.revision += 1
             v.session.flush()
             audit(v, order, "upload_photo")
             result = v.bundle(order)
             v.session.commit()
         except BaseException:
-            try:
-                path.unlink(missing_ok=True)
-            except OSError:
-                logger.error("Photo cleanup failed")
+            cleanup_photos(paths)
             raise
         return result
 
@@ -684,9 +720,7 @@ def create_app(engine=None):
             raise HTTPException(404, "Файл отсутствует в хранилище")
         return FileResponse(path, media_type=photo.mime_type, headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
 
-    @app.post(prefix + "/tasks/{task_id}/submit")
-    def submit(task_id: UUID, payload: Revision, v=Depends(views), background_tasks:BackgroundTasks=None):
-        order, report = editable(v, task_id, payload.expected_revision)
+    def validate_submission(v, order, report):
         answers = {str(a.checklist_template_id): a.response_value.get("answer")
                    for a in v.rows("checklist_results", work_report_id=report.work_report_id)}
         photos = v.rows("evidence_files", work_report_id=report.work_report_id)
@@ -699,10 +733,12 @@ def create_app(engine=None):
                 if not any(("after", key) in pairs for stage, key in pairs if stage == "before"):
                     raise HTTPException(422, "Требуется пара фото до/после одного ракурса")
         validate_execution(v,order,report,None,submitting=True)
+        return photos
+
+    def mark_submitted(v, order, report, photos, background_tasks):
         report.status, report.submitted_at = "submitted", datetime.now(timezone.utc)
         order.status = "in_review"
         notify_event(v,order,"submitted",("engineer","chief_engineer"))
-        order.revision += 1
         v.session.flush()
         audit(v, order, "submit")
         from app.integration.photo_evidence import has_photo_pair
@@ -710,9 +746,85 @@ def create_app(engine=None):
             # Durable opt-in for this submission only; historical reports are not backfilled.
             report.execution_context=dict(report.execution_context,photo_analysis_requested_at=report.submitted_at.isoformat())
             if background_tasks is not None:
-                background_tasks.add_task(app.state.automatic_photo_review,task_id,order.revision,v.principal)
+                background_tasks.add_task(app.state.automatic_photo_review,order.work_order_id,order.revision,v.principal)
+
+    @app.post(prefix + "/tasks/{task_id}/submit")
+    def submit(task_id: UUID, payload: Revision, v=Depends(views), background_tasks:BackgroundTasks=None):
+        order, report = editable(v, task_id, payload.expected_revision)
+        photos = validate_submission(v, order, report)
+        order.revision += 1
+        mark_submitted(v, order, report, photos, background_tasks)
         result = v.bundle(order)
         v.session.commit()
+        return result
+
+    @app.post("/api/v1/assistant/workspace/tasks/{task_id}/attach-and-submit")
+    def attach_and_submit(task_id: UUID, payload: ReportAttachAndSubmit, request: Request, v=Depends(views)):
+        from app.assistant.attachments import CONFIRMED_REPORT, SCOPE, content
+        from app.assistant.task_execution import missing_report
+
+        scope = SCOPE.get()
+        if not CONFIRMED_REPORT.get() or scope is None or scope[1:] != (
+                v.principal.user_id, v.principal.site_id, v.principal.role):
+            raise HTTPException(403, "Подтвердите карточку в чате")
+        order, report = editable(v, task_id, payload.expected_revision)
+        if report.work_report_id != payload.execution_id:
+            raise HTTPException(409, "Текущая попытка изменилась")
+        conversation = v.session.execute(text("""SELECT subject_task_id FROM assistant_conversations
+            WHERE conversation_id=:chat AND user_id=:user AND site_id=:site AND role=:role"""),
+            dict(zip(('chat','user','site','role'), scope))).one_or_none()
+        if not conversation or conversation.subject_task_id not in (None, task_id):
+            raise HTTPException(403, "Диалог относится к другому наряду")
+        equipment_id = photo_equipment(v, task_id)
+        prepared = []
+        for binding in payload.photos:
+            if not v.session.scalar(text("""SELECT EXISTS(SELECT 1 FROM assistant_turn_attachments f
+                WHERE f.conversation_id=:chat AND f.attachment_id=:file)"""),
+                dict(chat=scope[0], file=binding.attachment_id)):
+                raise HTTPException(404, "Фото не отправлено в этом диалоге")
+            row, blob = content(app, binding.attachment_id)
+            mime = photo_mime(order, report, binding.checklist_item_id, binding.view_key, blob,
+                              row['original_name'], row['mime_type'])
+            prepared.append((binding, blob, mime))
+        # Serialize the final write with session revocation and membership changes.
+        current = authenticate(request, v.session, lock=True)
+        if (current.user_id, current.site_id, current.role) != scope[1:]:
+            raise HTTPException(403, "Контекст доступа изменился")
+        paths = []
+        try:
+            identities = [store_report_photo(v, task_id, report, equipment_id, item.checklist_item_id,
+                          item.phase, item.view_key, blob, mime, paths) for item, blob, mime in prepared]
+            order.revision += 1
+            v.session.flush()
+            audit(v, order, "upload_photo")
+            photos = v.rows("evidence_files", work_report_id=report.work_report_id)
+            missing_ids = {str(photo.evidence_file_id) for photo in photos
+                           if photo.stage in ("before", "after", "other") and not photo_path(photo).is_file()}
+            bundle = v.bundle(order)
+            material = bundle['execution']
+            material = {**material, **{key: [item for item in material[key] if item['id'] not in missing_ids]
+                                      for key in ('photos', 'acts')}}
+            gaps = missing_report({**bundle['task'], 'actualRequired': bundle['actualRequired']}, material)
+            block = None
+            try:
+                validate_submission(v, order, report)
+            except HTTPException as exc:
+                if exc.status_code != 422:
+                    raise
+                block = exc.detail
+            if not block and gaps:
+                block = 'Не заполнены поля отчёта или недоступны обязательные файлы.'
+            if not block:
+                mark_submitted(v, order, report, photos, None)
+                bundle = v.bundle(order)
+            result = dict(task=bundle['task'], execution=bundle['execution'], attached_photo_ids=identities,
+                          submission='draft_incomplete' if block else 'submitted',
+                          submission_block=block, missing_materials=gaps,
+                          photo_analysis_requested=not block and bundle['photoAnalysisStatus']=='pending')
+            v.session.commit()
+        except BaseException:
+            cleanup_photos(paths)
+            raise
         return result
 
     @app.post(prefix + "/tasks/{task_id}/review")
@@ -794,13 +906,13 @@ def create_app(engine=None):
 
     dist = ROOT / "frontend/dist"
     if dist.is_dir():
-        app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
+        app.mount("/assets", FrontendAssets(directory=dist / "assets"), name="assets")
 
         @app.get("/{path:path}", include_in_schema=False)
         def spa(path: str):
             if path.startswith("api/"):
                 raise HTTPException(404, "Маршрут не найден")
-            return FileResponse(dist / "index.html")
+            return FileResponse(dist / "index.html", headers={"Cache-Control": "no-cache"})
     return app
 
 

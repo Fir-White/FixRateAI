@@ -23,7 +23,7 @@ it('loads the catalog only when opened, bounds DOM and searches every model with
   const user=userEvent.setup();render(<Harness/>);
   expect(api.models).not.toHaveBeenCalled();
   await user.click(screen.getByRole('button',{name:'Выбрать модель: qwen-test'}));
-  const dialog=await screen.findByRole('dialog',{name:'Выбор модели чата'});
+  const dialog=await screen.findByRole('dialog',{name:'Используемая модель'});
   await screen.findByRole('button',{name:/local-test:latest/});
   expect(dialog.querySelectorAll('.assistant-model-option')).toHaveLength(30);
   await user.click(within(dialog).getByRole('button',{name:'Далее'}));

@@ -2,6 +2,17 @@
 import re
 
 
+def prohibits_changes(question):
+    """Enforce explicit read-only instructions across planning and tool paths."""
+    return bool(re.search(
+        r'\bничего\s+не\s+(?:измен\w*|меня\w*|записыва\w*|созда\w*)\b'
+        r'|\bбез\s+(?:каких-либо\s+)?изменени[йя]\b'
+        r'|\b(?:только\s+(?:на\s+)?чтение|только\s+просмотр|read[- ]only)\b'
+        r'|\b(?:do\s+not|don.t)\s+(?:make\s+(?:any\s+)?changes|change\s+anything)\b',
+        question, re.I,
+    ))
+
+
 _MUTATION=re.compile(r'\b(?:созда(?:й|йте|ть)|добав(?:ь|ьте|ить)|измен(?:и|ите|ить)|меня(?:й|йте|ть)|переимен(?:уй|уйте|овать|ование)|удал(?:и|ите|ить)|назнач(?:ь|ьте|ить)|распредел(?:и|ите|ить)|опублик(?:уй|уйте|овать)|утверд(?:и|ите|ить)|сохран(?:и|ите|ить)|запиш(?:и|ите)|записать|обнов(?:и|ите|ить)|прим(?:и|ите)|принять|подтверд(?:и|ите|ить)|замен(?:и|ите|ить)|сним(?:и|ите)|снять|отмен(?:и|ите|ить)|перенес(?:и|ите|ти)|установ(?:и|ите|ить)|очист(?:и|ите|ить)|create|add|edit|change|rename|delete|assign|publish|approve|save|record|update|accept|confirm|replace|remove|cancel|reschedule|install|clear)\b',re.I)
 
 

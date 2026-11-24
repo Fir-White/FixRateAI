@@ -255,6 +255,45 @@ def validate_result(goal, tool_name, value):
     that explicit status. This validator never promotes it to completed.
     """
     outcome = goal.get('outcome')
+    intent = goal.get('semantic', {}).get('intent')
+    if intent in ('equipment_tasks', 'latest_maintenance', 'maintenance_history', 'active_regulations', 'maintenance_calendar'):
+        try:
+            if intent == 'equipment_tasks':
+                valid = (type(value.get('total')) is int and value['total'] >= 0 and
+                         _instant(value.get('checked_at')) and
+                         isinstance(value.get('filters'), dict) and isinstance(value.get('items'), list) and
+                         all(_uuid(row.get('id')) and isinstance(row.get('equipmentIds'), list) and
+                             all(_uuid(identity) for identity in row['equipmentIds']) and
+                             _text(row.get('state')) and type(row.get('isOverdue')) is bool and
+                             _instant(row.get('regulatoryDeadlineAt'), nullable=True) and
+                             row['isOverdue'] == (row['regulatoryDeadlineAt'] is not None and
+                                 datetime.fromisoformat(row['regulatoryDeadlineAt']) < datetime.fromisoformat(value['checked_at'])) and
+                             _date(row.get('mandatoryDueDate'), nullable=True) for row in value['items']))
+            elif intent in ('latest_maintenance', 'maintenance_history'):
+                latest = intent == 'latest_maintenance'
+                shape = (_shape('accepted_history', value) if not latest else
+                         value.get('only_accepted') is True and _uuid(value.get('equipment_id')) and
+                         isinstance(value.get('items'), list))
+                valid = (shape and
+                         value.get('latest_only', False) is latest and
+                         (not latest or type(value.get('matched_reports')) is int and value['matched_reports'] >= 0 and
+                          len(value['items']) == min(value['matched_reports'], 1)) and
+                         all(_uuid(row.get('report_id')) and _instant(row.get('accepted_at')) and
+                             type(row.get('actual_date_verified')) is bool and
+                             _instant(row.get('performed_at'), nullable=not row['actual_date_verified'])
+                             for row in value['items']))
+            elif intent == 'active_regulations':
+                valid = _shape('equipment_regulations', value) and all(
+                    type(row.get('rule_version')) is int and row['rule_version'] > 0 for row in value)
+            else:
+                valid = (_shape('calendar_obligations', value) and value.get('approved_only') is True and
+                         _date(value.get('starts_on')) and _date(value.get('ends_on')) and
+                         all(type(config.get('complete')) is bool and _uuid(config['source'].get('binding_id')) and
+                             all(_date(row.get('source_date')) and _date(row.get('effective_date'))
+                                 for row in config['occurrences']) for config in value['configurations']))
+        except (AttributeError, ValueError, KeyError, TypeError):
+            valid = False
+        return (True, None) if valid else (False, 'read_outcome_result_shape_mismatch')
     if outcome is None or outcome == 'other' or goal.get('kind') in ('change', 'conversation', 'unavailable'):
         return True, None
     if tool_name != READ_TARGETS.get(outcome):

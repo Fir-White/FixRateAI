@@ -186,6 +186,36 @@ def test_sessions_authentication_and_revocation(runtime):
     assert client.get("/api/v1/auth/session").status_code == 401
 
 
+@pytest.mark.parametrize("role,user_key,email", [
+    ("chief_engineer", "chief-engineer", "fixrate-demo-chief_engineer@example.test"),
+    ("executor", "user-1", "fixrate-demo-1@example.test"),
+])
+def test_multisite_login_uses_authorized_default_and_keeps_explicit_scope(runtime, role, user_key, email):
+    engine, app = runtime
+    first = uuid4()
+    with engine.begin() as conn:
+        conn.execute(text("INSERT INTO sites(site_id,name) VALUES (:id,'000 Login QA')"), {"id": first})
+        conn.execute(text("INSERT INTO site_memberships(site_id,user_id,role) VALUES (:site,:user,:role)"),
+                     {"site": first, "user": demo_id(user_key), "role": role})
+    try:
+        with closing(TestClient(app)) as client:
+            body = {"email": email, "password": os.environ["FIXRATE_TEST_PASSWORD"]}
+            response = client.post("/api/v1/auth/login", json=body)
+            assert response.status_code == 200, response.text
+            assert response.json()["profile"]["siteId"] == str(first)
+            assert response.json()["profile"]["role"] == role
+            response = client.post("/api/v1/auth/login", json=body | {"site_id": str(demo_id("site"))})
+            assert response.status_code == 200, response.text
+            assert response.json()["profile"]["siteId"] == str(demo_id("site"))
+            assert client.post("/api/v1/auth/login", json=body | {"site_id": str(uuid4())}).status_code == 403
+            assert client.post("/api/v1/auth/logout", headers={"X-CSRF-Token": response.json()["csrfToken"]}).status_code == 204
+    finally:
+        with engine.begin() as conn:
+            conn.execute(text("DELETE FROM fixrate_sessions WHERE site_id=:id"), {"id": first})
+            conn.execute(text("DELETE FROM site_memberships WHERE site_id=:id"), {"id": first})
+            conn.execute(text("DELETE FROM sites WHERE site_id=:id"), {"id": first})
+
+
 @pytest.mark.parametrize("role,equipment_code,quality_code", [
     ("admin", 200, 403), ("dispatcher", 200, 403), ("engineer", 200, 200), ("executor", 200, 403)])
 def test_real_http_role_matrix(runtime, role, equipment_code, quality_code):

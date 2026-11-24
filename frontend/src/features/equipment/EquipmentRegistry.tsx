@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState } from 'react';
+import { memo, useCallback, useDeferredValue, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { registryApi } from '@/shared/api/registry';
 import { readQueries } from '@/shared/api/readQueries';
@@ -45,7 +45,8 @@ export function EquipmentRegistry() {
   const pages = Math.max(1, Math.ceil(items.length / 25));
   const currentPage = Math.min(page, pages);
   const visible = items.slice((currentPage - 1) * 25, currentPage * 25);
-  const active = all.find(row => row.equipment_id === selected);
+  const active = selected ? all.find(row => row.equipment_id === selected) : undefined;
+  const toggleSelected = useCallback((id: string) => setSelected(current => current === id ? '' : id), []);
   return <div className="space-y-6 registry-page"><PageHeader title="Оборудование" description="Реестр, инженерные системы и наработка деталей по зданиям." actions={mayEdit ? <Link to="/settings/equipment" className={buttonClassName('primary')}>Добавить оборудование</Link> : undefined}/>
     {error && <p role="alert"><Callout tone="danger">{error}</Callout></p>}
     {query.status === 'loading' && <LoadingState/>}{query.status === 'error' && <ErrorState description={query.error}/>}
@@ -57,7 +58,7 @@ export function EquipmentRegistry() {
       {systems.some(system => !system.system_group) && <Callout>Есть системы без группы. Их оборудование сохранено во вкладке «Без группы». {mayEdit ? 'Укажите группу ниже, чтобы распределить его по таблицам.' : 'Главный инженер может указать группу системы.'}</Callout>}
       {mayEdit && <SystemGroups systems={systems} onSaved={() => setRefresh(n => n+1)}/>}
       <div id="registry-table-panel" role="tabpanel" aria-labelledby={`registry-tab-${group}`}>
-        {!items.length ? <EmptyState title="В этой таблице пока нет оборудования" description={search ? 'Измените поисковый запрос.' : 'Добавьте оборудование или укажите группу существующей системы.'}/> : <Card className="overflow-hidden"><div className="registry-scroll"><table className="registry-table" aria-label={`${group === 'all' ? 'Все системы' : group === 'unclassified' ? 'Без группы' : systemGroups[group]} — работы и оборудование`}><thead><tr><th>Оборудование</th><th>Работы и периодичность</th><th>Трудозатраты на одно ТО</th><th>Детали и наработка</th><th><span className="sr-only">Действия</span></th></tr></thead><tbody>{visible.map(item => <RegistryRow key={item.equipment_id} item={item} system={systemIndex.get(item.system_id)} selected={selected === item.equipment_id} canConfigure={canOpenSection(profile?.role,'service_settings')} onSelect={() => setSelected(selected === item.equipment_id ? '' : item.equipment_id)}/>)}</tbody></table></div></Card>}
+        {!items.length ? <EmptyState title="В этой таблице пока нет оборудования" description={search ? 'Измените поисковый запрос.' : 'Добавьте оборудование или укажите группу существующей системы.'}/> : <Card className="overflow-hidden"><div className="registry-scroll"><table className="registry-table" aria-label={`${group === 'all' ? 'Все системы' : group === 'unclassified' ? 'Без группы' : systemGroups[group]} — работы и оборудование`}><thead><tr><th>Оборудование</th><th>Работы и периодичность</th><th>Трудозатраты на одно ТО</th><th>Детали и наработка</th><th><span className="sr-only">Действия</span></th></tr></thead><tbody>{visible.map(item => <RegistryRow key={item.equipment_id} item={item} system={systemIndex.get(item.system_id)} selected={selected === item.equipment_id} canConfigure={canOpenSection(profile?.role,'service_settings')} onSelect={toggleSelected}/>)}</tbody></table></div></Card>}
       </div>
       {items.length > 25 && <nav aria-label="Страницы оборудования" className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted" aria-live="polite">{(currentPage-1)*25+1}–{Math.min(currentPage*25,items.length)} из {items.length} · Страница {currentPage} из {pages}</p>
@@ -70,7 +71,7 @@ export function EquipmentRegistry() {
   </div>;
 }
 
-function RegistryRow({item, system, selected, canConfigure, onSelect}: {item: RegistryItem; system?: RegistrySystem; selected: boolean; canConfigure: boolean; onSelect: () => void}) {
+const RegistryRow = memo(function RegistryRow({item, system, selected, canConfigure, onSelect}: {item: RegistryItem; system?: RegistrySystem; selected: boolean; canConfigure: boolean; onSelect: (id: string) => void}) {
   const totals = new Map<string, {hours: number; incomplete: boolean}>();
   for(const service of item.services) { const total = totals.get(service.maintenance_type) ?? {hours: 0, incomplete: false};
     if(service.norm_unit === 'person_hour' && service.norm_value !== null) total.hours += Number(service.norm_value); else total.incomplete = true;
@@ -80,8 +81,8 @@ function RegistryRow({item, system, selected, canConfigure, onSelect}: {item: Re
     <td>{!item.services.length ? 'Регламенты не заданы' : item.services.map(service => <div key={service.binding_id} className="registry-operation"><strong>{service.maintenance_type} · {service.title}</strong><p>{service.source_text || 'Периодичность не указана'}</p><p>{service.norm_value ?? 'Нет нормы'} {service.norm_unit === 'person_hour' ? 'чел.-ч' : service.norm_unit === 'elapsed_hour' ? 'ч длительности' : '(единица не подтверждена)'} · {service.crew_size} чел. · {service.enabled ? 'Действует' : 'Черновик'}</p></div>)}</td>
     <td>{[...totals].map(([type, value]) => <p key={type}><strong>{type}: {value.hours.toLocaleString('ru-RU')} чел.-ч</strong>{value.incomplete && <small>Известная часть; есть неподтверждённые нормы</small>}</p>)}{!totals.size && 'Нет данных'}<small>Дневная и месячная нагрузка — в календаре.</small></td>
     <td>{item.components.filter(part => !part.removed_on).map(part => <p key={part.component_id}><strong>{part.name}</strong><br/>{Number(part.current_usage).toLocaleString('ru-RU')} {usageUnits[part.usage_unit]} · {part.remaining_usage === null ? 'Ресурс не задан' : `остаток ${Number(part.remaining_usage).toLocaleString('ru-RU')} ${usageUnits[part.usage_unit]}`}</p>)}{!item.components.some(part => !part.removed_on) && 'Не внесены'}</td>
-    <td><Button variant="secondary" aria-expanded={selected} onClick={onSelect}>{selected ? 'Скрыть детали' : 'Детали и наработка'}</Button>{canConfigure && <Link className="mt-3 block text-accent underline" to={`/settings/equipment?equipment=${encodeURIComponent(item.equipment_id)}`}>Работы и регламенты</Link>}</td></tr>;
-}
+    <td><Button variant="secondary" aria-expanded={selected} onClick={() => onSelect(item.equipment_id)}>{selected ? 'Скрыть детали' : 'Детали и наработка'}</Button>{canConfigure && <Link className="mt-3 block text-accent underline" to={`/settings/equipment?equipment=${encodeURIComponent(item.equipment_id)}`}>Работы и регламенты</Link>}</td></tr>;
+});
 
 function SystemGroups({systems, onSaved}: {systems: RegistrySystem[]; onSaved: () => void}) {
   const [busy, setBusy] = useState(''); const [error, setError] = useState('');

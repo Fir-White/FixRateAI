@@ -19,8 +19,6 @@ it.each<[AuthField,string,AuthMode,string|undefined]>([
   ["company_code","code","register","Код компании должен содержать не менее 16 символов"],
   ["company_code","x".repeat(129),"register","Код компании — не более 128 символов"],
   ["company_code","  words-not-hex-code  ","register",undefined],
-  ["site_id","site-id","login","Введите ID объекта в формате UUID"],
-  ["site_id"," 00000000-0000-0000-0000-000000000001 ","login",undefined],
 ])("validates %s against the actual %s contract",(field,value,mode,error)=>{
   expect(validateAuthField(field,{[field]:value},mode)).toBe(error);
 });
@@ -41,8 +39,7 @@ it.each([
   expect(describeAuthFailure(failure,"login").message).toContain(message);
 });
 
-it("preserves the site-required flow, maps a rejected company code and never invents an email conflict",()=>{
-  expect(describeAuthFailure(new ApiError(409,"Укажите site_id: у пользователя несколько объектов"),"login")).toMatchObject({requiresSite:true});
+it("maps a rejected company code and never invents an email conflict",()=>{
   expect(describeAuthFailure(new ApiError(422,"Неверный код компании"),"register").fields).toEqual({company_code:"Неверный код компании"});
   expect(describeAuthFailure(new ApiError(409,"Email уже зарегистрирован"),"register").fields?.email).toContain("уже зарегистрирован");
   expect(describeAuthFailure(new ApiError(409,"Конфликт с сохранёнными данными"),"register").fields).toBeUndefined();

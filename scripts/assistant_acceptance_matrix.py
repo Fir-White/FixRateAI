@@ -50,10 +50,14 @@ DOMAINS = {
 # Explicit specifications make omissions fail export instead of silently falling
 # back to the tool title or a generic HTTP-200 oracle.
 SPECIFICATIONS = '''
+assistant_action_history|assistant|Show my recent proposed and confirmed actions across saved chats|Rows and total match stored actions for this user, site and role. Confirmation and verified outcome remain distinct; expired proposals, sensitive payloads and other scopes are handled without writes.
 chat_models|assistant|Show installed local chat models without generating an answer|Catalog matches local tags and excludes cloud-only entries in the local-only evaluation; no model download or preference mutation.
 chat_model_preference|assistant|Show my saved model in this role and site|Selection and revision equal this actor/site/role preference; another role/site preference is absent.
 chat_model_select|assistant|Use the named installed local model for my next messages|After confirmation only this TEST user's scoped preference changes; a new turn pins that model/digest and old turns retain their snapshot.
 tasks_analyze|reporting|Count all tasks and explain unfinished work and overdue deadlines|Status counts equal independent SQL over the whole authorized scope, including records beyond page one; planned start is distinct from mandatory due date.
+maintenance_catalog_read|registry|List the published maintenance types and operations for the selected type|Type counts and the selected operation codes and titles match the current approved editions bound to authorized active equipment; filtered pages, executor visibility and absence of business writes are verified.
+work_order_analytics|reporting|Rank equipment or workers, select tasks by deadlines or missing materials, and inspect service coverage|Independent SQL verifies eligible groups, order, counts, scope, local dates, and ties beyond the first page. Bound reads use only selected IDs and incomplete results remain explicit.
+task_acceptance_evidence|execution|Read current checklist, report, photos and acceptance obstacles for the selected task|Current task identity, revision and report attempt match; absent files and approvals are reported, inaccessible tasks stay protected and no business rows or proposals change.
 draft_changes|publication|Compare the two named versions of my draft|Reported added/removed/changed placements equal a direct version diff; unrelated and locked placements are identified correctly.
 drafts_find|planning|Find my saved plan by its name and period|Expected TEST draft is found even beyond the first page; returned identifiers resolve to that draft and version within scope.
 planning_context|planning|Show the data and decisions needed to plan this period|Selected period, source decisions, norms, capacity and missing inputs equal backend records; unknown values remain unknown.
@@ -65,6 +69,7 @@ source_xlsx_import|excel|Import this reviewed workbook as a draft for the select
 source_xlsx_export|excel|Download the selected saved source workbook|The exported workbook preserves the scoped source rows and unknown columns; a foreign hash yields no file.
 source_revisions|excel|List catalog indexing events with the requested status|Event identifiers, revisions and status match the selected site's persisted queue; another site's events are absent.
 source_search|excel|Search the current site's source workbook catalog|Search returns only indexed rows for the current site and keeps the source hash, revision and cell references.
+rag_search|excel|Find the applicable rule in approved sources|Results follow the current site, revision and role, preserve source references and do not invent instructions when no approved source matches.
 source_revision_publish|excel|Mark the selected completed indexing event as published|Only the scoped pending event acquires a publication timestamp after confirmation; repeating the action creates no new event or transition.
 equipment_list|registry|List equipment on the selected site|Set of returned equipment equals the authorized registry after complete pagination, including equipment without tasks.
 equipment_read|registry|Open the equipment card by its inventory code|Code, name, commissioned date, revision and identifiers match the one resolved equipment row, with no modification.
@@ -91,11 +96,13 @@ task_assign|workforce|Assign the specified feasible crew and time to this task|C
 task_cancel|execution|Cancel the selected eligible task with this reason|Task reaches its documented cancelled state with reason and audit history; accepted facts remain intact and other tasks are unchanged.
 task_start|execution|Start my currently assigned TEST task|Only the executor's allowed assignment reaches in-progress once; actual start is server recorded and no report is implicitly accepted.
 report_save|execution|Save my checklist values and factual report as a draft|Persisted report contains exactly supplied values/units and attachment links; task is not submitted/accepted and previous attempt is retained.
+report_attach_and_submit|execution|Attach these photos and send my completed report for review|One confirmation attaches only the selected files to the current attempt. A complete report enters review; an incomplete one remains a draft with the missing materials reported. Replay does not attach any file again.
 report_submit|execution|Submit my completed report to the engineer|Task/report reach submitted once with the same complete evidence; no engineering acceptance is created and replay adds no duplicate attempt.
 report_review|review|Accept the submitted report or return it with the stated reason|The independent chief engineer's decision preserves attempts and history. Acceptance advances the accepted maintenance fact.
 photo_review|ml|Analyze the saved report photos as advisory evidence|A new local-model assessment references exact photo hashes and is persisted; unsupported/uncertain results remain explicit and task acceptance is unchanged.
 forecast_run|ml|Calculate and save the supported forecast for this task|Stored forecast has actual deterministic/model provenance and input hash; no fabricated what-if or automatic schedule confirmation occurs.
 workforce_read|workforce|Show the site team, shifts and qualifications|Staff/membership/shift/qualification sets equal scoped records including dates and expired flags; query volume is bounded independently of staff count.
+workforce_load|workforce|Compare useful capacity and assignments for the selected day|The resolved date and time zone match the request. Available capacity, overlapping assignments and unknown capacity use the saved shifts and allocations of the selected scope.
 catalogs_list|excel|List my saved source workbooks|Every authorized import is reachable across pages with correct original name/hash/version; another site's workbook is absent.
 portfolio_list|planning|Find saved portfolio plans for the chosen period|Results equal scoped saved portfolio records and selected links reopen the same plan/version after reload.
 portfolio_preview|planning|Preview one combined plan from the specified sources|Union of obligations is deduplicated by source identity; conflicts/missing data are explicit and no plan or real work is created.

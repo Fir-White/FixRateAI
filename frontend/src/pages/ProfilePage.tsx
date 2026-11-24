@@ -13,6 +13,7 @@ import { FormField, Input } from "@/shared/ui/Form";
 import { Icon } from "@/shared/ui/Icon";
 import { PageHeader } from "@/shared/ui/PageHeader";
 import { Modal } from "@/shared/ui/Modal";
+import { WorkspaceSite } from "@/layouts/WorkspaceSite";
 import "./profile.css";
 
 const AI_PROVIDER_LABELS: Record<string, string> = {
@@ -64,7 +65,7 @@ export function ProfilePage() {
   return <div className="profile-page">
     <PageHeader title="Мой профиль" description="Управление личными данными, безопасностью и настройками" />
     <div className="profile-grid">
-      <Card className="profile-summary"><CardBody><div className="profile-avatar" aria-hidden="true">{initials}</div><h2>{profile.name}</h2><p className="profile-role">{ROLE_LABELS[profile.role]}</p><div className="profile-summary-site"><span>Рабочий объект</span><strong>{profile.siteName}</strong></div><div className="profile-summary-site"><span>Часовой пояс</span><strong>{profile.timezone}</strong></div></CardBody></Card>
+      <Card className="profile-summary"><CardBody><div className="profile-avatar" aria-hidden="true">{initials}</div><h2>{profile.name}</h2><p className="profile-role">{ROLE_LABELS[profile.role]}</p><div className="profile-summary-site"><span>Рабочий объект</span><WorkspaceSite name={profile.siteName} selected={profile.siteId}/></div><div className="profile-summary-site"><span>Часовой пояс</span><strong>{profile.timezone}</strong></div></CardBody></Card>
       <div className="profile-content"><Card><CardHeader title="Учётная запись" description="Почта используется для входа в систему."/><CardBody>
         <div className="profile-setting"><div><span>Email</span><strong>{profile.email}</strong></div><Button variant="secondary" aria-expanded={emailOpen} aria-controls="profile-email-form" disabled={!!pending || DEMO_MODE} onClick={() => {setEmailOpen(!emailOpen); setEmail(profile.email); setEmailPassword(""); setEmailError(""); emailValidation.reset();}}>{emailOpen ? "Закрыть" : "Изменить"}</Button></div>
         {emailNotice && <p className="profile-notice" role="status">{emailNotice}</p>}

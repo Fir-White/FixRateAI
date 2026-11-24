@@ -93,7 +93,8 @@ def test_crash_after_committed_proposal_recovers_same_card_on_resume(assistant_c
             raise RuntimeError('TEST ONLY worker lost after proposal commit')
         return result
     monkeypatch.setattr(service,'propose',commit_then_crash)
-    response=send(client,chat)
+    response=send(client,chat,content=f'Создай оборудование с кодом {body["asset_code"]} и названием '
+                                    f'«{body["name"]}» в системе {body["system_id"]}.')
     assert response.status_code==202,response.text
     source=response.json()['turn_id']
     with engine.connect() as db:

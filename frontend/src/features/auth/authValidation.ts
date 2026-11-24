@@ -1,10 +1,10 @@
 import { ApiError } from "@/shared/api/request";
 
 export type AuthMode = "login" | "register";
-export type AuthField = "full_name" | "email" | "password" | "password_confirmation" | "company_code" | "site_id";
+export type AuthField = "full_name" | "email" | "password" | "password_confirmation" | "company_code";
 export type AuthValues = Partial<Record<AuthField, string>>;
 export type AuthErrors = Partial<Record<AuthField, string>>;
-const ORDER: AuthField[] = ["full_name", "email", "password", "password_confirmation", "company_code", "site_id"];
+const ORDER: AuthField[] = ["full_name", "email", "password", "password_confirmation", "company_code"];
 
 export function validateAuthField(field: AuthField, values: AuthValues, mode: AuthMode): string | undefined {
   const raw = values[field] ?? "", value = raw.trim();
@@ -20,7 +20,6 @@ export function validateAuthField(field: AuthField, values: AuthValues, mode: Au
       return raw.length > (mode === "register" ? 128 : 1024) ? `Пароль — не более ${mode === "register" ? 128 : 1024} символов` : undefined;
     case "password_confirmation": return !raw ? "Повторите пароль" : raw !== values.password ? "Пароли не совпадают" : undefined;
     case "company_code": return !value ? "Введите код компании" : value.length < 16 ? "Код компании должен содержать не менее 16 символов" : value.length > 128 ? "Код компании — не более 128 символов" : undefined;
-    case "site_id": return !value ? "Введите ID объекта" : !/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(value) ? "Введите ID объекта в формате UUID" : undefined;
   }
 }
 
@@ -38,10 +37,10 @@ export function focusAuthError(form: HTMLFormElement, errors: AuthErrors) {
 
 const FIELD_REVIEW: Record<AuthField, string> = {
   full_name: "Проверьте имя и фамилию", email: "Проверьте email", password: "Проверьте пароль",
-  password_confirmation: "Проверьте подтверждение пароля", company_code: "Проверьте код компании", site_id: "Проверьте ID объекта",
+  password_confirmation: "Проверьте подтверждение пароля", company_code: "Проверьте код компании",
 };
 
-export function describeAuthFailure(failure: unknown, mode: AuthMode): { message?: string; fields?: AuthErrors; requiresSite?: boolean } {
+export function describeAuthFailure(failure: unknown, mode: AuthMode): { message?: string; fields?: AuthErrors } {
   const status = failure instanceof ApiError ? failure.status : undefined;
   const detail = failure instanceof Error ? failure.message : "";
   const russian = /[а-яё]/i.test(detail) && detail.length <= 250 && !/[<>{}\[\]\r\n]/.test(detail) && !/^Ошибка API \(\d+\)$/.test(detail) ? detail : undefined;
@@ -49,7 +48,6 @@ export function describeAuthFailure(failure: unknown, mode: AuthMode): { message
   if (failure instanceof TypeError || /failed to fetch|network ?error|load failed/i.test(detail)) return { message: "Не удалось связаться с сервером. Проверьте соединение и попробуйте ещё раз." };
   if (status === 429) return { message: "Слишком много попыток. Подождите немного и попробуйте ещё раз." };
   if (status !== undefined && status >= 500) return { message: "Сервис временно недоступен. Попробуйте позже." };
-  if (mode === "login" && (status === 409 || status === undefined) && /site_id|несколько объектов/i.test(detail)) return { message: "Укажите ID объекта. Его можно получить у администратора.", requiresSite: true };
   if (mode === "register" && /код компании/i.test(detail) && /неверн|недейств|не найден|ист[её]к/i.test(detail)) return { fields: { company_code: russian ?? "Неверный код компании" } };
   if (mode === "register" && /email|почт/i.test(detail) && /уже|существ|занят|already/i.test(detail)) return { fields: { email: "Этот email уже зарегистрирован. Перейдите ко входу." } };
   if (status === 401) return { message: russian ?? "Неверный email или пароль" };
@@ -60,7 +58,7 @@ export function describeAuthFailure(failure: unknown, mode: AuthMode): { message
     if (Array.isArray(failure.details) && failure.details.length) {
       for (const item of failure.details) {
         const field = item && typeof item === "object" ? (typeof item.field === "string" ? item.field.split(".").at(-1) : Array.isArray(item.loc) ? item.loc.at(-1) : undefined) : undefined;
-        const allowed = mode === "register" ? ["full_name", "email", "password", "company_code"] : ["email", "password", "site_id"];
+        const allowed = mode === "register" ? ["full_name", "email", "password", "company_code"] : ["email", "password"];
         if (allowed.includes(field)) fields[field as AuthField] = FIELD_REVIEW[field as AuthField];
         else unmapped = true;
       }

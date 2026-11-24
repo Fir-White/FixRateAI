@@ -25,21 +25,19 @@ it.each([
   expect(renderScene.mock.calls.at(-1)?.[0]).not.toHaveProperty("animationEnabled");
   expect(renderScene.mock.calls.at(-1)?.[0]).toMatchObject({onReducedMotionChange:expect.any(Function)});
 });
-it("shows only credentials initially and requires the existing site payload after a server requirement", async () => {
-  signIn.mockRejectedValueOnce(new Error("Укажите site_id: несколько объектов"));
+it("enters the role workspace with only email and password", async () => {
   signIn.mockResolvedValueOnce({ role: "dispatcher" });
-  const view = render(<MemoryRouter><LoginPage /></MemoryRouter>);
-  expect(view.container.querySelector("details, summary")).toBeNull();
+  render(<MemoryRouter initialEntries={["/login"]}><Routes>
+    <Route path="/login" element={<LoginPage />} />
+    <Route path="/dispatcher" element={<p>Рабочее пространство</p>} />
+  </Routes></MemoryRouter>);
   expect(screen.queryByLabelText("ID объекта")).toBeNull();
+  expect(screen.queryByLabelText("Здание")).toBeNull();
   fireEvent.change(screen.getByLabelText("Email"), { target: { value: "person@example.test" } });
   fireEvent.change(screen.getByLabelText("Пароль"), { target: { value: "password" } });
   fireEvent.submit(screen.getByRole("form"));
-  const site = await screen.findByLabelText("ID объекта");
-  expect(site).toBeRequired();
-  expect(signIn).toHaveBeenLastCalledWith("person@example.test", "password", "");
-  fireEvent.change(site, { target: { value: " 00000000-0000-4000-8000-000000000001 " } });
-  fireEvent.submit(screen.getByRole("form"));
-  await waitFor(() => expect(signIn).toHaveBeenLastCalledWith("person@example.test", "password", "00000000-0000-4000-8000-000000000001"));
+  expect(await screen.findByText("Рабочее пространство")).toBeVisible();
+  expect(signIn).toHaveBeenCalledExactlyOnceWith("person@example.test", "password");
 });
 
 it("shows all empty login errors after submit and focuses email without sending a request", () => {
@@ -101,20 +99,20 @@ it("validates on blur and corrects inline errors while preserving a short raw lo
   fireEvent.change(screen.getByLabelText("Пароль"),{target:{value:" x "}});
   fireEvent.submit(screen.getByRole("form"));
   expect(await screen.findByRole("alert")).toHaveTextContent("Неверный email или пароль");
-  expect(signIn).toHaveBeenCalledWith("person@example.test"," x ","");
+  expect(signIn).toHaveBeenCalledWith("person@example.test"," x ");
 });
 
-it("reveals a server-invalid site and focuses it after the fieldset becomes enabled", async () => {
-  signIn.mockRejectedValueOnce(new ApiError(422,"Проверьте заполнение полей формы",[{field:"body.site_id",issue:"UUID parsing failed"}]));
+it("focuses a server-invalid email after the fieldset becomes enabled", async () => {
+  signIn.mockRejectedValueOnce(new ApiError(422,"Проверьте заполнение полей формы",[{field:"body.email",issue:"Value error"}]));
   render(<MemoryRouter><LoginPage /></MemoryRouter>);
-  fireEvent.change(screen.getByLabelText("Email"),{target:{value:"person@example.test"}});
+  const email=screen.getByLabelText("Email");
+  fireEvent.change(email,{target:{value:"person@example.test"}});
   fireEvent.change(screen.getByLabelText("Пароль"),{target:{value:"password"}});
   fireEvent.submit(screen.getByRole("form"));
-  const site=await screen.findByLabelText("ID объекта");
-  await waitFor(()=>expect(site).toHaveFocus());
-  expect(site).toBeEnabled();
-  expect(site).toHaveAttribute("aria-invalid","true");
-  expect(site).toHaveAccessibleDescription("Введите ID объекта");
+  await waitFor(()=>expect(email).toHaveFocus());
+  expect(email).toBeEnabled();
+  expect(email).toHaveAttribute("aria-invalid","true");
+  expect(email).toHaveAccessibleDescription("Проверьте email");
 });
 
 it("keeps null-relatedTarget pointer and compatibility mouse blur from moving a registration action", () => {

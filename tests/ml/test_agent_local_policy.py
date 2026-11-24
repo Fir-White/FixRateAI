@@ -33,6 +33,13 @@ def test_policy_environment_does_not_inherit_secrets_or_database_urls(tmp_path):
     assert result['FIXRATE_LLM_LOCAL_ONLY'] == result['HF_HUB_OFFLINE'] == '1'
 
 
+def test_local_gpu_run_can_set_a_smaller_context_without_changing_the_model_pin(tmp_path):
+    result = environment({}, tmp_path, MODEL, live=True, num_ctx=8192)
+    assert result['OLLAMA_CHAT_NUM_CTX'] == '8192'
+    assert result['OLLAMA_CHAT_DIGEST'] == MODEL['digest']
+    assert result['FIXRATE_LOCAL_INFERENCE_ALLOWED'] == '1'
+
+
 @pytest.mark.parametrize('code', [
     "import socket; socket.create_connection(('203.0.113.1',443),timeout=.1)",
     "import socket; socket.getaddrinfo('external.example',443)",

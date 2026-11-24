@@ -87,6 +87,7 @@ class AssignmentRequest(Contract):
     crews: list[Crew] = Field(default_factory=list)
     crew_id: UUID | None = None
     requested_worker_ids: list[UUID] | None = None
+    prefer_low_load: bool = False
 
     @model_validator(mode="after")
     def consistent_request(self):

@@ -1,5 +1,4 @@
 import { chromium, test, expect, type BrowserContext, type Page, type TestInfo } from "@playwright/test";
-import { createHash } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 
 const PASSWORD = "local-test-password";
@@ -264,37 +263,6 @@ test("independent curves, tiny particles, automatic pauses, reduced motion and s
   await touch.close();
 });
 
-test("retains object selection when the server requires a site ID", async ({ page }) => {
-  await page.setViewportSize({width:1366,height:768});
-  const logo=page.locator(".auth-brand__mark");
-  await expect(logo).toBeVisible();
-  const logoPlacement=()=>logo.evaluate(element=>{const box=element.getBoundingClientRect();return{x:box.x+scrollX,y:box.y+scrollY,width:box.width,height:box.height,transform:getComputedStyle(element).transform};});
-  const originalLogo=await logoPlacement();
-  await expect(page.locator("details, summary, #login-site")).toHaveCount(0);
-  await page.route("**/api/v1/auth/login", route => route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ detail: "Укажите site_id: у пользователя несколько объектов" }) }), { times: 1 });
-  await page.getByLabel("Email", { exact: true }).fill("fixrate-demo-dispatcher@example.test");
-  await page.getByLabel("Пароль", { exact: true }).fill(PASSWORD);
-  await page.getByRole("button", { name: "Войти", exact: true }).click();
-  const site = page.getByLabel("ID объекта", { exact: true });
-  await expect(site).toBeVisible();
-  await expect(site).toHaveAttribute("required");
-  expect(await logoPlacement()).toEqual(originalLogo);
-  await page.getByLabel("Email",{exact:true}).fill("");
-  await page.getByLabel("Пароль",{exact:true}).fill("");
-  await page.getByRole("button",{name:"Войти",exact:true}).click();
-  await expect(page.getByRole("alert")).toHaveCount(3);
-  expect(await logoPlacement()).toEqual(originalLogo);
-  await page.getByLabel("Email",{exact:true}).fill("fixrate-demo-dispatcher@example.test");
-  await page.getByLabel("Пароль",{exact:true}).fill(PASSWORD);
-  const hex = createHash("md5").update("fixrate-demo-site").digest("hex");
-  const siteId = `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
-  await site.fill(siteId);
-  const payload = page.waitForRequest(request => request.url().endsWith("/api/v1/auth/login"));
-  await page.getByRole("button", { name: "Войти", exact: true }).click();
-  expect((await payload).postDataJSON().site_id).toBe(siteId);
-  await expect(page).toHaveURL(/\/dispatcher$/);
-});
-
 test("keyboard access, errors, pending state, password visibility and login return route", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
@@ -546,6 +514,7 @@ test("classic root scrollbar preserves auth geometry across route overflow and e
   const page=await context.newPage();
   const measurements:unknown[]=[];
   const geometry=async()=>{
+    await expect(page.locator(".auth-aurora")).toBeAttached();
     const value=await page.evaluate(()=>{
       const x=(selector:string)=>{const box=document.querySelector(selector)!.getBoundingClientRect();return{x:box.x,width:box.width};};
       return{clientWidth:document.documentElement.clientWidth,rootWidth:document.documentElement.getBoundingClientRect().width,layout:{panel:x(".auth-panel"),scene:x(".auth-aurora"),brand:x(".auth-brand")}};
@@ -557,6 +526,7 @@ test("classic root scrollbar preserves auth geometry across route overflow and e
   };
   try{
     await page.goto(`${process.env.FIXRATE_BASE_URL}/login`);
+    await expect(page.getByRole("heading",{name:"Вход в систему",exact:true})).toBeVisible();
     // Prove this browser uses a real layout gutter rather than overlay scrollbars.
     await page.evaluate(()=>{const probe=document.createElement("div");probe.id="classic-scrollbar-probe";probe.style.height="2000px";document.body.append(probe);});
     expect(await page.evaluate(()=>window.innerWidth-document.documentElement.clientWidth)).toBeGreaterThan(0);
@@ -575,14 +545,8 @@ test("classic root scrollbar preserves auth geometry across route overflow and e
     await page.getByRole("link",{name:"Перейти ко входу",exact:true}).click();
     await expect(page.getByRole("heading",{name:"Вход в систему",exact:true})).toBeFocused();
     await expect(page.locator(".auth-page")).toHaveAttribute("data-transition","idle");
-    await page.route("**/api/v1/auth/login",route=>route.fulfill({status:409,json:{detail:"Укажите site_id: у пользователя несколько объектов"}}),{times:1});
-    await page.getByLabel("Email",{exact:true}).fill("test@example.test");
-    await page.getByLabel("Пароль",{exact:true}).fill("test-password");
     await page.getByRole("button",{name:"Войти",exact:true}).click();
-    await expect(page.getByLabel("ID объекта",{exact:true})).toBeVisible();
-    await page.getByLabel("Email",{exact:true}).fill("");await page.getByLabel("Пароль",{exact:true}).fill("");
-    await page.getByRole("button",{name:"Войти",exact:true}).click();
-    await expect(page.getByRole("alert")).toHaveCount(3);
+    await expect(page.getByRole("alert")).toHaveCount(2);
     expect(await geometry()).toEqual(short);
     await page.evaluate(()=>window.scrollTo(100,0));
     expect(await page.evaluate(()=>scrollX)).toBe(0);

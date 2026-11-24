@@ -22,7 +22,8 @@ class FirstAdministrator(BaseModel):
     full_name: str = Field(min_length=1, max_length=200)
     email: str = Field(min_length=3, max_length=320)
     password: str = Field(min_length=12, max_length=1024, repr=False)
-    timezone: str = "Asia/Yekaterinburg"
+    timezone: str = Field(default_factory=lambda: os.getenv("FIXRATE_DEFAULT_TIMEZONE", "Asia/Yekaterinburg").strip(),
+                          validate_default=True)
 
     @field_validator("organization_name", "site_name", "full_name")
     @classmethod
