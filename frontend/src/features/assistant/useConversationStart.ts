@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { assistantApi as api, type ChatModelPreference } from '@/shared/api/assistant';
+import { assistantApi as api, type ChatAttachment, type ChatModelPreference } from '@/shared/api/assistant';
 import { ApiError } from '@/shared/api/request';
 
 type StartOptions = {
@@ -7,7 +7,7 @@ type StartOptions = {
   subjectTaskId?: string;
   readDraft?: () => string;
   onModelChange: (model: ChatModelPreference) => void;
-  onOpen: (id: string, draft: string) => void;
+  onOpen: (id: string, draft: string, attachments: ChatAttachment[]) => void;
 };
 
 export function useConversationStart({model, subjectTaskId, readDraft, onModelChange, onOpen}: StartOptions) {
@@ -54,17 +54,19 @@ export function useConversationStart({model, subjectTaskId, readDraft, onModelCh
       }
       const id = await creation.current;
       if (activeVersion !== version.current) return;
+      const attachments = new Map<string,ChatAttachment>();
       if (files.length) {
         for (const file of files) {
           if (activeVersion !== version.current) return;
-          await api.upload(id, file);
+          const saved=await api.upload(id, file);
+          attachments.set(saved.attachment_id,saved);
         }
       } else {
         const payload = JSON.stringify([id, message, model?.revision]);
         if (attempt.current?.payload !== payload) attempt.current = {payload, key: crypto.randomUUID()};
         await api.send(id, message, attempt.current.key, [], model?.revision);
       }
-      if (activeVersion === version.current) onOpen(id, files.length ? readDraft?.() ?? remainingDraft : remainingDraft);
+      if (activeVersion === version.current) onOpen(id, files.length ? readDraft?.() ?? remainingDraft : remainingDraft,[...attachments.values()]);
     } catch (failure) {
       if (activeVersion !== version.current) return;
       setError(failure instanceof Error ? failure.message : 'Не удалось начать диалог');

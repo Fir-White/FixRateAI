@@ -52,6 +52,32 @@ it('clears the file drop hint when leaving the chat even if the drag data was cl
   fireEvent.dragLeave(zone,{dataTransfer:{types:[],files:[]}});
   expect(screen.queryByText('Отпустите, чтобы прикрепить файлы')).not.toBeInTheDocument();
 });
+it.each(['drop','picker','new chat'] as const)('keeps nonalphabetic attachment order in the draft and send: %s',async(method)=>{
+  const user=userEvent.setup();
+  const mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  const batch=[new File(['z'],'Z.xlsx',{type:mime}),new File(['a'],'A.xlsx',{type:mime})];
+  const staged=batch.map(file=>({attachment_id:file.name,original_name:file.name,mime_type:mime,
+    size_bytes:file.size,created_at:'2026-11-24T11:00:00Z',sha256:'a'.repeat(64)}));
+  const upload=vi.spyOn(api,'upload').mockResolvedValueOnce(staged[0]).mockResolvedValueOnce(staged[1]);
+  if(method==='new chat'){
+    vi.spyOn(api,'create').mockResolvedValue(chat);
+    // These files have equal timestamps; the server's identifier tie-breaker is not selection order.
+    vi.mocked(api.read).mockResolvedValue({...view,pending_attachments:staged});
+  }
+  show(method==='new chat'?'/assistant':'/assistant?chat=chat');
+  await screen.findByLabelText('Сообщение помощнику');
+  if(method==='picker'){
+    fireEvent.change(screen.getByLabelText('Прикрепить файл'),{target:{files:batch}});
+  }else{
+    const zone=screen.getByRole('region',{name:method==='new chat'?'Новый чат':'Сообщения'});
+    fireEvent.drop(zone,{dataTransfer:{types:['Files'],files:batch}});
+  }
+  await waitFor(()=>expect(upload).toHaveBeenCalledTimes(2));
+  const files=await screen.findByRole('list',{name:'Вложения к сообщению'});
+  await waitFor(()=>expect(within(files).getAllByRole('link').map(link=>link.textContent)).toEqual(['Z.xlsx','A.xlsx']));
+  await user.click(screen.getByRole('button',{name:'Отправить'}));
+  expect(api.send).toHaveBeenCalledExactlyOnceWith('chat','',expect.any(String),['Z.xlsx','A.xlsx']);
+});
 it('stages pasted screenshots without sending or changing the draft',async()=>{
   const user=userEvent.setup();
   const file=new File(['image'],'clipboard.png',{type:'image/png'});

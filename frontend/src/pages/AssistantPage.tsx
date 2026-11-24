@@ -102,12 +102,12 @@ const ChatMessages = memo(function ChatMessages({turns,actions,attachments,names
     {(actionsByTurn.get(null)??[]).map(action=><ActionCard key={action.action_id} action={action} title={names[action.tool_name]??action.tool_name} attachments={attachments} onChanged={onChanged}/>)}
   </>;
 });
-function Chat({identity,capabilities,initialDraft,onDraftChange,onRefreshList,timezone,modelPreference,onModelChange,entryRect,onEntryComplete}:{identity:string;capabilities:ChatCapabilities;initialDraft:string;onDraftChange:(id:string,text:string)=>void;onRefreshList:()=>void;timezone:string;entryRect?:DOMRectReadOnly;onEntryComplete:()=>void}&ModelControls){
+function Chat({identity,capabilities,initialDraft,initialAttachments,onDraftChange,onRefreshList,timezone,modelPreference,onModelChange,entryRect,onEntryComplete}:{identity:string;capabilities:ChatCapabilities;initialDraft:string;initialAttachments?:ChatAttachment[];onDraftChange:(id:string,text:string)=>void;onRefreshList:()=>void;timezone:string;entryRect?:DOMRectReadOnly;onEntryComplete:()=>void}&ModelControls){
   const toolCalling=capabilities.prompt_version==='fixrate-tool-calling-v4';
   const [refresh,setRefresh]=useState(0),[offset,setOffset]=useState(0),[sending,setSending]=useState(false),[uploading,setUploading]=useState(false),[error,setError]=useState(''),[showJump,setShowJump]=useState(false);
   const composer = useRef<ComposerHandle>(null);
   const uploadInFlight=useRef(false);
-  const [localFiles,setLocalFiles]=useState<ChatAttachment[]>([]),[excludedFiles,setExcludedFiles]=useState<string[]>([]);
+  const [localFiles,setLocalFiles]=useState<ChatAttachment[]>(()=>initialAttachments??[]),[excludedFiles,setExcludedFiles]=useState<string[]>([]);
   const attempt=useRef({signature:'',key:crypto.randomUUID()}),last=useRef<ChatView|null>(null);
   const resumeAttempts=useRef(new Map<string,string>());
   const scroll=useRef<HTMLDivElement>(null),transcript=useRef<HTMLDivElement>(null),pinned=useRef(true),jumpVisible=useRef(false),openedOffset=useRef<number|null>(null),followNext=useRef(false);
@@ -129,7 +129,10 @@ function Chat({identity,capabilities,initialDraft,onDraftChange,onRefreshList,ti
   },[toBottom]);
   if(!data)return query.status==='error'?<ErrorState description={query.error} action={<Button onClick={()=>setRefresh(n=>n+1)}>Повторить загрузку</Button>}/>:<LoadingState label="Загрузка диалога"/>;
   const stop=async()=>{const turn=data.turns.find(t=>t.status==='running');if(!turn||sending)return;setSending(true);setError('');try{await api.stop(identity,turn.turn_id);refreshAll();}catch(e){setError(e instanceof Error?e.message:'Не удалось остановить ответ');}finally{setSending(false);}};
-  const files=Array.from(new Map([...(data.pending_attachments??[]),...localFiles].map(file=>[file.attachment_id,file])).values()).filter(file=>!excludedFiles.includes(file.attachment_id)).sort((a,b)=>a.created_at.localeCompare(b.created_at)||a.attachment_id.localeCompare(b.attachment_id));
+  const localFileIds=new Set(localFiles.map(file=>file.attachment_id));
+  // The server lists pending files newest first; local additions keep their selection order.
+  const savedFiles=(data.pending_attachments??[]).slice().reverse().filter(file=>!localFileIds.has(file.attachment_id));
+  const files=[...savedFiles,...localFiles].filter(file=>!excludedFiles.includes(file.attachment_id));
   const upload=async(batch:File[])=>{
     if(uploadInFlight.current||sending||running)return;
     if(files.length+batch.length>20){setError('К одному сообщению можно прикрепить не больше 20 файлов');return;}
@@ -238,9 +241,9 @@ function Workspace(){
   const select=(id:string)=>{setParams({chat:id});setHistoryOpen(false);};
   const launch=useConversationStart({
     model:modelPreference,subjectTaskId,onModelChange:setModelOverride,readDraft:()=>welcomeDraft.current,
-    onOpen(id,remainingDraft){
+    onOpen(id,remainingDraft,attachments){
       const rect=welcome.current?.querySelector('form')?.getBoundingClientRect();
-      setEntry({id,draft:remainingDraft,rect});
+      setEntry({id,draft:remainingDraft,rect,attachments});
       rememberDraft(id,remainingDraft);
       welcomeDraft.current = '';
       select(id);setRefresh(n=>n+1);
@@ -270,7 +273,7 @@ function Workspace(){
       {caps.status==='error'&&<ErrorState description={caps.error} action={<Button onClick={()=>retryCaps(value=>value+1)}>Повторить загрузку</Button>}/>}
       {caps.status==='success'&&<>
     {!(modelPreference?.available??caps.data.available)&&<div className="assistant-inline-error"><Callout tone="warning">ИИ пока не подключён. История доступна; выберите доступную модель рядом с кнопкой «Файл».</Callout></div>}
-    {identity ? <Chat key={identity} identity={identity} entryRect={entryRect} onEntryComplete={completeEntry} capabilities={caps.data} initialDraft={drafts.get(identity)??''} onDraftChange={rememberDraft} onRefreshList={refreshList} timezone={timezone} modelPreference={modelPreference} onModelChange={setModelOverride}/> :
+    {identity ? <Chat key={identity} identity={identity} entryRect={entryRect} onEntryComplete={completeEntry} capabilities={caps.data} initialDraft={drafts.get(identity)??''} initialAttachments={entry?.id===identity?entry.attachments:undefined} onDraftChange={rememberDraft} onRefreshList={refreshList} timezone={timezone} modelPreference={modelPreference} onModelChange={setModelOverride}/> :
       <ChatFileDrop className="assistant-welcome" aria-label="Новый чат" blocked={!!launch.operation}
         onFiles={files=>void launch.start(welcomeDraft.current,{files})}>
         <div ref={welcome} className="assistant-welcome-content">

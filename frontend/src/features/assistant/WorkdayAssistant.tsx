@@ -25,8 +25,8 @@ export function WorkdayAssistant({executor = false}: {executor?: boolean}) {
     model: preference,
     readDraft: () => draft.current,
     onModelChange: setModel,
-    onOpen(id, remainingDraft) {
-      transferAssistantDraft(cache, id, remainingDraft, entry.current?.querySelector('form')?.getBoundingClientRect());
+    onOpen(id, remainingDraft, attachments) {
+      transferAssistantDraft(cache, id, remainingDraft, entry.current?.querySelector('form')?.getBoundingClientRect(), attachments);
       composer.current?.replaceDraft('');
       navigate(`/assistant?chat=${encodeURIComponent(id)}`);
     },
