@@ -54,6 +54,8 @@ def draft(jobs, request):
     (True,'revoked'), (True,'parallel'), (True,'switch_in_flight'), (True,'ambiguous_chat'),
     (True,'named_chat'), (True,'followup'), (True,'ambiguous_phases'), (True,'wrong_phases'), (True,'two_tasks'),
     (True,'deadline_not_phase'),
+    (True,'named_photos_submit'), (False,'named_photos_save'), (True,'named_photos_conflict'), (True,'named_photos_previous'),
+    (True,'named_photos_inspect'), (True,'named_photos_ambiguous_item'), (True,'named_photos_explicit'),
 ], indirect=['draft'])
 def test_confirm_photos_and_conditionally_submit(monkeypatch, draft, jobs, mode):
     engine, app, task, attempt, point = draft
@@ -62,6 +64,8 @@ def test_confirm_photos_and_conditionally_submit(monkeypatch, draft, jobs, mode)
             if messages[-1]['role'] == 'user':
                 if 'Сначала посмотри эти кадры' in messages[-1]['content']:
                     return dict(content='Снимки получены.')
+                if mode in ('named_photos_submit','named_photos_save','named_photos_inspect'):
+                    return dict(content='Я только читаю наряд.')
                 assert 'propose_report_attach_and_submit' in {t['function']['name'] for t in tools}
                 if mode in ('named_chat','ambiguous_chat','two_tasks'):
                     return dict(tool_calls=[*call('read_work_order',task_id=str(task))['tool_calls'],
@@ -78,22 +82,40 @@ def test_confirm_photos_and_conditionally_submit(monkeypatch, draft, jobs, mode)
         created = client.post(B+'/conversations', json={} if mode in ('named_chat','ambiguous_chat','two_tasks') else {'subject_task_id':str(task)})
         assert created.status_code==201, created.text
         chat = created.json()['conversation_id']
-        sent = [image(client, chat, 'before.png', 'red'), image(client, chat, 'after.png', 'blue')]
+        names = ('work_05_after (1).png','work_05_before (1).png') if mode.startswith('named_photos') else ('before.png','after.png')
+        if mode=='named_photos_ambiguous_item':
+            with engine.begin() as db:
+                db.execute(text("""UPDATE work_reports SET checklist_snapshot=checklist_snapshot || CAST(:items AS jsonb)
+                    WHERE work_report_id=:attempt"""), dict(attempt=attempt,items=json.dumps([
+                        dict(id=str(uuid4()),text='Осмотреть корпус',answerKind='boolean',required=True,photoRequired=True)
+                    ])))
+        if mode=='ambiguous_phases':
+            names=('image 1.png','image 2.png')
+        if mode=='named_photos_conflict':
+            names=('work_05_before_after.png',names[1])
+        sent = [image(client, chat, names[0], 'red'), image(client, chat, names[1], 'blue')]
         other_id = image(client, thread(client), 'foreign.png')['attachment_id'] if mode == 'foreign' else None
         ids = [row['attachment_id'] for row in sent]
         payload = dict(expected_revision=initial['task']['revision'], execution_id=str(attempt), photos=[
             dict(attachment_id=identity, checklist_item_id=str(point), phase=phase, view_key='front')
             for identity, phase in zip([other_id or ids[0], ids[1]],
-                                       ('after','before') if mode=='wrong_phases' else ('before','after'))
+                                       ('after','before') if mode=='wrong_phases' or (
+                                           mode.startswith('named_photos') and mode!='named_photos_explicit') else ('before','after'))
         ])
 
-        if mode=='followup':
+        previous = mode in ('followup','named_photos_previous')
+        if previous:
             assert send(client,chat,ids,'Сначала посмотри эти кадры').status_code==202
             assert not client.get(f'{B}/conversations/{chat}').json()['actions']
         question=('Прикрепи эти фото до и после и сдай отчёт.' if mode=='ambiguous_phases' else
                   'Прикрепи фото 1 — до работы, фото 2 — после работы, и сдай отчёт.')
         if mode=='deadline_not_phase':
             question='Прикрепи фото 1 и сдай отчёт до пятницы, фото 2 — после работы.'
+        if mode.startswith('named_photos'):
+            if mode=='named_photos_inspect':
+                question='Не добавляй в отчёт и не отправляй на проверку, только посмотри.'
+            elif mode!='named_photos_explicit':
+                question='Вот результат работы, добавь в отчёт и отправь на проверку.'
         if mode=='named_chat':
             question+=f" Код наряда: {initial['task']['code']}."
         if mode=='two_tasks':
@@ -103,16 +125,19 @@ def test_confirm_photos_and_conditionally_submit(monkeypatch, draft, jobs, mode)
                     SELECT site_id,:another,user_id,assigned_by FROM work_assignments WHERE work_order_id=:task"""),
                     {'another':another,'task':task})
             question+=f" Коды нарядов: {initial['task']['code']}, {str(another)[:8]}."
-        assert send(client, chat, [] if mode=='followup' else ids, question).status_code == 202
+        assert send(client, chat, [] if previous else ids, question).status_code == 202
         history = client.get(f'{B}/conversations/{chat}').json()
         assert history['turns'][-1]['status'] == 'completed', history['turns'][-1]
         assert not client.get(url).json()['execution']['photos']
-        if mode in ('foreign','ambiguous_chat','ambiguous_phases','wrong_phases','two_tasks','deadline_not_phase'):
+        if mode in ('foreign','ambiguous_chat','ambiguous_phases','wrong_phases','two_tasks','deadline_not_phase',
+                    'named_photos_conflict','named_photos_previous','named_photos_inspect','named_photos_ambiguous_item'):
             assert history['actions'] == []
             return
         action, = history['actions']
         assert action['tool_name'] == 'report_attach_and_submit'
-        assert action['status'] == 'proposed' and 'before.png' in action['explanation']
+        assert action['status'] == 'proposed' and all(name in action['explanation'] for name in names)
+        if mode in ('named_photos_submit','named_photos_save'):
+            assert [(p['attachment_id'],p['phase']) for p in action['arguments']['body']['photos']]==list(zip(ids,('after','before')))
         direct = client.post(f'{B}/workspace/tasks/{task}/attach-and-submit', json=payload)
         assert direct.status_code == 403
         if mode == 'stale':
@@ -168,11 +193,12 @@ def test_confirm_photos_and_conditionally_submit(monkeypatch, draft, jobs, mode)
         assert confirm(client, action).json() == done
         result = engineer.get(url).json()
         assert result['task']['revision'] == initial['task']['revision'] + 1
-        assert result['task']['state'] == ('in_progress' if mode == 'save' else 'submitted')
+        incomplete = mode in ('save','named_photos_save')
+        assert result['task']['state'] == ('in_progress' if incomplete else 'submitted')
         assert result['execution']['id'] == str(attempt)
         assert sorted(p['phase'] for p in result['execution']['photos']) == ['after', 'before']
-        assert done['result']['data']['submission'] == ('draft_incomplete' if mode == 'save' else 'submitted')
-        if mode == 'save':
+        assert done['result']['data']['submission'] == ('draft_incomplete' if incomplete else 'submitted')
+        if incomplete:
             assert 'чек-лист' in done['result']['data']['submission_block'].lower()
         if mode == 'submit':
             public_tools=rpc(client,'tools/list').json()['result']['tools']

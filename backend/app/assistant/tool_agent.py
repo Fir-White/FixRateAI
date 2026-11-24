@@ -23,6 +23,8 @@ PROMPT_VERSION = 'fixrate-tool-calling-v4'
 MAX_ROUNDS = 8
 MAX_CALLS = 12
 MAX_SCOPE_IDS = 160
+REPORT_CARD_ANSWER = ('Проверьте привязку снимков в карточке. После подтверждения фото сохранятся, '
+                      'а отчёт уйдёт инженеру только при полном комплекте.')
 
 
 class AssignmentContinuation(BaseModel):
@@ -220,8 +222,7 @@ async def run_loop(client, messages, specs, dispatch, check, *, evidence=None, o
                 if name == 'propose_assignment' and result.get('action_id') and result.get('status') == 'awaiting_confirmation':
                     return _assignment_answer(result), evidence
                 if name == 'propose_report_attach_and_submit' and result.get('action_id') and result.get('status') == 'awaiting_confirmation':
-                    return ('Проверьте привязку снимков в карточке. После подтверждения фото сохранятся, '
-                            'а отчёт уйдёт инженеру только при полном комплекте.'), evidence
+                    return REPORT_CARD_ANSWER, evidence
             messages.append(dict(role='tool', tool_call_id=call['id'], tool_name=name, content=service.dump(result)))
         messages.extend(visual_messages)
     raise TimeoutError
@@ -357,6 +358,21 @@ async def run(app, principal, thread_id, turn_id, headers):
             except HTTPException as exc:
                 subject = dict(ok=False, code=exc.status_code, error=exc.detail)
             check()
+        answer, allow_proposal = None, True
+        report_args = tools.named_report_arguments(subject)
+        if report_args:
+            name = 'propose_report_attach_and_submit'
+            try:
+                result = await tools.dispatch(name, report_args)
+            except HTTPException as exc:
+                if not isinstance(exc.detail, str):
+                    raise
+                result = dict(ok=False, code=exc.status_code, error=exc.detail)
+                answer = f'Карточка не создана. {exc.detail}'
+            else:
+                answer = REPORT_CARD_ANSWER
+            evidence.append(dict(tool=name, arguments=report_args, result=result))
+            event(dict(tool=name, status='proposed' if result.get('action_id') else 'denied', source='chat_subject'))
         dialogue = messages[1:]
         messages.append(dict(role='user', content=service.dump(mask_known_outputs(dict(
             kind='context_data', role=principal.role, site_name=principal.site_name, previous_results=previous_results,
@@ -365,7 +381,7 @@ async def run(app, principal, thread_id, turn_id, headers):
             action_cards=[dict(row) for row in actions], selected_work_order=subject), known))))
         question = mask_known_outputs(turn['content'], known)
         current = dict(role='user', content=question)
-        if files:
+        if files and answer is None:
             images = image_inputs(app, files)
             current['content'] = service.dump(dict(message=question, attachments=[public(row) for row in files],
                                                     decoded_images=len(images)))
@@ -375,16 +391,16 @@ async def run(app, principal, thread_id, turn_id, headers):
                     'Если деталей не видно, это ограничение содержимого снимка, а не сбой загрузки.')
                 current['images'] = images
         messages.append(current)
-        factory = getattr(app.state, 'assistant_provider_factory', None)
-        client = factory() if factory else service.provider(turn['model_selection'])
-        seconds = min(180, (turn['deadline_at']-service.now()).total_seconds()) if turn['deadline_at'] else 120
-        deadline = time.monotonic() + seconds
-        if isinstance(getattr(client, 'deadline', None), (float, int)):
-            client.deadline = min(client.deadline, deadline)
-        answer, allow_proposal = None, True
-        if 'propose_assignment' in tools.definition:
-            answer, allow_proposal = await _continue_assignment(client, tools, dialogue, current, assignment_check, actions,
-                                                                evidence, check, event, deadline)
+        if answer is None:
+            factory = getattr(app.state, 'assistant_provider_factory', None)
+            client = factory() if factory else service.provider(turn['model_selection'])
+            seconds = min(180, (turn['deadline_at']-service.now()).total_seconds()) if turn['deadline_at'] else 120
+            deadline = time.monotonic() + seconds
+            if isinstance(getattr(client, 'deadline', None), (float, int)):
+                client.deadline = min(client.deadline, deadline)
+            if 'propose_assignment' in tools.definition:
+                answer, allow_proposal = await _continue_assignment(client, tools, dialogue, current, assignment_check, actions,
+                                                                    evidence, check, event, deadline)
         if answer is None:
             specs = [spec for spec in tools.specs if allow_proposal or spec['function']['name'] != 'propose_assignment']
             answer, _ = await run_loop(client, messages, specs, tools.dispatch, check, evidence=evidence,

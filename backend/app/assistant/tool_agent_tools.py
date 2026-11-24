@@ -1,4 +1,5 @@
 """Small typed maintenance vocabulary over the authenticated capability registry."""
+import re
 from datetime import date, datetime, time, timedelta
 from typing import Literal
 from uuid import UUID
@@ -197,6 +198,13 @@ def _same_assignment(before, after):
 
 _PHASES = {'до':'before', 'после':'after'}
 _PHOTO_SOURCE_WORDS = {'фото', 'снимок', 'кадр', 'скриншот'}
+_FILENAME_PHASES = {**_PHASES, 'before':'before', 'after':'after'}
+_ATTACH_AND_SUBMIT = re.compile(
+    r'(?:вот результат работы[,.]\s*)?(?:пожалуйста,\s*)?'
+    r'(?:добавь(?:те)?|прикрепи(?:те)?)(?: (?:эти )?(?:фото|снимки|кадры))? (?:в|к) отч[её]ту?'
+    r'(?:,?\s+(?:и|затем)) (?:сдай(?:те)?(?: (?:работу|отч[её]т))?'
+    r'|отправь(?:те)?(?: отч[её]т)? (?:на проверку|инженеру))[.!]?'
+)
 
 
 def _photo_labels(question, allow_single):
@@ -216,7 +224,27 @@ def _photo_labels(question, allow_single):
             values.setdefault(int(words[-1]),set()).add(phase)
         elif allow_single and words and words[-1] in _PHOTO_SOURCE_WORDS:
             values.setdefault(1,set()).add(phase)
-    return {index:next(iter(phases)) for index,phases in values.items()} if all(len(phases)==1 for phases in values.values()) else {}
+    if any(len(phases)!=1 for phases in values.values()):
+        return None
+    return {index:next(iter(phases)) for index,phases in values.items()}
+
+
+def _filename_photo_labels(files):
+    if len(files) != 2:
+        return {}
+    labels = {}
+    for index, row in enumerate(files, 1):
+        tokens = re.split(r'[\W_]+', row['original_name'].rsplit('.', 1)[0].casefold())
+        phases = {_FILENAME_PHASES[token] for token in tokens if token in _FILENAME_PHASES}
+        if len(phases) != 1:
+            return {}
+        labels[index] = phases.pop()
+    return labels if len(set(labels.values())) == 2 else {}
+
+
+def _required_photo_point(report):
+    required = [row['id'] for row in report['checklist'] if row['photoRequired']]
+    return required[0] if len(required) == 1 else None
 
 
 class ToolSession:
@@ -228,6 +256,7 @@ class ToolSession:
         self.question = question
         self.files = {row['attachment_id']: row for row in files}
         self.report_files = {row['attachment_id']: row for row in files if row['mime_type'].startswith('image/')}
+        self.filename_photo_labels = _filename_photo_labels(self.report_files.values())
         if not self.report_files:
             self.report_files = {row['attachment_id']: row for row in earlier_photos}
         self.registry = available(app, principal.role, 'assistant')
@@ -243,6 +272,7 @@ class ToolSession:
             self.definition['propose_report_attach_and_submit'] = (ProposedReport,
                 'Подготовить одно подтверждение прикрепления явно отправленных фото и сдачи, только если отчёт полный. '
                 'Только по просьбе исполнителя. Сначала прочитайте выбранный наряд, его ревизию, попытку и пункты. '
+                'Фазы указывает пользователь или их подсказывают однозначные имена двух текущих файлов. '
                 'Не угадывайте фазу, ракурс и пункт. Не меняет наряд без клика.')
         self.specs = [dict(type='function', function=dict(name=name, description=description,
                       parameters=model.model_json_schema())) for name, (model, description) in self.definition.items()]
@@ -335,6 +365,21 @@ class ToolSession:
                     'submission_ready', 'missing_materials', 'acceptance_blocks', 'submission_blocks')}
         return data
 
+    def named_report_arguments(self, subject):
+        if ('propose_report_attach_and_submit' not in self.definition or not self.filename_photo_labels
+                or not subject or not _ATTACH_AND_SUBMIT.fullmatch(' '.join(self.question.casefold().split()))
+                or not {'upload_photo','submit'}.issubset(subject.get('allowedActions', ()))):
+            return None
+        report = subject.get('execution')
+        point = _required_photo_point(report) if report else None
+        if not point:
+            return None
+        return dict(task_id=subject['task']['id'], expected_revision=subject['task']['revision'],
+                    execution_id=report['id'], photos=[
+                        dict(attachment_id=str(identity), checklist_item_id=point,
+                             phase=self.filename_photo_labels[index], view_key='front')
+                        for index, identity in enumerate(self.report_files, 1)])
+
     async def propose_report_attach_and_submit(self, args):
         subject = self.thread.get('subject_task_id')
         tool = self.registry.get('report_attach_and_submit')
@@ -348,7 +393,8 @@ class ToolSession:
             raise HTTPException(404, 'Используйте только явно отправленные фотографии этого диалога.')
         positions = {identity:index for index,identity in enumerate(self.report_files, 1)}
         labels = _photo_labels(self.question, len(positions)==1 and bool(self.files))
-        if {positions[p.attachment_id]:p.phase for p in args.photos} != labels:
+        from_names = labels == {} and bool(self.filename_photo_labels)
+        if {positions[p.attachment_id]:p.phase for p in args.photos} != (self.filename_photo_labels if from_names else labels):
             raise HTTPException(422, 'Укажите фазу каждого выбранного снимка, например: «фото 1 — до, фото 2 — после».')
         data = await self.backend('task_read', path=dict(task_id=args.task_id))
         task, report = data['task'], data.get('execution')
@@ -370,11 +416,15 @@ class ToolSession:
         items = {row['id']:row['text'] for row in report['checklist']}
         if any(str(p.checklist_item_id) not in items for p in args.photos):
             raise HTTPException(422, 'Укажите пункт чек-листа текущей попытки.')
+        if from_names and {str(p.checklist_item_id) for p in args.photos} != {_required_photo_point(report)}:
+            raise HTTPException(422, 'Укажите пункт, фазы и ракурс для снимков: в отчёте нет одного однозначного пункта для этой пары.')
         lines = [f"{task['title'][:360]} — попытка №{report['attemptNumber']}."]
         bindings = sorted(args.photos, key=lambda p: positions[p.attachment_id])
         for index, p in enumerate(bindings, 1):
             phase = 'до' if p.phase == 'before' else 'после'
             lines.append(f"Снимок {index}: {self.report_files[p.attachment_id]['original_name'][:160]} — {items[str(p.checklist_item_id)][:240]}, {phase}, ракурс: {p.view_key}.")
+        if from_names:
+            lines.append('Фазы предложены по именам файлов. Проверьте фазы, пункт и ракурс перед подтверждением.')
         lines.append('Если комплект неполный, фото сохранятся в черновике, отчёт не будет отправлен.')
         arguments = dict(path=dict(task_id=args.task_id), body=args.model_copy(update={'photos':bindings}).model_dump(
             mode='json', exclude={'task_id'}))
