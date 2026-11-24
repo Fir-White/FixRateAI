@@ -15,7 +15,6 @@ import type {
 const CONTROL_CLASSES =
   "motion-input ui-control w-full min-w-0 rounded-lg border border-line-strong bg-canvas-soft text-sm text-ink placeholder:text-muted/60 transition-colors hover:border-muted/50 focus:border-accent focus:ring-2 focus:ring-accent/15 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50";
 
-/** Offset caption text without changing a wrapping label or its control's layout. */
 export function FieldCaption({ children }: { children: ReactNode }) {
   return <span className="field-caption">{children}</span>;
 }
@@ -38,21 +37,27 @@ export function FormField({
   className?: string;
 }) {
   const generatedId = useId();
-  const descriptionId = `${htmlFor ?? generatedId}-description`;
-  const describedBy = error || hint ? descriptionId : undefined;
+  const child = isValidElement(children) ? children as ReactElement<Record<string, unknown>> : null;
+  const controlId = htmlFor ?? (typeof child?.props.id === "string" ? child.props.id : generatedId);
+  const descriptionId = `${controlId}-description`;
+  const describedBy = [
+    typeof child?.props["aria-describedby"] === "string" ? child.props["aria-describedby"] : undefined,
+    error || hint ? descriptionId : undefined,
+  ].filter(Boolean).join(" ") || undefined;
   const feedback = useFeedbackMotion(error || hint);
-  const control = isValidElement(children)
-    ? cloneElement(children as ReactElement<Record<string, unknown>>, {
+  const control = child && (typeof child.type !== "string" || ["input", "select", "textarea", "button"].includes(child.type))
+    ? cloneElement(child, {
+        id: controlId,
         "aria-describedby": describedBy,
         ...(error ? { "aria-invalid": true } : {}),
       })
     : children;
 
   return (
-    <div className={className}>
+    <div className={`min-w-0 ${className}`}>
       <label
-        htmlFor={htmlFor}
-        className="mb-1.5 block text-xs font-semibold text-ink-soft"
+        htmlFor={controlId}
+        className="ui-field-label mb-1.5 block text-xs font-semibold text-ink-soft"
       >
         <FieldCaption>
         {label}

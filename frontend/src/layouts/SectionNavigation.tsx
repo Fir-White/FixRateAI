@@ -15,7 +15,7 @@ export function SectionNavigation() {
     {to:'/calendar',label:'Мой календарь',section:'calendar'},
     {to:'/my-shifts',label:'Мои смены',section:'executor'},
   ] : planning&&canOpenSection(profile?.role,'planning') ? [
-    {to:'/planning',label:'Планы из Excel',section:'planning'},
+    {to:'/planning',label:'Подготовка плана',section:'planning'},
     {to:'/calendar',label:'Действующий календарь',section:'calendar'},
     {to:'/comparisons',label:'AI-прогнозы',section:'comparisons'},
   ] : equipment&&profile?.role!=='executor' ? [

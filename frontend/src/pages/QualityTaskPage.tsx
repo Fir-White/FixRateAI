@@ -21,6 +21,7 @@ import { ChecklistSummary } from "@/entities/execution/ChecklistSummary";
 import { Callout } from "@/shared/ui/Callout";
 import { FormField, Textarea } from "@/shared/ui/Form";
 import { InfoItem, InfoList } from "@/shared/ui/InfoList";
+import { Disclosure } from "@/shared/ui/Disclosure";
 import { Modal } from "@/shared/ui/Modal";
 import {
   EngineerDecisionBadge,
@@ -33,6 +34,7 @@ import { attemptStateSummary } from "@/shared/lib/presentation";
 import "./quality-redesign.css";
 
 export function QualityTaskPage() {
+  const [photoSettingsVisited, setPhotoSettingsVisited] = useState(false);
   const { profile } = useSession();
   const formatDateTime=useSiteDateTime();
   const { taskId = "" } = useParams();
@@ -102,7 +104,7 @@ export function QualityTaskPage() {
         className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink"
       >
         <Icon name="back" size={18} />
-        Контроль качества
+        К приёмке
       </Link>
 
       <PageHeader
@@ -137,32 +139,8 @@ export function QualityTaskPage() {
 
       <p className="text-sm text-muted">{attemptStateSummary(task.state)}</p>
       {decision&&task.state==='accepted'&&<div className="journey-next"><div><h2>Проверка завершена</h2><p>Работа принята. Решение и доказательства сохранены.</p></div><Link to="/quality" className={buttonClassName('primary')}>Вернуться к приёмке</Link></div>}
-      {canReview && <a className="fr-decision-shortcut" href="#review-decision">Перейти к основанию решения</a>}
+      {canReview && <a className="fr-decision-shortcut" href="#review-decision">Перейти к решению</a>}
       {notice && !canReview && <div role="alert"><Callout tone="danger" className="text-xs">{notice}</Callout></div>}
-      {query.data.photoAnalysisStatus === "pending" && <Callout tone="neutral"><div className="flex flex-wrap items-center justify-between gap-2"><p role="status">Фотографии анализируются автоматически. Результат появится здесь без обновления страницы; запуск инженером не требуется.</p><AnalysisTimerBadge active /></div></Callout>}
-      {canAnalyze && query.data.photoAnalysisStatus !== "pending" && (!review || ["failed","unavailable"].includes(review.status)) && <div className="space-y-4 rounded-xl border border-line p-4">
-        <AiModelSelector variant="compact" />
-        <div className="flex flex-wrap items-center gap-3">
-          <Button variant="secondary" disabled={busy} onClick={async () => {
-            const startedAt = performance.now();
-            setBusy(true); setAnalyzing(true); setNotice(null);
-            try {
-              const aiOpts = getPhotoReviewOptions();
-              const res = await maintenanceApi.photoReview(task.id, task.revision, false, {
-                provider: aiOpts?.provider,
-                model: aiOpts?.model,
-                api_key: aiOpts?.apiKey,
-              });
-              setLastMeasured({ reviewId: res.id, elapsedMs: res.elapsedMs ?? Math.round(performance.now() - startedAt) });
-              setRefresh(n => n+1);
-            }
-            catch (error) { setNotice(error instanceof Error ? error.message : "Ошибка анализа"); }
-            finally { setBusy(false); setAnalyzing(false); }
-          }}>{analyzing?"Фотографии анализируются…":review?"Повторить анализ":"Анализировать фото"}</Button>
-          <AnalysisTimerBadge active={analyzing} />
-          {analyzing&&<p role="status" className="text-sm leading-6 text-muted">Модель сравнивает фотографии с заданием. Дождитесь результата; повторно нажимать кнопку не нужно.</p>}
-        </div>
-      </div>}
       {DEMO_MODE && <Callout tone="neutral">DEMO · Фото и решения показаны из примера. Анализ и приёмка доступны только при подключении к API.</Callout>}
       <div className="quality-detail-grid fr-work-grid">
         <div className="space-y-6">
@@ -176,6 +154,34 @@ export function QualityTaskPage() {
             </div>
           </Card>
 
+          {query.data.photoAnalysisStatus === "pending" && <Callout tone="neutral"><div className="flex flex-wrap items-center justify-between gap-2"><p role="status">Фотографии анализируются автоматически. Результат появится здесь без обновления страницы; запуск инженером не требуется.</p><AnalysisTimerBadge active /></div></Callout>}
+          {canAnalyze && query.data.photoAnalysisStatus !== "pending" && (!review || ["failed","unavailable"].includes(review.status)) && <div className="space-y-4 rounded-xl border border-line p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <Button variant="secondary" disabled={busy} onClick={async () => {
+                const startedAt = performance.now();
+                setBusy(true); setAnalyzing(true); setNotice(null);
+                try {
+                  const aiOpts = getPhotoReviewOptions();
+                  const res = await maintenanceApi.photoReview(task.id, task.revision, false, {
+                    provider: aiOpts?.provider,
+                    model: aiOpts?.model,
+                    api_key: aiOpts?.apiKey,
+                  });
+                  setLastMeasured({ reviewId: res.id, elapsedMs: res.elapsedMs ?? Math.round(performance.now() - startedAt) });
+                  setRefresh(n => n+1);
+                }
+                catch (error) { setNotice(error instanceof Error ? error.message : "Ошибка анализа"); }
+                finally { setBusy(false); setAnalyzing(false); }
+              }}>{analyzing?"Фотографии анализируются…":review?"Повторить анализ":"Анализировать фото"}</Button>
+              <AnalysisTimerBadge active={analyzing} />
+              {analyzing&&<p role="status" className="text-sm leading-6 text-muted">Модель сравнивает фотографии с заданием. Дождитесь результата; повторно нажимать кнопку не нужно.</p>}
+            </div>
+            <Disclosure title="Настройки фотоанализа" onToggle={event => {
+              if (event.currentTarget.open) setPhotoSettingsVisited(true);
+            }}>
+              {photoSettingsVisited && <AiModelSelector variant="compact" />}
+            </Disclosure>
+          </div>}
           {query.data.photoAnalysisStatus !== "pending" && <PhotoReviewCard review={review} formatDateTime={formatDateTime} fallbackElapsedMs={lastMeasured && review?.id === lastMeasured.reviewId ? lastMeasured.elapsedMs : null}/>}
           <Button variant="secondary" onClick={()=>setFactsOpen(true)}>Факты и документы</Button>
           <Modal open={factsOpen} size="wide" title={`Факты и документы · ${task.code}`}

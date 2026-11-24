@@ -35,7 +35,7 @@ for(const [role,home] of Object.entries(homes)){
       await menu.getByRole('link',{name:'Планирование ТО'}).click();
       await expect(page.getByRole('heading',{name:'Планирование ТО',exact:true})).toBeVisible();
       const sections=page.getByRole('navigation',{name:'Разделы планирования'});
-      await expect(sections.getByRole('link',{name:'Планы из Excel'})).toHaveAttribute('aria-current','page');
+      await expect(sections.getByRole('link',{name:'Подготовка плана'})).toHaveAttribute('aria-current','page');
       if(role==='admin'){
         await expect(sections.getByRole('link',{name:'Действующий календарь'})).toHaveCount(0);
         await expect(sections.getByRole('link',{name:'AI-прогнозы'})).toHaveCount(0);

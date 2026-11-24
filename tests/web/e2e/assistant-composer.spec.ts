@@ -11,6 +11,7 @@ for(const width of [1440,390,320])test(`history controls and message attachments
   const now='2026-11-15T10:00:00Z';
   const conversation=(key:string)=>({conversation_id:key,title:key===oldId?'QA long history':'QA photo',agent:'assistant',created_at:now,updated_at:now});
   const attachment={attachment_id:fileId,original_name:'photo.png',mime_type:'image/png',size_bytes:100,sha256:'a'.repeat(64),created_at:now};
+  const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aRZkAAAAASUVORK5CYII=','base64');
   let pending:typeof attachment[]=[],turns:Record<string,unknown>[]=[],listReads=0,overviewReads=0;
   let releaseOldConversation!: () => void;
   const waitForOldConversation = new Promise<void>(resolve => {releaseOldConversation=resolve;});
@@ -27,6 +28,7 @@ for(const width of [1440,390,320])test(`history controls and message attachments
       listReads++;return route.fulfill({json:{items:[conversation(oldId),...(turns.length||pending.length?[conversation(id)]:[])],total:turns.length||pending.length?2:1}});
     }
     if(path.endsWith('/attachments')&&request.method()==='POST'){pending=[attachment];return route.fulfill({json:attachment});}
+    if(path===`/api/v1/assistant/attachments/${fileId}`)return route.fulfill({body:png,contentType:'image/png'});
     if(path.endsWith('/messages')){
       const body=request.postDataJSON();sent.push(body);
       turns.push({turn_id:crypto.randomUUID(),content:body.content||'Проанализируй прикреплённые файлы.',answer:'QA image received\n\n### Анализ исходных данных\n\n| Работа | Часы |\n|---|---|\n| Насос | 12 |\n\n- Проверить периодичность\n- Уточнить единицы норм',status:'completed',trace:[],created_at:now,finished_at:now,error_code:null,model_ref:'fixture',attachments:body.attachment_ids.length?[attachment]:[]});
@@ -113,7 +115,13 @@ for(const width of [1440,390,320])test(`history controls and message attachments
   await expect(page.getByRole('table')).toContainText('Насос');
   expect(sent[0]).toMatchObject({content:'',attachment_ids:[fileId]});
   await expect(page.getByRole('list',{name:'Вложения к сообщению'})).toHaveCount(0);
-  await expect(page.getByRole('link',{name:'photo.png'})).toHaveCSS('cursor','pointer');
+  const preview=page.getByRole('list',{name:'Отправленные файлы'}).getByRole('button',{name:'Открыть фото: photo.png'});
+  await preview.click();
+  const imageDialog=page.getByRole('dialog',{name:'photo.png'});
+  await expect(imageDialog).toBeVisible();
+  await expect.poll(()=>imageDialog.getByRole('img',{name:'photo.png'}).evaluate((img:HTMLImageElement)=>img.naturalWidth)).toBeGreaterThan(0);
+  await page.keyboard.press('Escape');
+  await expect(imageDialog).toBeHidden();
   await page.reload();await expect(page.getByRole('list',{name:'Отправленные файлы'})).toContainText('photo.png');
   await input.fill('QA next message');await input.press('Enter');
   await expect(page.getByText('QA image received',{exact:true})).toHaveCount(2);expect(sent[1].attachment_ids).toEqual([]);
@@ -241,9 +249,9 @@ for(const width of [1440,390,320])test(`history controls and message attachments
   await expect(chat).not.toHaveAttribute('data-composer-entry','');
   await page.screenshot({path:info.outputPath(`handoff-${width}.png`)});
   await page.goBack();
+  if(width!==390)await expect(page.getByRole('heading',{name:'С чего начнём рабочий день?'})).toBeVisible();
   await expect(input).toBeVisible();
-  const restored=await glow();
-  expect(restored[0]).toBeGreaterThan(restored[1]);
+  await expect.poll(async()=>{const [top,bottom]=await glow();return top>bottom;}).toBe(true);
   if(width===1440){
     await expect(page.locator('.fr-overview-grid')).toHaveCount(0);
     await expect(page.getByText('Показатели доступных объектов и месячный экспорт',{exact:true})).toHaveCount(0);

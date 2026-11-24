@@ -24,6 +24,25 @@
 .fr-content-v2 .fr-checklist > legend { padding: 0; }
 .fr-content-v2 .fr-checklist-row { padding: 12px 0; border-bottom: 1px solid var(--fr2-line); }
 .fr-content-v2 .fr-checklist-row > summary { padding-block: 8px; min-height: 44px; cursor: pointer; overflow-wrap: anywhere; }
+.fr-content-v2 :is(.fr-rule-section, .fr-checklist-row, .fr-calendar-advanced) > summary {
+  position: relative;
+  list-style: none;
+  padding-inline-end: 32px;
+}
+.fr-content-v2 :is(.fr-rule-section, .fr-checklist-row, .fr-calendar-advanced) > summary::-webkit-details-marker { display: none; }
+.fr-content-v2 :is(.fr-rule-section, .fr-checklist-row, .fr-calendar-advanced) > summary::after {
+  position: absolute;
+  inset-block-start: 20px;
+  inset-inline-end: 8px;
+  width: 7px;
+  height: 7px;
+  border: solid var(--fr2-muted);
+  border-width: 0 2px 2px 0;
+  transform: rotate(-45deg);
+  content: "";
+}
+.fr-content-v2 :is(.fr-rule-section, .fr-checklist-row, .fr-calendar-advanced)[open] > summary::after { transform: rotate(45deg); }
+.fr-content-v2 :is(.fr-rule-section, .fr-checklist-row, .fr-calendar-advanced) > summary:hover { color: var(--fr2-accent); }
 .fr-content-v2 .fr-checklist-row > summary small { display: block; color: var(--fr2-muted); margin-top: 4px; }
 .fr-content-v2 .fr-checklist-row > .fr-checklist-fields { display: grid; gap: 12px; padding-top: 12px; }
 .fr-content-v2 .fr-settings-actions { display: flex; flex-wrap: wrap; gap: 12px; }

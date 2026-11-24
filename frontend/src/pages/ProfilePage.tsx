@@ -63,7 +63,7 @@ export function ProfilePage() {
   const closeEmail=()=>{if(pending)return;setEmailOpen(false);setEmail(profile.email);setEmailPassword("");setEmailError("");emailValidation.reset();};
   const closePassword=()=>{if(pending)return;setPasswordOpen(false);setCurrentPassword("");setPassword("");setConfirmation("");setPasswordError("");passwordValidation.reset();};
   return <div className="profile-page">
-    <PageHeader title="Мой профиль" description="Управление личными данными, безопасностью и настройками" />
+    <PageHeader title="Мой профиль" />
     <div className="profile-grid">
       <Card className="profile-summary"><CardBody><div className="profile-avatar" aria-hidden="true">{initials}</div><h2>{profile.name}</h2><p className="profile-role">{ROLE_LABELS[profile.role]}</p><div className="profile-summary-site"><span>Рабочий объект</span><WorkspaceSite name={profile.siteName} selected={profile.siteId}/></div><div className="profile-summary-site"><span>Часовой пояс</span><strong>{profile.timezone}</strong></div></CardBody></Card>
       <div className="profile-content"><Card><CardHeader title="Учётная запись" description="Почта используется для входа в систему."/><CardBody>
@@ -83,7 +83,7 @@ export function ProfilePage() {
           <div className="profile-form-actions"><Button type="submit" disabled={!!pending || DEMO_MODE || email.trim().toLowerCase() === profile.email.toLowerCase()}>{pending === "email" ? "Сохраняем…" : "Сохранить"}</Button><Button variant="ghost" disabled={!!pending} onClick={closeEmail}>Отмена</Button></div>
         </form>
         </Modal>
-      </CardBody></Card><Card><CardHeader title="Безопасность" description="Управляйте паролем и защитой учётной записи"/><CardBody>
+      </CardBody></Card><Card><CardHeader title="Безопасность"/><CardBody>
         <div className="profile-setting"><div><span>Пароль</span><strong>••••••••••••</strong></div><Button variant="secondary" disabled={!!pending || DEMO_MODE} aria-expanded={passwordOpen} aria-controls="profile-password-form" onClick={() => {setPasswordOpen(!passwordOpen);setCurrentPassword("");setPassword("");setConfirmation("");setPasswordError("");passwordValidation.reset();}}>{passwordOpen ? "Закрыть" : "Изменить пароль"}</Button></div>
         {passwordNotice && <p className="profile-notice" role="status">{passwordNotice}</p>}
         <Modal open={passwordOpen} onClose={closePassword} title="Изменить пароль">
@@ -102,7 +102,7 @@ export function ProfilePage() {
           <p className={`profile-requirement${password.length >= 12 ? " is-met" : ""}`}>От 12 до 64 символов</p><div className="profile-form-actions"><Button type="submit" disabled={!!pending || DEMO_MODE}>{pending === "password" ? "Сохраняем…" : "Сохранить пароль"}</Button><Button variant="ghost" disabled={!!pending} onClick={closePassword}>Отмена</Button></div>
         </form>
         </Modal>
-      </CardBody></Card><Card><CardHeader title="Нейросети и анализ фото (AI / LLM)" description="Выбор модели для проверки фотоотчётов и детекции дефектов"/><CardBody>
+      </CardBody></Card><Card><CardHeader title="Фотоанализ"/><CardBody>
         <div className="profile-setting"><div><span>Активная модель</span><strong>{AI_PROVIDER_LABELS[aiSettings.provider] ?? aiSettings.provider}{aiSettings.model ? ` · ${aiSettings.model}` : ""}</strong></div><Button variant="secondary" aria-expanded={aiOpen} aria-controls="profile-ai-form" onClick={() => setAiOpen(!aiOpen)}>{aiOpen ? "Закрыть" : "Настроить"}</Button></div>
         <Modal open={aiOpen} onClose={()=>setAiOpen(false)} title="Настройки фотоанализа">
           <div id="profile-ai-form"><AiModelSelector variant="card" autoFetch={aiOpen} /></div>

@@ -58,11 +58,11 @@ describe("role access and links on every screen", () => {
   it.each(roles.flatMap(role => routes.map(([path, heading]) => ({role, path, heading}))))(
     "$role → $path", async ({role, path, heading}) => {
       window.localStorage.setItem("fixrate.demo.role", role);
-      render(<SessionProvider><MemoryRouter initialEntries={[path]}><AppRouter /></MemoryRouter></SessionProvider>);
+      const {container} = render(<SessionProvider><MemoryRouter initialEntries={[path]}><AppRouter /></MemoryRouter></SessionProvider>);
       const allowed = access[path.split("/")[1]].includes(role);
       const expected = path==="/dispatcher" ? overviewHeading[role]??heading : heading;
       await screen.findByRole("heading", {name: allowed ? expected : "Раздел недоступен"}, {timeout: 5000});
-      await waitFor(() => expect(screen.queryByRole("status", {hidden: true})).not.toBeInTheDocument());
+      await waitFor(() => expect(container.querySelector('[data-workspace-loading="true"]')).not.toBeInTheDocument());
       // Permission checks include every rendered link, even in collapsed regions.
       // Avoid jsdom's expensive ancestor visibility walk for each calendar link;
       // this also catches forbidden destinations accidentally hidden with CSS.

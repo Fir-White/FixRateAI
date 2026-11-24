@@ -2,9 +2,10 @@ import { lazy,Suspense,useDeferredValue, useRef, useState } from 'react';
 import { catalogImportsApi as api, type CatalogPreview, type CatalogSummary, type CatalogOperation, type CatalogIssue, type RawCatalogCell } from '@/shared/api/catalogImports';
 import { useApiQuery } from '@/shared/lib/useApiQuery';
 import { Button } from '@/shared/ui/Button';
+import { Card } from '@/shared/ui/Card';
 import { Input, Select, FieldCaption } from '@/shared/ui/Form';
 import { FileInput } from '@/shared/ui/FileInput';
-import { LoadingState, ErrorState } from '@/shared/ui/States';
+import { LoadingState, ErrorState, EmptyState } from '@/shared/ui/States';
 import { Callout } from '@/shared/ui/Callout';
 import { Drawer } from '@/shared/ui/Drawer';
 import { dateTimeFormatter } from '@/shared/lib/dateTimeFormatter';
@@ -32,12 +33,21 @@ export function CatalogImports({mayImport,mayConfirm=false,mayPlan=mayImport,sit
   const setSelected=(id:string)=>{if(workspace)workspace.selectCatalog(id);else setLocalSelected(id);};
   const version=useRef(0);
   const list=useApiQuery(()=>api.list(offset),[offset,refresh],undefined,`catalog-imports:${offset}`);
+  const showFiles = !workspace || !selected;
+  const showUpload = mayImport && (!workspace || (!selected && uploadOpen));
+  const empty = list.status === 'success' && list.data.total === 0;
   return <div className="catalog-imports space-y-4">
     {siteName&&<p className="text-sm text-muted">Здание: {siteName}</p>}
     {workspace&&selected&&<Button variant="ghost" onClick={()=>setSelected('')}>← Все файлы и планы</Button>}
     {!workspace&&<Callout>Каталог содержит шаблоны работ. Смысл календарных отметок, оборудование и нормы подтверждаются отдельно. Сохранение черновика не создаёт наряды и назначения.</Callout>}
-    {workspace&&!selected&&mayImport&&<Button variant="secondary" aria-expanded={uploadOpen} onClick={()=>setUploadOpen(v=>!v)}>Загрузить Excel с регламентами</Button>}
-    {mayImport&&(!workspace||!selected&&(uploadOpen||list.status==='success'&&!list.data.total))&&<div className="space-y-3"><h2 className="font-semibold">Новый файл регламентов</h2><p className="text-sm text-muted">Загрузите Excel СВиК с листом «Лист1»: операции A:G и дни января H:AL. Реестр оборудования загружается в разделе «Оборудование».</p>
+    {showFiles && <div className="catalog-files-heading">
+      <h2>Файлы регламентов</h2>
+      {workspace && mayImport && <Button variant={empty && !uploadOpen ? 'primary' : 'secondary'}
+        aria-expanded={uploadOpen} onClick={()=>setUploadOpen(value=>!value)}>
+        {uploadOpen ? 'Свернуть загрузку' : 'Загрузить Excel с регламентами'}
+      </Button>}
+    </div>}
+    {showUpload && <Card className="catalog-upload space-y-3 p-4 sm:p-5"><h3 className="font-semibold">Новый файл регламентов</h3><p className="text-sm text-muted">Загрузите Excel СВиК с листом «Лист1»: операции A:G и дни января H:AL. Реестр оборудования загружается в разделе «Оборудование».</p>
       <FileInput aria-label="Excel каталога СВиК" accept=".xlsx" disabled={busy} onChange={e=>{version.current++;setFile(e.target.files?.[0]??null);setPreview(null);setError('');setNotice('');}}/>
       <Button variant="secondary" disabled={busy||!file} onClick={async()=>{if(!file||busy)return;const current=version.current;setBusy(true);setError('');setPreview(null);try{const result=await api.preview(file);if(current===version.current)setPreview(result);}catch(e){setError(message(e));}finally{setBusy(false);}}}>{busy?'Обработка…':'Проверить каталог'}</Button>
       {preview&&<section className="space-y-4" aria-label="Предпросмотр каталога СВиК"><Summary value={preview.summary}/><Issues issues={preview.issues}/><Diagnostics cells={preview.sheet2_diagnostic}/>
@@ -45,11 +55,14 @@ export function CatalogImports({mayImport,mayConfirm=false,mayPlan=mayImport,sit
         <Operations items={preview.operations}/>
         <Button disabled={busy||!preview.can_save_draft} onClick={async()=>{if(!file||busy)return;setBusy(true);setError('');try{const result=await api.save(file,preview.preview_token);setSelected(result.import_id);setNotice(result.already_saved?'Этот источник уже сохранён. Открыт прежний черновик.':'Каталог сохранён как черновик. Действующий план не изменён.');setPreview(null);setOffset(0);setRefresh(n=>n+1);}catch(e){setError(message(e));}finally{setBusy(false);}}}>Сохранить каталог-черновик</Button>
       </section>}
-    </div>}
+    </Card>}
     {error&&<p role="alert"><Callout tone="danger">{error}</Callout></p>}{notice&&<p role="status">{notice}</p>}
-    {(!workspace||!selected)&&<h3 className="font-semibold">Сохранённые файлы регламентов</h3>}
     {list.status==='loading'&&<LoadingState/>}{list.status==='error'&&<ErrorState description={list.error}/>}
-    {list.status==='success'&&(!workspace||!selected)&&<><ul className={`space-y-2${workspace?' planning-catalog-list':''}`}>{list.data.items.map(item=><li key={item.import_id}><Button variant={selected===item.import_id?'primary':'secondary'} onClick={()=>setSelected(item.import_id)}><span>{item.filename} · {item.summary.operation_count} операций · Черновик<small className="block text-xs font-normal">Загружен: {dateTimeFormatter('ru-RU',{timeZone:timezone,dateStyle:'short',timeStyle:'medium'}).format(new Date(item.created_at))}</small></span></Button></li>)}</ul>{!list.data.total&&<p className="text-sm text-muted">Файлов пока нет. {mayImport?'Загрузите Excel выше: после проверки появятся операции для подготовки плана.':'Главный инженер должен загрузить файл регламентов.'}</p>}<Pager offset={offset} total={list.data.total} onChange={setOffset}/></>}
+    {list.status==='success' && showFiles && (empty
+      ? !showUpload && <EmptyState title="Файлов пока нет" description={mayImport
+        ? 'Загрузите Excel с регламентами, чтобы проверить операции и подготовить план.'
+        : 'Сохранённые файлы появятся после загрузки главным инженером.'}/>
+      : <><ul className={`space-y-2${workspace?' planning-catalog-list':''}`}>{list.data.items.map(item=><li key={item.import_id}><Button variant={selected===item.import_id?'primary':'secondary'} onClick={()=>setSelected(item.import_id)}><span>{item.filename} · {item.summary.operation_count} операций · Черновик<small className="block text-xs font-normal">Загружен: {dateTimeFormatter('ru-RU',{timeZone:timezone,dateStyle:'short',timeStyle:'medium'}).format(new Date(item.created_at))}</small></span></Button></li>)}</ul><Pager offset={offset} total={list.data.total} onChange={setOffset}/></>)}
     {selected&&<SavedCatalog key={selected} id={selected} mayEdit={mayImport} mayConfirm={mayConfirm} mayPlan={mayPlan} timezone={timezone} workspace={workspace}/>}
   </div>;
 }

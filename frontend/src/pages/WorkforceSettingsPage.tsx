@@ -81,10 +81,10 @@ function StaffDirectory({staff, search, onSearch, onSelect}: {
   const [offset,setOffset] = useState(0);
   const pageStart = Math.min(offset, 25*Math.max(0,Math.ceil(matches.length/25)-1));
   return <section className="e3-staff-directory">
-    <label className="block max-w-md space-y-1"><FieldCaption>Поиск сотрудника</FieldCaption>
-      <Input value={search} placeholder="Имя, почта или роль" onChange={event=>{onSearch(event.target.value);setOffset(0);}}/>
-    </label>
     <h2>Сотрудники объекта</h2>
+    <label className="block max-w-md space-y-1"><FieldCaption>Поиск сотрудника</FieldCaption>
+      <Input leadingIcon={<Icon name="search" size={17}/>} value={search} placeholder="Имя, почта или роль" onChange={event=>{onSearch(event.target.value);setOffset(0);}}/>
+    </label>
     {matches.length>0 ? <>
       <div className="e3-staff-row e3-staff-labels" aria-hidden="true"><span>Сотрудник</span><span>Роль</span><span>Смены</span><span>Доступ</span><span/></div>
       <ul>{matches.slice(pageStart,pageStart+25).map(person => <li key={person.user_id}>

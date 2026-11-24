@@ -30,8 +30,6 @@ import { useApiQueryCache } from "@/shared/lib/ApiQueryProvider";
 import { warmWorkspacePath } from "@/features/navigation/warmWorkspacePath";
 import { WorkspaceSearch } from "./WorkspaceSearch";
 import { canOpenSection } from "@/shared/lib/roles";
-import { dateLabel, DEMO_DATE } from "@/shared/lib/operations";
-import { todayAt } from "@/shared/lib/format";
 import "./e3-shell.css";
 
 const ROLES: Role[] = ["director","chief_engineer","dispatcher", "engineer", "executor", "admin"];
@@ -79,6 +77,8 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
     return item;
   });
   const home = homePathForRole(profile.role);
+  const chiefWorkday = profile.role === "chief_engineer" && location.pathname.replace(/\/+$/, "") === home;
+  const assistantLabel = chiefWorkday ? "Открыть ИИ-диалоги" : "ИИ-помощник";
   const searchItems = [...items];
   if(profile.role!=="executor"&&canOpenSection(profile.role,"calendar")) searchItems.push({to:"/calendar",label:"Действующий календарь",icon:"calendar",roles:[profile.role]});
   if(canOpenSection(profile.role,"service_settings")) searchItems.push({to:"/settings/equipment",label:"Настройка обслуживания",icon:"equipment",roles:[profile.role]});
@@ -109,7 +109,7 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
       />}
 
       <div className="ops-stage" inert={mobileOpen} aria-hidden={mobileOpen || undefined}>
-        <header ref={topbarRef} className="e3-topbar scroll-boundary">
+        <header ref={topbarRef} className={chiefWorkday ? "e3-topbar scroll-boundary e3-topbar--chief-workday" : "e3-topbar scroll-boundary"}>
           <div className="e3-topbar-inner">
             <Link to={home} className="e3-brand" aria-label="FixRate AI" onMouseEnter={()=>warm(home)}><AccessBrand /></Link>
             {!isMobile && <nav className="e3-navigation" aria-label="Основная навигация">
@@ -123,9 +123,9 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
               })}
             </nav>}
             <div className="fr-topbar-actions">
-              <NavLink to="/assistant" className="e3-assistant-trigger" aria-label="ИИ-помощник" onMouseEnter={()=>warm("/assistant")} onFocus={()=>warm("/assistant")}>
+              <NavLink to="/assistant" className="e3-assistant-trigger" aria-label={assistantLabel} onMouseEnter={()=>warm("/assistant")} onFocus={()=>warm("/assistant")}>
                 <Icon name="assistant" size={22}/>
-                <span className="topbar-hint" aria-hidden="true">ИИ-помощник</span>
+                <span className="topbar-hint" aria-hidden="true">{assistantLabel}</span>
               </NavLink>
               <MaintenanceInbox/>
               <NavLink to="/profile" className="e3-profile-trigger" aria-label="Учётная запись" onMouseEnter={warmProfile} onFocus={warmProfile} onPointerDown={warmProfile}>
@@ -155,11 +155,7 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
             </div>
           </div>
         </header>
-        <div className="e3-context">
-          <span className="e3-context-date">{dateLabel(DEMO_MODE?DEMO_DATE:todayAt(profile.timezone), {day:"numeric",month:"long",year:"numeric",weekday:"long"})}</span>
-          <span className="e3-context-role">{ROLE_LABELS[profile.role]}</span>
-          <WorkspaceSearch items={searchItems}/>
-        </div>
+        <WorkspaceSearch items={searchItems}/>
 
         <main
           ref={contentRef}
