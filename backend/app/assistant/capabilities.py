@@ -81,6 +81,7 @@ def extra_tools(T,P,ALL,PLAN,EDIT,OPERATE):
       T('photo_read','Открыть фотографию отчёта','GET',P+'/photos/{photo_id}',ALL),
       T('act_upload','Прикрепить подтверждающий акт','POST',P+'/tasks/{task_id}/acts',WORKER,'write',before='task_read'),
       T('act_verify','Проверить подтверждающий акт','POST',P+'/tasks/{task_id}/acts/{identity}/verify',('chief_engineer','engineer'),'write',before='task_read'),
+      T('demand_monthly','Проверить наличие подтверждённых данных о потребности в материалах','GET','/api/v1/demand/monthly',READ),
       T('task_attempts','История попыток выполнения','GET',P+'/tasks/{task_id}/attempts',ALL),
       T('task_reopen','Повторно открыть принятое задание','POST',P+'/tasks/{task_id}/reopen',CHIEF,'write',before='task_read'),
       T('late_authorize','Разрешить приёмку просроченного отчёта','POST',P+'/tasks/{task_id}/late-authorization',CHIEF,'write',before='task_read'),

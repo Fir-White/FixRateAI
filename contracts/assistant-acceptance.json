@@ -1,49 +1,49 @@
 {
   "format_version": 1,
-  "catalog_sha256": "85d6185cc67289138ee64ddc7b09f1128b8dd10dc7bfee3c7cfd9a609906b2e4",
+  "catalog_sha256": "f4ae46550ffd270d5147927a0191d590f846aec920922c9f5575af59853d8455",
   "acceptance_rule": "A finished response, registered tool, HTTP 200, negative boundary test, mocked completion or successful individual call does not prove the user goal. Positive acceptance requires an independently verified final result and data state for this exact role/operation.",
   "generative_policy": "Installed local Ollama only; no external LLM/fallback, weight downloads or runtime user preference changes.",
   "summary": {
-    "operations": 186,
-    "role_operation_cells": 756,
+    "operations": 190,
+    "role_operation_cells": 769,
     "by_role": {
-      "director": 95,
-      "chief_engineer": 180,
-      "engineer": 129,
-      "dispatcher": 141,
-      "admin": 151,
-      "executor": 60
+      "director": 97,
+      "chief_engineer": 183,
+      "engineer": 131,
+      "dispatcher": 143,
+      "admin": 153,
+      "executor": 62
     },
     "verification": {
       "reachability": {
         "passed": 17,
         "failed": 0,
         "skipped": 0,
-        "not_run": 739
+        "not_run": 752
       },
       "positive_e2e": {
         "passed": 17,
         "failed": 0,
         "skipped": 0,
-        "not_run": 739
+        "not_run": 752
       },
       "negative": {
         "passed": 1,
         "failed": 0,
         "skipped": 0,
-        "not_run": 755
+        "not_run": 768
       },
       "mocked": {
         "passed": 0,
         "failed": 0,
         "skipped": 0,
-        "not_run": 756
+        "not_run": 769
       },
       "api_domain": {
         "passed": 0,
         "failed": 0,
         "skipped": 0,
-        "not_run": 756
+        "not_run": 769
       }
     }
   },
@@ -2699,6 +2699,185 @@
         "tests/backend/test_assistant_task_execution.py::test_required_photos_measurement_act_and_time",
         "tests/backend/test_assistant_task_execution.py::test_existing_draft_and_partial_requested_workflow",
         "tests/backend/test_assistant_task_execution.py::test_resume_retry_keeps_one_turn_and_proposal"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "consumption_record",
+      "title": "Записать фактический расход материала в свою попытку",
+      "method": "POST",
+      "path": "/api/v1/maintenance/tasks/{task_id}/consumptions",
+      "roles": [
+        "executor"
+      ],
+      "denied_roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin"
+      ],
+      "requires_confirmation": true,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "components",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-09",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-08",
+          "PLN-18",
+          "PLN-19",
+          "PLN-20",
+          "AT-13",
+          "AT-14"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-06"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Record the specified actual material used in this report",
+        "fixture": "TEST installed component with known unit/resource and readings, replacement part and independent historical snapshot.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Review the exact target/diff and confirm only the intended action with its own payload hash.",
+        "postconditions": [
+          "One fact is recorded against the authorized task and attempt with the exact positive quantity and unit. Replaying the request does not add another fact.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "No business mutation before the concrete human confirmation; repeated confirmation cannot duplicate the result."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_demand_api.py::test_material_tools_have_one_registration_each"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "consumptions_read",
+      "title": "Прочитать фактический расход наряда и попытки",
+      "method": "GET",
+      "path": "/api/v1/maintenance/tasks/{task_id}/consumptions",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "denied_roles": [],
+      "requires_confirmation": false,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "components",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-09",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-08",
+          "PLN-18",
+          "PLN-19",
+          "PLN-20",
+          "AT-13",
+          "AT-14"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-06"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Show recorded material consumption for this work order",
+        "fixture": "TEST installed component with known unit/resource and readings, replacement part and independent historical snapshot.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Do not confirm any unrelated mutation; this operation has a read-only outcome.",
+        "postconditions": [
+          "Current facts and authorized correction history match the selected work order and report attempt; records outside the current scope are absent.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "Business state is unchanged by this read/preview."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_demand_api.py::test_material_tools_have_one_registration_each"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "consumption_correct",
+      "title": "Исправить принятый факт расхода с причиной",
+      "method": "POST",
+      "path": "/api/v1/maintenance/consumptions/{consumption_id}/correction",
+      "roles": [
+        "chief_engineer"
+      ],
+      "denied_roles": [
+        "director",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "requires_confirmation": true,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "components",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-09",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-08",
+          "PLN-18",
+          "PLN-19",
+          "PLN-20",
+          "AT-13",
+          "AT-14"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-06"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Correct this accepted material fact with a reason",
+        "fixture": "TEST installed component with known unit/resource and readings, replacement part and independent historical snapshot.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Review the exact target/diff and confirm only the intended action with its own payload hash.",
+        "postconditions": [
+          "Only the chief engineer may add the replacement fact. The previous value remains in history and quantities are not counted twice.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "No business mutation before the concrete human confirmation; repeated confirmation cannot duplicate the result."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_demand_api.py::test_material_tools_have_one_registration_each"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -9975,6 +10154,66 @@
         ]
       },
       "candidate_test_mentions": [],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "demand_monthly",
+      "title": "Проверить наличие подтверждённых данных о потребности в материалах",
+      "method": "GET",
+      "path": "/api/v1/demand/monthly",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "denied_roles": [
+        "executor"
+      ],
+      "requires_confirmation": false,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "components",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-09",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-08",
+          "PLN-18",
+          "PLN-19",
+          "PLN-20",
+          "AT-13",
+          "AT-14"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-06"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Check if confirmed monthly material demand is available",
+        "fixture": "TEST installed component with known unit/resource and readings, replacement part and independent historical snapshot.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Do not confirm any unrelated mutation; this operation has a read-only outcome.",
+        "postconditions": [
+          "The current placeholder reports that a confirmed source is unavailable without inventing quantities; an unauthorized request never reaches that check.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "Business state is unchanged by this read/preview."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_demand_api.py::test_material_tools_have_one_registration_each"
+      ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
     {
@@ -18914,6 +19153,222 @@
     {
       "operation": "report_save",
       "role": "executor",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "consumption_record",
+      "role": "executor",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "consumptions_read",
+      "role": "director",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "consumptions_read",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "consumptions_read",
+      "role": "engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "consumptions_read",
+      "role": "dispatcher",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "consumptions_read",
+      "role": "admin",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "consumptions_read",
+      "role": "executor",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "consumption_correct",
+      "role": "chief_engineer",
       "registered": true,
       "verification": {
         "reachability": {
@@ -31618,6 +32073,141 @@
     {
       "operation": "act_verify",
       "role": "engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "demand_monthly",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "demand_monthly",
+      "role": "engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "demand_monthly",
+      "role": "dispatcher",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "demand_monthly",
+      "role": "admin",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "demand_monthly",
+      "role": "director",
       "registered": true,
       "verification": {
         "reachability": {

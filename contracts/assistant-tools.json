@@ -2047,6 +2047,149 @@
       "operator": "confirmation"
     },
     {
+      "name": "consumption_record",
+      "title": "Записать фактический расход материала в свою попытку",
+      "method": "POST",
+      "path": "/api/v1/maintenance/tasks/{task_id}/consumptions",
+      "roles": [
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.main:create_app.<locals>.record_consumption",
+      "operation_id": "record_consumption_api_v1_maintenance_tasks__task_id__consumptions_post",
+      "argument_fields": {
+        "path": [
+          "task_id"
+        ],
+        "query": [],
+        "body": [
+          "equipment_id",
+          "execution_id",
+          "expected_revision",
+          "idempotency_key",
+          "material_name",
+          "quantity",
+          "unit"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "task_read",
+      "operator": "unavailable"
+    },
+    {
+      "name": "consumptions_read",
+      "title": "Прочитать фактический расход наряда и попытки",
+      "method": "GET",
+      "path": "/api/v1/maintenance/tasks/{task_id}/consumptions",
+      "roles": [
+        "director",
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.main:create_app.<locals>.list_consumptions",
+      "operation_id": "list_consumptions_api_v1_maintenance_tasks__task_id__consumptions_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "task_id"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "task_read",
+      "operator": "unavailable"
+    },
+    {
+      "name": "consumption_correct",
+      "title": "Исправить принятый факт расхода с причиной",
+      "method": "POST",
+      "path": "/api/v1/maintenance/consumptions/{consumption_id}/correction",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.main:create_app.<locals>.correct_consumption",
+      "operation_id": "correct_consumption_api_v1_maintenance_consumptions__consumption_id__correction_post",
+      "argument_fields": {
+        "path": [
+          "consumption_id"
+        ],
+        "query": [],
+        "body": [
+          "expected_revision",
+          "material_name",
+          "quantity",
+          "reason",
+          "unit"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": "consumptions_read",
+      "operator": "unavailable"
+    },
+    {
       "name": "report_submit",
       "title": "Передать свой отчёт на проверку",
       "method": "POST",
@@ -5932,7 +6075,9 @@
           "expected_revision",
           "reason",
           "removed_on",
-          "replacement"
+          "replacement",
+          "work_order_id",
+          "work_report_id"
         ]
       },
       "response_schemas": {
@@ -7689,6 +7834,55 @@
         }
       },
       "before_read": "task_read",
+      "operator": "unavailable"
+    },
+    {
+      "name": "demand_monthly",
+      "title": "Проверить наличие подтверждённых данных о потребности в материалах",
+      "method": "GET",
+      "path": "/api/v1/demand/monthly",
+      "roles": [
+        "chief_engineer",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "director"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.main:create_app.<locals>.read_monthly_demand",
+      "operation_id": "read_monthly_demand_api_v1_demand_monthly_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "items": {
+              "$ref": "#/components/schemas/DemandRecord"
+            },
+            "type": "array",
+            "title": "Response Read Monthly Demand Api V1 Demand Monthly Get"
+          }
+        }
+      },
+      "before_read": null,
       "operator": "unavailable"
     },
     {

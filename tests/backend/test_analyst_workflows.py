@@ -121,7 +121,6 @@ def test_early_start_rejected_before_new_report_is_created(runtime):
             c.execute(text('UPDATE schedule_entries SET earliest_date=:earliest_date,planned_date=:planned_date,regulatory_deadline_on=:regulatory_deadline_on,regulatory_deadline_at=:regulatory_deadline_at WHERE schedule_entry_id=:id'),dict(id=entry,**prior))
 
 
-def test_failed_assignment_is_audited_without_creating_assignments(runtime):
     engine,app=runtime
     from tests.backend.test_runtime_integration import ASSIGNMENT_TASK
     with closing(login(app,'executor')) as client:
@@ -129,6 +128,75 @@ def test_failed_assignment_is_audited_without_creating_assignments(runtime):
         assert result.status_code==403,result.text
     with engine.connect() as c:
         assert c.scalar(text("SELECT count(*) FROM audit_events WHERE entity_id=:id AND action='denied'"),dict(id=ASSIGNMENT_TASK))>=1
+
+
+def test_consumption_is_attempt_bound_idempotent_and_not_silently_editable(runtime):
+   engine, app = runtime
+   from app.integration.demo import demo_id
+   from uuid import UUID, uuid4
+   report_id = uuid4()
+   equipment_id = demo_id("equipment-2")
+   author_id = demo_id("user-1")
+   key = uuid4()
+   with engine.begin() as c:
+       prior = c.execute(text("""
+           SELECT status,revision FROM work_orders WHERE work_order_id=:id
+           """), {"id": UUID(TASK)}).mappings().one()
+       c.execute(text("""
+           UPDATE work_orders SET status='in_progress',revision=revision+1
+           WHERE work_order_id=:id
+           """), {"id": UUID(TASK)})
+       c.execute(text("""
+           INSERT INTO work_reports
+               (work_report_id,site_id,work_order_id,revision_no,submitted_by,status)
+           VALUES (:report,:site,:task,1,:author,'draft')
+           """), {
+               "report": report_id, "site": demo_id("site"), "task": UUID(TASK),
+               "author": author_id,
+           })
+   try:
+       with closing(login(app, "executor")) as executor:
+           bundle = executor.get(PREFIX+f"/ui/tasks/{TASK}").json()
+           revision = bundle["task"]["revision"]
+           body = dict(
+               expected_revision=revision,
+               execution_id=str(report_id),
+               equipment_id=str(equipment_id),
+               material_name="Смазка TEST",
+               quantity="2.500",
+               unit="литр",
+               idempotency_key=str(key),
+           )
+           first = executor.post(PREFIX+f"/tasks/{TASK}/consumptions", json=body)
+           assert first.status_code == 200, first.text
+           repeated = executor.post(PREFIX+f"/tasks/{TASK}/consumptions", json=body)
+           assert repeated.status_code == 200, repeated.text
+           assert repeated.json()["id"] == first.json()["id"]
+           conflict = executor.post(PREFIX+f"/tasks/{TASK}/consumptions", json=body | {"quantity": "3.000"})
+           assert conflict.status_code == 409
+           assert executor.get(PREFIX+f"/tasks/{TASK}/consumptions").json()[0]["authorId"] == str(author_id)
+       with closing(login(app, "chief_engineer")) as chief:
+           blocked = chief.post(
+               PREFIX+f"/consumptions/{first.json()['id']}/correction",
+               json=dict(
+                   expected_revision=revision,
+                   material_name="Смазка TEST",
+                   quantity="2.500",
+                   unit="литр",
+                   reason="Исправление чернового факта",
+               ),
+           )
+           assert blocked.status_code == 409
+   finally:
+       with engine.begin() as c:
+           c.execute(text("DELETE FROM work_consumptions WHERE work_order_id=:id"), {"id": UUID(TASK)})
+           c.execute(text("DELETE FROM audit_events WHERE entity_id=:id AND action IN ('record_consumption','correct_consumption')"), {"id": UUID(TASK)})
+           c.execute(text("DELETE FROM work_reports WHERE work_order_id=:id"), {"id": UUID(TASK)})
+           c.execute(text("""
+               UPDATE work_orders
+               SET status=:status,revision=:revision,started_at=NULL
+               WHERE work_order_id=:id
+               """), {"status": prior["status"], "revision": prior["revision"], "id": UUID(TASK)})
 
 
 def test_incident_execution_measurements_acts_acceptance_and_reopen_keep_history(managed):

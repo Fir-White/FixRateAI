@@ -83,6 +83,32 @@ class ReportEdit(Revision):
     actual: ExecutionInput | None = None
 
 
+class ConsumptionEdit(Revision):
+    execution_id: UUID
+    material_name: str = Field(min_length=1, max_length=256)
+    quantity: Decimal = Field(gt=0, max_digits=18, decimal_places=3)
+    unit: str = Field(min_length=1, max_length=64)
+    idempotency_key: UUID
+    equipment_id: UUID | None = None
+
+
+class ConsumptionCorrection(Revision):
+    material_name: str = Field(min_length=1, max_length=256)
+    quantity: Decimal = Field(gt=0, max_digits=18, decimal_places=3)
+    unit: str = Field(min_length=1, max_length=64)
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class DemandRecord(BaseModel):
+    material_id: str
+    quantity: float
+    unit: str
+    month: int
+    work_id: str
+    equipment_id: str | None = None
+    basis: str | None = None
+
+
 class AssignmentPreview(Revision):
     start_local: datetime
     end_local: datetime
@@ -272,11 +298,20 @@ def create_app(engine=None):
     def views(request: Request, who=Depends(principal), session=Depends(db)):
         return Views(session, request.app.state.models, who)
 
-    def audit(view, order, action):
+    @app.get("/api/v1/demand/monthly", summary="Monthly material demand", response_model=list[DemandRecord])
+    def read_monthly_demand(who=Depends(principal)):
+        require_role(who, "director", "chief_engineer", "engineer", "dispatcher", "admin")
+        raise HTTPException(404, "Нет подтверждённых плановых данных о месячной потребности в материалах")
+
+    def audit(view, order, action, details=None):
         view.repo.add("audit_events", site_id=view.principal.site_id, actor_type="user",
                       actor_user_id=view.principal.user_id, entity_type="work_orders",
                       entity_id=order.work_order_id, action=action,
-                      after_snapshot={"status": order.status, "revision": order.revision})
+                      after_snapshot={
+                          "status": order.status,
+                          "revision": order.revision,
+                          **(details or {}),
+                      })
 
     @app.exception_handler(IntegrityError)
     async def integrity_error(request, exc):
@@ -628,6 +663,169 @@ def create_app(engine=None):
         result = v.bundle(order)
         v.session.commit()
         return result
+
+    def consumption_row(row) -> dict:
+        return {
+            "id": str(row["consumption_id"]),
+            "taskId": str(row["work_order_id"]),
+            "executionId": str(row["work_report_id"]),
+            "equipmentId": str(row["equipment_id"]) if row["equipment_id"] else None,
+            "materialName": row["material_name"],
+            "quantity": str(row["quantity"]),
+            "unit": row["unit"],
+            "authorId": str(row["recorded_by"]),
+            "taskRevision": row["task_revision"],
+            "idempotencyKey": str(row["idempotency_key"]),
+            "status": row["status"],
+            "supersedesId": str(row["supersedes_consumption_id"]) if row["supersedes_consumption_id"] else None,
+            "supersededById": str(row["superseded_by_consumption_id"]) if row["superseded_by_consumption_id"] else None,
+            "correctionReason": row["correction_reason"],
+            "createdAt": row["created_at"].isoformat(),
+        }
+
+    @app.post(prefix + "/tasks/{task_id}/consumptions")
+    def record_consumption(task_id: UUID, payload: ConsumptionEdit, v=Depends(views)):
+        require_role(v.principal, "executor")
+        order = v.task(task_id, lock=True)
+        check_revision(order, payload.expected_revision)
+        report = v.one("work_reports", work_order_id=task_id, work_report_id=payload.execution_id)
+        if (
+            order.status != "in_progress"
+            or report.status != "draft"
+            or report.submitted_by != v.principal.user_id
+        ):
+            raise HTTPException(409, "Расход можно записывать только в текущий черновик автора")
+        equipment_id = payload.equipment_id
+        if equipment_id is not None:
+            links = {link.equipment_id for link in v.rows("work_order_equipment", work_order_id=task_id)}
+            if equipment_id not in links:
+                raise HTTPException(422, "Материал привязан к чужому оборудованию задания")
+        identity = uuid4()
+        existing = v.session.execute(text("""
+            SELECT * FROM work_consumptions
+            WHERE site_id=:site AND work_order_id=:task AND work_report_id=:report
+              AND idempotency_key=:key
+            """), {
+                "site": v.principal.site_id,
+                "task": task_id,
+                "report": payload.execution_id,
+                "key": payload.idempotency_key,
+            }).mappings().first()
+        if existing:
+            same = (
+                existing["material_name"] == payload.material_name.strip()
+                and Decimal(existing["quantity"]) == payload.quantity
+                and existing["unit"] == payload.unit.strip()
+                and existing["equipment_id"] == equipment_id
+            )
+            if not same:
+                raise HTTPException(409, "ИДЕМПОТЕНТНЫЙ КЛЮЧ ПОВТОРЕН С ДРУГИМИ ДАННЫМИ")
+            return consumption_row(existing)
+        row = v.session.execute(text("""
+            INSERT INTO work_consumptions
+                (consumption_id,site_id,work_order_id,work_report_id,equipment_id,
+                 material_name,quantity,unit,recorded_by,task_revision,idempotency_key)
+            VALUES
+                (:id,:site,:task,:report,:equipment,:material,:quantity,:unit,
+                 :author,:revision,:key)
+            RETURNING *
+            """), {
+                "id": identity,
+                "site": v.principal.site_id,
+                "task": task_id,
+                "report": payload.execution_id,
+                "equipment": equipment_id,
+                "material": payload.material_name.strip(),
+                "quantity": payload.quantity,
+                "unit": payload.unit.strip(),
+                "author": v.principal.user_id,
+                "revision": order.revision,
+                "key": payload.idempotency_key,
+            }).mappings().one()
+        audit(v, order, "record_consumption", {
+            "consumptionId": str(identity),
+            "executionId": str(payload.execution_id),
+            "materialName": payload.material_name.strip(),
+            "quantity": str(payload.quantity),
+            "unit": payload.unit.strip(),
+            "idempotencyKey": str(payload.idempotency_key),
+        })
+        v.session.commit()
+        return consumption_row(row)
+
+    @app.get(prefix + "/tasks/{task_id}/consumptions")
+    def list_consumptions(task_id: UUID, v=Depends(views)):
+        v.task(task_id)
+        rows = v.session.execute(text("""
+            SELECT * FROM work_consumptions
+            WHERE site_id=:site AND work_order_id=:task
+            ORDER BY created_at,consumption_id
+            """), {"site": v.principal.site_id, "task": task_id}).mappings().all()
+        return [consumption_row(row) for row in rows]
+
+    @app.post(prefix + "/consumptions/{consumption_id}/correction")
+    def correct_consumption(consumption_id: UUID, payload: ConsumptionCorrection, v=Depends(views)):
+        require_role(v.principal, "chief_engineer")
+        old = v.session.execute(text("""
+            SELECT * FROM work_consumptions
+            WHERE site_id=:site AND consumption_id=:id
+            FOR UPDATE
+            """), {"site": v.principal.site_id, "id": consumption_id}).mappings().first()
+        if old is None:
+            raise HTTPException(404, "Факт расхода не найден")
+        if old["status"] != "active":
+            raise HTTPException(409, "Факт расхода уже заменён исправлением")
+        order = v.task(old["work_order_id"], lock=True)
+        check_revision(order, payload.expected_revision)
+        report = v.one("work_reports", work_order_id=order.work_order_id, work_report_id=old["work_report_id"])
+        accepted = v.session.scalar(text("""
+            SELECT 1 FROM acceptance_reviews
+            WHERE site_id=:site AND work_order_id=:task
+              AND work_report_id=:report AND decision='accepted'
+            LIMIT 1
+            """), {"site": v.principal.site_id, "task": order.work_order_id, "report": report.work_report_id})
+        if order.status != "completed" or not accepted:
+            raise HTTPException(409, "Исправлять можно только принятый факт расхода")
+        identity = uuid4()
+        new = v.session.execute(text("""
+            INSERT INTO work_consumptions
+                (consumption_id,site_id,work_order_id,work_report_id,equipment_id,
+                 material_name,quantity,unit,recorded_by,task_revision,idempotency_key,
+                 status,supersedes_consumption_id,correction_reason)
+            VALUES
+                (:id,:site,:task,:report,:equipment,:material,:quantity,:unit,
+                 :author,:revision,:key,'active',:supersedes,:reason)
+            RETURNING *
+            """), {
+                "id": identity,
+                "site": v.principal.site_id,
+                "task": old["work_order_id"],
+                "report": old["work_report_id"],
+                "equipment": old["equipment_id"],
+                "material": payload.material_name.strip(),
+                "quantity": payload.quantity,
+                "unit": payload.unit.strip(),
+                "author": v.principal.user_id,
+                "revision": order.revision,
+                "key": uuid4(),
+                "supersedes": old["consumption_id"],
+                "reason": payload.reason.strip(),
+            }).mappings().one()
+        v.session.execute(text("""
+            UPDATE work_consumptions
+            SET status='void', superseded_by_consumption_id=:new
+            WHERE site_id=:site AND consumption_id=:old
+            """), {"new": identity, "site": v.principal.site_id, "old": old["consumption_id"]})
+        order.revision += 1
+        v.session.flush()
+        audit(v, order, "correct_consumption", {
+            "oldConsumptionId": str(old["consumption_id"]),
+            "newConsumptionId": str(identity),
+            "executionId": str(old["work_report_id"]),
+            "reason": payload.reason.strip(),
+        })
+        v.session.commit()
+        return consumption_row(new)
 
     storage = runtime_settings.photo_storage_root
 
