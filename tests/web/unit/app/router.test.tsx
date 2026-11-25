@@ -55,7 +55,7 @@ describe("app routes", () => {
     expect(await screen.findByText("Тепловой пункт №1")).toBeInTheDocument();
   });
 
-  it.each([["director", "Обзор объекта"], ["executor", "Мои задания"], ["engineer", "Рабочий день инженера"]])("returns %s to their role home from a direct link", async (role, heading) => {
+  it.each([["director", "Обзор объекта"], ["executor", "С чего начнём рабочий день?"], ["engineer", "Рабочий день инженера"]])("returns %s to their role home from a direct link", async (role, heading) => {
     const user=userEvent.setup();window.localStorage.setItem("fixrate.demo.role",role);
     render(<SessionProvider><MemoryRouter initialEntries={["/equipment", "/profile"]} initialIndex={1}><AppRouter /></MemoryRouter></SessionProvider>);
     await screen.findByRole("heading",{name:"Мой профиль"});
@@ -66,7 +66,7 @@ describe("app routes", () => {
 
   it("returns through previously visited sections without looping", async () => {
     const user=userEvent.setup();renderAt("/executor", "executor", true);
-    await screen.findByRole("heading",{name:"Мои задания"});
+    await screen.findByRole("heading",{name:"С чего начнём рабочий день?"});
     await user.click(screen.getByRole("link",{name:"Оборудование"}));
     await screen.findByRole("heading",{name:"Оборудование"});
     await user.click(screen.getByRole("link",{name:"Учётная запись"}));
@@ -74,7 +74,7 @@ describe("app routes", () => {
     await user.click(screen.getByRole("button",{name:"Назад в истории браузера"}));
     await screen.findByRole("heading",{name:"Оборудование"});
     await user.click(screen.getByRole("button",{name:"Назад в истории браузера"}));
-    await screen.findByRole("heading",{name:"Мои задания"});
+    await screen.findByRole("heading",{name:"С чего начнём рабочий день?"});
     expect(screen.queryByRole("button",{name:"Назад"})).not.toBeInTheDocument();
   });
 
@@ -233,6 +233,11 @@ const PAGE_ROUTES: { path: string; role: string; heading: string }[] = [
   },
   {
     path: "/executor",
+    role: "executor",
+    heading: "С чего начнём рабочий день?",
+  },
+  {
+    path: "/executor/tasks",
     role: "executor",
     heading: "Мои задания",
   },

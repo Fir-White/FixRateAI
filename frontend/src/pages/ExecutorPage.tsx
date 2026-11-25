@@ -46,13 +46,18 @@ export function ExecutorPage(){
    {value:upcoming.filter(item=>item.day===today).length,label:"Задания на сегодня",to:"/calendar"},
    {value:active.filter(task=>task.state==="rework_required").length,label:"На доработке",to:"/executor/tasks?queue=active",tone:"warning" as const},
  ]:[];
+ if (workday) {
+   const upcomingTasks = upcoming.length ? upcoming.map(item=>item.task) : active;
+   return <div className="space-y-6 executor-workspace">
+     <WorkdayHeading title="С чего начнём рабочий день?" description={`Ваши задания · ${profile?.siteName??""}`} label="Задания на день" signals={signals}/>
+     <WorkdayAssistant executor/>
+     {query.status==="loading"&&<LoadingState label="Загрузка назначенных заданий"/>}
+     {query.status==="error"&&<ErrorState description={query.error}/>}
+     {query.status==="success"&&<WorkdayUpcoming tasks={upcomingTasks} link="/calendar" linkText="Мой календарь"/>}
+   </div>;
+ }
  return <div className={`space-y-6 executor-workspace${spotlight?" has-spotlight":""}`}>
- {workday && <>
-   <WorkdayHeading title="С чего начнём рабочий день?" description={`Ваши задания · ${profile?.siteName??""}`} label="Задания на день" signals={signals}/>
-   <WorkdayAssistant executor/>
-   {query.status==="success" && <WorkdayUpcoming tasks={upcoming.map(item=>item.task)} link="/calendar" linkText="Мой календарь"/>}
- </>}
- {workday ? <h2 className="fr-page-title">Мои задания</h2> : reportsView
+ {reportsView
    ? <PageHeader title="Мои отчёты" description="Сохранённые отчёты по вашим заданиям и состояние приёмки."/>
    : <PageHeader title="Мои задания" description="Назначенные вам работы и обязательные сроки."/>}
  {query.status==="loading"&&<LoadingState label="Загрузка назначенных заданий"/>}{query.status==="error"&&<ErrorState description={query.error}/>}
