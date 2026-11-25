@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Photo analysis model benchmark for FixRate AI (MVP1-ML03 / FRAI-135).
 
-Evaluates candidate models across Development, Holdout, and Cross-evaluation partitions
+Evaluates provider and configuration modes across Development, Holdout, and Cross-evaluation partitions
 defined in data/manifests/split_manifest.json:
-1. Heuristic-Baseline (ImageQualityGuard + VisualGuardrailPolicy + Structural Diff)
-2. Local CLIP Zero-Shot (CLIPZeroShotClassifier with QualityGuard and Guardrails)
-3. VLM Assessment Simulation / Provider Evaluation (VisualAssessment grounded reasoning)
+1. Unconfigured Cloud / Fail-Closed Baseline (AITunnel unconfigured -> honest unavailable, zero CLIP/heuristic fallback)
+2. VLM Assessment Provider Evaluation (VisualAssessment grounded reasoning via AI Tunnel / Ollama)
 
 Measures:
 - Technical quality filtering accuracy (blur/glare rejection)

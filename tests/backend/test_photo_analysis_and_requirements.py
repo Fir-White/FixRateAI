@@ -62,6 +62,29 @@ def test_per_item_photo_required_validation_rules():
         validate_submission_evidence(checklist, answers, wrong_eq, {eq_1})
     assert exc.value.status_code == 422
 
+    # Missing equipment_id on photos fails even when both before and after have None
+    none_eq = [
+        SimpleNamespace(stage="before", checklist_item_id=item_req, view_key="front", equipment_id=None),
+        SimpleNamespace(stage="after", checklist_item_id=item_req, view_key="front", equipment_id=None),
+    ]
+    with pytest.raises(HTTPException) as exc:
+        validate_submission_evidence(checklist, answers, none_eq, {eq_1})
+    assert exc.value.status_code == 422
+    with pytest.raises(HTTPException) as exc:
+        validate_submission_evidence(checklist, answers, none_eq, set())
+    assert exc.value.status_code == 422
+    with pytest.raises(HTTPException) as exc:
+        validate_submission_evidence(
+            checklist,
+            answers,
+            [
+                SimpleNamespace(stage="before", checklist_item_id=item_req, view_key="front", equipment_id=eq_1),
+                SimpleNamespace(stage="after", checklist_item_id=item_req, view_key="front", equipment_id=eq_1),
+            ],
+            set(),
+        )
+    assert exc.value.status_code == 422
+
     # Different view_key fails
     wrong_view = [
         SimpleNamespace(stage="before", checklist_item_id=item_req, view_key="front", equipment_id=eq_1),
@@ -128,6 +151,19 @@ def test_task_execution_missing_report_requires_same_equipment_and_view():
         },
     )
     assert len(foreign_eq) == 1 and "фото до и после" in foreign_eq[0]
+
+    # Photos without equipmentId MUST NOT satisfy photo requirement
+    missing_eq = task_execution.missing_report(
+        task,
+        {
+            **base_report,
+            "photos": [
+                {"phase": "before", "checklistItemId": item_req, "viewKey": "front", "equipmentId": None},
+                {"phase": "after", "checklistItemId": item_req, "viewKey": "front", "equipmentId": None},
+            ],
+        },
+    )
+    assert len(missing_eq) == 1 and "фото до и после" in missing_eq[0]
 
     # Mismatched view_key MUST NOT satisfy photo requirement
     wrong_view = task_execution.missing_report(

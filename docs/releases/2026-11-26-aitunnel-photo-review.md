@@ -15,8 +15,8 @@
    - `model_catalog.model_supports_vision` и `tool_agent.run_loop` проверяют поддержку изображений у выбранной чат-модели и не передают сырые пиксели в текстовые модели напрямую, направляя осмотр через `call_photo_agent`.
 
 3. **Обязательность фото по каждому пункту чек-листа и привязка оборудования:**
-   - Логика сдачи `validate_submission_evidence` в [photo_evidence.py](../../backend/app/integration/photo_evidence.py) и [main.py](../../backend/app/main.py) требует пару «до/после» одного ракурса (`view_key`) и одной единицы оборудования (`equipment_id`) только для пунктов с `photoRequired=true`; при `photoRequired=false` сдача проходит без фото.
-   - `projections.report_view` включает `equipmentId` в проекцию `execution.photos`, а проверка готовности в ассистенте [task_execution.py](../../backend/app/assistant/task_execution.py) сверяет совпадение `equipmentId` пары и принадлежность оборудования текущему наряду.
+   - Логика сдачи `validate_submission_evidence` в [photo_evidence.py](../../backend/app/integration/photo_evidence.py) и [main.py](../../backend/app/main.py) требует пару «до/после» одного ракурса (`view_key`) и непустой единицы оборудования (`equipment_id` из `order_equipment_ids`) только для пунктов с `photoRequired=true`; при `photoRequired=false` сдача проходит без фото, а пары с `equipment_id=None` или не входящим в наряд оборудованием отклоняются.
+   - `projections.report_view` включает `equipmentId` в проекцию `execution.photos`, а проверка готовности в ассистенте [task_execution.py](../../backend/app/assistant/task_execution.py) сверяет непустой `equipmentId` пары и его принадлежность текущему наряду.
 
 ## Пользовательские сценарии и ограничения
 

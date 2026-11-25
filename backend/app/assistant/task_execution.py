@@ -114,9 +114,7 @@ def missing_report(task, report):
         view_key = (photo.get('viewKey') or '').strip()
         raw_eq = photo.get('equipmentId')
         eq_id = str(raw_eq) if raw_eq is not None else None
-        if not view_key:
-            continue
-        if order_equipment_ids and eq_id is not None and eq_id not in order_equipment_ids:
+        if not view_key or eq_id is None or eq_id not in order_equipment_ids:
             continue
         paired.setdefault((photo['checklistItemId'], view_key, eq_id), set()).add(photo['phase'])
     with_pairs = {item_id for (item_id, _, _), phases in paired.items() if {'before', 'after'} <= phases}

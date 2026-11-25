@@ -38,11 +38,8 @@ def validate_submission_evidence(checklist_snapshot, answers, photos, order_equi
 
     valid_item_ids = {item["id"] for item in checklist_snapshot}
     for p in photos:
-        if (
-            p.stage in ("before", "after")
-            and order_equipment_ids
-            and p.equipment_id is not None
-            and p.equipment_id not in order_equipment_ids
+        if p.stage in ("before", "after") and order_equipment_ids and (
+            p.equipment_id is None or p.equipment_id not in order_equipment_ids
         ):
             raise HTTPException(422, "Фотография относится к другому оборудованию")
     for item in checklist_snapshot:
@@ -56,7 +53,8 @@ def validate_submission_evidence(checklist_snapshot, answers, photos, order_equi
                 if str(p.checklist_item_id) == item["id"]
                 and str(p.checklist_item_id) in valid_item_ids
                 and (p.view_key or "").strip()
+                and p.equipment_id is not None
+                and p.equipment_id in order_equipment_ids
             }
             if not any(("after", key, eq_id) in pairs for stage, key, eq_id in pairs if stage == "before"):
                 raise HTTPException(422, "Требуется пара фото до/после одного ракурса")
-

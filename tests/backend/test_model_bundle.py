@@ -39,4 +39,7 @@ def test_bundled_runtime_keeps_database_and_photo_storage_contract():
     deploy = yaml.safe_load((ROOT / "deploy/compose.yaml").read_text(encoding="utf-8"))
     deploy_env = deploy["x-application"]["environment"]
     assert deploy_env["PHOTO_REVIEW_PROVIDER"] == "${PHOTO_REVIEW_PROVIDER:-aitunnel}"
+    assert deploy_env["AITUNNEL_API_KEY"] == "${AITUNNEL_API_KEY:-}"
+    assert deploy_env["AI_TUNNEL_API_KEY"] == "${AI_TUNNEL_API_KEY:-}"
+    assert deploy_env["AITUNNEL_VISION_MODEL"] == "${AITUNNEL_VISION_MODEL:-qwen3.7-flash}"
     assert "HF_HUB_OFFLINE" not in deploy_env and "TRANSFORMERS_OFFLINE" not in deploy_env
