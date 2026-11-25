@@ -52,6 +52,37 @@
 .fr-content-v2 .ops-report-track { height: 2px; background: var(--fr2-line); }
 .fr-content-v2 .ops-report-track > span { background: var(--fr2-accent); }
 .fr-content-v2 :where(a, button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--fr2-accent); outline-offset: 2px; }
+.fr-content-v2 details:not(.fr-disclosure):not(.assistant-progress):not(.assistant-saved-answer) > summary {
+  position: relative;
+  list-style: none;
+  padding-inline-end: 28px;
+  cursor: pointer;
+}
+.fr-content-v2 details:not(.fr-disclosure):not(.assistant-progress):not(.assistant-saved-answer) > summary::-webkit-details-marker {
+  display: none;
+}
+.fr-content-v2 details:not(.fr-disclosure):not(.assistant-progress):not(.assistant-saved-answer) > summary::after {
+  position: absolute;
+  inset-block-start: calc(50% - 4px);
+  inset-inline-end: 8px;
+  width: 7px;
+  height: 7px;
+  border: solid var(--fr2-muted);
+  border-width: 0 2px 2px 0;
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+  content: "";
+}
+.fr-content-v2 details:not(.fr-disclosure):not(.assistant-progress):not(.assistant-saved-answer)[open] > summary::after {
+  transform: rotate(45deg);
+  border-color: var(--fr2-accent);
+}
+.fr-content-v2 details:not(.fr-disclosure):not(.assistant-progress):not(.assistant-saved-answer) > summary:hover {
+  color: var(--fr2-accent);
+}
+.fr-content-v2 details:not(.fr-disclosure):not(.assistant-progress):not(.assistant-saved-answer) > summary:hover::after {
+  border-color: var(--fr2-accent);
+}
 .fr-content-v2 .text-muted { color: var(--fr2-muted); }
 .fr-content-v2 .text-ink-soft { color: var(--fr2-secondary); }
 .fr-content-v2 [data-content-tone="warning"] { color: var(--fr2-warning); background: var(--fr2-raised); border-color: var(--fr2-line-strong); }
