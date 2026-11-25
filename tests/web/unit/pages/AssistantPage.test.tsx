@@ -242,10 +242,16 @@ it('uses a new turn key when the user repeats an already accepted message',async
 });
 
 const file={attachment_id:'file',original_name:'TEST.xlsx',mime_type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',size_bytes:12,sha256:'TEST',created_at:'2026-11-14'};
-it('collapses the right history, retains the draft and restores the scoped preference',async()=>{
+it('places the chat history and toggle button on the left, collapses history, retains the draft and restores the scoped preference',async()=>{
   const user=userEvent.setup(),first=show();
   await user.type(await screen.findByLabelText('Сообщение помощнику'),'Не потеряй текст');
-  await user.click(screen.getByRole('button',{name:'Свернуть историю чатов'}));
+  const history=screen.getByRole('complementary',{name:'История диалогов'});
+  const regions=screen.getByRole('region',{name:'Диалог с ИИ'});
+  expect(history.compareDocumentPosition(regions)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  const toggle=screen.getByRole('button',{name:'Свернуть историю чатов'});
+  const nav=screen.getByRole('navigation',{name:'Разделы помощника'});
+  expect(toggle.compareDocumentPosition(nav)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  await user.click(toggle);
   expect(screen.queryByRole('complementary',{name:'История диалогов'})).not.toBeInTheDocument();
   expect(screen.getByLabelText('Сообщение помощнику')).toHaveValue('Не потеряй текст');
   first.unmount();show();
