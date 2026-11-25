@@ -444,7 +444,7 @@ class PhotoReport(Contract):
 class PhotoReviewRequest(Contract):
     execution_id: UUID
     operation: OperationVersion
-    photos: Annotated[list[PhotoReport], Field(min_length=2)]
+    photos: Annotated[list[PhotoReport], Field(min_length=1)]
     report: ExecutionReport
     prompt_set_version: Text
 

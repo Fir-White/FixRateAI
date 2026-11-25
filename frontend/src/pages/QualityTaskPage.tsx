@@ -217,7 +217,7 @@ export function QualityTaskPage() {
                 неуверенного AI-результата она служит основанием ручной оценки.
               </p>
 
-              <div className="fr-decision-facts"><p>Фото этой попытки: {execution?.photos.length??0}.</p>{hasDocuments&&<button type="button" onClick={()=>setFactsOpen(true)}>Документы и проверки</button>}{task.requiredActs?.map(kind=><p key={kind}>{kind}: {execution?.acts?.some(a=>a.kind===kind&&a.verified)?"проверен":execution?.acts?.some(a=>a.kind===kind)?"ожидает проверки":"не приложен"}</p>)}<p>Скрытые операции и точность прибора требуют ручной проверки.</p>{review?.limitations.map(text=><p key={text}>{text}</p>)}</div>
+              <div className="fr-decision-facts"><p>Фото этой попытки: {execution?.photos.length??0}.</p>{hasDocuments&&<button type="button" onClick={()=>setFactsOpen(true)}>Документы и проверки</button>}{task.requiredActs?.map(kind=><p key={kind}>{kind}: {execution?.acts?.some(a=>a.kind===kind&&a.verified)?"проверен":execution?.acts?.some(a=>a.kind===kind)?"ожидает проверки":"не приложен"}</p>)}<p>Скрытые операции и точность прибора требуют ручной проверки.</p>{review?.limitations.filter(text=>text.replace(/\.$/,"")!=="Проверьте фотографии самостоятельно").map(text=><p key={text}>{text}</p>)}</div>
               <FormField
                 label="Причина решения"
                 htmlFor="quality-reason"

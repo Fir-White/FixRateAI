@@ -57,7 +57,6 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--docker",default=docker or "docker")
     parser.add_argument("--port",type=int)
-    parser.add_argument("--cache",type=Path,default=ROOT/".venv/hf-cache")
     parser.add_argument("--no-build",action="store_true")
     parser.add_argument("--presentation",action="store_true",help="Provision the isolated presentation object and accounts")
     ai_mode=parser.add_mutually_exclusive_group()
@@ -209,7 +208,7 @@ def main():
         raise RuntimeError("Private state belongs to a different project")
     previous.update(project=PROJECT,url=origin,models=models,logs=str(logdir),
         database_volume=PROJECT+"_postgres_data",photo_volume=PROJECT+"_photos",started_at=datetime.now(timezone.utc).isoformat(),
-        image=values.get("FIXRATE_IMAGE","fixrate-ai:local"),image_profile="cloud" if cloud_ai else "bundled" if bundled else "external-cache",
+        image=values.get("FIXRATE_IMAGE","fixrate-ai:local"),image_profile="cloud" if cloud_ai else "bundled" if bundled else "local",
         source_revision=image_readiness.get("source_revision","unknown"))
     state_path.write_text(json.dumps(previous,indent=2),encoding="utf-8")
     print(command("status","ps"))

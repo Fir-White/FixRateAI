@@ -119,3 +119,17 @@ it.each([
   await waitFor(() => expect(maintenanceApi.review).toHaveBeenCalledWith("task", 7, "attempt", verdict,
     "Проверены фотографии и показания", { reviewed_ai_result_id: undefined, additional_evidence_refs: [] }));
 });
+
+it("renders standard self-check limitation once even when included in review limitations", async () => {
+  const reviewWithLimitation: PhotoReview = {
+    ...failedReview,
+    status: "completed",
+    modelRef: "qwen3.7-flash",
+    limitations: ["Проверьте фотографии самостоятельно.", "Низкая контрастность манометра"],
+  };
+  const data = bundle(["review"], reviewWithLimitation);
+  data.photoAnalysisStatus = "ready";
+  setup(data);
+  expect(await screen.findAllByText("Проверьте фотографии самостоятельно.")).toHaveLength(1);
+  expect(screen.getByText("Низкая контрастность манометра")).toBeInTheDocument();
+});

@@ -143,7 +143,7 @@ export function PhotoReviewCard({
             </p>
           )}
           <p className="border-t border-line pt-2 text-xs font-medium text-muted">
-            Проверьте фотографии самостоятельно
+            Проверьте фотографии самостоятельно.
           </p>
         </div>
       </CardBody>

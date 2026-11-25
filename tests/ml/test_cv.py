@@ -148,7 +148,7 @@ def test_review_cloud_photos_optional_single_photo_calls_assess_single(canonical
     from tests.ml.test_local_vision import assessment, FixtureClient
     req = canonical_photo_review_request.model_copy(deep=True)
     req.operation.checklist[0].photo_required = False
-    req = req.model_copy(update={"photos": [req.photos[0]]})
+    req = PhotoReviewRequest.model_validate_json(req.model_copy(update={"photos": [req.photos[0]]}).model_dump_json())
 
     class SingleClient(FixtureClient):
         single_calls = 0

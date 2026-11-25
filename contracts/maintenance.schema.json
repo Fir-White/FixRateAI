@@ -1732,7 +1732,7 @@
           "items": {
             "$ref": "#/$defs/PhotoReport"
           },
-          "minItems": 2,
+          "minItems": 1,
           "title": "Photos",
           "type": "array"
         },

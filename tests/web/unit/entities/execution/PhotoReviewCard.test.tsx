@@ -40,7 +40,7 @@ describe("photo assessment", () => {
   it("shows concise Russian observations and only one reminder without internal codes", () => {
     render(<PhotoReviewCard review={review} formatDateTime={(value) => value} />);
     expect(screen.getByText(/На показанном участке корпуса после работы отсутствует прежний налёт/)).toBeVisible();
-    expect(screen.getAllByText("Проверьте фотографии самостоятельно")).toHaveLength(1);
+    expect(screen.getAllByText("Проверьте фотографии самостоятельно.")).toHaveLength(1);
     expect(screen.queryByText(/qwen3\.7-flash/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/maintenance-aitunnel-vision/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/visible_improvement/i)).not.toBeInTheDocument();
@@ -61,7 +61,7 @@ describe("photo assessment", () => {
     expect(screen.getByText(/Прежний тип проверки/)).toBeVisible();
     expect(screen.getByText(/Сохранена прежняя проверка без текстового описания снимков/)).toBeVisible();
     expect(screen.queryByText("delta -0.02")).not.toBeInTheDocument();
-    expect(screen.getByText("Проверьте фотографии самостоятельно")).toBeVisible();
+    expect(screen.getByText("Проверьте фотографии самостоятельно.")).toBeVisible();
   });
 
   it("never invents observations or leaks system error codes on unavailability", () => {

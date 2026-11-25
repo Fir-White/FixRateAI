@@ -180,9 +180,11 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
         rule, _, _, _ = v.operation(order)
         op = operation_payload(order, rule, report.checklist_snapshot)
         rows = [p for p in v.rows("evidence_files", work_report_id=report.work_report_id)
-                if p.stage in ("before", "after") and p.checklist_item_id and p.view_key]
+                if p.stage in ("before", "after") and p.checklist_item_id and p.view_key and p.equipment_id]
         if not rows:
             raise HTTPException(422, "Недостаточно фото с привязками для анализа")
+        if len({p.equipment_id for p in rows}) != 1:
+            raise HTTPException(422, "Фотографии отчёта должны относиться к одной единице оборудования")
         limits = app.state.settings
         if len(rows) > limits.photo_review_max_files or sum(p.file_size for p in rows) > limits.photo_review_max_bytes:
             raise HTTPException(413, "PHOTO_REVIEW_LIMIT_EXCEEDED")

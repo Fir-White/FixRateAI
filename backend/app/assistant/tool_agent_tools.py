@@ -85,7 +85,7 @@ class PhotoAgentArgs(Arguments):
 class PhotoAgentObservation(BaseModel):
     model_config = ConfigDict(extra='forbid')
     summary: str = Field(min_length=1, max_length=1200, description='1–3 коротких понятных предложения на русском языке о том, что видно на фото.')
-    observations: list[str] = Field(default_factory=list, max_length=4, description='Краткие факты или проблемы качества/сопоставимости.')
+    observations: list[str] = Field(max_length=4, description='Краткие факты или проблемы качества/сопоставимости.')
 
 
 class AcceptanceReadiness(WorkOrder):
@@ -780,6 +780,37 @@ class ToolSession:
         )
         summary = f"Запустить анализ сохранённых фотографий по наряду {data['task']['code']}"
         with self.app.state.factory() as session:
+            pending = session.execute(
+                text(
+                    '''SELECT a.action_id, a.arguments FROM assistant_actions a
+                JOIN assistant_turns t ON t.turn_id = a.turn_id
+                WHERE a.conversation_id = :chat AND a.tool_name = 'photo_review' AND a.status = 'proposed'
+                  AND a.expires_at > now() AND t.execution_engine = 'v4' AND t.status = 'completed'
+                  AND a.arguments #>> '{path,task_id}' = :task ORDER BY a.created_at DESC'''
+                ),
+                dict(chat=self.thread['conversation_id'], task=str(args.task_id)),
+            ).mappings()
+            existing = next(
+                (
+                    row
+                    for row in pending
+                    if isinstance(row.get('arguments'), dict)
+                    and isinstance(row['arguments'].get('body'), dict)
+                    and row['arguments']['body'].get('expected_revision') == arguments['body'].get('expected_revision')
+                    and bool(row['arguments']['body'].get('comparability_confirmed'))
+                    == bool(arguments['body'].get('comparability_confirmed'))
+                ),
+                None,
+            )
+            if existing:
+                self.proposal = existing['action_id']
+                return dict(
+                    action_id=str(self.proposal),
+                    status='awaiting_confirmation',
+                    tool='photo_review',
+                    summary=summary,
+                    reused=True,
+                )
             action = await service.propose(
                 self.app, session, self.principal, self.thread,
                 tool, arguments, summary, self.headers, turn_id=self.turn_id,
