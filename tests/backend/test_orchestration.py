@@ -1,5 +1,6 @@
 from datetime import date
 import json
+import threading
 import time
 from uuid import uuid4
 
@@ -12,11 +13,24 @@ from ml_service.app.forecast.synthetic import compute_snapshot_hash
 from scripts.verify_orchestration import inputs, ai_value, scenarios, verify
 
 
+def _wait_for_maintenance_ai_workers(timeout: float = 0.5) -> None:
+    """Wait for daemon timeout worker threads to release bounded_ai slots."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if not any(t.name == "maintenance-ai" and t.is_alive() for t in threading.enumerate()):
+            return
+        time.sleep(0.005)
+
+
 @pytest.mark.parametrize('name,provider,status,selected',scenarios())
 def test_forecast_safety_scenarios(name,provider,status,selected):
     snapshot,item=inputs()
     before=snapshot.model_dump_json()
-    a,b,d=compare_forecasts(snapshot,item,provider,timeout_seconds=0.005 if name=='timeout' else 1)
+    try:
+        a,b,d=compare_forecasts(snapshot,item,provider,timeout_seconds=0.005 if name=='timeout' else 1)
+    finally:
+        if name=='timeout':
+            _wait_for_maintenance_ai_workers()
     assert snapshot.model_dump_json()==before
     assert a.method=='algorithmic' and a.method_version=='calendar-rules-v3.1'
     assert a.result_id!=b.result_id and a.snapshot_sha256==b.snapshot_sha256==snapshot.content_sha256
@@ -25,7 +39,10 @@ def test_forecast_safety_scenarios(name,provider,status,selected):
 
 
 def test_report_scenarios_are_executable():
-    assert len(verify())==12
+    try:
+        assert len(verify())==12
+    finally:
+        _wait_for_maintenance_ai_workers()
 
 
 @pytest.mark.parametrize('kind', ['daily','quarter','annual'])
