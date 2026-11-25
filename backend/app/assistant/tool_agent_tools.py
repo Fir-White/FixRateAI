@@ -12,6 +12,7 @@ from sqlalchemy import text
 from app.schemas.assistant import ReportAttachAndSubmit
 from . import service
 from .attachments import MAX_FILE, jpeg_input
+from .report_target import TARGET_REQUIRED, named_order_references, resolve_report_target
 from .tool_agent import Observation
 from .tools import available, invoke, validate_arguments
 
@@ -201,10 +202,19 @@ _PHOTO_SOURCE_WORDS = {'фото', 'снимок', 'кадр', 'скриншот
 _FILENAME_PHASES = {**_PHASES, 'before':'before', 'after':'after'}
 _ATTACH_AND_SUBMIT = re.compile(
     r'(?:вот результат работы[,.]\s*)?(?:пожалуйста,\s*)?'
-    r'(?:добавь(?:те)?|прикрепи(?:те)?)(?: (?:эти )?(?:фото|снимки|кадры))? (?:в|к) отч[её]ту?'
+    r'(?:добавь(?:те)?|прикрепи(?:те)?)(?: (?:эти )?(?:фото|снимки|кадры))? (?:в|к) (?:его )?отч[её]ту?'
     r'(?:,?\s+(?:и|затем)) (?:сдай(?:те)?(?: (?:работу|отч[её]т))?'
-    r'|отправь(?:те)?(?: отч[её]т)? (?:на проверку|инженеру))[.!]?'
+    r'|отправь(?:те)?(?: отч[её]т| его)? (?:на проверку|инженеру))'
+    r'(?:\. у меня несколько открытых нарядов)?[.!]?'
 )
+
+
+def _report_command(question, *, general_chat):
+    if general_chat:
+        names = named_order_references(question)
+        if names and not question[:names[0].start()].strip():
+            question = question[names[-1].end():].lstrip(' \r\n\t.,:—-')
+    return _ATTACH_AND_SUBMIT.fullmatch(' '.join(question.casefold().split()))
 
 
 def _photo_labels(question, allow_single):
@@ -365,9 +375,19 @@ class ToolSession:
                     'submission_ready', 'missing_materials', 'acceptance_blocks', 'submission_blocks')}
         return data
 
+    def general_report_target(self):
+        if (self.thread.get('subject_task_id') or 'propose_report_attach_and_submit' not in self.definition
+                or not self.filename_photo_labels or not _report_command(self.question, general_chat=True)):
+            return None
+        with self.app.state.factory() as session:
+            target = resolve_report_target(session, self.principal, self.question)
+        if target is None:
+            raise HTTPException(422, TARGET_REQUIRED)
+        return target
+
     def named_report_arguments(self, subject):
         if ('propose_report_attach_and_submit' not in self.definition or not self.filename_photo_labels
-                or not subject or not _ATTACH_AND_SUBMIT.fullmatch(' '.join(self.question.casefold().split()))
+                or not subject or not _report_command(self.question, general_chat=not self.thread.get('subject_task_id'))
                 or not {'upload_photo','submit'}.issubset(subject.get('allowedActions', ()))):
             return None
         report = subject.get('execution')
@@ -399,17 +419,10 @@ class ToolSession:
         data = await self.backend('task_read', path=dict(task_id=args.task_id))
         task, report = data['task'], data.get('execution')
         if not subject:
-            tokens = set(self.question.casefold().translate(str.maketrans(
-                {symbol:' ' for symbol in '/?#&=.,:;!?()[]{}«»„“”"\'`'})).split())
-            tokens = [token for token in tokens if len(token) in (8,36)
-                      and all(symbol in '0123456789abcdef-' for symbol in token)]
             with self.app.state.factory() as session:
-                targets = session.scalars(text("""SELECT DISTINCT a.work_order_id FROM work_assignments a
-                    WHERE a.site_id=:site AND a.user_id=:user AND a.status NOT IN ('cancelled','declined')
-                    AND (CAST(a.work_order_id AS text)=ANY(:tokens) OR left(CAST(a.work_order_id AS text),8)=ANY(:tokens))
-                    LIMIT 2"""),dict(site=self.principal.site_id,user=self.principal.user_id,tokens=tokens)).all() if tokens else []
-            if self.read_tasks != {args.task_id} or targets != [args.task_id]:
-                raise HTTPException(422, 'Укажите точный код наряда или откройте «Спросить ИИ по наряду».')
+                target = resolve_report_target(session, self.principal, self.question)
+            if self.read_tasks != {args.task_id} or target != args.task_id:
+                raise HTTPException(422, TARGET_REQUIRED)
         if (not report or report['id'] != str(args.execution_id) or task['revision'] != args.expected_revision
                 or 'upload_photo' not in data['allowedActions'] or 'submit' not in data['allowedActions']):
             raise HTTPException(409, 'Действие доступно только автору актуального черновика отчёта.')

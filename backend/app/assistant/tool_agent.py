@@ -263,6 +263,7 @@ def _executor_history(session, principal, history):
 
 
 async def run(app, principal, thread_id, turn_id, headers):
+    from .report_target import TARGET_REQUIRED
     from .tool_agent_tools import ToolSession
 
     scope = SCOPE.set((thread_id, principal.user_id, principal.site_id, principal.role))
@@ -347,18 +348,27 @@ async def run(app, principal, thread_id, turn_id, headers):
         tools = ToolSession(app, principal, thread, turn_id, headers, files, local_date=stamp.date(),
                              last_selected_day=last_selected_day, earlier_photos=earlier_photos,
                              question=turn['content'])
-        subject = None
-        if thread.get('subject_task_id'):
+        subject, answer, allow_proposal = None, None, True
+        target, report_source = thread.get('subject_task_id'), 'chat_subject'
+        if target is None:
+            try:
+                target = tools.general_report_target()
+            except HTTPException:
+                answer = TARGET_REQUIRED
+                event(dict(tool='resolve_report_target', status='denied', source='chat_named_report'))
+            report_source = 'chat_named_report'
+        if target is not None:
             check()
             try:
-                task_args = dict(task_id=str(thread['subject_task_id']))
+                task_args = dict(task_id=str(target))
                 subject = await tools.dispatch('read_work_order', task_args)
                 evidence.append(dict(tool='read_work_order', arguments=task_args, result=subject))
-                event(dict(tool='read_work_order', status='completed', source='chat_subject'))
+                event(dict(tool='read_work_order', status='completed', source=report_source))
             except HTTPException as exc:
                 subject = dict(ok=False, code=exc.status_code, error=exc.detail)
+                if report_source == 'chat_named_report' and exc.status_code in (403, 404):
+                    answer = TARGET_REQUIRED
             check()
-        answer, allow_proposal = None, True
         report_args = tools.named_report_arguments(subject)
         if report_args:
             name = 'propose_report_attach_and_submit'
@@ -372,7 +382,7 @@ async def run(app, principal, thread_id, turn_id, headers):
             else:
                 answer = REPORT_CARD_ANSWER
             evidence.append(dict(tool=name, arguments=report_args, result=result))
-            event(dict(tool=name, status='proposed' if result.get('action_id') else 'denied', source='chat_subject'))
+            event(dict(tool=name, status='proposed' if result.get('action_id') else 'denied', source=report_source))
         dialogue = messages[1:]
         messages.append(dict(role='user', content=service.dump(mask_known_outputs(dict(
             kind='context_data', role=principal.role, site_name=principal.site_name, previous_results=previous_results,
