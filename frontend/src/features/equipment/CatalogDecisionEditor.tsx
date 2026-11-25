@@ -125,7 +125,7 @@ function BindingResults({id,q,offset,selected,onAdd,onPage}:{id:string;q:string;
   if(query.status==='loading')return <LoadingState/>;if(query.status==='error')return <ErrorState description={query.error}/>;
   return <><ul className="space-y-2">{query.data.items.map(item=><li key={item.equipment_id}><Button variant="secondary" disabled={selected.includes(item.equipment_id)||selected.length>=100} onClick={()=>onAdd(item)}>{item.asset_code} · {item.name}</Button></li>)}</ul>{!query.data.total&&<p>Действующее оборудование не найдено.</p>}<Pages offset={offset} total={query.data.total} onPage={onPage}/></>;
 }
-function Pages({offset,total,onPage}:{offset:number;total:number;onPage:(offset:number)=>void}) {return total>25&&<div className="flex flex-wrap gap-3"><Button variant="secondary" disabled={!offset} onClick={()=>onPage(offset-25)}>Предыдущие</Button><span>{offset+1}–{Math.min(offset+25,total)} из {total}</span><Button variant="secondary" disabled={offset+25>=total} onClick={()=>onPage(offset+25)}>Следующие</Button></div>;}
+function Pages({offset,total,onPage}:{offset:number;total:number;onPage:(offset:number)=>void}) {return total>25&&<div className="flex flex-wrap items-center gap-3"><Button variant="secondary" disabled={!offset} onClick={()=>onPage(offset-25)}>Предыдущие</Button><span>{offset+1}–{Math.min(offset+25,total)} из {total}</span><Button variant="secondary" disabled={offset+25>=total} onClick={()=>onPage(offset+25)}>Следующие</Button></div>;}
 function DecisionHistory({id,row}:{id:string;row:number}) {
   const [offset,setOffset]=useState(0);
   const query=useApiQuery(()=>api.history(id,row,offset),[id,row,offset],undefined,`catalog-history:${id}:${row}:${offset}`);

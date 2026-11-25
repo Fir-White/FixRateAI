@@ -62,6 +62,43 @@ select[data-open="true"],
   width: auto;
 }
 
+.fr-calendar-filterline > .fr-select,
+.ops-register-tools > .fr-select {
+  width: auto;
+  flex: 0 1 240px;
+}
+
+.ops-register-tools > .fr-select > select {
+  width: 100%;
+}
+
+@media (max-width: 767px) {
+  .fr-calendar-filterline > .fr-select,
+  .ops-register-tools > .fr-select {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+}
+
+label:not(.ui-field-label) > .field-caption {
+  display: block;
+  color: var(--color-ink-soft);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+label:not(.ui-field-label):not(.ops-search):not(.registry-tools):not(.fr-calendar-year):not(.fr-protocol-labor):not(:has(> input[type="checkbox"], > input[type="radio"])):has(> .ui-control, > .fr-select, > .fr-calendar-input, > .fr-file-field, > textarea, > select) {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  align-content: start;
+}
+
+label:not(.ui-field-label):not(.ops-search):not(.registry-tools):not(.fr-calendar-year):not(.fr-protocol-labor) > .field-caption + :is(.ui-control, .fr-select, .fr-calendar-input, .fr-file-field, textarea, select) {
+  margin-top: 0;
+}
+
 .fr-select-popover {
   position: fixed;
   z-index: 90;
