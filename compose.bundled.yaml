@@ -1,4 +1,4 @@
-# Standalone runtime for a prebuilt image with RF and CLIP weights inside.
+# Standalone runtime for a prebuilt image with RF model artifacts inside.
 services:
   db:
     image: postgres:18
@@ -21,9 +21,6 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       FIXRATE_ACTIVE_ROLES: ${FIXRATE_ACTIVE_ROLES:-chief_engineer,executor,admin}
       MAINTENANCE_SCHEDULER: ${MAINTENANCE_SCHEDULER:-true}
-      HF_HOME: /app/model-cache
-      HF_HUB_OFFLINE: "1"
-      TRANSFORMERS_OFFLINE: "1"
       PHOTO_REVIEW_TIMEOUT_SECONDS: ${PHOTO_REVIEW_TIMEOUT_SECONDS:-20}
       FORECAST_TIMEOUT_SECONDS: ${FORECAST_TIMEOUT_SECONDS:-2}
       PHOTO_REVIEW_MAX_FILES: ${PHOTO_REVIEW_MAX_FILES:-20}

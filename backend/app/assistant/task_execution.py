@@ -105,11 +105,21 @@ def checklist_text(report):
 
 def missing_report(task, report):
     missing = [f"Пункт {index} — {item['text']}" for index, item in _missing_answers(report)]
+    raw_order_equipment = task.get('equipmentIds') or (
+        [] if task.get('equipmentId') is None else [task['equipmentId']]
+    )
+    order_equipment_ids = {str(eq) for eq in raw_order_equipment if eq is not None}
     paired = {}
     for photo in report['photos']:
-        if photo.get('viewKey'):
-            paired.setdefault((photo['checklistItemId'], photo['viewKey']), set()).add(photo['phase'])
-    with_pairs = {item_id for (item_id, _), phases in paired.items() if {'before', 'after'} <= phases}
+        view_key = (photo.get('viewKey') or '').strip()
+        raw_eq = photo.get('equipmentId')
+        eq_id = str(raw_eq) if raw_eq is not None else None
+        if not view_key:
+            continue
+        if order_equipment_ids and eq_id is not None and eq_id not in order_equipment_ids:
+            continue
+        paired.setdefault((photo['checklistItemId'], view_key, eq_id), set()).add(photo['phase'])
+    with_pairs = {item_id for (item_id, _, _), phases in paired.items() if {'before', 'after'} <= phases}
     missing.extend(f"Пункт {index} — фото до и после с одного ракурса"
                    for index, item in enumerate(report['checklist'], 1)
                    if item.get('photoRequired') and item['id'] not in with_pairs)

@@ -170,28 +170,32 @@ Backend запускается с проверкой миграций; прим�
 
 ## Готовый образ с RF и CLIP внутри
 
-Для переносимого стенда используется Dockerfile.bundled поверх текущего приложения. Образ включает frontend, backend, RF и только восемь разрешённых файлов закреплённого CLIP. HF-токены, .env, БД и пользовательские фотографии в образ не копируются. Метаданные файла/размера/SHA-256 записываются в bundle-manifest.json; готовность обеих моделей проверяется в контейнере с отключённой сетью. RF обучен на synthetic_demo, CLIP оценивает видимые изменения; приёмка остаётся решением инженера.
+> Обновление (26.11.2026): CLIP и упаковка весов Hugging Face полностью удалены. Заголовок выше сохранён как ссылка для исторических отчётов; актуальный переносимый образ содержит только код, SPA и артефакты модели прогнозирования RF.
 
-Сборка на машине с уже подготовленным cache требует Docker/BuildKit и Python 3.11+; host Torch для самого упаковщика не нужен:
+Для переносимого стенда используется Dockerfile.bundled поверх текущего приложения. Образ включает frontend, backend и артефакты RF; `.env`, ключи AI Tunnel, БД и пользовательские фотографии в образ не копируются. Готовность RF-модели проверяется в контейнере с отключённой сетью. RF обучен на `synthetic_demo`, фотоанализ использует настроенного провайдера (`aitunnel` по умолчанию или явный локальный Ollama); приёмка остаётся решением главного инженера.
+
+Сборка требует Docker/BuildKit и Python 3.11+:
 
 ```powershell
-python scripts/build_bundled_image.py --cache .venv/hf-cache --tag fixrate-ai:bundled
+python scripts/build_bundled_image.py --tag fixrate-ai:bundled
 python scripts/start_local.py --bundled-image fixrate-ai:bundled
 ```
 
-Упаковщик читает pin из ml_service/app/core/config.py, копирует только выбранный snapshot, строит отдельный runtime base и image с моделями. Дополнительный build context содержит только разрешённые файлы модели. Ничего не скачивается неявно. Внутри image устанавливаются HF_HOME=/app/model-cache и offline-флаги. Ревизия исходников записывается в OCI label и FIXRATE_SOURCE_REVISION; незакоммиченная сборка явно помечается -dirty. Отчёты — reports/bundled-image, логи — logs/bundled-image, подготовленный build context — var/bundled-image.
+Упаковщик строит runtime base и `fixrate-ai:bundled`. Ревизия исходников записывается в OCI label и `FIXRATE_SOURCE_REVISION`; незакоммиченная сборка явно помечается `-dirty`. Отчёты — `reports/bundled-image`, логи — `logs/bundled-image`.
 
-start_local.py сохраняет выбранный image/profile в приватном runtime.env. Последующие --status, --stop и обычный старт используют тот же профиль. compose.bundled.yaml запускает готовый image без build и без model bind mount, с теми же postgres_data/photos volumes и адресом/паролями постоянного fixrate-local. Приложение можно обновить без удаления БД и фото. Readiness и source_revision записываются в var/compose-local/state.json.
+`start_local.py` сохраняет выбранный image/profile в приватном `runtime.env`. Последующие `--status`, `--stop` и обычный старт используют тот же профиль. `compose.bundled.yaml` запускает готовый image без build и без model bind mount, с теми же `postgres_data`/`photos` volumes и адресом/паролями постоянного `fixrate-local`. Приложение можно обновить без удаления БД и фото. Readiness и `source_revision` записываются в `var/compose-local/state.json`.
 
 Проверка именно готового образа на отдельном одноразовом проекте:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/verify_compose.py --bundled-image fixrate-ai:bundled
+# С реальным облачным фотоанализом и рекомендациями:
+.\.venv\Scripts\python.exe scripts/verify_compose.py --bundled-image fixrate-ai:bundled --cloud-ai
 ```
 
-Она проверяет отсутствие host mount для моделей, реальные RF/CLIP-вызовы, повтор обоих вызовов после restart, неизменность сохранённого сравнения и историю принятой работы после следующего restart. Для обычного профиля --ml-cache сохраняется; параметры --bundled-image и --ml-cache взаимоисключающие.
+Она проверяет отсутствие host mount для кэшей, реальный RF, статус `unavailable` (`AITUNNEL_NOT_CONFIGURED`) без ключа AI Tunnel или реальные вызовы с `--cloud-ai` / `--local-vision`, повтор после restart, неизменность сохранённого сравнения и историю принятой работы.
 
-Следующий экспорт относится к RF/CLIP-профилю. Он не включает Ollama и volume весов Qwen3.5; для подробного локального vision на новой машине дополнительно выполните prepare_local_vision.py по разделу ниже. Для переноса RF/CLIP на другую совместимую Docker-машину архивируйте оба образа — приложение и PostgreSQL, чтобы при запуске не требовалось скачивать postgres:18:
+Для переноса образа на другую совместимую Docker-машину архивируйте оба образа — приложение и PostgreSQL, чтобы при запуске не требовалось скачивать `postgres:18`:
 
 ```powershell
 docker image save --output var/bundled-image/fixrate-ai-bundled.tar fixrate-ai:bundled postgres:18
@@ -200,17 +204,17 @@ docker image load --input fixrate-ai-bundled.tar
 python scripts/start_local.py --bundled-image fixrate-ai:bundled
 ```
 
-Для такого запуска host CLIP-cache и Python ML-зависимости не нужны; достаточно Docker и стандартного Python для launcher. PostgreSQL и пользовательские файлы остаются отдельными постоянными volumes. Перенос существующих пользовательских данных требует отдельного backup/restore, image их не содержит.
+Для такого запуска Python ML-зависимости не нужны; достаточно Docker и стандартного Python для launcher. PostgreSQL и пользовательские файлы остаются отдельными постоянными volumes. Перенос существующих пользовательских данных требует отдельного backup/restore, image их не содержит.
 
 ## Локальная vision-модель для фотоотчёта
 
-Подробный разбор до/после использует отдельный Ollama-контейнер на локальном NVIDIA GPU и постоянный volume fixrate-local_vision_models. Существующие задания, приёмка, PostgreSQL/photos volumes и демо-реквизиты сохраняются. Полностью offline работает анализ; для первоначальной установки требуется интернет и около 3,33 GB весов плюс Docker image.
+Подробный разбор до/после без облачного API использует отдельный Ollama-контейнер на локальном NVIDIA GPU и постоянный volume `fixrate-local_vision_models`. Существующие задания, приёмка, PostgreSQL/photos volumes и демо-реквизиты сохраняются. Полностью offline работает анализ; для первоначальной установки требуется интернет и около 3,33 GB весов плюс Docker image.
 
 ```powershell
 # Один раз: явная загрузка закреплённых Ollama и Qwen3.5 4B.
 python scripts/prepare_local_vision.py
 # Собрать обновлённое приложение, если готовый image ещё не загружен.
-python scripts/build_bundled_image.py --cache .venv/hf-cache --tag fixrate-ai:bundled
+python scripts/build_bundled_image.py --tag fixrate-ai:bundled
 # Выбрать и сохранить локальный vision-профиль.
 python scripts/start_local.py --bundled-image fixrate-ai:bundled --local-vision
 ```
@@ -267,27 +271,23 @@ git clone --branch dev https://github.com/krangras/FixRateAI.git
 Set-Location FixRateAI
 ```
 
-Для постоянного стенда установите и запустите Docker Desktop/Engine с Compose. Native Node и PostgreSQL для этого варианта не нужны. Если закреплённый CLIP-cache уже подготовлен на этой машине, сразу используйте python scripts/start_local.py --cache "путь-к-cache". Для чистой машины сначала создайте Python 3.12 окружение и подготовьте веса:
+Для постоянного стенда установите и запустите Docker Desktop/Engine с Compose. Native Node и PostgreSQL для этого варианта не нужны. Создайте Python 3.12+ окружение с `python-dotenv`, настройте `.env` (для AI Tunnel задайте `AITUNNEL_API_KEY`) и запустите локальный стенд:
 
 ```powershell
 py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-$env:HF_HOME = Join-Path (Resolve-Path .venv).Path 'hf-cache'
-.\.venv\Scripts\python.exe scripts/prepare_clip.py --download
-.\.venv\Scripts\python.exe scripts/start_local.py --cache "$env:HF_HOME"
+Copy-Item .env.example .env
+.\.venv\Scripts\python.exe scripts/start_local.py --cloud-ai
 ```
 
-Скачивание выполняется явно один раз и требует сети. Команда без --download проверяет существующий cache offline. Веса не включены в Git; подготовка не требует проектной PostgreSQL или .env. Helper создаёт отдельный постоянный Docker-стенд, применяет миграции, выполняет demo seed, проверяет модели и печатает адрес/путь к учёткам. Без cache можно проверить API с контролируемым MODEL_NOT_READY через обычный [Compose](#чистая-postgresql-и-compose); start_local.py требует готовности обеих моделей.
+Helper создаёт отдельный постоянный Docker-стенд, применяет миграции, выполняет demo seed, проверяет конфигурацию моделей и печатает адрес/путь к учёткам. Без облачного ключа и без `--local-vision` сервис запускается в штатном режиме: RF-прогноз работает, а фотоанализ честно возвращает контролируемое состояние `unavailable` (`AITUNNEL_NOT_CONFIGURED`).
 
 ## Постоянный локальный стенд для тестирования
 
-Проверенная сборка dev запущена 04.11.2026 как Compose-проект fixrate-local: **http://127.0.0.1:8000**, Swagger — /docs, готовность — /api/health. Это один FastAPI со SPA, PostgreSQL 18 и реальные RF/CLIP. Текущий bundled-профиль содержит CLIP внутри image; прежний профиль compose.ml.yaml читает подготовленный read-only host cache. Адрес 5173 относится к отдельному Vite-процессу, для этого стенда используйте 8000. Созданные данные и фотографии сохраняются между запусками.
-
-Из корня D:\FixRate AI\FixRate_AI:
+Compose-проект `fixrate-local`: **http://127.0.0.1:8000**, Swagger — `/docs`, готовность — `/api/health`. Это один FastAPI со SPA, PostgreSQL 18, RF и облачным/локальным vision-анализом. Адрес 5173 относится к отдельному Vite-процессу, для этого стенда используйте 8000. Созданные данные и фотографии сохраняются между запусками.
 
 ```powershell
-python scripts/start_local.py
+python scripts/start_local.py --cloud-ai
 # Последующие старты без изменения исходников:
 python scripts/start_local.py --no-build
 python scripts/start_local.py --status
@@ -295,9 +295,9 @@ python scripts/start_local.py --status
 python scripts/start_local.py --stop
 ```
 
-[start_local.py](../../scripts/start_local.py) использует только стандартную библиотеку Python и работающий Docker Desktop/Engine. При первом запуске нужен подготовленный cache .venv/hf-cache (другой путь: --cache); --port выбирает порт, по умолчанию первый свободный из 8000/8080/8090. Windows-путь Docker Desktop определяется автоматически, доступен --docker. Helper строит образ, применяет миграции через launcher, явно выполняет seed-demo, проверяет обе модели и health, оставляет контейнеры работать в фоне.
+[start_local.py](../../scripts/start_local.py) использует стандартную библиотеку Python (и `python-dotenv` для чтения `.env`) и работающий Docker Desktop/Engine. `--port` выбирает порт, по умолчанию первый свободный из 8000/8080/8090. Helper строит образ, применяет миграции через launcher, явно выполняет seed-demo, проверяет модели и health, оставляет контейнеры работать в фоне.
 
-Приватная конфигурация находится в var/compose-local/runtime.env. Она генерируется один раз, сохраняет пароль PostgreSQL, отдельный пароль demo-аккаунтов, порт и путь к cache; существующий .env другого checkout не читается и не заменяется. Повторный seed не сбрасывает существующие пароли, задания, приёмку и фотографии. При наличии volumes без соответствующей приватной конфигурации helper отказывается генерировать новые пароли. --stop вызывает down без удаления volumes; автоматического удаления БД нет.
+Приватная конфигурация находится в `var/compose-local/runtime.env`. Она генерируется один раз, сохраняет пароль PostgreSQL, отдельный пароль demo-аккаунтов и порт; повторный seed не сбрасывает существующие пароли, задания, приёмку и фотографии. При наличии volumes без соответствующей приватной конфигурации helper отказывается генерировать новые пароли. `--stop` вызывает `down` без удаления volumes; автоматического удаления БД нет.
 
 Учётки и общий локальный пароль записаны в **var/compose-local/accounts.txt** и исключены из Git. Сам пароль не помещается в документацию, исходники, журналы или build context.
 
@@ -309,9 +309,9 @@ python scripts/start_local.py --stop
 | Исполнитель | fixrate-demo-1@example.test |
 | Работники демонстрационной бригады | fixrate-assignment-1@example.test, fixrate-assignment-2@example.test, fixrate-assignment-3@example.test |
 
-Роль определяется сервером после входа, переключение — через выход и вход другой учёткой. Для одновременной проверки разных ролей используйте отдельные браузерные профили. На момент проверки оставлены исходное назначенное задание, отдельное календарное задание для двух допущенных работников и принятый синтетический пример с парой PNG/JPEG. Можно выполнить назначенное задание, сдать отчёт и принять его из учётки инженера; real CLIP не принимает работу автоматически. Неподтверждённые нормативы заказчика по-прежнему требуют ввода данных, а не искусственного успешного расчёта.
+Роль определяется сервером после входа, переключение — через выход и вход другой учёткой. Для одновременной проверки разных ролей используйте отдельные браузерные профили. Можно выполнить назначенное задание, сдать отчёт и принять его; AI-фотоанализ не принимает работу автоматически.
 
-Состояние/ID учебных заданий — var/compose-local/state.json, журналы — logs/local, протоколы — reports/local. [Фактическая проверка запуска](verification.md#04112026-постоянный-локальный-стенд), [общий контракт ML](ml.md#контракт-интеграции-backend-и-ml).
+Состояние/ID учебных заданий — `var/compose-local/state.json`, журналы — `logs/local`, протоколы — `reports/local`. [Фактическая проверка запуска](verification.md#04112026-постоянный-локальный-стенд), [общий контракт ML](ml.md#контракт-интеграции-backend-и-ml).
 
 ## Код и пространства имён
 
@@ -319,16 +319,16 @@ python scripts/start_local.py --stop
 
 ## Установка и запуск
 
-Для native ML-профиля используйте Python 3.12, Node 24 и PostgreSQL 18. Создание роли и отдельной БД описано в [подготовке PostgreSQL](#чистая-postgresql-и-compose); выполните его до миграций в блоке ниже. Python-зависимости backend, RF, CLIP и тестов зафиксированы в `requirements.txt` (59 пакетов проверенного профиля). Frontend использует `package-lock.json` и `npm ci`.
+Для native-запуска используйте Python 3.12+, Node 24 и PostgreSQL 18. Создание роли и отдельной БД описано в [подготовке PostgreSQL](#чистая-postgresql-и-compose); выполните его до миграций в блоке ниже. Python-зависимости backend, RF, AI Tunnel vision и тестов зафиксированы в `requirements.txt`. Frontend использует `package-lock.json` и `npm ci`.
 
 PowerShell, из корня проекта:
 
 ```powershell
 py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 # Отредактируйте DATABASE_URL: новая проектная PostgreSQL, не рабочая БД с чужими данными.
+# Для AI Tunnel задайте AITUNNEL_API_KEY в приватном .env.
 $env:PYTHONPATH = "backend;."
 .\.venv\Scripts\python.exe -m app.manage migrate
 .\.venv\Scripts\python.exe -m app.manage seed-demo
@@ -370,12 +370,12 @@ Linux/macOS: `python3.12 -m venv .venv`, `.venv/bin/python` вместо Windows
 | `DATABASE_URL` | `postgresql+psycopg://…`; обязательно |
 | `PHOTO_STORAGE_ROOT` | Каталог файлов, по умолчанию `var/photos`; не внутри публичной статики |
 | `COOKIE_SECURE` | `false` для loopback HTTP; `true` для HTTPS |
-| `HF_HOME` | Native cache моделей; для helper по умолчанию используйте .venv/hf-cache |
+| `PHOTO_REVIEW_PROVIDER` | Провайдер фотоанализа: `aitunnel` (по умолчанию) или `ollama` |
+| `AITUNNEL_API_KEY` | Приватный ключ AI Tunnel для облачного фотоанализа, прогноза и чата |
 | `CORS_ORIGINS` | Настройка CORS middleware; не отменяет same-origin проверку API. Для Vite используется proxy |
 | `VITE_DEMO_MODE` | По умолчанию false; true создаёт явно демонстрационную SPA с fixtures, без реальных изменений |
-| `FORECAST_TIMEOUT_SECONDS` | Дедлайн одного RF-вызова в (0, 5], по умолчанию 2; календарный бюджет 8 секунд сохраняется |
+| `FORECAST_TIMEOUT_SECONDS` | Дедлайн одного RF-вызова в (0, 5], по умолчанию 2 (для `aitunnel` — до 120); календарный бюджет 8 секунд сохраняется |
 | `PHOTO_REVIEW_MAX_FILES`, `PHOTO_REVIEW_MAX_BYTES` | Пакет анализа: 20 фото / 50 МиБ по умолчанию; общий upload-лимит одного файла не меняется |
-| `CLIP_CACHE_ROOT` | Только compose.ml.yaml: существующий локальный HF cache, read-only |
 | `PHOTO_REVIEW_TIMEOUT_SECONDS` | Ожидание CV: число в (0, 120], по умолчанию 20; неверное значение останавливает запуск |
 | `POSTGRES_PASSWORD`, `FIXRATE_PORT` | Только Compose: hex-пароль отдельной БД и внешний loopback-порт (8000 по умолчанию) |
 | `TEST_DATABASE_URL` | Только исходные ORM тесты; пустая база `fixrate_test_*` |
@@ -401,42 +401,22 @@ docker compose ps
 docker compose exec app python -m app.manage seed-demo
 ```
 
-Seed интерактивно запрашивает отдельный пароль demo-пользователей. Адрес http://127.0.0.1:8000, /docs и /api/health; FIXRATE_PORT позволяет выбрать другой локальный порт. PostgreSQL наружу не публикуется. Именованные volumes сохраняют БД и фото; docker compose down останавливает стенд с сохранением данных. Контейнер приложения работает пользователем uid 10001, использует CPU PyTorch, не получает .env/var/секреты в build context. Автомиграция выполняется до старта API; demo seed и скачивание весов не выполняются. Без локальных CLIP-весов фотоанализ честно unavailable; прогнозы используют регламентный fallback. Для реального CLIP подготовьте cache отдельно и подключите HF_HOME volume, как описано в разделе моделей.
+Seed интерактивно запрашивает отдельный пароль demo-пользователей. Адрес http://127.0.0.1:8000, /docs и /api/health; FIXRATE_PORT позволяет выбрать другой локальный порт. PostgreSQL наружу не публикуется. Именованные volumes сохраняют БД и фото; docker compose down останавливает стенд с сохранением данных. Контейнер приложения работает пользователем uid 10001, не получает .env/var/секреты в build context. Автомиграция выполняется до старта API; demo seed не выполняется автоматически. Без ключа AI Tunnel фотоанализ честно возвращает unavailable (`AITUNNEL_NOT_CONFIGURED`); прогнозы RF работают локально.
 
 Инфраструктура для публичного доступа, TLS, backup/restore и мониторинг требуют отдельной задачи. Состояние фактической сборки/прогона контейнера — в [аудите backend](verification.md#04112026-аудит-backend-и-устранение-блокеров).
 
 ## Запуск с двумя ML-инструментами
 
-RF и manifest включены в data/models и образ; notebooks не нужны. Для CLIP подготовьте закреплённый Hugging Face cache заранее через scripts/prepare_clip.py --download из полного Python 3.12 окружения. Если cache уже есть, команда без --download проверяет его offline. HTTP никогда не скачивает веса.
-
-Native PowerShell:
+RF и manifest включены в `data/models` и образ; notebooks не нужны. Основной провайдер фотоанализа — AI Tunnel (`PHOTO_REVIEW_PROVIDER=aitunnel`, профиль `compose.cloud.yaml`); локальный альтернативный профиль — `compose.vision.yaml` с Ollama.
 
 ```powershell
-$env:HF_HOME = "D:\models\fixrate-hf"
-.\.venv\Scripts\python.exe scripts/prepare_clip.py --download
-.\.venv\Scripts\python.exe scripts/start_backend.py
-```
-
-Укажите существующий подготовленный cache для Compose в корневой .env: CLIP_CACHE_ROOT — абсолютный путь на машине с Docker. Затем:
-
-```powershell
-docker compose -f compose.yaml -f compose.ml.yaml config --quiet
-docker compose -f compose.yaml -f compose.ml.yaml up --build -d
-# Только для нового demo-стенда:
-docker compose -f compose.yaml -f compose.ml.yaml exec app python -m app.manage seed-demo
-```
-
-Профиль монтирует cache read-only и запрещает сеть для Hugging Face-клиента. Публичный доступ backend и остальных библиотек этим флагом не отключается. Веса не добавляются в образ и не копируются в Git. Для остановки используйте тот же набор -f; данные volumes сохраняются.
-
-Повтор реальных сервисных end-to-end вызовов двух HTTP-маршрутов на уникальном временном стенде:
-
-```powershell
-python -B scripts/verify_compose.py --ml-cache "D:\models\fixrate-hf"
-# Отдельно проверить контролируемую недоступность CLIP:
+# Проверка с реальным AI Tunnel (нужен ключ в .env):
+python -B scripts/verify_compose.py --cloud-ai
+# Отдельно проверить контролируемую недоступность без облачного ключа:
 python -B scripts/verify_compose.py
 ```
 
---docker принимает путь к docker.exe, если CLI отсутствует в PATH. Скрипт не читает проектный .env, создаёт свой пароль/порт/проект, проверяет RF/CLIP и Pydantic-ответы в PostgreSQL, журналы/роли/фото, затем удаляет только собственные контейнеры и volumes. Без --ml-cache модель CLIP обязана вернуть MODEL_NOT_READY; с --ml-cache требуются реальный model_ref и непустые scores. Это отдельные профили, они не заменяют друг друга. [Контракт параметров, лимитов и версий](ml.md#контракт-интеграции-backend-и-ml); [протоколы](verification.md#04112026-два-ml-инструмента-в-backend).
+`--docker` принимает путь к `docker.exe`, если CLI отсутствует в PATH. Скрипт не читает проектный `.env` в базовом запуске (кроме `--cloud-ai`), создаёт свой пароль/порт/проект, проверяет RF/vision и Pydantic-ответы в PostgreSQL, журналы/роли/фото, затем удаляет только собственные контейнеры и volumes. Без `--cloud-ai`/`--local-vision` фотоанализ обязан вернуть `unavailable`; с `--cloud-ai` или `--local-vision` проверяется реальный `model_ref` и структурированные `assessment`. [Контракт параметров, лимитов и версий](ml.md#контракт-интеграции-backend-и-ml); [протоколы](verification.md#04112026-два-ml-инструмента-в-backend).
 
 ## Что хранится в var
 
@@ -453,26 +433,21 @@ python -B scripts/verify_compose.py
 | `var/backups` | Частные дампы перед изменениями схемы; это резервные копии, а не заменяемые тестовые fixtures |
 | `var/local-demo/postgres.start.*.log` | Два открытых потока работающей PostgreSQL; Windows не позволяет их переместить. Они остаются до штатного обслуживания СУБД |
 
-Параметры подключения, путь к фотохранилищу и путь к cache весов задаются в корневом .env. Сами фотографии хранятся по PHOTO_STORAGE_ROOT, веса — в HF_HOME; содержимое файлов не переносится в .env. Новые журналы пишутся в logs, результаты проверок — в reports, сохраняемые входные материалы и модели — в data. Временные PostgreSQL-кластеры полного runner создаются в системном TEMP и удаляются самим runner; рабочий кластер из var он не использует. Полная карта размещения находится в [development](development.md#структура-репозитория).
+Параметры подключения и путь к фотохранилищу задаются в корневом `.env`. Сами фотографии хранятся по `PHOTO_STORAGE_ROOT`; содержимое файлов не переносится в `.env`. Новые журналы пишутся в `logs`, результаты проверок — в `reports`, сохраняемые входные материалы и модели — в `data`. Временные PostgreSQL-кластеры полного runner создаются в системном TEMP и удаляются самим runner; рабочий кластер из `var` он не использует. Полная карта размещения находится в [development](development.md#структура-репозитория).
 
 ## Проверки
 
-### Полный Python-стек и локальные веса CLIP
+### Полный Python-стек
 
-`pip install -r requirements.txt` устанавливает библиотеки для backend, ML/CV и тестов одним списком. Веса CLIP устанавливаются отдельно: они не являются Python-пакетом, не включаются в Git и не скачиваются API во время запроса.
+`pip install -r requirements.txt` устанавливает библиотеки для backend, ML/CV (RF и AI Tunnel vision) и тестов одним списком.
 
 ```powershell
-$env:HF_HOME = Join-Path (Resolve-Path .venv).Path 'hf-cache'
-.\.venv\Scripts\python.exe scripts/prepare_clip.py --download
-$env:FIXRATE_REQUIRE_CLIP = '1'
 .\.venv\Scripts\python.exe scripts/verify.py --browser --pg-bin "C:\Program Files\PostgreSQL\18\bin"
 ```
 
-`--download` нужен для явной подготовки отсутствующих весов закреплённой ревизии. Если cache уже подготовлен, `scripts/prepare_clip.py` без флага проверяет готовность полностью локально. `FIXRATE_REQUIRE_CLIP=1` требует настоящий model_ref в HTTP-проверке; unavailable или подставной классификатор такой прогон не заменяют. Эти проверки подтверждают исполнение модели, но не её точность на заказчике.
+Штатный `verify.py` сбрасывает облачные ключи, чтобы обычная регрессия не тратила баланс и проверяла детерминированное поведение `unavailable`. Для реальных облачных/локальных проверок используется `scripts/verify_compose.py --cloud-ai` или `--local-vision`.
 
-При запуске приложения сохраняйте тот же HF_HOME, в котором подготовлены веса. Если backend уже работал без нужных пакетов/весов, после их подготовки перезапустите его командой scripts/start_backend.py из раздела установки.
-
-Пути .venv/cv в старых протоколах относятся к окружению того запуска и не гарантируют его наличие в другом checkout. Для нового native-стенда создайте .venv на Python 3.12 по инструкции выше; проверенный контейнерный ML-профиль также использует Python 3.12. Каждый checkout использует собственный .env.
+Пути `.venv/cv` в старых протоколах относятся к окружению того запуска и не гарантируют его наличие в другом checkout. Для нового native-стенда создайте `.venv` на Python 3.12+ по инструкции выше. Каждый checkout использует собственный `.env`.
 
 Основная команда из корня:
 
@@ -509,16 +484,16 @@ npm.cmd --prefix frontend audit --audit-level=moderate
 - 409: перечитайте карточку; параллельный запрос мог уже увеличить revision. Повторная сдача/приёмка не создаёт дубликатов, но универсального Idempotency-Key store пока нет.
 - `MISSING_CHECKLIST` / `MISSING_BINDING`: запись в БД не содержит согласованного входа; заполнение не подменяется fixtures.
 - `UNCONFIRMED_RULE`: seed намеренно не утверждает неоднозначные правила заказчика. Нужно предметное подтверждение, а не снятие проверки.
-- `MODEL_NOT_READY` / `CLIP_MODEL_UNAVAILABLE`: проверьте manifest, артефакт, установку корневого requirements.txt и локальный cache весов. Отсутствие ML не означает успешный прогноз.
+- `MODEL_NOT_READY` / `AITUNNEL_NOT_CONFIGURED`: проверьте manifest, артефакт RF или ключ/конфигурацию AI Tunnel (а при выборе `ollama` — локальный сервис). Отсутствие ML не означает успешный прогноз или подтверждение работы.
 - Нет `ui` payload в старом сравнении: нужны дополнительные достоверные поля и backfill. Старые записи не удалены.
 
 Физическая модель и проектные DTO содержат ещё не покрытые отображением сценарии. Поддержка нескольких единиц оборудования в одном наряде остаётся в repository; нынешняя форма загрузки фото требует ровно одну единицу и возвращает 422 для неоднозначного наряда. Проекции SPA показывают основное оборудование наряда; расширение для нескольких единиц требует отдельного UI, а не потери исходных связей в БД.
 
 ## Границы поставки
 
-В репозитории есть Dockerfile, compose.yaml/compose.ml.yaml, постоянный локальный launcher и GitHub Actions для синхронизации GitVerse. Автоматического CI-прогона полного набора тестов в GitHub Actions, nginx/TLS-конфигурации, мониторинга и проверенного backup/restore пока нет. Проектный ориентир 4 CPU / 8 ГБ RAM не является измеренным ресурсным бюджетом. Для внешней эксплуатации нужны отдельные замеры, резервирование БД/фото/моделей, ограничения запросов и политика регистрации.
+В репозитории есть Dockerfile, compose.yaml, профили `compose.cloud.yaml`/`compose.vision.yaml`, постоянный локальный launcher и GitHub Actions для синхронизации GitVerse. Автоматического CI-прогона полного набора тестов в GitHub Actions, nginx/TLS-конфигурации, мониторинга и проверенного backup/restore пока нет. Проектный ориентир 4 CPU / 8 ГБ RAM не является измеренным ресурсным бюджетом. Для внешней эксплуатации нужны отдельные замеры, резервирование БД/фото/моделей, ограничения запросов и политика регистрации.
 
-Последовательность Compose: health PostgreSQL → launcher --migrate с остановкой при ошибке → API → app healthcheck. Volumes postgres_data и photos сохраняют данные; подготовленные веса подключаются отдельным read-only volume в ML-профиле. /api/health проверяет SELECT 1, а не качество или готовность AI; готовность обеих моделей проверяют start_local.py и отдельный контейнерный сценарий. Прогрев CLIP при startup API автоматически не вызывается; библиотечный warmup() доступен отдельно, см. [ML/CV](ml.md).
+Последовательность Compose: health PostgreSQL → launcher --migrate с остановкой при ошибке → API → app healthcheck. Volumes postgres_data и photos сохраняют данные; для облачного фотоанализа и диалога используется AI Tunnel по `AITUNNEL_API_KEY`. /api/health проверяет SELECT 1, а не качество или готовность AI; готовность проверяют `start_local.py` и отдельный контейнерный сценарий. Подробнее в [ML/CV](ml.md) и [AI Tunnel](aitunnel.md).
 
 ## Связи
 

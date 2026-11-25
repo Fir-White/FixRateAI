@@ -230,6 +230,7 @@ export interface EvidencePhoto {
   capturedAt: string | null;
   uploadedAt: string;
   checklistItemId: string;
+  equipmentId?: string | null;
   status: "uploaded" | "processing" | "rejected";
 }
 

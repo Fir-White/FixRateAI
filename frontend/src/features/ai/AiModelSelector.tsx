@@ -103,10 +103,10 @@ export function AiModelSelector({
         {/* Provider selection chips */}
         <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Провайдер нейросети">
           <FilterChip
-            active={settings.provider === "clip"}
-            onClick={() => handleProviderSelect("clip")}
+            active={settings.provider === "aitunnel"}
+            onClick={() => handleProviderSelect("aitunnel")}
           >
-            ⚡ CLIP (CPU)
+            ☁️ AI Tunnel (Облако)
           </FilterChip>
           <FilterChip
             active={settings.provider === "ollama"}
@@ -114,21 +114,9 @@ export function AiModelSelector({
           >
             🖥️ Ollama (Локально)
           </FilterChip>
-          <FilterChip
-            active={settings.provider === "aitunnel"}
-            onClick={() => handleProviderSelect("aitunnel")}
-          >
-            ☁️ AI Tunnel (Облако)
-          </FilterChip>
         </div>
 
         {/* Details based on selected provider */}
-        {settings.provider === "clip" && (
-          <p className="text-xs leading-5 text-muted">
-            Быстрая встроенная модель CLIP ViT-B/32 на CPU. Базовый регламентный анализ без сторонних сервисов.
-          </p>
-        )}
-
         {settings.provider === "ollama" && (
           <div className="space-y-2 pt-1">
             <div className="flex items-center gap-2">
@@ -227,10 +215,10 @@ export function AiModelSelector({
       {/* Provider Selector Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-line pb-4" role="radiogroup" aria-label="Провайдер нейросети">
         <FilterChip
-          active={settings.provider === "clip"}
-          onClick={() => handleProviderSelect("clip")}
+          active={settings.provider === "aitunnel"}
+          onClick={() => handleProviderSelect("aitunnel")}
         >
-          ⚡ CLIP (CPU)
+          ☁️ Облачный AI Tunnel
         </FilterChip>
         <FilterChip
           active={settings.provider === "ollama"}
@@ -238,28 +226,9 @@ export function AiModelSelector({
         >
           🖥️ Локальная Ollama
         </FilterChip>
-        <FilterChip
-          active={settings.provider === "aitunnel"}
-          onClick={() => handleProviderSelect("aitunnel")}
-        >
-          ☁️ Облачный AI Tunnel
-        </FilterChip>
       </div>
 
       {/* Selected Provider Form */}
-      {settings.provider === "clip" && (
-        <div className="space-y-4 rounded-xl border border-line bg-surface/30 p-5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-ink">Встроенный классификатор CLIP</h3>
-            <Badge tone="success">Доступен всегда</Badge>
-          </div>
-          <p className="text-xs leading-6 text-ink-soft">
-            Модель <code>openai/clip-vit-base-patch32</code> работает локально на CPU без внешних вызовов и без интернета.
-            Быстро оценивает соответствие фото регламенту ТО.
-          </p>
-        </div>
-      )}
-
       {settings.provider === "ollama" && (
         <div className="space-y-4 rounded-xl border border-line bg-surface/30 p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">

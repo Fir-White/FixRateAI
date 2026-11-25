@@ -119,7 +119,7 @@ class Observation:
     resources: tuple[dict, ...] = ()
 
 
-async def run_loop(client, messages, specs, dispatch, check, *, evidence=None, on_event=None, seconds=120):
+async def run_loop(client, messages, specs, dispatch, check, *, evidence=None, on_event=None, seconds=120, vision_capable=True):
     evidence = [] if evidence is None else evidence
     names = {spec['function']['name'] for spec in specs}
     seen = {}
@@ -202,11 +202,14 @@ async def run_loop(client, messages, specs, dispatch, check, *, evidence=None, o
                             if photo.get('image_index', 0) > len(selected):
                                 photo.pop('image_index')
                             photos.append(photo)
-                        result = {**result, 'photos': photos, 'images_supplied': len(selected)}
-                        if selected:
+                        result = {**result, 'photos': photos, 'images_supplied': len(selected) if vision_capable else 0}
+                        if selected and vision_capable:
                             visual_messages.append(dict(role='user', images=list(selected), content=service.dump(dict(
                                 kind='report_photos', call_id=call['id'],
                                 photos=[photo for photo in photos if 'image_index' in photo]))))
+                        elif selected:
+                            result['vision_required'] = True
+                            result['note'] = 'Текущая чат-модель не принимает изображения напрямую; вызовите call_photo_agent(task_id=...) для осмотра.'
                     else:
                         result = observed
                 except HTTPException as exc:
@@ -223,6 +226,8 @@ async def run_loop(client, messages, specs, dispatch, check, *, evidence=None, o
                     return _assignment_answer(result), evidence
                 if name == 'propose_report_attach_and_submit' and result.get('action_id') and result.get('status') == 'awaiting_confirmation':
                     return REPORT_CARD_ANSWER, evidence
+                if name == 'propose_photo_review' and result.get('action_id') and result.get('status') == 'awaiting_confirmation':
+                    return 'Подготовлена карточка запуска анализа фотографий. Подтвердите действие в карточке; решение о приёмке остаётся за главным инженером.', evidence
             messages.append(dict(role='tool', tool_call_id=call['id'], tool_name=name, content=service.dump(result)))
         messages.extend(visual_messages)
     raise TimeoutError
@@ -381,15 +386,24 @@ async def run(app, principal, thread_id, turn_id, headers):
             action_cards=[dict(row) for row in actions], selected_work_order=subject), known))))
         question = mask_known_outputs(turn['content'], known)
         current = dict(role='user', content=question)
+        from .model_catalog import model_supports_vision
+        vision_capable = model_supports_vision(app, turn['model_selection'])
+        if thread.get('agent') == 'photo':
+            messages[0]['content'] += '\n\n' + (service.PROMPTS / 'photo.md').read_text(encoding='utf-8')
         if files and answer is None:
             images = image_inputs(app, files)
             current['content'] = service.dump(dict(message=question, attachments=[public(row) for row in files],
                                                     decoded_images=len(images)))
-            if images:
+            if images and vision_capable:
                 messages[0]['content'] += (
                     f'\nСервер успешно декодировал {len(images)} изображений в текущем сообщении и передаёт пиксели. '
                     'Если деталей не видно, это ограничение содержимого снимка, а не сбой загрузки.')
                 current['images'] = images
+            elif images:
+                messages[0]['content'] += (
+                    f'\nСервер декодировал {len(images)} изображений в текущем сообщении, но выбранная чат-модель не поддерживает прямой просмотр фото. '
+                    'Чтобы проанализировать эти фотографии, обязательно вызови call_photo_agent с идентификаторами вложений; '
+                    'никогда не угадывай содержимое фото по имени файла или описанию наряда.')
         messages.append(current)
         if answer is None:
             factory = getattr(app.state, 'assistant_provider_factory', None)
@@ -404,7 +418,7 @@ async def run(app, principal, thread_id, turn_id, headers):
         if answer is None:
             specs = [spec for spec in tools.specs if allow_proposal or spec['function']['name'] != 'propose_assignment']
             answer, _ = await run_loop(client, messages, specs, tools.dispatch, check, evidence=evidence,
-                                       on_event=event, seconds=deadline-time.monotonic())
+                                       on_event=event, seconds=deadline-time.monotonic(), vision_capable=vision_capable)
             attempted = next((row for row in reversed(evidence) if row['tool'] == 'propose_assignment'), None)
             if attempted:
                 answer = _assignment_answer(attempted['result'])

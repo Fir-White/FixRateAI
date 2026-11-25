@@ -69,11 +69,11 @@ def test_case01_contradiction_yields_no_false_approval():
     fixtures = load_fixtures()
     guard = ImageQualityGuard()
 
-    # Test under heuristic baseline
-    res_heuristic = evaluate_single_case("CASE-01", "heuristic_baseline", fixtures, guard)
-    assert res_heuristic["evidence_status"] != "approved"
-    assert res_heuristic["evidence_status"] == "manual_review"
-    assert not res_heuristic["is_false_reassurance"]
+    # Test under unconfigured AI Tunnel baseline (no CLIP/heuristic fallback)
+    res_unconfigured = evaluate_single_case("CASE-01", "aitunnel_unconfigured", fixtures, guard)
+    assert res_unconfigured["evidence_status"] != "approved"
+    assert res_unconfigured["evidence_status"] == "manual_review"
+    assert not res_unconfigured["is_false_reassurance"]
 
     # Test under guarded VLM
     res_guarded = evaluate_single_case("CASE-01", "guarded_vlm", fixtures, guard)

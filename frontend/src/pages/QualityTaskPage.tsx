@@ -154,8 +154,8 @@ export function QualityTaskPage() {
             </div>
           </Card>
 
-          {query.data.photoAnalysisStatus === "pending" && <Callout tone="neutral"><div className="flex flex-wrap items-center justify-between gap-2"><p role="status">Фотографии анализируются автоматически. Результат появится здесь без обновления страницы; запуск инженером не требуется.</p><AnalysisTimerBadge active /></div></Callout>}
-          {canAnalyze && query.data.photoAnalysisStatus !== "pending" && (!review || ["failed","unavailable"].includes(review.status)) && <div className="space-y-4 rounded-xl border border-line p-4">
+          {query.data.photoAnalysisStatus === "pending" && <Callout tone="neutral"><div className="flex flex-wrap items-center justify-between gap-2"><p role="status">Выполняется анализ фотографий…</p><AnalysisTimerBadge active /></div></Callout>}
+          {canAnalyze && query.data.photoAnalysisStatus !== "pending" && <div className="space-y-4 rounded-xl border border-line p-4">
             <div className="flex flex-wrap items-center gap-3">
               <Button variant="secondary" disabled={busy} onClick={async () => {
                 const startedAt = performance.now();
@@ -170,9 +170,9 @@ export function QualityTaskPage() {
                   setLastMeasured({ reviewId: res.id, elapsedMs: res.elapsedMs ?? Math.round(performance.now() - startedAt) });
                   setRefresh(n => n+1);
                 }
-                catch (error) { setNotice(error instanceof Error ? error.message : "Ошибка анализа"); }
+                catch (error) { setNotice(error instanceof Error ? error.message : "Не удалось выполнить анализ фотографий"); }
                 finally { setBusy(false); setAnalyzing(false); }
-              }}>{analyzing?"Фотографии анализируются…":review?"Повторить анализ":"Анализировать фото"}</Button>
+              }}>{analyzing ? "Фотографии анализируются…" : !review ? "Анализировать фото" : ["failed", "unavailable"].includes(review.status) ? "Повторить анализ" : "Обновить анализ"}</Button>
               <AnalysisTimerBadge active={analyzing} />
               {analyzing&&<p role="status" className="text-sm leading-6 text-muted">Модель сравнивает фотографии с заданием. Дождитесь результата; повторно нажимать кнопку не нужно.</p>}
             </div>

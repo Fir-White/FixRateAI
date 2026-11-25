@@ -2,6 +2,8 @@
 
 # FixRate AI
 
+[Фотоанализ через AI Tunnel, отказ от CLIP и требования к фото, 26.11.2026](docs/releases/2026-11-26-aitunnel-photo-review.md) — удаление CLIP, AI Tunnel по умолчанию, фотоагент и контроль `photo_required`.
+
 [Объединение ассистента, CR‑17, ML, материалов и E3, 25.11.2026](docs/releases/2026-11-25-dev-integration.md) — состав интеграции, миграции и проверки.
 
 [Обновление CR‑17 в dev, 23.11.2026](docs/releases/2026-11-23-dev-cr17-catalog-and-acceptance.md) — исходные XLSX, поиск в каталоге и приёмка главным инженером.
@@ -179,7 +181,7 @@ docs/          архитектура, спецификации, решения 
 
 ## Быстрый старт
 
-Для локального запуска нужны Git, Python и работающий Docker Desktop / Docker Engine с Compose. По умолчанию локальному профилю необходимы подготовленные веса CLIP; подробные требования и инструкции приведены в [руководстве по запуску](docs/service/runtime.md).
+Для локального запуска нужны Git, Python и работающий Docker Desktop / Docker Engine с Compose. Для облачного анализа фотографий и диалога через AI Tunnel используется `AITUNNEL_API_KEY`; подробные требования и инструкции приведены в [руководстве по запуску](docs/service/runtime.md) и [AI Tunnel](docs/service/aitunnel.md).
 
 Для новой машины доступна [инструкция первого запуска](docs/service/first-run.md): подготовка Python и Docker, выбор AI-профиля, первый вход и остановка с сохранением данных.
 

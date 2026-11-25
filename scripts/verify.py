@@ -45,12 +45,11 @@ def main():
     # Test destinations are created here, never accepted from the calling shell.
     # Ordinary regression must never spend the user's cloud balance or inherit secrets.
     # The explicit verify_compose.py --cloud-ai profile performs real external checks.
-    env.update(PHOTO_REVIEW_PROVIDER="clip", FORECAST_PROVIDER="rf", AITUNNEL_API_KEY="", AI_TUNNEL_API_KEY="")
+    env.update(PHOTO_REVIEW_PROVIDER="aitunnel", FORECAST_PROVIDER="rf", AITUNNEL_API_KEY="", AI_TUNNEL_API_KEY="")
     env.pop("DATABASE_URL", None)
     env.pop("TEST_DATABASE_URL", None)
     env.pop("INTEGRATION_DATABASE_URL", None)
     env.pop("VITE_DEMO_MODE", None)
-    env["PHOTO_REVIEW_PROVIDER"] = "clip"  # Dedicated local-vision checks run separately.
     pg_port = unused_port()
     scratch = Path(tempfile.mkdtemp(prefix="fixrate-verify-"))
     pg_data = scratch / "postgres"

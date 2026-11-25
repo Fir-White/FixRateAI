@@ -17,9 +17,8 @@ import { WorkspaceSite } from "@/layouts/WorkspaceSite";
 import "./profile.css";
 
 const AI_PROVIDER_LABELS: Record<string, string> = {
-  clip: "⚡ Встроенный CLIP (CPU)",
-  ollama: "🖥️ Локальная Ollama",
   aitunnel: "☁️ Облачный AI Tunnel",
+  ollama: "🖥️ Локальная Ollama",
 };
 
 export function ProfilePage() {

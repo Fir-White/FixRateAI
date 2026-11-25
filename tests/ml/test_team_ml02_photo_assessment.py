@@ -22,7 +22,7 @@ from ml_service.app.cv.assessment import (
     check_assessment_staleness,
     compute_blob_sha256,
 )
-from ml_service.app.cv.classifier import HeuristicFallbackClassifier
+from ml_service.app.cv.aitunnel import review_cloud_photos
 from tests.ml.test_cv import make_test_jpeg
 
 
@@ -197,26 +197,17 @@ def test_model_unavailability_maps_to_manual_review_never_approved():
         assert any("ручную оценку" in r for r in assessment.recommended_engineer_actions)
 
 
-def test_heuristic_fallback_classifier():
-    """Verify HeuristicFallbackClassifier is importable, deterministic, and conservative."""
-    clf = HeuristicFallbackClassifier()
-    assert clf.is_available is True
-    assert clf.model_name == "heuristic:quality-guard-baseline"
-
-    item_id = uuid4()
-    b_id = uuid4()
-    a_id = uuid4()
-    rev = clf.evaluate_pair(
-        checklist_item_id=item_id,
-        before_photo_id=b_id,
-        after_photo_id=a_id,
-        before_bytes=make_test_jpeg("dirty"),
-        after_bytes=make_test_jpeg("clean_serviced"),
-    )
-
-    assert rev.verdict == "uncertain"
-    assert rev.checklist_item_id == item_id
-    assert "ручная приёмка инженером" in rev.observation
+def test_unconfigured_cloud_vision_returns_unavailable_never_heuristic(canonical_photo_review_request, monkeypatch):
+    """When AI Tunnel is unconfigured, photo review MUST return explicit unavailable without CLIP/heuristic fallback."""
+    monkeypatch.delenv("AITUNNEL_API_KEY", raising=False)
+    monkeypatch.delenv("AI_TUNNEL_API_KEY", raising=False)
+    photos = canonical_photo_review_request.photos
+    storage = {photos[0].photo_id: make_test_jpeg("dirty"), photos[1].photo_id: make_test_jpeg("clean_serviced")}
+    res = review_cloud_photos(canonical_photo_review_request, lambda pid: storage[pid])
+    assert res.status == "unavailable"
+    assert res.error_code == "AITUNNEL_NOT_CONFIGURED"
+    assert res.model_ref is None
+    assert len(res.item_results) == 0
 
 
 def test_omitted_comparability_cannot_approve_defaults_to_manual_review():
@@ -298,38 +289,18 @@ def test_with_staleness_check_method_updates_assessment_state():
     assert stale.is_stale is True
 
 
-def test_service_review_photos_with_heuristic_fallback(canonical_photo_review_request):
-    """Calling review_photos with fallback_to_heuristic=True uses HeuristicFallbackClassifier."""
-    from ml_service.app.cv.service import review_photos
-
-    class MissingClassifier:
-        is_torch_active = False
-
+def test_cloud_vision_outage_does_not_fallback_to_fake_heuristic(canonical_photo_review_request):
+    """An unavailable cloud vision provider MUST stay unavailable rather than inventing heuristic observations."""
+    from ml_service.app.cv.local_vision import ProviderFailure
+    class FailingClient:
+        def check_model(self):
+            raise ProviderFailure("AITUNNEL_UNAVAILABLE")
     photos = canonical_photo_review_request.photos
     storage = {photos[0].photo_id: make_test_jpeg("dirty"), photos[1].photo_id: make_test_jpeg("clean_serviced")}
-
-    # 1. Without fallback -> unavailable
-    res_no_fb = review_photos(
-        canonical_photo_review_request,
-        lambda pid: storage[pid],
-        classifier=MissingClassifier(),
-        fallback_to_heuristic=False,
-    )
-    assert res_no_fb.status == "unavailable"
-    assert res_no_fb.error_code == "MODEL_NOT_READY"
-    assert len(res_no_fb.item_results) == 0
-
-    # 2. With fallback -> uncertain items with heuristic baseline observation
-    res_fb = review_photos(
-        canonical_photo_review_request,
-        lambda pid: storage[pid],
-        classifier=MissingClassifier(),
-        fallback_to_heuristic=True,
-    )
-    assert res_fb.status == "uncertain"
-    assert len(res_fb.item_results) == 1
-    assert res_fb.item_results[0].verdict == "uncertain"
-    assert "Эвристический baseline" in res_fb.item_results[0].observation
+    res = review_cloud_photos(canonical_photo_review_request, lambda pid: storage[pid], client=FailingClient())
+    assert res.status == "unavailable"
+    assert res.error_code == "AITUNNEL_UNAVAILABLE"
+    assert res.item_results == []
 
 
 def test_case_01_en_dash_and_em_dash_contradiction_overrides_positive_comparability():

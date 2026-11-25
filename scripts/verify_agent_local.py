@@ -171,7 +171,7 @@ def environment(parent: dict[str, str], guard_directory: Path, model: dict[str, 
         ASSISTANT_PROVIDER='ollama', OLLAMA_CHAT_BASE_URL=model['base_url'],
         OLLAMA_CHAT_MODEL=model['model'], OLLAMA_CHAT_DIGEST=model['digest'],
         OLLAMA_CHAT_TIMEOUT_SECONDS='180' if live else '240', OLLAMA_CHAT_NUM_CTX=str(num_ctx),
-        PHOTO_REVIEW_PROVIDER='clip', FORECAST_PROVIDER='rf',
+        PHOTO_REVIEW_PROVIDER='aitunnel', FORECAST_PROVIDER='rf',
         HF_HUB_OFFLINE='1', TRANSFORMERS_OFFLINE='1', HF_DATASETS_OFFLINE='1',
         FIXRATE_AGENT_LIVE='1' if live else '0', FIXRATE_SCENARIOS_LIVE='0',
     )

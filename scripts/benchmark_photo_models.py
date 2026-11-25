@@ -35,10 +35,9 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "backend"), str(ROOT)]
 
-from ml_service.app.cv.classifier import CLIPZeroShotClassifier, HeuristicFallbackClassifier
+from ml_service.app.cv.aitunnel import review_cloud_photos
 from ml_service.app.cv.guardrails import VisualGuardrailPolicy
 from ml_service.app.cv.quality import ImageQualityGuard
-from ml_service.app.cv.service import review_photos
 from ml_service.app.schemas import (
     ChecklistItem,
     ItemPhotoReview,
@@ -78,7 +77,6 @@ def evaluate_single_case(
     model_type: str,
     fixtures: dict[str, Any],
     guard: ImageQualityGuard,
-    clip_clf: CLIPZeroShotClassifier | None = None,
 ) -> dict[str, Any]:
     """Evaluates a single photo case under specified model candidate."""
     source = fixtures["source"]
@@ -128,24 +126,12 @@ def evaluate_single_case(
 
     start_t = time.perf_counter()
 
-    if model_type == "heuristic_baseline":
-        # Pure heuristic: ImageQualityGuard + VisualGuardrailPolicy + HeuristicFallbackClassifier (no neural weights)
-        res = review_photos(
+    if model_type == "aitunnel_unconfigured":
+        # Cloud vision adapter without key/endpoint: must fail safely as unavailable, never fallback to CLIP/heuristic
+        res = review_cloud_photos(
             req,
             photo_loader=store.__getitem__,
-            quality_guard=guard,
-            classifier=HeuristicFallbackClassifier(),
             comparability_confirmed=None,
-        )
-    elif model_type == "local_clip":
-        # Local CLIP Zero-Shot with Guardrails and Quality (or fallback if weights unavailable)
-        active_clf = clip_clf if (clip_clf is not None and clip_clf.is_torch_active) else None
-        res = review_photos(
-            req,
-            photo_loader=store.__getitem__,
-            quality_guard=guard,
-            classifier=active_clf,
-            comparability_confirmed=lambda b, a: not is_cross_eval,
         )
     elif model_type in ("naive_vlm", "guarded_vlm"):
         # VLM assessment adhering strictly to ground truth visual constraints
@@ -295,26 +281,15 @@ def evaluate_single_case(
 def run_benchmark() -> dict[str, Any]:
     fixtures = load_fixtures()
     guard = ImageQualityGuard()
-    clip_clf = CLIPZeroShotClassifier()
-    if clip_clf.is_torch_active:
-        clip_clf.warmup()
 
     models = [
         {
-            "id": "heuristic_baseline",
-            "name": "Heuristic Quality & Guardrail Baseline",
-            "type": "heuristic",
-            "compute": "CPU only (< 50MB RAM)",
+            "id": "aitunnel_unconfigured",
+            "name": "AI Tunnel Unavailable Guardrail",
+            "type": "vision_guardrail",
+            "compute": "CPU guardrail only",
             "cost_per_1000": "$0.00",
-            "tl04_compliance": "100% on-device (zero egress)",
-        },
-        {
-            "id": "local_clip",
-            "name": "Local CLIP Zero-Shot (ViT-B/32)",
-            "type": "neural_embedding",
-            "compute": "CPU / GPU (~350MB RAM)",
-            "cost_per_1000": "$0.00",
-            "tl04_compliance": "100% on-device (zero egress)",
+            "tl04_compliance": "100% explicit unavailable status (no fallback)",
         },
         {
             "id": "naive_vlm",
@@ -367,7 +342,6 @@ def run_benchmark() -> dict[str, Any]:
                     model_type=mid,
                     fixtures=fixtures,
                     guard=guard,
-                    clip_clf=clip_clf if mid == "local_clip" else None,
                 )
                 eval_res["partition"] = part_name
                 model_runs.append(eval_res)

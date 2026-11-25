@@ -31,8 +31,7 @@ def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--docker',default=docker or 'docker')
     models=parser.add_mutually_exclusive_group()
-    models.add_argument('--ml-cache',type=Path,help='Require real CLIP using an existing read-only host cache')
-    models.add_argument('--bundled-image',help='Use a prebuilt local image containing RF and CLIP weights')
+    models.add_argument('--bundled-image',help='Use a prebuilt local image containing RF weights')
     parser.add_argument('--local-vision',action='store_true',help='Require real prepared Ollama vision alongside --bundled-image')
     parser.add_argument('--cloud-ai',action='store_true',help='Use real AI Tunnel; requires a private key in .env')
     parser.add_argument('--photo-before',type=Path,help='Optional private before photo for the isolated QA task')
@@ -44,8 +43,6 @@ def main():
         parser.error('--local-vision requires --bundled-image')
     if bool(args.photo_before) != bool(args.photo_after):
         parser.error('Provide both --photo-before and --photo-after')
-    if args.ml_cache and not args.ml_cache.resolve().is_dir():
-        parser.error('--ml-cache must point to an existing cache directory')
     output,logs=prepare_run(prefix='compose')
     project='fixrate-qa-'+uuid4().hex[:12]
     with socket.socket() as sock:
@@ -60,9 +57,6 @@ def main():
     compose_file='compose.bundled.yaml' if args.bundled_image else 'compose.yaml'
     base=[args.docker,'compose','--project-name',project,'--file',str(ROOT/compose_file),
           '--env-file',str(envfile),'--project-directory',str(ROOT)]
-    if args.ml_cache:
-        env['CLIP_CACHE_ROOT']=str(args.ml_cache.resolve())
-        base.extend(['--file',str(ROOT/'compose.ml.yaml')])
     if args.local_vision:
         prepared=json.loads((ROOT/'var/local-vision/model.json').read_text(encoding='utf-8'))
         env.update(OLLAMA_IMAGE=prepared['image'],OLLAMA_VISION_MODEL=prepared['model'],
@@ -223,19 +217,14 @@ def main():
             assert result['modelRef']==expected and result['status'] in ('completed','uncertain') and result['errorCode'] is None
             assert any(item.get('assessment') for item in result['items'])
             results.append(dict(check='actual_structured_vision',passed=True,model_ref=expected))
-        elif args.ml_cache or args.bundled_image:
-            from ml_service.app.core.config import settings
-            expected=f'{settings.clip_model_name}@{settings.clip_revision}'
-            assert result['modelRef']==expected and result['status'] in ('completed','uncertain') and result['errorCode'] is None
         else:
-            assert result['status']=='unavailable' and result['modelRef'] is None and result['errorCode']=='MODEL_NOT_READY'
+            assert result['status']=='unavailable' and result['modelRef'] is None and result['errorCode'] in ('AITUNNEL_NOT_CONFIGURED','MODEL_NOT_READY')
         saved=command('cv_persistence','exec','-T','db','psql','-U','fixrate','-d','fixrate','-At','-c',
             "SELECT findings->'canonical' FROM ai_quality_checks WHERE ai_quality_check_id='"+result['id']+"';")
         from app.schemas.maintenance import PhotoReviewResult
         canonical=PhotoReviewResult.model_validate_json(saved.strip())
         assert str(canonical.ai_review_id)==result['id'] and canonical.model_ref==result['modelRef']
         if args.local_vision or args.cloud_ai: assert any(item.visual_assessment for item in canonical.item_results)
-        elif args.ml_cache or args.bundled_image: assert any(item.scores for item in canonical.item_results)
         results.append(dict(check='both_canonical_models_persisted',passed=True))
         # Restart while submitted, then call both real tools again through the API.
         saved_run=http('comparison_before_restart',engineer,prefix+'/ui/comparisons/'+run['runId'])['run']
@@ -298,10 +287,10 @@ def main():
             results.append(dict(check='missing_cloud_key_persisted_and_regulatory_fallback',passed=True))
         repeated_cv=http('cv_after_restart',engineer,prefix+f'/tasks/{task}/photo-review',method='POST',csrf=csrf,
             body=dict(expected_revision=bundle['task']['revision']))
-        if args.ml_cache or args.bundled_image or args.cloud_ai:
+        if args.local_vision or args.cloud_ai:
             assert repeated_cv['modelRef']==result['modelRef'] and repeated_cv['errorCode'] is None
         else:
-            assert repeated_cv['status']=='unavailable' and repeated_cv['errorCode']=='MODEL_NOT_READY'
+            assert repeated_cv['status']=='unavailable' and repeated_cv['modelRef'] is None and repeated_cv['errorCode'] in ('AITUNNEL_NOT_CONFIGURED','MODEL_NOT_READY')
         results.append(dict(check='both_ml_tools_invoked_after_restart',passed=True))
         bundle=http('accept',engineer,prefix+f'/tasks/{task}/review',method='POST',csrf=csrf,body=dict(expected_revision=bundle['task']['revision'],execution_id=bundle['execution']['id'],verdict='accepted',reason='Compose smoke acceptance'))
         assert bundle['task']['state']=='accepted'

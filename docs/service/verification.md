@@ -1,5 +1,14 @@
 # Проверки и доказательства
 
+## 26.11.2026 — удаление CLIP и переход на AI Tunnel для фотоанализа
+
+Проверка ветки `feat/aitunnel-photo-review` (поверх `dev` `f395879`) после исправлений по замечаниям аудита. В данном окружении нет установленной PostgreSQL (`pg_ctl`/`initdb`), собранных Docker-образов проекта и приватного ключа AI Tunnel.
+
+- Полный `pytest -q` без PostgreSQL и облачного ключа: **1677 passed, 1640 skipped, 1 xfailed** (71,49 с). Целевой пакет [test_photo_analysis_and_requirements.py](../../tests/backend/test_photo_analysis_and_requirements.py) и [test_model_bundle.py](../../tests/backend/test_model_bundle.py) проверяет пооперационное требование `photo_required`, привязку пары «до/после» к `equipment_id` и `view_key` на реальной `validate_submission_evidence` и в `task_execution.missing_report`, запрет передачи сырых изображений текстовым чат-моделям, передачу реальных JPEG-байтов через `call_photo_agent`, подготовку карточки `propose_photo_review` (без дублирования и с передачей dict-контекста диалога) и удаление упаковки CLIP из `build_bundled_image.py` / `compose.bundled.yaml` / `deploy/compose.yaml`. Пропущенные 1640 тестов требуют живой PostgreSQL (`TEST_DATABASE_URL`/`INTEGRATION_DATABASE_URL`) и/или реального AI-провайдера.
+- Статические и контрактные проверки: `python -m compileall -q backend/app ml_service scripts tests` (PASS), `pip check` (`No broken requirements found`), `scripts/assistant_capabilities.py --write` (190 инструментов, без неучтённых пользовательских маршрутов), `scripts/assistant_acceptance_matrix.py --write` (190 операций, 769 ячеек) и `scripts/validate_artifacts.py` (`OK: 27 JSON examples; 3 comparison sets; 10 negative checks; schema matches; 1823 local links; 22 diagram edges; S01..S15 present`).
+- Фронтенд: `npm --prefix frontend run typecheck` (PASS), production-сборка `npm --prefix frontend run build` (PASS, 510 модулей) и полный Vitest `npm --prefix frontend test -- --run --no-file-parallelism` (**74/74 файла, 658/658 тестов пройдены** за 154,88 с, с использованием `--no-file-parallelism` во избежание CPU-таймаутов навигационных тестов).
+- Ограничения: интеграционные прогоны PostgreSQL 18 (`scripts/verify.py`), контейнерная проверка Compose (`scripts/verify_compose.py`), реальный вызов AI Tunnel с ключом (`--cloud-ai`) и браузерный Playwright E2E на этой машине не запускались. [Срез итерации](../releases/2026-11-26-aitunnel-photo-review.md).
+
 ## 25.11.2026 — интеграция dev
 
 - Исходный `476858d` воспроизводил отказы RAG после преобразования LF в CRLF на Windows. Сохранены исходные байты пяти документов корпуса, SHA‑256 не ослаблен; 47 тестов Dynamic RAG прошли на том же окружении.

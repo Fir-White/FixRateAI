@@ -245,6 +245,7 @@ class Views:
         photos = [dict(id=str(p.evidence_file_id), phase=p.stage, viewKey=p.view_key or "",
                        label=p.storage_key.rsplit("/", 1)[-1], capturedAt=iso(p.captured_at),
                        uploadedAt=iso(p.uploaded_at), checklistItemId=str(p.checklist_item_id) if p.checklist_item_id else "",
+                       equipmentId=str(p.equipment_id) if p.equipment_id else None,
                        status="uploaded", url=f"/api/v1/maintenance/photos/{p.evidence_file_id}")
                   for p in self.rows("evidence_files", work_report_id=report.work_report_id) if p.stage in ("before","after")]
         return dict(id=str(report.work_report_id), taskId=str(report.work_order_id), attemptNumber=report.revision_no,

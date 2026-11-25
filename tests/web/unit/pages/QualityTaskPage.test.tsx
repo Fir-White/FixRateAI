@@ -34,12 +34,12 @@ function setup(data: TaskBundle) {
 beforeEach(() => {
   vi.clearAllMocks();
   clearAiKey();
-  saveStoredAiSettings({ provider: "clip", model: "", apiKey: "" });
-  vi.mocked(maintenanceApi.getAiModels).mockResolvedValue({ current_provider: "clip", providers: [
-    { id: "clip", name: "CLIP", description: "Локальная модель", available: true, models: [] },
+  saveStoredAiSettings({ provider: "aitunnel", model: "", apiKey: "" });
+  vi.mocked(maintenanceApi.getAiModels).mockResolvedValue({ current_provider: "aitunnel", providers: [
     { id: "aitunnel", name: "AI Tunnel", description: "Облачная модель", available: true, has_server_key: false, models: [
-      { id: "qwen3.7-flash", name: "Qwen3.7 Flash" }, { id: "qwen2.5-vl-72b-instruct", name: "Qwen2.5-VL" },
+      { id: "qwen3.7-flash", name: "Qwen3.7 Flash" }, { id: "qwen3.8-flash", name: "Qwen3.8 Flash" },
     ] },
+    { id: "ollama", name: "Ollama", description: "Локальная модель", available: false, models: [] },
   ] });
 });
 
@@ -60,12 +60,11 @@ it("passes the provider, model and session key selected by the engineer to retry
   setup(bundle(["photo_review", "review"], failedReview));
   expect(screen.queryByRole("button", { name: /AI Tunnel \(Облако\)/ })).not.toBeInTheDocument();
   await user.click(await screen.findByText("Настройки фотоанализа", { exact: true }));
-  await user.click(await screen.findByRole("button", { name: /AI Tunnel \(Облако\)/ }));
-  await user.selectOptions(await screen.findByLabelText("Облачная модель"), "qwen2.5-vl-72b-instruct");
+  await user.selectOptions(await screen.findByLabelText("Облачная модель"), "qwen3.8-flash");
   await user.type(screen.getByLabelText("Персональный API-ключ"), "test-session-key");
   await user.click(screen.getByRole("button", { name: "Повторить анализ" }));
   await waitFor(() => expect(maintenanceApi.photoReview).toHaveBeenCalledWith("task", 7, false, {
-    provider: "aitunnel", model: "qwen2.5-vl-72b-instruct", api_key: "test-session-key",
+    provider: "aitunnel", model: "qwen3.8-flash", api_key: "test-session-key",
   }));
   expect(window.localStorage.getItem("fixrate_ai_settings")).not.toContain("test-session-key");
 });
@@ -76,8 +75,23 @@ it("does not attach a retry duration to an older review returned by a stale read
   setup(bundle(["photo_review"], failedReview));
   await user.click(await screen.findByRole("button", { name: "Повторить анализ" }));
   await waitFor(() => expect(maintenanceApi.getQualityBundle).toHaveBeenCalledTimes(2));
-  await screen.findByText("Не удалось выполнить фотоанализ");
+  await screen.findByText(/Не удалось выполнить анализ фотографий/);
   expect(screen.queryByText("Время анализа: 1.4 сек")).not.toBeInTheDocument();
+});
+
+it("allows the engineer to re-run analysis even when a completed review already exists", async () => {
+  const user = userEvent.setup();
+  const completed: PhotoReview = {
+    ...failedReview,
+    status: "completed",
+    modelRef: "aitunnel:qwen3.7-flash",
+    items: [{ id: "check", label: "Осмотр", verdict: "visible_change", note: "Поверхность чистая." }],
+  };
+  vi.mocked(maintenanceApi.photoReview).mockResolvedValue({ ...completed, id: "refreshed" });
+  setup({ ...bundle(["photo_review", "review"], completed), photoAnalysisStatus: "ready" });
+  const refreshBtn = await screen.findByRole("button", { name: "Обновить анализ" });
+  await user.click(refreshBtn);
+  await waitFor(() => expect(maintenanceApi.photoReview).toHaveBeenCalledTimes(1));
 });
 
 it.each([
