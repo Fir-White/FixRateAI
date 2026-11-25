@@ -24,7 +24,7 @@ describe("AiModelSelector and aiSettings", () => {
 
   it("keeps the model preference across tabs while the personal key stays in this session", () => {
     expect(getStoredAiSettings()).toEqual({
-      provider: "clip",
+      provider: "ollama",
       model: "",
       apiKey: "",
     });
@@ -78,18 +78,11 @@ describe("AiModelSelector and aiSettings", () => {
     }
   });
 
-  it("renders compact mode and allows switching providers", async () => {
-    saveStoredAiSettings({ provider: "clip", model: "", apiKey: "" });
+  it("renders compact mode without CLIP and allows switching providers", async () => {
+    saveStoredAiSettings({ provider: "ollama", model: "", apiKey: "" });
     vi.mocked(maintenanceApi.getAiModels).mockResolvedValueOnce({
-      current_provider: "clip",
+      current_provider: "ollama",
       providers: [
-        {
-          id: "clip",
-          name: "Встроенный CLIP (CPU)",
-          description: "Локальный классификатор",
-          available: true,
-          models: [{ id: "openai/clip-vit-base-patch32", name: "CLIP ViT-B/32" }],
-        },
         {
           id: "ollama",
           name: "Локальная Ollama",
@@ -116,17 +109,8 @@ describe("AiModelSelector and aiSettings", () => {
 
     render(<AiModelSelector variant="compact" />);
 
-    // Initially on CLIP
-    expect(screen.getByText(/CLIP \(CPU\)/)).toBeInTheDocument();
-    expect(await screen.findByText(/Быстрая встроенная модель CLIP/)).toBeInTheDocument();
-
-    // Switch to Ollama
-    fireEvent.click(screen.getByText(/Ollama \(Локально\)/));
-
-    await waitFor(() => {
-      expect(screen.getByText(/Ollama активна/)).toBeInTheDocument();
-    });
-
+    expect(screen.queryByText(/CLIP/i)).toBeNull();
+    expect(await screen.findByText(/Ollama активна/)).toBeInTheDocument();
     expect(getStoredAiSettings().provider).toBe("ollama");
 
     // Switch to AI Tunnel
@@ -138,13 +122,6 @@ describe("AiModelSelector and aiSettings", () => {
     vi.mocked(maintenanceApi.getAiModels).mockResolvedValue({
       current_provider: "aitunnel",
       providers: [
-        {
-          id: "clip",
-          name: "CLIP",
-          description: "CLIP",
-          available: true,
-          models: [],
-        },
         {
           id: "ollama",
           name: "Ollama",

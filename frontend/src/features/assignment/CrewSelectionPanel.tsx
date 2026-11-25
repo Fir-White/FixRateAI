@@ -1,5 +1,5 @@
 import { dateTimeFormatter } from "@/shared/lib/dateTimeFormatter";
-import { FieldCaption, Input } from "@/shared/ui/Form";
+import { FieldCaption, Input, Select } from "@/shared/ui/Form";
 import { useEffect, useRef, useState } from "react";
 import { maintenanceApi } from "@/shared/api/maintenance";
 import { ApiError } from "@/shared/api/request";
@@ -88,12 +88,11 @@ function Picker({context, taskTitle, equipmentName, saving, setSaving, onAssigne
           </label>
         </div>
         <label className="block space-y-1 text-sm"><FieldCaption>Состав
-          </FieldCaption><select aria-label="Состав" disabled={saving} value={crew} onChange={event => {invalidate(); setCrew(event.target.value);}}
-            className="w-full rounded-lg border border-line bg-canvas p-3 text-ink">
+          </FieldCaption><Select aria-label="Состав" disabled={saving} value={crew} onChange={event => {invalidate(); setCrew(event.target.value);}}>
             <option value="">Автоматический подбор работников</option>
             <option value="@individual">Работники без постоянной бригады</option>
             {context.crewChoices.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
+          </Select>
         </label>
         <Button type="submit" disabled={busy || saving || !start || !end}>{busy ? "Подбор…" : "Найти бригаду"}</Button>
         <p className="text-xs text-muted">Поиск предлагает состав и время. Предложение ещё не сохранено. При подтверждении доступность и допуски проверяются повторно.</p>

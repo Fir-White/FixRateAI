@@ -58,7 +58,7 @@ describe("app routes", () => {
     expect(await screen.findByText("Тепловой пункт №1")).toBeInTheDocument();
   });
 
-  it.each([["director", "Обзор объекта"], ["executor", "Мои задания"], ["engineer", "Рабочий день инженера"]])("returns %s to their role home from a direct link", async (role, heading) => {
+  it.each([["director", "Обзор объекта"], ["executor", "С чего начнём рабочий день?"], ["engineer", "Рабочий день инженера"]])("returns %s to their role home from a direct link", async (role, heading) => {
     const user=userEvent.setup();window.localStorage.setItem("fixrate.demo.role",role);
     render(<SessionProvider><MemoryRouter initialEntries={["/equipment", "/profile"]} initialIndex={1}><AppRouter /></MemoryRouter></SessionProvider>);
     await screen.findByRole("heading",{name:"Мой профиль"});
@@ -70,7 +70,7 @@ describe("app routes", () => {
   it("returns through previously visited sections without looping", async () => {
     const user=userEvent.setup();renderAt("/executor", "executor", true);
     const back=()=>screen.getByText("Назад в истории браузера",{selector:"button"});
-    await pageHeading("Мои задания");
+    await pageHeading("С чего начнём рабочий день?");
     await user.click(headerLink("Оборудование"));
     await pageHeading("Оборудование");
     await user.click(headerLink("Учётная запись"));
@@ -78,7 +78,7 @@ describe("app routes", () => {
     await user.click(back());
     await pageHeading("Оборудование");
     await user.click(back());
-    expect(await pageHeading("Мои задания")).toBeVisible();
+    expect(await pageHeading("С чего начнём рабочий день?")).toBeVisible();
     expect(screen.queryByText("Назад",{selector:"button"})).not.toBeInTheDocument();
   });
 
@@ -237,6 +237,11 @@ const PAGE_ROUTES: { path: string; role: string; heading: string }[] = [
   },
   {
     path: "/executor",
+    role: "executor",
+    heading: "С чего начнём рабочий день?",
+  },
+  {
+    path: "/executor/tasks",
     role: "executor",
     heading: "Мои задания",
   },

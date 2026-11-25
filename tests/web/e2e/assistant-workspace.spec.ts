@@ -13,7 +13,7 @@ test.describe('unified assistant workspace on isolated TEST data',()=>{
     await page.screenshot({path:info.outputPath(`welcome-${width}.png`),fullPage:true});
     const openHistory=async()=>{if(width<1280)await page.getByRole('button',{name:'Открыть историю чатов'}).click();};
     await openHistory();
-    if(width>=1280){const rail=await page.getByRole('complementary',{name:'История диалогов'}).boundingBox(),composer=await input.boundingBox();expect(rail!.x).toBeGreaterThan(composer!.x+composer!.width);}
+    if(width>=1280){const rail=await page.getByRole('complementary',{name:'История диалогов'}).boundingBox(),composer=await input.boundingBox();expect(rail!.x+rail!.width).toBeLessThanOrEqual(composer!.x);}
     else{await expect(page.getByRole('dialog',{name:'История диалогов'})).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('button',{name:'Открыть историю чатов'})).toBeFocused();await openHistory();}
     await page.getByRole('button',{name:/TEST ONLY long chat profile/}).click();await expect(page).toHaveURL(new RegExp(`chat=${fixture.thread}`));
     const region=page.getByRole('region',{name:'Сообщения'});await expect(region.locator('article')).toHaveCount(25);

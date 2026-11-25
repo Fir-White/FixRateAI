@@ -15,7 +15,8 @@ for(const [role,home] of Object.entries(homes)){
     await page.goto('/');await expect(page).toHaveURL(new RegExp(home+'$'));
     const menu=page.getByRole('navigation',{name:'Основная навигация'});
     if(role==='executor'){
-      await expect(page.getByRole('heading',{name:'Мои задания'})).toBeVisible();
+      await expect(page.getByRole('heading',{name:'С чего начнём рабочий день?'})).toBeVisible();
+      await expect(page.getByRole('heading',{name:'Мои задания'})).toHaveCount(0);
       await expect(menu.getByRole('link')).toHaveCount(4);
       await expect(menu.getByRole('link',{name:'Планирование ТО'})).toHaveCount(0);
       await menu.getByRole('link',{name:'Мои отчёты'}).click();
