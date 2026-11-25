@@ -73,7 +73,9 @@ describe("role access and links on every screen", () => {
         if (section && section !== "login") expect(access[section], href).toContain(role);
       }
       if (allowed && role === "executor" && path === "/calendar") {
-        expect(screen.queryByRole("button", {name: "Рассчитать график", hidden: true})).not.toBeInTheDocument();
+        const calculate = /^(?:Рассчитать|Пересчитать) график$/;
+        expect(screen.queryByText(calculate, {selector:"button"})).not.toBeInTheDocument();
+        expect(screen.queryByLabelText(calculate, {selector:"button"})).not.toBeInTheDocument();
       }
     },
   );

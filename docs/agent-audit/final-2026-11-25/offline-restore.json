@@ -1,0 +1,12 @@
+{
+  "restored": true,
+  "match": true,
+  "business_table_row_counts": {
+    "work_orders": 992,
+    "work_assignments": 26,
+    "work_reports": 353,
+    "evidence_files": 1,
+    "work_consumptions": 3,
+    "acceptance_reviews": 342
+  }
+}

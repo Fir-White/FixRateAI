@@ -1,0 +1,20 @@
+{
+  "engine": "v4",
+  "provider": "aitunnel",
+  "model": "deepseek-v4.1-flash-1017",
+  "vision": "deepseek-v4.1-flash-1017",
+  "api_timeout_s": 100,
+  "charging_cap_rub": 60.0,
+  "provider_call_cap": 420,
+  "tariff_rub_per_million": {
+    "input": 6,
+    "output": 40
+  },
+  "tariff_source": "https://api.aitunnel.ru/public/aitunnel/models",
+  "preflight_prompt_reserve_tokens": 1048576,
+  "host": "127.0.0.3",
+  "port": 8771,
+  "db": "fixrate_test_final_admission_live_main",
+  "workers": false,
+  "fixture": "synthetic only"
+}

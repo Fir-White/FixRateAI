@@ -267,6 +267,7 @@ class Views:
     def bundle(self, order):
         checked_at = datetime.now(ZoneInfo(self.principal.timezone))
         task = self.task_view(order, checked_at=checked_at)
+        task["maintenanceRuleId"] = str(order.maintenance_rule_id) if order.maintenance_rule_id else None
         reports = self.rows("work_reports", work_order_id=order.work_order_id)
         report = max(reports, key=lambda r: r.revision_no) if reports else None
         reviews = self.rows("acceptance_reviews", work_order_id=order.work_order_id)

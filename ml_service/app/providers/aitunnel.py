@@ -153,6 +153,8 @@ class AITunnelClient:
                 raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE", reason='refusal')
             if not isinstance(message.get("content"), str) and not (tools and message.get("tool_calls")):
                 raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE", reason='invalid_message')
+            if tools is not None and "<｜DSML｜" in (message.get("content") or ""):
+                raise AITunnelFailure("AITUNNEL_INVALID_RESPONSE", reason='tool_syntax')
             diagnostic["content_characters"] = len(message.get("content") or "")
             diagnostic["stage"] = "model"
             actual_model = envelope.get("model")
@@ -236,11 +238,15 @@ class AITunnelClient:
             return self.chat(messages, None, tokens, tools=tools)
         except AITunnelFailure as exc:
             diagnostic = self.response_diagnostics[-1]
-            if str(exc) != 'AITUNNEL_INVALID_RESPONSE' or diagnostic.get('finish_reason') != 'length' or self.deadline-time.monotonic() < 8:
+            truncated = diagnostic.get('finish_reason') == 'length'
+            if (str(exc) != 'AITUNNEL_INVALID_RESPONSE' or not (truncated or exc.reason == 'tool_syntax')
+                    or self.deadline-time.monotonic() < 8):
                 raise
             # The incomplete reply has not left the transport or dispatched tools.
             diagnostic['repair_requested'] = True
-            return self.chat([*messages, dict(role='system', content=(
-                'Предыдущий ответ не уместился в лимит. Ответь коротко по уже проверенным данным; '
+            instruction = ('Предыдущий ответ не уместился в лимит. Ответь коротко по уже проверенным данным; '
                 'не повторяй историю, не додумывай отсутствующие факты. Если без чтения нельзя ответить, '
-                'сделай не более одного необходимого вызова из доступных инструментов.'))], None, tokens, tools=tools)
+                'сделай не более одного необходимого вызова из доступных инструментов.' if truncated else
+                'Предыдущий ответ вернул служебную разметку вместо вызова инструмента. '
+                'Используй штатный вызов из доступных инструментов или ответь обычным текстом, если данных достаточно.')
+            return self.chat([*messages, dict(role='system', content=instruction)], None, tokens, tools=tools)

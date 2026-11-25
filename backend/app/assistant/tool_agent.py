@@ -1,6 +1,7 @@
 """One native tool-calling loop. Business decisions and access stay on the server."""
 import asyncio
 import json
+import re
 import time
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
@@ -17,6 +18,8 @@ from starlette.requests import Request
 from app.security.sessions import authenticate
 from . import service
 from .attachments import SCOPE, image_inputs, public
+from .grounding import regulation_effectivity_answer
+from .report_target import TARGET_REQUIRED, named_order_references
 from .tools import EXPECTED_PRINCIPAL, conversation_enrollment_values, mask_known_outputs
 
 PROMPT_VERSION = 'fixrate-tool-calling-v4'
@@ -25,6 +28,38 @@ MAX_CALLS = 12
 MAX_SCOPE_IDS = 160
 REPORT_CARD_ANSWER = ('Проверьте привязку снимков в карточке. После подтверждения фото сохранятся, '
                       'а отчёт уйдёт инженеру только при полном комплекте.')
+_EXPLICIT_REVIEW = re.compile(
+    r'(?:(?:попробуй(?:те)?|пожалуйста|сам(?:а)?)[,\s]+)*'
+    r'(?:(?:прими(?:те)?|принять|отклони(?:те)?|отклонить)\s+'
+    r'(?:(?:мой|наш|этот|эту|данный)\s+)?(?:отч[её]т\b|наряд\b|работу\b|задание\b|[«"])'
+    r'|(?:верни(?:те)?|вернуть)\s+(?:на доработку\b|(?:отч[её]т|наряд|работу)\b[^.!?\n]{0,250}\bна доработку\b))',
+    re.IGNORECASE,
+)
+
+
+def _review_role_answer(question, role):
+    if role not in ('engineer', 'executor') or not _EXPLICIT_REVIEW.match(question.lstrip()):
+        return None
+    next_step = ('Могу проверить комплектность отчёта и материалы, но не выдумывать причину решения.' if role == 'engineer'
+                 else 'Вы можете проверить свой отчёт и передать его на проверку.')
+    return f'Принять отчёт или вернуть его на доработку может только главный инженер. {next_step}'
+
+
+def _empty_named_order_answer(question, evidence):
+    names = named_order_references(question)
+    if len(names) != 1 or not re.fullmatch(r'\s*(?:покажи(?:те)?|открой(?:те)?)\s+(?:мне\s+)?',
+                                           question[:names[0].start()], re.IGNORECASE):
+        return None
+    title = (names[0][1] or names[0][2]).strip().casefold()
+    for row in evidence:
+        args, result = row['arguments'], row['result']
+        if (row['tool'] == 'find_work_orders' and isinstance(result, dict)
+                and result.get('visibility') == 'assigned_orders' and result.get('total') == 0
+                and args.get('period', 'all') == 'all' and not set(args) - {'period', 'q', 'sort', 'offset', 'limit'}
+                and str(args.get('q', '')).strip().casefold() == title):
+            return ('Наряд с таким названием не найден среди доступных вам нарядов. '
+                    'Если работа назначена другому исполнителю, её отчёт и фото вам недоступны.')
+    return None
 
 
 class AssignmentContinuation(BaseModel):
@@ -42,7 +77,10 @@ def _assignment_answer(result):
         return f'{lead} Назначение не выполнено. Проверьте состав и нажмите «Подтвердить» в карточке.'
     detail = result.get('limitation') or result.get('error')
     suffix = f' {detail}' if isinstance(detail, str) else ' Проверьте условия назначения и попробуйте ещё раз.'
-    return 'Карточка назначения не создана.' + suffix
+    start, end = result.get('windowStartLocal'), result.get('windowEndLocal')
+    window = (f" Запрошенное местное окно: {start.replace('T', ' ')} — {end.replace('T', ' ')}."
+              if result.get('exactWindow') and start and end else '')
+    return 'Карточка назначения не создана.' + window + suffix
 
 
 def _last_assignment_check(results):
@@ -65,7 +103,8 @@ async def _continue_assignment(client, tools, dialogue, current, historical_chec
         'полноту проверит сервер. Порядковая ссылка после списка людей относится к человеку, если явно не указан '
         'другой объект. Причина reason — краткая деловая, без анализа реплики. '
         'review — согласие с существующей карточкой или желание её подтвердить. Никакой новой карточки. '
-        'new_assignment — явно назван другой наряд или люди вне предложенного списка. '
+        'new_assignment — явно указан другой наряд, время, дата или люди вне предложенного списка: '
+        'нужна новая проверка, не используй прошлые условия назначения. '
         'clarify — запрошено назначение, но непонятно, какой наряд или кого назначить. '
         'discuss — обсуждение ранее подобранных людей без изменения. Заполни answer по проверенным фактам. '
         'read — вопрос на другую тему или чтение свежих данных, не разрешает назначать. '
@@ -81,6 +120,7 @@ async def _continue_assignment(client, tools, dialogue, current, historical_chec
             numbered_candidates=[dict(number=i, name=worker['name'], loadMinutes=worker['loadMinutes'])
                                  for i, worker in enumerate(workers, 1)],
             task=preview.get('taskTitle'), day=preview.get('plannedDay'), required=preview.get('crewSize'),
+            assigned_window=dict(start=preview.get('startAt'), end=preview.get('endAt')),
             selection_facts={key: preview[key] for key in ('eligibleAlternatives', 'excludedWorkers', 'qualifications')
                              if key in preview}, pending=pending))),
         current], AssignmentContinuation, 600), max(0, deadline-started))
@@ -99,8 +139,10 @@ async def _continue_assignment(client, tools, dialogue, current, historical_chec
         return (f"Карточка не создана: для наряда нужно исполнителей — {preview['crewSize']}. "
                 'Выберите полный состав.'), False
     args = dict(task_id=historical_check['arguments']['task_id'],
-                executor_ids=[worker['executorId'] for worker in workers],
-                reason=decision.reason.strip() or 'Назначение полного проверенного состава на плановую дату.')
+                 executor_ids=[worker['executorId'] for worker in workers],
+                 reason=decision.reason.strip() or 'Назначение полного проверенного состава на плановую дату.')
+    if preview.get('exactWindow'):
+        args.update(start_local=preview['windowStartLocal'], end_local=preview['windowEndLocal'])
     started = time.monotonic()
     try:
         result = await asyncio.wait_for(tools.dispatch('propose_assignment', args), max(0, deadline-started))
@@ -117,6 +159,7 @@ class Observation:
     result: dict
     images: tuple[str, ...] = ()
     resources: tuple[dict, ...] = ()
+    final_answer: str | None = None
 
 
 async def run_loop(client, messages, specs, dispatch, check, *, evidence=None, on_event=None, seconds=120):
@@ -189,11 +232,13 @@ async def run_loop(client, messages, specs, dispatch, check, *, evidence=None, o
                 started = time.monotonic()
                 used += 1
                 resources = ()
+                final_answer = None
                 try:
                     observed = await asyncio.wait_for(dispatch(name, args), max(0, deadline-time.monotonic()))
                     if isinstance(observed, Observation):
                         result = observed.result
                         resources = observed.resources
+                        final_answer = observed.final_answer
                         selected = observed.images[:max(0, 4 - image_count)]
                         image_count += len(selected)
                         photos = []
@@ -202,7 +247,8 @@ async def run_loop(client, messages, specs, dispatch, check, *, evidence=None, o
                             if photo.get('image_index', 0) > len(selected):
                                 photo.pop('image_index')
                             photos.append(photo)
-                        result = {**result, 'photos': photos, 'images_supplied': len(selected)}
+                        if observed.images or 'photos' in result:
+                            result = {**result, 'photos': photos, 'images_supplied': len(selected)}
                         if selected:
                             visual_messages.append(dict(role='user', images=list(selected), content=service.dump(dict(
                                 kind='report_photos', call_id=call['id'],
@@ -223,6 +269,9 @@ async def run_loop(client, messages, specs, dispatch, check, *, evidence=None, o
                     return _assignment_answer(result), evidence
                 if name == 'propose_report_attach_and_submit' and result.get('action_id') and result.get('status') == 'awaiting_confirmation':
                     return REPORT_CARD_ANSWER, evidence
+                if final_answer is not None and len(calls) == 1:
+                    check()
+                    return final_answer, evidence
             messages.append(dict(role='tool', tool_call_id=call['id'], tool_name=name, content=service.dump(result)))
         messages.extend(visual_messages)
     raise TimeoutError
@@ -263,7 +312,6 @@ def _executor_history(session, principal, history):
 
 
 async def run(app, principal, thread_id, turn_id, headers):
-    from .report_target import TARGET_REQUIRED
     from .tool_agent_tools import ToolSession
 
     scope = SCOPE.set((thread_id, principal.user_id, principal.site_id, principal.role))
@@ -333,7 +381,7 @@ async def run(app, principal, thread_id, turn_id, headers):
                 if isinstance(value, dict) and 'total' in value:
                     last_selected_day = date.fromisoformat(value['resolved_day']) if value.get('resolved_day') else None
                     last_search = {key: item for key, item in result['arguments'].items()
-                                   if key not in ('offset', 'limit', 'day_offset_from_last_selection')}
+                                    if key not in ('offset', 'limit', 'day_offset_from_last_selection', 'presentation')}
                     if last_selected_day:
                         last_search = {key: item for key, item in last_search.items()
                                        if key not in ('relative_day','starts_on','ends_on')}
@@ -348,16 +396,16 @@ async def run(app, principal, thread_id, turn_id, headers):
         tools = ToolSession(app, principal, thread, turn_id, headers, files, local_date=stamp.date(),
                              last_selected_day=last_selected_day, earlier_photos=earlier_photos,
                              question=turn['content'])
-        subject, answer, allow_proposal = None, None, True
+        subject, answer, allow_proposal = None, _review_role_answer(turn['content'], principal.role), True
         target, report_source = thread.get('subject_task_id'), 'chat_subject'
-        if target is None:
+        if answer is None and target is None:
             try:
                 target = tools.general_report_target()
             except HTTPException:
                 answer = TARGET_REQUIRED
                 event(dict(tool='resolve_report_target', status='denied', source='chat_named_report'))
             report_source = 'chat_named_report'
-        if target is not None:
+        if answer is None and target is not None:
             check()
             try:
                 task_args = dict(task_id=str(target))
@@ -418,6 +466,9 @@ async def run(app, principal, thread_id, turn_id, headers):
             attempted = next((row for row in reversed(evidence) if row['tool'] == 'propose_assignment'), None)
             if attempted:
                 answer = _assignment_answer(attempted['result'])
+            elif tools.proposal is None:
+                scoped = _empty_named_order_answer(turn['content'], evidence) if principal.role == 'executor' else None
+                answer = scoped or regulation_effectivity_answer(turn['content'], evidence) or answer
         status, error = 'completed', None
     except (TimeoutError, *service.PROVIDER_FAILURES) as exc:
         status = 'failed'

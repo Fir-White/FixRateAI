@@ -1,0 +1,293 @@
+{
+  "cases": 50,
+  "turns": 58,
+  "no_business_writes_before_confirmation": true,
+  "before": {
+    "work_orders": [
+      992,
+      "4aadc006fc9aec10b9bdd5c108a2b149"
+    ],
+    "work_assignments": [
+      26,
+      "050f1b8e7d482cdfe503c8665fd73348"
+    ],
+    "work_reports": [
+      353,
+      "41789faa381d3d7d6f01800e1ff162ed"
+    ],
+    "checklist_results": [
+      3,
+      "78b82f6d447db90e7bcbcedcd795669f"
+    ],
+    "evidence_files": [
+      1,
+      "74a491d493bded42b292eb5b9b82917b"
+    ],
+    "work_consumptions": [
+      3,
+      "e36f511d243b7e03afcbe42e6d58d0c5"
+    ],
+    "acceptance_reviews": [
+      342,
+      "547ba3c279647eda360d500677301e76"
+    ]
+  },
+  "after": {
+    "work_orders": [
+      992,
+      "4aadc006fc9aec10b9bdd5c108a2b149"
+    ],
+    "work_assignments": [
+      26,
+      "050f1b8e7d482cdfe503c8665fd73348"
+    ],
+    "work_reports": [
+      353,
+      "41789faa381d3d7d6f01800e1ff162ed"
+    ],
+    "checklist_results": [
+      3,
+      "78b82f6d447db90e7bcbcedcd795669f"
+    ],
+    "evidence_files": [
+      1,
+      "74a491d493bded42b292eb5b9b82917b"
+    ],
+    "work_consumptions": [
+      3,
+      "e36f511d243b7e03afcbe42e6d58d0c5"
+    ],
+    "acceptance_reviews": [
+      342,
+      "547ba3c279647eda360d500677301e76"
+    ]
+  },
+  "confirmations": {
+    "E18": {
+      "verified": true,
+      "cross_role_http": 404,
+      "no_cross_role_write": true,
+      "http": [
+        200,
+        200
+      ],
+      "before": {
+        "order": [
+          "draft",
+          1,
+          null,
+          null
+        ],
+        "assignees": [],
+        "audit": [
+          [
+            "proposed",
+            1
+          ]
+        ]
+      },
+      "applied": {
+        "order": [
+          "assigned",
+          2,
+          "2026-11-26 09:00:00+05:00",
+          "2026-11-26 10:00:00+05:00"
+        ],
+        "assignees": [
+          [
+            "346221f4-8429-841b-9a0a-8ba2ffa9a9fc",
+            "assigned"
+          ],
+          [
+            "6f51aa9c-9bba-9774-f66c-9d2c8ddb0c78",
+            "assigned"
+          ]
+        ],
+        "audit": [
+          [
+            "confirmed",
+            1
+          ],
+          [
+            "proposed",
+            1
+          ],
+          [
+            "succeeded",
+            1
+          ]
+        ]
+      },
+      "repeated_same": true,
+      "response_status": "succeeded"
+    },
+    "X15": {
+      "verified": true,
+      "cross_role_http": 404,
+      "no_cross_role_write": true,
+      "http": [
+        200,
+        200
+      ],
+      "before": {
+        "order": [
+          "in_progress",
+          1,
+          "2026-11-24 12:00:00+05:00",
+          "2026-11-24 13:00:00+05:00"
+        ],
+        "assignees": [
+          [
+            "c5d45351-4d33-431e-9c0f-116b078b5484",
+            "assigned"
+          ]
+        ],
+        "audit": [
+          [
+            "proposed",
+            1
+          ]
+        ],
+        "report": [
+          "draft",
+          1,
+          false
+        ],
+        "phases": [],
+        "reviews": 0,
+        "answers": 0
+      },
+      "applied": {
+        "order": [
+          "in_progress",
+          2,
+          "2026-11-24 12:00:00+05:00",
+          "2026-11-24 13:00:00+05:00"
+        ],
+        "assignees": [
+          [
+            "c5d45351-4d33-431e-9c0f-116b078b5484",
+            "assigned"
+          ]
+        ],
+        "audit": [
+          [
+            "confirmed",
+            1
+          ],
+          [
+            "proposed",
+            1
+          ],
+          [
+            "succeeded",
+            1
+          ]
+        ],
+        "report": [
+          "draft",
+          1,
+          false
+        ],
+        "phases": [
+          [
+            "after",
+            1
+          ],
+          [
+            "before",
+            1
+          ]
+        ],
+        "reviews": 0,
+        "answers": 0
+      },
+      "repeated_same": true,
+      "response_status": "succeeded"
+    },
+    "X18": {
+      "verified": true,
+      "cross_role_http": 404,
+      "no_cross_role_write": true,
+      "http": [
+        200,
+        200
+      ],
+      "before": {
+        "order": [
+          "in_progress",
+          1,
+          "2026-11-24 10:00:00+05:00",
+          "2026-11-24 11:00:00+05:00"
+        ],
+        "assignees": [
+          [
+            "c5d45351-4d33-431e-9c0f-116b078b5484",
+            "assigned"
+          ]
+        ],
+        "audit": [
+          [
+            "proposed",
+            1
+          ]
+        ],
+        "report": [
+          "draft",
+          1,
+          false
+        ],
+        "phases": [],
+        "reviews": 0,
+        "answers": 1
+      },
+      "applied": {
+        "order": [
+          "in_review",
+          2,
+          "2026-11-24 10:00:00+05:00",
+          "2026-11-24 11:00:00+05:00"
+        ],
+        "assignees": [
+          [
+            "c5d45351-4d33-431e-9c0f-116b078b5484",
+            "assigned"
+          ]
+        ],
+        "audit": [
+          [
+            "confirmed",
+            1
+          ],
+          [
+            "proposed",
+            1
+          ],
+          [
+            "succeeded",
+            1
+          ]
+        ],
+        "report": [
+          "submitted",
+          1,
+          true
+        ],
+        "phases": [
+          [
+            "after",
+            1
+          ],
+          [
+            "before",
+            1
+          ]
+        ],
+        "reviews": 0,
+        "answers": 1
+      },
+      "repeated_same": true,
+      "response_status": "succeeded"
+    }
+  }
+}

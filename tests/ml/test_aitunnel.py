@@ -173,6 +173,24 @@ def test_cloud_vision_preserves_guardrails_and_provider_provenance(canonical_pho
     assert uncertain.status == "uncertain"
 
 
+def test_cloud_vision_finishes_shared_assessment_after_valid_model_replies(monkeypatch, canonical_photo_review_request):
+    request = canonical_photo_review_request
+    client = AITunnelVisionClient(CONFIG)
+    calls = []
+
+    def chat(messages, schema, tokens):
+        calls.append(schema)
+        if schema is ImageObservation:
+            return ImageObservation(description="Видна лицевая часть прибора.", visible_defects=[], uncertain_features=[])
+        return assessment()
+
+    monkeypatch.setattr(client, "chat", chat)
+    result = review_cloud_photos(request, photos(request).__getitem__, config=CONFIG, client=client)
+    assert calls == [ImageObservation, ImageObservation, type(assessment())]
+    assert result.status == "uncertain" and result.error_code is None
+    assert result.model_ref == CONFIG.model_ref and result.item_results[0].visual_assessment is not None
+
+
 def test_cloud_vision_key_failure_has_no_fake_local_fallback(canonical_photo_review_request):
     request = canonical_photo_review_request
     result = review_cloud_photos(request, photos(request).__getitem__, config=replace(CONFIG, api_key=""))

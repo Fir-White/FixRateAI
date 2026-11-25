@@ -4,8 +4,9 @@ import base64
 import io
 import json
 from contextlib import closing
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
 from PIL import Image
@@ -109,18 +110,23 @@ def test_ollama_wire_failure_can_recover_with_structured_model_output(monkeypatc
     assert result['tool_calls'][0]['function'] == dict(name='orders', arguments={'limit': 1})
 
 
-@pytest.mark.parametrize('finish_reason', ['length', 'content_filter'])
-def test_v4_retries_only_truncated_cloud_output_without_dispatching_it(finish_reason):
+@pytest.mark.parametrize('failure', ['length', 'content_filter', 'tool_syntax'])
+def test_v4_repairs_unusable_cloud_output_without_dispatching_it(failure):
     from app.assistant.tool_agent import run_loop
     from ml_service.app.providers.aitunnel import AITunnelClient, AITunnelConfig, AITunnelFailure
 
     client = AITunnelClient(AITunnelConfig('deepseek-v4.1-flash-1017', 'isolated-test'))
     calls = []
+    if failure == 'tool_syntax':
+        invalid = dict(finish_reason='stop', message=dict(content=(
+            '<｜DSML｜ calls><｜DSML｜ invoke name="orders"></｜DSML｜ invoke></｜DSML｜ calls>')))
+    else:
+        invalid = dict(finish_reason=failure, message=dict(content='Незавершённый текст', tool_calls=[
+            dict(id='order-2', function=dict(name='orders', arguments='{"extra": true}'))]))
     replies = iter([
         dict(finish_reason='tool_calls', message=dict(content='', tool_calls=[
             dict(id='order-1', function=dict(name='orders', arguments='{}'))])),
-        dict(finish_reason=finish_reason, message=dict(content='Незавершённый текст', tool_calls=[
-            dict(id='order-2', function=dict(name='orders', arguments='{"extra": true}'))])),
+        invalid,
         dict(finish_reason='stop', message=dict(content='В реестре один проверенный наряд.')),
     ])
 
@@ -142,7 +148,7 @@ def test_v4_retries_only_truncated_cloud_output_without_dispatching_it(finish_re
             [dict(type='function', function=dict(name='orders', parameters=dict(type='object')))],
             dispatch, lambda: None))
 
-    if finish_reason == 'length':
+    if failure in ('length', 'tool_syntax'):
         assert run()[0] == 'В реестре один проверенный наряд.'
         assert len(calls) == 3
     else:
@@ -150,6 +156,17 @@ def test_v4_retries_only_truncated_cloud_output_without_dispatching_it(finish_re
             run()
         assert len(calls) == 2
     assert seen == [('orders', {})]
+
+
+def test_v4_assignment_tool_advertises_local_wall_clock_not_rfc3339_instants():
+    from app.assistant.tool_agent_tools import Assignment, WorkforceLoad
+
+    for model, names in ((Assignment, ('start_local', 'end_local')),
+                         (WorkforceLoad, ('window_start', 'window_end'))):
+        fields = model.model_json_schema()['properties']
+        for name in names:
+            types = {option['type']: option for option in fields[name]['anyOf']}
+            assert 'format' not in types['string']
 
 
 def test_rejected_tool_arguments_are_model_observations_not_success():
@@ -294,6 +311,32 @@ def test_v4_executor_cannot_read_foreign_order_or_propose_assignment(monkeypatch
     assert result['actions'] == []
 
 
+@pytest.mark.parametrize(('role', 'visibility'), [('engineer', 'site'), ('executor', 'assigned_orders')])
+def test_v4_searches_describe_the_scope_of_a_negative_result(monkeypatch, runtime, role, visibility):
+    from app.config import RuntimeSettings
+    _, app = runtime
+    monkeypatch.setenv('FIXRATE_ASSISTANT_AGENT_VERSION', 'v4')
+    monkeypatch.delenv('FIXRATE_ASSISTANT_V3_PIPELINE', raising=False)
+    monkeypatch.setitem(app.state._state, 'settings', RuntimeSettings.from_environment())
+
+    class Provider:
+        def tool_chat(self, messages, tools, tokens):
+            if messages[-1]['role'] != 'tool':
+                return dict(tool_calls=[dict(function=dict(name=name, arguments={'q': 'TEST missing scope 90cd'}))
+                                        for name in ('find_work_orders', 'find_equipment')])
+            for message in messages[-2:]:
+                evidence = json.loads(message['content'])
+                assert evidence['total'] == 0
+                assert evidence['visibility'] == visibility
+            return dict(content='В доступных данных совпадений нет.')
+
+    monkeypatch.setattr(app.state, 'assistant_provider_factory', Provider, raising=False)
+    with closing(login(app, role)) as client:
+        result = send(client, thread(client), 'Найди наряд и оборудование TEST missing scope 90cd.')
+    assert result['turns'][-1]['answer'] == 'В доступных данных совпадений нет.'
+    assert result['actions'] == []
+
+
 @pytest.mark.parametrize('changed', (False, True), ids=('confirm_once', 'stale'))
 def test_v4_assignment_card_has_no_effect_until_authenticated_confirmation(monkeypatch, jobs, changed):
     from dataclasses import replace
@@ -333,6 +376,170 @@ def test_v4_assignment_card_has_no_effect_until_authenticated_confirmation(monke
             assert db.execute(order, {'id': task}).one() == ('draft' if changed else 'assigned', 2)
             count = db.scalar(text("SELECT count(*) FROM audit_events WHERE entity_id=:id AND action='assign'"), {'id': task})
         assert count == (0 if changed else 1)
+
+
+@pytest.mark.parametrize('start,end,expected,first_call', [
+    ('14:00', '15:00', 'card', None),
+    ('16:10', '17:10', 'unavailable', None),
+    ('14:00', '16:00', 'not_exact', None),
+    ('14:00', None, 'invalid', None),
+    ('14:00+05:00', '15:00+05:00', 'invalid', None),
+    ('15:00', '14:00', 'invalid', None),
+    ('tomorrow:14:00', 'tomorrow:15:00', 'other_day', None),
+    ('14:00', '15:00', 'card', 'check_assignment'),
+    ('16:10', '17:10', 'unavailable', 'check_assignment'),
+    ('16:10', '17:10', 'unavailable', 'propose_assignment'),
+    ('14:00', '15:00', 'conflicting_window', 'check_assignment'),
+])
+def test_v4_assignment_uses_only_the_requested_window(monkeypatch, jobs, start, end, expected, first_call):
+    from dataclasses import replace
+
+    engine, app, create = jobs
+    task = create()
+    monkeypatch.setitem(app.state._state, 'settings', replace(app.state.settings, assistant_agent_version='v4'))
+    town = ZoneInfo('Asia/Yekaterinburg')
+    args = dict(task_id=str(task), reason='Учебная смена по согласованному окну.')
+
+    class Provider:
+        def tool_chat(self, messages, tools, tokens):
+            if first_call:
+                reads = sum(row['role'] == 'tool' for row in messages)
+                if reads == 0:
+                    return dict(tool_calls=[dict(function=dict(name=first_call,
+                        arguments=args if first_call == 'propose_assignment' else
+                        {k: v for k, v in args.items() if k != 'reason'}))])
+                if reads == 1:
+                    followup = {k: args[k] for k in ('task_id', 'reason')}
+                    if expected == 'conflicting_window':
+                        followup.update(start_local=stamp('09:00'), end_local=stamp('10:00'))
+                    return dict(tool_calls=[dict(function=dict(name='propose_assignment', arguments=followup))])
+            if messages[-1]['role'] == 'tool':
+                return dict(content='Сообщил результат проверки.')
+            return dict(tool_calls=[dict(function=dict(name='propose_assignment', arguments=args))])
+
+    monkeypatch.setattr(app.state, 'assistant_provider_factory', Provider, raising=False)
+    with closing(login(app, 'engineer')) as client:
+        day = datetime.fromisoformat(proposal(client, task)['start_at']).astimezone(town).date()
+        saved = datetime.fromisoformat(f'{day}T09:00').replace(tzinfo=town)
+        with engine.begin() as db:
+            db.execute(text('UPDATE work_orders SET planned_start_at=:start, planned_end_at=:end WHERE work_order_id=:id'),
+                       dict(id=task, start=saved, end=saved+timedelta(hours=1)))
+
+        def stamp(clock):
+            return (f'{day+timedelta(days=1)}T{clock.removeprefix("tomorrow:")}' if clock.startswith('tomorrow:')
+                    else f'{day}T{clock}')
+
+        args['start_local'] = stamp(start)
+        if end is not None:
+            args['end_local'] = stamp(end)
+        view = send(client, thread(client), 'Подготовь установку на указанное окно без переноса.')
+        turn = view['turns'][-1]
+        assert turn['status'] == 'completed', turn
+        with engine.connect() as db:
+            assert db.execute(text('SELECT status,revision,planned_start_at FROM work_orders WHERE work_order_id=:id'),
+                              dict(id=task)).one() == ('draft', 1, saved)
+            observed = db.scalar(text("SELECT agent_context->'results' FROM assistant_turns WHERE turn_id=:id"),
+                                 dict(id=turn['turn_id']))
+        assert [entry['tool'] for entry in observed] == ([first_call] if first_call else []) + ['propose_assignment']
+        facts = observed[-1]['result']
+        if expected == 'card':
+            card, = view['actions']
+            command = card['arguments']['body']
+            assert facts['status'] == 'awaiting_confirmation'
+            target_start = datetime.fromisoformat(stamp(start)).replace(tzinfo=town)
+            target_end = datetime.fromisoformat(stamp(end)).replace(tzinfo=town)
+            assert datetime.fromisoformat(command['start_at']) == target_start
+            assert datetime.fromisoformat(command['end_at']) == target_end
+            response = confirm(client, card)
+            assert response.status_code == 200 and response.json()['status'] == 'succeeded'
+            with engine.connect() as db:
+                assert db.execute(text('SELECT status,planned_start_at,planned_end_at FROM work_orders WHERE work_order_id=:id'),
+                                  dict(id=task)).one() == ('assigned', target_start, target_end)
+        else:
+            assert view['actions'] == []
+            if expected in ('invalid', 'conflicting_window'):
+                assert facts['code'] == 422
+            elif expected == 'other_day':
+                assert facts['code'] == 'WINDOW_OUTSIDE_PLANNED_DAY'
+            else:
+                assert facts['windowStartLocal'].startswith(stamp(start))
+                assert facts['windowEndLocal'].startswith(stamp(end))
+                assert facts['status'] != 'ok'
+                assert stamp(start).replace('T', ' ') in turn['answer']
+                if expected == 'not_exact':
+                    assert facts['code'] == 'ASSIGNMENT_WINDOW_MISMATCH'
+
+
+def test_v4_assignment_continuation_keeps_the_checked_window(monkeypatch, jobs):
+    from dataclasses import replace
+
+    engine, app, create = jobs
+    task = create()
+    monkeypatch.setitem(app.state._state, 'settings', replace(app.state.settings, assistant_agent_version='v4'))
+    tz = ZoneInfo('Asia/Yekaterinburg')
+
+    class Provider:
+        def tool_chat(self, messages, tools, tokens):
+            reads = [row for row in messages if row['role'] == 'tool']
+            if messages[-1]['role'] == 'tool':
+                assert json.loads(messages[-1]['content'])['status'] == 'ok'
+                if len(reads) == 2:
+                    return dict(content='Проверен полный состав на заданное окно.')
+            args = dict(task_id=str(task))
+            if not reads:
+                args.update(start_local=requested.replace(tzinfo=None).isoformat(),
+                            end_local=(requested+timedelta(hours=1)).replace(tzinfo=None).isoformat())
+            return dict(tool_calls=[dict(function=dict(name='check_assignment', arguments=args))])
+
+        def chat(self, messages, schema, tokens):
+            return schema.model_validate(dict(decision='prepare', selected=[1, 2], answer='',
+                                              reason='Назначение обоих на проверенное окно.'))
+
+    monkeypatch.setattr(app.state, 'assistant_provider_factory', Provider, raising=False)
+    with closing(login(app, 'engineer')) as client:
+        planned = datetime.fromisoformat(proposal(client, task)['start_at']).astimezone(tz).replace(hour=9, minute=0)
+        requested = planned.replace(hour=14)
+        with engine.begin() as db:
+            db.execute(text('UPDATE work_orders SET planned_start_at=:start,planned_end_at=:end WHERE work_order_id=:id'),
+                       dict(id=task, start=planned, end=planned+timedelta(hours=1)))
+        chat = thread(client)
+        assert send(client, chat, 'Проверь состав на окно 14:00–15:00, не назначай.')['actions'] == []
+        card, = send(client, chat, 'Тогда обоих на это время.')['actions']
+        body = card['arguments']['body']
+        assert datetime.fromisoformat(body['start_at']) == requested
+        assert datetime.fromisoformat(body['end_at']) == requested+timedelta(hours=1)
+
+
+def test_v4_refuses_partial_crew_and_returns_required_qualifications(monkeypatch, jobs):
+    from dataclasses import replace
+
+    engine, app, create = jobs
+    task = create()
+    monkeypatch.setitem(app.state._state, 'settings', replace(app.state.settings, assistant_agent_version='v4'))
+    observed = []
+
+    class Provider:
+        def tool_chat(self, messages, tools, tokens):
+            if messages[-1]['role'] == 'tool':
+                observed.append(json.loads(messages[-1]['content']))
+                return dict(content='Полный состав нужен для назначения.')
+            return dict(tool_calls=[dict(function=dict(name='propose_assignment', arguments=dict(
+                task_id=str(task), executor_ids=crew[:1], reason='Проверка учебного состава.')))])
+
+    monkeypatch.setattr(app.state, 'assistant_provider_factory', Provider, raising=False)
+    with closing(login(app, 'engineer')) as client:
+        plan = proposal(client, task)
+        crew = plan['executor_ids']
+        assert len(crew) == 2
+        with engine.begin() as db:
+            db.execute(text('UPDATE work_orders SET planned_start_at=:start,planned_end_at=:end WHERE work_order_id=:id'),
+                       dict(id=task, start=plan['start_at'], end=plan['end_at']))
+        result = send(client, thread(client), 'Проверь, могу ли оформить работу с одним человеком.')
+    assert result['turns'][-1]['status'] == 'completed'
+    assert result['actions'] == []
+    facts, = observed
+    assert facts['code'] == 'CREW_SIZE_MISMATCH' and facts['crewSize'] == 2
+    assert len(facts['qualifications']) == 1
 
 
 def test_v4_assignment_followup_creates_one_real_card_and_reuses_it(monkeypatch, jobs):

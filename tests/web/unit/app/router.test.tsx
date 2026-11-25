@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -14,6 +14,9 @@ function HistoryBack() {
   const navigate = useNavigate();
   return <button type="button" onClick={() => navigate(-1)}>Назад в истории браузера</button>;
 }
+
+const pageHeading = (title: string) => screen.findByText(title, {selector:"h1,h2"});
+const headerLink = (label: string) => screen.getByLabelText(label, {selector:"a"});
 
 function renderAt(path: string, role: string, history = false) {
   window.localStorage.setItem("fixrate.demo.role", role);
@@ -66,39 +69,40 @@ describe("app routes", () => {
 
   it("returns through previously visited sections without looping", async () => {
     const user=userEvent.setup();renderAt("/executor", "executor", true);
-    await screen.findByRole("heading",{name:"Мои задания"});
-    await user.click(screen.getByRole("link",{name:"Оборудование"}));
-    await screen.findByRole("heading",{name:"Оборудование"});
-    await user.click(screen.getByRole("link",{name:"Учётная запись"}));
-    await screen.findByRole("heading",{name:"Мой профиль"});
-    await user.click(screen.getByRole("button",{name:"Назад в истории браузера"}));
-    await screen.findByRole("heading",{name:"Оборудование"});
-    await user.click(screen.getByRole("button",{name:"Назад в истории браузера"}));
-    await screen.findByRole("heading",{name:"Мои задания"});
-    expect(screen.queryByRole("button",{name:"Назад"})).not.toBeInTheDocument();
+    const back=()=>screen.getByText("Назад в истории браузера",{selector:"button"});
+    await pageHeading("Мои задания");
+    await user.click(headerLink("Оборудование"));
+    await pageHeading("Оборудование");
+    await user.click(headerLink("Учётная запись"));
+    await pageHeading("Мой профиль");
+    await user.click(back());
+    await pageHeading("Оборудование");
+    await user.click(back());
+    expect(await pageHeading("Мои задания")).toBeVisible();
+    expect(screen.queryByText("Назад",{selector:"button"})).not.toBeInTheDocument();
   });
 
   it("restores search and hash from the previous workspace page", async () => {
     const user=userEvent.setup();window.localStorage.setItem("fixrate.demo.role","executor");
     function LocationProbe(){const location=useLocation();return <output data-testid="route-location">{location.pathname+location.search+location.hash}</output>;}
     render(<SessionProvider><MemoryRouter initialEntries={["/equipment?filter=active#list"]}><AppRouter /><LocationProbe /><HistoryBack /></MemoryRouter></SessionProvider>);
-    await screen.findByRole("heading",{name:"Оборудование"});
-    await user.click(screen.getByRole("link",{name:"Учётная запись"}));
-    await screen.findByRole("heading",{name:"Мой профиль"});
-    await user.click(screen.getByRole("button",{name:"Назад в истории браузера"}));
+    await pageHeading("Оборудование");
+    await user.click(headerLink("Учётная запись"));
+    await pageHeading("Мой профиль");
+    await user.click(screen.getByText("Назад в истории браузера",{selector:"button"}));
     await waitFor(()=>expect(screen.getByTestId("route-location")).toHaveTextContent("/equipment?filter=active#list"));
   });
 
   it("highlights the current section and sends the logo link to the role home", async () => {
     const user=userEvent.setup();
     renderAt("/dispatcher", "dispatcher");
-    await screen.findByRole("heading", {name:"Рабочий день диспетчера"});
-    expect(screen.getByRole("link", {name:"Рабочий день"})).toHaveAttribute("aria-current", "page");
-    await user.click(screen.getByRole("link", {name:"Оборудование"}));
-    await screen.findByRole("heading", {name:"Оборудование"});
-    expect(screen.getByRole("link", {name:"Оборудование"})).toHaveAttribute("aria-current", "page");
-    await user.click(screen.getByRole("link", {name:"FixRate AI"}));
-    expect(await screen.findByRole("heading", {name:"Рабочий день диспетчера"})).toBeVisible();
+    await pageHeading("Рабочий день диспетчера");
+    expect(headerLink("Рабочий день")).toHaveAttribute("aria-current", "page");
+    await user.click(headerLink("Оборудование"));
+    await pageHeading("Оборудование");
+    expect(headerLink("Оборудование")).toHaveAttribute("aria-current", "page");
+    await user.click(headerLink("FixRate AI"));
+    expect(await pageHeading("Рабочий день диспетчера")).toBeVisible();
   });
 
   it("blocks a route outside the current role", async () => {
@@ -164,21 +168,21 @@ describe("app routes", () => {
   it("retains one background across sections and executor shell, then removes session UI on logout", async () => {
     const user = userEvent.setup();
     const view = renderAt("/dispatcher", "dispatcher");
-    expect(await screen.findByRole("heading", {name:"Рабочий день диспетчера"})).toBeVisible();
+    expect(await pageHeading("Рабочий день диспетчера")).toBeVisible();
     const workspace = view.container.querySelector(".workspace-root");
     expect(workspace).toBeInTheDocument();
     await user.click(screen.getByLabelText("Оборудование"));
     expect(await screen.findByText("Оборудование", { selector: "h1" })).toBeVisible();
     expect(view.container.querySelector(".workspace-root")).toBe(workspace);
-    await user.selectOptions(screen.getByLabelText("Демонстрационная роль"), "executor");
+    fireEvent.change(screen.getByLabelText("Демонстрационная роль"), {target:{value:"executor"}});
     expect(await screen.findByText("С чего начнём рабочий день?", { selector: "h1" })).toBeVisible();
     expect(view.container.querySelector(".workspace-root")).toBe(workspace);
     expect(view.container.querySelectorAll(".ops-sidebar")).toHaveLength(0);
-    expect(screen.getAllByRole("navigation")).toHaveLength(1);
+    expect(screen.getAllByRole("navigation", {hidden:true})).toHaveLength(1);
     await user.click(screen.getByLabelText("Учётная запись"));
-    await screen.findByRole("heading", { name: "Мой профиль" });
-    await user.click(screen.getByRole("button", { name: "Выйти из аккаунта" }));
-    await screen.findByRole("heading", { name: "Выберите роль" });
+    await pageHeading("Мой профиль");
+    await user.click(screen.getByText("Выйти из аккаунта",{selector:"button"}));
+    await pageHeading("Выберите роль");
     expect(view.container.querySelector(".workspace-root")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Учётная запись" })).not.toBeInTheDocument();
     expect(window.localStorage.getItem("fixrate.demo.role")).toBeNull();

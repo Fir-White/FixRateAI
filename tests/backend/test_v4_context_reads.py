@@ -25,6 +25,32 @@ def call(name, **args):
     return dict(tool_calls=[dict(function=dict(name=name, arguments=args))])
 
 
+@pytest.mark.parametrize('linked', [True, False])
+def test_v4_distinguishes_work_order_rule_link_from_equipment_rules(monkeypatch, jobs, linked):
+    engine, app, create = jobs
+    task = create()
+    with engine.begin() as db:
+        command = 'SELECT maintenance_rule_id FROM work_orders WHERE work_order_id=:id'
+        original = db.scalar(text(command), {'id': task})
+        assert original is not None
+        if not linked:
+            db.execute(text('UPDATE work_orders SET maintenance_rule_id=NULL WHERE work_order_id=:id'), {'id': task})
+    seen = []
+
+    class Provider:
+        def tool_chat(self, messages, tools, tokens):
+            if messages[-1]['role'] != 'tool':
+                return call('read_work_order', task_id=str(task))
+            seen.append(json.loads(messages[-1]['content'])['task'])
+            return dict(content='Связь проверена по наряду.')
+
+    v4(monkeypatch, app, Provider)
+    with closing(login(app, 'engineer')) as client:
+        result = send(client, thread(client), 'С каким правилом напрямую связан наряд?')
+    assert result['turns'][-1]['status'] == 'completed'
+    assert [row['maintenanceRuleId'] for row in seen] == [str(original) if linked else None]
+
+
 @pytest.fixture
 def report_jobs(jobs):
     engine, app, create = jobs
@@ -70,6 +96,43 @@ def test_previous_day_uses_last_resolved_date_not_wall_clock(monkeypatch, runtim
         assert send(c,thread(c),'День перед выбранным')['turns'][-1]['answer']=='Код 422'
         for question, (_,expected) in questions.items():
             assert send(c,chat,question)['turns'][-1]['answer']==expected
+
+
+def test_v4_name_search_does_not_match_archives_only_through_shared_template(monkeypatch, jobs):
+    from tests.backend.test_assistant import B
+
+    engine, app, create = jobs
+    target, archive = create(), create()
+    with engine.begin() as db:
+        title = db.scalar(text("""
+            SELECT t.title FROM work_orders w
+            JOIN maintenance_rules r USING (maintenance_rule_id)
+            JOIN operation_templates t USING (operation_template_id)
+            WHERE w.work_order_id=:id"""), {'id': target})
+        assert title and 'Архивный обзор' != title
+        for task, label, when in ((target, title, '2026-11-24T09:00:00+05:00'),
+                                  (archive, 'Архивный обзор', '2025-03-04T09:00:00+05:00')):
+            db.execute(text("""
+                UPDATE work_orders SET planned_start_at=:when,
+                    operation_snapshot=operation_snapshot || jsonb_build_object('title', CAST(:title AS text), 'label', '')
+                WHERE work_order_id=:id"""), dict(id=task, title=label, when=when))
+    seen = []
+
+    class Provider:
+        def tool_chat(self, messages, tools, tokens):
+            if messages[-1]['role'] != 'tool':
+                return call('find_work_orders', q=title, limit=1)
+            seen.append(json.loads(messages[-1]['content']))
+            return dict(content='Список прочитан.')
+
+    v4(monkeypatch, app, Provider)
+    with closing(login(app, 'engineer')) as c:
+        existing = c.get(f'{B}/workspace/tasks', params=dict(period='all', q=title, limit=1)).json()
+        assert [row['id'] for row in existing['items']] == [str(archive)]
+        assert send(c,thread(c),'Найди работу по её названию.')['turns'][-1]['status']=='completed'
+    result, = seen
+    assert [row['id'] for row in result['items']] == [str(target)]
+    assert result['total'] == existing['total'] - 1
 
 
 def test_list_result_from_regulations_does_not_break_followup(monkeypatch, jobs):

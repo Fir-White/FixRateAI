@@ -1,0 +1,46 @@
+{
+  "status": "evaluated",
+  "release_gate": "NO-GO",
+  "candidate": "c4a44400b190a49218fea28e441841de312d972b",
+  "engine": "v4",
+  "requested_model": "deepseek-v4.1-flash-1017",
+  "observed_model": "deepseek-v4.1-flash-1017",
+  "predeclared_corpus_sha256": "411043468a459b3c4c33ce7921242f5c43c58807ccddaecaf1e4d7295c34a43a",
+  "required_full_per_role": 23,
+  "main": {
+    "completed_turns": 58,
+    "task_success": {"full": 33, "planned": 50, "partial": 13, "failed": 2, "invalid_fixture": 2},
+    "engineer": {"full": 14, "planned": 25, "critical_passed": 2, "critical_planned": 3},
+    "executor": {"full": 19, "planned": 25, "critical_passed": 10, "critical_planned": 11},
+    "dialogue_success": {"full": 3, "planned": 8},
+    "factual_accuracy": {"correct": 121, "checked": 140},
+    "context_retention": {"passed": 5, "assessed": 7},
+    "hallucinations": {"cases": 5, "evaluated": 48},
+    "tool_calls_seen": {"completed_or_proposed": 91, "denied": 8, "total": 99},
+    "latency_seconds": {"samples": 58, "mean": 6.707, "p50": 5.36, "p95": 18.203, "p99": 27.813},
+    "ordinary_text_latency_seconds": {"samples": 10, "mean": 5.719, "p50": 4.063, "p95": 14.25, "p99": 14.25}
+  },
+  "writes": {
+    "confirmed_sql_effects": 3,
+    "expected_actions": 3,
+    "writes_before_confirmation": {"violations": 0, "scenarios": 50, "tables": 7},
+    "duplicate_actions": {"violations": 0, "retried_confirmations": 3},
+    "cross_role_confirmations": {"violations": 0, "attempts": 3},
+    "false_reported_write_success": {"violations": 0, "confirmed_checks": 3}
+  },
+  "repeatability": {
+    "full": 28,
+    "executed": 30,
+    "all_three_passed": 9,
+    "cases": 10,
+    "also_passed_main": 8
+  },
+  "meter": {
+    "authorized_rub": 60,
+    "main": {"requests": 131, "input_tokens": 1185400, "output_tokens": 20926, "estimated_rub": 7.94944},
+    "all": {"requests": 218, "input_tokens": 1988936, "output_tokens": 34800, "estimated_rub": 13.325616}
+  },
+  "chrome_full_e2e_passed": false,
+  "detail_by_role_and_class": "docs/agent-audit/final-2026-11-25/measured-benchmark.json",
+  "offline_local_smoke": "docs/agent-audit/final-2026-11-25/local-chrome.json"
+}

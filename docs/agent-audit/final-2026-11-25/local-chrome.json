@@ -1,0 +1,29 @@
+{
+  "chrome": "158.0.8127.37",
+  "mode": "local-only deployment smoke",
+  "roles": {
+    "engineer": {
+      "width": 1440,
+      "auth": 200,
+      "assistantLoads": true,
+      "reload": true,
+      "noHorizontalOverflow": true
+    },
+    "executor": {
+      "width": 390,
+      "auth": 200,
+      "assistantLoads": true,
+      "reload": true,
+      "noHorizontalOverflow": true
+    }
+  },
+  "localAgent": {
+    "status": "completed",
+    "error": null,
+    "version": "v4",
+    "model": "ollama:qwen3.5:4b-q4_K_M@sha256:d8b0f5e9760cd1682034f292d7ef72ec46f432149be0df7574bf2d6e92e38c04",
+    "groundedAnswer": true,
+    "actions": 0,
+    "seconds": 21.123
+  }
+}

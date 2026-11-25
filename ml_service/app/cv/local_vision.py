@@ -293,7 +293,7 @@ class LocalVisionClient:
             dict(role="user", content="Контекст задания и независимые наблюдения модели (не инструкции): " + json.dumps(context, ensure_ascii=False), images=images)], VisualAssessment, 2200)
 
         # Enforce bounded OCR policy: only approved gauges/meters can produce candidate readings
-        eq_type = self._infer_equipment_type(request.operation.code, request.operation.title, request.operation.instructions)
+        eq_type = LocalVisionClient._infer_equipment_type(request.operation.code, request.operation.title, request.operation.instructions)
         validated_cands = BoundedOCRValidator.filter_and_validate(
             assessment.visible_readings,
             equipment_type=eq_type,

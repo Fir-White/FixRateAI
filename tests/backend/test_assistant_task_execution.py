@@ -135,13 +135,20 @@ def start(chat):
 
 def review(engineer, identity, verdict):
     bundle = task(engineer, identity)
-    assert 'review' in bundle['allowedActions']
-    result = engineer.post(PREFIX + f'/tasks/{identity}/review', json={
+    assert bundle['task']['state'] == 'submitted'
+    assert 'review' not in bundle['allowedActions']
+    route = PREFIX + f'/tasks/{identity}/review'
+    payload = {
         'expected_revision': bundle['task']['revision'], 'execution_id': bundle['execution']['id'],
         'verdict': verdict, 'reason': 'Проверка согласованного результата',
-    })
-    assert result.status_code == 200, result.text
-    return result.json()
+    }
+    assert engineer.post(route, json=payload).status_code == 403
+    assert task(engineer, identity)['task']['revision'] == bundle['task']['revision']
+    with closing(login(engineer.app, 'chief_engineer')) as chief:
+        assert 'review' in task(chief, identity)['allowedActions']
+        result = chief.post(route, json=payload)
+        assert result.status_code == 200, result.text
+        return result.json()
 
 
 def assign_fresh_order(engine, app, identity):

@@ -127,6 +127,84 @@ def test_selected_day_totals_use_planned_windows_before_pagination(jobs):
         result=c.get(B+'/workspace/tasks',params=args).json()
     assert result['total']==3 and not result['page_complete']
     assert result['planned_duration']=={'known_minutes':90,'unknown_count':1,'complete':False}
+    assert result['planned_start_summary']=={'known_count':3,'unknown_count':0}
+
+
+def test_v4_deadline_sort_keeps_planned_day_filter_and_precedes_pagination(monkeypatch, jobs):
+    from tests.backend.test_v4_context_reads import call, v4
+
+    engine, app, create = jobs
+    early_start, early_due, other_day = (create() for _ in range(3))
+    with engine.begin() as db:
+        for order, start, due in (
+            (early_start, '2026-12-01 08:00+00', '2026-12-04 15:00+00'),
+            (early_due, '2026-12-01 10:00+00', '2026-12-03 15:00+00'),
+            (other_day, '2026-12-02 08:00+00', '2026-12-02 15:00+00'),
+        ):
+            db.execute(text("""UPDATE work_orders SET planned_start_at=:start, regulatory_deadline_at=:due,
+                operation_snapshot=operation_snapshot || '{"title":"TEST deadline priority"}'::jsonb
+                WHERE work_order_id=:id"""), dict(id=order, start=start, due=due))
+    pages = []
+
+    class Provider:
+        def tool_chat(self, messages, tools, tokens):
+            args = dict(q='TEST deadline priority', on_date='2026-12-01', sort='earliest_deadline', limit=1)
+            if messages[-1]['role'] != 'tool':
+                return call('find_work_orders', **args)
+            page = json.loads(messages[-1]['content'])
+            pages.append(page)
+            if page.get('next_offset') is not None:
+                return call('find_work_orders', **args, offset=page['next_offset'])
+            return dict(content='Сроки проверены.')
+
+    v4(monkeypatch, app, Provider)
+    with closing(login(app, 'engineer')) as client:
+        answer = send(client, thread(client), 'В порядке обязательных сроков.')['turns'][-1]
+        assert answer['status'] == 'completed'
+    assert [page.get('total') for page in pages] == [2, 2]
+    assert [page['items'][0]['id'] for page in pages] == [str(early_due), str(early_start)]
+    assert [page['next_offset'] for page in pages] == [1, None]
+    assert [page['filters']['date_basis'] for page in pages] == ['planned', 'planned']
+
+
+@pytest.mark.parametrize('provide_date', [True, False])
+def test_v4_schedule_list_uses_verified_rows_without_another_model_reply(monkeypatch, jobs, provide_date):
+    from tests.backend.test_v4_context_reads import call, v4
+
+    engine, app, create = jobs
+    first, second = create(), create()
+    with engine.begin() as db:
+        for order, title, starts, ends in (
+            (first, 'TEST график | Измерение', '2026-12-02 04:00+00', None),
+            (second, 'TEST график Сверка', '2026-12-02 06:00+00', '2026-12-02 07:00+00'),
+        ):
+            db.execute(text("""UPDATE work_orders SET planned_start_at=:starts, planned_end_at=:ends,
+                regulatory_deadline_at='2026-12-04 00:00+00',
+                operation_snapshot=operation_snapshot || jsonb_build_object('title', CAST(:title AS text))
+                WHERE work_order_id=:id"""), dict(id=order, title=title, starts=starts, ends=ends))
+    calls = []
+
+    class Provider:
+        def tool_chat(self, messages, tools, tokens):
+            calls.append(messages[-1]['role'])
+            args = dict(q='TEST график', limit=1, presentation='schedule')
+            if messages[-1]['role'] == 'user':
+                return call('find_work_orders', **args, **({'on_date': '2026-12-02'} if provide_date else {}))
+            assert json.loads(messages[-1]['content'])['code'] == 422
+            return call('find_work_orders', **args, on_date='2026-12-02')
+
+    v4(monkeypatch, app, Provider)
+    with closing(login(app, 'engineer')) as client:
+        history = send(client, thread(client), 'Покажи график.')
+    turn = history['turns'][-1]
+    assert turn['status'] == 'completed'
+    assert calls == (['user'] if provide_date else ['user', 'tool'])
+    assert 'Показано 1 из 2' in turn['answer']
+    assert 'TEST график / Измерение' in turn['answer']
+    assert '02.12.2026' in turn['answer'] and '09:00' in turn['answer']
+    assert 'Окончание не задано' in turn['answer']
+    assert 'TEST график Сверка' not in turn['answer']
+    assert not history['actions']
 
 
 def test_v4_work_order_pages_keep_totals_and_resume_without_skipping_rows(monkeypatch, jobs):

@@ -2,7 +2,7 @@
 from datetime import date,datetime,time,timedelta,timezone
 from typing import Annotated, Literal
 from zoneinfo import ZoneInfo
-from pydantic import BaseModel,ConfigDict,Field
+from pydantic import BaseModel,ConfigDict,Field,NaiveDatetime,model_validator
 from uuid import UUID
 from fastapi import Depends,Query,HTTPException,Request,Response
 from sqlalchemy import DateTime,cast,select,func,or_,and_,text
@@ -59,6 +59,18 @@ class AssignmentPreparation(BaseModel):
     executor_ids:list[UUID]|None=Field(default=None,min_length=1,max_length=50)
     one_person_only:bool=False
     use_planned_day:bool=False
+    start_local:NaiveDatetime|None=None
+    end_local:NaiveDatetime|None=None
+
+    @model_validator(mode='after')
+    def exact_window(self):
+        if (self.start_local is None) != (self.end_local is None):
+            raise ValueError('Укажите начало и конец окна вместе.')
+        if self.start_local is not None and (
+            not self.use_planned_day or self.start_local >= self.end_local
+        ):
+            raise ValueError('Конец окна должен быть позже начала, а проверка привязана к плановой дате.')
+        return self
 
 def register_routes(app,views):
     @app.get(BASE+'/maintenance-catalog')
@@ -394,7 +406,13 @@ def register_routes(app,views):
         if context.get('status')!='ready':return dict(status='needs_input',explanation=context.get('explanation'),context=context,command=None)
         if command.one_person_only and context.get('crewSize')!=1:
             return dict(status='needs_input',explanation=f"Для этого задания требуется {context.get('crewSize')} исполнителей; одного недостаточно.",context=context,command=None)
+        if command.use_planned_day and command.executor_ids is not None and len(command.executor_ids)!=context['crewSize']:
+            explanation=f"Нужен полный состав: {context['crewSize']} исполнителей."
+            if required:=context.get('requiredQualifications'):
+                explanation+=f" У каждого должен быть допуск: {', '.join(required)}."
+            return dict(status='needs_input',code='CREW_SIZE_MISMATCH',explanation=explanation,context=context,command=None)
         day=None
+        exact=command.start_local is not None
         if command.use_planned_day:
             zone=ZoneInfo(context['timezone'])
             if order.planned_start_at is not None:
@@ -405,13 +423,26 @@ def register_routes(app,views):
                 return dict(status='needs_input',code='PLANNED_DAY_UNKNOWN',command=None,context=context,
                             explanation='У наряда нет подтверждённой плановой даты. Обязательный срок не заменяет дату выполнения.')
             start=datetime.combine(day,time.min);end=start+timedelta(days=1)
-            if order.planned_start_at is not None and order.planned_end_at is not None:
+            if exact:
+                if command.start_local < start or command.end_local > end:
+                    return dict(status='needs_input',code='WINDOW_OUTSIDE_PLANNED_DAY',command=None,context=context,
+                                plannedDay=day,windowStartLocal=command.start_local,windowEndLocal=command.end_local,
+                                explanation='Запрошенное окно выходит за плановую дату наряда. Другое время не подбиралось.')
+                start,end=command.start_local,command.end_local
+            elif order.planned_start_at is not None and order.planned_end_at is not None:
                 start=order.planned_start_at.astimezone(zone).replace(tzinfo=None)
                 end=order.planned_end_at.astimezone(zone).replace(tzinfo=None)
         else:
             start=datetime.fromisoformat(context['defaultStartLocal']);end=datetime.fromisoformat(context['defaultEndLocal'])
         result=assignment_preview(v,order,start,end,executor_ids=command.executor_ids,
                                   individual_only=True, prefer_low_load=command.use_planned_day)
+        if exact and result.get('command') and any(
+            datetime.fromisoformat(result[field]).astimezone(zone).replace(tzinfo=None) != edge
+            for field,edge in (('startAt',start),('endAt',end))
+        ):
+            result.update(status='needs_input',code='ASSIGNMENT_WINDOW_MISMATCH',command=None,selectedWorkers=[],
+                          startAt=None,endAt=None,planningPersonMinutes=None,
+                          explanation='Подбор не подтвердил работу ровно в заданное окно. Другое время не предлагается.')
         result['taskTitle']=v.operation(order)[1] if command.use_planned_day else order.operation_snapshot.get('label') or 'Задание'
         if day is not None:
             result.update(plannedDay=day,windowStartLocal=start,windowEndLocal=end)
@@ -497,8 +528,9 @@ def register_routes(app,views):
               equipment_q:str|None=Query(None,min_length=1,max_length=200),
               equipment_asset_code:str|None=Query(None,min_length=1,max_length=128),
                on_days:list[date]|None=Query(None,max_length=31),
-               sort:Literal['earliest','latest']|None=None,attention_only:bool=False,use_planned_date:bool=False,
-              summary_on:date|None=Query(None,description='Счётчики выборки по статусам и за указанный день до пагинации.'),
+                sort:Literal['earliest','latest','earliest_deadline']|None=None,attention_only:bool=False,use_planned_date:bool=False,
+               summary_on:date|None=Query(None,description='Счётчики выборки по статусам и за указанный день до пагинации.'),
+               displayed_search:bool=Query(False,description='Искать по видимому названию, метке и коду наряда, не по перекрытому названию общего шаблона.'),
               v=Depends(views)):
         from .task_analytics import UNFINISHED
         orders=v.models['work_orders'];assignments=v.models['work_assignments'];rules=v.models['maintenance_rules'];operations=v.models['operation_templates']
@@ -598,12 +630,17 @@ def register_routes(app,views):
         if schedule_basis:
             source=source.outerjoin(entries,and_(entries.site_id==orders.site_id,entries.schedule_entry_id==orders.schedule_entry_id))
         if q.strip():
-            filters.append(or_(*(column.icontains(q.strip(), autoescape=True) for column in (
-                orders.operation_snapshot['title'].astext, orders.operation_snapshot['label'].astext,
-                operations.title, operations.code))))
+            title = orders.operation_snapshot['title'].astext
+            label = orders.operation_snapshot['label'].astext
+            columns = (
+                func.coalesce(func.nullif(title, ''), operations.title, 'Работа'),
+                label, func.coalesce(func.nullif(orders.operation_snapshot['code'].astext, ''), operations.code),
+            ) if displayed_search else (title, label, operations.title, operations.code)
+            filters.append(or_(*(column.icontains(q.strip(), autoescape=True) for column in columns)))
         source=source.where(*filters)
         summary = None
         planned_duration = None
+        planned_start_summary = None
         if summary_on is not None:
             grouped = source.with_only_columns(orders.status, func.count(),
                                                func.count().filter(local_day == summary_on)).group_by(orders.status)
@@ -617,17 +654,23 @@ def register_routes(app,views):
         elif schedule_basis and starts_on is not None and starts_on == ends_on:
             known = orders.planned_end_at > orders.planned_start_at
             minutes = func.extract('epoch', orders.planned_end_at - orders.planned_start_at) / 60
-            count, known_count, summed = v.session.execute(source.with_only_columns(
-                func.count(), func.count().filter(known), func.coalesce(func.ceil(func.sum(minutes).filter(known)), 0))).one()
+            count, known_count, known_starts, summed = v.session.execute(source.with_only_columns(
+                func.count(), func.count().filter(known), func.count(orders.planned_start_at),
+                func.coalesce(func.ceil(func.sum(minutes).filter(known)), 0))).one()
             planned_duration = dict(known_minutes=int(summed), unknown_count=count-known_count, complete=count==known_count)
+            planned_start_summary = dict(known_count=known_starts, unknown_count=count-known_starts)
         else:
             count=v.session.scalar(select(func.count()).select_from(source.subquery()))
         day_counts = {}
         if on_days:
             grouping = source.with_only_columns(local_day.label('day'), func.count()).group_by(local_day)
             day_counts = {day.isoformat(): total for day, total in v.session.execute(grouping)}
-        ordering = (instant.asc().nulls_last() if sort == 'earliest' or (sort is None and period != 'overdue')
-                    else instant.desc().nulls_last())
+        if sort == 'earliest_deadline':
+            ordering = orders.regulatory_deadline_at.asc().nulls_last()
+        elif sort == 'earliest' or (sort is None and period != 'overdue'):
+            ordering = instant.asc().nulls_last()
+        else:
+            ordering = instant.desc().nulls_last()
         selected=v.session.scalars(source.order_by(ordering,orders.work_order_id).offset(offset).limit(limit)).all()
         v.prepare_task_views(selected)
         scope = {}
@@ -635,7 +678,9 @@ def register_routes(app,views):
         if equipment_ids is not None:scope['equipment_ids']=sorted({str(identity) for identity in equipment_ids})
         if equipment_q is not None:scope['equipment_q']=equipment_q
         if equipment_asset_code is not None:scope['equipment_asset_code']=equipment_asset_code
-        if q:scope['q']=q
+        if q:
+            scope['q']=q
+            if displayed_search:scope['displayed_search']=True
         if unfinished_only:scope['unfinished_only']=True
         if attention_only:scope['attention_only']=True
         if use_planned_date:scope['date_basis']='deadline' if period=='overdue' else 'planned'
@@ -687,5 +732,6 @@ def register_routes(app,views):
             **({'day_counts': day_counts} if on_days else {}),
              **({'summary': summary} if summary is not None else {}),
              **({'planned_duration': planned_duration} if planned_duration is not None else {}),
+             **({'planned_start_summary': planned_start_summary} if planned_start_summary is not None else {}),
             **({'history_basis': _accepted_scope(v.principal)} if equipment_accepted_maintenance is not None else {}),
             page_complete=offset==0 and len(selected)==count,analysis_tool='tasks_analyze')

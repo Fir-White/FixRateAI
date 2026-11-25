@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "catalog_sha256": "f4ae46550ffd270d5147927a0191d590f846aec920922c9f5575af59853d8455",
+  "catalog_sha256": "d0db4d9e55ee1d767de75840c70785b13561e765e8176210b232e090cf63cbbf",
   "acceptance_rule": "A finished response, registered tool, HTTP 200, negative boundary test, mocked completion or successful individual call does not prove the user goal. Positive acceptance requires an independently verified final result and data state for this exact role/operation.",
   "generative_policy": "Installed local Ollama only; no external LLM/fallback, weight downloads or runtime user preference changes.",
   "summary": {

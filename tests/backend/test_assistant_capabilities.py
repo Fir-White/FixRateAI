@@ -1,6 +1,7 @@
 """Every user-facing API has a tool or an explicit infrastructure/alias exclusion."""
 import io,json,os
 from contextlib import closing
+from dataclasses import replace
 from pathlib import Path
 from uuid import uuid4
 from datetime import datetime, timedelta, timezone
@@ -13,6 +14,12 @@ from app.assistant.service import compact,dump
 from tests.backend.test_assistant import assistant_case,managed,runtime,rpc,thread,proposal,confirm
 
 B='/api/v1/assistant';P='/api/v1/maintenance'
+
+@pytest.fixture
+def v2_runtime(runtime, monkeypatch):
+    _, app = runtime
+    monkeypatch.setitem(app.state._state, 'settings', replace(app.state.settings, assistant_agent_version='v2'))
+    return runtime
 
 def test_entire_authenticated_business_api_is_accounted_for(assistant_case):
     _,app,_,_,_=assistant_case
@@ -161,9 +168,9 @@ def test_assistant_prepares_specific_assignment_using_real_context(runtime):
         denied=client.post(B+f'/workspace/tasks/{ASSIGNMENT_TASK}/prepare-assignment',json=dict(executor_ids=workers))
         assert denied.status_code==403
 
-def test_task_choice_creates_reviewable_proposal_from_validated_preview(runtime):
+def test_task_choice_creates_reviewable_proposal_from_validated_preview(v2_runtime):
     from tests.backend.test_runtime_integration import login,assignment_search,ASSIGNMENT_TASK
-    engine,app=runtime
+    engine,app=v2_runtime
     with closing(login(app,'chief_engineer')) as client:
         _,body=assignment_search(client)
         preview=client.post(P+f'/tasks/{ASSIGNMENT_TASK}/assignment-preview',json=body).json()
@@ -234,9 +241,9 @@ def test_upcoming_unfinished_tasks_use_deadline_when_planned_start_passed(assist
     assert {str(identity), str(undated)} <= found
 
 
-def test_chat_lists_real_task_ids_after_missing_task_parameter(runtime):
+def test_chat_lists_real_task_ids_after_missing_task_parameter(v2_runtime):
     from tests.backend.test_runtime_integration import login
-    engine,app=runtime
+    engine,app=v2_runtime
     class Provider:
         def __init__(self):self.step=0
         def chat(self,messages,schema,tokens):
@@ -265,10 +272,10 @@ def test_chat_lists_real_task_ids_after_missing_task_parameter(runtime):
             assert 'Незавершённые пункты' in turn['answer']
         finally:del app.state.assistant_provider_factory
 
-def test_selection_by_number_checks_required_crew_without_guessing(runtime):
+def test_selection_by_number_checks_required_crew_without_guessing(v2_runtime):
     from tests.backend.test_runtime_integration import login,ASSIGNMENT_TASK
     from app.assistant.service import task_choice_prompt
-    engine,app=runtime
+    engine,app=v2_runtime
     with closing(login(app,'chief_engineer')) as client:
         tasks=client.get(B+'/workspace/tasks').json()['items']
         target=next(item for item in tasks if item['id']==str(ASSIGNMENT_TASK))
@@ -305,10 +312,10 @@ def test_selection_by_number_checks_required_crew_without_guessing(runtime):
             assert proof['result']['command'] is None and 'одного недостаточно' in proof['result']['explanation']
         finally:del app.state.assistant_provider_factory
 
-def test_deleted_selected_task_returns_honest_error_without_model_guessing(runtime):
+def test_deleted_selected_task_returns_honest_error_without_model_guessing(v2_runtime):
     from tests.backend.test_runtime_integration import login
     from app.assistant.service import task_choice_prompt
-    engine,app=runtime;missing=str(uuid4())
+    engine,app=v2_runtime;missing=str(uuid4())
     with closing(login(app,'chief_engineer')) as client:
         prompt=task_choice_prompt([dict(tool='tasks_find',result=dict(items=[dict(id=missing,summary='Работа',equipmentName='Объект')])),dict(tool='task_read',status_code=422)])
         chat=thread(client)

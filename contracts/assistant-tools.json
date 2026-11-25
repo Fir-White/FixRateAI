@@ -917,7 +917,9 @@
         "path": [
           "equipment_id"
         ],
-        "query": []
+        "query": [
+          "include_effectivity"
+        ]
       },
       "response_schemas": {
         "200": {
@@ -1309,6 +1311,7 @@
         "query": [
           "active_only",
           "attention_only",
+          "displayed_search",
           "ends_on",
           "equipment_accepted_maintenance",
           "equipment_asset_code",
@@ -1793,8 +1796,10 @@
         ],
         "query": [],
         "body": [
+          "end_local",
           "executor_ids",
           "one_person_only",
+          "start_local",
           "use_planned_day"
         ]
       },

@@ -425,7 +425,8 @@ async def preflight(app,tool,args,headers):
         task=snapshot['task']
         snapshot.pop('timingCheckedAt',None)
         snapshot.pop('plannedChecklist',None)
-        for key in ('mandatoryDeadlineAt','plannedWindowEnded','deadlineRemainingMinutes','equipmentIds','lateAcceptanceBlocked'):
+        for key in ('mandatoryDeadlineAt','plannedWindowEnded','deadlineRemainingMinutes','equipmentIds','lateAcceptanceBlocked',
+                    'maintenanceRuleId'):
             task.pop(key,None)
     if tool.name=='task_assign':
         from datetime import datetime

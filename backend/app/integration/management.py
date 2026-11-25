@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from fastapi import Depends, HTTPException, Request, Response
 from sqlalchemy import select, text, delete
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload
 
 from app.db.session import service_transaction
 from app.schemas.maintenance import CalendarPattern
@@ -154,10 +155,17 @@ def exposed_pattern(rule):
     except ValidationError:return None
 
 
-def service_configurations(v,equipment_id):
-    _equipment(v,equipment_id)
+def service_configurations(v,equipment_id,*,include_effectivity=False):
+    equipment = _equipment(v,equipment_id)
+    if include_effectivity:
+        binding_model, rule_model = (v.models[name] for name in ('rule_equipment', 'maintenance_rules'))
+        bindings = v.session.scalars(select(binding_model).where(
+            binding_model.site_id == v.principal.site_id, binding_model.equipment_id == equipment_id,
+        ).options(joinedload(binding_model.rule).joinedload(rule_model.edition)))
+    else:
+        bindings = v.rows('rule_equipment',equipment_id=equipment_id)
     rows=[]
-    for binding in v.rows('rule_equipment',equipment_id=equipment_id):
+    for binding in bindings:
         rule=binding.rule
         parameters=rule.schedule_parameters
         if parameters.get('superseded_binding') or parameters.get('catalog_publication_id'):
@@ -177,7 +185,14 @@ def service_configurations(v,equipment_id):
                 visual_verifiability=parameters.get('checklist_metadata',{}).get(str(r.checklist_template_id),{}).get('visual_verifiability','not_verifiable'),
                 photo_required=parameters.get('checklist_metadata',{}).get(str(r.checklist_template_id),{}).get('photo_required',r.input_kind=='photo'))
                 for r in checklist_for_rule(v,op.operation_template_id,parameters)],
-            enabled=rule.publication_status=='published',source_text=rule.source_text,methodology_ref=parameters.get('methodology_ref'),measurement_requirements=parameters.get('measurement_requirements',[]),required_acts=parameters.get('required_acts',[])))
+             enabled=rule.publication_status=='published',source_text=rule.source_text,methodology_ref=parameters.get('methodology_ref'),measurement_requirements=parameters.get('measurement_requirements',[]),required_acts=parameters.get('required_acts',[])))
+        if include_effectivity:
+            edition = rule.edition
+            ends = [day for day in (binding.valid_to, rule.active_until, edition.effective_to) if day is not None]
+            rows[-1].update(publication_status=rule.publication_status, edition_approved=edition.is_approved,
+                            operation_available=op.is_active and equipment.status != 'retired',
+                            effective_from=max(binding.valid_from, rule.active_from, edition.effective_from),
+                            effective_until=min(ends, default=None))
     return rows
 
 
@@ -355,10 +370,10 @@ def register_routes(app,views,db):
             _audit(v,'equipment',equipment_id,'retire',dict(revision=row.revision))
 
     @app.get(PREFIX+'/equipment/{equipment_id}/service-configurations')
-    def configs(equipment_id:UUID,v=Depends(views)):
+    def configs(equipment_id:UUID,include_effectivity:bool=False,v=Depends(views)):
         _guard(v,'director','admin','dispatcher','engineer','executor')
         if v.principal.role=='executor' and equipment_id not in v.visible_equipment_ids():raise HTTPException(404,'Оборудование не найдено')
-        return service_configurations(v,equipment_id)
+        return service_configurations(v,equipment_id,include_effectivity=include_effectivity)
 
     @app.post(PREFIX+'/equipment/{equipment_id}/service-configurations',status_code=201)
     def config_create(equipment_id:UUID,command:ServiceConfiguration,v=Depends(views)):

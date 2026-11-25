@@ -60,7 +60,7 @@ def test_v3_replans_a_site_request_misclassified_as_conversation(assistant_case,
     provider = NoVerifiedSource(DialogueRoute(kind='conversation'), results=[
         RequestedResult(intent='general_explanation', source_text='Объясни сведения о сменах'),
     ])
-    monkeypatch.setattr(app.state, 'settings', replace(app.state.settings, assistant_agent_version='v3'))
+    monkeypatch.setitem(app.state._state, 'settings', replace(app.state.settings, assistant_agent_version='v3'))
     monkeypatch.setattr(app.state, 'assistant_provider_factory', lambda: provider, raising=False)
     result, actions = send(admin.chief, thread(admin.chief), 'Какие сведения о сменах есть на нашем объекте?')
     assert not actions and result['workflow']['outcome'] == 'blocked'
@@ -76,7 +76,7 @@ def test_v3_replans_a_site_request_misclassified_as_conversation(assistant_case,
 def test_v3_response_only_cannot_claim_unread_site_data(assistant_case, monkeypatch, reply, blocked):
     _, app, admin, _, _ = assistant_case
     provider = RoutedProvider(DialogueRoute(kind='conversation'), reply=reply)
-    monkeypatch.setattr(app.state, 'settings', replace(app.state.settings, assistant_agent_version='v3'))
+    monkeypatch.setitem(app.state._state, 'settings', replace(app.state.settings, assistant_agent_version='v3'))
     monkeypatch.setattr(app.state, 'assistant_provider_factory', lambda: provider, raising=False)
     result, actions = send(admin.chief, thread(admin.chief), 'Что такое техническое обслуживание?')
     assert not actions and result['workflow'] is None

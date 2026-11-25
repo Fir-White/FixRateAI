@@ -1,0 +1,25 @@
+{
+  "dump_sha256": "17f5ab959b136fb18c3d9fb59b16a2f62710d38bc721e134a9235279771faa37",
+  "corpus_sha256": "411043468a459b3c4c33ce7921242f5c43c58807ccddaecaf1e4d7295c34a43a",
+  "rows": {
+    "assigned": 10,
+    "cancelled": 57,
+    "completed": 906,
+    "draft": 5,
+    "in_progress": 10,
+    "in_review": 3,
+    "rework": 1,
+    "total": 992
+  },
+  "volume": {
+    "equipment": 128,
+    "bindings": 124,
+    "rules": 3,
+    "reports": 353,
+    "reviews": 342,
+    "schedule_entries": 4,
+    "materials": 3,
+    "availability": 3,
+    "qualifications": 3
+  }
+}

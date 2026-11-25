@@ -84,3 +84,46 @@ def regulation_report(equipment,rows):
         if len(published)>25:lines.append(f'Показаны первые 25 из {len(published)} конфигураций; количество рассчитано по всему прочитанному списку.')
         lines.append('Будущая дата начала означает, что конфигурация пока не действует. Здесь показана предусмотренная периодичность; необходимость конкретного ТО сегодня проверяется отдельно по календарю и факту выполнения.')
     return '\n'.join(line if i and line.startswith('|') and lines[i-1].startswith('|') else '\n'+line for i,line in enumerate(lines)).strip()
+
+
+def regulation_effectivity_answer(question, observations):
+    """Use the verified publication and effective states for direct v4 status questions."""
+    from .inventory_report import label
+    if not re.search(r'\b(?:действу\w*|вступ\w*|утвержд[её]н\w*|опубликован\w*)\b', question, re.I):
+        return None
+    if any(row['tool'] not in ('find_equipment', 'read_equipment', 'read_regulations') for row in observations):
+        return None
+    matches = [row['result'] for row in observations if row['tool'] == 'read_regulations']
+    if len(matches) != 1 or not isinstance(matches[0], list):
+        return None  # Do not render a partial or ambiguous result.
+    rows = matches[0]
+    if not rows:
+        return 'Для выбранного оборудования не найдено сохранённых конфигураций регламента.'
+    statuses = {
+        'active': 'Опубликован и действует на дату {day}.',
+        'future': 'Опубликован, но ещё не действует.',
+        'expired': 'Опубликован, срок действия истёк.',
+        'unapproved': 'Опубликован, но редакция не утверждена; не действует.',
+        'inactive': 'Опубликован, но применение отключено или период действия некорректен.',
+        'draft': 'Черновик; не действует.',
+        'archived': 'Архивный; не действует.',
+    }
+    units = dict(day=('день','дн.'), week=('неделю','нед.'), month=('месяц','мес.'),
+                 quarter=('квартал','кв.'), year=('год','г.'))
+    lines = []
+    for row in rows:
+        if row.get('effective_status') not in statuses:
+            return None
+        status = statuses[row['effective_status']].format(day=row['effective_on'])
+        period = f"Начало: {row['effective_from']}."
+        if row['effective_until']:
+            period += f" Окончание: {row['effective_until']}."
+        pattern = row.get('pattern') or {}
+        unit = units.get(pattern.get('frequency'))
+        interval = pattern.get('interval')
+        frequency = label(row.get('source_text') or 'не подтверждена')
+        if unit and type(interval) is int and interval > 0:
+            frequency = f'раз в {unit[0]}' if interval == 1 else f'интервал {interval} {unit[1]}'
+        lines.append(f"- «{label(row['title'])}» ({label(row['maintenance_type'])}): **{status}** "
+                     f"{period} Периодичность: {frequency}.")
+    return '\n'.join(lines)

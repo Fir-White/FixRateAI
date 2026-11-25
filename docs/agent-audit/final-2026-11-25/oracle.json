@@ -1,0 +1,885 @@
+{
+  "fixture": "north-final-v1",
+  "timezone": "Asia/Yekaterinburg",
+  "site": "9d8457e4-6aa2-0966-dabc-75a86f2bedf9",
+  "dates": {
+    "today": "2026-11-25",
+    "tomorrow": "2026-11-26",
+    "second": "2026-11-27"
+  },
+  "ids": {
+    "cabinet": "21d9b253-9ea2-cabf-7de8-284b37d0e707",
+    "filter": "c31953ba-f710-508b-8f4f-4b0d838ec7cf",
+    "gauge": "0bc0441a-3248-5f38-b0c4-a0d16036adc9",
+    "vent": "6daf6ff7-cfd3-51d1-bf83-752f21ed7fd7",
+    "foreign_asset": "32163d18-1bf2-5d25-a725-1c6074be14df",
+    "assignment": "092af5c7-75f4-91c9-71a6-16d503f94125",
+    "busy": "1568cb75-55b7-4bb9-45a2-3331af62c359",
+    "label": "9a4500c0-2d12-5407-b514-ad646a05b720",
+    "seal": "51e9ea26-58bf-5385-9cfe-bb7dfd628378",
+    "overdue": "226e53ad-96f6-5ea7-b443-5365968c8a12",
+    "unassigned": "ad8fe4f6-8308-50d8-8cec-c89e2c738c25",
+    "review": "b8698a3d-2706-5b09-9162-50413ff09677",
+    "day_first": "ba95f1c6-2540-5486-ab0f-87cd1fdc59c7",
+    "day_second": "6f524843-a383-5816-83c4-062ac35dc8d7",
+    "day_unknown": "5b8f066a-5db6-5f62-a0cb-f645d477ca30",
+    "second": "5cc77129-8834-5436-8f23-fe5f682ddcd5",
+    "date_only": "01f9581a-6881-5d6e-a7fb-ad75e0e8f57e",
+    "undated": "921a934f-1a08-520c-bf3e-1dc0aaa4f282",
+    "rework": "e65a616c-5704-5a61-98d8-255521568f96",
+    "previous": "39f975ed-f124-5cf6-9f5c-c7908104523f",
+    "foreign": "be3a9414-7a2e-5a94-be80-0a7565c8b8f0",
+    "full": "fcd90810-d30d-53f6-8e1c-579a33a92c4c",
+    "partial": "dfc541b2-db26-595d-ba34-ede62b75c4f7",
+    "one_photo": "7b2e273d-fe3c-5633-9f02-90a15e29c430",
+    "duplicate1": "9d275067-c7d6-5bc8-aa43-67a229c12792",
+    "duplicate2": "a4723bca-ae1a-5aa8-b75b-75f5b374beed"
+  },
+  "actors": {
+    "engineer": "89f598eb-b816-cc71-1946-b8e57bc6f082",
+    "executor": "c5d45351-4d33-431e-9c0f-116b078b5484",
+    "other": "177caab5-e18f-4b80-aaa0-c156b83d78a7",
+    "chief": "6346387f-8b6b-46a6-b9fb-1bbf388024fe"
+  },
+  "assignments": [
+    "6f51aa9c-9bba-9774-f66c-9d2c8ddb0c78",
+    "346221f4-8429-841b-9a0a-8ba2ffa9a9fc"
+  ],
+  "site_counts": {
+    "assigned": 10,
+    "cancelled": 57,
+    "completed": 906,
+    "draft": 5,
+    "in_progress": 10,
+    "in_review": 3,
+    "rework": 1,
+    "total": 992
+  },
+  "orders": {
+    "assignment": {
+      "work_order_id": "092af5c7-75f4-91c9-71a6-16d503f94125",
+      "title": "Север · Проверка учебной панели",
+      "status": "draft",
+      "starts": null,
+      "ends": null,
+      "due": "2026-11-27 00:00:00",
+      "day": "2026-11-26",
+      "assigned": []
+    },
+    "busy": {
+      "work_order_id": "1568cb75-55b7-4bb9-45a2-3331af62c359",
+      "title": "Север · Утренняя занятость Гаммы",
+      "status": "assigned",
+      "starts": "2026-11-26 09:00:00",
+      "ends": "2026-11-26 10:00:00",
+      "due": "2026-11-27 00:00:00",
+      "day": "2026-11-26",
+      "assigned": [
+        "Оператор Гамма"
+      ]
+    },
+    "label": {
+      "work_order_id": "9a4500c0-2d12-5407-b514-ad646a05b720",
+      "title": "Север · Сверка учебной наклейки",
+      "status": "assigned",
+      "starts": "2026-11-25 11:00:00",
+      "ends": "2026-11-25 12:00:00",
+      "due": "2026-11-26 17:00:00",
+      "day": "2026-11-25",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    "seal": {
+      "work_order_id": "51e9ea26-58bf-5385-9cfe-bb7dfd628378",
+      "title": "Север · Уплотнение седла",
+      "status": "assigned",
+      "starts": "2026-11-24 11:00:00",
+      "ends": "2026-11-24 12:00:00",
+      "due": "2026-11-27 17:00:00",
+      "day": "2026-11-24",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    "overdue": {
+      "work_order_id": "226e53ad-96f6-5ea7-b443-5365968c8a12",
+      "title": "Север · Осмотр кабельной бирки",
+      "status": "in_progress",
+      "starts": "2026-11-20 10:00:00",
+      "ends": "2026-11-20 11:00:00",
+      "due": "2026-11-21 16:00:00",
+      "day": "2026-11-20",
+      "assigned": []
+    },
+    "unassigned": {
+      "work_order_id": "ad8fe4f6-8308-50d8-8cec-c89e2c738c25",
+      "title": "Север · Контроль отличительной наклейки",
+      "status": "draft",
+      "starts": "2026-11-26 08:00:00",
+      "ends": "2026-11-26 09:00:00",
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-26",
+      "assigned": []
+    },
+    "review": {
+      "work_order_id": "b8698a3d-2706-5b09-9162-50413ff09677",
+      "title": "Север · Проверка опор",
+      "status": "in_review",
+      "starts": "2026-11-23 08:00:00",
+      "ends": "2026-11-23 09:00:00",
+      "due": "2026-11-24 16:00:00",
+      "day": "2026-11-23",
+      "assigned": [
+        "Другой учебный исполнитель"
+      ]
+    },
+    "day_first": {
+      "work_order_id": "ba95f1c6-2540-5486-ab0f-87cd1fdc59c7",
+      "title": "Север · Доверка маркировки",
+      "status": "assigned",
+      "starts": "2026-11-26 10:00:00",
+      "ends": "2026-11-26 10:35:00",
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-26",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    "day_second": {
+      "work_order_id": "6f524843-a383-5816-83c4-062ac35dc8d7",
+      "title": "Север · Сверка номера стакана",
+      "status": "assigned",
+      "starts": "2026-11-26 13:00:00",
+      "ends": "2026-11-26 14:00:00",
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-26",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    "day_unknown": {
+      "work_order_id": "5b8f066a-5db6-5f62-a0cb-f645d477ca30",
+      "title": "Север · Проверка упаковки метки",
+      "status": "assigned",
+      "starts": "2026-11-26 15:00:00",
+      "ends": null,
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-26",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    "second": {
+      "work_order_id": "5cc77129-8834-5436-8f23-fe5f682ddcd5",
+      "title": "Север · Осмотр маркировки сухого канала",
+      "status": "assigned",
+      "starts": "2026-11-27 10:00:00",
+      "ends": "2026-11-27 11:00:00",
+      "due": "2026-11-29 17:00:00",
+      "day": "2026-11-27",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    "date_only": {
+      "work_order_id": "01f9581a-6881-5d6e-a7fb-ad75e0e8f57e",
+      "title": "Север · Учёт рамки кожуха",
+      "status": "draft",
+      "starts": null,
+      "ends": null,
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-27",
+      "assigned": []
+    },
+    "undated": {
+      "work_order_id": "921a934f-1a08-520c-bf3e-1dc0aaa4f282",
+      "title": "Север · Внеплановая сверка ярлыка",
+      "status": "draft",
+      "starts": null,
+      "ends": null,
+      "due": null,
+      "day": null,
+      "assigned": []
+    },
+    "rework": {
+      "work_order_id": "e65a616c-5704-5a61-98d8-255521568f96",
+      "title": "Север · Чистка стакана",
+      "status": "rework",
+      "starts": "2026-11-22 10:00:00",
+      "ends": "2026-11-22 11:00:00",
+      "due": "2026-11-27 16:00:00",
+      "day": "2026-11-22",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    "previous": {
+      "work_order_id": "39f975ed-f124-5cf6-9f5c-c7908104523f",
+      "title": "Север · Проверка фильтра по плану",
+      "status": "completed",
+      "starts": "2026-11-10 10:00:00",
+      "ends": "2026-11-10 11:00:00",
+      "due": "2026-11-11 16:00:00",
+      "day": "2026-11-10",
+      "assigned": [
+        "Другой учебный исполнитель"
+      ]
+    },
+    "foreign": {
+      "work_order_id": "be3a9414-7a2e-5a94-be80-0a7565c8b8f0",
+      "title": "Север · Разбор резервного шкафа",
+      "status": "in_review",
+      "starts": "2026-11-24 08:00:00",
+      "ends": "2026-11-24 09:00:00",
+      "due": "2026-11-26 16:00:00",
+      "day": "2026-11-24",
+      "assigned": [
+        "Другой учебный исполнитель"
+      ]
+    },
+    "full": {
+      "work_order_id": "fcd90810-d30d-53f6-8e1c-579a33a92c4c",
+      "title": "Север · Фиксация контрольной панели",
+      "status": "in_progress",
+      "starts": "2026-11-24 10:00:00",
+      "ends": "2026-11-24 11:00:00",
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-24",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    "partial": {
+      "work_order_id": "dfc541b2-db26-595d-ba34-ede62b75c4f7",
+      "title": "Север · Отметка лицевой шильды",
+      "status": "in_progress",
+      "starts": "2026-11-24 12:00:00",
+      "ends": "2026-11-24 13:00:00",
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-24",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    "one_photo": {
+      "work_order_id": "7b2e273d-fe3c-5633-9f02-90a15e29c430",
+      "title": "Север · Ревизия рамки панели",
+      "status": "in_progress",
+      "starts": "2026-11-24 13:00:00",
+      "ends": "2026-11-24 14:00:00",
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-24",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    "duplicate1": {
+      "work_order_id": "9d275067-c7d6-5bc8-aa43-67a229c12792",
+      "title": "Север · Двойная маркировка",
+      "status": "in_progress",
+      "starts": "2026-11-23 12:00:00",
+      "ends": "2026-11-23 13:00:00",
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-23",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    "duplicate2": {
+      "work_order_id": "a4723bca-ae1a-5aa8-b75b-75f5b374beed",
+      "title": "Север · Двойная маркировка",
+      "status": "in_progress",
+      "starts": "2026-11-23 13:00:00",
+      "ends": "2026-11-23 14:00:00",
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-23",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    }
+  },
+  "photos": {
+    "cabinet_before": {
+      "filename": "cabinet_before.jpg",
+      "source": "case_03_before.jpg",
+      "sha256": "0c4fe8c24b853d486e1bb4f2ad64b3780e9a78ff547899441483a47bc88eb203",
+      "bytes": 74314
+    },
+    "before_named": {
+      "filename": "before.jpg",
+      "source": "case_03_before.jpg",
+      "sha256": "0c4fe8c24b853d486e1bb4f2ad64b3780e9a78ff547899441483a47bc88eb203",
+      "bytes": 74314
+    },
+    "cabinet_after": {
+      "filename": "cabinet_after.jpg",
+      "source": "case_03_after.jpg",
+      "sha256": "cf6e3af2fa76958f9721d968cda07b8ff3e0e69a28e28aa4e59d33238333c60c",
+      "bytes": 55620
+    },
+    "after_named": {
+      "filename": "after.jpg",
+      "source": "case_03_after.jpg",
+      "sha256": "cf6e3af2fa76958f9721d968cda07b8ff3e0e69a28e28aa4e59d33238333c60c",
+      "bytes": 55620
+    },
+    "cabinet_glare": {
+      "filename": "cabinet_glare.jpg",
+      "source": "neg_02_after_blurry_glare.jpg",
+      "sha256": "40ee41ca9020889828ce8323d6ab8333f51fb1735c4a141deee42755299aaa77",
+      "bytes": 123738
+    },
+    "gauge": {
+      "filename": "gauge.jpg",
+      "source": "case_01_after.jpg",
+      "sha256": "e5fab1c88766760d6322fb16f506ee303b7ba6490b6cb77bc1b37bbd0963459f",
+      "bytes": 119801
+    }
+  },
+  "north_tomorrow": [
+    {
+      "work_order_id": "ad8fe4f6-8308-50d8-8cec-c89e2c738c25",
+      "title": "Север · Контроль отличительной наклейки",
+      "status": "draft",
+      "starts": "2026-11-26 08:00:00",
+      "ends": "2026-11-26 09:00:00",
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-26",
+      "assigned": []
+    },
+    {
+      "work_order_id": "1568cb75-55b7-4bb9-45a2-3331af62c359",
+      "title": "Север · Утренняя занятость Гаммы",
+      "status": "assigned",
+      "starts": "2026-11-26 09:00:00",
+      "ends": "2026-11-26 10:00:00",
+      "due": "2026-11-27 00:00:00",
+      "day": "2026-11-26",
+      "assigned": [
+        "Оператор Гамма"
+      ]
+    },
+    {
+      "work_order_id": "ba95f1c6-2540-5486-ab0f-87cd1fdc59c7",
+      "title": "Север · Доверка маркировки",
+      "status": "assigned",
+      "starts": "2026-11-26 10:00:00",
+      "ends": "2026-11-26 10:35:00",
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-26",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    {
+      "work_order_id": "6f524843-a383-5816-83c4-062ac35dc8d7",
+      "title": "Север · Сверка номера стакана",
+      "status": "assigned",
+      "starts": "2026-11-26 13:00:00",
+      "ends": "2026-11-26 14:00:00",
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-26",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    {
+      "work_order_id": "5b8f066a-5db6-5f62-a0cb-f645d477ca30",
+      "title": "Север · Проверка упаковки метки",
+      "status": "assigned",
+      "starts": "2026-11-26 15:00:00",
+      "ends": null,
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-26",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    {
+      "work_order_id": "092af5c7-75f4-91c9-71a6-16d503f94125",
+      "title": "Север · Проверка учебной панели",
+      "status": "draft",
+      "starts": null,
+      "ends": null,
+      "due": "2026-11-27 00:00:00",
+      "day": "2026-11-26",
+      "assigned": []
+    }
+  ],
+  "north_tomorrow_unassigned": [
+    {
+      "work_order_id": "ad8fe4f6-8308-50d8-8cec-c89e2c738c25",
+      "title": "Север · Контроль отличительной наклейки",
+      "status": "draft",
+      "starts": "2026-11-26 08:00:00",
+      "ends": "2026-11-26 09:00:00",
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-26",
+      "assigned": []
+    },
+    {
+      "work_order_id": "092af5c7-75f4-91c9-71a6-16d503f94125",
+      "title": "Север · Проверка учебной панели",
+      "status": "draft",
+      "starts": null,
+      "ends": null,
+      "due": "2026-11-27 00:00:00",
+      "day": "2026-11-26",
+      "assigned": []
+    }
+  ],
+  "north_second": [
+    {
+      "work_order_id": "5cc77129-8834-5436-8f23-fe5f682ddcd5",
+      "title": "Север · Осмотр маркировки сухого канала",
+      "status": "assigned",
+      "starts": "2026-11-27 10:00:00",
+      "ends": "2026-11-27 11:00:00",
+      "due": "2026-11-29 17:00:00",
+      "day": "2026-11-27",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    {
+      "work_order_id": "01f9581a-6881-5d6e-a7fb-ad75e0e8f57e",
+      "title": "Север · Учёт рамки кожуха",
+      "status": "draft",
+      "starts": null,
+      "ends": null,
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-27",
+      "assigned": []
+    }
+  ],
+  "north_open_interval": [
+    {
+      "work_order_id": "ad8fe4f6-8308-50d8-8cec-c89e2c738c25",
+      "title": "Север · Контроль отличительной наклейки",
+      "status": "draft",
+      "starts": "2026-11-26 08:00:00",
+      "ends": "2026-11-26 09:00:00",
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-26",
+      "assigned": []
+    },
+    {
+      "work_order_id": "1568cb75-55b7-4bb9-45a2-3331af62c359",
+      "title": "Север · Утренняя занятость Гаммы",
+      "status": "assigned",
+      "starts": "2026-11-26 09:00:00",
+      "ends": "2026-11-26 10:00:00",
+      "due": "2026-11-27 00:00:00",
+      "day": "2026-11-26",
+      "assigned": [
+        "Оператор Гамма"
+      ]
+    },
+    {
+      "work_order_id": "ba95f1c6-2540-5486-ab0f-87cd1fdc59c7",
+      "title": "Север · Доверка маркировки",
+      "status": "assigned",
+      "starts": "2026-11-26 10:00:00",
+      "ends": "2026-11-26 10:35:00",
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-26",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    {
+      "work_order_id": "6f524843-a383-5816-83c4-062ac35dc8d7",
+      "title": "Север · Сверка номера стакана",
+      "status": "assigned",
+      "starts": "2026-11-26 13:00:00",
+      "ends": "2026-11-26 14:00:00",
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-26",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    {
+      "work_order_id": "5b8f066a-5db6-5f62-a0cb-f645d477ca30",
+      "title": "Север · Проверка упаковки метки",
+      "status": "assigned",
+      "starts": "2026-11-26 15:00:00",
+      "ends": null,
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-26",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    {
+      "work_order_id": "092af5c7-75f4-91c9-71a6-16d503f94125",
+      "title": "Север · Проверка учебной панели",
+      "status": "draft",
+      "starts": null,
+      "ends": null,
+      "due": "2026-11-27 00:00:00",
+      "day": "2026-11-26",
+      "assigned": []
+    },
+    {
+      "work_order_id": "5cc77129-8834-5436-8f23-fe5f682ddcd5",
+      "title": "Север · Осмотр маркировки сухого канала",
+      "status": "assigned",
+      "starts": "2026-11-27 10:00:00",
+      "ends": "2026-11-27 11:00:00",
+      "due": "2026-11-29 17:00:00",
+      "day": "2026-11-27",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    {
+      "work_order_id": "01f9581a-6881-5d6e-a7fb-ad75e0e8f57e",
+      "title": "Север · Учёт рамки кожуха",
+      "status": "draft",
+      "starts": null,
+      "ends": null,
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-27",
+      "assigned": []
+    }
+  ],
+  "north_review": [
+    {
+      "work_order_id": "b8698a3d-2706-5b09-9162-50413ff09677",
+      "title": "Север · Проверка опор",
+      "status": "in_review",
+      "starts": "2026-11-23 08:00:00",
+      "ends": "2026-11-23 09:00:00",
+      "due": "2026-11-24 16:00:00",
+      "day": "2026-11-23",
+      "assigned": [
+        "Другой учебный исполнитель"
+      ]
+    },
+    {
+      "work_order_id": "be3a9414-7a2e-5a94-be80-0a7565c8b8f0",
+      "title": "Север · Разбор резервного шкафа",
+      "status": "in_review",
+      "starts": "2026-11-24 08:00:00",
+      "ends": "2026-11-24 09:00:00",
+      "due": "2026-11-26 16:00:00",
+      "day": "2026-11-24",
+      "assigned": [
+        "Другой учебный исполнитель"
+      ]
+    }
+  ],
+  "north_attention": [
+    {
+      "work_order_id": "226e53ad-96f6-5ea7-b443-5365968c8a12",
+      "title": "Север · Осмотр кабельной бирки",
+      "status": "in_progress",
+      "starts": "2026-11-20 10:00:00",
+      "ends": "2026-11-20 11:00:00",
+      "due": "2026-11-21 16:00:00",
+      "day": "2026-11-20",
+      "assigned": [],
+      "reasons": [
+        "overdue",
+        "unassigned"
+      ]
+    },
+    {
+      "work_order_id": "e65a616c-5704-5a61-98d8-255521568f96",
+      "title": "Север · Чистка стакана",
+      "status": "rework",
+      "starts": "2026-11-22 10:00:00",
+      "ends": "2026-11-22 11:00:00",
+      "due": "2026-11-27 16:00:00",
+      "day": "2026-11-22",
+      "assigned": [
+        "Учебный исполнитель"
+      ],
+      "reasons": [
+        "rework"
+      ]
+    },
+    {
+      "work_order_id": "b8698a3d-2706-5b09-9162-50413ff09677",
+      "title": "Север · Проверка опор",
+      "status": "in_review",
+      "starts": "2026-11-23 08:00:00",
+      "ends": "2026-11-23 09:00:00",
+      "due": "2026-11-24 16:00:00",
+      "day": "2026-11-23",
+      "assigned": [
+        "Другой учебный исполнитель"
+      ],
+      "reasons": [
+        "overdue"
+      ]
+    },
+    {
+      "work_order_id": "ad8fe4f6-8308-50d8-8cec-c89e2c738c25",
+      "title": "Север · Контроль отличительной наклейки",
+      "status": "draft",
+      "starts": "2026-11-26 08:00:00",
+      "ends": "2026-11-26 09:00:00",
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-26",
+      "assigned": [],
+      "reasons": [
+        "unassigned"
+      ]
+    },
+    {
+      "work_order_id": "092af5c7-75f4-91c9-71a6-16d503f94125",
+      "title": "Север · Проверка учебной панели",
+      "status": "draft",
+      "starts": null,
+      "ends": null,
+      "due": "2026-11-27 00:00:00",
+      "day": "2026-11-26",
+      "assigned": [],
+      "reasons": [
+        "unassigned"
+      ]
+    },
+    {
+      "work_order_id": "01f9581a-6881-5d6e-a7fb-ad75e0e8f57e",
+      "title": "Север · Учёт рамки кожуха",
+      "status": "draft",
+      "starts": null,
+      "ends": null,
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-27",
+      "assigned": [],
+      "reasons": [
+        "unassigned"
+      ]
+    },
+    {
+      "work_order_id": "921a934f-1a08-520c-bf3e-1dc0aaa4f282",
+      "title": "Север · Внеплановая сверка ярлыка",
+      "status": "draft",
+      "starts": null,
+      "ends": null,
+      "due": null,
+      "day": null,
+      "assigned": [],
+      "reasons": [
+        "unassigned"
+      ]
+    }
+  ],
+  "mine_today": [
+    {
+      "work_order_id": "9a4500c0-2d12-5407-b514-ad646a05b720",
+      "title": "Север · Сверка учебной наклейки",
+      "status": "assigned",
+      "starts": "2026-11-25 11:00:00",
+      "ends": "2026-11-25 12:00:00",
+      "due": "2026-11-26 17:00:00",
+      "day": "2026-11-25",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    }
+  ],
+  "mine_tomorrow": [
+    {
+      "work_order_id": "ba95f1c6-2540-5486-ab0f-87cd1fdc59c7",
+      "title": "Север · Доверка маркировки",
+      "status": "assigned",
+      "starts": "2026-11-26 10:00:00",
+      "ends": "2026-11-26 10:35:00",
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-26",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    {
+      "work_order_id": "6f524843-a383-5816-83c4-062ac35dc8d7",
+      "title": "Север · Сверка номера стакана",
+      "status": "assigned",
+      "starts": "2026-11-26 13:00:00",
+      "ends": "2026-11-26 14:00:00",
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-26",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    {
+      "work_order_id": "5b8f066a-5db6-5f62-a0cb-f645d477ca30",
+      "title": "Север · Проверка упаковки метки",
+      "status": "assigned",
+      "starts": "2026-11-26 15:00:00",
+      "ends": null,
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-26",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    }
+  ],
+  "mine_two_days": [
+    {
+      "work_order_id": "ba95f1c6-2540-5486-ab0f-87cd1fdc59c7",
+      "title": "Север · Доверка маркировки",
+      "status": "assigned",
+      "starts": "2026-11-26 10:00:00",
+      "ends": "2026-11-26 10:35:00",
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-26",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    {
+      "work_order_id": "6f524843-a383-5816-83c4-062ac35dc8d7",
+      "title": "Север · Сверка номера стакана",
+      "status": "assigned",
+      "starts": "2026-11-26 13:00:00",
+      "ends": "2026-11-26 14:00:00",
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-26",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    {
+      "work_order_id": "5b8f066a-5db6-5f62-a0cb-f645d477ca30",
+      "title": "Север · Проверка упаковки метки",
+      "status": "assigned",
+      "starts": "2026-11-26 15:00:00",
+      "ends": null,
+      "due": "2026-11-28 16:00:00",
+      "day": "2026-11-26",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    },
+    {
+      "work_order_id": "5cc77129-8834-5436-8f23-fe5f682ddcd5",
+      "title": "Север · Осмотр маркировки сухого канала",
+      "status": "assigned",
+      "starts": "2026-11-27 10:00:00",
+      "ends": "2026-11-27 11:00:00",
+      "due": "2026-11-29 17:00:00",
+      "day": "2026-11-27",
+      "assigned": [
+        "Учебный исполнитель"
+      ]
+    }
+  ],
+  "mine_minutes": {
+    "known_minutes": 95,
+    "unknown_count": 1
+  },
+  "filter_next": {
+    "work_order_id": "6f524843-a383-5816-83c4-062ac35dc8d7",
+    "title": "Север · Сверка номера стакана",
+    "status": "assigned",
+    "starts": "2026-11-26 13:00:00",
+    "ends": "2026-11-26 14:00:00",
+    "due": "2026-11-28 16:00:00",
+    "day": "2026-11-26",
+    "assigned": [
+      "Учебный исполнитель"
+    ]
+  },
+  "workforce": {
+    "Альфа": 0,
+    "Бета": 0,
+    "Гамма": 60,
+    "исполнитель": null,
+    "другой": 0
+  },
+  "actions": {
+    "assignment": "092af5c7-75f4-91c9-71a6-16d503f94125",
+    "full": "fcd90810-d30d-53f6-8e1c-579a33a92c4c",
+    "partial": "dfc541b2-db26-595d-ba34-ede62b75c4f7"
+  },
+  "instructions": {
+    "label": "Только обесточенный учебный макет; дверцу не открывать. Сверить наклейку с картой, осмотреть лицевую панель и отметить результат. Источник: Синтетическая карта проработки SN-REG-2."
+  },
+  "requirements": {
+    "label": [
+      {
+        "id": "39591152-4c00-5a40-b062-c40387051915",
+        "text": "Сверить лицевую маркировку",
+        "answerKind": "boolean",
+        "required": true,
+        "photoRequired": true
+      },
+      {
+        "id": "e216f18f-593c-51e4-9535-f7b5eb9c98af",
+        "text": "Цвет наклейки",
+        "answerKind": "text",
+        "required": false,
+        "photoRequired": false
+      }
+    ]
+  },
+  "report_ids": {
+    "review": "7ec03e32-f30a-516e-a4e3-b5191a16d15e",
+    "previous": "22a91662-ff8e-5c76-8ff1-633ea70f3ba8",
+    "rework": "00887f0f-6b01-51a4-8a77-b03243320be9",
+    "foreign": "1808046f-94c3-5b01-855f-8382e2c0162a",
+    "full": "0bff7b57-4c9b-50c8-a328-b8bbc88e93ce",
+    "partial": "cb6aaf57-d8b6-54e5-83dd-42976e78566a",
+    "one_photo": "ead4e0fb-1b8d-5035-9599-69fe6d92e498",
+    "duplicate1": "c61ccaa6-204b-54b9-947e-506d277c1563",
+    "duplicate2": "a3bc7742-5707-5237-9c01-a03597f90b29"
+  },
+  "report_states": {
+    "rework": {
+      "revision": 2,
+      "previous_note": "Нет общего плана и не читается маркировка бирки; приложите общий план и снимок бирки крупно."
+    },
+    "one_photo": {
+      "photos": [
+        "before"
+      ]
+    },
+    "partial": {
+      "missing_checklist": [
+        "Сверить лицевую маркировку"
+      ],
+      "photos": [],
+      "actual_required": false
+    }
+  },
+  "history": {
+    "actual": "2026-11-10 11:00:00+05:00",
+    "submitted": "2026-11-11 10:00:00+05:00",
+    "accepted": "2026-11-12 10:00:00+05:00"
+  },
+  "rules": {
+    "to1": {
+      "start": "2026-09-26",
+      "interval": "day",
+      "frequency": "Раз в день"
+    },
+    "to2": {
+      "start": "2026-10-26",
+      "interval": "month",
+      "frequency": "Раз в месяц"
+    },
+    "to3": {
+      "start": "2026-12-02",
+      "interval": "quarter",
+      "frequency": "Раз в квартал"
+    }
+  },
+  "volume": {
+    "equipment": 128,
+    "bindings": 124,
+    "rules": 3,
+    "reports": 353,
+    "reviews": 342,
+    "schedule_entries": 4,
+    "materials": 3,
+    "availability": 3,
+    "qualifications": 3
+  }
+}

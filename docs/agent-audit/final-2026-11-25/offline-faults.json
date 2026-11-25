@@ -1,0 +1,11 @@
+{
+  "kind": "deterministic fault injection, not live model score",
+  "invalid_name_not_dispatched": true,
+  "tool_503_visible": true,
+  "empty_data_visible": true,
+  "read_deadline_fails": true,
+  "tool_budget_enforced": true,
+  "max_dispatched_calls": 12,
+  "model_steps_observed": 7,
+  "model_timeout_code": "AITUNNEL_TIMEOUT"
+}
