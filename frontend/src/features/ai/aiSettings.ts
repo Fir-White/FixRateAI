@@ -16,7 +16,7 @@ export interface AiSettings {
 }
 
 export const DEFAULT_AI_SETTINGS: AiSettings = {
-  provider: "clip",
+  provider: "ollama",
   model: "",
   apiKey: "",
 };
@@ -32,10 +32,14 @@ export function getPhotoReviewOptions(): AiSettings | undefined {
         delete parsed.apiKey;
         window.localStorage.setItem(AI_SETTINGS_STORAGE_KEY, JSON.stringify(parsed));
       }
-      const validProviders: AiProvider[] = ["clip", "ollama", "aitunnel"];
+      const validProviders: AiProvider[] = ["ollama", "aitunnel"];
       if (validProviders.includes(parsed?.provider)) {
         memoryPreferences = { provider: parsed.provider, model: typeof parsed?.model === "string" ? parsed.model : "" };
+      } else {
+        memoryPreferences = undefined;
       }
+    } else {
+      memoryPreferences = undefined;
     }
   } catch {
     // Preserve an explicit preference if the browser blocks storage.
@@ -86,11 +90,17 @@ export function useAiSettings(autoFetch = true) {
     try {
       const resp = await maintenanceApi.getAiModels();
       if (resp && Array.isArray(resp.providers)) {
-        setModelsData(resp);
+        const supported = resp.providers.filter(
+          (item) => item.id === "ollama" || item.id === "aitunnel"
+        );
+        setModelsData({ ...resp, providers: supported });
         const stored = getPhotoReviewOptions();
-        const defaultProvider = resp.providers.find(item => item.id === resp.current_provider)?.id ?? DEFAULT_AI_SETTINGS.provider;
+        const defaultProvider =
+          supported.find(item => item.id === resp.current_provider)?.id ??
+          supported.find(item => item.available)?.id ??
+          DEFAULT_AI_SETTINGS.provider;
         const provider = stored?.provider ?? defaultProvider;
-        const models = resp.providers.find(item => item.id === provider)?.models ?? [];
+        const models = supported.find(item => item.id === provider)?.models ?? [];
         const selected = models.find(item => item.id === stored?.model);
         const settings = { provider, model: selected?.id ?? models[0]?.id ?? "", apiKey: readAiKey() };
         if (stored && settings.model && !selected) saveStoredAiSettings(settings);

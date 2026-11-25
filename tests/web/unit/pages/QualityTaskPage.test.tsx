@@ -34,9 +34,9 @@ function setup(data: TaskBundle) {
 beforeEach(() => {
   vi.clearAllMocks();
   clearAiKey();
-  saveStoredAiSettings({ provider: "clip", model: "", apiKey: "" });
-  vi.mocked(maintenanceApi.getAiModels).mockResolvedValue({ current_provider: "clip", providers: [
-    { id: "clip", name: "CLIP", description: "Локальная модель", available: true, models: [] },
+  saveStoredAiSettings({ provider: "ollama", model: "", apiKey: "" });
+  vi.mocked(maintenanceApi.getAiModels).mockResolvedValue({ current_provider: "ollama", providers: [
+    { id: "ollama", name: "Ollama", description: "Локальная модель", available: true, models: [] },
     { id: "aitunnel", name: "AI Tunnel", description: "Облачная модель", available: true, has_server_key: false, models: [
       { id: "qwen3.7-flash", name: "Qwen3.7 Flash" }, { id: "qwen2.5-vl-72b-instruct", name: "Qwen2.5-VL" },
     ] },
