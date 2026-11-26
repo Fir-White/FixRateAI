@@ -71,7 +71,10 @@ def cloud_catalog():
         seen.add(name);metadata=chat.get(name,{})
         if not isinstance(metadata,dict):metadata={}
         description=metadata.get('short_description') or metadata.get('description') or ''
-        rows.append(dict(id=name,name=name,selectable=True,is_alias=name=='auto' or item.get('owned_by')=='preset',description=str(description)[:250]))
+        modalities=metadata.get('modalities') or {}
+        inputs=modalities.get('input') if isinstance(modalities,dict) else []
+        supports_vision=isinstance(inputs,list) and 'image' in inputs
+        rows.append(dict(id=name,name=name,selectable=True,supports_vision=supports_vision,is_alias=name=='auto' or item.get('owned_by')=='preset',description=str(description)[:250]))
     return sorted(rows,key=lambda row:row['id'].casefold())
 
 @dataclass
@@ -115,9 +118,46 @@ def validate_choice(app,provider,model):
     if group['status']!='ready':raise HTTPException(503,'Не удалось проверить список моделей этого провайдера. Повторите обновление списка.')
     item=next((m for m in group['models'] if m['id']==model and m['selectable']),None)
     if item is None:raise HTTPException(422,'Модель отсутствует в доступном каталоге. Обновите список и выберите её заново.')
+    supports_vision=bool(item.get('supports_vision'))
     if provider=='ollama':
         details=request_json(local_base()+'/api/show',body=dict(model=model))
         capabilities=details.get('capabilities') if isinstance(details,dict) else None
         if not isinstance(capabilities,list) or 'completion' not in capabilities:
             raise HTTPException(422,'Эта локальная модель не поддерживает чат.')
-    return dict(provider=provider,model=model,**({'digest':item['digest']} if provider=='ollama' else {'is_alias':True} if item.get('is_alias') else {}))
+        supports_vision='vision' in capabilities
+    return dict(provider=provider,model=model,supports_vision=supports_vision,**({'digest':item['digest']} if provider=='ollama' else {'is_alias':True} if item.get('is_alias') else {}))
+
+def model_supports_vision(app,selection):
+    """Verify whether the active chat selection actually supports image inputs."""
+    if selection is None:
+        return False
+    if 'supports_vision' in selection:
+        return bool(selection['supports_vision'])
+    if hasattr(app.state,'assistant_provider_factory'):
+        return True
+    provider=selection.get('provider')
+    model=selection.get('model')
+    if not provider or not model:
+        return False
+    if provider=='aitunnel':
+        from ml_service.app.providers.aitunnel import AITunnelConfig
+        try:
+            vision_default=AITunnelConfig.from_environment('vision').model
+            if model==vision_default:
+                return True
+        except ValueError:
+            pass
+        group=provider_catalog(app,'aitunnel')
+        if group.get('status')=='ready':
+            matched=next((m for m in group['models'] if m['id']==model),None)
+            if matched is not None:
+                return bool(matched.get('supports_vision'))
+        return False
+    if provider=='ollama':
+        try:
+            details=request_json(local_base()+'/api/show',body=dict(model=model))
+            capabilities=details.get('capabilities') if isinstance(details,dict) else None
+            return isinstance(capabilities,list) and 'vision' in capabilities
+        except Exception:
+            return False
+    return False

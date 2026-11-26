@@ -1,14 +1,94 @@
-import {render,screen,fireEvent} from "@testing-library/react";
-import {describe,it,expect} from "vitest";
-import {PhotoReviewCard} from "@/entities/execution/PhotoReviewCard";
-import type {PhotoReview,VisualAssessment} from "@/shared/types/domain";
-const visual:VisualAssessment={subject_matches_task:"yes",same_subject:"yes",comparable:"yes",before_description:"На корпусе до работы виден налёт.",after_description:"После работы поверхность корпуса открыта.",visible_changes:["На видимом участке налёт удалён."],concerns:["Обратная сторона не показана."],recommended_actions:["Приложить фото обратной стороны."],cannot_confirm:["Герметичность по фото не проверяется."],conclusion:"visible_improvement",summary:"На показанном участке видно изменение поверхности."};
-const review:PhotoReview={id:"review",executionId:"attempt",status:"completed",modelRef:"ollama:qwen3-vl:4b-instruct@sha256:fixture",promptSetVersion:"maintenance-local-vision-v1",createdAt:"2026-11-04T12:00:00Z",items:[{id:"check",label:"Поверхность очищена",verdict:"visible_change",note:visual.summary,assessment:visual}],limitations:["Решение принимает инженер."]};
-describe("photo assessment",()=>{
- it("shows actual supplied observations, concerns and next actions",()=>{render(<PhotoReviewCard review={review} formatDateTime={value=>value}/>);expect(screen.getByText(visual.cannot_confirm[0])).toBeVisible();expect(screen.getByText(visual.before_description)).not.toBeVisible();fireEvent.click(screen.getByText(/Подробности анализа по/));for(const text of [visual.before_description,visual.after_description,...visual.visible_changes,...visual.concerns,...visual.recommended_actions,...visual.cannot_confirm])expect(screen.getByText(text)).toBeVisible();expect(screen.queryByText("Работа принята")).not.toBeInTheDocument();});
- it("does not present a saved CLIP score as a detailed assessment",()=>{render(<PhotoReviewCard review={{...review,modelRef:"openai/clip-vit-base-patch32@fixture",items:[{id:"check",label:"Поверхность очищена",verdict:"no_visible_change",note:"delta -0.02"}]}} formatDateTime={value=>value}/>);expect(screen.getByText("Качество работы по этой проверке не подтверждено")).toBeVisible();expect(screen.getByText("delta -0.02")).not.toBeVisible();fireEvent.click(screen.getByText(/Подробности анализа по/));expect(screen.getByText("Изменения не подтверждены")).toBeVisible();});
- it("never invents observations when the model is unavailable",()=>{render(<PhotoReviewCard review={{...review,status:"unavailable",modelRef:null,items:[]}} formatDateTime={value=>value}/>);expect(screen.getByText("Не удалось выполнить фотоанализ")).toBeVisible();expect(screen.queryByText(visual.before_description)).not.toBeInTheDocument();});
- it("explains cloud authentication without suggesting local model startup",()=>{render(<PhotoReviewCard review={{...review,status:"unavailable",modelRef:null,errorCode:"AITUNNEL_AUTH_FAILED",items:[]}} formatDateTime={value=>value}/>);expect(screen.getByText(/Облачный анализ сейчас не настроен/)).toBeVisible();expect(screen.queryByText(/Запустите сервис анализа/)).not.toBeInTheDocument();});
- it("offers a retry for a cloud timeout without inventing a result",()=>{render(<PhotoReviewCard review={{...review,status:"failed",modelRef:null,errorCode:"AITUNNEL_TIMEOUT",items:[]}} formatDateTime={value=>value}/>);expect(screen.getByText(/Модель не успела закончить проверку/)).toBeVisible();expect(screen.queryByText(visual.before_description)).not.toBeInTheDocument();});
- it("displays the analysis duration in the report results",()=>{render(<PhotoReviewCard review={{...review,elapsedMs:1450}} formatDateTime={value=>value}/>);expect(screen.getByText("Время анализа: 1.5 сек")).toBeVisible();});
+import { render, screen } from "@testing-library/react";
+import { describe, it, expect } from "vitest";
+import { PhotoReviewCard } from "@/entities/execution/PhotoReviewCard";
+import type { PhotoReview, VisualAssessment } from "@/shared/types/domain";
+
+const visual: VisualAssessment = {
+  subject_matches_task: "yes",
+  same_subject: "yes",
+  comparable: "yes",
+  before_description: "На корпусе до работы виден налёт.",
+  after_description: "После работы поверхность корпуса чистая.",
+  visible_changes: ["На видимом участке налёт удалён."],
+  concerns: ["Обратная сторона не показана."],
+  recommended_actions: ["Приложить фото обратной стороны."],
+  cannot_confirm: ["Герметичность по фото не проверяется."],
+  conclusion: "visible_improvement",
+  summary: "На показанном участке корпуса после работы отсутствует прежний налёт.",
+};
+
+const review: PhotoReview = {
+  id: "review",
+  executionId: "attempt",
+  status: "completed",
+  modelRef: "aitunnel:qwen3.7-flash",
+  promptSetVersion: "maintenance-aitunnel-vision-v4",
+  createdAt: "2026-11-04T12:00:00Z",
+  items: [
+    {
+      id: "check",
+      label: "Поверхность очищена",
+      verdict: "visible_change",
+      note: visual.summary,
+      assessment: visual,
+    },
+  ],
+  limitations: ["Проверьте фотографии самостоятельно."],
+};
+
+describe("photo assessment", () => {
+  it("shows concise Russian observations and only one reminder without internal codes", () => {
+    render(<PhotoReviewCard review={review} formatDateTime={(value) => value} />);
+    expect(screen.getByText(/На показанном участке корпуса после работы отсутствует прежний налёт/)).toBeVisible();
+    expect(screen.getAllByText("Проверьте фотографии самостоятельно.")).toHaveLength(1);
+    expect(screen.queryByText(/qwen3\.7-flash/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/maintenance-aitunnel-vision/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/visible_improvement/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Работа принята")).not.toBeInTheDocument();
+  });
+
+  it("marks legacy saved CLIP results honestly without showing delta scores", () => {
+    render(
+      <PhotoReviewCard
+        review={{
+          ...review,
+          modelRef: "openai/clip-vit-base-patch32@fixture",
+          items: [{ id: "check", label: "Поверхность очищена", verdict: "no_visible_change", note: "delta -0.02" }],
+        }}
+        formatDateTime={(value) => value}
+      />
+    );
+    expect(screen.getByText(/Прежний тип проверки/)).toBeVisible();
+    expect(screen.getByText(/Сохранена прежняя проверка без текстового описания снимков/)).toBeVisible();
+    expect(screen.queryByText("delta -0.02")).not.toBeInTheDocument();
+    expect(screen.getByText("Проверьте фотографии самостоятельно.")).toBeVisible();
+  });
+
+  it("never invents observations or leaks system error codes on unavailability", () => {
+    render(
+      <PhotoReviewCard
+        review={{ ...review, status: "unavailable", modelRef: null, errorCode: "AITUNNEL_AUTH_FAILED", items: [] }}
+        formatDateTime={(value) => value}
+      />
+    );
+    expect(screen.getByText(/Анализ фотографий не настроен на сервере/)).toBeVisible();
+    expect(screen.queryByText("AITUNNEL_AUTH_FAILED")).not.toBeInTheDocument();
+    expect(screen.queryByText(visual.summary)).not.toBeInTheDocument();
+  });
+
+  it("shows timeout message without leaking TIMEOUT error code", () => {
+    render(
+      <PhotoReviewCard
+        review={{ ...review, status: "failed", modelRef: null, errorCode: "AITUNNEL_TIMEOUT", items: [] }}
+        formatDateTime={(value) => value}
+      />
+    );
+    expect(screen.getByText(/Анализ не успел завершиться вовремя/)).toBeVisible();
+    expect(screen.queryByText("AITUNNEL_TIMEOUT")).not.toBeInTheDocument();
+  });
+
+  it("displays the analysis duration in the report results", () => {
+    render(<PhotoReviewCard review={{ ...review, elapsedMs: 1450 }} formatDateTime={(value) => value} />);
+    expect(screen.getByText(/Время анализа: 1\.5 сек/)).toBeVisible();
+  });
 });

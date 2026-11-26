@@ -57,13 +57,12 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--docker",default=docker or "docker")
     parser.add_argument("--port",type=int)
-    parser.add_argument("--cache",type=Path,default=ROOT/".venv/hf-cache")
     parser.add_argument("--no-build",action="store_true")
     parser.add_argument("--presentation",action="store_true",help="Provision the isolated presentation object and accounts")
     ai_mode=parser.add_mutually_exclusive_group()
     ai_mode.add_argument("--local-vision",action="store_true",help="Use the prepared local vision-language model on GPU")
     ai_mode.add_argument("--cloud-ai",action="store_true",help="Use AI Tunnel for photo review and maintenance advice")
-    parser.add_argument("--bundled-image",help="Use a prebuilt local image with RF/CLIP weights inside")
+    parser.add_argument("--bundled-image",help="Use a prebuilt local image with RF model artifacts inside")
     action=parser.add_mutually_exclusive_group()
     action.add_argument("--stop",action="store_true",help="Stop this project; keep all persistent volumes")
     action.add_argument("--status",action="store_true")
@@ -82,8 +81,6 @@ def main():
         found=subprocess.run([args.docker,"volume","ls","--filter","label=com.docker.compose.project="+PROJECT,"--format","{{.Name}}"],capture_output=True,text=True,check=True,**hidden)
         if found.stdout.strip():
             raise RuntimeError("Existing local volumes have no matching private configuration; refusing to replace credentials")
-        cache=args.cache.resolve()
-        if not args.bundled_image and not cloud_requested and not cache.is_dir(): raise ValueError("Prepared CLIP cache directory is required; use --cache")
         port=args.port
         if port is None:
             for candidate in (8000,8080,8090):
@@ -95,7 +92,7 @@ def main():
             raise ValueError("Select an available port with --port")
         with socket.socket() as sock: sock.bind(("127.0.0.1",port))
         values=dict(POSTGRES_PASSWORD=secrets.token_hex(32),FIXRATE_DEMO_PASSWORD=requested.get("FIXRATE_DEMO_PASSWORD", "Local-"+secrets.token_urlsafe(15)),
-            FIXRATE_PORT=str(port),CLIP_CACHE_ROOT=cache.as_posix(),COOKIE_SECURE="false",
+            FIXRATE_PORT=str(port),COOKIE_SECURE="false",
             FORECAST_TIMEOUT_SECONDS="2",PHOTO_REVIEW_TIMEOUT_SECONDS="20",PHOTO_REVIEW_MAX_FILES="20",PHOTO_REVIEW_MAX_BYTES="52428800")
         STATE.mkdir(parents=True,exist_ok=True)
     else:
@@ -136,7 +133,7 @@ def main():
     base=[args.docker,"compose","--project-name",PROJECT,"--env-file",str(ENVFILE),
         "--project-directory",str(ROOT)]
     cloud_ai=values.get("FIXRATE_CLOUD_AI")=="true"
-    for filename in (["compose.bundled.yaml"] if bundled else ["compose.yaml"] if cloud_ai else ["compose.yaml","compose.ml.yaml"]):
+    for filename in (["compose.bundled.yaml"] if bundled else ["compose.yaml"]):
         base.extend(["-f",str(ROOT/filename)])
     local_vision=values.get("FIXRATE_LOCAL_VISION")=="true"
     cloud_ai=values.get("FIXRATE_CLOUD_AI")=="true"
@@ -166,7 +163,6 @@ def main():
     if args.status:
         print(command("status","ps"))
         return
-    if not bundled and not cloud_ai and not Path(values["CLIP_CACHE_ROOT"]).is_dir(): raise ValueError("Prepared CLIP cache is missing")
     if not args.no_build and not bundled: command("build","build","app")
     command("start","up","--detach","--no-build","--remove-orphans","--wait","--wait-timeout","180")
     account_env=[part for key in DEMO_KEYS for part in ("-e", key)]
@@ -184,9 +180,9 @@ def main():
         models={key:image_readiness[key] for key in ("vision","forecast")}
     else:
         readiness=command("models","exec","-T","app","python","-c",
-            "import json,os; from ml_service.app.forecast.runtime import load_verified_forecaster; from ml_service.app.cv.classifier import CLIPZeroShotClassifier; rf=load_verified_forecaster(); cv=CLIPZeroShotClassifier(); assert rf.is_fitted and cv.is_torch_active; print(json.dumps(dict(rf='synthetic_demo:rf:'+rf.artifact_sha256[:16],clip=cv.model_ref,source_revision=os.environ.get('FIXRATE_SOURCE_REVISION','unknown'))))")
+            "import json,os; from ml_service.app.forecast.runtime import load_verified_forecaster; rf=load_verified_forecaster(); assert rf.is_fitted; print(json.dumps(dict(rf='synthetic_demo:rf:'+rf.artifact_sha256[:16],source_revision=os.environ.get('FIXRATE_SOURCE_REVISION','unknown'))))")
         image_readiness=json.loads(readiness)
-        models={key:image_readiness[key] for key in ("rf","clip")}
+        models={"rf":image_readiness["rf"]}
     if local_vision:
         vision_readiness=command("vision_model","exec","-T","app","python","-c",
             "from ml_service.app.cv.local_vision import LocalVisionConfig,LocalVisionClient; c=LocalVisionConfig.from_environment(); LocalVisionClient(c).check_model(); print(c.model_ref)")
@@ -212,7 +208,7 @@ def main():
         raise RuntimeError("Private state belongs to a different project")
     previous.update(project=PROJECT,url=origin,models=models,logs=str(logdir),
         database_volume=PROJECT+"_postgres_data",photo_volume=PROJECT+"_photos",started_at=datetime.now(timezone.utc).isoformat(),
-        image=values.get("FIXRATE_IMAGE","fixrate-ai:local"),image_profile="cloud" if cloud_ai else "bundled" if bundled else "external-cache",
+        image=values.get("FIXRATE_IMAGE","fixrate-ai:local"),image_profile="cloud" if cloud_ai else "bundled" if bundled else "local",
         source_revision=image_readiness.get("source_revision","unknown"))
     state_path.write_text(json.dumps(previous,indent=2),encoding="utf-8")
     print(command("status","ps"))

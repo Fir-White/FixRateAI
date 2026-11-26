@@ -15,7 +15,7 @@ class RuntimeSettings:
     forecast_timeout_seconds: float
     photo_review_max_files: int
     photo_review_max_bytes: int
-    photo_review_provider: str = "clip"
+    photo_review_provider: str = "aitunnel"
     forecast_provider: str = "rf"
     active_roles: FrozenSet[str] = frozenset()
     assistant_agent_version: str = "v4"
@@ -56,9 +56,9 @@ class RuntimeSettings:
             if not minimum <= value <= maximum:
                 raise ValueError(name + " is outside the supported range")
             return value
-        provider = os.environ.get("PHOTO_REVIEW_PROVIDER", "clip").strip().lower()
-        if provider not in {"clip", "ollama", "aitunnel"}:
-            raise ValueError("PHOTO_REVIEW_PROVIDER must be clip, ollama or aitunnel")
+        provider = os.environ.get("PHOTO_REVIEW_PROVIDER", "aitunnel").strip().lower()
+        if provider not in {"aitunnel", "ollama"}:
+            raise ValueError("PHOTO_REVIEW_PROVIDER must be aitunnel or ollama")
         forecast_provider = os.environ.get("FORECAST_PROVIDER", "rf").strip().lower()
         if forecast_provider not in {"rf", "aitunnel"}:
             raise ValueError("FORECAST_PROVIDER must be rf or aitunnel")

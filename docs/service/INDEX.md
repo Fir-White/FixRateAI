@@ -2,6 +2,8 @@
 
 [Промежуточный срез v4 для dev, 26.11.2026](../releases/2026-11-26-v4-dev-hardening.md) — контракты чтений, назначения и фото, проверенные сценарии и открытый допуск.
 
+[Фотоанализ через AI Tunnel, отказ от CLIP и требования к фото, 26.11.2026](../releases/2026-11-26-aitunnel-photo-review.md) — удаление CLIP, `qwen3.7-flash` по умолчанию, фотоагент и пооперационный контроль `photo_required`.
+
 [Интеграция dev, 25.11.2026](../releases/2026-11-25-dev-integration.md) — ассистент v4, CR‑17, ML, фактический расход, E3 и совместимость PostgreSQL.
 
 [Динамический RAG и автоактуализация индекса (TEAM-ML03 / FRAI-173), 23.11.2026](../analysis/team_ml03_dynamic_rag_report.md) — лексический поиск регламентов и каталогов, TL04 fail-closed, CR-17 ролевой допуск, Durable Outbox consumer и авто-rebuild.

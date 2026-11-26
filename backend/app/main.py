@@ -912,17 +912,13 @@ def create_app(engine=None):
         return FileResponse(path, media_type=photo.mime_type, headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
 
     def validate_submission(v, order, report):
+        from app.integration.photo_evidence import validate_submission_evidence
+
         answers = {str(a.checklist_template_id): a.response_value.get("answer")
                    for a in v.rows("checklist_results", work_report_id=report.work_report_id)}
         photos = v.rows("evidence_files", work_report_id=report.work_report_id)
-        for item in report.checklist_snapshot:
-            answer = answers.get(item["id"])
-            if item["required"] and (not answer or (item["answerKind"] == "boolean" and answer != "done")):
-                raise HTTPException(422, "Заполните все обязательные пункты чек-листа")
-            if item["photoRequired"]:
-                pairs = {(p.stage, p.view_key) for p in photos if str(p.checklist_item_id) == item["id"]}
-                if not any(("after", key) in pairs for stage, key in pairs if stage == "before"):
-                    raise HTTPException(422, "Требуется пара фото до/после одного ракурса")
+        order_equipment_ids = {row.equipment_id for row in v.rows("work_order_equipment", work_order_id=order.work_order_id)}
+        validate_submission_evidence(report.checklist_snapshot, answers, photos, order_equipment_ids)
         validate_execution(v,order,report,None,submitting=True)
         return photos
 

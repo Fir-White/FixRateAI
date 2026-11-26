@@ -69,7 +69,7 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
   const engineerContext = await browser.newContext(contextOptions);
   const engineer = await engineerContext.newPage();
   engineer.on("pageerror", error => errors.push(error.message));
-  await signIn(engineer, "fixrate-demo-chief_engineer@example.test");
+  await signIn(engineer, "fixrate-demo-engineer@example.test");
   if(configuredViewport)expect(await engineer.evaluate(()=>innerWidth)).toBe(configuredViewport.width);
   await engineer.goto(`/quality/${demoId("runtime-order")}`);
   await expect(engineer.locator(".evidence-photo img")).toHaveCount(2);
@@ -83,7 +83,8 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
   expect(automaticallyReviewed.review.status).toBe("uncertain");
   expect(automaticallyReviewed.review.id).toBeTruthy();
   await expect(engineer.getByRole("checkbox", {name: /Подтверждаю, что фото/})).toHaveCount(0);
-  await expect(engineer.getByText("Разбор фотоотчёта",{exact:true})).toBeVisible();
+  await expect(engineer.getByRole("heading", {name: "Анализ фотографий", exact: true})).toBeVisible();
+  await expect(engineer.getByText("Проверьте фотографии самостоятельно.", {exact: true})).toHaveCount(1);
   await expect(engineer.getByRole("button", {name: "Принять работу", exact: true})).toHaveCount(0);
   await expect(engineer.getByRole("button", {name: "Вернуть на доработку", exact: true})).toHaveCount(0);
   const chiefContext = await browser.newContext(contextOptions);
@@ -119,7 +120,8 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
   expect((await submittedAgain.json()).execution.id).not.toBe(firstAttempt);
   await chief.reload();
   await expect(chief.getByText("Попытка №2", {exact: true})).toBeVisible();
-  await chief.getByLabel(/Причина решения/).fill("Повторная попытка проверена главным инженером.");
+  const acceptedReason = "Повторная попытка проверена главным инженером.";
+  await chief.getByLabel(/Причина решения/).fill(acceptedReason);
   await chief.getByRole("button", {name: "Принять работу", exact: true}).click();
   const accept = chief.waitForResponse(r => r.url().endsWith("/review") && r.request().method() === "POST");
   await chief.getByRole("button", {name: "Подтвердить приёмку"}).click();
@@ -146,7 +148,7 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
   if(configuredViewport)expect(await director.evaluate(()=>innerWidth)).toBe(configuredViewport.width);
   await director.goto(`/tasks/${demoId('runtime-order')}`);
   await expect(director.getByRole('heading',{name:'Решение инженера',exact:true})).toBeVisible();
-  await expect(director.getByText('Повторная попытка проверена инженером.',{exact:true})).toBeVisible();
+  await expect(director.getByText(acceptedReason, {exact: true})).toBeVisible();
   for(const name of ['Подобрать бригаду','Принять работу','Вернуть на доработку','Сдать работу','Отменить задание']){
     await expect(director.getByRole('button',{name,exact:true})).toHaveCount(0);
   }

@@ -1,7 +1,7 @@
-# Unified Python dependencies: backend, PostgreSQL adapter, RF, CLIP and tests.
+# Unified Python dependencies: backend, PostgreSQL adapter, RF, AI Tunnel vision and tests.
 # Install from the project root: python -m pip install -r requirements.txt
 # Exact versions from the verified Python 3.12 / Windows full runtime; no version upgrades.
-# Frontend uses frontend/package-lock.json and npm ci; PostgreSQL and model weights are prepared separately.
+# Frontend uses frontend/package-lock.json and npm ci; PostgreSQL and model artifacts are prepared separately.
 annotated-doc==0.0.5
 annotated-types==0.8.0
 anyio==4.15.1
@@ -69,10 +69,7 @@ starlette==1.10.0
 sympy==1.13.1
 tenacity==9.2.1
 threadpoolctl==3.7.0
-tokenizers==0.20.3
-torch==2.5.1
 tqdm==4.70.1
-transformers==4.46.3
 truststore==0.10.5
 typing-inspection==0.4.4
 typing_extensions==4.16.0

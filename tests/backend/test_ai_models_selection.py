@@ -1,9 +1,11 @@
 """Test AI models discovery and dynamic provider/model selection for photo-review."""
 import pytest
+from pydantic import ValidationError
 from unittest.mock import patch
 from uuid import UUID
 from fastapi.testclient import TestClient
 
+from app.config import RuntimeSettings
 from app.main import create_app
 from app.integration.ml import MLCommand
 
@@ -27,25 +29,24 @@ def client():
     return TestClient(app)
 
 
-def test_list_ai_models_returns_all_three_providers(client):
+def test_list_ai_models_excludes_clip_and_defaults_to_aitunnel(client, monkeypatch):
+    monkeypatch.setenv("AITUNNEL_API_KEY", "test-secret-do-not-expose")
     resp = client.get("/api/v1/maintenance/ai/models")
     assert resp.status_code == 200
+    assert "test-secret-do-not-expose" not in resp.text
     data = resp.json()
 
-    assert "current_provider" in data
-    assert "providers" in data
+    assert data["current_provider"] == "aitunnel"
     provider_ids = [p["id"] for p in data["providers"]]
-    assert "clip" in provider_ids
-    assert "ollama" in provider_ids
-    assert "aitunnel" in provider_ids
-
-    clip_prov = next(p for p in data["providers"] if p["id"] == "clip")
-    assert clip_prov["available"] is True
-    assert len(clip_prov["models"]) >= 1
+    assert "clip" not in provider_ids
+    assert provider_ids == ["aitunnel", "ollama"]
 
     aitunnel_prov = next(p for p in data["providers"] if p["id"] == "aitunnel")
     assert aitunnel_prov["available"] is True
-    assert len(aitunnel_prov["models"]) >= 2
+    assert aitunnel_prov["has_server_key"] is True
+    model_ids = [m["id"] for m in aitunnel_prov["models"]]
+    assert "qwen3.7-flash" in model_ids
+    assert all("clip" not in m.lower() for m in model_ids)
 
 
 def test_list_ai_models_with_mocked_ollama(client):
@@ -64,14 +65,27 @@ def test_list_ai_models_with_mocked_ollama(client):
         assert ollama_prov["models"][0]["name"] == "qwen3.5:4b"
 
 
-def test_ml_command_accepts_dynamic_ai_options():
+def test_ml_command_and_runtime_settings_reject_clip():
     cmd = MLCommand(
         expected_revision=1,
         comparability_confirmed=True,
-        provider="ollama",
-        model="qwen3.5:4b",
+        provider="aitunnel",
+        model="qwen3.7-flash",
         api_key="sk-test-key",
     )
-    assert cmd.provider == "ollama"
-    assert cmd.model == "qwen3.5:4b"
-    assert cmd.api_key == "sk-test-key"
+    assert cmd.provider == "aitunnel" and cmd.model == "qwen3.7-flash"
+
+    with pytest.raises(ValidationError):
+        MLCommand(expected_revision=1, provider="clip")
+
+    import os
+    old = os.environ.get("PHOTO_REVIEW_PROVIDER")
+    try:
+        os.environ["PHOTO_REVIEW_PROVIDER"] = "clip"
+        with pytest.raises(ValueError, match="aitunnel or ollama"):
+            RuntimeSettings.from_environment()
+    finally:
+        if old is None:
+            os.environ.pop("PHOTO_REVIEW_PROVIDER", None)
+        else:
+            os.environ["PHOTO_REVIEW_PROVIDER"] = old

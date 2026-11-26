@@ -184,7 +184,9 @@ def test_draft_read_shows_saved_checklist_and_linked_asset_without_execution(mon
         assert send(c,thread(c),'Что проверить перед отчётом?')['turns'][-1]['answer']=='Инструкция прочитана.'
 
 
-def test_reviewing_current_image_does_not_mix_in_archived_photos(monkeypatch, jobs):
+@pytest.mark.parametrize('vision_supported', [True, False], ids=['vision', 'text-only'])
+def test_reviewing_current_image_does_not_mix_in_archived_photos(monkeypatch, jobs, vision_supported):
+    from app.assistant import model_preferences
     from tests.backend.test_assistant_message_files import image, send as send_image
     from tests.backend.test_assistant import B
     _, app, create = jobs
@@ -193,7 +195,8 @@ def test_reviewing_current_image_does_not_mix_in_archived_photos(monkeypatch, jo
     class Provider:
         def tool_chat(self, messages, tools, tokens):
             if messages[-1]['role'] == 'user':
-                assert len(messages[-1]['images']) == 1
+                assert json.loads(messages[-1]['content'])['decoded_images'] == 1
+                assert len(messages[-1].get('images', [])) == int(vision_supported)
                 return call('read_report_photos', task_id=str(task))
             data = json.loads(messages[-1]['content'])
             if data.get('ok') is False:
@@ -203,6 +206,8 @@ def test_reviewing_current_image_does_not_mix_in_archived_photos(monkeypatch, jo
             return dict(content='Источники разделены.')
 
     v4(monkeypatch, app, Provider)
+    monkeypatch.setattr(model_preferences, 'default_selection', lambda: dict(
+        provider='aitunnel', model='TEST image input', supports_vision=vision_supported))
     with closing(login(app,'engineer')) as c:
         chat = thread(c)
         attached = image(c, chat)

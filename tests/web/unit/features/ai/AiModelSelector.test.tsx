@@ -22,9 +22,10 @@ describe("AiModelSelector and aiSettings", () => {
     vi.clearAllMocks();
   });
 
-  it("keeps the model preference across tabs while the personal key stays in this session", () => {
+  it("defaults to AI Tunnel, migrates legacy CLIP storage, and keeps session key isolated", () => {
+    window.localStorage.setItem("fixrate_ai_settings", JSON.stringify({ provider: "clip", model: "clip-vit" }));
     expect(getStoredAiSettings()).toEqual({
-      provider: "ollama",
+      provider: "aitunnel",
       model: "",
       apiKey: "",
     });
@@ -78,21 +79,11 @@ describe("AiModelSelector and aiSettings", () => {
     }
   });
 
-  it("renders compact mode without CLIP and allows switching providers", async () => {
-    saveStoredAiSettings({ provider: "ollama", model: "", apiKey: "" });
+  it("renders compact mode without CLIP and allows switching between AI Tunnel and Ollama", async () => {
+    saveStoredAiSettings({ provider: "aitunnel", model: "qwen3.7-flash", apiKey: "" });
     vi.mocked(maintenanceApi.getAiModels).mockResolvedValueOnce({
-      current_provider: "ollama",
+      current_provider: "aitunnel",
       providers: [
-        {
-          id: "ollama",
-          name: "Локальная Ollama",
-          description: "Локальная служба",
-          available: true,
-          models: [
-            { id: "qwen3.5:4b", name: "qwen3.5:4b", size: 2500000000 },
-            { id: "llava:13b", name: "llava:13b", size: 7500000000 },
-          ],
-        },
         {
           id: "aitunnel",
           name: "Облачный AI Tunnel",
@@ -101,7 +92,16 @@ describe("AiModelSelector and aiSettings", () => {
           has_server_key: true,
           models: [
             { id: "qwen3.7-flash", name: "Qwen3.7 Flash" },
-            { id: "qwen2.5-vl-72b-instruct", name: "Qwen2.5-VL" },
+            { id: "qwen3.8-flash", name: "Qwen3.8 Flash" },
+          ],
+        },
+        {
+          id: "ollama",
+          name: "Локальная Ollama",
+          description: "Локальная служба",
+          available: true,
+          models: [
+            { id: "qwen3.5:4b", name: "qwen3.5:4b", size: 2500000000 },
           ],
         },
       ],
@@ -109,35 +109,42 @@ describe("AiModelSelector and aiSettings", () => {
 
     render(<AiModelSelector variant="compact" />);
 
-    expect(screen.queryByText(/CLIP/i)).toBeNull();
-    expect(await screen.findByText(/Ollama активна/)).toBeInTheDocument();
+    expect(screen.queryByText(/CLIP/)).not.toBeInTheDocument();
+    expect(screen.getByText(/AI Tunnel \(Облако\)/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/Ключ сервера/)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText(/Ollama \(Локально\)/));
+    await waitFor(() => {
+      expect(screen.getByText(/Ollama активна/)).toBeInTheDocument();
+    });
     expect(getStoredAiSettings().provider).toBe("ollama");
 
-    // Switch to AI Tunnel
     fireEvent.click(screen.getByText(/AI Tunnel \(Облако\)/));
     expect(getStoredAiSettings().provider).toBe("aitunnel");
   });
 
-  it("renders card mode and handles re-scan and api key updates", async () => {
+  it("renders card mode without CLIP and handles api key updates", async () => {
     vi.mocked(maintenanceApi.getAiModels).mockResolvedValue({
       current_provider: "aitunnel",
       providers: [
+        {
+          id: "aitunnel",
+          name: "AI Tunnel",
+          description: "AI Tunnel",
+          available: false,
+          has_server_key: false,
+          models: [
+            { id: "qwen3.7-flash", name: "Qwen3.7 Flash" },
+          ],
+        },
         {
           id: "ollama",
           name: "Ollama",
           description: "Ollama",
           available: false,
           models: [],
-        },
-        {
-          id: "aitunnel",
-          name: "AI Tunnel",
-          description: "AI Tunnel",
-          available: true,
-          has_server_key: false,
-          models: [
-            { id: "qwen3.7-flash", name: "Qwen3.7 Flash" },
-          ],
         },
       ],
     });
@@ -150,6 +157,7 @@ describe("AiModelSelector and aiSettings", () => {
 
     render(<AiModelSelector variant="card" />);
 
+    expect(screen.queryByText(/CLIP/)).not.toBeInTheDocument();
     await waitFor(() => {
       expect(screen.getByLabelText("Персональный API-ключ")).toBeInTheDocument();
     });

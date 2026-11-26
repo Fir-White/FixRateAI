@@ -3,7 +3,7 @@ import type { Equipment, MaintenanceTask, CalendarOccurrence, CalendarPreview, C
 import { request, DEMO_MODE } from "./request";
 export type { EquipmentBundle, TaskBundle, ComparisonBundle } from "./maintenance.demo";
 
-export type AiProvider = "ollama" | "aitunnel";
+export type AiProvider = "aitunnel" | "ollama";
 
 export interface AiModelOption {
   id: string;

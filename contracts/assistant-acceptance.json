@@ -2122,7 +2122,8 @@
         "tests/backend/test_assistant_semantic_plan.py::test_mixed_entities_do_not_share_each_others_requested_fields",
         "tests/backend/test_assistant_semantic_plan.py::test_transient_read_failure_retries_same_arguments_at_most_once",
         "tests/backend/test_assistant_user_audit_v3.py::test_original_user_dialogue",
-        "tests/backend/test_assistant_v2_hardening.py::test_saved_task_start_time_survives_misclassified_write_intent"
+        "tests/backend/test_assistant_v2_hardening.py::test_saved_task_start_time_survives_misclassified_write_intent",
+        "tests/backend/test_photo_analysis_and_requirements.py::test_propose_photo_review_passes_thread_dict_and_prevents_duplicates"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
@@ -3059,6 +3060,7 @@
         "tests/backend/test_assistant.py::test_catalog_is_explicit_and_each_tool_has_real_typed_endpoint",
         "tests/backend/test_assistant_action_outcomes.py::test_unknown_postconditions_remain_unverified_even_with_success_flag",
         "tests/backend/test_assistant_capabilities.py::test_optional_provider_key_is_replaced_before_persistence",
+        "tests/backend/test_photo_analysis_and_requirements.py::test_propose_photo_review_passes_thread_dict_and_prevents_duplicates",
         "tests/backend/test_runtime_integration.py::test_execution_photo_rework_acceptance_preserves_attempts"
       ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."

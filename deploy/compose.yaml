@@ -20,13 +20,12 @@ x-application: &application
     OLLAMA_CHAT_DIGEST: ${OLLAMA_CHAT_DIGEST:-}
     OLLAMA_VISION_MODEL: ${OLLAMA_VISION_MODEL:-not-configured}
     OLLAMA_VISION_DIGEST: ${OLLAMA_VISION_DIGEST:-}
-    PHOTO_REVIEW_PROVIDER: ${PHOTO_REVIEW_PROVIDER:-clip}
+    PHOTO_REVIEW_PROVIDER: ${PHOTO_REVIEW_PROVIDER:-aitunnel}
     FORECAST_PROVIDER: rf
-    HF_HUB_OFFLINE: '1'
-    TRANSFORMERS_OFFLINE: '1'
     FIXRATE_LLM_LOCAL_ONLY: '1'
-    AITUNNEL_API_KEY: ''
-    AI_TUNNEL_API_KEY: ''
+    AITUNNEL_API_KEY: ${AITUNNEL_API_KEY:-}
+    AI_TUNNEL_API_KEY: ${AI_TUNNEL_API_KEY:-}
+    AITUNNEL_VISION_MODEL: ${AITUNNEL_VISION_MODEL:-qwen3.7-flash}
   extra_hosts: ['host.docker.internal:host-gateway']
   volumes: ['files:/app/var/photos']
   networks: [internal, egress]

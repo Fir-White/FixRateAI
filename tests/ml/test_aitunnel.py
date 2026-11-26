@@ -168,7 +168,7 @@ def test_cloud_vision_preserves_guardrails_and_provider_provenance(canonical_pho
         client=VisionFixtureClient(), comparability_confirmed=lambda b,a: True)
     assert result.status == "completed" and result.model_ref == "aitunnel:qwen3.7-flash"
     assert result.item_results[0].verdict == "visible_change" and not result.item_results[0].scores
-    assert "qwen3.7-flash" in result.limitations[-1]
+    assert result.limitations == ["Проверьте фотографии самостоятельно."]
     uncertain = review_cloud_photos(request, photos(request).__getitem__, config=CONFIG, client=VisionFixtureClient())
     assert uncertain.status == "uncertain"
 

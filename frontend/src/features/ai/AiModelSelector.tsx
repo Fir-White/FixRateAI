@@ -103,16 +103,16 @@ export function AiModelSelector({
         {/* Provider selection chips */}
         <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Провайдер нейросети">
           <FilterChip
-            active={settings.provider === "ollama"}
-            onClick={() => handleProviderSelect("ollama")}
-          >
-            🖥️ Ollama (Локально)
-          </FilterChip>
-          <FilterChip
             active={settings.provider === "aitunnel"}
             onClick={() => handleProviderSelect("aitunnel")}
           >
             ☁️ AI Tunnel (Облако)
+          </FilterChip>
+          <FilterChip
+            active={settings.provider === "ollama"}
+            onClick={() => handleProviderSelect("ollama")}
+          >
+            🖥️ Ollama (Локально)
           </FilterChip>
         </div>
 
@@ -169,7 +169,6 @@ export function AiModelSelector({
                   )) || (
                     <>
                       <option value="qwen3.7-flash">Qwen3.7 Flash</option>
-                      <option value="qwen2.5-vl-72b-instruct">Qwen2.5-VL 72B Instruct</option>
                     </>
                   )}
                 </Select>
@@ -215,16 +214,16 @@ export function AiModelSelector({
       {/* Provider Selector Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-line pb-4" role="radiogroup" aria-label="Провайдер нейросети">
         <FilterChip
-          active={settings.provider === "ollama"}
-          onClick={() => handleProviderSelect("ollama")}
-        >
-          🖥️ Локальная Ollama
-        </FilterChip>
-        <FilterChip
           active={settings.provider === "aitunnel"}
           onClick={() => handleProviderSelect("aitunnel")}
         >
           ☁️ Облачный AI Tunnel
+        </FilterChip>
+        <FilterChip
+          active={settings.provider === "ollama"}
+          onClick={() => handleProviderSelect("ollama")}
+        >
+          🖥️ Локальная Ollama
         </FilterChip>
       </div>
 
@@ -257,7 +256,7 @@ export function AiModelSelector({
             hint={
               isOllamaOnline
                 ? `Найдено локальных моделей: ${ollamaProvider?.models?.length ?? 0}`
-                : "Для установки модели выполните: ollama run qwen2.5:4b"
+                : "Для установки модели выполните: ollama pull qwen3.5:4b"
             }
           >
             <Select
@@ -307,8 +306,6 @@ export function AiModelSelector({
               )) || (
                 <>
                   <option value="qwen3.7-flash">Qwen3.7 Flash (быстрая мультимодальная)</option>
-                  <option value="qwen2.5-vl-72b-instruct">Qwen2.5-VL 72B Instruct (детальный разбор)</option>
-                  <option value="deepseek-ai/deepseek-vl2">DeepSeek-VL2</option>
                 </>
               )}
             </Select>

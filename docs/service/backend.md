@@ -278,7 +278,7 @@ OpenAPI задаёт уникальные operationId для каждого ме
 
 POST /api/v1/maintenance/tasks/{task_id}/photo-review сохраняет прежние права, expected_revision и ограничение на отправленную замороженную попытку. PHOTO_REVIEW_PROVIDER=ollama включает локальный Qwen3.5 через ограниченный адаптер. Ответ items[].assessment содержит общий VisualAssessment, beforePhotoId/afterPhotoId фиксируют выбранную пару. canonical/UI и версия модели сохраняются в ai_quality_checks.findings. SQL-миграции для добавления необязательных JSON-полей не требуется.
 
-При недоступности возвращается структурированный unavailable/LOCAL_VISION_UNAVAILABLE, при неверном ответе/таймауте — failed с кодом; успешной подмены CLIP нет. Неполная конфигурация — HTTP503/LOCAL_VISION_CONFIGURATION_INVALID. HTTP200 фотоанализа не означает приёмку, её endpoint не вызывается автоматически. [Запуск и контракты](ml.md#подробный-локальный-разбор-фото).
+При недоступности возвращается структурированный unavailable (например, `AITUNNEL_NOT_CONFIGURED` / `LOCAL_VISION_UNAVAILABLE`), при неверном ответе/таймауте — failed с кодом; CLIP и эвристического fallback нет. Неполная конфигурация локального сервиса — HTTP503/LOCAL_VISION_CONFIGURATION_INVALID. HTTP200 фотоанализа не означает приёмку, её endpoint не вызывается автоматически. [Запуск и контракты](ml.md#подробный-локальный-разбор-фото).
 
 ## Облачные AI-провайдеры
 
