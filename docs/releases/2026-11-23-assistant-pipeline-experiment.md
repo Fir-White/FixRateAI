@@ -15,8 +15,8 @@ MVP‑11 и MVP‑08, требования PLN‑12 и AT‑08…AT‑12. Про
 Вариант C использует авторизованный синтетический набор и настроенный AI Tunnel. Запуск ограничивает внешний запрос адресом этого провайдера. Обычный ручной стенд работает через локальный Ollama.
 
 ```powershell
-python -m agent_reliability_lab.run_pipeline_comparison --output reports/pipeline-local
-python -m agent_reliability_lab.summarize_pipeline_comparison reports/pipeline-local/run/agent-audit/pipeline-comparison
+python -m tests.agent_reliability_lab.run_pipeline_comparison --output reports/pipeline-local
+python -m tests.agent_reliability_lab.summarize_pipeline_comparison reports/pipeline-local/run/agent-audit/pipeline-comparison
 ```
 
 Для C предусмотрен явный параметр `--cloud-config` с приватным конфигурационным файлом тестового провайдера. По умолчанию сравнение выполняет A и B с локальной моделью. Артефакты, отпечатки и трассы сохраняются в игнорируемом `reports/`. [Модельный цикл LangGraph](https://docs.langchain.com/oss/python/langgraph/workflows-agents).
