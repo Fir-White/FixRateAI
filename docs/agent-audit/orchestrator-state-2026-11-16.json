@@ -1,0 +1,132 @@
+{
+  "status": "in_progress",
+  "objective": "One persisted assistant orchestrator with verified user-goal outcomes and positive acceptance for every available role operation except password change",
+  "baseline_commit": "8284c69",
+  "branch": "kran_dev",
+  "implementation_branch": "feature/agent-orchestrator-20261116",
+  "local_integration": {
+    "date": "2026-11-17",
+    "requested_by_owner": true,
+    "base_commit": "8284c690014ac0a74722f92e534229a3514e1fda",
+    "feature_commit": "2e2c1d5fcfaee57918e523b19023851531ecf278",
+    "last_published_kran_dev": "13841cd3c3fb047a6bfe8de55c70de2de818aed5",
+    "report": "../releases/2026-11-17-agent-integration-kran-dev.md",
+    "verification": {
+      "native_pytest_passed": 245,
+      "assistant_ui_passed": 85,
+      "production_build_passed": true,
+      "capabilities_verified": 173,
+      "acceptance_cells": 708,
+      "source_and_corpus_stable": true,
+      "original_runner_exit_code": 1,
+      "original_runner_failure": "Temporary missing release-document link after successful pytest; original logs retained",
+      "separate_tail_gates_passed": ["architecture", "orchestration", "compileall", "pip_check"],
+      "full_regression_repeated": false,
+      "live_inference_performed": false
+    },
+    "push_performed": false,
+    "working_database_migrated": false
+  },
+  "policy": "Installed local Ollama only; no cloud fallback, weight downloads, production deployment or live preference changes",
+  "tasks": [
+    {
+      "id": "preserve-owner-slice",
+      "status": "completed",
+      "evidence": "8284c69 and private 35-file ZIP/hash manifest"
+    },
+    {
+      "id": "persisted-single-executor",
+      "status": "completed",
+      "evidence": "One integrated execution path, migration023, persisted goals/root/action phases, explicit resume, actual confirmations/replay and complete native8b9d1a2. Queue recovery tracked separately."
+    },
+    {
+      "id": "authoritative-business-adapters",
+      "status": "in_progress",
+      "remaining": "File/analytics/planning adapters integrated; finish frozen overall acceptance and operation-specific postconditions for remaining writes"
+    },
+    {
+      "id": "engineering-facts",
+      "status": "in_progress",
+      "evidence": "Final strict9f7ac7d4/4 includes all calendar/history objectives with explicit manufacturer blocker; mixed8b9d1a2 remained12/17. No proof for arbitrary requests or all role-operation cells.",
+      "remaining": "Repeat on final follow-up source and complete broader operation acceptance"
+    },
+    {
+      "id": "all-operation-acceptance",
+      "status": "in_progress",
+      "remaining": "691 cells unrun,8 older-source PASS cells require final-source rerun, and all domain/negative/mocked role-specific categories remain independently tracked.",
+      "evidence": "164 SHA-bound execution records;17 latest positive cells,9 on final9f7ac7d;17 reachability cells;1 negative cell. Historical failures retained."
+    },
+    {
+      "id": "frozen-full-regression",
+      "status": "in_progress",
+      "evidence": "Complete8b9d1a2:2831 passed/58 skipped/1 xfailed, stable full pipeline exit0. Final9f7ac7d68 pure checks and actual8 episodes passed; full9f7ac7d session disappeared after2%, no terminal proof.",
+      "remaining": "Complete uninterrupted native backend/ML on9f7ac7d or successor; interrupted run is not passed."
+    },
+    {
+      "id": "live-baseline-comparison",
+      "status": "completed",
+      "remaining": "Strict same-corpus/same-model/source-stable repetitions; preserve failed runs and oracle corrections",
+      "evidence": "Frozen same-corpus baseline1/4; b3fd203 R7/R8 each4/4; final9f7ac7d idle R10 4/4,12 returned inference,p5025.523s,p95/max65.277s. All failed intermediate rounds retained; no SLA/stability claim."
+    },
+    {
+      "id": "production-ui-performance",
+      "status": "in_progress",
+      "evidence": "85 assistant unit passed; production48 checks in6 profiles passed, all74 assets reproduced. Full UI653 passed/8 failed; isolation138 passed/10 failed. Four-role smoke12 checks passed/4 reload draft assertions failed.",
+      "remaining": "Full UI653 passed/8 navigation failures; CPU4 cold mount up to506ms and old Markdown expansion237ms, toolbar Ctrl+F/touch/SLA unmeasured. Four role smoke profiles expose unsent text lost on tab reload."
+    },
+    {
+      "id": "durable-operations",
+      "status": "open",
+      "remaining": "Automatic queue/lease recovery and read-only reconciliation; never replay uncertain writes"
+    },
+    {
+      "id": "clarification-continuation",
+      "status": "open",
+      "remaining": "Explicit resume preserves original request and static user-decision blockers. Add a validated amendment protocol for newly supplied choices without weakening immutable mutation/evidence constraints; a separate new message is not proof that the original blocked goal finished"
+    },
+    {
+      "id": "protected-credential-outputs",
+      "status": "in_progress",
+      "evidence": "Native output/history boundaries and actual admin protected-read R2/R3/R4/R5 pass without value/digest in model payloads/history; current protected resource rechecks role.",
+      "remaining": "Separate authorized audit/cleanup of unlinked legacy free text and >64 structured credential sources before real-data integration; live DB untouched."
+    },
+    {
+      "id": "all-write-postconditions",
+      "status": "open",
+      "evidence": "9 of 74 writes now have dedicated action_outcomes checks including staff membership/date changes and replay",
+      "remaining": "65 unsupported receipts remain explicitly unverified. Publication workflows add their own owned receipt/current-state proof; generic optimistic receipt verification is prohibited"
+    },
+    {
+      "id": "large-list-snapshots",
+      "status": "in_progress",
+      "evidence": "Atomic equipment_find count/page/context-bound SHA256 passes six DB cases including same-count mutation and executor revoke",
+      "remaining": "Other multipage endpoints without stable snapshot remain partial; consistent snapshot/cursor and resumable coverage for large inventory still open"
+    },
+    {
+      "id": "result-delivery",
+      "status": "in_progress",
+      "evidence": "Nested server facts, instructions/units/diffs exposed with a shared bounded display budget; truncated delivery leaves goal partial",
+      "remaining": "All-operation positive presentation acceptance and authorized saved-snapshot viewer"
+    },
+    {
+      "id": "publication",
+      "status": "not_requested",
+      "remaining": "No deploy or push requested; owner-requested local integration into kran_dev is recorded separately"
+    },
+    {
+      "id": "semantic-plan-coverage",
+      "status": "in_progress",
+      "evidence": "Frozen47c123e mixed actual Ollama11/17: reads9/11, writes0/2, strict2/4. All failed raw records retained. Grounding follow-up292 native passed; final full/model reruns required.",
+      "remaining": "4B can still omit/misclassify objectives or fail selectors. Final8 accepted episodes do not establish arbitrary plan completeness; full matrix and robust goal reclassification/retry remain open."
+    },
+    {
+      "id": "unsent-draft-reload",
+      "status": "open",
+      "evidence": "Four engineer/executor desktop/mobile production-browser fixtures: first3 checks pass, reload unsent draft assertion fails. Current draft map is React memory; first wrong-URL harness attempt retained separately.",
+      "remaining": "Persist/recover unsent text across reload with explicit privacy, user/site/role scoping and logout/expiry clearing; do not confuse saved resource reload with unsent draft recovery."
+    }
+  ],
+  "runtime_commit": "9f7ac7d56d422aac201cf5eadd7c09a4b39c494e",
+  "report": "orchestrator-final-2026-11-16.md",
+  "conclusion": "Industrial objective is not complete. Sources integrated into kran_dev at the owner's request. No deploy/push or live preference changes. Remaining work explicitly retained."
+}

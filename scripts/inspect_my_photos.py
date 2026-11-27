@@ -1,4 +1,4 @@
-"""Inspect any before/after photo pair with FixRateAI Quality Guard and CLIP.
+"""Inspect a before/after photo pair with FixRateAI Quality Guard and AI Tunnel Vision.
 
 Usage:
     .venv/bin/python scripts/inspect_my_photos.py <before_photo> <after_photo> [--confirmed]
@@ -8,17 +8,16 @@ import json
 import sys
 from pathlib import Path
 
-# Ensure project root is in python path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from ml_service.app.cv.service import review_photos
+from ml_service.app.cv.aitunnel import review_cloud_photos
 from ml_service.app.schemas import PhotoReviewRequest
 
 
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
-    parser = argparse.ArgumentParser(description="Inspect before/after photo pair with CLIP and QualityGuard")
+    parser = argparse.ArgumentParser(description="Inspect before/after photo pair with AI Tunnel Vision and QualityGuard")
     parser.add_argument("before", type=Path, help="Path to photo before maintenance")
     parser.add_argument("after", type=Path, help="Path to photo after maintenance")
     parser.add_argument("--confirmed", action="store_true", help="Engineer confirmed comparable view")
@@ -29,7 +28,6 @@ def main():
     if not args.after.is_file():
         sys.exit(f"Error: file not found: {args.after}")
 
-    # Load canonical example request payload
     examples_path = ROOT / "contracts/examples/maintenance.json"
     with open(examples_path, "r", encoding="utf-8") as f:
         examples = json.load(f)["examples"]
@@ -41,7 +39,7 @@ def main():
         req.photos[1].photo_id: args.after.read_bytes(),
     }
 
-    result = review_photos(
+    result = review_cloud_photos(
         req,
         photo_loader=lambda pid: storage[pid],
         comparability_confirmed=lambda b, a: args.confirmed,

@@ -1,0 +1,154 @@
+name: Verify, build and package FixRate AI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fixrate-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:18@sha256:2ea8630df176ad090ec92136dee850397c5af8781e4bcf2e4162593691c61bbc
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-fixture-only-not-a-production-secret
+          POSTGRES_DB: fixrate_test_ci
+        ports: ['127.0.0.1:5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fixrate_test_ci"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      PYTHONPATH: backend:.
+      PYTHONDONTWRITEBYTECODE: '1'
+      HF_HUB_OFFLINE: '1'
+      TRANSFORMERS_OFFLINE: '1'
+      INTEGRATION_DATABASE_URL: postgresql+psycopg://postgres:ci-fixture-only-not-a-production-secret@127.0.0.1:5432/fixrate_test_ci
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with: {python-version: '3.12'}
+      - run: python -m pip install -r deploy/requirements-core.lock pytest==9.1.1 ruff==0.17.5
+      - name: Python lint and dependency integrity
+        run: |
+          ruff check --select E9,F63,F7,F82 backend ml_service scripts tests/backend
+          python -m pip check
+          python -m compileall -q backend scripts
+      - name: Native migrations, API, permissions and bootstrap tests
+        run: python -m scripts.release_checks
+      - name: Contracts and source integrity
+        run: |
+          python scripts/assistant_capabilities.py
+          python scripts/assistant_acceptance_matrix.py
+          python scripts/validate_artifacts.py
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always()
+        with:
+          name: backend-checks-${{ github.run_id }}-${{ github.run_attempt }}
+          path: reports/release-checks/summary.json
+          retention-days: 14
+
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with: {node-version: '24',cache: npm,cache-dependency-path: frontend/package-lock.json}
+      - run: npm ci --ignore-scripts
+        working-directory: frontend
+      - run: npm run typecheck && npm test -- --maxWorkers=1 --pool=threads && npm run build
+        working-directory: frontend
+
+  build:
+    needs: [backend, frontend]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with: {python-version: '3.12'}
+      - name: Build the exact source, without keys or model downloads
+        run: |
+          docker build -f deploy/Dockerfile --target app --build-arg SOURCE_REVISION="$GITHUB_SHA" -t "fixrate-ci-app:$GITHUB_SHA" .
+          docker build -f deploy/Dockerfile --target web --build-arg SOURCE_REVISION="$GITHUB_SHA" -t "fixrate-ci-web:$GITHUB_SHA" .
+          docker pull "$(python -c 'import json;print(json.load(open("deploy/images.lock.json"))["postgres"])')"
+      - name: Real Quick Start, installer, persistence, upgrade and restore acceptance
+        run: python -m scripts.release_smoke --app-image "fixrate-ci-app:$GITHUB_SHA" --web-image "fixrate-ci-web:$GITHUB_SHA" --sha "$GITHUB_SHA" --output reports/release-smoke
+      - name: Save the tested images, not a later rebuild
+        run: |
+          mkdir -p reports/release-images
+          docker save -o reports/release-images/images.tar "fixrate-ci-app:$GITHUB_SHA" "fixrate-ci-web:$GITHUB_SHA"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: tested-images-${{ github.sha }}-${{ github.run_attempt }}
+          path: reports/release-images/images.tar
+          retention-days: 3
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always()
+        with:
+          name: compose-acceptance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: reports/release-smoke/results.json
+          retention-days: 14
+
+  windows-package:
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with: {python-version: '3.12'}
+      - name: Validate the actual Windows entrypoint and embedded package
+        shell: powershell
+        run: |
+          python scripts/release_package.py --output reports/package-test --version 0.1.0 --sha $env:GITHUB_SHA --app-image local-app:test --web-image local-web:test --channel test
+          if($LASTEXITCODE){exit $LASTEXITCODE}
+          & ./reports/package-test/FixRateAI-Setup.ps1 -Action verify
+          if($LASTEXITCODE){exit $LASTEXITCODE}
+
+  publish:
+    needs: [backend, frontend, build, windows-package]
+    if: github.repository == 'Fir-White/FixRateAI' && github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/tags/v') && vars.FIXRATE_RELEASES_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: release
+    permissions:
+      contents: write
+      packages: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      FIXRATE_RELEASES_ENABLED: ${{ vars.FIXRATE_RELEASES_ENABLED }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with: {fetch-depth: 0,persist-credentials: false}
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with: {python-version: '3.12'}
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: tested-images-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/tested-images
+      - run: docker load -i "$RUNNER_TEMP/tested-images/images.tar"
+      - name: Publish immutable image references and verified installers
+        run: python -m scripts.release_publish --output "$RUNNER_TEMP/fixrate-installers"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: FixRateAI-installers-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/fixrate-installers/
+          retention-days: 14

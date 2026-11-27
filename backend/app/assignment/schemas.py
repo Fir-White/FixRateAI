@@ -44,6 +44,7 @@ class Worker(Value):
     can_execute: bool
     booking_data_complete: bool = True
     workload_data_complete: bool = True
+    availability_data_complete: bool = True
     qualifications: list[Qualification] = Field(default_factory=list)
     availability: list[Availability] = Field(default_factory=list)
     bookings: list[Booking] = Field(default_factory=list)
@@ -86,6 +87,7 @@ class AssignmentRequest(Contract):
     crews: list[Crew] = Field(default_factory=list)
     crew_id: UUID | None = None
     requested_worker_ids: list[UUID] | None = None
+    prefer_low_load: bool = False
 
     @model_validator(mode="after")
     def consistent_request(self):

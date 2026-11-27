@@ -85,6 +85,39 @@ def _load(worker, start, tz, excluded_task):
     return ceil(sum((end - begin).total_seconds() for begin, end in intervals) / 60)
 
 
+def _available(worker):
+    return _merge([(_utc(slot.start_at), _utc(slot.end_at)) for slot in worker.availability if slot.status == "available"])
+
+
+def _free(worker, intervals, available, excluded_task=None):
+    exclusions = [(_utc(slot.start_at), _utc(slot.end_at)) for slot in worker.availability if slot.status == "unavailable"]
+    exclusions += [(_utc(b.start_at), _utc(b.end_at)) for b in worker.bookings if b.blocks_time and b.task_id != excluded_task]
+    return _subtract(_intersect(intervals, available), exclusions)
+
+
+def daily_load(worker, start, tz, window=None):
+    """Report occupied minutes separately from the ability to cover a fixed interval."""
+    reasons = []
+    if not worker.booking_data_complete:
+        reasons.append('BOOKING_UNCONFIRMED')
+    if not worker.workload_data_complete:
+        reasons.append('WORKLOAD_UNCONFIRMED')
+    minutes = _load(worker, start, tz, None) if not reasons else None
+    available = None
+    if window is not None:
+        begin, end = map(_utc, window)
+        if not worker.availability_data_complete:
+            reasons.append('NO_AVAILABILITY')
+        else:
+            free = _free(worker, [(begin, end)], _available(worker))
+            if not any(a <= begin and end <= b for a, b in free):
+                available = False
+                reasons.append('NO_FREE_INTERVAL')
+            elif worker.booking_data_complete:
+                available = True
+    return minutes, available, [REASONS[reason] for reason in reasons]
+
+
 def select_crew(request: AssignmentRequest) -> AssignmentSelection:
     """Choose the earliest complete team, then least daily load and stable IDs.
 
@@ -145,30 +178,37 @@ def select_crew(request: AssignmentRequest) -> AssignmentSelection:
                     else "QUALIFICATION_EXPIRY_MISSING" if all(q.validity_required and q.valid_until is None for q in certificates)
                     else "QUALIFICATION_OUTSIDE_WINDOW")
             intervals = _intersect(intervals, _merge(valid))
-        available = _merge([(_utc(slot.start_at), _utc(slot.end_at)) for slot in worker.availability if slot.status == "available"])
+        available = _available(worker)
         if not available:
             reasons.append("NO_AVAILABILITY")
-        intervals = _intersect(intervals, available)
-        exclusions = [(_utc(slot.start_at), _utc(slot.end_at)) for slot in worker.availability if slot.status == "unavailable"]
-        exclusions += [(_utc(b.start_at), _utc(b.end_at)) for b in worker.bookings if b.blocks_time and b.task_id != request.task_id]
-        intervals = _subtract(intervals, exclusions)
+        intervals = _free(worker, intervals, available, request.task_id)
         intervals = [(a, b) for a, b in intervals if b - _ceil_minute(a) >= duration]
         if not intervals and not reasons:
             reasons.append("NO_FREE_INTERVAL")
         free[worker.worker_id] = intervals if not reasons else []
         failures[worker.worker_id] = list(dict.fromkeys(reasons))
 
+    def rank(option):
+        begin, _, selected = option[:3]
+        load = sum(_load(workers[w], begin, tz, request.task_id) for w in selected)
+        identities = tuple(sorted(w.int for w in selected))
+        return (load, begin, identities) if request.prefer_low_load else (begin, load, identities)
+
     def best(pool):
         if request.requested_worker_ids is not None:
             pool={worker_id:intervals for worker_id,intervals in pool.items() if worker_id in request.requested_worker_ids}
         starts = sorted({_ceil_minute(a) for intervals in pool.values() for a, _ in intervals})
+        options = []
         for begin in starts:
             finish_at = begin + duration
             eligible = [worker_id for worker_id, intervals in pool.items() if any(a <= begin and finish_at <= b for a, b in intervals)]
             if len(eligible) >= request.crew_size:
                 selected = sorted(eligible, key=lambda worker_id: (_load(workers[worker_id], begin, tz, request.task_id), worker_id.int))[:request.crew_size]
-                return begin, finish_at, selected
-        return None
+                option = (begin, finish_at, selected)
+                if not request.prefer_low_load:
+                    return option
+                options.append(option)
+        return min(options, key=rank) if options else None
 
     options = []
     if request.crew_id is None:
@@ -186,8 +226,7 @@ def select_crew(request: AssignmentRequest) -> AssignmentSelection:
             explanation="Есть полный состав на общем интервале." if option else "Нет полного доступного состава с нужными допусками и периодом участия."))
         if option and (request.crew_id is None or request.crew_id == crew.crew_id):
             options.append((*option, crew.crew_id))
-    chosen = min(options, key=lambda option: (option[0], sum(_load(workers[w], option[0], tz, request.task_id) for w in option[2]),
-        tuple(sorted(w.int for w in option[2])), 0 if option[3] is not None else 1,
+    chosen = min(options, key=lambda option: (*rank(option), 0 if option[3] is not None else 1,
         option[3].int if option[3] is not None else 0)) if options else None
     load_day = chosen[0] if chosen else start
     chosen_ids = set(chosen[2]) if chosen else set()
@@ -213,7 +252,9 @@ def select_crew(request: AssignmentRequest) -> AssignmentSelection:
         return finish("unavailable", "INSUFFICIENT_CAPACITY", "Полная бригада на общем допустимом интервале не найдена. Частичный состав не предлагается.")
     begin, finish_at, selected, crew_id = chosen
     reason = ("Состав выбран диспетчером; найден общий допустимый интервал, проверены доступность, допуски и загрузка."
-              if request.requested_worker_ids is not None else "Самый ранний общий интервал; среди доступных — минимальная дневная загрузка, затем ID.")
+              if request.requested_worker_ids is not None else
+              "Минимальная дневная загрузка среди подходящих составов, затем самый ранний общий интервал и стабильный порядок."
+              if request.prefer_low_load else "Самый ранний общий интервал; среди доступных — минимальная дневная загрузка, затем ID.")
     command = AssignmentCommand(schema_version=request.schema_version, expected_revision=request.expected_revision,
         executor_ids=selected, start_at=begin.astimezone(tz), end_at=finish_at.astimezone(tz), reason=reason)
     return finish("ok", None, reason, command, crew_id)

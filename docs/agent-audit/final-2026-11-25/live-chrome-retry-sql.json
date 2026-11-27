@@ -1,0 +1,57 @@
+{
+  "browser_exit": 1,
+  "complete_state": true,
+  "task": [
+    "in_review",
+    8
+  ],
+  "assignees": [
+    [
+      "346221f4-8429-841b-9a0a-8ba2ffa9a9fc"
+    ],
+    [
+      "6f51aa9c-9bba-9774-f66c-9d2c8ddb0c78"
+    ]
+  ],
+  "reports": [
+    [
+      1,
+      "submitted",
+      true
+    ]
+  ],
+  "phases": [
+    [
+      "after",
+      1
+    ],
+    [
+      "before",
+      1
+    ]
+  ],
+  "decisions": 0,
+  "audit": [
+    [
+      "assign",
+      1
+    ],
+    [
+      "save_report",
+      2
+    ],
+    [
+      "start",
+      1
+    ],
+    [
+      "submit",
+      1
+    ],
+    [
+      "upload_photo",
+      2
+    ]
+  ],
+  "exercise_open_date": "2026-11-25"
+}

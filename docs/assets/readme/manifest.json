@@ -1,0 +1,43 @@
+{
+  "data": "synthetic",
+  "build": "production",
+  "browser": "Chrome via Playwright",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "checks": [
+    "assignment",
+    "checklist and two photos",
+    "manual acceptance",
+    "live v4 / Ollama read",
+    "MCP proposal; unchanged order"
+  ],
+  "images": [
+    {
+      "file": "01-naryad.jpg",
+      "route": "/executor/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014",
+      "sha256": "cc9d78177be25f9507f10af145d683f2dd21d6400f32eb16872c41483312b00e"
+    },
+    {
+      "file": "02-fotootchet.jpg",
+      "route": "/executor/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014",
+      "sha256": "294128c7b614cb66057577042108fbc9985d2e4e8a24aa031521cdb15010ab2b"
+    },
+    {
+      "file": "03-priemka.jpg",
+      "route": "/quality/33e95b39-5a97-5aa9-4923-126ce24c9014",
+      "sha256": "0832d8a01ea80a6caccf5b830afeab8efde764e094960b30d1331ab048351cbc"
+    },
+    {
+      "file": "04-agent.jpg",
+      "route": "/assistant",
+      "sha256": "49718ee63d873728c928457480229c08884ef71a074a581ca3191084481d0076"
+    },
+    {
+      "file": "05-podtverzhdenie.jpg",
+      "route": "/assistant",
+      "sha256": "b856d77faa2bccb0b172f4e55de51565bae5ee28272bb84bbdf207374d2c437b"
+    }
+  ]
+}

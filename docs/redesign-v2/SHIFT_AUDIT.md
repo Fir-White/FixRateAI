@@ -1,6 +1,8 @@
 # C18 — совместимость сохранённых смен
 
-Исходная версия: `frontend_polished`, `422eacf94aadf0fc75e29ef8b1ee110abce78bd2`. Изменения выполнены в `feat/frontend-redesign-v2`. Правила документации: [разработка](../service/development.md). Задание: [C18](source/FixRateAI-phase2-visual-design-2026-11-06/08_CODEX_TASKS/C18.md).
+Примечание к опубликованному срезу 15.11.2026: исходные визуальные материалы `source/` и журналы/снимки `reports/` хранятся локально и не входят в Git. Ссылки на отсутствующие в checkout файлы ниже приведены как пути к артефактам, а не как доступные вложения. Исторические результаты не являются новым прогоном текущей сборки.
+
+Исходная версия: `frontend_polished`, `422eacf94aadf0fc75e29ef8b1ee110abce78bd2`. Изменения выполнены в `feat/frontend-redesign-v2`. Правила документации: [разработка](../service/development.md). Задание: C18 (`source/FixRateAI-phase2-visual-design-2026-11-06/08_CODEX_TASKS/C18.md`).
 
 ## Причина
 

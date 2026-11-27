@@ -1,0 +1,16 @@
+{
+  "url": "http://127.0.0.1:8772",
+  "model": "qwen3.5:4b-q4_K_M",
+  "model_digest": "sha256:d8b0f5e9760cd1682034f292d7ef72ec46f432149be0df7574bf2d6e92e38c04",
+  "engine": "v4",
+  "cloud": false,
+  "capabilities": [
+    "completion",
+    "vision",
+    "tools",
+    "thinking"
+  ],
+  "data": "synthetic",
+  "database": "fixrate_test_final_admission_local",
+  "pg_port": 63595
+}

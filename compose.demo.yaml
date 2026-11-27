@@ -1,0 +1,14 @@
+# Explicit, isolated demo. Initialize only this project's volumes with seed-demo.
+name: ${FIXRATE_DEMO_PROJECT:-fixrate-demo}
+services:
+  app:
+    environment:
+      FIXRATE_ACTIVE_ROLES: ${FIXRATE_DEMO_ROLES:-chief_engineer,executor}
+      FIXRATE_PERMISSION_PROFILE: mvp
+      FIXRATE_ASSISTANT_AGENT_VERSION: v4
+      FIXRATE_LLM_LOCAL_ONLY: '1'
+      ASSISTANT_PROVIDER: ollama
+      PHOTO_REVIEW_PROVIDER: ollama
+      FORECAST_PROVIDER: rf
+      AITUNNEL_API_KEY: ''
+      AI_TUNNEL_API_KEY: ''

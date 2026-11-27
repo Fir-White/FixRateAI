@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
 import { DEMO_MODE, request } from "@/shared/api/request";
 import { taskPathForRole } from "@/shared/lib/roles";
@@ -43,6 +44,7 @@ export function MaintenanceInbox() {
   const { pathname } = useLocation();
   const id = useId();
   const root = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const version = useRef(0);
   const mounted = useRef(false);
@@ -55,6 +57,13 @@ export function MaintenanceInbox() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const [position, setPosition] = useState({ top: 69, right: 28 });
+  const place = useCallback(() => {
+    const bounds = trigger.current?.getBoundingClientRect();
+    if (!bounds) return;
+    const top = Math.round(bounds.bottom + 1), right = Math.max(12, Math.round(window.innerWidth - bounds.right));
+    setPosition(previous => previous.top === top && previous.right === right ? previous : { top, right });
+  }, []);
 
   const load = useCallback(async (initial = false) => {
     if (!profile || busyRef.current) return;
@@ -83,6 +92,22 @@ export function MaintenanceInbox() {
     return () => { mounted.current = false; version.current++; window.clearInterval(timer); };
   }, [load]);
   useEffect(() => {
+    if (loading || panelMounted || !profile) return;
+    // Lay out the hidden list during idle time, never on the first bell click.
+    if (typeof window.requestIdleCallback === "function") {
+      const idle = window.requestIdleCallback(() => { place(); setPanelMounted(true); }, { timeout: 1000 });
+      return () => window.cancelIdleCallback(idle);
+    }
+    const timer = window.setTimeout(() => { place(); setPanelMounted(true); }, 150);
+    return () => window.clearTimeout(timer);
+  }, [loading, panelMounted, profile?.userId, profile?.siteId, place]);
+  useEffect(() => {
+    if (!open) return;
+    window.addEventListener("resize", place, { passive: true });
+    window.addEventListener("scroll", place, { passive: true });
+    return () => { window.removeEventListener("resize", place); window.removeEventListener("scroll", place); };
+  }, [open, place]);
+  useEffect(() => {
     if (open) { setPresent(true); return; }
     if (!present) return;
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -94,7 +119,9 @@ export function MaintenanceInbox() {
   useEffect(() => { if (!open) setConfirmClear(false); }, [open]);
   useEffect(() => {
     if (!open) return;
-    function outside(event: PointerEvent) { if (!root.current?.contains(event.target as Node)) setOpen(false); }
+    // The portal is outside the top bar's DOM order; enter its controls directly.
+    panel.current?.querySelector<HTMLButtonElement>(".inbox-close")?.focus({ preventScroll: true });
+    function outside(event: PointerEvent) { if (!root.current?.contains(event.target as Node) && !panel.current?.contains(event.target as Node)) setOpen(false); }
     function escape(event: KeyboardEvent) { if (event.key === "Escape") { setOpen(false); trigger.current?.focus(); } }
     document.addEventListener("pointerdown", outside); document.addEventListener("keydown", escape);
     return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape); };
@@ -105,13 +132,17 @@ export function MaintenanceInbox() {
     busyRef.current = true; const current = ++version.current;
     setBusy(notifications.length === 1 ? notifications[0].id : "all"); setError("");
     for (const item of notifications) {
+      const readAt = new Date().toISOString();
+      setItems(previous => previous.map(n => n.id === item.id ? { ...n, readAt } : n));
       try {
         const result = await request<{ read: boolean }>(`${endpoint}/${encodeURIComponent(item.id)}/read`, { method: "POST", body: "{}" });
         if (result.read !== true) throw new Error("Read acknowledgement missing");
         if (!mounted.current || current !== version.current) return;
-        setItems(previous => previous.map(n => n.id === item.id ? { ...n, readAt: new Date().toISOString() } : n));
       } catch {
-        if (mounted.current && current === version.current) setError("Не удалось отметить уведомление прочитанным. Попробуйте ещё раз.");
+        if (mounted.current && current === version.current) {
+          setItems(previous => previous.map(n => n.id === item.id ? { ...n, readAt: item.readAt } : n));
+          setError("Не удалось отметить уведомление прочитанным. Попробуйте ещё раз.");
+        }
         break;
       }
     }
@@ -201,18 +232,18 @@ export function MaintenanceInbox() {
   if (!profile) return null;
 
   return <div className="inbox" ref={root}>
-    <button ref={trigger} type="button" className={`inbox-trigger${open ? " is-open" : ""}`} aria-label={loading || (error && !items.length) ? "Уведомления" : `Уведомления, непрочитанных: ${unread.length}`} aria-haspopup="dialog" aria-expanded={open} aria-controls={id} onClick={() => { if (!open) { setPanelMounted(true); setPresent(true); } setOpen(value => !value); }}>
-      <Icon name="bell" size={20}/>{unread.length > 0 && <span className="inbox-count" aria-hidden="true">{unread.length > 99 ? "99+" : unread.length}</span>}
+    <button ref={trigger} type="button" className={`inbox-trigger${open ? " is-open" : ""}`} aria-label={loading || (error && !items.length) ? "Уведомления" : `Уведомления, непрочитанных: ${unread.length}`} aria-haspopup="dialog" aria-expanded={open} aria-controls={id} onClick={() => { if (!open) { place(); setPanelMounted(true); setPresent(true); } setOpen(value => !value); }}>
+      <Icon name="bell" size={23}/>{unread.length > 0 && <span className="inbox-count" aria-hidden="true">{unread.length > 99 ? "99+" : unread.length}</span>}
       {error && !unread.length && <span className="inbox-error-dot" aria-hidden="true"/>}
       <span className="topbar-hint" aria-hidden="true">Уведомления</span>
     </button>
-    {panelMounted && <div id={id} className="inbox-panel" hidden={!present} data-state={open ? "open" : present ? "closing" : "closed"} aria-hidden={!open || undefined} inert={!open} role="dialog" aria-label="Уведомления">
+    {panelMounted && createPortal(<div ref={panel} id={id} className="inbox-panel" style={{ "--inbox-top": `${position.top}px`, "--inbox-right": `${position.right}px` } as CSSProperties} hidden={!present} data-state={open ? "open" : present ? "closing" : "closed"} aria-hidden={!open || undefined} inert={!open} role="dialog" aria-label="Уведомления">
       <header className="inbox-header"><div><h2>Уведомления</h2><p>{loading ? "Загрузка…" : error && !items.length ? "Нет связи" : unread.length ? `Непрочитанных: ${unread.length}` : "Всё просмотрено"}</p></div><button type="button" className="inbox-close" aria-label="Закрыть уведомления" onClick={() => { setOpen(false); trigger.current?.focus(); }}><Icon name="close" size={18}/></button></header>
       {error && <div className="inbox-error" role="alert"><span>{error}</span><button type="button" disabled={!!busy} onClick={() => void load(true)}>Повторить</button></div>}
       {loading ? <div className="inbox-empty" role="status"><span className="inbox-empty-icon"><Icon name="bell" size={22}/></span><p>Загружаем уведомления…</p></div> : !items.length && !error ? <div className="inbox-empty"><span className="inbox-empty-icon"><Icon name="check" size={22}/></span><strong>Уведомлений нет</strong><p>{profile.role === "executor" ? "Здесь появятся события по вашим заданиям." : "Здесь появится информация о новых событиях."}</p></div> : <div className="inbox-list">{groups}</div>}
       {items.length > 0 && <footer className="inbox-footer">
         {confirmClear ? <><span>Удалить все уведомления?</span><div className="inbox-footer-actions"><button type="button" disabled={!!busy} onClick={() => setConfirmClear(false)}>Отмена</button><button type="button" className="inbox-clear" disabled={!!busy} onClick={() => void clearNotifications()}>{busy === "clear" ? "Удаляем…" : "Удалить"}</button></div></> : <><button type="button" className="inbox-clear" disabled={!!busy} onClick={() => setConfirmClear(true)}>Удалить все уведомления</button><button type="button" disabled={!!busy} onClick={() => void markAllRead()}>{busy === "all" ? "Сохраняем…" : "Отметить все прочитанными"}</button></>}
       </footer>}
-    </div>}
+    </div>, document.querySelector(".workspace-root") ?? document.body)}
   </div>;
 }

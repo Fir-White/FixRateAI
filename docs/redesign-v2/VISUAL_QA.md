@@ -1,5 +1,7 @@
 # Визуальные проверки
 
+Примечание к опубликованному срезу 15.11.2026: исходные визуальные материалы `source/` и журналы/снимки `reports/` хранятся локально и не входят в Git. Ссылки на отсутствующие в checkout файлы ниже приведены как пути к артефактам, а не как доступные вложения. Исторические результаты не являются новым прогоном текущей сборки.
+
 ## Отклик шторки уведомлений, 07.11.2026
 
 **passed**:6/100событий ×1440/390 ×2открытия, CPU×4 для390. Геометрия панели до/после совпала; повторное появление100строк на390 —433→20мс. Контролируемая прокрутка до последней строки и native touch390×844 прошли без overflow. До/после и JSON — `reports/redesign-v2/inbox-performance/`; данные100строк и mutating controls замоканы, production writes0. Конструкторы formatter при открытии400→0; полное завершение анимации измерено отдельно от появления. Изменение protected notifications разрешено прямым запросом владельца.
@@ -90,7 +92,7 @@
 | Chief existing service | 0,800,1564 | 0,744,1488,2232,2783 | FULL, 8 tiles; [сверка и исправление select](SETTINGS_IMPLEMENTATION.md) |
 | Director overview | 0,800,1017 | 0,744,1488,2232,2740 | FULL, 8 anchor tiles; ещё 3 home1440; [9 критериев](CONTRACT_AUDIT.md) |
 
-Сопоставление «До / После» использует одинаковые role/fixture/routes из `before/manifest.json` и `after-final-shared/manifest.json`. Исходный `e856be90…` остаётся submitted, его данные не менялись. Для быстрого открытия: [исполнитель до](../../reports/redesign-v2/before/executor-anchor-390-y0.png) / [после](../../reports/redesign-v2/after-final-shared/executor-anchor-390-y0.png), [инженер до](../../reports/redesign-v2/before/engineer-anchor-1440-y0.png) / [после](../../reports/redesign-v2/after-final-shared/engineer-anchor-1440-y0.png), [chief после](../../reports/redesign-v2/after-final-shared/chief_engineer-anchor-1440-y0.png), [director после](../../reports/redesign-v2/after-final-shared/director-anchor-390-y0.png). Артефакты локальные, Git их не включает.
+Сопоставление «До / После» использует одинаковые role/fixture/routes из `before/manifest.json` и `after-final-shared/manifest.json`. Исходный `e856be90…` остаётся submitted, его данные не менялись. Для быстрого открытия: исполнитель до (`../../reports/redesign-v2/before/executor-anchor-390-y0.png`) / после (`../../reports/redesign-v2/after-final-shared/executor-anchor-390-y0.png`), инженер до (`../../reports/redesign-v2/before/engineer-anchor-1440-y0.png`) / после (`../../reports/redesign-v2/after-final-shared/engineer-anchor-1440-y0.png`), chief после (`../../reports/redesign-v2/after-final-shared/chief_engineer-anchor-1440-y0.png`), director после (`../../reports/redesign-v2/after-final-shared/director-anchor-390-y0.png`). Артефакты локальные, Git их не включает.
 
 | Критерий | Результат и предел |
 |---|---|
@@ -108,7 +110,7 @@
 
 Снимки иных состояний, не перечисленные как FULL, остаются PARTIAL. Не все error/loading/empty/overlay кадры имеют сопоставимые before/after: полный C15 gate остаётся blocked, несмотря на завершённый просмотр четырёх опорных состояний. Текущий live legacy seed без оборудования — известное ограничение данных C17, не ложная подпись оборудования.
 
-Финальные измерения контраста выявили и закрыли ещё три конкретных дефекта: metadata checklist4.30→7.35:1, placeholder3.58→7.90:1, instruction border1.43→3.89:1. Выборка30состояний4anchors и2photo modals описана в [CONTRACT_AUDIT](CONTRACT_AUDIT.md). Это точечное подтверждение, а не снятие ограничения полного аудита. Сравнение chief: [до](../../reports/redesign-v2/before/chief_engineer-anchor-1440-y0.png) / [после](../../reports/redesign-v2/after-final-shared/chief_engineer-anchor-1440-y0.png); director: [до](../../reports/redesign-v2/before/director-anchor-390-y0.png) / [после](../../reports/redesign-v2/after-final-shared/director-anchor-390-y0.png).
+Финальные измерения контраста выявили и закрыли ещё три конкретных дефекта: metadata checklist4.30→7.35:1, placeholder3.58→7.90:1, instruction border1.43→3.89:1. Выборка30состояний4anchors и2photo modals описана в [CONTRACT_AUDIT](CONTRACT_AUDIT.md). Это точечное подтверждение, а не снятие ограничения полного аудита. Сравнение chief: до (`../../reports/redesign-v2/before/chief_engineer-anchor-1440-y0.png`) / после (`../../reports/redesign-v2/after-final-shared/chief_engineer-anchor-1440-y0.png`); director: до (`../../reports/redesign-v2/before/director-anchor-390-y0.png`) / после (`../../reports/redesign-v2/after-final-shared/director-anchor-390-y0.png`).
 
 ### C14/C15: адаптивность и исправления
 

@@ -1,19 +1,20 @@
-FROM node:24-bookworm-slim AS web
+FROM node:24-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54 AS web
 WORKDIR /build/frontend
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci --ignore-scripts
 COPY frontend/ ./
 COPY tests/web/ /build/tests/web/
 COPY tests/fixtures/web/ /build/tests/fixtures/web/
 ENV VITE_DEMO_MODE=false
 RUN npm run build
 
-FROM python:3.12-slim-bookworm
+FROM python:3.12-slim-bookworm@sha256:935c3c5b12357a7e10caa9c1e6ca5692344d97cf229832ef584be2cec9fc03df
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/app/backend:/app
+ENV PIP_DEFAULT_TIMEOUT=300 PIP_RETRIES=20
 WORKDIR /app
-COPY requirements.txt ./
-RUN pip install --no-cache-dir torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu \
-    && pip install --no-cache-dir -r requirements.txt
+COPY requirements.txt requirements-solver.txt ./
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --timeout 300 --retries 20 -r requirements.txt
 COPY backend/ backend/
 COPY ml_service/ ml_service/
 COPY database/ database/

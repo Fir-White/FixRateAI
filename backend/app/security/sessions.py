@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import os
 import secrets
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -10,20 +11,23 @@ from uuid import UUID
 
 from fastapi import HTTPException, Request
 from sqlalchemy import text
+from .permissions import has_role, public_permissions
 
 SQL_ROLES = {role: role for role in ('director','chief_engineer','engineer','admin','dispatcher','executor')}
 SQL_ROLES['technician'] = 'executor'
 # Compatibility for previously provisioned data until migration 010 is applied.
 SQL_ROLES['executive'] = 'director'
 API_ROLES = {role: role for role in SQL_ROLES if role not in ('technician', 'executive')}
+SITE_ACCESS_MANAGERS = ("admin", "chief_engineer")
 
 
-def has_role(role, roles):
-    """Business hierarchy; technical administration is a separate capability."""
-    effective = {role}
-    if role == 'chief_engineer': effective.update(('engineer','dispatcher'))
-    if role == 'engineer': effective.add('dispatcher')
-    return bool(effective.intersection(roles))
+def role_is_enabled(role: str) -> bool:
+    configured = {
+        value.strip()
+        for value in os.environ.get("FIXRATE_ACTIVE_ROLES", "").split(",")
+        if value.strip()
+    }
+    return not configured or role in configured
 
 
 COOKIE = "fixrate_session"
@@ -63,11 +67,22 @@ class Principal:
     timezone: str
 
     def profile(self):
-        return dict(userId=str(self.user_id), siteId=str(self.site_id), role=self.role,
-                    name=self.name, email=self.email, siteName=self.site_name, timezone=self.timezone)
+        payload = dict(userId=str(self.user_id), siteId=str(self.site_id), role=self.role,
+                       name=self.name, email=self.email, siteName=self.site_name, timezone=self.timezone,
+                       **public_permissions(self.role))
+        if self.role == "chief_engineer":
+            from app.onlyoffice import OfficeSettings
+
+            try:
+                office = OfficeSettings.configured()
+            except ValueError:
+                office = None
+            if office and office.browser_origin.partition("//")[2].split(":")[0].lower() == "localhost":
+                payload["workbookEditorOrigin"] = office.browser_origin
+        return payload
 
 
-def authenticate(request: Request, session) -> Principal:
+def authenticate(request: Request, session, *, lock: bool = False) -> Principal:
     token = request.cookies.get(COOKIE)
     if not token:
         raise HTTPException(401, "Сессия отсутствует")
@@ -78,10 +93,15 @@ def authenticate(request: Request, session) -> Principal:
         JOIN sites s ON s.site_id=m.site_id
         WHERE x.token_hash=:token AND x.expires_at>now()
           AND u.is_active AND m.is_active AND s.is_active
-    """), {"token": digest(token)}).mappings().first()
-    if not row or row["role"] not in SQL_ROLES:
+    """ + (' FOR SHARE OF x,u,m,s' if lock else '')), {"token": digest(token)}).mappings().first()
+    if not row or row["role"] not in SQL_ROLES or not role_is_enabled(SQL_ROLES.get(row["role"], row["role"])):
         raise HTTPException(401, "Сессия истекла или доступ отозван")
-    if SQL_ROLES[row["role"]] == "director" and request.method not in ("GET", "HEAD", "OPTIONS") and not (((request.method == "PATCH" and request.url.path == "/api/v1/maintenance/users/me/email") or (request.method == "POST" and request.url.path == "/api/v1/maintenance/users/me/password")) or request.url.path in ("/api/v1/auth/logout", "/api/v1/maintenance/notifications/read-all", "/api/v1/maintenance/notifications/clear") or (request.url.path.startswith("/api/v1/maintenance/notifications/") and request.url.path.endswith(("/read", "/delete")))):
+    # Personal chat lifecycle is not a write to the operational domain. Ownership
+    # and CSRF are still checked by the ordinary auth/assistant dependencies.
+    chat_prefix='/api/v1/assistant/conversations/'
+    private_chat_mutation=(request.method in ('PATCH','DELETE') and request.url.path.startswith(chat_prefix)
+                           and bool(request.url.path[len(chat_prefix):]) and '/' not in request.url.path[len(chat_prefix):])
+    if SQL_ROLES[row["role"]] == "director" and not private_chat_mutation and request.method not in ("GET", "HEAD", "OPTIONS") and not (((request.method == "PATCH" and request.url.path == "/api/v1/maintenance/users/me/email") or (request.method == "POST" and request.url.path == "/api/v1/maintenance/users/me/password")) or request.url.path in ("/api/v1/auth/logout", "/api/v1/auth/site", "/api/v1/maintenance/notifications/read-all", "/api/v1/maintenance/notifications/clear") or (request.method == 'POST' and request.url.path.startswith('/api/v1/assistant/')) or (request.url.path.startswith("/api/v1/maintenance/notifications/") and request.url.path.endswith(("/read", "/delete")))):
         raise HTTPException(403, "Руководитель имеет доступ только для чтения")
     if request.method not in ("GET", "HEAD", "OPTIONS"):
         csrf = request.headers.get("x-csrf-token", "")

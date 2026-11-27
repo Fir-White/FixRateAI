@@ -117,7 +117,7 @@ def test_corrupt_persisted_photo_is_rejected_before_calling_ai(job,monkeypatch):
         prior_checks=c.scalar(text('SELECT count(*) FROM ai_quality_checks WHERE work_order_id=:id'),dict(id=task))
     (app.state.settings.photo_storage_root/key).write_bytes(b'corrupt-stored-image')
     def forbidden(*args,**kwargs): pytest.fail('AI must not receive corrupt evidence')
-    monkeypatch.setattr('ml_service.app.cv.api.review_photos',forbidden)
+    monkeypatch.setattr('ml_service.app.cv.aitunnel.review_cloud_photos',forbidden)
     with closing(login(app,'engineer')) as client:
         response=client.post(PREFIX+f'/tasks/{task}/photo-review',json=dict(expected_revision=bundle['task']['revision']))
     assert response.status_code==422 and response.json()['error']['code']=='PHOTO_CONTENT_INVALID'
@@ -136,7 +136,7 @@ def test_photo_provider_failures_are_persisted_without_accepting_work(job,monkey
         if failure=='timeout': release.wait(2)
         if failure=='exception': raise RuntimeError('private-provider-token')
         return '{invalid}'
-    monkeypatch.setattr('ml_service.app.cv.api.review_photos',broken)
+    monkeypatch.setattr('ml_service.app.cv.aitunnel.review_cloud_photos',broken)
     try:
         with closing(login(app,'engineer')) as client:
             response=client.post(PREFIX+f'/tasks/{task}/photo-review',json=dict(expected_revision=bundle['task']['revision']))

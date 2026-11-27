@@ -9,10 +9,11 @@ function demoId(key: string) {
 const roles = ["director","chief_engineer","admin", "dispatcher", "engineer", "executor"];
 const allowed: Record<string, string[]> = {
   director:["director"], "chief-engineer":["chief_engineer"], engineer:["engineer"], admin:["admin"], profile:roles,
+  planning:["director","chief_engineer","admin","dispatcher","engineer"],
   dispatcher: ["director","chief_engineer","engineer","admin", "dispatcher"], equipment: roles,
   calendar: ["director","chief_engineer","dispatcher", "engineer", "executor"], tasks: ["director","chief_engineer","dispatcher", "engineer"],
   comparisons: ["director","chief_engineer","dispatcher", "engineer"], reports: ["director","chief_engineer","dispatcher", "engineer"], quality: ["chief_engineer","engineer"], executor: ["executor"],
-  settings: ["chief_engineer","admin","dispatcher","engineer"], "my-shifts": ["executor"],
+  settings: ["chief_engineer","admin","dispatcher","engineer"], "my-shifts": ["executor"], assistant: roles,
 };
 
 for (const role of roles) {
@@ -30,20 +31,24 @@ for (const role of roles) {
     await page.getByRole("button", {name: "Войти", exact: true}).click();
     await expect(page).toHaveURL(new URL(homes[role], process.env.FIXRATE_BASE_URL!).href);
     const businessMenus:Record<string,string[]>={
-      director:["/director","/calendar","/equipment","/tasks","/comparisons","/reports"],
-      chief_engineer:["/chief-engineer","/quality","/calendar","/equipment","/tasks","/comparisons","/reports","/settings/equipment","/settings/workforce"],
-      engineer:["/dispatcher","/engineer","/calendar","/equipment","/tasks","/comparisons","/reports","/settings/equipment","/settings/workforce"],
-      executor:["/executor","/calendar","/equipment","/my-shifts"],
+      director:["/director","/planning","/tasks","/equipment","/reports"],
+      chief_engineer:["/chief-engineer","/planning","/tasks","/quality","/equipment","/settings/workforce","/reports"],
+      engineer:["/engineer","/planning","/tasks","/quality","/equipment","/settings/workforce","/reports"],
+      executor:["/executor","/executor/tasks","/equipment","/executor/reports"],
     };
-    if(businessMenus[role])expect(await page.getByRole("navigation",{name:"Основная навигация"}).getByRole("link").evaluateAll(links=>links.map(link=>link.getAttribute("href")))).toEqual(businessMenus[role]);
-    const routes = ["/director","/chief-engineer","/engineer","/admin","/profile","/dispatcher", "/equipment", `/equipment/${demoId("equipment-2")}`, "/calendar", "/tasks",
+    if (businessMenus[role]) {
+      const links = page.getByRole("navigation", { name: "Основная навигация" }).getByRole("link");
+      await expect(links).toHaveCount(businessMenus[role].length);
+      expect(await links.evaluateAll(items => items.map(link => link.getAttribute("href")))).toEqual(businessMenus[role]);
+    }
+    const routes = ["/planning","/director","/chief-engineer","/engineer","/admin","/profile","/dispatcher", "/equipment", `/equipment/${demoId("equipment-2")}`, "/calendar", "/tasks",
       `/tasks/${demoId("runtime-order")}`, "/comparisons", "/reports", "/quality", `/quality/${demoId("runtime-order")}`,
-      "/executor", `/executor/tasks/${demoId("runtime-order")}`,"/settings/equipment","/settings/workforce","/my-shifts"];
+      "/executor", "/executor/tasks", "/executor/reports", `/executor/tasks/${demoId("runtime-order")}`,"/settings/equipment","/settings/workforce","/my-shifts"];
     for (const route of routes) {
       await page.goto(route);
       const permitted = allowed[route.split("/")[1]].includes(role);
       if (!permitted) {
-        await expect(page.getByRole("heading", {name: "Раздел недоступен для текущей роли"})).toBeVisible();
+        await expect(page.getByRole("heading", {name: "Раздел недоступен"})).toBeVisible();
         continue;
       }
       await expect(page.locator("h1")).toBeVisible();

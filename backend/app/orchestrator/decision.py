@@ -1,11 +1,11 @@
 """ALG04: deterministic policy; evidence and deadline outrank model preference."""
-from datetime import datetime, timezone
+from datetime import date,datetime,timezone
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from app.schemas.maintenance import OrchestrationDecision
 
-POLICY_VERSION = "maintenance-orchestrator-v1"
+POLICY_VERSION = "maintenance-orchestrator-v1.1"
 
 
 def decide(snapshot, algorithmic, ai):
@@ -29,11 +29,18 @@ def decide(snapshot, algorithmic, ai):
     if due < today:
         return result("manual_review", None, "DEADLINE_EXCEEDED: срок прошёл; автоматический перенос запрещён.")
     day = algorithmic.recommended_date
-    if day > due or day < today or (earliest and day < earliest):
+    if type(day) is not date or day > due or day < today or (earliest and day < earliest):
         return result("manual_review", None, "INVALID_RULE_DATE: алгоритмический срок вне допустимого окна.")
+    # ALG02's occurrence_date is the frozen mandatory_due_date (including the
+    # approved weekend transfer). An in-window date alone does not authenticate
+    # a stored algorithmic result; never use its tampered early date as fallback.
+    if day != due:
+        return result('fallback',due,'ALGORITHMIC_DATE_MISMATCH: дата результата расходится с обязательством; используется нормативная дата подтверждённого снимка.')
     if ai.status != "ok":
         return result("fallback", day, f"AI_UNAVAILABLE: {ai.error_code}; используем подтверждённый регламент.")
     candidate = ai.recommended_date
+    if type(candidate) is not date:
+        return result('fallback',day,'AI_INVALID_DATE: предложение не содержит пригодной даты; используем регламент.')
     if candidate > due:
         return result("fallback", day, "AI_AFTER_DEADLINE: предложение AI позже обязательного срока; используем регламент.")
     if candidate < today or (earliest and candidate < earliest):
@@ -41,7 +48,7 @@ def decide(snapshot, algorithmic, ai):
     if candidate >= day:
         return result("selected", day, "RULE_EARLIER_OR_EQUAL: регламентный срок не позже предложения AI.")
     evidence = ai.uncertainty
-    supported = (evidence.calibrated and evidence.lower_date is not None and evidence.upper_date is not None
+    supported = (evidence.kind!='unknown' and evidence.calibrated and evidence.lower_date is not None and evidence.upper_date is not None
                  and evidence.lower_date <= candidate <= evidence.upper_date < day)
     demo = snapshot.data_origin == "synthetic_demo" and evidence.kind != "unknown"
     if supported or demo:

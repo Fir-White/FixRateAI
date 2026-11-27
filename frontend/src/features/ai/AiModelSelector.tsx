@@ -4,6 +4,7 @@ import { Button } from "@/shared/ui/Button";
 import { FormField, Input, Select } from "@/shared/ui/Form";
 import { FilterChip } from "@/shared/ui/FilterChip";
 import { Badge } from "@/shared/ui/Badge";
+import { AuthPasswordInput } from "@/features/auth/AuthPasswordInput";
 import type { AiProvider } from "@/shared/api/maintenance";
 
 interface AiModelSelectorProps {
@@ -102,10 +103,10 @@ export function AiModelSelector({
         {/* Provider selection chips */}
         <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Провайдер нейросети">
           <FilterChip
-            active={settings.provider === "clip"}
-            onClick={() => handleProviderSelect("clip")}
+            active={settings.provider === "aitunnel"}
+            onClick={() => handleProviderSelect("aitunnel")}
           >
-            ⚡ CLIP (CPU)
+            ☁️ AI Tunnel (Облако)
           </FilterChip>
           <FilterChip
             active={settings.provider === "ollama"}
@@ -113,21 +114,9 @@ export function AiModelSelector({
           >
             🖥️ Ollama (Локально)
           </FilterChip>
-          <FilterChip
-            active={settings.provider === "aitunnel"}
-            onClick={() => handleProviderSelect("aitunnel")}
-          >
-            ☁️ AI Tunnel (Облако)
-          </FilterChip>
         </div>
 
         {/* Details based on selected provider */}
-        {settings.provider === "clip" && (
-          <p className="text-xs leading-5 text-muted">
-            Быстрая встроенная модель CLIP ViT-B/32 на CPU. Базовый регламентный анализ без сторонних сервисов.
-          </p>
-        )}
-
         {settings.provider === "ollama" && (
           <div className="space-y-2 pt-1">
             <div className="flex items-center gap-2">
@@ -180,7 +169,6 @@ export function AiModelSelector({
                   )) || (
                     <>
                       <option value="qwen3.7-flash">Qwen3.7 Flash</option>
-                      <option value="qwen2.5-vl-72b-instruct">Qwen2.5-VL 72B Instruct</option>
                     </>
                   )}
                 </Select>
@@ -226,10 +214,10 @@ export function AiModelSelector({
       {/* Provider Selector Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-line pb-4" role="radiogroup" aria-label="Провайдер нейросети">
         <FilterChip
-          active={settings.provider === "clip"}
-          onClick={() => handleProviderSelect("clip")}
+          active={settings.provider === "aitunnel"}
+          onClick={() => handleProviderSelect("aitunnel")}
         >
-          ⚡ CLIP (CPU)
+          ☁️ Облачный AI Tunnel
         </FilterChip>
         <FilterChip
           active={settings.provider === "ollama"}
@@ -237,28 +225,9 @@ export function AiModelSelector({
         >
           🖥️ Локальная Ollama
         </FilterChip>
-        <FilterChip
-          active={settings.provider === "aitunnel"}
-          onClick={() => handleProviderSelect("aitunnel")}
-        >
-          ☁️ Облачный AI Tunnel
-        </FilterChip>
       </div>
 
       {/* Selected Provider Form */}
-      {settings.provider === "clip" && (
-        <div className="space-y-4 rounded-xl border border-line bg-surface/30 p-5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-ink">Встроенный классификатор CLIP</h3>
-            <Badge tone="success">Доступен всегда</Badge>
-          </div>
-          <p className="text-xs leading-6 text-ink-soft">
-            Модель <code>openai/clip-vit-base-patch32</code> работает локально на CPU без внешних вызовов и без интернета.
-            Быстро оценивает соответствие фото регламенту ТО.
-          </p>
-        </div>
-      )}
-
       {settings.provider === "ollama" && (
         <div className="space-y-4 rounded-xl border border-line bg-surface/30 p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -287,7 +256,7 @@ export function AiModelSelector({
             hint={
               isOllamaOnline
                 ? `Найдено локальных моделей: ${ollamaProvider?.models?.length ?? 0}`
-                : "Для установки модели выполните: ollama run qwen2.5:4b"
+                : "Для установки модели выполните: ollama pull qwen3.5:4b"
             }
           >
             <Select
@@ -337,8 +306,6 @@ export function AiModelSelector({
               )) || (
                 <>
                   <option value="qwen3.7-flash">Qwen3.7 Flash (быстрая мультимодальная)</option>
-                  <option value="qwen2.5-vl-72b-instruct">Qwen2.5-VL 72B Instruct (детальный разбор)</option>
-                  <option value="deepseek-ai/deepseek-vl2">DeepSeek-VL2</option>
                 </>
               )}
             </Select>
@@ -353,24 +320,14 @@ export function AiModelSelector({
                 : "Ключ формата sk-... из личного кабинета api.aitunnel.ru. Сохраняется локально в браузере."
             }
           >
-            <div className="relative">
-              <Input
-                id="aitunnel-key-input"
-                type={showKey ? "text" : "password"}
-                placeholder="sk-..."
-                value={settings.apiKey}
-                onChange={(e) => handleKeyChange(e.target.value)}
-                autoComplete="off"
-                className="pr-20"
-              />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted hover:text-ink"
-                onClick={() => setShowKey(!showKey)}
-              >
-                {showKey ? "Скрыть" : "Показать"}
-              </button>
-            </div>
+            <AuthPasswordInput
+              id="aitunnel-key-input"
+              visibilityLabel="API-ключ"
+              placeholder="sk-..."
+              value={settings.apiKey}
+              onChange={(e) => handleKeyChange(e.target.value)}
+              autoComplete="off"
+            />
           </FormField>
         </div>
       )}

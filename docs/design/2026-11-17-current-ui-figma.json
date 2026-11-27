@@ -1,0 +1,1570 @@
+{
+  "source_sha": "804917495200e457272fcb2103f3043dccbad91b",
+  "date": "2026-11-17",
+  "file_key": "YdFh9ifap89KdGu2PcN49Y",
+  "format": "editable Figma layers",
+  "production_build": true,
+  "screen_count": 103,
+  "screens": [
+    {
+      "key": "auth-login-desktop",
+      "node_id": "20:2",
+      "title": "Вход в систему",
+      "group": "01 · Вход и доступ",
+      "route": "/login",
+      "role": "public",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=20-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "auth-login-mobile",
+      "node_id": "37:2",
+      "title": "Вход в систему",
+      "group": "01 · Вход и доступ",
+      "route": "/login",
+      "role": "public",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=37-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "auth-not-found-desktop",
+      "node_id": "36:2",
+      "title": "Страница не найдена",
+      "group": "01 · Вход и доступ",
+      "route": "/no-such-page",
+      "role": "public",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=36-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "auth-register-desktop",
+      "node_id": "15:2",
+      "title": "Регистрация",
+      "group": "01 · Вход и доступ",
+      "route": "/register",
+      "role": "public",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=15-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "auth-register-mobile",
+      "node_id": "38:2",
+      "title": "Регистрация",
+      "group": "01 · Вход и доступ",
+      "route": "/register",
+      "role": "public",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=38-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "auth-setup-desktop",
+      "node_id": "90:2",
+      "title": "Первоначальная настройка",
+      "group": "01 · Вход и доступ",
+      "route": "/setup",
+      "role": "public",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=90-2",
+      "fixture": "explicit UI response fixture",
+      "status": "imported"
+    },
+    {
+      "key": "auth-setup-mobile",
+      "node_id": "91:2",
+      "title": "Первоначальная настройка",
+      "group": "01 · Вход и доступ",
+      "route": "/setup",
+      "role": "public",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=91-2",
+      "fixture": "explicit UI response fixture",
+      "status": "imported"
+    },
+    {
+      "key": "executor-access-denied-mobile",
+      "node_id": "82:2",
+      "title": "Раздел недоступен для текущей роли",
+      "group": "01 · Вход и доступ",
+      "route": "/quality",
+      "role": "executor",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=82-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "admin-home-desktop",
+      "node_id": "60:2",
+      "title": "Оперативный центр",
+      "group": "02 · Рабочий день и навигация",
+      "route": "/admin",
+      "role": "admin",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=60-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-mobile-menu",
+      "node_id": "72:2",
+      "title": "Технический обзор · Мобильная навигация",
+      "group": "02 · Рабочий день и навигация",
+      "route": "/chief-engineer",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=72-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-notifications-desktop",
+      "node_id": "53:2",
+      "title": "Технический обзор",
+      "group": "02 · Рабочий день и навигация",
+      "route": "/chief-engineer",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=53-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-overview-desktop",
+      "node_id": "13:2",
+      "title": "Технический обзор",
+      "group": "02 · Рабочий день и навигация",
+      "route": "/chief-engineer",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=13-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-overview-mobile",
+      "node_id": "39:2",
+      "title": "Технический обзор",
+      "group": "02 · Рабочий день и навигация",
+      "route": "/chief-engineer",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=39-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "director-home-desktop",
+      "node_id": "34:2",
+      "title": "Обзор объекта",
+      "group": "02 · Рабочий день и навигация",
+      "route": "/director",
+      "role": "director",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=34-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "dispatcher-home-desktop",
+      "node_id": "61:2",
+      "title": "Оперативный центр",
+      "group": "02 · Рабочий день и навигация",
+      "route": "/dispatcher",
+      "role": "dispatcher",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=61-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "engineer-home-desktop",
+      "node_id": "35:2",
+      "title": "Оперативный центр",
+      "group": "02 · Рабочий день и навигация",
+      "route": "/engineer",
+      "role": "engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=35-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "executor-home-desktop",
+      "node_id": "29:2",
+      "title": "Мои задания",
+      "group": "02 · Рабочий день и навигация",
+      "route": "/executor",
+      "role": "executor",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=29-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "executor-home-primary-mobile",
+      "node_id": "75:2",
+      "title": "Мои задания",
+      "group": "02 · Рабочий день и навигация",
+      "route": "/executor",
+      "role": "executor",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=75-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-catalog-operations-desktop",
+      "node_id": "43:2",
+      "title": "Планирование ТО",
+      "group": "03 · Планирование ТО",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=43-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-catalog-operations-mobile",
+      "node_id": "139:2",
+      "title": "Планирование ТО",
+      "group": "03 · Планирование ТО",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=139-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-catalog-plans-desktop",
+      "node_id": "44:2",
+      "title": "Планирование ТО",
+      "group": "03 · Планирование ТО",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=44-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-catalog-plans-mobile",
+      "node_id": "140:2",
+      "title": "Планирование ТО",
+      "group": "03 · Планирование ТО",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=140-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-operation-editor-desktop",
+      "node_id": "96:2",
+      "title": "Планирование ТО · Редактор операции",
+      "group": "03 · Планирование ТО",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=96-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-operation-editor-mobile",
+      "node_id": "97:2",
+      "title": "Планирование ТО · Редактор операции",
+      "group": "03 · Планирование ТО",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=97-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-plan-load-desktop",
+      "node_id": "47:2",
+      "title": "Планирование ТО",
+      "group": "03 · Планирование ТО",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan&draft=4f6718cb-301c-48c3-a5fa-be089574fc3c&revision=1&view=load",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=47-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-plan-load-mobile",
+      "node_id": "143:2",
+      "title": "Планирование ТО",
+      "group": "03 · Планирование ТО",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan&draft=4f6718cb-301c-48c3-a5fa-be089574fc3c&revision=1&view=load",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=143-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-plan-publish-desktop",
+      "node_id": "48:2",
+      "title": "Планирование ТО",
+      "group": "03 · Планирование ТО",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan&draft=4f6718cb-301c-48c3-a5fa-be089574fc3c&revision=1&view=publish",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=48-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-plan-publish-mobile",
+      "node_id": "144:2",
+      "title": "Планирование ТО",
+      "group": "03 · Планирование ТО",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan&draft=4f6718cb-301c-48c3-a5fa-be089574fc3c&revision=1&view=publish",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=144-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-plan-schedule-desktop",
+      "node_id": "46:2",
+      "title": "Планирование ТО",
+      "group": "03 · Планирование ТО",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan&draft=4f6718cb-301c-48c3-a5fa-be089574fc3c&revision=1&view=schedule",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=46-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-plan-schedule-mobile",
+      "node_id": "142:2",
+      "title": "Планирование ТО",
+      "group": "03 · Планирование ТО",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan&draft=4f6718cb-301c-48c3-a5fa-be089574fc3c&revision=1&view=schedule",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=142-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-plan-segments-desktop",
+      "node_id": "98:2",
+      "title": "Планирование ТО · Сегменты работы",
+      "group": "03 · Планирование ТО",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan&draft=4f6718cb-301c-48c3-a5fa-be089574fc3c&revision=1&view=work",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=98-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-plan-work-desktop",
+      "node_id": "45:2",
+      "title": "Планирование ТО",
+      "group": "03 · Планирование ТО",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan&draft=4f6718cb-301c-48c3-a5fa-be089574fc3c&revision=1&view=work",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=45-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-plan-work-mobile",
+      "node_id": "141:2",
+      "title": "Планирование ТО",
+      "group": "03 · Планирование ТО",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan&draft=4f6718cb-301c-48c3-a5fa-be089574fc3c&revision=1&view=work",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=141-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-planning-desktop",
+      "node_id": "21:2",
+      "title": "Планирование ТО",
+      "group": "03 · Планирование ТО",
+      "route": "/planning",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=21-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-planning-mobile",
+      "node_id": "62:2",
+      "title": "Планирование ТО",
+      "group": "03 · Планирование ТО",
+      "route": "/planning",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=62-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-requirements-desktop",
+      "node_id": "49:2",
+      "title": "Планирование ТО",
+      "group": "03 · Планирование ТО",
+      "route": "/planning?mode=requirements",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=49-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-calendar-desktop",
+      "node_id": "17:2",
+      "title": "График ТО и ППР",
+      "group": "04 · График ТО и ППР",
+      "route": "/calendar?year=2026&month=11",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=17-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-calendar-list-desktop",
+      "node_id": "119:2",
+      "title": "График ТО и ППР · Список",
+      "group": "04 · График ТО и ППР",
+      "route": "/calendar?year=2026&month=11",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=119-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-calendar-matrix-desktop",
+      "node_id": "103:2",
+      "title": "График ТО и ППР · Матрица обязательств",
+      "group": "04 · График ТО и ППР",
+      "route": "/calendar",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=103-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-calendar-mobile",
+      "node_id": "41:2",
+      "title": "График ТО и ППР",
+      "group": "04 · График ТО и ППР",
+      "route": "/calendar",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=41-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-calendar-occurrence-desktop",
+      "node_id": "106:2",
+      "title": "График ТО и ППР · Карточка работы календаря",
+      "group": "04 · График ТО и ППР",
+      "route": "/calendar",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=106-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-calendar-week-desktop",
+      "node_id": "110:2",
+      "title": "График ТО и ППР · Неделя",
+      "group": "04 · График ТО и ППР",
+      "route": "/calendar?year=2026&month=11",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=110-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-calendar-workload-desktop",
+      "node_id": "104:2",
+      "title": "График ТО и ППР · Нагрузка и персонал",
+      "group": "04 · График ТО и ППР",
+      "route": "/calendar",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=104-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-assignment-ready-desktop",
+      "node_id": "124:2",
+      "title": "Контроль параметров показаний приборов (давление, температура) · Подбор бригады",
+      "group": "05 · Наряды и выполнение",
+      "route": "/tasks/adf721ed-066d-50cc-b69d-5b7db3ad47bc",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=124-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-cancel-task-desktop",
+      "node_id": "128:2",
+      "title": "Контроль параметров показаний приборов (давление, температура) · Отмена наряда",
+      "group": "05 · Наряды и выполнение",
+      "route": "/tasks/adf721ed-066d-50cc-b69d-5b7db3ad47bc",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=128-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-task-detail-desktop",
+      "node_id": "28:2",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний",
+      "group": "05 · Наряды и выполнение",
+      "route": "/tasks/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=28-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-task-detail-mobile",
+      "node_id": "69:2",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний",
+      "group": "05 · Наряды и выполнение",
+      "route": "/tasks/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=69-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-tasks-desktop",
+      "node_id": "18:2",
+      "title": "Наряды и назначения",
+      "group": "05 · Наряды и выполнение",
+      "route": "/tasks",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=18-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-tasks-mobile",
+      "node_id": "42:2",
+      "title": "Наряды и назначения",
+      "group": "05 · Наряды и выполнение",
+      "route": "/tasks",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=42-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "executor-assigned-task-correct-mobile",
+      "node_id": "120:2",
+      "title": "Чистка всех узлов и агрегатов системы",
+      "group": "05 · Наряды и выполнение",
+      "route": "/executor/tasks/f92546ea-80c5-511c-b543-0602b95b1a0a",
+      "role": "executor",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=120-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "executor-in-progress-desktop",
+      "node_id": "50:2",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний",
+      "group": "05 · Наряды и выполнение",
+      "route": "/executor/tasks/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "role": "executor",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=50-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "executor-in-progress-mobile",
+      "node_id": "71:2",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний",
+      "group": "05 · Наряды и выполнение",
+      "route": "/executor/tasks/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "role": "executor",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=71-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "executor-photo-viewer-correct-mobile",
+      "node_id": "109:2",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний · Просмотр фотографии",
+      "group": "05 · Наряды и выполнение",
+      "route": "/executor/tasks/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "role": "executor",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=109-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "executor-photos-mobile",
+      "node_id": "100:2",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний · Фотографии отчёта",
+      "group": "05 · Наряды и выполнение",
+      "route": "/executor/tasks/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "role": "executor",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=100-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "executor-review-mobile",
+      "node_id": "101:2",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний · Проверка отчёта перед сдачей",
+      "group": "05 · Наряды и выполнение",
+      "route": "/executor/tasks/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "role": "executor",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=101-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "executor-task-desktop",
+      "node_id": "30:2",
+      "title": "Ошибка доступа к чужому заданию",
+      "group": "05 · Наряды и выполнение",
+      "route": "/executor/tasks/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "role": "executor",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=30-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-quality-desktop",
+      "node_id": "19:2",
+      "title": "Контроль качества и приёмка",
+      "group": "06 · Приёмка работ",
+      "route": "/quality",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=19-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-quality-detail-desktop",
+      "node_id": "32:2",
+      "title": "Контроль параметров показаний приборов (давление, температура)",
+      "group": "06 · Приёмка работ",
+      "route": "/quality/2629e873-6c95-5678-8a4d-32e9e53924c0",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=32-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-quality-detail-mobile",
+      "node_id": "136:2",
+      "title": "Контроль параметров показаний приборов (давление, температура)",
+      "group": "06 · Приёмка работ",
+      "route": "/quality/2629e873-6c95-5678-8a4d-32e9e53924c0",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=136-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-quality-mobile",
+      "node_id": "70:2",
+      "title": "Контроль качества и приёмка",
+      "group": "06 · Приёмка работ",
+      "route": "/quality",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=70-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-review-accept-confirmation-desktop",
+      "node_id": "122:2",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний · Подтверждение приёмки",
+      "group": "06 · Приёмка работ",
+      "route": "/quality/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=122-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-review-pending-desktop",
+      "node_id": "114:2",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний · Отчёт на проверке",
+      "group": "06 · Приёмка работ",
+      "route": "/quality/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=114-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-review-pending-mobile",
+      "node_id": "116:2",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний · Отчёт на проверке",
+      "group": "06 · Приёмка работ",
+      "route": "/quality/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=116-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-review-queue-filled-desktop",
+      "node_id": "113:2",
+      "title": "Контроль качества и приёмка · Очередь с отчётом",
+      "group": "06 · Приёмка работ",
+      "route": "/quality",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=113-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-review-queue-filled-mobile",
+      "node_id": "115:2",
+      "title": "Контроль качества и приёмка · Очередь с отчётом",
+      "group": "06 · Приёмка работ",
+      "route": "/quality",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=115-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-review-reject-confirmation-mobile",
+      "node_id": "123:2",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний · Подтверждение возврата",
+      "group": "06 · Приёмка работ",
+      "route": "/quality/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=123-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-components-desktop",
+      "node_id": "57:2",
+      "title": "Работы + реестр оборудования · Детали и наработка",
+      "group": "07 · Оборудование и регламенты",
+      "route": "/equipment",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=57-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-components-mobile",
+      "node_id": "137:2",
+      "title": "Работы + реестр оборудования · Детали и наработка",
+      "group": "07 · Оборудование и регламенты",
+      "route": "/equipment",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=137-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-equipment-desktop",
+      "node_id": "16:2",
+      "title": "Работы + реестр оборудования",
+      "group": "07 · Оборудование и регламенты",
+      "route": "/equipment",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=16-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-equipment-detail-desktop",
+      "node_id": "27:2",
+      "title": "Насос циркуляционного контура",
+      "group": "07 · Оборудование и регламенты",
+      "route": "/equipment/fa5e6d78-83a7-5ddd-a8b3-8aeba304a449",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=27-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-equipment-detail-mobile",
+      "node_id": "68:2",
+      "title": "Насос циркуляционного контура",
+      "group": "07 · Оборудование и регламенты",
+      "route": "/equipment/fa5e6d78-83a7-5ddd-a8b3-8aeba304a449",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=68-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-equipment-mobile",
+      "node_id": "40:2",
+      "title": "Работы + реестр оборудования",
+      "group": "07 · Оборудование и регламенты",
+      "route": "/equipment",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=40-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-service-editor-desktop",
+      "node_id": "58:2",
+      "title": "Настройка обслуживания · Редактор обслуживания",
+      "group": "07 · Оборудование и регламенты",
+      "route": "/settings/equipment?equipment=fa5e6d78-83a7-5ddd-a8b3-8aeba304a449",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=58-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-service-editor-mobile",
+      "node_id": "138:2",
+      "title": "Настройка обслуживания · Редактор обслуживания",
+      "group": "07 · Оборудование и регламенты",
+      "route": "/settings/equipment?equipment=fa5e6d78-83a7-5ddd-a8b3-8aeba304a449",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=138-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-service-settings-desktop",
+      "node_id": "22:2",
+      "title": "Настройка обслуживания",
+      "group": "07 · Оборудование и регламенты",
+      "route": "/settings/equipment",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=22-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-service-settings-mobile",
+      "node_id": "63:2",
+      "title": "Настройка обслуживания",
+      "group": "07 · Оборудование и регламенты",
+      "route": "/settings/equipment",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=63-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-crews-desktop",
+      "node_id": "125:2",
+      "title": "Сотрудники и смены · Бригады",
+      "group": "08 · Команда и смены",
+      "route": "/settings/workforce",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=125-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-employee-settings-desktop",
+      "node_id": "129:2",
+      "title": "Сотрудники и смены · Настройки сотрудника",
+      "group": "08 · Команда и смены",
+      "route": "/settings/workforce",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=129-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-employee-settings-mobile",
+      "node_id": "130:2",
+      "title": "Сотрудники и смены · Настройки сотрудника",
+      "group": "08 · Команда и смены",
+      "route": "/settings/workforce",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=130-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-skills-desktop",
+      "node_id": "126:2",
+      "title": "Сотрудники и смены · Виды допусков",
+      "group": "08 · Команда и смены",
+      "route": "/settings/workforce",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=126-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-workforce-desktop",
+      "node_id": "23:2",
+      "title": "Сотрудники и смены",
+      "group": "08 · Команда и смены",
+      "route": "/settings/workforce",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=23-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-workforce-mobile",
+      "node_id": "64:2",
+      "title": "Сотрудники и смены",
+      "group": "08 · Команда и смены",
+      "route": "/settings/workforce",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=64-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "executor-shifts-desktop",
+      "node_id": "31:2",
+      "title": "Мои смены",
+      "group": "08 · Команда и смены",
+      "route": "/my-shifts",
+      "role": "executor",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=31-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "executor-shifts-mobile",
+      "node_id": "76:2",
+      "title": "Мои смены",
+      "group": "08 · Команда и смены",
+      "route": "/my-shifts",
+      "role": "executor",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=76-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-comparison-detail-desktop",
+      "node_id": "92:2",
+      "title": "Учебный узел очистки",
+      "group": "09 · Отчёты и прогнозы",
+      "route": "/comparisons/c1000000-0000-4000-8000-000000000001",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=92-2",
+      "fixture": "explicit UI response fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-comparison-detail-mobile",
+      "node_id": "93:2",
+      "title": "Учебный узел очистки",
+      "group": "09 · Отчёты и прогнозы",
+      "route": "/comparisons/c1000000-0000-4000-8000-000000000001",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=93-2",
+      "fixture": "explicit UI response fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-comparisons-desktop",
+      "node_id": "33:2",
+      "title": "Сравнение прогнозов",
+      "group": "09 · Отчёты и прогнозы",
+      "route": "/comparisons",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=33-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-reports-desktop",
+      "node_id": "24:2",
+      "title": "Отчёты",
+      "group": "09 · Отчёты и прогнозы",
+      "route": "/reports",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=24-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-reports-mobile",
+      "node_id": "65:2",
+      "title": "Отчёты",
+      "group": "09 · Отчёты и прогнозы",
+      "route": "/reports",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=65-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-assistant-desktop",
+      "node_id": "25:2",
+      "title": "ИИ-помощник",
+      "group": "10 · ИИ-помощник",
+      "route": "/assistant",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=25-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-assistant-mobile",
+      "node_id": "66:2",
+      "title": "ИИ-помощник",
+      "group": "10 · ИИ-помощник",
+      "route": "/assistant",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=66-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-chat-delete-dialog",
+      "node_id": "107:2",
+      "title": "ИИ-помощник · Удаление чата",
+      "group": "10 · ИИ-помощник",
+      "route": "/assistant?chat=0b653333-1111-4111-8111-111111111111",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=107-2",
+      "fixture": "explicit UI response fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-chat-example-correct-desktop",
+      "node_id": "111:2",
+      "title": "ИИ-помощник · пример переписки",
+      "group": "10 · ИИ-помощник",
+      "route": "/assistant?chat=0b653333-1111-4111-8111-111111111111",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=111-2",
+      "fixture": "explicit UI response fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-chat-example-correct-mobile",
+      "node_id": "112:2",
+      "title": "ИИ-помощник · пример переписки",
+      "group": "10 · ИИ-помощник",
+      "route": "/assistant?chat=0b653333-1111-4111-8111-111111111111",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=112-2",
+      "fixture": "explicit UI response fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-mobile-history",
+      "node_id": "134:2",
+      "title": "ИИ-помощник · История чатов",
+      "group": "10 · ИИ-помощник",
+      "route": "/assistant",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=134-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-mobile-model-picker",
+      "node_id": "135:2",
+      "title": "ИИ-помощник · Выбор модели",
+      "group": "10 · ИИ-помощник",
+      "route": "/assistant",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=135-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-model-picker-desktop",
+      "node_id": "52:2",
+      "title": "ИИ-помощник · Выбор модели · загрузка",
+      "group": "10 · ИИ-помощник",
+      "route": "/assistant",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=52-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-date-picker-desktop",
+      "node_id": "127:2",
+      "title": "Настройка обслуживания · Выбор даты",
+      "group": "11 · Профиль и общие элементы",
+      "route": "/settings/equipment",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=127-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-profile-desktop",
+      "node_id": "26:2",
+      "title": "Мой профиль",
+      "group": "11 · Профиль и общие элементы",
+      "route": "/profile",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=26-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-profile-email-desktop",
+      "node_id": "54:2",
+      "title": "Мой профиль · Изменение email",
+      "group": "11 · Профиль и общие элементы",
+      "route": "/profile",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=54-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-profile-mobile",
+      "node_id": "67:2",
+      "title": "Мой профиль",
+      "group": "11 · Профиль и общие элементы",
+      "route": "/profile",
+      "role": "chief_engineer",
+      "viewport": [
+        390,
+        844
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=67-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-profile-password-desktop",
+      "node_id": "55:2",
+      "title": "Мой профиль · Изменение пароля",
+      "group": "11 · Профиль и общие элементы",
+      "route": "/profile",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=55-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    },
+    {
+      "key": "chief-profile-settings-desktop",
+      "node_id": "56:2",
+      "title": "Мой профиль · Настройки нейросетей",
+      "group": "11 · Профиль и общие элементы",
+      "route": "/profile",
+      "role": "chief_engineer",
+      "viewport": [
+        1440,
+        900
+      ],
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=56-2",
+      "fixture": "isolated PostgreSQL synthetic presentation/catalog fixture",
+      "status": "imported"
+    }
+  ],
+  "figma_pages": {
+    "desktop": "0:1",
+    "mobile": "131:13"
+  },
+  "open_items": [
+    "Segoe UI availability in the Figma editing client; source family retained",
+    "Reusable component library and subsequent redesign are separate work"
+  ],
+  "verification": {
+    "capture_receipts": "103 completed",
+    "combined_structural_readback": "60 desktop / 43 mobile verified before final mobile replacement; no overlaps or ungrouped frames",
+    "final_mobile_replacement": "43 frame structural receipt passed; 11 superseded frames removed",
+    "final_visual_recheck": "NOT_RUN: Figma Starter MCP tool call quota",
+    "source_fonts": "Segoe UI retained; availability in editing client remains open"
+  }
+}

@@ -16,12 +16,14 @@ import { clearAiKey } from "@/shared/lib/aiCredentials";
 const STORAGE_KEY = "fixrate.demo.role";
 const SESSION_EVENT_KEY = "fixrate.session.changed.v1";
 
-function notifyOtherTabs() {
+export function notifyOtherTabs() {
   try { window.localStorage.setItem(SESSION_EVENT_KEY, `${Date.now()}:${Math.random()}`); } catch { /* The next focus check still synchronizes the session. */ }
 }
 
 function sameSession(a: SessionProfile | null, b: SessionProfile | null) {
-  return a?.userId === b?.userId && a?.role === b?.role && a?.siteId === b?.siteId;
+  return a?.userId === b?.userId && a?.role === b?.role && a?.siteId === b?.siteId
+    && a?.permissionProfile === b?.permissionProfile
+    && a?.workbookEditorOrigin === b?.workbookEditorOrigin;
 }
 
 const DEMO_PROFILES: Record<Role, SessionProfile> = {
@@ -68,7 +70,8 @@ interface SessionContextValue {
   switchRole: (role: Role) => void;
   loading: boolean;
   updateEmail: (email: string, currentPassword: string) => Promise<void>;
-  signIn: (email: string, password: string, siteId?: string) => Promise<SessionProfile>;
+  signIn: (email: string, password: string) => Promise<SessionProfile>;
+  switchSite: (siteId: string) => Promise<void>;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -149,14 +152,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return {
       profile: DEMO_MODE ? (role ? DEMO_PROFILES[role] : null) : profile,
       loading, login, logout, switchRole: login,
+      switchSite: async (siteId: string) => {
+        if (DEMO_MODE) throw new Error('Переключение зданий доступно при подключении к серверу');
+        await request('/api/v1/auth/site', {method: 'POST', body: JSON.stringify({site_id: siteId})});
+        clearAiKey(); authVersion.current++; invalidateApiQueries(); notifyOtherTabs();
+        window.location.replace('/equipment');
+      },
       updateEmail: async (email: string, currentPassword: string) => {
         if (DEMO_MODE) throw new Error("Изменение профиля недоступно в этом режиме");
         const updated = await request<SessionProfile>("/api/v1/maintenance/users/me/email", {method: "PATCH", body: JSON.stringify({email, current_password: currentPassword})});
         profileRef.current = updated; setProfile(updated); notifyOtherTabs();
       },
-      signIn: async (email, password, siteId) => {
+      signIn: async (email, password) => {
         const result = await request<{profile: SessionProfile}>("/api/v1/auth/login", {
-          method: "POST", body: JSON.stringify({email, password, ...(siteId ? {site_id: siteId} : {})}),
+          method: "POST", body: JSON.stringify({email, password}),
         });
         clearAiKey(); authVersion.current++; profileRef.current = result.profile; setProfile(result.profile); notifyOtherTabs();
         return result.profile;

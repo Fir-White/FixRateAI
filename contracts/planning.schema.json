@@ -1,0 +1,615 @@
+{
+  "$defs": {
+    "Availability": {
+      "additionalProperties": false,
+      "properties": {
+        "start_at": {
+          "format": "date-time",
+          "title": "Start At",
+          "type": "string"
+        },
+        "end_at": {
+          "format": "date-time",
+          "title": "End At",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "available",
+            "unavailable"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start_at",
+        "end_at",
+        "status"
+      ],
+      "title": "Availability",
+      "type": "object"
+    },
+    "Booking": {
+      "additionalProperties": false,
+      "properties": {
+        "start_at": {
+          "format": "date-time",
+          "title": "Start At",
+          "type": "string"
+        },
+        "end_at": {
+          "format": "date-time",
+          "title": "End At",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        },
+        "blocks_time": {
+          "default": true,
+          "title": "Blocks Time",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "start_at",
+        "end_at",
+        "task_id"
+      ],
+      "title": "Booking",
+      "type": "object"
+    },
+    "DailyWorkload": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "format": "date",
+          "title": "Date",
+          "type": "string"
+        },
+        "occurrences": {
+          "items": {
+            "$ref": "#/$defs/WorkloadDemand"
+          },
+          "title": "Occurrences",
+          "type": "array"
+        },
+        "total_person_hours": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Total Person Hours"
+        },
+        "known_person_hours": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Known Person Hours"
+        },
+        "unassigned_person_hours": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unassigned Person Hours"
+        },
+        "required_workers_lower_bound": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Required Workers Lower Bound"
+        },
+        "free_workers": {
+          "title": "Free Workers",
+          "type": "integer"
+        },
+        "assigned_workers": {
+          "title": "Assigned Workers",
+          "type": "integer"
+        },
+        "free_person_hours": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Free Person Hours"
+        },
+        "known_free_person_hours": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Known Free Person Hours"
+        },
+        "deficit_person_hours": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Deficit Person Hours"
+        },
+        "unknown_norms": {
+          "title": "Unknown Norms",
+          "type": "integer"
+        },
+        "unknown_workers": {
+          "title": "Unknown Workers",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "hours_deficit",
+            "hours_sufficient",
+            "incomplete",
+            "no_work"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "date",
+        "occurrences",
+        "total_person_hours",
+        "known_person_hours",
+        "unassigned_person_hours",
+        "required_workers_lower_bound",
+        "free_workers",
+        "assigned_workers",
+        "free_person_hours",
+        "known_free_person_hours",
+        "deficit_person_hours",
+        "unknown_norms",
+        "unknown_workers",
+        "status"
+      ],
+      "title": "DailyWorkload",
+      "type": "object"
+    },
+    "Qualification": {
+      "additionalProperties": false,
+      "properties": {
+        "skill_id": {
+          "format": "uuid",
+          "title": "Skill Id",
+          "type": "string"
+        },
+        "verified_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Verified At"
+        },
+        "valid_until": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Valid Until"
+        },
+        "validity_required": {
+          "title": "Validity Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "skill_id",
+        "verified_at",
+        "valid_until",
+        "validity_required"
+      ],
+      "title": "Qualification",
+      "type": "object"
+    },
+    "Worker": {
+      "additionalProperties": false,
+      "properties": {
+        "worker_id": {
+          "format": "uuid",
+          "title": "Worker Id",
+          "type": "string"
+        },
+        "site_id": {
+          "format": "uuid",
+          "title": "Site Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "active": {
+          "title": "Active",
+          "type": "boolean"
+        },
+        "membership_active": {
+          "title": "Membership Active",
+          "type": "boolean"
+        },
+        "can_execute": {
+          "title": "Can Execute",
+          "type": "boolean"
+        },
+        "booking_data_complete": {
+          "default": true,
+          "title": "Booking Data Complete",
+          "type": "boolean"
+        },
+        "workload_data_complete": {
+          "default": true,
+          "title": "Workload Data Complete",
+          "type": "boolean"
+        },
+        "availability_data_complete": {
+          "default": true,
+          "title": "Availability Data Complete",
+          "type": "boolean"
+        },
+        "qualifications": {
+          "items": {
+            "$ref": "#/$defs/Qualification"
+          },
+          "title": "Qualifications",
+          "type": "array"
+        },
+        "availability": {
+          "items": {
+            "$ref": "#/$defs/Availability"
+          },
+          "title": "Availability",
+          "type": "array"
+        },
+        "bookings": {
+          "items": {
+            "$ref": "#/$defs/Booking"
+          },
+          "title": "Bookings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "worker_id",
+        "site_id",
+        "name",
+        "active",
+        "membership_active",
+        "can_execute"
+      ],
+      "title": "Worker",
+      "type": "object"
+    },
+    "WorkloadDemand": {
+      "additionalProperties": false,
+      "properties": {
+        "occurrence_id": {
+          "format": "uuid",
+          "title": "Occurrence Id",
+          "type": "string"
+        },
+        "date": {
+          "format": "date",
+          "title": "Date",
+          "type": "string"
+        },
+        "equipment_name": {
+          "minLength": 1,
+          "title": "Equipment Name",
+          "type": "string"
+        },
+        "operation_title": {
+          "minLength": 1,
+          "title": "Operation Title",
+          "type": "string"
+        },
+        "data_origin": {
+          "enum": [
+            "customer",
+            "synthetic_demo"
+          ],
+          "title": "Data Origin",
+          "type": "string"
+        },
+        "person_hours": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Person Hours"
+        },
+        "crew_size": {
+          "minimum": 1,
+          "title": "Crew Size",
+          "type": "integer"
+        },
+        "state": {
+          "default": "unassigned",
+          "enum": [
+            "unassigned",
+            "assigned",
+            "reported",
+            "incomplete"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "assigned_worker_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Assigned Worker Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "occurrence_id",
+        "date",
+        "equipment_name",
+        "operation_title",
+        "data_origin",
+        "person_hours",
+        "crew_size"
+      ],
+      "title": "WorkloadDemand",
+      "type": "object"
+    },
+    "WorkloadRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "site_id": {
+          "format": "uuid",
+          "title": "Site Id",
+          "type": "string"
+        },
+        "timezone": {
+          "minLength": 1,
+          "title": "Timezone",
+          "type": "string"
+        },
+        "year": {
+          "maximum": 2100,
+          "minimum": 2000,
+          "title": "Year",
+          "type": "integer"
+        },
+        "month": {
+          "maximum": 12,
+          "minimum": 1,
+          "title": "Month",
+          "type": "integer"
+        },
+        "as_of": {
+          "format": "date-time",
+          "title": "As Of",
+          "type": "string"
+        },
+        "capacity_hours_per_24h": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "maximum": 24.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Capacity Hours Per 24H"
+        },
+        "demands": {
+          "items": {
+            "$ref": "#/$defs/WorkloadDemand"
+          },
+          "title": "Demands",
+          "type": "array"
+        },
+        "workers": {
+          "items": {
+            "$ref": "#/$defs/Worker"
+          },
+          "title": "Workers",
+          "type": "array"
+        },
+        "source_incomplete": {
+          "default": false,
+          "title": "Source Incomplete",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "site_id",
+        "timezone",
+        "year",
+        "month",
+        "as_of",
+        "capacity_hours_per_24h",
+        "demands",
+        "workers"
+      ],
+      "title": "WorkloadRequest",
+      "type": "object"
+    },
+    "WorkloadResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "method_version": {
+          "default": "workload-lower-bound-v1",
+          "title": "Method Version",
+          "type": "string"
+        },
+        "site_id": {
+          "format": "uuid",
+          "title": "Site Id",
+          "type": "string"
+        },
+        "year": {
+          "title": "Year",
+          "type": "integer"
+        },
+        "month": {
+          "title": "Month",
+          "type": "integer"
+        },
+        "timezone": {
+          "minLength": 1,
+          "title": "Timezone",
+          "type": "string"
+        },
+        "calculated_at": {
+          "format": "date-time",
+          "title": "Calculated At",
+          "type": "string"
+        },
+        "capacity_hours_per_24h": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "maximum": 24.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Capacity Hours Per 24H"
+        },
+        "policy_status": {
+          "const": "provisional",
+          "default": "provisional",
+          "title": "Policy Status",
+          "type": "string"
+        },
+        "snapshot_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Snapshot Sha256",
+          "type": "string"
+        },
+        "source_incomplete": {
+          "title": "Source Incomplete",
+          "type": "boolean"
+        },
+        "total_occurrences": {
+          "title": "Total Occurrences",
+          "type": "integer"
+        },
+        "unassigned_occurrences": {
+          "title": "Unassigned Occurrences",
+          "type": "integer"
+        },
+        "deficit_days": {
+          "title": "Deficit Days",
+          "type": "integer"
+        },
+        "incomplete_days": {
+          "title": "Incomplete Days",
+          "type": "integer"
+        },
+        "diagnostics": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Diagnostics",
+          "type": "array"
+        },
+        "days": {
+          "items": {
+            "$ref": "#/$defs/DailyWorkload"
+          },
+          "title": "Days",
+          "type": "array"
+        }
+      },
+      "required": [
+        "site_id",
+        "year",
+        "month",
+        "timezone",
+        "calculated_at",
+        "capacity_hours_per_24h",
+        "snapshot_sha256",
+        "source_incomplete",
+        "total_occurrences",
+        "unassigned_occurrences",
+        "deficit_days",
+        "incomplete_days",
+        "diagnostics",
+        "days"
+      ],
+      "title": "WorkloadResponse",
+      "type": "object"
+    }
+  }
+}

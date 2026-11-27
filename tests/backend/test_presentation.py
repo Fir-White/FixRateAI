@@ -56,11 +56,13 @@ def test_presentation_report_runs_actual_workflow_with_explicit_ml_contract_stub
         assert len(calls)==1
         bundle=executor.get(PREFIX+f'/ui/tasks/{task}').json()
         assert bundle['photoAnalysisStatus']=='ready' and bundle['task']['state']=='submitted'
-    with closing(sign_in(app,'engineer@fixrate.local')) as engineer:
+    with closing(sign_in(app,'engineer@fixrate.local')) as engineer, closing(sign_in(app,'chief@fixrate.local')) as chief:
         act=bundle['execution']['acts'][0]
-        denied=engineer.post(PREFIX+f'/tasks/{task}/review',json=dict(expected_revision=bundle['task']['revision'],execution_id=bundle['execution']['id'],verdict='accepted',reason='TEST protocol not yet checked'))
+        decision=dict(expected_revision=bundle['task']['revision'],execution_id=bundle['execution']['id'],verdict='accepted',reason='TEST protocol not yet checked')
+        assert engineer.post(PREFIX+f'/tasks/{task}/review',json=decision).status_code==403
+        denied=chief.post(PREFIX+f'/tasks/{task}/review',json=decision)
         assert denied.status_code==422
         verified=engineer.post(PREFIX+f'/tasks/{task}/acts/{act["id"]}/verify',json=dict(expected_revision=bundle['task']['revision'],reason='TEST verified fictional protocol'))
         assert verified.status_code==200,verified.text
-        accepted=engineer.post(PREFIX+f'/tasks/{task}/review',json=dict(expected_revision=verified.json()['task']['revision'],execution_id=bundle['execution']['id'],verdict='accepted',reason='TEST explicit human acceptance'))
+        accepted=chief.post(PREFIX+f'/tasks/{task}/review',json=dict(expected_revision=verified.json()['task']['revision'],execution_id=bundle['execution']['id'],verdict='accepted',reason='TEST explicit human acceptance'))
         assert accepted.status_code==200 and accepted.json()['task']['state']=='accepted',accepted.text

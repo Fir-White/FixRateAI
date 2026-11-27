@@ -2,6 +2,7 @@
 .fr-content-v2 .fr-shift-header { display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:24px; }
 .fr-content-v2 .fr-shift-header h2,.fr-content-v2 .fr-shift-header h3 { font-size:22px;line-height:1.4;font-weight:600; }
 .fr-content-v2 .fr-shift-timezone { display:inline-flex;align-items:center;gap:7px;color:var(--fr2-muted);font-size:12px; }
+.fr-content-v2 .fr-shift-period-controls { display:flex;flex:none;align-items:center;gap:6px; }
 .fr-content-v2 .fr-shift-toolbar { padding:0 24px 24px;display:grid;gap:20px;border-bottom:1px solid var(--fr2-line); }
 .fr-content-v2 .fr-shift-range-toggle { justify-self:start; }
 .fr-content-v2 .fr-shift-presets { display:flex;flex-wrap:wrap;align-items:center;gap:6px; }
@@ -47,6 +48,8 @@
 @container shift-calendar (max-width:660px) {
   .fr-content-v2 .fr-shift-header,.fr-content-v2 .fr-shift-row { padding:20px 16px; }
   .fr-content-v2 .fr-shift-toolbar { padding:0 16px 20px; }
+  .fr-content-v2 .fr-shift-presets { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch; }
+  .fr-content-v2 .fr-shift-presets .motion-button { min-width:0;padding-inline:5px;text-align:center; }
   .fr-content-v2 .fr-shift-range { grid-template-columns:minmax(0,1fr); }
   .fr-content-v2 .fr-shift-metrics { padding:16px;gap:10px 24px; }
   .fr-content-v2 .fr-shift-metrics > div { flex:1 1 100%;justify-content:space-between; }

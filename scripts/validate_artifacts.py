@@ -23,6 +23,16 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "backend"), str(ROOT)]
 
 from app.schemas.maintenance import CONTRACTS
+from app.schemas.planning import WorkloadRequest, WorkloadResponse
+from app.schemas.registry import REGISTRY_INPUTS
+from app.schemas.catalog import CATALOG_CONTRACTS
+from app.schemas.draft_plans import DRAFT_CONTRACTS
+from app.schemas.optimization import OPTIMIZATION_CONTRACTS
+from app.schemas.publication import PUBLICATION_CONTRACTS
+from app.schemas.requirements import REQUIREMENTS_CONTRACTS
+from app.schemas.portfolio import PORTFOLIO_CONTRACTS
+from app.schemas.plan_load import PLAN_LOAD_CONTRACTS
+from app.schemas.assistant import ASSISTANT_CONTRACTS
 
 DOCS = ROOT / "docs"
 DIAGRAMS = DOCS / "assets/architecture"
@@ -215,6 +225,66 @@ def main():
     if args.write_schema:
         schema_path.write_text(json.dumps(schema, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
     require(json.loads(schema_path.read_text(encoding="utf-8")) == schema, "schema export differs; use --write-schema")
+    _, planning_schema = models_json_schema([(WorkloadRequest, 'validation'), (WorkloadResponse, 'validation')])
+    planning_path = ROOT / 'contracts/planning.schema.json'
+    if args.write_schema:
+        planning_path.write_text(json.dumps(planning_schema, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    require(json.loads(planning_path.read_text(encoding='utf-8')) == planning_schema,
+            'planning schema export differs; use --write-schema')
+    _, registry_schema = models_json_schema([(model, 'validation') for model in REGISTRY_INPUTS])
+    registry_path = ROOT / 'contracts/registry.schema.json'
+    if args.write_schema:
+        registry_path.write_text(json.dumps(registry_schema, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    require(json.loads(registry_path.read_text(encoding='utf-8')) == registry_schema,
+            'registry input schema export differs; use --write-schema')
+    _, catalog_schema = models_json_schema([(model, 'validation') for model in CATALOG_CONTRACTS])
+    catalog_path = ROOT / 'contracts/catalog.schema.json'
+    if args.write_schema:
+        catalog_path.write_text(json.dumps(catalog_schema, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    require(json.loads(catalog_path.read_text(encoding='utf-8')) == catalog_schema,
+            'catalog draft schema export differs; use --write-schema')
+    _, draft_schema = models_json_schema([(model, 'validation') for model in DRAFT_CONTRACTS])
+    draft_path = ROOT / 'contracts/draft-plans.schema.json'
+    if args.write_schema:
+        draft_path.write_text(json.dumps(draft_schema, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    require(json.loads(draft_path.read_text(encoding='utf-8')) == draft_schema,
+            'draft plan schema export differs; use --write-schema')
+    _, optimization_schema = models_json_schema([(model, 'validation') for model in OPTIMIZATION_CONTRACTS])
+    optimization_path = ROOT / 'contracts/optimization.schema.json'
+    if args.write_schema:
+        optimization_path.write_text(json.dumps(optimization_schema, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    require(json.loads(optimization_path.read_text(encoding='utf-8')) == optimization_schema,
+            'optimization schema export differs; use --write-schema')
+    _, publication_schema = models_json_schema([(model, 'validation') for model in PUBLICATION_CONTRACTS])
+    publication_path = ROOT / 'contracts/publication.schema.json'
+    if args.write_schema:
+        publication_path.write_text(json.dumps(publication_schema, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    require(json.loads(publication_path.read_text(encoding='utf-8')) == publication_schema,
+            'publication schema export differs; use --write-schema')
+    _, requirements_schema = models_json_schema([(model, 'validation') for model in REQUIREMENTS_CONTRACTS])
+    requirements_path = ROOT / 'contracts/requirements.schema.json'
+    if args.write_schema:
+        requirements_path.write_text(json.dumps(requirements_schema, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    require(json.loads(requirements_path.read_text(encoding='utf-8')) == requirements_schema,
+            'requirements schema export differs; use --write-schema')
+    _, portfolio_schema = models_json_schema([(model, 'validation') for model in PORTFOLIO_CONTRACTS])
+    portfolio_path = ROOT / 'contracts/portfolio.schema.json'
+    if args.write_schema:
+        portfolio_path.write_text(json.dumps(portfolio_schema, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    require(json.loads(portfolio_path.read_text(encoding='utf-8')) == portfolio_schema,
+            'portfolio schema export differs; use --write-schema')
+    _, load_schema = models_json_schema([(model, 'validation') for model in PLAN_LOAD_CONTRACTS])
+    load_path = ROOT / 'contracts/plan-load.schema.json'
+    if args.write_schema:
+        load_path.write_text(json.dumps(load_schema, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    require(json.loads(load_path.read_text(encoding='utf-8')) == load_schema,
+            'plan load schema export differs; use --write-schema')
+    _, assistant_schema = models_json_schema([(model, 'validation') for model in ASSISTANT_CONTRACTS])
+    assistant_path = ROOT / 'contracts/assistant.schema.json'
+    if args.write_schema:
+        assistant_path.write_text(json.dumps(assistant_schema, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    require(json.loads(assistant_path.read_text(encoding='utf-8')) == assistant_schema,
+            'assistant schema export differs; use --write-schema')
     examples = json.loads((ROOT/"contracts/examples/maintenance.json").read_text(encoding="utf-8"))["examples"]
     parsed = validate_models(examples)
     comparisons = check_relations(parsed, examples)

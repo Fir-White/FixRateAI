@@ -4,6 +4,7 @@ from app.security.sessions import has_role
 
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from decimal import Decimal
 import hashlib
 import logging
 import os
@@ -13,12 +14,13 @@ import secrets
 from typing import Literal
 from uuid import UUID, uuid4
 
-from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Query, Request, Response, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.datastructures import Headers
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -34,6 +36,7 @@ from app.integration.assignments import save_assignment, lock_workers
 from app.integration.maintenance_jobs import _job_payload, create_job, job_history
 from app.maintenance_jobs import InvalidJobTransition, ensure_transition, public_status
 from app.schemas.maintenance import AssignmentCommand, ErrorResponse
+from app.schemas.assistant import ReportAttachAndSubmit
 from app.schemas.maintenance_api import (
     MaintenanceJobCreate,
     MaintenanceJobHistoryItem,
@@ -41,9 +44,10 @@ from app.schemas.maintenance_api import (
     MaintenanceJobTransition,
 )
 from app.schemas.management import CancelTask
+from app.schemas.planning import WorkloadResponse
 from app.integration.analyst import ReadingInput, ExecutionInput, validate_execution, validate_acceptance, notify_event
 from app.security.authorization import AuthorizationError, require_any_role
-from app.security.sessions import COOKIE, Principal, SQL_ROLES, authenticate, create_session, digest, verify_password
+from app.security.sessions import COOKIE, Principal, SQL_ROLES, authenticate, create_session, digest, role_is_enabled, verify_password
 from app.storage import safe_storage_path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -80,6 +84,32 @@ class ReportEdit(Revision):
     actual: ExecutionInput | None = None
 
 
+class ConsumptionEdit(Revision):
+    execution_id: UUID
+    material_name: str = Field(min_length=1, max_length=256)
+    quantity: Decimal = Field(gt=0, max_digits=18, decimal_places=3)
+    unit: str = Field(min_length=1, max_length=64)
+    idempotency_key: UUID
+    equipment_id: UUID | None = None
+
+
+class ConsumptionCorrection(Revision):
+    material_name: str = Field(min_length=1, max_length=256)
+    quantity: Decimal = Field(gt=0, max_digits=18, decimal_places=3)
+    unit: str = Field(min_length=1, max_length=64)
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class DemandRecord(BaseModel):
+    material_id: str
+    quantity: float
+    unit: str
+    month: int
+    work_id: str
+    equipment_id: str | None = None
+    basis: str | None = None
+
+
 class AssignmentPreview(Revision):
     start_local: datetime
     end_local: datetime
@@ -114,9 +144,9 @@ class Review(Revision):
     late_reason: str | None = Field(default=None,max_length=2000)
 
 
-def require_role(principal: Principal, *roles):
+def require_role(principal: Principal, *roles, permission=None):
     try:
-        if not has_role(principal.role, roles):
+        if not has_role(principal.role, roles, permission=permission):
             raise AuthorizationError()
     except AuthorizationError:
         raise HTTPException(403, "Действие недоступно для текущей роли") from None
@@ -127,7 +157,44 @@ def check_revision(order, revision):
         raise HTTPException(409, "REVISION_CONFLICT: обновите данные")
 
 
-def create_app(engine=None):
+class FrontendAssets(StaticFiles):
+    """Keep versioned build assets in the browser across workspace visits."""
+
+    def __init__(self, dist: Path):
+        super().__init__(directory=dist / "assets")
+        compressed = dist / "compressed"
+        self.compressed = StaticFiles(directory=compressed) if compressed.is_dir() else None
+
+    async def get_response(self, path, scope):
+        versioned = re.fullmatch(r"[^/\\]+-[A-Za-z0-9_-]{8}\.(js|css|woff2|ttf|svg|png|ico|webp)", path)
+        extension = versioned[1] if versioned else ""
+        can_compress = self.compressed is not None and extension in ("js", "css")
+        headers = Headers(scope=scope) if can_compress else None
+        response = None
+        accepts_gzip = headers is not None and "range" not in headers and any(
+            match and (match[1] is None or float(match[1]) > 0)
+            for value in headers.getlist("accept-encoding") for item in value.split(",")
+            if (match := re.fullmatch(r"gzip(?:\s*;\s*q\s*=\s*(1(?:\.0{0,3})?|0(?:\.[0-9]{0,3})?))?", item.strip(), re.I))
+        )
+        if accepts_gzip:
+            try:
+                response = await self.compressed.get_response(path + ".gz", scope)
+            except StarletteHTTPException as error:
+                if error.status_code != 404:
+                    raise
+            if response is not None and response.status_code == 200:
+                response.headers["Content-Type"] = f"text/{'javascript' if extension == 'js' else 'css'}; charset=utf-8"
+                response.headers["Content-Encoding"] = "gzip"
+        if response is None:
+            response = await super().get_response(path, scope)
+        if response.status_code in (200, 206, 304) and versioned:
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            if can_compress:
+                response.headers.add_vary_header("Accept-Encoding")
+        return response
+
+
+def create_app(engine=None, *, frontend_dist: Path | None = None):
     runtime_settings = RuntimeSettings.from_environment()
     @asynccontextmanager
     async def lifespan(app):
@@ -138,6 +205,11 @@ def create_app(engine=None):
                 if not conn.scalar(text("SELECT to_regclass('public.maintenance_notifications')")):
                     raise RuntimeError("Apply migrations through 009 before starting the API")
             app.state.factory = make_session_factory(app.state.engine)
+            app.state.optimizer = None
+            if engine is None and os.environ.get('OPTIMIZATION_WORKER','true').lower()=='true':
+                from app.optimization_worker import OptimizationManager
+                app.state.optimizer=OptimizationManager(app.state.engine)
+                app.state.optimizer.start()
             app.state.forecaster = None
             if runtime_settings.forecast_provider == "rf":
                 try:
@@ -145,12 +217,25 @@ def create_app(engine=None):
                     app.state.forecaster = load_verified_forecaster()
                 except Exception as exc:
                     logger.error("RF artifact unavailable: %s", type(exc).__name__)
+            try:
+                from ml_service.app.rag import get_rag_service
+                with app.state.factory() as rag_init_session:
+                    get_rag_service(session=rag_init_session)
+            except Exception as rag_init_exc:
+                logger.warning("RAG dynamic index auto-rebuild skipped or failed at startup: %s", rag_init_exc)
             import asyncio
+            from app.assistant.graph_actions import build_graph as build_action_graph
+            from app.assistant.graph_agent import build_graph as build_turn_graph
+            from app.assistant.graph_persistence import open_saver
             from app.integration.scheduler import run as run_scheduler
             scheduler=asyncio.create_task(run_scheduler(app)) if os.environ.get("MAINTENANCE_SCHEDULER","true").lower()=="true" and engine is None else None
             try:
-                yield
+                with open_saver(app.state.engine) as saver:
+                    app.state.assistant_turn_graph = build_turn_graph(saver)
+                    app.state.assistant_action_graph = build_action_graph(saver)
+                    yield
             finally:
+                if app.state.optimizer: app.state.optimizer.stop()
                 if scheduler:
                     scheduler.cancel()
                     try: await scheduler
@@ -187,6 +272,8 @@ def create_app(engine=None):
                 logger.error("Request failed id=%s type=%s", request.state.request_id, type(exc).__name__)
                 response = error_response(request, 500, "Внутренняя ошибка сервера", code="INTERNAL_ERROR")
         response.headers['X-Request-ID']=request.state.request_id
+        if request.url.path.startswith('/api/v1/assistant/'):
+            response.headers['Cache-Control']='private, no-store'
         logger.info("%s %s -> %s request_id=%s", request.method, request.url.path,
                     response.status_code, request.state.request_id)
         return response
@@ -227,17 +314,31 @@ def create_app(engine=None):
 
     def principal(request: Request, session=Depends(db)):
         who=authenticate(request, session)
+        from app.assistant.tools import EXPECTED_PRINCIPAL
+        expected=EXPECTED_PRINCIPAL.get()
+        if expected and expected!=(who.user_id,who.site_id,who.role):
+            raise HTTPException(403,'Контекст доступа изменился во время действия ИИ')
         request.state.principal=who
         return who
 
     def views(request: Request, who=Depends(principal), session=Depends(db)):
         return Views(session, request.app.state.models, who)
 
-    def audit(view, order, action):
+    @app.get("/api/v1/demand/monthly", summary="Monthly material demand", response_model=list[DemandRecord])
+    def read_monthly_demand(who=Depends(principal)):
+        require_role(who, "director", "chief_engineer", "engineer", "dispatcher", "admin")
+        raise HTTPException(404, "Нет подтверждённых плановых данных о месячной потребности в материалах")
+
+    def audit(view, order, action, details=None):
         view.repo.add("audit_events", site_id=view.principal.site_id, actor_type="user",
                       actor_user_id=view.principal.user_id, entity_type="work_orders",
                       entity_id=order.work_order_id, action=action,
-                      after_snapshot={"status": order.status, "revision": order.revision})
+                      after_snapshot={
+                           "status": order.status,
+                           "revision": order.revision,
+                           **(details or {}),
+                           "actor_role": view.principal.role,
+                       })
 
     @app.exception_handler(IntegrityError)
     async def integrity_error(request, exc):
@@ -260,6 +361,17 @@ def create_app(engine=None):
         session.execute(text("SELECT 1"))
         return {"status": "ok", "database": "ready"}
 
+    @app.post("/api/v1/auth/sites")
+    def login_sites(payload: Login, response: Response, session=Depends(db)):
+        user = session.execute(text('SELECT user_id,password_hash FROM users WHERE lower(email)=lower(:email) AND is_active'),dict(email=payload.email)).mappings().first()
+        if not user or not verify_password(payload.password,user['password_hash']):
+            raise HTTPException(401, 'Неверный email или пароль')
+        response.headers['Cache-Control']='private, no-store'
+        rows=session.execute(text('''SELECT s.site_id,s.name,m.role FROM sites s JOIN site_memberships m USING(site_id)
+            WHERE m.user_id=:user AND m.is_active AND s.is_active ORDER BY s.name,s.site_id'''),dict(user=user['user_id'])).mappings().all()
+        return [dict(site_id=row['site_id'], name=row['name']) for row in rows
+                if row['role'] in SQL_ROLES and role_is_enabled(SQL_ROLES[row['role']])]
+
     @app.post("/api/v1/auth/login")
     def login(payload: Login, response: Response, request: Request, session=Depends(db)):
         # Login is also same-origin; the session is not chosen by a role header.
@@ -272,14 +384,18 @@ def create_app(engine=None):
         if not user or not verify_password(payload.password, user["password_hash"]):
             raise HTTPException(401, "Неверный email или пароль")
         memberships = session.execute(text("""SELECT m.site_id,m.role,s.name,s.timezone FROM site_memberships m
-            JOIN sites s USING(site_id) WHERE m.user_id=:user AND m.is_active AND s.is_active"""),
+            JOIN sites s USING(site_id) WHERE m.user_id=:user AND m.is_active AND s.is_active
+            ORDER BY s.name,s.site_id"""),
             {"user": user["user_id"]}).mappings().all()
         if payload.site_id:
             memberships = [m for m in memberships if m["site_id"] == payload.site_id]
+        memberships = [
+            member for member in memberships
+            if role_is_enabled(SQL_ROLES.get(member["role"], member["role"]))
+        ]
         if not memberships:
             raise HTTPException(403, "Нет доступа к объекту")
-        if len(memberships) != 1:
-            raise HTTPException(409, "Укажите site_id: у пользователя несколько объектов")
+        # The building switcher can select another authorized membership after sign-in.
         member = memberships[0]
         old = request.cookies.get(COOKIE)
         if old:
@@ -371,7 +487,7 @@ def create_app(engine=None):
         elif command.status == "submitted":
             submit(job_id, revision, v, background_tasks)
         else:
-            require_role(v.principal, "engineer")
+            require_role(v.principal, "chief_engineer", permission="review_report")
             report = max(v.rows("work_reports", work_order_id=job_id),
                          key=lambda item: item.revision_no, default=None)
             if report is None:
@@ -394,7 +510,8 @@ def create_app(engine=None):
     @app.get(prefix + "/ui/equipment")
     def equipment_list(v=Depends(views)):
         visible = v.visible_equipment_ids() if v.principal.role == "executor" else None
-        return [v.equipment(e) for e in v.rows("equipment") if visible is None or e.equipment_id in visible]
+        equipment = v.prepare_equipment_views()
+        return [v.equipment(e) for e in equipment if visible is None or e.equipment_id in visible]
 
     @app.get(prefix + "/ui/equipment/{equipment_id}")
     def equipment_detail(equipment_id: UUID, v=Depends(views)):
@@ -454,6 +571,16 @@ def create_app(engine=None):
         response.headers["Cache-Control"] = "private, no-store"
         return preview_calendar(v, year, month)
 
+    @app.get(prefix + '/planning/workload', response_model=WorkloadResponse)
+    def planning_workload(response: Response, year: int = Query(ge=2000, le=2100),
+                          month: int = Query(ge=1, le=12),
+                          capacity_hours_per_24h: Decimal = Query(default=Decimal('24'), gt=0, le=24, decimal_places=3, allow_inf_nan=False),
+                          v=Depends(views)):
+        from app.integration.workload import workload_preview
+        require_role(v.principal, 'director', 'admin', 'dispatcher', 'engineer')
+        response.headers['Cache-Control'] = 'private, no-store'
+        return workload_preview(v, year, month, capacity_hours_per_24h)
+
     @app.post(prefix + "/calendar/generate")
     def calendar_generate(command: GenerateCalendar, response: Response, v=Depends(views)):
         from app.integration.planning import generate_tasks
@@ -489,6 +616,8 @@ def create_app(engine=None):
             raise HTTPException(409, "Начать можно назначенное задание или новую попытку после доработки")
         lock_workers(v, {a.user_id for a in v.rows("work_assignments", work_order_id=task_id)
                          if a.status not in ("cancelled", "declined")})
+        from app.integration.published_execution import ensure_start
+        ensure_start(v,order)
         # Snapshot must be defined by the operation, never generated from UI assumptions.
         checklist = order.operation_snapshot.get("checklist")
         if not checklist:
@@ -503,7 +632,7 @@ def create_app(engine=None):
             from zoneinfo import ZoneInfo
             if datetime.now(ZoneInfo(v.principal.timezone)).date()<date.fromisoformat(order.operation_snapshot["earliest_date"]):
                 raise HTTPException(409,"MAINTENANCE_WINDOW_NOT_OPEN: окно работы ещё не открыто")
-        if order.operation_snapshot.get("methodology_ref") and order.schedule_entry_id:
+        if order.operation_snapshot.get("methodology_ref") and order.schedule_entry_id and not order.operation_snapshot.get('catalog_publication_id'):
             approved=v.one("schedule_plans",schedule_plan_id=entry.schedule_plan_id)
             if approved.status!="approved": raise HTTPException(409,"PLAN_NOT_APPROVED: месячный план должен утвердить главный инженер")
         reports = v.rows("work_reports", work_order_id=task_id)
@@ -562,6 +691,162 @@ def create_app(engine=None):
         v.session.commit()
         return result
 
+    def consumption_row(row) -> dict:
+        return {
+            "id": str(row["consumption_id"]),
+            "taskId": str(row["work_order_id"]),
+            "executionId": str(row["work_report_id"]),
+            "equipmentId": str(row["equipment_id"]) if row["equipment_id"] else None,
+            "materialName": row["material_name"],
+            "quantity": str(row["quantity"]),
+            "unit": row["unit"],
+            "authorId": str(row["recorded_by"]),
+            "taskRevision": row["task_revision"],
+            "idempotencyKey": str(row["idempotency_key"]),
+            "status": row["status"],
+            "supersedesId": str(row["supersedes_consumption_id"]) if row["supersedes_consumption_id"] else None,
+            "supersededById": str(row["superseded_by_consumption_id"]) if row["superseded_by_consumption_id"] else None,
+            "correctionReason": row["correction_reason"],
+            "createdAt": row["created_at"].isoformat(),
+        }
+
+    @app.post(prefix + "/tasks/{task_id}/consumptions")
+    def record_consumption(task_id: UUID, payload: ConsumptionEdit, v=Depends(views)):
+        order, report = editable(v, task_id, payload.expected_revision)
+        if report.work_report_id != payload.execution_id:
+            raise HTTPException(409, "Текущая попытка изменилась")
+        equipment_id = payload.equipment_id
+        if equipment_id is not None:
+            links = {link.equipment_id for link in v.rows("work_order_equipment", work_order_id=task_id)}
+            if equipment_id not in links:
+                raise HTTPException(422, "Материал привязан к чужому оборудованию задания")
+        identity = uuid4()
+        existing = v.session.execute(text("""
+            SELECT * FROM work_consumptions
+            WHERE site_id=:site AND work_order_id=:task AND work_report_id=:report
+              AND idempotency_key=:key
+            """), {
+                "site": v.principal.site_id,
+                "task": task_id,
+                "report": payload.execution_id,
+                "key": payload.idempotency_key,
+            }).mappings().first()
+        if existing:
+            same = (
+                existing["material_name"] == payload.material_name.strip()
+                and Decimal(existing["quantity"]) == payload.quantity
+                and existing["unit"] == payload.unit.strip()
+                and existing["equipment_id"] == equipment_id
+            )
+            if not same:
+                raise HTTPException(409, "ИДЕМПОТЕНТНЫЙ КЛЮЧ ПОВТОРЕН С ДРУГИМИ ДАННЫМИ")
+            return consumption_row(existing)
+        row = v.session.execute(text("""
+            INSERT INTO work_consumptions
+                (consumption_id,site_id,work_order_id,work_report_id,equipment_id,
+                 material_name,quantity,unit,recorded_by,task_revision,idempotency_key)
+            VALUES
+                (:id,:site,:task,:report,:equipment,:material,:quantity,:unit,
+                 :author,:revision,:key)
+            RETURNING *
+            """), {
+                "id": identity,
+                "site": v.principal.site_id,
+                "task": task_id,
+                "report": payload.execution_id,
+                "equipment": equipment_id,
+                "material": payload.material_name.strip(),
+                "quantity": payload.quantity,
+                "unit": payload.unit.strip(),
+                "author": v.principal.user_id,
+                "revision": order.revision,
+                "key": payload.idempotency_key,
+            }).mappings().one()
+        audit(v, order, "record_consumption", {
+            "consumptionId": str(identity),
+            "executionId": str(payload.execution_id),
+            "materialName": payload.material_name.strip(),
+            "quantity": str(payload.quantity),
+            "unit": payload.unit.strip(),
+            "idempotencyKey": str(payload.idempotency_key),
+        })
+        v.session.commit()
+        return consumption_row(row)
+
+    @app.get(prefix + "/tasks/{task_id}/consumptions")
+    def list_consumptions(task_id: UUID, v=Depends(views)):
+        v.task(task_id)
+        rows = v.session.execute(text("""
+            SELECT * FROM work_consumptions
+            WHERE site_id=:site AND work_order_id=:task
+            ORDER BY created_at,consumption_id
+            """), {"site": v.principal.site_id, "task": task_id}).mappings().all()
+        return [consumption_row(row) for row in rows]
+
+    @app.post(prefix + "/consumptions/{consumption_id}/correction")
+    def correct_consumption(consumption_id: UUID, payload: ConsumptionCorrection, v=Depends(views)):
+        require_role(v.principal, "chief_engineer")
+        old = v.session.execute(text("""
+            SELECT * FROM work_consumptions
+            WHERE site_id=:site AND consumption_id=:id
+            FOR UPDATE
+            """), {"site": v.principal.site_id, "id": consumption_id}).mappings().first()
+        if old is None:
+            raise HTTPException(404, "Факт расхода не найден")
+        if old["status"] != "active":
+            raise HTTPException(409, "Факт расхода уже заменён исправлением")
+        order = v.task(old["work_order_id"], lock=True)
+        check_revision(order, payload.expected_revision)
+        report = v.one("work_reports", work_order_id=order.work_order_id, work_report_id=old["work_report_id"])
+        accepted = v.session.scalar(text("""
+            SELECT 1 FROM acceptance_reviews
+            WHERE site_id=:site AND work_order_id=:task
+              AND work_report_id=:report AND decision='accepted'
+            LIMIT 1
+            """), {"site": v.principal.site_id, "task": order.work_order_id, "report": report.work_report_id})
+        if order.status != "completed" or not accepted:
+            raise HTTPException(409, "Исправлять можно только принятый факт расхода")
+        identity = uuid4()
+        new = v.session.execute(text("""
+            INSERT INTO work_consumptions
+                (consumption_id,site_id,work_order_id,work_report_id,equipment_id,
+                 material_name,quantity,unit,recorded_by,task_revision,idempotency_key,
+                 status,supersedes_consumption_id,correction_reason)
+            VALUES
+                (:id,:site,:task,:report,:equipment,:material,:quantity,:unit,
+                 :author,:revision,:key,'active',:supersedes,:reason)
+            RETURNING *
+            """), {
+                "id": identity,
+                "site": v.principal.site_id,
+                "task": old["work_order_id"],
+                "report": old["work_report_id"],
+                "equipment": old["equipment_id"],
+                "material": payload.material_name.strip(),
+                "quantity": payload.quantity,
+                "unit": payload.unit.strip(),
+                "author": v.principal.user_id,
+                "revision": order.revision,
+                "key": uuid4(),
+                "supersedes": old["consumption_id"],
+                "reason": payload.reason.strip(),
+            }).mappings().one()
+        v.session.execute(text("""
+            UPDATE work_consumptions
+            SET status='void', superseded_by_consumption_id=:new
+            WHERE site_id=:site AND consumption_id=:old
+            """), {"new": identity, "site": v.principal.site_id, "old": old["consumption_id"]})
+        order.revision += 1
+        v.session.flush()
+        audit(v, order, "correct_consumption", {
+            "oldConsumptionId": str(old["consumption_id"]),
+            "newConsumptionId": str(identity),
+            "executionId": str(old["work_report_id"]),
+            "reason": payload.reason.strip(),
+        })
+        v.session.commit()
+        return consumption_row(new)
+
     storage = runtime_settings.photo_storage_root
 
     def photo_path(photo):
@@ -574,55 +859,72 @@ def create_app(engine=None):
             raise HTTPException(404, "Файл не найден")
         return path
 
-    @app.post(prefix + "/tasks/{task_id}/photos")
-    def upload_photo(task_id: UUID, expected_revision: int = Form(...), checklist_item_id: UUID = Form(...),
-                     phase: Literal["before", "after"] = Form(...), view_key: str = Form(...),
-                     file: UploadFile = File(...), v=Depends(views)):
-        order, report = editable(v, task_id, expected_revision)
+    def photo_mime(order, report, checklist_item_id, view_key, data, filename, content_type):
         if str(checklist_item_id) not in {i["id"] for i in report.checklist_snapshot} or not view_key.strip() or len(view_key) > 200:
             raise HTTPException(422, "Укажите пункт чек-листа и ракурс")
         try:
-            data = file.file.read(10_485_761)
-            mime = validate_upload(data, file.filename, file.content_type)
+            mime = validate_upload(data, filename, content_type)
         except Exception:
             raise HTTPException(422, "Недопустимое изображение") from None
         if order.operation_snapshot.get("methodology_ref"):
             from ml_service.app.cv.quality import ImageQualityGuard
             quality=ImageQualityGuard().assess_bytes(data)
             if not quality.is_acceptable:raise HTTPException(422,"PHOTO_QUALITY: "+str(quality.issue))
+        return mime
+
+    def photo_equipment(v, task_id):
         links = v.rows("work_order_equipment", work_order_id=task_id)
         if len(links) != 1:
             raise HTTPException(422, "Фото API требует ровно одно оборудование в задании")
+        return links[0].equipment_id
+
+    def store_report_photo(v, task_id, report, equipment_id, checklist_item_id, phase, view_key, data, mime, paths):
         identity = uuid4()
         key = f"{v.principal.site_id}/{identity}"
         try:
             path = safe_storage_path(storage, key)
         except ValueError:
             raise HTTPException(503, "PHOTO_STORAGE_UNAVAILABLE") from None
+        paths.append(path)
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(data)
         except OSError:
+            raise HTTPException(503, "PHOTO_STORAGE_UNAVAILABLE") from None
+        v.repo.add("evidence_files", evidence_file_id=identity, site_id=v.principal.site_id,
+            work_order_id=task_id, work_report_id=report.work_report_id, uploaded_by=v.principal.user_id,
+            stage=phase, storage_key=key, mime_type=mime, file_size=len(data), sha256=hashlib.sha256(data).hexdigest(),
+            checklist_item_id=checklist_item_id, view_key=view_key.strip(), equipment_id=equipment_id)
+        return str(identity)
+
+    def cleanup_photos(paths):
+        for path in paths:
             try:
                 path.unlink(missing_ok=True)
             except OSError:
-                pass
-            raise HTTPException(503, "PHOTO_STORAGE_UNAVAILABLE") from None
+                logger.error("Photo cleanup failed")
+
+    @app.post(prefix + "/tasks/{task_id}/photos")
+    def upload_photo(task_id: UUID, expected_revision: int = Form(...), checklist_item_id: UUID = Form(...),
+                     phase: Literal["before", "after"] = Form(...), view_key: str = Form(...),
+                     file: UploadFile = File(...), v=Depends(views)):
+        order, report = editable(v, task_id, expected_revision)
         try:
-            v.repo.add("evidence_files", evidence_file_id=identity, site_id=v.principal.site_id,
-                work_order_id=task_id, work_report_id=report.work_report_id, uploaded_by=v.principal.user_id,
-                stage=phase, storage_key=key, mime_type=mime, file_size=len(data), sha256=hashlib.sha256(data).hexdigest(),
-                checklist_item_id=checklist_item_id, view_key=view_key.strip(), equipment_id=links[0].equipment_id)
+            data = file.file.read(10_485_761)
+        except OSError:
+            raise HTTPException(422, "Недопустимое изображение") from None
+        mime = photo_mime(order, report, checklist_item_id, view_key, data, file.filename, file.content_type)
+        equipment_id = photo_equipment(v, task_id)
+        paths = []
+        try:
+            store_report_photo(v, task_id, report, equipment_id, checklist_item_id, phase, view_key, data, mime, paths)
             order.revision += 1
             v.session.flush()
             audit(v, order, "upload_photo")
             result = v.bundle(order)
             v.session.commit()
         except BaseException:
-            try:
-                path.unlink(missing_ok=True)
-            except OSError:
-                logger.error("Photo cleanup failed")
+            cleanup_photos(paths)
             raise
         return result
 
@@ -636,25 +938,21 @@ def create_app(engine=None):
             raise HTTPException(404, "Файл отсутствует в хранилище")
         return FileResponse(path, media_type=photo.mime_type, headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
 
-    @app.post(prefix + "/tasks/{task_id}/submit")
-    def submit(task_id: UUID, payload: Revision, v=Depends(views), background_tasks:BackgroundTasks=None):
-        order, report = editable(v, task_id, payload.expected_revision)
+    def validate_submission(v, order, report):
+        from app.integration.photo_evidence import validate_submission_evidence
+
         answers = {str(a.checklist_template_id): a.response_value.get("answer")
                    for a in v.rows("checklist_results", work_report_id=report.work_report_id)}
         photos = v.rows("evidence_files", work_report_id=report.work_report_id)
-        for item in report.checklist_snapshot:
-            answer = answers.get(item["id"])
-            if item["required"] and (not answer or (item["answerKind"] == "boolean" and answer != "done")):
-                raise HTTPException(422, "Заполните все обязательные пункты чек-листа")
-            if item["photoRequired"]:
-                pairs = {(p.stage, p.view_key) for p in photos if str(p.checklist_item_id) == item["id"]}
-                if not any(("after", key) in pairs for stage, key in pairs if stage == "before"):
-                    raise HTTPException(422, "Требуется пара фото до/после одного ракурса")
+        order_equipment_ids = {row.equipment_id for row in v.rows("work_order_equipment", work_order_id=order.work_order_id)}
+        validate_submission_evidence(report.checklist_snapshot, answers, photos, order_equipment_ids)
         validate_execution(v,order,report,None,submitting=True)
+        return photos
+
+    def mark_submitted(v, order, report, photos, background_tasks):
         report.status, report.submitted_at = "submitted", datetime.now(timezone.utc)
         order.status = "in_review"
         notify_event(v,order,"submitted",("engineer","chief_engineer"))
-        order.revision += 1
         v.session.flush()
         audit(v, order, "submit")
         from app.integration.photo_evidence import has_photo_pair
@@ -662,15 +960,94 @@ def create_app(engine=None):
             # Durable opt-in for this submission only; historical reports are not backfilled.
             report.execution_context=dict(report.execution_context,photo_analysis_requested_at=report.submitted_at.isoformat())
             if background_tasks is not None:
-                background_tasks.add_task(app.state.automatic_photo_review,task_id,order.revision,v.principal)
+                background_tasks.add_task(app.state.automatic_photo_review,order.work_order_id,order.revision,v.principal)
+
+    @app.post(prefix + "/tasks/{task_id}/submit")
+    def submit(task_id: UUID, payload: Revision, v=Depends(views), background_tasks:BackgroundTasks=None):
+        order, report = editable(v, task_id, payload.expected_revision)
+        photos = validate_submission(v, order, report)
+        order.revision += 1
+        mark_submitted(v, order, report, photos, background_tasks)
         result = v.bundle(order)
         v.session.commit()
         return result
 
+    @app.post("/api/v1/assistant/workspace/tasks/{task_id}/attach-and-submit")
+    def attach_and_submit(task_id: UUID, payload: ReportAttachAndSubmit, request: Request, v=Depends(views)):
+        from app.assistant.attachments import CONFIRMED_REPORT, SCOPE, content
+        from app.assistant.task_execution import missing_report
+
+        scope = SCOPE.get()
+        if not CONFIRMED_REPORT.get() or scope is None or scope[1:] != (
+                v.principal.user_id, v.principal.site_id, v.principal.role):
+            raise HTTPException(403, "Подтвердите карточку в чате")
+        order, report = editable(v, task_id, payload.expected_revision)
+        if report.work_report_id != payload.execution_id:
+            raise HTTPException(409, "Текущая попытка изменилась")
+        conversation = v.session.execute(text("""SELECT subject_task_id FROM assistant_conversations
+            WHERE conversation_id=:chat AND user_id=:user AND site_id=:site AND role=:role"""),
+            dict(zip(('chat','user','site','role'), scope))).one_or_none()
+        if not conversation or conversation.subject_task_id not in (None, task_id):
+            raise HTTPException(403, "Диалог относится к другому наряду")
+        equipment_id = photo_equipment(v, task_id)
+        prepared = []
+        for binding in payload.photos:
+            if not v.session.scalar(text("""SELECT EXISTS(SELECT 1 FROM assistant_turn_attachments f
+                WHERE f.conversation_id=:chat AND f.attachment_id=:file)"""),
+                dict(chat=scope[0], file=binding.attachment_id)):
+                raise HTTPException(404, "Фото не отправлено в этом диалоге")
+            row, blob = content(app, binding.attachment_id)
+            mime = photo_mime(order, report, binding.checklist_item_id, binding.view_key, blob,
+                              row['original_name'], row['mime_type'])
+            prepared.append((binding, blob, mime))
+        # Serialize the final write with session revocation and membership changes.
+        current = authenticate(request, v.session, lock=True)
+        if (current.user_id, current.site_id, current.role) != scope[1:]:
+            raise HTTPException(403, "Контекст доступа изменился")
+        paths = []
+        try:
+            identities = [store_report_photo(v, task_id, report, equipment_id, item.checklist_item_id,
+                          item.phase, item.view_key, blob, mime, paths) for item, blob, mime in prepared]
+            order.revision += 1
+            v.session.flush()
+            audit(v, order, "upload_photo")
+            photos = v.rows("evidence_files", work_report_id=report.work_report_id)
+            missing_ids = {str(photo.evidence_file_id) for photo in photos
+                           if photo.stage in ("before", "after", "other") and not photo_path(photo).is_file()}
+            bundle = v.bundle(order)
+            material = bundle['execution']
+            material = {**material, **{key: [item for item in material[key] if item['id'] not in missing_ids]
+                                      for key in ('photos', 'acts')}}
+            gaps = missing_report({**bundle['task'], 'actualRequired': bundle['actualRequired']}, material)
+            block = None
+            try:
+                validate_submission(v, order, report)
+            except HTTPException as exc:
+                if exc.status_code != 422:
+                    raise
+                block = exc.detail
+            if not block and gaps:
+                block = 'Не заполнены поля отчёта или недоступны обязательные файлы.'
+            if not block:
+                mark_submitted(v, order, report, photos, None)
+                bundle = v.bundle(order)
+            result = dict(task=bundle['task'], execution=bundle['execution'], attached_photo_ids=identities,
+                          submission='draft_incomplete' if block else 'submitted',
+                          submission_block=block, missing_materials=gaps,
+                          photo_analysis_requested=not block and bundle['photoAnalysisStatus']=='pending')
+            v.session.commit()
+        except BaseException:
+            cleanup_photos(paths)
+            raise
+        return result
+
     @app.post(prefix + "/tasks/{task_id}/review")
     def review(task_id: UUID, payload: Review, v=Depends(views)):
-        require_role(v.principal, "engineer")
+        require_role(v.principal, "chief_engineer", permission="review_report")
         order = v.task(task_id, lock=True)
+        from app.integration.management import _edit
+        with _edit(v, roles=("chief_engineer",), exact_roles=True, permission="review_report", _owns_transaction=False):
+            pass  # Keep the verified actor locks through this transaction's commit.
         check_revision(order, payload.expected_revision)
         reports = v.rows("work_reports", work_order_id=task_id)
         report = max(reports, key=lambda r: r.revision_no) if reports else None
@@ -691,7 +1068,7 @@ def create_app(engine=None):
                                      "additional_evidence_refs": payload.additional_evidence_refs,
                                      "performed_at": report.execution_context.get("performed_at"),
                                      "actual_person_hours": report.execution_context.get("person_hours"),
-                                     "late_reason": payload.late_reason,
+                                      "late_reason": payload.late_reason, "actor_role": v.principal.role,
                                      "exception":order.exception_context})
         report.status = "reviewed"
         order.status = "completed" if payload.verdict == "accepted" else "rework"
@@ -705,8 +1082,42 @@ def create_app(engine=None):
         v.session.commit()
         return result
 
+    from app.installation import register_installation_routes
+    register_installation_routes(app)
+    from app.integration.assistant import register_routes as register_assistant
+    register_assistant(app,views)
     from app.integration.management import register_routes
     register_routes(app,views,db)
+    from app.integration.registry import register_routes as register_registry
+    register_registry(app, views, storage, runtime_settings)
+    from app.integration.registry_excel import register_routes as register_registry_excel
+    register_registry_excel(app, views)
+    from app.integration.catalog_imports import register_routes as register_catalog_imports
+    register_catalog_imports(app, views)
+    from app.integration.workbooks import register_routes as register_workbooks
+    register_workbooks(app, views)
+    from app.integration.workbook_editor import register_routes as register_workbook_editor
+    register_workbook_editor(app, views, db)
+    from app.integration.workbook_order_changes import register_routes as register_workbook_order_changes
+    register_workbook_order_changes(app, views)
+    from app.integration.catalog_decisions import register_routes as register_catalog_decisions
+    register_catalog_decisions(app, views)
+    from app.integration.draft_plans import register_routes as register_draft_plans
+    register_draft_plans(app, views)
+    from app.integration.draft_undo import register_routes as register_draft_undo
+    register_draft_undo(app, views)
+    from app.integration.plan_load import register_routes as register_plan_load
+    register_plan_load(app, views)
+    from app.integration.requirements import register_routes as register_requirements
+    register_requirements(app, views)
+    from app.integration.portfolio_plans import register_routes as register_portfolio_plans
+    register_portfolio_plans(app, views)
+    from app.integration.optimization import register_routes as register_optimization
+    register_optimization(app, views)
+    from app.integration.publication import register_routes as register_publication
+    register_publication(app, views)
+    from app.integration.order_table import register_routes as register_order_table
+    register_order_table(app, views)
     from app.integration.analyst import register_analyst_routes
     register_analyst_routes(app,views,photo_path,editable)
     from app.integration.incidents import register_incident_routes
@@ -716,15 +1127,15 @@ def create_app(engine=None):
     from app.integration.ml import register_ml_routes
     register_ml_routes(app, views, photo_path, require_role, check_revision)
 
-    dist = ROOT / "frontend/dist"
+    dist = frontend_dist if frontend_dist is not None else ROOT / "frontend/dist"
     if dist.is_dir():
-        app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
+        app.mount("/assets", FrontendAssets(dist), name="assets")
 
         @app.get("/{path:path}", include_in_schema=False)
         def spa(path: str):
             if path.startswith("api/"):
                 raise HTTPException(404, "Маршрут не найден")
-            return FileResponse(dist / "index.html")
+            return FileResponse(dist / "index.html", headers={"Cache-Control": "no-cache"})
     return app
 
 

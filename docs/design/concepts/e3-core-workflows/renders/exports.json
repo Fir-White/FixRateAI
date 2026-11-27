@@ -1,0 +1,230 @@
+[
+  {
+    "file": "planning.png",
+    "width": 1440,
+    "height": 900,
+    "scale": 1,
+    "sha256": "118d18763e2c2b7ee5392a3b47687dac81c51223933655fce301d46ca6999089",
+    "source": "official Penpot MCP export_shape"
+  },
+  {
+    "file": "equipment.png",
+    "width": 1440,
+    "height": 900,
+    "scale": 1,
+    "sha256": "05c5d50d370d7778abaab2bffd286a5b4a7175e11b71d6630cc9a87b88538049",
+    "source": "official Penpot MCP export_shape"
+  },
+  {
+    "file": "review.png",
+    "width": 1440,
+    "height": 900,
+    "scale": 1,
+    "sha256": "f92bfe3ed551e913deed5a6caaf6a2d648e1f6e79e75cef96747ea6c3828dbf9",
+    "source": "official Penpot MCP export_shape"
+  },
+  {
+    "file": "executor.png",
+    "width": 1440,
+    "height": 900,
+    "scale": 1,
+    "sha256": "0ce78a8a440942a6d05f06bdb620413909049a667b024f2b8f64a8803fe4eb62",
+    "source": "official Penpot MCP export_shape"
+  },
+  {
+    "file": "review-mobile.png",
+    "width": 390,
+    "height": 844,
+    "scale": 1,
+    "sha256": "a944f18e2833a5cb721311b6dac5c597c097ef66d942ddcc92167f4fbbf0880b",
+    "source": "official Penpot MCP export_shape"
+  },
+  {
+    "file": "executor-mobile.png",
+    "width": 390,
+    "height": 844,
+    "scale": 1,
+    "sha256": "42d755f8de31b5996dfc0442d6a08e46482d68d05e1cce96c36df7971e77605a",
+    "source": "official Penpot MCP export_shape"
+  },
+  {
+    "file": "proposal.png",
+    "width": 1440,
+    "height": 900,
+    "scale": 1,
+    "sha256": "2f6f8c4159d6684e072c52c632747bc9eaaa5f84e918b01661e93403b0cd4c2e",
+    "source": "official Penpot MCP export_shape"
+  },
+  {
+    "file": "ai-context.png",
+    "width": 1440,
+    "height": 900,
+    "scale": 1,
+    "sha256": "065e4e517a280cd40220a69e4380b7d570a8a584c38d841480549a4ecc379267",
+    "source": "official Penpot MCP export_shape"
+  },
+  {
+    "file": "review-facts.png",
+    "width": 900,
+    "height": 760,
+    "scale": 1,
+    "sha256": "73525712b41ffd14103b3a070053760f1d802e889890546737c7f94f187046b7",
+    "source": "official Penpot MCP export_shape"
+  },
+  {
+    "file": "review-facts-mobile.png",
+    "width": 350,
+    "height": 680,
+    "scale": 1,
+    "sha256": "255ebc0c7a171bd3ebd5c292401fae7138627685b2db115ec88339402dbddbda",
+    "source": "official Penpot MCP export_shape"
+  },
+  {
+    "file": "return-confirm.png",
+    "width": 350,
+    "height": 350,
+    "scale": 1,
+    "sha256": "24573ce79cffa18227a07a8b0ecaddeeb23b3350999bfb1f622572bfe47753d7",
+    "source": "official Penpot MCP export_shape"
+  },
+  {
+    "file": "apply-confirm.png",
+    "width": 350,
+    "height": 374,
+    "scale": 1,
+    "sha256": "ada4e95ca0416d2825fb969a05d7cd68e03c68f875b7e77accfec1f6e757c407",
+    "source": "official Penpot MCP export_shape"
+  },
+  {
+    "file": "executor-finish.png",
+    "width": 350,
+    "height": 680,
+    "scale": 1,
+    "sha256": "296f1d670692eacafb2d83ced65433c8c18ce61d056a6f7b51611a413f9ad1d1",
+    "source": "official Penpot MCP export_shape"
+  },
+  {
+    "file": "verify-document-mobile.png",
+    "width": 350,
+    "height": 460,
+    "scale": 1,
+    "sha256": "ad9d078fba5fff6f306d17974599f32d3e3ad42a834563cc62da05aef4476a12",
+    "source": "official Penpot MCP export_shape"
+  },
+  {
+    "file": "home.png",
+    "width": 1440,
+    "height": 900,
+    "scale": 1,
+    "sha256": "0c079054342093286be3db4bc6d9ed8ae1a5ceb696ff8335a5391457fcaaad91",
+    "source": "official Penpot MCP export_shape"
+  },
+  {
+    "file": "planning-grid-100.png",
+    "source": "planning.png",
+    "crop": [
+      48,
+      326,
+      1392,
+      884
+    ],
+    "scale": 1,
+    "sha256": "2ebb0e2c392629060cf84a8c2efb79a6ea53097da6de6aa7a4368959f40a7557"
+  },
+  {
+    "file": "equipment-regulations-100.png",
+    "source": "equipment.png",
+    "crop": [
+      48,
+      332,
+      1392,
+      886
+    ],
+    "scale": 1,
+    "sha256": "6ff48dd077ecb4e4873ee26faedf89075e703afc1bcee2d69dbced72d9f43420"
+  },
+  {
+    "file": "review-photos-100.png",
+    "source": "review.png",
+    "crop": [
+      48,
+      318,
+      886,
+      831
+    ],
+    "scale": 1,
+    "sha256": "f58834550a4d93e48214155e25e20bd0a4a6bc73566e7c1bb96795aea10669f4"
+  },
+  {
+    "file": "review-decision-100.png",
+    "source": "review.png",
+    "crop": [
+      912,
+      316,
+      1392,
+      890
+    ],
+    "scale": 1,
+    "sha256": "3bbe62a472f21c4fe51e12d80bf86cac3dbeff254facb6a03ac96f8e04f25219"
+  },
+  {
+    "file": "executor-report-100.png",
+    "source": "executor.png",
+    "crop": [
+      400,
+      270,
+      1392,
+      892
+    ],
+    "scale": 1,
+    "sha256": "2a16d5a15cc432542c8a77f08e802a62b6dd9ea421565afe8edf8cab5bb6e285"
+  },
+  {
+    "file": "review-mobile-actions-100.png",
+    "source": "review-mobile.png",
+    "crop": [
+      0,
+      632,
+      390,
+      844
+    ],
+    "scale": 1,
+    "sha256": "d7aed1484cee7bdbeb0157e34b834fcaa12a4825b4796e5f3155a3630e850a0a"
+  },
+  {
+    "file": "executor-mobile-photos-100.png",
+    "source": "executor-mobile.png",
+    "crop": [
+      0,
+      414,
+      390,
+      844
+    ],
+    "scale": 1,
+    "sha256": "45a579d978133a9a97e8bc51ac59b38b54932ea3c6d0a35b8b76f5a745fb1e93"
+  },
+  {
+    "file": "proposal-apply-100.png",
+    "source": "proposal.png",
+    "crop": [
+      896,
+      328,
+      1392,
+      890
+    ],
+    "scale": 1,
+    "sha256": "5b2dd3d68dc1e19f815fc9d813ac01d993f4e73b3cef93ae167d4aa8b948dfd9"
+  },
+  {
+    "file": "ai-context-100.png",
+    "source": "ai-context.png",
+    "crop": [
+      48,
+      270,
+      1096,
+      892
+    ],
+    "scale": 1,
+    "sha256": "4c9fcf5698c9caaa066516e9e678989bff9c10b9a61c8399fc9495ac6bf32e5e"
+  }
+]

@@ -1,5 +1,5 @@
 """Analyst corrections: real HTTP/PostgreSQL, isolated TEST fixtures only."""
-from datetime import date,datetime,timedelta,timezone
+from datetime import date,datetime,time,timedelta,timezone
 from contextlib import closing
 from decimal import Decimal
 from io import BytesIO
@@ -121,7 +121,6 @@ def test_early_start_rejected_before_new_report_is_created(runtime):
             c.execute(text('UPDATE schedule_entries SET earliest_date=:earliest_date,planned_date=:planned_date,regulatory_deadline_on=:regulatory_deadline_on,regulatory_deadline_at=:regulatory_deadline_at WHERE schedule_entry_id=:id'),dict(id=entry,**prior))
 
 
-def test_failed_assignment_is_audited_without_creating_assignments(runtime):
     engine,app=runtime
     from tests.backend.test_runtime_integration import ASSIGNMENT_TASK
     with closing(login(app,'executor')) as client:
@@ -129,6 +128,85 @@ def test_failed_assignment_is_audited_without_creating_assignments(runtime):
         assert result.status_code==403,result.text
     with engine.connect() as c:
         assert c.scalar(text("SELECT count(*) FROM audit_events WHERE entity_id=:id AND action='denied'"),dict(id=ASSIGNMENT_TASK))>=1
+
+
+def test_consumption_is_attempt_bound_idempotent_and_not_silently_editable(runtime):
+   engine, app = runtime
+   from app.integration.demo import demo_id
+   from uuid import UUID, uuid4
+   report_id = uuid4()
+   equipment_id = demo_id("equipment-2")
+   author_id = demo_id("user-1")
+   key = uuid4()
+   with engine.begin() as c:
+       prior = c.execute(text("""
+           SELECT status,revision FROM work_orders WHERE work_order_id=:id
+           """), {"id": UUID(TASK)}).mappings().one()
+       c.execute(text("""
+           UPDATE work_orders SET status='in_progress',revision=revision+1
+           WHERE work_order_id=:id
+           """), {"id": UUID(TASK)})
+       c.execute(text("""
+           INSERT INTO work_reports
+               (work_report_id,site_id,work_order_id,revision_no,submitted_by,status)
+           VALUES (:report,:site,:task,1,:author,'draft')
+           """), {
+               "report": report_id, "site": demo_id("site"), "task": UUID(TASK),
+               "author": author_id,
+           })
+   try:
+       with closing(login(app, "executor")) as executor:
+           bundle = executor.get(PREFIX+f"/ui/tasks/{TASK}").json()
+           revision = bundle["task"]["revision"]
+           body = dict(
+               expected_revision=revision,
+               execution_id=str(report_id),
+               equipment_id=str(equipment_id),
+               material_name="Смазка TEST",
+               quantity="2.500",
+               unit="литр",
+               idempotency_key=str(key),
+           )
+           first = executor.post(PREFIX+f"/tasks/{TASK}/consumptions", json=body)
+           assert first.status_code == 200, first.text
+           repeated = executor.post(PREFIX+f"/tasks/{TASK}/consumptions", json=body)
+           assert repeated.status_code == 200, repeated.text
+           assert repeated.json()["id"] == first.json()["id"]
+           conflict = executor.post(PREFIX+f"/tasks/{TASK}/consumptions", json=body | {"quantity": "3.000"})
+           assert conflict.status_code == 409
+           assert executor.get(PREFIX+f"/tasks/{TASK}/consumptions").json()[0]["authorId"] == str(author_id)
+       with closing(login(app, "chief_engineer")) as chief:
+           blocked = chief.post(
+               PREFIX+f"/consumptions/{first.json()['id']}/correction",
+               json=dict(
+                   expected_revision=revision,
+                   material_name="Смазка TEST",
+                   quantity="2.500",
+                   unit="литр",
+                   reason="Исправление чернового факта",
+               ),
+           )
+           assert blocked.status_code == 409
+       with engine.begin() as c:
+           c.execute(text("""INSERT INTO work_reports
+               (site_id,work_order_id,revision_no,submitted_by,status)
+               VALUES (:site,:task,2,:author,'draft')"""),
+               {"site": demo_id("site"), "task": UUID(TASK), "author": author_id})
+       with closing(login(app, "executor")) as executor:
+           obsolete = executor.post(PREFIX+f"/tasks/{TASK}/consumptions",
+                                    json=body | {"idempotency_key": str(uuid4())})
+           assert obsolete.status_code == 409
+           assert len(executor.get(PREFIX+f"/tasks/{TASK}/consumptions").json()) == 1
+   finally:
+       with engine.begin() as c:
+           c.execute(text("DELETE FROM work_consumptions WHERE work_order_id=:id"), {"id": UUID(TASK)})
+           c.execute(text("DELETE FROM audit_events WHERE entity_id=:id AND action IN ('record_consumption','correct_consumption')"), {"id": UUID(TASK)})
+           c.execute(text("DELETE FROM work_reports WHERE work_order_id=:id"), {"id": UUID(TASK)})
+           c.execute(text("""
+               UPDATE work_orders
+               SET status=:status,revision=:revision,started_at=NULL
+               WHERE work_order_id=:id
+               """), {"status": prior["status"], "revision": prior["revision"], "id": UUID(TASK)})
 
 
 def test_incident_execution_measurements_acts_acceptance_and_reopen_keep_history(managed):
@@ -191,12 +269,14 @@ def test_incident_execution_measurements_acts_acceptance_and_reopen_keep_history
         assert submitted.status_code==200,submitted.text
         bundle=submitted.json();report_id=bundle['execution']['id'];act=bundle['execution']['acts'][0]['id']
         assert executor.get(PREFIX+f'/photos/{act}').status_code==200
-        reviewed=engineer.post(PREFIX+f'/tasks/{task_id}/review',json=dict(expected_revision=bundle['task']['revision'],execution_id=report_id,verdict='accepted',reason='TEST reviewed'))
+        decision=dict(expected_revision=bundle['task']['revision'],execution_id=report_id,verdict='accepted',reason='TEST reviewed')
+        assert engineer.post(PREFIX+f'/tasks/{task_id}/review',json=decision).status_code==403
+        reviewed=admin.chief.post(PREFIX+f'/tasks/{task_id}/review',json=decision)
         assert reviewed.status_code==422 and 'акт' in reviewed.text,reviewed.text
         verified=engineer.post(PREFIX+f'/tasks/{task_id}/acts/{act}/verify',json=dict(expected_revision=bundle['task']['revision'],reason='TEST inspected original instrument protocol'))
         assert verified.status_code==200,verified.text
         bundle=verified.json()
-        accepted=engineer.post(PREFIX+f'/tasks/{task_id}/review',json=dict(expected_revision=bundle['task']['revision'],execution_id=report_id,verdict='accepted',reason='TEST reviewed',additional_evidence_refs=[act]))
+        accepted=admin.chief.post(PREFIX+f'/tasks/{task_id}/review',json=dict(expected_revision=bundle['task']['revision'],execution_id=report_id,verdict='accepted',reason='TEST reviewed',additional_evidence_refs=[act]))
         assert accepted.status_code==200,accepted.text
         old=accepted.json();assert old['task']['state']=='accepted'
         dashboard=engineer.get(PREFIX+'/overview')
@@ -265,11 +345,12 @@ def test_overdue_events_are_durable_and_late_acceptance_requires_chief(job):
         assert c.scalar(text("SELECT count(*) FROM maintenance_notifications n JOIN site_memberships m ON m.site_id=n.site_id AND m.user_id=n.user_id WHERE n.work_order_id=:id AND m.role='director'"),dict(id=task))==1
     with closing(login(app,'engineer')) as engineer,closing(login(app,'chief_engineer')) as chief:
         body=dict(expected_revision=1,execution_id=str(report),verdict='accepted',reason='TEST late acceptance')
-        blocked=engineer.post(PREFIX+f'/tasks/{task}/review',json=body)
+        assert engineer.post(PREFIX+f'/tasks/{task}/review',json=body).status_code==403
+        blocked=chief.post(PREFIX+f'/tasks/{task}/review',json=body)
         assert blocked.status_code==409 and 'LATE_ACCEPTANCE_REQUIRES_CHIEF' in blocked.text,blocked.text
         authorized=chief.post(PREFIX+f'/tasks/{task}/late-authorization',json=dict(expected_revision=1,reason='TEST documented delay'))
         assert authorized.status_code==200,authorized.text
-        accepted=engineer.post(PREFIX+f'/tasks/{task}/review',json=body|dict(expected_revision=authorized.json()['task']['revision']))
+        accepted=chief.post(PREFIX+f'/tasks/{task}/review',json=body|dict(expected_revision=authorized.json()['task']['revision']))
         assert accepted.status_code==200 and accepted.json()['task']['deadlineBreached'],accepted.text
         with engine.connect() as c:assert c.scalar(text('SELECT regulatory_deadline_at FROM work_orders WHERE work_order_id=:id'),dict(id=task))==deadline
     with closing(login(app,'director')) as director,closing(login(app,'engineer')) as engineer:
@@ -284,7 +365,11 @@ def test_overdue_events_are_durable_and_late_acceptance_requires_chief(job):
 
 def test_contract_stub_early_ai_requires_chief_and_keeps_original_obligation(managed,monkeypatch):
     """Real HTTP/PostgreSQL; the AI proposal here is an explicit contract stub, not ML evidence."""
-    engine,app,admin,login_user,ids=managed;eq=equipment(admin,ids);today=date.today();due=today+timedelta(days=1)
+    engine,app,admin,login_user,ids=managed;eq=equipment(admin,ids)
+    from zoneinfo import ZoneInfo
+    with engine.connect() as connection:
+        site_timezone=connection.scalar(text('SELECT timezone FROM sites WHERE site_id=:site'),dict(site=ids['site']))
+    today=datetime.now(ZoneInfo(site_timezone)).date();due=today+timedelta(days=1)
     settings=config(today,code='TEST-EARLY',pattern=dict(frequency='dates',anchor_date=today.isoformat(),dates=[due.isoformat()],weekend_policy='none'))
     configured=admin.chief.post(PREFIX+f"/equipment/{eq['equipment_id']}/service-configurations",json=settings)
     assert configured.status_code==201,configured.text
@@ -306,6 +391,14 @@ def test_contract_stub_early_ai_requires_chief_and_keeps_original_obligation(man
     assert admin.chief.post(PREFIX+f'/comparisons/{run_id}/confirm',json=body|dict(selected_date=(due+timedelta(days=1)).isoformat())).status_code==422
     confirmed=admin.chief.post(PREFIX+f'/comparisons/{run_id}/confirm',json=body)
     assert confirmed.status_code==200 and confirmed.json()['extra_maintenance'],confirmed.text
+    import app.integration.analyst as analyst_routes
+
+    class NextDay(datetime):
+        @classmethod
+        def now(cls,tz=None):
+            return datetime.combine(due,time(12),tz)
+
+    monkeypatch.setattr(analyst_routes,'datetime',NextDay)
     repeat=admin.chief.post(PREFIX+f'/comparisons/{run_id}/confirm',json=body)
     assert repeat.status_code==200 and repeat.json()['replayed'],repeat.text
     with engine.connect() as c:

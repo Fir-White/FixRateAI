@@ -1,0 +1,80 @@
+{
+  "restoredFrom": "Before personal invitations · 2026-11-18",
+  "restoredRevision": 238,
+  "frames": [
+    {
+      "key": "enrollment--desktop",
+      "id": "a27ef1c6-05d8-806c-8008-f5d2240f99e0",
+      "name": "Регистрация и доступ · desktop",
+      "pageId": "a27ef1c6-05d8-806c-8008-f5d1b44e8e54",
+      "width": 1440,
+      "height": 1005,
+      "nodes": 65,
+      "texts": 32,
+      "hasCompanyCode": true,
+      "hasRoleDecision": true,
+      "hasWait": true,
+      "authSource": null
+    },
+    {
+      "key": "enrollment--mobile",
+      "id": "a27ef1c6-05d8-806c-8008-f5d22dcafc24",
+      "name": "Регистрация и доступ · mobile",
+      "pageId": "a27ef1c6-05d8-806c-8008-f5d1b44e8e54",
+      "width": 390,
+      "height": 1270,
+      "nodes": 48,
+      "texts": 26,
+      "hasCompanyCode": true,
+      "hasRoleDecision": true,
+      "hasWait": true,
+      "authSource": null
+    }
+  ],
+  "protectedPages": [
+    {
+      "name": "40 · Переход · Motion",
+      "hash": "6e2d2ad4"
+    },
+    {
+      "name": "E · Visual Exploration · Chief Engineer",
+      "hash": "a91e6ce5"
+    },
+    {
+      "name": "E3 · Core Workflows",
+      "hash": "195390c1"
+    }
+  ],
+  "viewer": [
+    {
+      "device": "desktop",
+      "action": "Регистрация",
+      "destination": "register"
+    },
+    {
+      "device": "desktop",
+      "action": "Зарегистрироваться",
+      "destination": "registration-pending"
+    },
+    {
+      "device": "desktop",
+      "action": "Перейти ко входу",
+      "destination": "login"
+    },
+    {
+      "device": "mobile",
+      "action": "Регистрация",
+      "destination": "register"
+    },
+    {
+      "device": "mobile",
+      "action": "Зарегистрироваться",
+      "destination": "registration-pending"
+    },
+    {
+      "device": "mobile",
+      "action": "Перейти ко входу",
+      "destination": "login"
+    }
+  ]
+}

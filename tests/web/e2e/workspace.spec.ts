@@ -42,10 +42,18 @@ test("account preserves session after failed logout and clears the previous user
   const headers = await sessionFixture(context);
   await page.setViewportSize({ width: 1440, height: 900 });
   await signIn(page, "dispatcher@workspace.test");
-  const canvas = await page.locator(".workspace-aurora canvas").elementHandle();
+  const workspace = await page.locator(".workspace-root").elementHandle();
   await page.getByRole("link", { name: "Оборудование", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Оборудование", exact: true })).toBeVisible();
-  expect(await page.locator(".workspace-aurora canvas").evaluate((element, original) => element === original, canvas)).toBe(true);
+  await expect(page.getByRole("button", {name:"Поиск по рабочему пространству",exact:true})).toHaveCount(0);
+  await page.keyboard.press("Control+k");
+  const search=page.getByRole("dialog",{name:"Поиск по рабочему пространству"});
+  await expect(search.getByRole("textbox",{name:"Найти раздел"})).toBeFocused();
+  await search.getByRole("textbox",{name:"Найти раздел"}).fill("команда");
+  await expect(search.getByRole("link",{name:"Команда и смены"})).toBeVisible();
+  await expect(search.getByRole("link",{name:"Приёмка работ"})).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  expect(await page.locator(".workspace-root").evaluate((element, original) => element === original, workspace)).toBe(true);
   await page.getByRole("link", {name: "Учётная запись", exact: true}).click();
   await expect(page.getByRole("heading", {name: "Мой профиль"})).toBeVisible();
   await expect(page.locator(".profile-page")).toContainText("dispatcher@workspace.test");
@@ -72,12 +80,79 @@ test("one mobile sidebar and the top-bar profile preserve the reduced-motion bac
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await signIn(page, "dispatcher@workspace.test");
-  await expect(page.locator(".workspace-aurora canvas")).toHaveAttribute("data-state", "paused");
-  await expect(page.locator(".ops-sidebar, .ops-sidebar-nav, .workspace-aurora canvas")).toHaveCount(3);
+  await expect(page.locator(".workspace-root")).toHaveCSS("background-color", "rgb(5, 13, 18)");
+  await expect(page.locator(".ops-sidebar, .ops-sidebar-nav")).toHaveCount(2);
+  const backdrop = page.locator(".ops-sidebar-backdrop");
+  await expect(backdrop).toHaveCSS("transition-property", "none");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.getByRole("button", { name: "Открыть меню", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Мобильная навигация" })).toBeVisible();
+  await expect(backdrop).toHaveCSS("opacity", "1");
   await page.getByRole("link", { name: "Оборудование", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(backdrop).toHaveAttribute("inert");
+  await expect(backdrop).toHaveCSS("visibility", "hidden");
   await expect(page.locator(".ops-stage")).not.toHaveAttribute("inert");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
+
+for (const width of [1440, 390]) {
+  test(`document scrolling and workspace controls leave the full-width background unchanged at ${width}px`, async ({page, context}) => {
+    test.skip(!process.env.FIXRATE_BASE_URL, "Requires the running local application");
+    await sessionFixture(context);
+    await page.setViewportSize({width, height: 900});
+    await page.emulateMedia({reducedMotion: "reduce"});
+    await signIn(page, "dispatcher@workspace.test");
+    // This test compares controls on one page, not the glow transition from the workday.
+    await page.goto("/profile");
+    await expect(page.locator(".profile-page")).toContainText("dispatcher@workspace.test");
+    const workspace = page.locator(".workspace-root");
+    const background = (element: Element) => ["::before", "::after"].map(pseudo => {
+      const layer = getComputedStyle(element, pseudo);
+      return { image: layer.backgroundImage, opacity: layer.opacity };
+    });
+    expect((await workspace.evaluate(background)).every(layer => layer.image.includes("radial-gradient"))).toBe(true);
+    // Force a scrolling document even when the fixture has little content.
+    await page.locator(".workspace-root").evaluate(root => {
+      const spacer = document.createElement("div");
+      spacer.style.height = "2000px";
+      root.append(spacer);
+    });
+    const geometry = async () => ({
+      width: await workspace.evaluate(element => element.getBoundingClientRect().width),
+      layers: await workspace.evaluate(background),
+    });
+    expect(await page.evaluate(() => getComputedStyle(document.documentElement).scrollbarWidth)).toBe("none");
+    expect(await page.evaluate(() => document.documentElement.clientWidth)).toBe(width);
+    const before = await geometry();
+    if (width >= 1024) {
+      await expect(page.getByRole("navigation", {name:"Основная навигация"})).toBeVisible();
+      await page.getByRole("button", {name: "Объект QA", exact: true}).click();
+      await expect(page.getByRole("dialog", {name: "Выбрать объект"})).toBeVisible();
+      expect(await geometry()).toEqual(before);
+      await page.keyboard.press("Escape");
+    } else {
+      await page.getByRole("button", {name: "Открыть меню", exact: true}).click();
+      await expect(page.getByRole("dialog", {name: "Мобильная навигация"})).toBeVisible();
+      expect(await page.evaluate(() => document.body.style.overflow)).toBe("hidden");
+      expect(await geometry()).toEqual(before);
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("dialog", {name: "Мобильная навигация"})).toHaveCount(0);
+    }
+    expect(await geometry()).toEqual(before);
+    await page.mouse.move(width - 40, 700);
+    await page.mouse.wheel(0, 500);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    await page.evaluate(() => {
+      (document.activeElement as HTMLElement | null)?.blur();
+      window.scrollTo(0, 0);
+    });
+    await page.keyboard.press("Control+End");
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    await context.route("**/api/v1/auth/session", route => route.fulfill({status: 401, json: {detail: "Нет сессии"}}));
+    await page.goto("/login");
+    await expect(page.locator(".workspace-root")).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Вход в систему" })).toBeVisible();
+    expect(await page.evaluate(() => getComputedStyle(document.documentElement).scrollbarGutter)).toBe("auto");
+  });
+}

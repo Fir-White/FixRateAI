@@ -1,7 +1,7 @@
 import { AttemptHistory } from "@/features/analyst/AnalystPanels";
 import { ChiefActions,ActsPanel,ExecutionProtocol } from "@/features/analyst/AnalystPanels";
 import { AiModelSelector } from "@/features/ai/AiModelSelector";
-import { getStoredAiSettings } from "@/features/ai/aiSettings";
+import { getPhotoReviewOptions } from "@/features/ai/aiSettings";
 import { DEMO_MODE } from "@/shared/api/request";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -10,6 +10,7 @@ import { useApiQuery } from "@/shared/lib/useApiQuery";
 import { formatDate } from "@/shared/lib/format";
 import { useSiteDateTime } from "@/shared/lib/useSiteDateTime";
 import { PageHeader } from "@/shared/ui/PageHeader";
+import { useSession } from "@/shared/session/SessionContext";
 import { Card, CardHeader } from "@/shared/ui/Card";
 import { ErrorState, LoadingState } from "@/shared/ui/States";
 import { Button, buttonClassName } from "@/shared/ui/Button";
@@ -20,6 +21,7 @@ import { ChecklistSummary } from "@/entities/execution/ChecklistSummary";
 import { Callout } from "@/shared/ui/Callout";
 import { FormField, Textarea } from "@/shared/ui/Form";
 import { InfoItem, InfoList } from "@/shared/ui/InfoList";
+import { Disclosure } from "@/shared/ui/Disclosure";
 import { Modal } from "@/shared/ui/Modal";
 import {
   EngineerDecisionBadge,
@@ -32,6 +34,8 @@ import { attemptStateSummary } from "@/shared/lib/presentation";
 import "./quality-redesign.css";
 
 export function QualityTaskPage() {
+  const [photoSettingsVisited, setPhotoSettingsVisited] = useState(false);
+  const { profile } = useSession();
   const formatDateTime=useSiteDateTime();
   const { taskId = "" } = useParams();
   const [refresh, setRefresh] = useState(0);
@@ -39,6 +43,7 @@ export function QualityTaskPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [lastMeasured, setLastMeasured] = useState<{ reviewId: string; elapsedMs: number } | null>(null);
   const [reason, setReason] = useState("");
+  const [factsOpen, setFactsOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [pendingDecision, setPendingDecision] = useState<
     "accepted" | "rejected" | null
@@ -55,6 +60,7 @@ export function QualityTaskPage() {
     decisionContext.current = `${taskId}:${executionId}`;
     setReason("");
     setPendingDecision(null);
+    setFactsOpen(false);
     setNotice(null);
     setLastMeasured(null);
   }, [taskId, executionId]);
@@ -80,6 +86,7 @@ export function QualityTaskPage() {
   const hasDocuments = !!task.requiredActs?.length || !!execution?.acts?.length;
   const canReview = !DEMO_MODE && !!query.data.allowedActions?.includes("review");
   const canAnalyze = !DEMO_MODE && !!query.data.allowedActions?.includes("photo_review");
+  const lateMvp = profile?.permissionProfile === "mvp" && task.lateAcceptanceBlocked;
 
   const handleDecision = async (verdict: "accepted" | "rejected") => {
     setPendingDecision(null);
@@ -98,12 +105,12 @@ export function QualityTaskPage() {
         className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink"
       >
         <Icon name="back" size={18} />
-        Контроль качества
+        К приёмке
       </Link>
 
       <PageHeader
         title={task.title}
-        description={`${task.code} · ${task.equipmentName} · ${task.summary}`}
+        description={[task.code, profile?.siteName, task.equipmentName, task.summary].filter(Boolean).join(" · ")}
         actions={
           <Link to={`/tasks/${task.id}`} className={buttonClassName("secondary")}>
             Карточка задания
@@ -132,64 +139,15 @@ export function QualityTaskPage() {
       ) : null}
 
       <p className="text-sm text-muted">{attemptStateSummary(task.state)}</p>
-      {canReview && <a className="fr-decision-shortcut" href="#review-decision">Перейти к основанию решения</a>}
+      {decision&&task.state==='accepted'&&<div className="journey-next"><div><h2>Проверка завершена</h2><p>Работа принята. Решение и доказательства сохранены.</p></div><Link to="/quality" className={buttonClassName('primary')}>Вернуться к приёмке</Link></div>}
+      {canReview && <a className="fr-decision-shortcut" href="#review-decision">Перейти к решению</a>}
       {notice && !canReview && <div role="alert"><Callout tone="danger" className="text-xs">{notice}</Callout></div>}
-      {query.data.photoAnalysisStatus === "pending" && <Callout tone="neutral"><div className="flex flex-wrap items-center justify-between gap-2"><p role="status">Фотографии анализируются автоматически. Результат появится здесь без обновления страницы; запуск инженером не требуется.</p><AnalysisTimerBadge active /></div></Callout>}
-      {canAnalyze && query.data.photoAnalysisStatus !== "pending" && (!review || ["failed","unavailable"].includes(review.status)) && <div className="space-y-4 rounded-xl border border-line p-4">
-        <AiModelSelector variant="compact" />
-        <div className="flex flex-wrap items-center gap-3">
-          <Button variant="secondary" disabled={busy} onClick={async () => {
-            const startedAt = performance.now();
-            setBusy(true); setAnalyzing(true); setNotice(null);
-            try {
-              const aiOpts = getStoredAiSettings();
-              const res = await maintenanceApi.photoReview(task.id, task.revision, false, {
-                provider: aiOpts.provider,
-                model: aiOpts.model,
-                api_key: aiOpts.apiKey,
-              });
-              setLastMeasured({ reviewId: res.id, elapsedMs: res.elapsedMs ?? Math.round(performance.now() - startedAt) });
-              setRefresh(n => n+1);
-            }
-            catch (error) { setNotice(error instanceof Error ? error.message : "Ошибка анализа"); }
-            finally { setBusy(false); setAnalyzing(false); }
-          }}>{analyzing?"Фотографии анализируются…":review?"Повторить анализ":"Анализировать фото"}</Button>
-          <AnalysisTimerBadge active={analyzing} />
-          {analyzing&&<p role="status" className="text-sm leading-6 text-muted">Модель сравнивает фотографии с заданием. Дождитесь результата; повторно нажимать кнопку не нужно.</p>}
-        </div>
-      </div>}
       {DEMO_MODE && <Callout tone="neutral">DEMO · Фото и решения показаны из примера. Анализ и приёмка доступны только при подключении к API.</Callout>}
       <div className="quality-detail-grid fr-work-grid">
         <div className="space-y-6">
-          {hasDocuments && <div id="review-documents"><ActsPanel task={task} execution={execution} editable={false} onSaved={()=>setRefresh(n=>n+1)}/></div>}
-          {execution&&<ExecutionProtocol task={task} execution={execution} value={{actual:execution.actual?{started_at:execution.actual.started_at??"",performed_at:execution.actual.performed_at??"",person_hours:execution.actual.person_hours??""}:null,readings:execution.readings??[]}} onChange={()=>{}} disabled readOnly/>}
-          <Card>
+          <Card id="review-evidence">
             <CardHeader
-              title="Отчёт исполнителя"
-              description={
-                execution?.submittedAt
-                  ? `Отправлен ${formatDateTime(execution.submittedAt)}`
-                  : "Отчёт ещё не отправлен"
-              }
-            />
-            <div className="p-5 sm:p-6">
-              <p className="text-sm leading-6 text-ink-soft">
-                {execution?.narrative || "Комментарий отсутствует."}
-              </p>
-              {execution?.checklist.length ? (
-                <div className="mt-4">
-                  <ChecklistSummary
-                    items={execution.checklist}
-                    mode="quality"
-                  />
-                </div>
-              ) : null}
-            </div>
-          </Card>
-
-          <Card>
-            <CardHeader
-              title="До / после"
+              title="Фотографии исполнителя"
               description="Сравнение по пункту чек-листа и одинаковому ракурсу"
             />
             <div className="p-5 sm:p-6">
@@ -197,18 +155,62 @@ export function QualityTaskPage() {
             </div>
           </Card>
 
+          {query.data.photoAnalysisStatus === "pending" && <Callout tone="neutral"><div className="flex flex-wrap items-center justify-between gap-2"><p role="status">Выполняется анализ фотографий…</p><AnalysisTimerBadge active /></div></Callout>}
+          {canAnalyze && query.data.photoAnalysisStatus !== "pending" && <div className="space-y-4 rounded-xl border border-line p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <Button variant="secondary" disabled={busy} onClick={async () => {
+                const startedAt = performance.now();
+                setBusy(true); setAnalyzing(true); setNotice(null);
+                try {
+                  const aiOpts = getPhotoReviewOptions();
+                  const res = await maintenanceApi.photoReview(task.id, task.revision, false, {
+                    provider: aiOpts?.provider,
+                    model: aiOpts?.model,
+                    api_key: aiOpts?.apiKey,
+                  });
+                  setLastMeasured({ reviewId: res.id, elapsedMs: res.elapsedMs ?? Math.round(performance.now() - startedAt) });
+                  setRefresh(n => n+1);
+                }
+                catch (error) { setNotice(error instanceof Error ? error.message : "Не удалось выполнить анализ фотографий"); }
+                finally { setBusy(false); setAnalyzing(false); }
+              }}>{analyzing ? "Фотографии анализируются…" : !review ? "Анализировать фото" : ["failed", "unavailable"].includes(review.status) ? "Повторить анализ" : "Обновить анализ"}</Button>
+              <AnalysisTimerBadge active={analyzing} />
+              {analyzing&&<p role="status" className="text-sm leading-6 text-muted">Модель сравнивает фотографии с заданием. Дождитесь результата; повторно нажимать кнопку не нужно.</p>}
+            </div>
+            <Disclosure title="Настройки фотоанализа" onToggle={event => {
+              if (event.currentTarget.open) setPhotoSettingsVisited(true);
+            }}>
+              {photoSettingsVisited && <AiModelSelector variant="compact" />}
+            </Disclosure>
+          </div>}
           {query.data.photoAnalysisStatus !== "pending" && <PhotoReviewCard review={review} formatDateTime={formatDateTime} fallbackElapsedMs={lastMeasured && review?.id === lastMeasured.reviewId ? lastMeasured.elapsedMs : null}/>}
+          <Button variant="secondary" onClick={()=>setFactsOpen(true)}>Факты и документы</Button>
+          <Modal open={factsOpen} size="wide" title={`Факты и документы · ${task.code}`}
+            description={execution?.submittedAt ? `Попытка №${execution.attemptNumber} · Отправлен ${formatDateTime(execution.submittedAt)}` : "Отчёт ещё не отправлен"}
+            onClose={()=>setFactsOpen(false)}>
+            <div className="space-y-6">
+              <section>
+                <h3 className="mb-2 text-lg font-semibold">Ответы исполнителя</h3>
+                {execution?.checklist.length ? <ChecklistSummary items={execution.checklist} mode="quality"/> : <p className="text-muted">Ответов пока нет.</p>}
+                {execution?.narrative && <p className="mt-4 whitespace-pre-wrap break-words text-ink-soft">{execution.narrative}</p>}
+              </section>
+              {execution&&<ExecutionProtocol task={task} execution={execution} value={{actual:execution.actual?{started_at:execution.actual.started_at??"",performed_at:execution.actual.performed_at??"",person_hours:execution.actual.person_hours??""}:null,readings:execution.readings??[]}} onChange={()=>{}} disabled readOnly/>}
+              {hasDocuments&&<ActsPanel task={task} execution={execution} editable={false} onSaved={()=>setRefresh(n=>n+1)}/>}
+            </div>
+          </Modal>
         </div>
 
         <div id="review-decision" className="space-y-6 quality-decision-rail">
           {canReview&&<Card>
-            <CardHeader title="Основание решения" />
+            <CardHeader title="Текущая попытка" />
             <div className="p-5 sm:p-6">
               <InfoList className="grid grid-cols-2 gap-4">
                 <InfoItem
                   label="Обязательный срок"
                   value={formatDate(task.mandatoryDueDate)}
                 />
+                <InfoItem label="Отправлено" value={formatDateTime(execution?.submittedAt??null)} />
+                <InfoItem label="Исполнитель" value={task.assignees.map(person=>person.name).join(", ")||"Не указан"} />
                 <InfoItem label="Ревизия" value={String(task.revision)} />
               </InfoList>
               <p className="mt-4 text-xs leading-5 text-muted">
@@ -216,7 +218,7 @@ export function QualityTaskPage() {
                 неуверенного AI-результата она служит основанием ручной оценки.
               </p>
 
-              <div className="fr-decision-facts"><p>Фото этой попытки: {execution?.photos.length??0}.{hasDocuments && <> <a href="#review-documents">Документы и проверки</a></>}</p>{task.requiredActs?.map(kind=><p key={kind}>{kind}: {execution?.acts?.some(a=>a.kind===kind&&a.verified)?"проверен":execution?.acts?.some(a=>a.kind===kind)?"ожидает проверки":"не приложен"}</p>)}<p>AI не принимает работу. Скрытые операции и точность прибора требуют ручной проверки.</p>{review?.limitations.map(text=><p key={text}>{text}</p>)}</div>
+              <div className="fr-decision-facts"><p>Фото этой попытки: {execution?.photos.length??0}.</p>{hasDocuments&&<button type="button" onClick={()=>setFactsOpen(true)}>Документы и проверки</button>}{task.requiredActs?.map(kind=><p key={kind}>{kind}: {execution?.acts?.some(a=>a.kind===kind&&a.verified)?"проверен":execution?.acts?.some(a=>a.kind===kind)?"ожидает проверки":"не приложен"}</p>)}<p>Скрытые операции и точность прибора требуют ручной проверки.</p>{review?.limitations.filter(text=>text.replace(/\.$/,"")!=="Проверьте фотографии самостоятельно").map(text=><p key={text}>{text}</p>)}</div>
               <FormField
                 label="Причина решения"
                 htmlFor="quality-reason"
@@ -240,10 +242,11 @@ export function QualityTaskPage() {
               {notice ? (
                 <div role="alert"><Callout tone="danger" className="mt-3 text-xs">{notice}</Callout></div>
               ) : null}
+              {lateMvp && <Callout tone="neutral">Просроченная приёмка требует отдельного согласования вне оперативного профиля MVP.</Callout>}
 
               <div className="mt-4 grid gap-2">
                 <Button
-                  disabled={!reason.trim() || busy || !canReview}
+                  disabled={!reason.trim() || busy || !canReview || lateMvp}
                   onClick={() => setPendingDecision("accepted")}
                 >
                   <Icon name="check" size={18} />
@@ -268,7 +271,7 @@ export function QualityTaskPage() {
         </div>
       </div>
       <ChiefActions task={task} onSaved={()=>setRefresh(n=>n+1)}/>
-      <AttemptHistory taskId={task.id}/>
+      <details className="fr-rule-section"><summary>История проверки и предыдущие попытки</summary><AttemptHistory taskId={task.id}/></details>
       <Modal
         open={pendingDecision !== null}
         title={

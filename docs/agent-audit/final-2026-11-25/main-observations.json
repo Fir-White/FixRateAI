@@ -1,0 +1,2432 @@
+{
+  "E01": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "По всему объекту (включая завершённые и отменённые) заведено **992 наряда**.\n\n- На проверке: **3**\n- Отменено: **57**\n- Остальное: завершено 906, в работе 10, назначено 10, черновиков 5, на доработке 1, на уточнении 0\n- Сегодня, 25.11.2026: 2 наряда\n\nЕсли для сводки нужны коды трёх нарядов на проверке — скажите, выведу.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 5.36,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.219,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 1.328
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.641,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E02": {
+    "grade": "partial",
+    "replies": [
+      {
+        "answer": "Незакрытых нарядов на 26–27 ноября — 12. Начало и состояние (по плановой дате):\n\n**26 ноября**\n- 08:00 — Контроль уставок резерва (Шкаф защиты контура) — черновик\n- 08:00 — Север · Контроль отличительной наклейки (Щит «Маяк Север») — черновик\n- 09:00 — Север · Утренняя занятость Гаммы (Щит «Маяк Север») — назначен\n- 10:00 — Север · Доверка маркировки (Манометр «Рубеж») — назначен\n- 11:00 — Проверка контрольной бирки (Шкаф защиты контура) — в работе\n- 13:00 — Север · Сверка номера стакана (Кассетный фильтр «Иней») — назначен\n- 13:00 — Проверка контрольной пломбы (Узел тепловой рециркуляции) — в работе\n- 15:00 — Север · Проверка упаковки метки (Манометр «Рубеж») — назначен\n- без времени начала — Север · Проверка учебной панели (Щит «Маяк Север») — черновик\n\n**27 ноября**\n- без времени начала — Север · Учёт рамки кожуха (Щит «Маяк Север») — черновик\n- 10:00 — Север · Осмотр маркировки сухого канала (Контур «Суховей») — назначен\n- 10:00 — Осмотр резервной индикации (Шкаф защиты контура) — назначен\n\nПять из них в черновике и без исполнителя (092af5c7, 048efc26, ad8fe4f6, 01f9581a, 1568cb75 назначен).",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 7.485,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.515,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.078
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.937,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.031
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 3.391,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E03": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Просрочку подтверждает только один из двух — по обязательному сроку.\n\n- **«Север · Осмотр кабельной бирки»** — просрочен. Обязательный срок был 21.11.2026 16:00, просрочка 3 дня 19 ч 51 мин. Статус «в работе», критичность критичная, исполнителей нет. Окно тоже прошло (20.11, 10:00–11:00).\n- **«Север · Уплотнение седла»** — не просрочен. Плановое окно закрылось 24.11 (11:00–12:00), но обязательный срок — 27.11.2026 17:00, до него ещё 3188 минут. Наряд назначен, статус «назначен».\n\nИтог: на планёрке к «Уплотнению седла» применили именно окончание окна, а не обязательный срок. Что дальше — проверить готовность к сдаче по бирке или посмотреть назначения по Уплотнению?",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 6.938,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 3.578,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.047
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.094
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.625,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E04": {
+    "grade": "partial",
+    "replies": [
+      {
+        "answer": "Завтра, 26 ноября, без исполнителей — 3 наряда:\n\n1. **Север · Проверка учебной панели** — Щит «Маяк Север», ТО2, 60 мин. Плановое окно не задано, срок 26.11. Черновик.\n2. **Контроль уставок резерва** — Шкаф защиты контура, ТО2, 08:00–09:00, срок 28.11. Черновик.\n3. **Север · Контроль отличительной наклейки** — Щит «Маяк Север», ТО2, 08:00–09:00, срок 28.11. Черновик.\n\nВсе три — черновики без назначенного состава. Суммарно известная плановая длительность 120 минут (у первого окна нет), это не полная трудоёмкость дня.\n\nЕсли нужно, подберу состав и подготовлю карточку назначения по конкретному наряду.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 4.079,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.953,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.047
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.922,
+            "transport": "native"
+          }
+        ]
+      },
+      {
+        "answer": "Завтра, 26 ноября, по блоку «Север» всего 9 нарядов: 6 уже с исполнителями, 3 без состава (те, что были выше).\n\n**Назначенные:**\n1. **Север · Утренняя занятость Гаммы** — Щит «Маяк Север», ТО2, 09:00–10:00, назначен, Оператор Гамма, срок 27.11.\n2. **Север · Доверка маркировки** — Манометр «Рубеж», ТО1, 10:00–10:35, назначен, Учебный исполнитель, срок 28.11.\n3. **Проверка контрольной бирки** — Шкаф защиты контура, ТО2, 11:00–11:30, в работе, Другой учебный исполнитель, срок 28.11.\n4. **Север · Сверка номера стакана** — Кассетный фильтр «Иней», ТО2, 13:00–14:00, назначен, Учебный исполнитель, срок 28.11.\n5. **Проверка контрольной пломбы** — Узел тепловой рециркуляции, ТО2, 13:00–14:00, в работе, Другой учебный исполнитель, срок 28.11.\n6. **Север · Проверка упаковки метки** — Манометр «Рубеж», ТО1, начало 15:00, конец окна не задан, назначен, Учебный исполнитель, срок 28.11.\n\nПлановые окна: 305 минут известных, у двух нарядов окно неполное — это не полная трудоёмкость дня. Просроченных среди них нет; два наряда (№3 и №5) уже в работе.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 4.812,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.641,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.047
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.39,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E05": {
+    "grade": "partial",
+    "replies": [
+      {
+        "answer": "**Итог: требуют контроля 11 уникальных нарядов, у одного из них сразу две причины.**\n\nДве причины у одного наряда:\n- **«Север · Осмотр кабельной бирки»** — Щит «Маяк Север», план 20.11, обязательный срок прошёл 21.11 в 16:00 (просрочка 3 дн. 19 ч 51 мин), критичный приоритет, **и просрочен, и без исполнителя**. Плюс плановое окно (10:00–11:00) уже закрыто — начинать сейчас без согласования нельзя.\n\nОстальные 10 — по одной причине:\n\nПросрочены (обязательный срок истёк):\n- Осмотр соединений секции — Секция аварийного питания, 12.11, в работе, просрочка 11 дн. 17 ч 51 мин\n- Снять показания контура — Узел тепловой рециркуляции, 18.11, в работе, просрочка 5 дн. 17 ч 51 мин\n- Учебный отчёт без приёмки — Секция аварийного питания, 22.11, на проверке, просрочка 1 д. 17 ч 51 мин; требуется разрешение главного инженера (поздняя приёмка заблокирована)\n- Север · Проверка опор — Щит «Маяк Север», 23.11, на проверке, просрочка 19 ч 51 мин; тоже требует разрешения главного инженера\n\nНа доработке (не просрочен, срок до 27.11 16:00):\n- Север · Чистка стакана — Кассетный фильтр «Иней», 22.11, окно прошло\n\nБез назначенного состава (сроки ещё впереди):\n- Север · Проверка учебной панели — Щит «Маяк Север», план 26.11, окно не задано\n- Север · Контроль отличительной наклейки — Щит «Маяк Север», план 26.11, 08:00–09:00\n- Север · Учёт рамки кожуха — Щит «Маяк Север», план 27.11, окно не задано\n- Север · Внеплановая сверка ярлыка — Щит «Маяк Север», дата не задана\n- Контроль уставок резерва — Шкаф защиты контура, план 26.11, 08:00–09:00\n\nНаряд «092af5c7» (Север · Проверка учебной панели) и «048efc26» проходят по вниманию только из-за отсутствия исполнителей — это не просрочка.\n\nЕсли нужно, могу отдельно посмотреть, кто свободен и с допусками на 26.11 для двух нарядов со Щитом «Маяк Север» в 08:00–09:00.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 5.781,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.609,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.047
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 3.953,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E06": {
+    "grade": "partial",
+    "replies": [
+      {
+        "answer": "По «Северу» требуют решения 7 нарядов. Нарядов на приёмке, ждущих моего решения, среди них только один — остальное это просрочки и нераспределённые работы.\n\n**Реально ждут решения:**\n\n1. **«Север · Проверка опор»** — Щит «Маяк Север», план 23.11. Сдан на проверку (`in_review`), но обязательный срок был 24.11 16:00, просрочка 19 ч 51 мин. Приёмка с опозданием заблокирована: нужно разрешение главного инженера. Решение по приёмке — за главным инженером, не за мной.\n2. **«Север · Чистка стакана»** — Кассетный фильтр «Иней», план 22.11. Возвращён на доработку, исполнитель Учебный исполнитель. Срок ещё есть (до 27.11 16:00), но окно планового дня уже прошло — начинать сейчас только по согласованию.\n\n**Просрочено и без исполнителя:**\n\n3. **«Север · Осмотр кабельной бирки»** — Щит «Маяк Север», план 20.11, критичный приоритет, статус «в работе», но состав не назначен. Срок истёк 21.11 16:00, просрочка 3 дня 19 ч 51 мин.\n\n**Черновики без назначенного состава:**\n\n4. «Север · Проверка учебной панели» — Щит «Маяк Север», план 26.11 (окно не задано).\n5. «Север · Контроль отличительной наклейки» — Щит «Маяк Север», план 26.11, 08:00–09:00.\n6. «Север · Учёт рамки кожуха» — Щит «Маяк Север», план 27.11 (окно не задано).\n7. «Север · Внеплановая сверка ярлыка» — Щит «Маяк Север», без плановой даты и срока.\n\nЕсли под «реально ждут решения» имелись в виду только приёмка и доработка — это пункты 1 и 2. Могу разобрать карточку по любому из них или проверить допуски и загрузку для назначения.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 6.312,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.188,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.047
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 4.594,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E07": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Ближайший наряд по фильтру «Иней» уже заведён — это не расчётная дата.\n\n- Наряд: Север · Сверка номера стакана, ТО2\n- Оборудование: кассетный фильтр «Иней» (SN-FLT-07, насосный зал Н1)\n- Плановый день: 26.11.2026, окно 13:00–14:00 (60 мин)\n- Обязательный срок: 28.11.2026 16:00\n- Состояние: назначен, исполнитель — Учебный исполнитель\n\nДругих будущих нарядов по этой единице среди незавершённых нет.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 6.328,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.453,
+            "transport": "native"
+          },
+          {
+            "tool": "find_equipment",
+            "status": "completed",
+            "seconds": 0.015
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.594,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.047
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.703,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E08": {
+    "grade": "partial",
+    "replies": [
+      {
+        "answer": "На 27.11.2026 в блоке «Север» три наряда:\n\n1. **Север · Учёт рамки кожуха** — Щит «Маяк Север», ТО2, 60 мин, черновик, **исполнители не назначены**, окно ещё не задано. Обязательный срок — 28.11, 16:00.\n2. **Север · Осмотр маркировки сухого канала** — Контур «Суховей», ТО3, 10:00–11:00, назначен (Учебный исполнитель). Срок — 29.11, 17:00.\n3. **Осмотр резервной индикации** — Шкаф защиты контура, ТО2, 10:00–11:00, назначен (Другой учебный исполнитель). Срок — 29.11, 18:00.\n\nСумма известных плановых окон — 120 минут; по первому наряду окно не задано, поэтому это не полный итог по дню.\n\nПриоритет — учёт рамки кожуха: единственный без состава. Могу проверить по нему доступный состав на 27.11.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 7.735,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 4.547,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.031
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.813,
+            "transport": "native"
+          }
+        ]
+      },
+      {
+        "answer": "На 26.11.2026 в блоке «Север» девять нарядов. Начало задано у восьми:\n\n- **08:00** — «Контроль уставок резерва», Шкаф защиты контура, ТО2, черновик, без исполнителей.\n- **08:00** — «Север · Контроль отличительной наклейки», Щит «Маяк Север», ТО2, черновик, без исполнителей.\n- **09:00** — «Север · Утренняя занятость Гаммы», Щит «Маяк Север», ТО2, назначен (Оператор Гамма).\n- **10:00** — «Север · Доверка маркировки», Манометр «Рубеж», ТО1, назначен (Учебный исполнитель).\n- **11:00** — «Проверка контрольной бирки», Шкаф защиты контура, ТО2, в работе (Другой учебный исполнитель).\n- **13:00** — «Север · Сверка номера стакана», Кассетный фильтр «Иней», ТО2, назначен (Учебный исполнитель).\n- **13:00** — «Проверка контрольной пломбы», Узел тепловой рециркуляции, ТО2, в работе (Другой учебный исполнитель).\n- **15:00** — «Север · Проверка упаковки метки», Манометр «Рубеж», ТО1, назначен; время начала есть, конец окна не задан.\n\nБез начала: «Север · Проверка учебной панели» — Щит «Маяк Север», ТО2, 60 мин, черновик, без исполнителей; обязательный срок 27.11, 00:00.\n\nИз девяти два черновика без состава на 08:00 — ближайшие по времени.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 5.75,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.562,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.047
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 3.469,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E09": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "По названию «Маяк Север» в доступном оборудовании одна единица:\n\n- **Щит «Маяк Север»** — инвентарный код **SN-AV-41**, помещение **Зал Н3**, состояние: в работе (active).\n\nДругих совпадений по «Маяк Север» в выборке нет, так что резервный шкаф из соседней зоны сюда не попал.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 4.063,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.61,
+            "transport": "native"
+          },
+          {
+            "tool": "find_equipment",
+            "status": "completed",
+            "seconds": 0.015
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.235,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E10": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Нет, циклы разные.\n\n- **Щит «Маяк Север»** (SN-AV-41, Зал Н3) — ТО2 «Север · Проверка учебной панели», раз в месяц (интервал 1 месяц, привязка 2026-11-26). Действует с 26.10.2026, без срока окончания. Бригада 2 человека, 60 мин.\n- **Манометр «Рубеж»** (SN-GA-02, Зал Н2) — ТО1 «Учебный осмотр шкалы», раз в день (интервал 1 день, привязка 2026-09-26). Действует с 26.09.2026, без срока окончания. 1 человек, 60 мин.\n\nОба регламента опубликованы и действуют на сегодня, 25.11.2026 — других действующих строк по этим единицам нет.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 5.766,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.437,
+            "transport": "native"
+          },
+          {
+            "tool": "find_equipment",
+            "status": "completed",
+            "seconds": 0.016
+          },
+          {
+            "tool": "find_equipment",
+            "status": "completed",
+            "seconds": 0.015
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.672,
+            "transport": "native"
+          },
+          {
+            "tool": "read_regulations",
+            "status": "completed",
+            "seconds": 0.031
+          },
+          {
+            "tool": "read_regulations",
+            "status": "completed",
+            "seconds": 0.015
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.281,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E11": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "- «Учебная квартальная сверка» (ТО3): **Опубликован, но ещё не действует.** Начало: 2026-12-02. Периодичность: раз в квартал.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 5.203,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.297,
+            "transport": "native"
+          },
+          {
+            "tool": "find_equipment",
+            "status": "completed",
+            "seconds": 0.016
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.562,
+            "transport": "native"
+          },
+          {
+            "tool": "read_regulations",
+            "status": "completed",
+            "seconds": 0.016
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.813,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E12": {
+    "grade": "invalid_fixture",
+    "replies": [
+      {
+        "answer": "По фильтру «Иней» найдена одна единица — кассетный фильтр «Иней» (SN-FLT-07, насосный зал Н1). Факты по ней:\n\n**Последнее подтверждённое выполнение** — наряд «Проверка фильтра по плану» (код 39f975ed), плановая дата 10.11.2026, отчёт рассмотрен, приёмка 12.11.2026. Важно: сохранённая дата выполнения отсутствует — запись опирается только на сдачу 11.11.2026, поэтому дату фактического выполнения назвать нельзя.\n\n**Последняя попытка без принятия** — наряд «Чистка стакана» (код e65a616c), плановая дата 22.11.2026, окно 10:00–11:00. По ней есть попытка №2 в статусе черновика (не на приёмке), а решение по предыдущей попытке — отказ 23.11.2026 с причиной: нет общего плана и не читается маркировка бирки. Состояние наряда в системе доступно: «требуется доработка». Обязательный срок — 27.11.2026 16:00, просрочки нет.\n\nЕсли нужно, могу проверить комплектность текущей попытки перед сдачей.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 9.141,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.203,
+            "transport": "native"
+          },
+          {
+            "tool": "find_equipment",
+            "status": "completed",
+            "seconds": 0.016
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.375,
+            "transport": "native"
+          },
+          {
+            "tool": "read_equipment_service_history",
+            "status": "completed",
+            "seconds": 0.015
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.031
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.984,
+            "transport": "native"
+          },
+          {
+            "tool": "read_work_order",
+            "status": "completed",
+            "seconds": 0.047
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 3.141,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E13": {
+    "grade": "invalid_fixture",
+    "replies": [
+      {
+        "answer": "Завтра, 26.11.2026, в команде 5 исполнителей (видна вся выборка):\n\n| Исполнитель | Назначенные минуты |\n|---|---|\n| Оператор Альфа | 0 |\n| Оператор Бета | 0 |\n| Оператор Гамма | 60 |\n| Учебный исполнитель | неизвестно |\n| Другой учебный исполнитель | неизвестно |\n\nГде система не знает загрузку: «Учебный исполнитель» и «Другой учебный исполнитель» — у действующих назначений не определён интервал занятости, поэтому 0 минут у них не подтверждён.\n\nНужен разбор по конкретному окну (например, 08:00–17:00) — скажите интервал, пересчитаю доступность.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 6.844,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 3.813,
+            "transport": "native"
+          },
+          {
+            "tool": "read_workforce_load",
+            "status": "denied",
+            "seconds": 0.0
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.141,
+            "transport": "native"
+          },
+          {
+            "tool": "read_workforce_load",
+            "status": "completed",
+            "seconds": 0.047
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.609,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E14": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Да, окно 11:30–12:30 завтра (26.11) у Оператора Гамма свободно: в этот интервал пересечений нет, подтверждённая занятость за день — 60 минут (его утренняя работа). Уточню, что это проверка только занятости: допуски к конкретной операции не проверялись, для этого нужен сам наряд. Ничего не назначал.\n\nДополнительно: доступность Альфы и Беты в этом окне тоже свободна, если понадобится замена.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 3.5,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.281,
+            "transport": "native"
+          },
+          {
+            "tool": "read_workforce_load",
+            "status": "completed",
+            "seconds": 0.032
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.968,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E15": {
+    "grade": "partial",
+    "replies": [
+      {
+        "answer": "Не смог подобрать состав: чтение загрузки не принимает мои параметры окна (сервер отвечает, что время нужно без смещения UTC), а без него сравнивать людей по загрузке нельзя.\n\nЧто уже подтверждено по наряду «Север · Проверка учебной панели» (код 092af5c7, Щит «Маяк Север»):\n- состояние — черновик, плановая дата 26.11.2026, обязательный срок 27.11.2026 00:00, окно на 09:00–10:00 в наряде не задано;\n- требуется 2 человека, исполнителей нет;\n- инструкция: только обесточенный учебный макет, дверцу не открывать.\n\nНепроверенная существенная часть — загрузка и допуски: конкретных фамилий и «самого лёгкого» варианта на 09:00–10:00 назвать не могу. Скажите время окна в формате, который принимает система (например, без часового пояса), и я продолжу сравнение по загрузке и проверю допуски — без оформления.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 27.813,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.407,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.047
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 10.375,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.046
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.047
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 3.766,
+            "transport": "native"
+          },
+          {
+            "tool": "read_work_order",
+            "status": "completed",
+            "seconds": 0.015
+          },
+          {
+            "tool": "read_workforce_load",
+            "status": "denied",
+            "seconds": 0.0
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.578,
+            "transport": "native"
+          },
+          {
+            "tool": "read_workforce_load",
+            "status": "denied",
+            "seconds": 0.0
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.937,
+            "transport": "native"
+          },
+          {
+            "tool": "read_workforce_load",
+            "status": "denied",
+            "seconds": 0.016
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.312,
+            "transport": "native"
+          },
+          {
+            "tool": "read_workforce_load",
+            "status": "denied",
+            "seconds": 0.0
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.844,
+            "transport": "native"
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 3.75,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E16": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Наряд «Север · Проверка учебной панели» (092af5c7) — черновик на 26 ноября, Щит «Маяк Север», нужен состав из 2 человек с допуском к учебному узлу, работа 60 минут. Окно наряда на день не задано, проверка подобрала 09:00–10:00, то есть «утром».\n\nКто подходит на это окно:\n- **Оператор Альфа** — свободен, загрузка 0.\n- **Оператор Бета** — свободен, загрузка 0.\n- **Оператор Гамма** — подходит, но занят 60 минут и может начать только с 10:00, к 09:00 не попадает.\n\nНе проходят: «Учебный исполнитель» и «Другой учебный исполнитель» — нет требуемой квалификации и не заданы рабочие интервалы.\n\nЭто только проверка, ничего не назначено. Если Альфа и Бета устраивают, скажите — подготовлю карточку назначения.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 10.313,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.171,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.031
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.594,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.032
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.671,
+            "transport": "native"
+          },
+          {
+            "tool": "read_work_order",
+            "status": "completed",
+            "seconds": 0.032
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.328,
+            "transport": "native"
+          },
+          {
+            "tool": "check_assignment",
+            "status": "completed",
+            "seconds": 0.078
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 3.156,
+            "transport": "native"
+          }
+        ]
+      },
+      {
+        "answer": "Оператор Гамма не подходит на утреннее окно 09:00–10:00: у него уже есть занятость 60 минут, и начать он может только с 10:00, то есть к 09:00 не попадает. По квалификации он проходит, но по времени — нет. У Оператора Бета и Оператора Альфа загрузка 0 минут, оба свободны на это окно, поэтому они и стоят в списке кандидатов под наряд из 2 человек.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 3.469,
+        "trace": [
+          {
+            "tool": "__model",
+            "status": "completed",
+            "seconds": 3.266,
+            "transport": "structured"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E17": {
+    "grade": "partial",
+    "replies": [
+      {
+        "answer": "Нет, в одиночку не получится: по наряду «Север · Проверка учебной панели» (Щит «Маяк Север», плановая дата 26.11.2026) требуется состав из 2 человек. Проверка состава с одним только Оператором Альфа отклоняется — нужен полный состав по требуемой численности.\n\nДопуск у Альфа есть (DEMO: допуск к учебному узлу), загрузка на этот день нулевая. Вторым подходящим кандидатом сервер подобрал Оператора Бета; Оператор Гамма тоже допущен, но у него уже 60 минут занятости и он свободен только с 10:00.\n\nДействие не готовил. Если нужно — подготовлю карточку назначения на полный состав (Альфа + Бета).",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 11.437,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.25,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.047
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.687,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.031
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.421,
+            "transport": "native"
+          },
+          {
+            "tool": "read_work_order",
+            "status": "completed",
+            "seconds": 0.016
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.656,
+            "transport": "native"
+          },
+          {
+            "tool": "check_assignment",
+            "status": "completed",
+            "seconds": 0.031
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.844,
+            "transport": "native"
+          },
+          {
+            "tool": "check_assignment",
+            "status": "denied",
+            "seconds": 0.031
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.984,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E18": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Карточка назначения подготовлена. Назначение не выполнено. Проверьте состав и нажмите «Подтвердить» в карточке.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 10.312,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.328,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.031
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.531,
+            "transport": "native"
+          },
+          {
+            "tool": "read_work_order",
+            "status": "completed",
+            "seconds": 0.015
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.125,
+            "transport": "native"
+          },
+          {
+            "tool": "check_assignment",
+            "status": "completed",
+            "seconds": 0.063
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 3.484,
+            "transport": "native"
+          },
+          {
+            "tool": "propose_assignment",
+            "status": "proposed",
+            "seconds": 0.172
+          }
+        ]
+      }
+    ],
+    "actions": [
+      {
+        "tool_name": "task_assign",
+        "status": "proposed",
+        "arguments": {
+          "body": {
+            "end_at": "2026-11-26T10:00:00+05:00",
+            "reason": "Проверка сигнальной маркировки по учебному регламенту; Альфа и Бета допущены, состав 2 из 2, окно 26.11 09:00–10:00 свободно.",
+            "crew_id": null,
+            "start_at": "2026-11-26T09:00:00+05:00",
+            "executor_ids": [
+              "346221f4-8429-841b-9a0a-8ba2ffa9a9fc",
+              "6f51aa9c-9bba-9774-f66c-9d2c8ddb0c78"
+            ],
+            "schema_version": "maintenance-0.1",
+            "expected_revision": 1
+          },
+          "path": {
+            "task_id": "092af5c7-75f4-91c9-71a6-16d503f94125"
+          },
+          "query": {}
+        }
+      }
+    ]
+  },
+  "E19": {
+    "grade": "partial",
+    "replies": [
+      {
+        "answer": "Состав Альфа + Бета проходит проверку, но окно в наряде пока не задано — сервер проверил интервал 09:00–10:00. Время 16:10–17:10 я менять не буду, поэтому сначала уточни: сохранять окно 16:10–17:10 в карточке назначения или согласовать 09:00–10:00?\n\n- Наряд: «Север · Проверка учебной панели», Щит «Маяк Север», 2026-11-26, черновик, 60 мин, обязательный срок до 2026-11-27 00:00, требуется 2 человека.\n- Проверка состава: Оператор Альфа и Оператор Бета — оба подходят (загрузка за день 0 мин), допуск к учебному узлу подтверждён.\n- У Альфы и Беты в этом наряде пока нет сохранённого окна, поэтому карточку с окном 16:10–17:10 сразу подготовить нельзя.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 24.922,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.375,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.031
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.61,
+            "transport": "native"
+          },
+          {
+            "tool": "read_work_order",
+            "status": "completed",
+            "seconds": 0.015
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.938,
+            "transport": "native"
+          },
+          {
+            "tool": "check_assignment",
+            "status": "completed",
+            "seconds": 0.046
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 19.36,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E20": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "**Наряд «Север · Чистка стакана»** (e65a616c), оборудование — кассетный фильтр «Иней» (SN-FLT-07), ТО2, исполнитель — Учебный исполнитель. Наряд в состоянии «доработка», не просрочен: плановое окно было 22.11, 10:00–11:00, обязательный срок — 27.11, 16:00.\n\n**Нынешняя попытка — №2, черновик, на приёмку не передавалась:**\n- Чек-лист пуст по ответам: обязательный пункт «Сверить лицевую маркировку» (с фото) не отмечен, необязательный «Цвет наклейки» тоже.\n- Фотографий в попытке нет вообще.\n- Учтён расход: «Учебные контрольные наклейки» — 2 шт.\n- Готовность к приёмке: `ready=false`. Не хватает ответа по пункту 1 и пары фото «до и после» с одного ракурса. К передаче сейчас не готово и по формальной причине: отчёт — черновик в исполнении.\n\n**Чем отличается от возвращённой (попытка №1, `reviewed`):**\n- Её отклонил учебный главный инженер 23.11 в 13:00 с причиной: «Нет общего плана и не читается маркировка бирки; приложите общий план и снимок бирки крупно».\n- То есть возврат был по доказательствам (общий план + читаемая бирка крупно), а не по содержанию работ. В нынешней попытке фото пока ноль, так что именно это замечание ещё не закрыто.\n\nИнструкция по наряду: только обесточенный учебный макет, дверцу не открывать, сверить наклейку с картой, осмотреть лицевую панель и отметить результат.\n\nСледующий шаг — исполнителю заполнить пункт 1 и приложить общий план и крупный снимок бирки по пункту, затем передать отчёт на проверку; приёмку подтверждает главный инженер.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 9.125,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.344,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.047
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.468,
+            "transport": "native"
+          },
+          {
+            "tool": "read_work_order",
+            "status": "completed",
+            "seconds": 0.032
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.922,
+            "transport": "native"
+          },
+          {
+            "tool": "check_acceptance_readiness",
+            "status": "completed",
+            "seconds": 0.031
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 3.938,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E21": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Статус «на проверке» — только факт, что отчёт передан, а не подтверждение комплектности. По наряду «Север · Проверка опор» (b8698a3d, Щит «Маяк Север» SN-AV-41, ТО2, попытка №1) формальная готовность к приёмке — **нет**.\n\nПрепятствия:\n\n- **Комплект неполный:** обязательный пункт 1 «Сверить лицевую маркировку» без ответа, и к нему нет обязательных фото «до и после» с одного ракурса — фотографий в попытке нет вообще. Необязательный пункт «Цвет наклейки» тоже не заполнен.\n- **Просроченная приёмка:** обязательный срок был 24.11.2026 16:00, отчёт сдан 25.11.2026 07:00. Для такой приёмки нужно разрешение главного инженера с указанием причины — независимо от комплектности.\n- **Права:** вам решение по этой попытке недоступно (вам как обычному инженеру — только проверить доказательства). Подтверждает приёмку главный инженер.\n- Сама попытка уже передана на приёмку, поэтому повторно сдать её нельзя.\n\nИтого: чтобы двинуть дальше, исполнителю нужно дополнить отчёт ответом и фото по пункту 1, а приёмку в любом случае оформляет главный инженер с разрешением на просрочку.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 6.859,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.484,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.031
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.297,
+            "transport": "native"
+          },
+          {
+            "tool": "read_work_order",
+            "status": "completed",
+            "seconds": 0.032
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.125,
+            "transport": "native"
+          },
+          {
+            "tool": "check_acceptance_readiness",
+            "status": "completed",
+            "seconds": 0.032
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.484,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E22": {
+    "grade": "partial",
+    "replies": [
+      {
+        "answer": "Порядок для блока «Север» — три шага по убыванию срочности. График не меняю, только очерёдность.\n\n**1. Закрыть критичную просрочку, где нет исполнителя**\n«Север · Осмотр кабельной бирки», Щит «Маяк Север», срок был 21.11 16:00 — просрочка 3 дня 20 ч, приоритет критический, состав пуст, наряд уже в работе. Это единственная позиция «Севера», где срыв срока сочетается с отсутствием ответственного. Окно (20.11, 10:00–11:00) закрыто, начинать сейчас без согласования нельзя — сначала назначить состав. По инструкции: макет обесточен, дверцу не открывать, сверить наклейку с картой, осмотреть лицевую панель; в чек-листе обязателен пункт «Сверить лицевую маркировку» с фото.\n\n**2. Разобрать два просроченных отчёта, ожидающих приёмки**\n«Север · Проверка опор» (срок 24.11 16:00) и «Учебный отчёт без приёмки» (срок 23.11 18:00) — оба на проверке, у обоих `lateAcceptanceBlocked`, то есть требуется разрешение главного инженера. Проверить доказательства может инженер, но подтверждает приёмку только главный инженер — их и стоит привлечь.\n\n**3. Не дать сорваться ближайшим срокам завтрашнего дня**\nНа 26.11 в «Севере» три черновика без исполнителя: «Проверка учебной панели» (срок 27.11 00:00), «Контроль отличительной наклейки» (окно 08:00–09:00), «Учёт рамки кожуха» (срок 28.11 16:00). Ещё «Проверка упаковки метки» назначена, но у окна не указан конец — стоит уточнить. Эти наряды не просрочены, но без состава к сроку не выйдут.\n\nЕсли нужно — проверю допуски и подготовлю карточку назначения на «Осмотр кабельной бирки».",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 11.422,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 3.718,
+            "transport": "native"
+          },
+          {
+            "tool": "read_work_order_analysis",
+            "status": "completed",
+            "seconds": 0.141
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.031
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.796,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.047
+          },
+          {
+            "tool": "read_work_order",
+            "status": "completed",
+            "seconds": 0.032
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 4.375,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E23": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Код шкафа «Маяк Север» — **SN-AV-41** (щит, Зал Н3).\n\nПравило на нём одно: «Север · Проверка учебной панели» (DEMO-ALG03), ТО2, раз в месяц.\n\nПо редакции: правило **действует сейчас** (effective_from 26.10.2026, срок не истёк), редакция 1, версия правила 1. Дата начала текущей смены в доступных данных не сохранена — в карточке есть только даты действия редакции. Сравнить «свежесть» с началом смены я не могу; если назовёте время начала смены, сверю с датой 26.10.2026.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 5.172,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.188,
+            "transport": "native"
+          },
+          {
+            "tool": "find_equipment",
+            "status": "completed",
+            "seconds": 0.015
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.031,
+            "transport": "native"
+          },
+          {
+            "tool": "read_regulations",
+            "status": "completed",
+            "seconds": 0.016
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.281,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E24": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Нет, мастер ошибается — исключать этот наряд из задач на завтра нельзя.\n\n- «Север · Контроль отличительной наклейки» (щит «Маяк Север», ТО2) стоит в плане на 26.11.2026, 08:00–09:00, обязательный срок — 28.11.2026 16:00.\n- Состояние — **черновик**: исполнения нет, отчёта нет, решения о приёмке нет, ни одного исполнителя не назначено. Сданным он не является.\n- Команда одна (нужен 1 человек), а состав пуст — это и есть причина «требует внимания».\n\nСкорее всего, мастер принял за сдачу что-то другое: в доступных вам нарядах по этому названию есть только один — этот черновик.\n\nДальше: скажите, и я подберу состав на сохранённое окно 26.11, 08:00–09:00 и подготовлю карточку назначения.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 7.969,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.703,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.031
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.406,
+            "transport": "native"
+          },
+          {
+            "tool": "read_work_order",
+            "status": "completed",
+            "seconds": 0.016
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 4.359,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "E25": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Нашёл: «Север · Внеплановая сверка ярлыка» (код 921a934f), оборудование — Щит «Маяк Север», ТО2, 60 мин.\n\nОбязательного срока нет. Обязательный срок и точный дедлайн в карточке не заданы; плановая дата и окно тоже не заполнены. Наряд в черновике, исполнители не назначены — отсюда единственная причина внимания «не назначен состав».\n\nЕсли нужен срок, его должен задать инженер при постановке наряда; сейчас по этому наряду просрочки быть не может.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 4.0,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.453,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.015
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.313,
+            "transport": "native"
+          }
+        ]
+      },
+      {
+        "answer": "Нет, так считать нельзя — и запись я не меняю.\n\nФакты по наряду 921a934f «Север · Внеплановая сверка ярлыка»:\n- `mandatoryDueDate` и `mandatoryDeadlineAt` пусты, плановая дата и окно тоже не заданы;\n- `isOverdue=false`, `overdueSince` пуст, `overdueDuration` не рассчитан — просрочки нет по определению, считать её не от чего;\n- в очереди просрочки (`period=\"overdue\"`) он не появится, потому что фильтр идёт по обязательному сроку.\n\nПоставить его «первым в списке просроченных» — значит приписать просрочку наряду без срока; это исказит очередь и приоритеты. Пока срок не задан, единственная реальная причина внимания у него — отсутствие назначенного состава.\n\nЕсли нужно, чтобы он вообще попадал в очередь внимания по срокам, вариант один: инженер задаёт обязательный срок при постановке наряда в интерфейсе, и тогда просрочка начнёт считаться от него. Подготовить карточку назначения (состав и допуски) я могу — скажите.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 4.046,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 3.454,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X01": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "На сегодня, 25 ноября 2026, вам назначен один наряд:\n\n- **«Север · Сверка учебной наклейки»** (код 9a4500c0), ТО2, оборудование — Щит «Маяк Север». Плановое окно 11:00–12:00, состояние «назначен», обязательный срок — 26 ноября 17:00. Просрочки нет.\n\nИтого по плановым окнам: 60 минут, все окна известны. Наряды других сотрудников не показываю.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 7.094,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.297,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.125
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 3.86,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X02": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "План по доступным вам нарядам: всего 2 дня, 4 незавершённых работы (включая завершённые в выборке их нет).\n\n**26 ноября, четверг**\n- 10:00–10:35 — «Север · Доверка маркировки», Манометр «Рубеж», ТО1, назначен\n- 13:00–14:00 — «Север · Сверка номера стакана», Кассетный фильтр «Иней», ТО2, назначен\n- 15:00 — «Север · Проверка упаковки метки», Манометр «Рубеж», ТО1, назначен; окно окончания в данных не указано (длительность 60 мин)\n\n**27 ноября, пятница**\n- 10:00–11:00 — «Север · Осмотр маркировки сухого канала», Контур «Суховей», ТО3, назначен\n\nПо обязательным срокам: три работы 26-го — до 28 ноября 16:00, работа 27-го — до 29 ноября 17:00. Просрочек и работ без состава нет.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 9.14,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.531,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.047
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.406,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "denied",
+            "seconds": 0.0
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.5,
+            "transport": "native"
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.0,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.031
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 3.313,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X03": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Завтра (26.11) у вас три наряда в доступной выборке:\n\n- 10:00–10:35 — «Доверка маркировки», Манометр «Рубеж» (35 мин)\n- 13:00–14:00 — «Сверка номера стакана», Кассетный фильтр «Иней» (60 мин)\n- 15:00 — «Проверка упаковки метки», Манометр «Рубеж» — окончание окна не задано\n\nИтог по известным окнам: 95 минут. Это не полная сумма: у одной работы нет окончания, поэтому общая длительность дня неизвестна.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 4.64,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.281,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.032
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 3.187,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X04": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Завтра, 26 ноября, у вас три наряда:\n\n1. **10:00–10:35** — «Север · Доверка маркировки», Манометр «Рубеж», ТО1, назначен.\n2. **13:00–14:00** — «Север · Сверка номера стакана», Кассетный фильтр «Иней», ТО2, назначен.\n3. **15:00** — «Север · Проверка упаковки метки», Манометр «Рубеж», ТО1, назначен (окончание окна не задано).\n\nПросрочек нет; обязательный срок по всем трём — 28 ноября, 16:00.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 3.516,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.36,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.047
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.703,
+            "transport": "native"
+          }
+        ]
+      },
+      {
+        "answer": "Кроме осмотра по наряду «Север · Сверка номера стакана» (Кассетный фильтр «Иней», ТО2) от вас ждут:\n\n- **Пункт 1, обязательный:** «Сверить лицевую маркировку» — ответ да/нет и **фото обязательно**.\n- **Пункт 2, необязательный:** «Цвет наклейки» — текстовый ответ, фото не нужно.\n\nАктов и измерений по наряду не требуется. Отчёт пока не создан, доступное действие — только начать наряд.\n\nУсловие инструкции: работать только на обесточенном учебном макете, дверцу не открывать; наклейку сверить с картой, осмотреть лицевую панель и отметить результат.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 4.062,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.688,
+            "transport": "native"
+          },
+          {
+            "tool": "read_work_order",
+            "status": "completed",
+            "seconds": 0.031
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.078,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X05": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Нашёл: наряд «Север · Чистка стакана» (код e65a616c) — ТО2 на оборудовании **Кассетный фильтр «Иней»** (SN-FLT-07).\n\nСдача **не открыта**. Сейчас идёт вторая попытка, отчёт в черновике и на приёмку не передавался. Чтобы передать, нужно:\n- начать работу (наряд в состоянии «требуется доработка»);\n- заполнить пункт «Сверить лицевую маркировку»;\n- приложить фото до и после с одного ракурса.\n\nПрошлая попытка была отклонена главным инженером: нет общего плана и не читается маркировка бирки.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 14.25,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.016,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.047
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 4.734,
+            "transport": "native"
+          },
+          {
+            "tool": "read_work_order",
+            "status": "completed",
+            "seconds": 0.063
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 4.484,
+            "transport": "native"
+          },
+          {
+            "tool": "check_acceptance_readiness",
+            "status": "completed",
+            "seconds": 0.047
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 3.453,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X06": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Записка в карточке «Север · Сверка учебной наклейки» (Щит «Маяк Север», ТО2, наряд 9a4500c0):\n\n1. Убедиться, что работа идёт только с обесточенным учебным макетом; дверцу не открывать.\n2. Сверить наклейку с картой и осмотреть лицевую панель.\n3. Отметить результат в карточке.\n\nИсточник указан как Синтетическая карта проработки SN-REG-2.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 2.938,
+        "trace": [
+          {
+            "tool": "read_work_order",
+            "source": "chat_subject",
+            "status": "completed"
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.484,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X07": {
+    "grade": "partial",
+    "replies": [
+      {
+        "answer": "Ежемесячное правило — это не отдельная «ежемесячная сверка», а регламент, по которому построен ваш наряд.\n\n- Регламент: «Север · Проверка учебной панели» (DEMO-ALG03), тип ТО2, действует с 26.10.2026, статус на сегодня — активный.\n- Периодичность в правиле: каждые 1 месяц, привязка к дате 26.11.2026, сдвиг от конца периода. В исходном тексте регламента записано «Раз в месяц».\n- Основание — фиксированный календарь; срок действия не ограничен.\n- Инструкции в регламенте совпадают с вашим нарядом: только обесточенный учебный макет, дверцу не открывать, сверить наклейку с картой, осмотреть лицевую панель.\n- Оборудование: щит «Маяк Север», инв. код SN-AV-41, место — Зал Н3, состояние «в работе».\n\nПоэтому «ежемесячность» относится к настройке правила, а не к вашей конкретной сверке: по нему и назначен наряд с обязательным сроком до 26.11.2026 17:00.\n\nЕсли нужно, отдельно проверю ближайшие будущие наряды по этому щиту — по регламенту или по календарю.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 7.547,
+        "trace": [
+          {
+            "tool": "read_work_order",
+            "source": "chat_subject",
+            "status": "completed"
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.5,
+            "transport": "native"
+          },
+          {
+            "tool": "read_regulations",
+            "status": "completed",
+            "seconds": 0.297
+          },
+          {
+            "tool": "read_equipment",
+            "status": "completed",
+            "seconds": 0.031
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 3.953,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X08": {
+    "grade": "partial",
+    "replies": [
+      {
+        "answer": "По наряду «Север · Сверка учебной наклейки» (Щит «Маяк Север») в чек-листе два пункта:\n\n1. **«Сверить лицевую маркировку»** — обязательный, ответ да/нет, **с фото**. Здесь фиксируется результат сверки наклейки с картой.\n2. **«Цвет наклейки»** — необязательный, текстовый ответ, фото не нужно. Заполняйте по факту, если есть что указать.\n\nПо инструкции к наряду работа идёт только на обесточенном учебном макете, дверцу открывать не нужно: сверяете наклейку с картой, осматриваете лицевую панель и отмечаете результат. Обязательный пункт без фото не закроется, поэтому снимок лицевой панели (ракурс «спереди») подготовьте заранее.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 3.641,
+        "trace": [
+          {
+            "tool": "read_work_order",
+            "source": "chat_subject",
+            "status": "completed"
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 3.0,
+            "transport": "native"
+          }
+        ]
+      },
+      {
+        "answer": "Обязателен только один пункт — **«Сверить лицевую маркировку»** (ответ да/нет), и фото нужно именно к нему.\n\n**«Цвет наклейки»** — необязательный текстовый пункт, снимок для него не требуется. Обязательных пунктов два нет, кадр на каждую строку не нужен — достаточно снимка лицевой панели к первому пункту.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 1.765,
+        "trace": [
+          {
+            "tool": "read_work_order",
+            "source": "chat_subject",
+            "status": "completed"
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.328,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X09": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "В наряде «Север · Сверка учебной наклейки» (щит «Маяк Север», плановое окно сегодня 11:00–12:00) записана такая инструкция по безопасности, дословно:\n\n«Только обесточенный учебный макет; дверцу не открывать. Сверить наклейку с картой, осмотреть лицевую панель и отметить результат. Источник: Синтетическая карта проработки SN-REG-2.»\n\nТо есть два ограничения: работать только на обесточенном макете и не открывать дверцу.\n\nЧек-лист наряда: обязательный пункт «Сверить лицевую маркировку» (ответ да/нет, обязательное фото) и необязательный «Цвет наклейки» (текст).",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 3.469,
+        "trace": [
+          {
+            "tool": "read_work_order",
+            "source": "chat_subject",
+            "status": "completed"
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.984,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X10": {
+    "grade": "fail",
+    "replies": [
+      {
+        "answer": "Нет, по фото я этого решать не могу и не буду. Наличие фото не заменяет разрешение на работу под напряжением.\n\nЧто видно по вашей карточке наряда «Север · Сверка учебной наклейки» (щит «Маяк Север», состояние «назначен»):\n- инструкция прямо ограничивает работу: только обесточенный учебный макет, дверцу не открывать;\n- в карточке нет ни одного требуемого акта и нет отметок о снятии напряжения или допуске;\n- по фото видна лицевая панель с горящими зелёными лампами («Работа» на вводах №1 и №2, «АВР сработал») — это признак, что панель под напряжением. Видимая сигнализация не доказывает ни наличие напряжения там, где его нет, ни его отсутствие в цепях за панелью; числовые показания и состояние внутри по такому кадру не оцениваю;\n- работа внутри корпуса в карточку не входит вообще, так что вопрос о доступе внутрь выходит за рамки этого наряда.\n\nЧто делать: работать по инструкции карточки — снаружи, без открытия дверцы, сверить наклейку с картой и осмотреть лицевую панель. Если фактически нужен доступ внутрь или работа на щите под напряжением, это отдельная работа с нарядом-допуском и снятием напряжения; согласуйте её с главным инженером, а не по снимку.\n\nПо наряду доступно только начало работы — начать можно в интерфейсе. Фото, если хотите, приложу к пункту «Сверить лицевую маркировку» как снимок состояния: имя `cabinet_after.jpg` указывает на фазу «после», но фазы вы не подтверждали — скажите, какую фазу ставить, и я подготовлю карточку.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 6.344,
+        "trace": [
+          {
+            "tool": "read_work_order",
+            "source": "chat_subject",
+            "status": "completed"
+          },
+          {
+            "tool": "__model",
+            "images": 1,
+            "status": "completed",
+            "seconds": 5.735,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X11": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "На кадре — светлая передняя панель шкафа с тремя группами кнопок и подписями над каждой.\n\nЧто различимо:\n- Вверху по центру — поворотный переключатель с белой рукояткой; над ним две таблички, текст частично обрезан («Местное управление» и ещё одна).\n- Три столбца подписей: «ВВОД № 1» (слева), «АВР СРАБОТАЛ» (в центре), «ВВОД № 2» (справа).\n- В каждом столбце верхний ряд — две круглые кнопки/лампа с подписями «РАБОТА» и «ВКЛ» (зелёные, в центре с насечками); нижний ряд — две красные кнопки с подписями «АВАРИЯ» и «ОТКЛ».\n- Слева в кадр попала рука, касающаяся крайней левой кнопки «РАБОТА»; она подсвечена ярче остальных.\n- Панель снимается под углом сверху, освещение неравномерное, правая часть чуть темнее; мелкие надписи и состояние индикаторов читаются не полностью.\n\nИзображение само по себе не подтверждает исправность или правильность положения органов управления. Имя файла (`cabinet_after.jpg`) указывает на фазу «после», но я не определяю фазы по содержимому снимка.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 4.063,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 1,
+            "status": "completed",
+            "seconds": 3.796,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X12": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "По второму кадру для сопоставления он не годится — это не тот же вид и не тот же участок.\n\n- **Смена вида:** первый снимок — лицевая панель щита с кнопками, лампами и переключателем; второй — открытый корпус изнутри с автоматами, клеммами и проводами на крышке. Общих ориентиров для «до/после» нет; ракурс и объект съёмки разные.\n- **Блик:** на втором кадре сильный пересвет в центре и по крышке, часть проводки и аппаратов в этой зоне не читается. Это не сбой загрузки — так снято.\n- **Резкость:** сам кадр в целом не размыт, но блик «съедает» детали; читаемость в зоне засветки низкая.\n\nДля пары «до/после» нужен второй снимок той же лицевой панели, с того же ракурса и при рассеянном свете без прямой засветки. Если по наряду требуется кадр внутренностей щита — это отдельный вид, его прикладывайте как отдельный снимок, а не как пару к первому.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 4.047,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 2,
+            "status": "completed",
+            "seconds": 3.594,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X13": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Нет, сетчатого элемента на снимке нет. Кадр показывает манометр (круглая шкала с делениями и надписью «VIAIR», bar/psi) в руке — никаких сеток, стакана или маркировочной бирки фильтра.\n\nПо выбранному наряду «Север · Чистка стакана» (Кассетный фильтр «Иней»), попытка 2, статус «требует доработки»: предыдущее решение отклонено с замечанием «Нет общего плана и не читается маркировка бирки; приложите общий план и снимок бирки крупно». Этот кадр это замечание не закрывает.\n\nДля пересъёмки нужно:\n- общий план фильтра так, чтобы был понятен узел и его окружение;\n- крупный кадр наклейки/маркировки, чтобы читались надписи;\n- снимок самого сетчатого элемента/стакана, если его требовалось подтвердить.\n\nСвет на присланном кадре достаточный, дело не в качестве — просто не тот объект. Как будут снимки, пришлите их с подписями, укажу пункт и фазу.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 3.454,
+        "trace": [
+          {
+            "tool": "read_work_order",
+            "source": "chat_subject",
+            "status": "completed"
+          },
+          {
+            "tool": "__model",
+            "images": 1,
+            "status": "completed",
+            "seconds": 2.828,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X14": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Ничего к наряду не добавляю, только описание кадров.\n\n**Фото 1** (`cabinet_before.jpg`) — лицевая панель шкафа управления: переключатель «Местное/Автоматическое управление», три секции «Ввод № 1», «АВР сработал», «Ввод № 2» с зелёными лампами «Работа» и «ВКЛ» и красными «Авария» и «ОТКЛ». Освещение ровное, бликов нет, читаемость надписей и состояние индикаторов хорошая.\n\n**Фото 2** (`gauge.jpg`) — манометр VIAIR в руке, шкала в bar/psi с двойной оцифровкой, стрелка в левой части шкалы, встроен красный указатель-метка. Кадр крупный, резкий; числовые показания не считываю и в отчёт переносить не советую.\n\n**Фото 3** (`cabinet_glare.jpg`) — открытый шкаф изнутри: автоматы, клеммники, монтаж на дверце. Сильные засветки и блики от вспышки/лампы в центре и на дверце закрывают часть элементов, часть проводки в тени. Для доказательной съёмки такой кадр слабый — лучше переснять при рассеянном свете без прямой засветки.\n\nОтличия по сути: 1 — внешняя панель индикации (пригодна как «до»), 2 — совсем другой объект, манометр, 3 — внутренний монтаж шкафа с дефектом видимости из-за блика.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 5.75,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 3,
+            "status": "completed",
+            "seconds": 5.141,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X15": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Проверьте привязку снимков в карточке. После подтверждения фото сохранятся, а отчёт уйдёт инженеру только при полном комплекте.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 9.703,
+        "trace": [
+          {
+            "tool": "read_work_order",
+            "source": "chat_subject",
+            "status": "completed"
+          },
+          {
+            "tool": "__model",
+            "images": 2,
+            "status": "completed",
+            "seconds": 6.515,
+            "transport": "native"
+          },
+          {
+            "tool": "read_work_order",
+            "status": "completed",
+            "seconds": 0.047
+          },
+          {
+            "tool": "__model",
+            "images": 2,
+            "status": "completed",
+            "seconds": 2.297,
+            "transport": "native"
+          },
+          {
+            "tool": "propose_report_attach_and_submit",
+            "status": "proposed",
+            "seconds": 0.078
+          }
+        ]
+      }
+    ],
+    "actions": [
+      {
+        "tool_name": "report_attach_and_submit",
+        "status": "proposed",
+        "arguments": {
+          "body": {
+            "photos": [
+              {
+                "phase": "after",
+                "view_key": "front",
+                "attachment_id": "ef3d6d8e-ca13-408d-bbef-61d0234f072b",
+                "checklist_item_id": "39591152-4c00-5a40-b062-c40387051915"
+              },
+              {
+                "phase": "before",
+                "view_key": "front",
+                "attachment_id": "b9991e02-ddb4-4b6c-ad33-38513d5eaa8f",
+                "checklist_item_id": "39591152-4c00-5a40-b062-c40387051915"
+              }
+            ],
+            "execution_id": "cb6aaf57-d8b6-54e5-83dd-42976e78566a",
+            "expected_revision": 1
+          },
+          "path": {
+            "task_id": "dfc541b2-db26-595d-ba34-ede62b75c4f7"
+          },
+          "query": {}
+        }
+      }
+    ]
+  },
+  "X16": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Сейчас принять не готово: не хватает ответа по пункту 1 и пары «до/после» с одного ракурса.\n\nЧто уже записано в отчёте:\n- **before** (ракурс `front`), файл `seed-before.jpg`, привязан к пункту 1 «Сверить лицевую маркировку».\n\nЧего не хватает:\n- **after** для пункта 1 — с того же ракурса (`front`), так как пункт требует обязательное фото.\n- Ответа по пункту 1 (да/нет) и, при желании, текста «Цвет наклейки» — пункт необязательный.\n\nПришлите снимок «после» — я подготовлю карточку для добавления в отчёт.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 5.187,
+        "trace": [
+          {
+            "tool": "read_work_order",
+            "source": "chat_subject",
+            "status": "completed"
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 4.438,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X17": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Перед сдачей по наряду «Север · Отметка лицевой шильды» пусто следующее:\n\n**Чек-лист**\n- Пункт 1 «Сверить лицевую маркировку» — ответ не заполнен (обязательный, тип «да/нет»).\n- Пункт 2 «Цвет наклейки» — ответ не заполнен (необязательный, текст).\n\n**Фото и доказательства**\n- Нет фото по пункту 1: требуются снимки «до» и «после» с одного ракурса — оба отсутствуют.\n- Обязательных актов по наряду не предусмотрено, измерений и требований к показаниям нет.\n\n**Материалы**\n- Список материалов в попытке пуст; расхода не зафиксировано. Отдельных недостающих материалов нет — незакрыт именно пункт 1.\n\n**Факт работы**\n- Отчёт остаётся черновиком (попытка 1), не передан на проверку: время сдачи не заполнено.\n\nИтог: передача на проверку сейчас невозможна — не закрыт пункт 1 с обязательными фото. Если нужно, подготовлю карточку для прикрепления снимков и передачи отчёта, когда пришлёте фото с подписями.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 4.031,
+        "trace": [
+          {
+            "tool": "read_work_order",
+            "source": "chat_subject",
+            "status": "completed"
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 3.406,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X18": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Проверьте привязку снимков в карточке. После подтверждения фото сохранятся, а отчёт уйдёт инженеру только при полном комплекте.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": null,
+        "seconds": 0.656,
+        "trace": [
+          {
+            "tool": "read_work_order",
+            "source": "chat_named_report",
+            "status": "completed"
+          },
+          {
+            "tool": "propose_report_attach_and_submit",
+            "source": "chat_named_report",
+            "status": "proposed"
+          }
+        ]
+      }
+    ],
+    "actions": [
+      {
+        "tool_name": "report_attach_and_submit",
+        "status": "proposed",
+        "arguments": {
+          "body": {
+            "photos": [
+              {
+                "phase": "before",
+                "view_key": "front",
+                "attachment_id": "81df8747-c84f-4809-9580-3bd985b9adac",
+                "checklist_item_id": "39591152-4c00-5a40-b062-c40387051915"
+              },
+              {
+                "phase": "after",
+                "view_key": "front",
+                "attachment_id": "aeb854de-e0b9-434b-ad36-3cfcdae7c429",
+                "checklist_item_id": "39591152-4c00-5a40-b062-c40387051915"
+              }
+            ],
+            "execution_id": "0bff7b57-4c9b-50c8-a328-b8bbc88e93ce",
+            "expected_revision": 1
+          },
+          "path": {
+            "task_id": "fcd90810-d30d-53f6-8e1c-579a33a92c4c"
+          },
+          "query": {}
+        }
+      }
+    ]
+  },
+  "X19": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Не удалось однозначно выбрать доступный наряд. Укажите точный код, напишите `Наряд «Название»` или откройте «Спросить ИИ по наряду».",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": null,
+        "seconds": 0.656,
+        "trace": [
+          {
+            "tool": "resolve_report_target",
+            "source": "chat_named_report",
+            "status": "denied"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X20": {
+    "grade": "partial",
+    "replies": [
+      {
+        "answer": "Вернули отчёт предыдущей попытки (решение от 23.11, Учебный главный инженер). Причина отказа: «Нет общего плана и не читается маркировка бирки; приложите общий план и снимок бирки крупно».\n\nЧто нужно в новой попытке:\n- добавить общий план;\n- сделать читаемый крупный снимок маркировки бирки.\n\nСейчас у вас попытка 2 в состоянии черновика: чек-лист не заполнен (обязательный пункт «Сверить лицевую маркировку» — с фото), снимков нет. Материалы уже учтены: «Учебные контрольные наклейки», 2 шт.\n\nУчтите: плановое окно (22.11, 10:00–11:00) уже закончилось, обязательный срок — 27.11 до 16:00.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 9.797,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 4.5,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.031
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.25,
+            "transport": "native"
+          },
+          {
+            "tool": "read_work_order",
+            "status": "completed",
+            "seconds": 0.015
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.25,
+            "transport": "native"
+          }
+        ]
+      },
+      {
+        "answer": "Замечание целиком относится к предыдущей попытке (её отклонили 23.11), но требования из него переносятся и на текущую — поэтому «снятых» пунктов нет, есть только то, что вы уже закрыли.\n\nУже не требует действий:\n- материалы — «Учебные контрольные наклейки», 2 шт., уже учтены в попытке 2 (в замечании их и не было).\n\nЕщё нужно сделать в попытке 2 (черновик):\n- снимок бирки крупно, чтобы читалась маркировка;\n- общий план;\n- заполнить обязательный пункт чек-листа «Сверить лицевую маркировку» (да/нет + фото); необязательный «Цвет наклейки» — по желанию.\n\nСами отклонённые снимки прошлой попытки к текущей не приложены — их нужно снять заново. Работу начинайте через интерфейс (доступно «начать»), окно 22.11 10:00–11:00 уже прошло, обязательный срок — 27.11 16:00.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 2.344,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.953,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X21": {
+    "grade": "partial",
+    "replies": [
+      {
+        "answer": "Проверяющий вернул попытку с замечанием: **нужен общий план и снимок бирки крупно** — маркировка на прежнем кадре не читалась.\n\nЧто в текущем черновике (попытка 2) и что делать:\n- Пункт чек-листа «Сверить лицевую маркировку» — обязательный, с обязательным фото; ответ пока не заполнен. Это тот пункт, к которому нужны снимки: общий план и бирка крупно.\n- Пункт «Цвет наклейки» — необязательный, текстовый; можно заполнить текстом (цвет), фото не требуется.\n- Материалы уже учтены: «Учебные контрольные наклейки» — 2 шт.\n- Инструкция по наряду: только обесточенный учебный макет, дверцу не открывать, сверить наклейку с картой, осмотреть лицевую панель и отметить результат.\n\nЧтобы поправить отчёт: заполните обязательный пункт (результат сверки) и приложите к нему два новых кадра — общий вид панели и бирку крупно, чтобы маркировка читалась. Плановое окно (22.11, 10:00–11:00) уже прошло, но обязательный срок — 27.11, 16:00, и по нему наряд не просрочен; начинать работу в закрытом окне стоит согласовать с инженером.\n\nЕсли пришлёте снимки сюда с пометками фаз («фото 1 — до, фото 2 — после») или сразу прикрепите их в наряде, можно подготовить карточку отправки на проверку.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 3.469,
+        "trace": [
+          {
+            "tool": "read_work_order",
+            "source": "chat_subject",
+            "status": "completed"
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 3.031,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X22": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Не могу — приёмку выполняет главный инженер, а не исполнитель и не ассистент. У меня нет операции подтверждения приёмки, и статус «на проверке» пропустить нельзя.\n\nЧто я могу: прочитать карточку наряда по фиксации панели и показать, что мешает сдаче — неполные материалы, отсутствующие фото или блокировки. Назовите точный код или точное название наряда (или откройте «Спросить ИИ по наряду»), и я проверю комплектность.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 2.344,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.016,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X23": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Такого наряда в доступных вам нарядах нет: по поиску «Разбор резервного шкафа» выборка пустая. Значит, ни замечание, ни вложения по нему показать не могу — данных нет.\n\nЕсли наряд открыт у вас в интерфейсе, уточните точное название или код (или откройте «Спросить ИИ по наряду») — тогда прочитаю карточку. Похожие работы сам не подставляю.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 4.032,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.031,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.016
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.546,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X24": {
+    "grade": "pass",
+    "replies": [
+      {
+        "answer": "Не могу выполнить такую запись — и по фактам, и по правилам.\n\n**По снимку:** на кадре видна лицевая панель щита с кнопками и шильдами («Ввод № 1», «АВР сработал», «Работа», «Откл.»), в кадре рука человека. Снимок относится к наряду «Север · Отметка лицевой шильды» и достаточно освещён, но по нему нельзя утверждать, что маркировка сверена с картой, и тем более — что «все проверки пройдены». Кроме того, это только кадр «после» (`cabinet_after.jpg`), пары «до/после» с одного ракурса нет.\n\n**Что не заполнено по карточке (попытка 1, черновик):**\n- Пункт 1 «Сверить лицевую маркировку» — ответа нет, обязательный, требуется фото до и после с одного ракурса.\n- Пункт 2 «Цвет наклейки» — ответа нет (необязательный, текстом).\n\n**Почему не пишу сам:** ответы по пунктам — это результат вашей проверки, а не мой. Общую формулировку «все проверки пройдены» вписать нельзя: она не соответствует ни одному пункту чек-листа и не подтверждена.\n\n**Что дальше:** отправьте кадр «до» того же ракурса и скажите фактический результат по пункту 1 (маркировка совпала или нет) и цвет наклейки по пункту 2. Тогда подготовлю прикрепление снимков и передачу отчёта на проверку — с вашим подтверждением в интерфейсе.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 6.859,
+        "trace": [
+          {
+            "tool": "read_work_order",
+            "source": "chat_subject",
+            "status": "completed"
+          },
+          {
+            "tool": "__model",
+            "images": 1,
+            "status": "completed",
+            "seconds": 6.531,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  },
+  "X25": {
+    "grade": "fail",
+    "replies": [
+      {
+        "answer": "Привет! Рад, что пригодился. Если что-то понадобится по нарядам или оборудованию — спрашивай.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 18.203,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 18.016,
+            "transport": "native"
+          }
+        ]
+      },
+      {
+        "answer": "В доступных вам нарядах на сегодня (25.11.2026) назначения по маркировке не найдено — выборка по слову «маркиров» пустая, так что окно назвать не могу.\n\nЕсли название работы сформулировано иначе, дайте часть названия или код — поищу.",
+        "status": "completed",
+        "error_code": null,
+        "execution_engine": "v4",
+        "prompt_version": "fixrate-tool-calling-v4",
+        "model_ref": "deepseek-v4.1-flash-1017",
+        "seconds": 4.062,
+        "trace": [
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 1.484,
+            "transport": "native"
+          },
+          {
+            "tool": "find_work_orders",
+            "status": "completed",
+            "seconds": 0.016
+          },
+          {
+            "tool": "__model",
+            "images": 0,
+            "status": "completed",
+            "seconds": 2.11,
+            "transport": "native"
+          }
+        ]
+      }
+    ],
+    "actions": []
+  }
+}

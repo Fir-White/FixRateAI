@@ -1,0 +1,8 @@
+# Additive solver dependencies, verified with OR-Tools 9.15 on Python 3.11/3.12.
+# numpy, typing_extensions and tzdata remain pinned by requirements.txt.
+ortools==9.15.6755
+absl-py==2.5.1
+immutabledict==4.3.1
+pandas==3.1.1
+protobuf==6.33.6
+python-dateutil==4.0.0

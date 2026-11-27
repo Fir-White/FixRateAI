@@ -1,5 +1,6 @@
 from datetime import date
 import json
+import threading
 import time
 from uuid import uuid4
 
@@ -12,20 +13,36 @@ from ml_service.app.forecast.synthetic import compute_snapshot_hash
 from scripts.verify_orchestration import inputs, ai_value, scenarios, verify
 
 
+def _wait_for_maintenance_ai_workers(timeout: float = 0.5) -> None:
+    """Wait for daemon timeout worker threads to release bounded_ai slots."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if not any(t.name == "maintenance-ai" and t.is_alive() for t in threading.enumerate()):
+            return
+        time.sleep(0.005)
+
+
 @pytest.mark.parametrize('name,provider,status,selected',scenarios())
 def test_forecast_safety_scenarios(name,provider,status,selected):
     snapshot,item=inputs()
     before=snapshot.model_dump_json()
-    a,b,d=compare_forecasts(snapshot,item,provider,timeout_seconds=0.005 if name=='timeout' else 1)
+    try:
+        a,b,d=compare_forecasts(snapshot,item,provider,timeout_seconds=0.005 if name=='timeout' else 1)
+    finally:
+        if name=='timeout':
+            _wait_for_maintenance_ai_workers()
     assert snapshot.model_dump_json()==before
-    assert a.method=='algorithmic' and a.method_version=='calendar-rules-v3'
+    assert a.method=='algorithmic' and a.method_version=='calendar-rules-v3.1'
     assert a.result_id!=b.result_id and a.snapshot_sha256==b.snapshot_sha256==snapshot.content_sha256
     assert d.status==status and str(d.selected_date)==selected
     assert d.selected_date<=snapshot.mandatory_due_date
 
 
 def test_report_scenarios_are_executable():
-    assert len(verify())==12
+    try:
+        assert len(verify())==12
+    finally:
+        _wait_for_maintenance_ai_workers()
 
 
 @pytest.mark.parametrize('kind', ['daily','quarter','annual'])
@@ -139,7 +156,7 @@ def test_qa04_uncertainty_follows_explicit_policy_without_invented_confidence_th
             upper_date=None if kind=='unknown' else date(2026,11,5),calibrated=calibrated,
             note='QA04 uncertainty fixture; no empirical confidence score')})
     algorithmic,ai,decision=compare_forecasts(snapshot,item,provider)
-    assert decision.policy_version==POLICY_VERSION=='maintenance-orchestrator-v1'
+    assert decision.policy_version==POLICY_VERSION=='maintenance-orchestrator-v1.1'
     assert decision.status==expected
     assert decision.selected_date==(date(2026,11,10) if expected=='fallback' else date(2026,11,5))
     assert ai.recommended_date==date(2026,11,5) and algorithmic.recommended_date==date(2026,11,10)

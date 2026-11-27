@@ -1,0 +1,101 @@
+{
+  "fileId": "13ac3151-58c1-801c-8008-f58dd579cd50",
+  "fileName": "FixRate AI — AI-native Concepts",
+  "revision": 18,
+  "pageId": "ecd29d2d-0751-800b-8008-f5988773752e",
+  "pageName": "E · Visual Exploration · Chief Engineer",
+  "versions": [
+    {
+      "label": "E · Visual Exploration · Reviewed · 2026-11-17",
+      "createdAt": "2026-11-17T11:51:20.777Z",
+      "isAutosave": false
+    }
+  ],
+  "frames": [
+    {
+      "id": "ecd29d2d-0751-800b-8008-f598a178acc2",
+      "name": "E1 · Quiet Precision · 1440×900",
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 900,
+      "tags": {
+        "root": "ecd29d2d-0751-800b-8008-f598a178acc2",
+        "composer": "ecd29d2d-0751-800b-8008-f599f102fe08",
+        "placeholder": "ecd29d2d-0751-800b-8008-f599f1262209",
+        "send": "ecd29d2d-0751-800b-8008-f599f14cadbd",
+        "urgent": "ecd29d2d-0751-800b-8008-f599f1b7e5b5",
+        "agenda": "ecd29d2d-0751-800b-8008-f599f25a4f28",
+        "acceptance": "ecd29d2d-0751-800b-8008-f599f385e668"
+      },
+      "nativeTextLayers": 52,
+      "nativeDescendants": 110,
+      "rasters": 0,
+      "outside": [],
+      "textOverflow": [],
+      "fonts": [
+        "IBM Plex Sans"
+      ]
+    },
+    {
+      "id": "ecd29d2d-0751-800b-8008-f598b6854052",
+      "name": "E2 · Industrial Editorial · 1440×900",
+      "x": 1680,
+      "y": 0,
+      "width": 1440,
+      "height": 900,
+      "tags": {
+        "root": "ecd29d2d-0751-800b-8008-f598b6854052",
+        "composer": "ecd29d2d-0751-800b-8008-f599f80c8048",
+        "placeholder": "ecd29d2d-0751-800b-8008-f599f83bc9c1",
+        "send": "ecd29d2d-0751-800b-8008-f599f8647373",
+        "agenda": "ecd29d2d-0751-800b-8008-f599f8f392a3",
+        "urgent": "ecd29d2d-0751-800b-8008-f599f9cdf676"
+      },
+      "nativeTextLayers": 49,
+      "nativeDescendants": 96,
+      "rasters": 0,
+      "outside": [],
+      "textOverflow": [],
+      "fonts": [
+        "IBM Plex Sans",
+        "IBM Plex Sans Condensed"
+      ]
+    },
+    {
+      "id": "ecd29d2d-0751-800b-8008-f598c0372d0b",
+      "name": "E3 · Fluid Intelligence · 1440×900",
+      "x": 3360,
+      "y": 0,
+      "width": 1440,
+      "height": 900,
+      "tags": {
+        "root": "ecd29d2d-0751-800b-8008-f598c0372d0b",
+        "workspace": "ecd29d2d-0751-800b-8008-f599fe9c6478",
+        "composer": "ecd29d2d-0751-800b-8008-f599fea2d748",
+        "placeholder": "ecd29d2d-0751-800b-8008-f599fec03538",
+        "send": "ecd29d2d-0751-800b-8008-f599fee63b92",
+        "urgent": "ecd29d2d-0751-800b-8008-f599ff5d2347",
+        "agenda": "ecd29d2d-0751-800b-8008-f599ffe67b42"
+      },
+      "nativeTextLayers": 44,
+      "nativeDescendants": 92,
+      "rasters": 0,
+      "outside": [],
+      "textOverflow": [],
+      "fonts": [
+        "IBM Plex Sans"
+      ]
+    }
+  ],
+  "preservation": {
+    "pagesChecked": 12,
+    "differences": []
+  },
+  "reopen": {
+    "method": "Browser reload followed by official MCP readback",
+    "status": "PASS"
+  },
+  "productionCodeChanged": false,
+  "designApproval": "Pending owner selection; no scaling authorized"
+}

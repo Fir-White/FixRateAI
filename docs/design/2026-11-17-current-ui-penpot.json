@@ -1,0 +1,2714 @@
+{
+  "source_sha": "804917495200e457272fcb2103f3043dccbad91b",
+  "source_figma_file": "YdFh9ifap89KdGu2PcN49Y",
+  "strategy": "Direct supplied SVG import via official local MCP; see 2026-11-17-penpot-svg-import.json",
+  "status": "original_103_screen_reconstruction_not_completed; owner selected direct SVG import",
+  "expected": {
+    "total": 103,
+    "desktop": 60,
+    "mobile": 43,
+    "screen_components": 24
+  },
+  "verified_migrated": 0,
+  "penpot": {
+    "version": "2.19.2",
+    "local_url": "http://localhost:9001",
+    "compose_project": "fixrate-design-penpot",
+    "mcp_mode": "official bundled container, Streamable HTTP, loopback only",
+    "mcp_create_read_edit": "PASS",
+    "mcp_test_object": {
+      "fileId": "8b7de69e-e368-81a5-8008-f56e9f0afb7c",
+      "pageId": "8b7de69e-e368-81a5-8008-f56e9f0afb7d",
+      "boardId": "f4927f58-4ade-808b-8008-f56fd9b6bdec",
+      "textId": "f4927f58-4ade-808b-8008-f56fd9f53a72",
+      "width": 420,
+      "height": 180,
+      "text": "Проверка MCP · запись и чтение",
+      "parentId": "f4927f58-4ade-808b-8008-f56fd9b6bdec",
+      "type": "text",
+      "fonts": false
+    },
+    "test_file_is_not_migrated_ui": true
+  },
+  "screens": [
+    {
+      "key": "auth-login-desktop",
+      "figma_frame_id": "20:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=20-2",
+      "route": "/login",
+      "title": "Вход в систему",
+      "role": "public",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "05 · Shared Screens",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "auth-login-mobile",
+      "figma_frame_id": "37:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=37-2",
+      "route": "/login",
+      "title": "Вход в систему",
+      "role": "public",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "05 · Shared Screens",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "auth-not-found-desktop",
+      "figma_frame_id": "36:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=36-2",
+      "route": "/no-such-page",
+      "title": "Страница не найдена",
+      "role": "public",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "05 · Shared Screens",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "auth-register-desktop",
+      "figma_frame_id": "15:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=15-2",
+      "route": "/register",
+      "title": "Регистрация",
+      "role": "public",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "05 · Shared Screens",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "auth-register-mobile",
+      "figma_frame_id": "38:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=38-2",
+      "route": "/register",
+      "title": "Регистрация",
+      "role": "public",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "05 · Shared Screens",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "auth-setup-desktop",
+      "figma_frame_id": "90:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=90-2",
+      "route": "/setup",
+      "title": "Первоначальная настройка",
+      "role": "public",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "05 · Shared Screens",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "auth-setup-mobile",
+      "figma_frame_id": "91:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=91-2",
+      "route": "/setup",
+      "title": "Первоначальная настройка",
+      "role": "public",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "05 · Shared Screens",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "executor-access-denied-mobile",
+      "figma_frame_id": "82:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=82-2",
+      "route": "/quality",
+      "title": "Раздел недоступен для текущей роли",
+      "role": "executor",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "04 · Current UI · Executor · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "admin-home-desktop",
+      "figma_frame_id": "60:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=60-2",
+      "route": "/admin",
+      "title": "Оперативный центр",
+      "role": "admin",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "09 · Technical Administration",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-mobile-menu",
+      "figma_frame_id": "72:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=72-2",
+      "route": "/chief-engineer",
+      "title": "Технический обзор · Мобильная навигация",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-notifications-desktop",
+      "figma_frame_id": "53:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=53-2",
+      "route": "/chief-engineer",
+      "title": "Технический обзор",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-overview-desktop",
+      "figma_frame_id": "13:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=13-2",
+      "route": "/chief-engineer",
+      "title": "Технический обзор",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-overview-mobile",
+      "figma_frame_id": "39:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=39-2",
+      "route": "/chief-engineer",
+      "title": "Технический обзор",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "director-home-desktop",
+      "figma_frame_id": "34:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=34-2",
+      "route": "/director",
+      "title": "Обзор объекта",
+      "role": "director",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "06 · Legacy Roles",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "dispatcher-home-desktop",
+      "figma_frame_id": "61:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=61-2",
+      "route": "/dispatcher",
+      "title": "Оперативный центр",
+      "role": "dispatcher",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "06 · Legacy Roles",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "engineer-home-desktop",
+      "figma_frame_id": "35:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=35-2",
+      "route": "/engineer",
+      "title": "Оперативный центр",
+      "role": "engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "06 · Legacy Roles",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "executor-home-desktop",
+      "figma_frame_id": "29:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=29-2",
+      "route": "/executor",
+      "title": "Мои задания",
+      "role": "executor",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "03 · Current UI · Executor · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "executor-home-primary-mobile",
+      "figma_frame_id": "75:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=75-2",
+      "route": "/executor",
+      "title": "Мои задания",
+      "role": "executor",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "04 · Current UI · Executor · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-catalog-operations-desktop",
+      "figma_frame_id": "43:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=43-2",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d",
+      "title": "Планирование ТО",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-catalog-operations-mobile",
+      "figma_frame_id": "139:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=139-2",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d",
+      "title": "Планирование ТО",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-catalog-plans-desktop",
+      "figma_frame_id": "44:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=44-2",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan",
+      "title": "Планирование ТО",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-catalog-plans-mobile",
+      "figma_frame_id": "140:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=140-2",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan",
+      "title": "Планирование ТО",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-operation-editor-desktop",
+      "figma_frame_id": "96:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=96-2",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d",
+      "title": "Планирование ТО · Редактор операции",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-operation-editor-mobile",
+      "figma_frame_id": "97:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=97-2",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d",
+      "title": "Планирование ТО · Редактор операции",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-plan-load-desktop",
+      "figma_frame_id": "47:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=47-2",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan&draft=4f6718cb-301c-48c3-a5fa-be089574fc3c&revision=1&view=load",
+      "title": "Планирование ТО",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-plan-load-mobile",
+      "figma_frame_id": "143:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=143-2",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan&draft=4f6718cb-301c-48c3-a5fa-be089574fc3c&revision=1&view=load",
+      "title": "Планирование ТО",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-plan-publish-desktop",
+      "figma_frame_id": "48:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=48-2",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan&draft=4f6718cb-301c-48c3-a5fa-be089574fc3c&revision=1&view=publish",
+      "title": "Планирование ТО",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-plan-publish-mobile",
+      "figma_frame_id": "144:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=144-2",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan&draft=4f6718cb-301c-48c3-a5fa-be089574fc3c&revision=1&view=publish",
+      "title": "Планирование ТО",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-plan-schedule-desktop",
+      "figma_frame_id": "46:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=46-2",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan&draft=4f6718cb-301c-48c3-a5fa-be089574fc3c&revision=1&view=schedule",
+      "title": "Планирование ТО",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-plan-schedule-mobile",
+      "figma_frame_id": "142:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=142-2",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan&draft=4f6718cb-301c-48c3-a5fa-be089574fc3c&revision=1&view=schedule",
+      "title": "Планирование ТО",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-plan-segments-desktop",
+      "figma_frame_id": "98:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=98-2",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan&draft=4f6718cb-301c-48c3-a5fa-be089574fc3c&revision=1&view=work",
+      "title": "Планирование ТО · Сегменты работы",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-plan-work-desktop",
+      "figma_frame_id": "45:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=45-2",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan&draft=4f6718cb-301c-48c3-a5fa-be089574fc3c&revision=1&view=work",
+      "title": "Планирование ТО",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-plan-work-mobile",
+      "figma_frame_id": "141:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=141-2",
+      "route": "/planning?catalog=af221cfd-c771-49e7-bd06-67011d36701d&stage=plan&draft=4f6718cb-301c-48c3-a5fa-be089574fc3c&revision=1&view=work",
+      "title": "Планирование ТО",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-planning-desktop",
+      "figma_frame_id": "21:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=21-2",
+      "route": "/planning",
+      "title": "Планирование ТО",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-planning-mobile",
+      "figma_frame_id": "62:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=62-2",
+      "route": "/planning",
+      "title": "Планирование ТО",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-requirements-desktop",
+      "figma_frame_id": "49:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=49-2",
+      "route": "/planning?mode=requirements",
+      "title": "Планирование ТО",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-calendar-desktop",
+      "figma_frame_id": "17:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=17-2",
+      "route": "/calendar?year=2026&month=11",
+      "title": "График ТО и ППР",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-calendar-list-desktop",
+      "figma_frame_id": "119:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=119-2",
+      "route": "/calendar?year=2026&month=11",
+      "title": "График ТО и ППР · Список",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-calendar-matrix-desktop",
+      "figma_frame_id": "103:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=103-2",
+      "route": "/calendar",
+      "title": "График ТО и ППР · Матрица обязательств",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-calendar-mobile",
+      "figma_frame_id": "41:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=41-2",
+      "route": "/calendar",
+      "title": "График ТО и ППР",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-calendar-occurrence-desktop",
+      "figma_frame_id": "106:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=106-2",
+      "route": "/calendar",
+      "title": "График ТО и ППР · Карточка работы календаря",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-calendar-week-desktop",
+      "figma_frame_id": "110:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=110-2",
+      "route": "/calendar?year=2026&month=11",
+      "title": "График ТО и ППР · Неделя",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-calendar-workload-desktop",
+      "figma_frame_id": "104:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=104-2",
+      "route": "/calendar",
+      "title": "График ТО и ППР · Нагрузка и персонал",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-assignment-ready-desktop",
+      "figma_frame_id": "124:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=124-2",
+      "route": "/tasks/adf721ed-066d-50cc-b69d-5b7db3ad47bc",
+      "title": "Контроль параметров показаний приборов (давление, температура) · Подбор бригады",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-cancel-task-desktop",
+      "figma_frame_id": "128:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=128-2",
+      "route": "/tasks/adf721ed-066d-50cc-b69d-5b7db3ad47bc",
+      "title": "Контроль параметров показаний приборов (давление, температура) · Отмена наряда",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-task-detail-desktop",
+      "figma_frame_id": "28:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=28-2",
+      "route": "/tasks/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-task-detail-mobile",
+      "figma_frame_id": "69:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=69-2",
+      "route": "/tasks/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-tasks-desktop",
+      "figma_frame_id": "18:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=18-2",
+      "route": "/tasks",
+      "title": "Наряды и назначения",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-tasks-mobile",
+      "figma_frame_id": "42:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=42-2",
+      "route": "/tasks",
+      "title": "Наряды и назначения",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "executor-assigned-task-correct-mobile",
+      "figma_frame_id": "120:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=120-2",
+      "route": "/executor/tasks/f92546ea-80c5-511c-b543-0602b95b1a0a",
+      "title": "Чистка всех узлов и агрегатов системы",
+      "role": "executor",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "04 · Current UI · Executor · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "executor-in-progress-desktop",
+      "figma_frame_id": "50:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=50-2",
+      "route": "/executor/tasks/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний",
+      "role": "executor",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "03 · Current UI · Executor · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "executor-in-progress-mobile",
+      "figma_frame_id": "71:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=71-2",
+      "route": "/executor/tasks/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний",
+      "role": "executor",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "04 · Current UI · Executor · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "executor-photo-viewer-correct-mobile",
+      "figma_frame_id": "109:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=109-2",
+      "route": "/executor/tasks/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний · Просмотр фотографии",
+      "role": "executor",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "04 · Current UI · Executor · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "executor-photos-mobile",
+      "figma_frame_id": "100:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=100-2",
+      "route": "/executor/tasks/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний · Фотографии отчёта",
+      "role": "executor",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "04 · Current UI · Executor · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "executor-review-mobile",
+      "figma_frame_id": "101:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=101-2",
+      "route": "/executor/tasks/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний · Проверка отчёта перед сдачей",
+      "role": "executor",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "04 · Current UI · Executor · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "executor-task-desktop",
+      "figma_frame_id": "30:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=30-2",
+      "route": "/executor/tasks/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "title": "Ошибка доступа к чужому заданию",
+      "role": "executor",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "03 · Current UI · Executor · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-quality-desktop",
+      "figma_frame_id": "19:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=19-2",
+      "route": "/quality",
+      "title": "Контроль качества и приёмка",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-quality-detail-desktop",
+      "figma_frame_id": "32:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=32-2",
+      "route": "/quality/2629e873-6c95-5678-8a4d-32e9e53924c0",
+      "title": "Контроль параметров показаний приборов (давление, температура)",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-quality-detail-mobile",
+      "figma_frame_id": "136:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=136-2",
+      "route": "/quality/2629e873-6c95-5678-8a4d-32e9e53924c0",
+      "title": "Контроль параметров показаний приборов (давление, температура)",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-quality-mobile",
+      "figma_frame_id": "70:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=70-2",
+      "route": "/quality",
+      "title": "Контроль качества и приёмка",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-review-accept-confirmation-desktop",
+      "figma_frame_id": "122:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=122-2",
+      "route": "/quality/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний · Подтверждение приёмки",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-review-pending-desktop",
+      "figma_frame_id": "114:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=114-2",
+      "route": "/quality/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний · Отчёт на проверке",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-review-pending-mobile",
+      "figma_frame_id": "116:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=116-2",
+      "route": "/quality/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний · Отчёт на проверке",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-review-queue-filled-desktop",
+      "figma_frame_id": "113:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=113-2",
+      "route": "/quality",
+      "title": "Контроль качества и приёмка · Очередь с отчётом",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-review-queue-filled-mobile",
+      "figma_frame_id": "115:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=115-2",
+      "route": "/quality",
+      "title": "Контроль качества и приёмка · Очередь с отчётом",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-review-reject-confirmation-mobile",
+      "figma_frame_id": "123:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=123-2",
+      "route": "/quality/f8a9c1dd-3507-5cc1-9c51-f639d6b5660a",
+      "title": "Проверка приборов измерения температуры и давления на повреждения и точность показаний · Подтверждение возврата",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-components-desktop",
+      "figma_frame_id": "57:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=57-2",
+      "route": "/equipment",
+      "title": "Работы + реестр оборудования · Детали и наработка",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-components-mobile",
+      "figma_frame_id": "137:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=137-2",
+      "route": "/equipment",
+      "title": "Работы + реестр оборудования · Детали и наработка",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-equipment-desktop",
+      "figma_frame_id": "16:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=16-2",
+      "route": "/equipment",
+      "title": "Работы + реестр оборудования",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-equipment-detail-desktop",
+      "figma_frame_id": "27:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=27-2",
+      "route": "/equipment/fa5e6d78-83a7-5ddd-a8b3-8aeba304a449",
+      "title": "Насос циркуляционного контура",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-equipment-detail-mobile",
+      "figma_frame_id": "68:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=68-2",
+      "route": "/equipment/fa5e6d78-83a7-5ddd-a8b3-8aeba304a449",
+      "title": "Насос циркуляционного контура",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-equipment-mobile",
+      "figma_frame_id": "40:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=40-2",
+      "route": "/equipment",
+      "title": "Работы + реестр оборудования",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-service-editor-desktop",
+      "figma_frame_id": "58:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=58-2",
+      "route": "/settings/equipment?equipment=fa5e6d78-83a7-5ddd-a8b3-8aeba304a449",
+      "title": "Настройка обслуживания · Редактор обслуживания",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-service-editor-mobile",
+      "figma_frame_id": "138:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=138-2",
+      "route": "/settings/equipment?equipment=fa5e6d78-83a7-5ddd-a8b3-8aeba304a449",
+      "title": "Настройка обслуживания · Редактор обслуживания",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-service-settings-desktop",
+      "figma_frame_id": "22:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=22-2",
+      "route": "/settings/equipment",
+      "title": "Настройка обслуживания",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-service-settings-mobile",
+      "figma_frame_id": "63:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=63-2",
+      "route": "/settings/equipment",
+      "title": "Настройка обслуживания",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-crews-desktop",
+      "figma_frame_id": "125:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=125-2",
+      "route": "/settings/workforce",
+      "title": "Сотрудники и смены · Бригады",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-employee-settings-desktop",
+      "figma_frame_id": "129:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=129-2",
+      "route": "/settings/workforce",
+      "title": "Сотрудники и смены · Настройки сотрудника",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-employee-settings-mobile",
+      "figma_frame_id": "130:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=130-2",
+      "route": "/settings/workforce",
+      "title": "Сотрудники и смены · Настройки сотрудника",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-skills-desktop",
+      "figma_frame_id": "126:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=126-2",
+      "route": "/settings/workforce",
+      "title": "Сотрудники и смены · Виды допусков",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-workforce-desktop",
+      "figma_frame_id": "23:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=23-2",
+      "route": "/settings/workforce",
+      "title": "Сотрудники и смены",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-workforce-mobile",
+      "figma_frame_id": "64:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=64-2",
+      "route": "/settings/workforce",
+      "title": "Сотрудники и смены",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "executor-shifts-desktop",
+      "figma_frame_id": "31:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=31-2",
+      "route": "/my-shifts",
+      "title": "Мои смены",
+      "role": "executor",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "03 · Current UI · Executor · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "executor-shifts-mobile",
+      "figma_frame_id": "76:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=76-2",
+      "route": "/my-shifts",
+      "title": "Мои смены",
+      "role": "executor",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "04 · Current UI · Executor · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-comparison-detail-desktop",
+      "figma_frame_id": "92:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=92-2",
+      "route": "/comparisons/c1000000-0000-4000-8000-000000000001",
+      "title": "Учебный узел очистки",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-comparison-detail-mobile",
+      "figma_frame_id": "93:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=93-2",
+      "route": "/comparisons/c1000000-0000-4000-8000-000000000001",
+      "title": "Учебный узел очистки",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-comparisons-desktop",
+      "figma_frame_id": "33:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=33-2",
+      "route": "/comparisons",
+      "title": "Сравнение прогнозов",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-reports-desktop",
+      "figma_frame_id": "24:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=24-2",
+      "route": "/reports",
+      "title": "Отчёты",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-reports-mobile",
+      "figma_frame_id": "65:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=65-2",
+      "route": "/reports",
+      "title": "Отчёты",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-assistant-desktop",
+      "figma_frame_id": "25:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=25-2",
+      "route": "/assistant",
+      "title": "ИИ-помощник",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-assistant-mobile",
+      "figma_frame_id": "66:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=66-2",
+      "route": "/assistant",
+      "title": "ИИ-помощник",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-chat-delete-dialog",
+      "figma_frame_id": "107:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=107-2",
+      "route": "/assistant?chat=0b653333-1111-4111-8111-111111111111",
+      "title": "ИИ-помощник · Удаление чата",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-chat-example-correct-desktop",
+      "figma_frame_id": "111:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=111-2",
+      "route": "/assistant?chat=0b653333-1111-4111-8111-111111111111",
+      "title": "ИИ-помощник · пример переписки",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-chat-example-correct-mobile",
+      "figma_frame_id": "112:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=112-2",
+      "route": "/assistant?chat=0b653333-1111-4111-8111-111111111111",
+      "title": "ИИ-помощник · пример переписки",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-mobile-history",
+      "figma_frame_id": "134:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=134-2",
+      "route": "/assistant",
+      "title": "ИИ-помощник · История чатов",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-mobile-model-picker",
+      "figma_frame_id": "135:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=135-2",
+      "route": "/assistant",
+      "title": "ИИ-помощник · Выбор модели",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-model-picker-desktop",
+      "figma_frame_id": "52:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=52-2",
+      "route": "/assistant",
+      "title": "ИИ-помощник · Выбор модели · загрузка",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-date-picker-desktop",
+      "figma_frame_id": "127:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=127-2",
+      "route": "/settings/equipment",
+      "title": "Настройка обслуживания · Выбор даты",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-profile-desktop",
+      "figma_frame_id": "26:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=26-2",
+      "route": "/profile",
+      "title": "Мой профиль",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-profile-email-desktop",
+      "figma_frame_id": "54:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=54-2",
+      "route": "/profile",
+      "title": "Мой профиль · Изменение email",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-profile-mobile",
+      "figma_frame_id": "67:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=67-2",
+      "route": "/profile",
+      "title": "Мой профиль",
+      "role": "chief_engineer",
+      "device": "mobile",
+      "source_viewport": [
+        390,
+        844
+      ],
+      "target_page": "02 · Current UI · Chief Engineer · Mobile",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-profile-password-desktop",
+      "figma_frame_id": "55:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=55-2",
+      "route": "/profile",
+      "title": "Мой профиль · Изменение пароля",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    },
+    {
+      "key": "chief-profile-settings-desktop",
+      "figma_frame_id": "56:2",
+      "figma_url": "https://www.figma.com/design/YdFh9ifap89KdGu2PcN49Y?node-id=56-2",
+      "route": "/profile",
+      "title": "Мой профиль · Настройки нейросетей",
+      "role": "chief_engineer",
+      "device": "desktop",
+      "source_viewport": [
+        1440,
+        900
+      ],
+      "target_page": "01 · Current UI · Chief Engineer · Desktop",
+      "penpot_file_id": null,
+      "penpot_page_id": null,
+      "penpot_object_id": null,
+      "import_status": "BLOCKED",
+      "reason": "Original per-screen editable-text reconstruction not completed; latest owner scope is direct transfer of supplied SVGs, tracked separately",
+      "verification": {
+        "structure": "NOT_RUN",
+        "editable_text": "NOT_RUN",
+        "visual": "NOT_RUN",
+        "fonts": "NOT_RUN",
+        "restart_persistence": "NOT_RUN"
+      }
+    }
+  ],
+  "svg_delivery_manifest": "2026-11-17-penpot-svg-import.json"
+}

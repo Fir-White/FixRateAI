@@ -6,6 +6,7 @@ import { isAuthGestureEnabled } from "./authGesture";
 export function useAuthValidation(mode: AuthMode, values: AuthValues) {
   const [revealed, setRevealed] = useState<Partial<Record<AuthField, boolean>>>({});
   const [serverErrors, setServerErrors] = useState<AuthErrors>({});
+  const attempted = useRef(false);
   const pressedAction = useRef<Element | null>(null);
   const gestureAction = useRef<Element | null>(null);
   const heldFeedbackRoot = useRef<HTMLElement | null>(null);
@@ -59,21 +60,31 @@ export function useAuthValidation(mode: AuthMode, values: AuthValues) {
   }
   return {
     errors,
-    reset: () => { setRevealed({}); setServerErrors({}); },
+    reset: () => { attempted.current = false; setRevealed({}); setServerErrors({}); },
     state: (field: AuthField) => errors[field] ? "invalid" : revealed[field] ? "valid" : undefined,
     blur: (field: AuthField, event: FocusEvent<HTMLInputElement>) => {
       const candidate = event.relatedTarget instanceof Element ? event.relatedTarget.closest("a[href], button") : null;
       const focusAction = isAuthGestureEnabled(candidate);
       const pointerAction = pressedAction.current;
       pressedAction.current = null;
-      if (!focusAction && !pointerAction) setRevealed(previous => ({ ...previous, [field]: true }));
+      // An empty field is not an error just because someone explored the form.
+      // Validate entered values on blur; required fields only after submit.
+      if (!focusAction && !pointerAction) setRevealed(previous => ({ ...previous, [field]: attempted.current || !!values[field] }));
     },
-    change: (field: AuthField) => setServerErrors(previous => ({ ...previous, [field]: undefined })),
+    change: (field: AuthField) => {
+      // Give the user time to correct a value without live red/green flashing.
+      // A changed password also invalidates the prior confirmation check.
+      const dependent = field === 'password' ? { password_confirmation: false } : {};
+      setRevealed(previous => ({ ...previous, [field]: false, ...dependent }));
+      setServerErrors(previous => ({ ...previous, [field]: undefined, ...(field === 'password' ? { password_confirmation: undefined } : {}) }));
+    },
     server: (next: AuthErrors = {}) => {
+      attempted.current = true;
       setServerErrors(next);
       setRevealed(previous => ({ ...previous, ...Object.fromEntries(Object.keys(next).map(field => [field, true])) }));
     },
     validate: (form: HTMLFormElement) => {
+      attempted.current = true;
       const next = validateAuth(values, mode);
       setServerErrors({});
       setRevealed(Object.fromEntries(Object.keys(values).map(field => [field, true])));

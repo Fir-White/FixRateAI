@@ -1,0 +1,107 @@
+{
+  "revision": 230,
+  "label": "Current app · Setup in auth style · 2026-11-18",
+  "sourceRoute": "/setup",
+  "sourceComponent": "frontend/src/pages/SetupPage.tsx",
+  "visualReference": "Current AuthLayout, with the compact form spacing used for registration",
+  "prototype": "Both controls simulate returning to login. No setup request is sent.",
+  "pageId": "a27ef1c6-05d8-806c-8008-f5cad639421f",
+  "total": 12,
+  "drafts": 0,
+  "frames": [
+    {
+      "key": "setup--desktop",
+      "name": "Первоначальная настройка · desktop",
+      "id": "a27ef1c6-05d8-806c-8008-f5cae2907736",
+      "texts": 21,
+      "nodes": 49,
+      "width": 1440,
+      "height": 1032,
+      "outside": [],
+      "overflow": [],
+      "centers": [],
+      "fields": [
+        "setup-token",
+        "setup-org",
+        "setup-site",
+        "setup-name",
+        "setup-email",
+        "setup-password"
+      ],
+      "actions": [
+        {
+          "id": "63d83be6-908a-8013-8008-f6957f036ecb",
+          "name": "Перейти ко входу",
+          "target": "a27ef1c6-05d8-806c-8008-f5cad66f1111",
+          "width": 109.328125,
+          "height": 44
+        },
+        {
+          "id": "63d83be6-908a-8013-8008-f695ced28406",
+          "name": "Создать администратора",
+          "target": "a27ef1c6-05d8-806c-8008-f5cad66f1111",
+          "width": 355,
+          "height": 52
+        }
+      ]
+    },
+    {
+      "key": "setup--mobile",
+      "name": "Первоначальная настройка · mobile",
+      "id": "a27ef1c6-05d8-806c-8008-f5cae5482556",
+      "texts": 17,
+      "nodes": 42,
+      "width": 390,
+      "height": 1061,
+      "outside": [],
+      "overflow": [],
+      "centers": [],
+      "fields": [
+        "setup-token",
+        "setup-org",
+        "setup-site",
+        "setup-name",
+        "setup-email",
+        "setup-password"
+      ],
+      "actions": [
+        {
+          "id": "63d83be6-908a-8013-8008-f6958543362d",
+          "name": "Перейти ко входу",
+          "target": "a27ef1c6-05d8-806c-8008-f5cad7dd5fde",
+          "width": 109.328125,
+          "height": 44
+        },
+        {
+          "id": "63d83be6-908a-8013-8008-f695cf67bf2e",
+          "name": "Создать администратора",
+          "target": "a27ef1c6-05d8-806c-8008-f5cad7dd5fde",
+          "width": 342,
+          "height": 52
+        }
+      ]
+    }
+  ],
+  "viewer": [
+    {
+      "key": "setup--desktop",
+      "action": "Перейти ко входу",
+      "target": "a27ef1c6-05d8-806c-8008-f5cad66f1111"
+    },
+    {
+      "key": "setup--desktop",
+      "action": "Создать администратора",
+      "target": "a27ef1c6-05d8-806c-8008-f5cad66f1111"
+    },
+    {
+      "key": "setup--mobile",
+      "action": "Перейти ко входу",
+      "target": "a27ef1c6-05d8-806c-8008-f5cad7dd5fde"
+    },
+    {
+      "key": "setup--mobile",
+      "action": "Создать администратора",
+      "target": "a27ef1c6-05d8-806c-8008-f5cad7dd5fde"
+    }
+  ]
+}

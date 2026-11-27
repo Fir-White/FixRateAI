@@ -16,45 +16,62 @@ export interface AiSettings {
 }
 
 export const DEFAULT_AI_SETTINGS: AiSettings = {
-  provider: "clip",
+  provider: "aitunnel",
   model: "",
   apiKey: "",
 };
-let memoryPreferences = { provider: DEFAULT_AI_SETTINGS.provider, model: DEFAULT_AI_SETTINGS.model };
+let memoryPreferences: Pick<AiSettings, "provider" | "model"> | undefined;
 
-export function getStoredAiSettings(): AiSettings {
+export function getPhotoReviewOptions(): AiSettings | undefined {
   try {
     const raw = typeof window !== "undefined" ? window.localStorage?.getItem(AI_SETTINGS_STORAGE_KEY) : null;
-    if (!raw) return { ...DEFAULT_AI_SETTINGS, apiKey: readAiKey() };
-    const parsed = JSON.parse(raw);
-    if (typeof parsed?.apiKey === "string") {
-      if (!readAiKey()) writeAiKey(parsed.apiKey);
-      delete parsed.apiKey;
-      window.localStorage.setItem(AI_SETTINGS_STORAGE_KEY, JSON.stringify(parsed));
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      let dirty = false;
+      if (typeof parsed?.apiKey === "string") {
+        if (!readAiKey()) writeAiKey(parsed.apiKey);
+        delete parsed.apiKey;
+        dirty = true;
+      }
+      const validProviders: AiProvider[] = ["aitunnel", "ollama"];
+      if (parsed?.provider === "clip") {
+        parsed.provider = "aitunnel";
+        parsed.model = "";
+        dirty = true;
+      }
+      if (dirty) {
+        window.localStorage.setItem(AI_SETTINGS_STORAGE_KEY, JSON.stringify(parsed));
+      }
+      if (validProviders.includes(parsed?.provider)) {
+        memoryPreferences = { provider: parsed.provider, model: typeof parsed?.model === "string" ? parsed.model : "" };
+      } else {
+        memoryPreferences = undefined;
+      }
+    } else {
+      memoryPreferences = undefined;
     }
-    const validProviders: AiProvider[] = ["clip", "ollama", "aitunnel"];
-    const provider: AiProvider = validProviders.includes(parsed?.provider) ? parsed.provider : "clip";
-    memoryPreferences = { provider, model: typeof parsed?.model === "string" ? parsed.model : "" };
-    return {
-      ...memoryPreferences,
-      apiKey: readAiKey(),
-    };
   } catch {
-    return { ...memoryPreferences, apiKey: readAiKey() };
+    // Preserve an explicit preference if the browser blocks storage.
   }
+  return memoryPreferences && { ...memoryPreferences, apiKey: readAiKey() };
+}
+
+export function getStoredAiSettings(): AiSettings {
+  return getPhotoReviewOptions() ?? { ...DEFAULT_AI_SETTINGS, apiKey: readAiKey() };
 }
 
 export function saveStoredAiSettings(settings: AiSettings): void {
-  memoryPreferences = { provider: settings.provider, model: settings.model };
+  const provider: AiProvider = settings.provider === "ollama" ? "ollama" : "aitunnel";
+  memoryPreferences = { provider, model: settings.model };
   writeAiKey(settings.apiKey);
   try {
     if (typeof window !== "undefined" && window.localStorage) {
-      window.localStorage.setItem(AI_SETTINGS_STORAGE_KEY, JSON.stringify({ provider: settings.provider, model: settings.model }));
+      window.localStorage.setItem(AI_SETTINGS_STORAGE_KEY, JSON.stringify({ provider, model: settings.model }));
     }
   } catch {
     // Ignore storage quota or disabled errors
   }
-  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(AI_SETTINGS_CHANGE_EVENT, { detail: settings }));
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(AI_SETTINGS_CHANGE_EVENT, { detail: { provider, model: settings.model, apiKey: settings.apiKey } }));
 }
 
 export function useAiSettings(autoFetch = true) {
@@ -83,21 +100,21 @@ export function useAiSettings(autoFetch = true) {
     try {
       const resp = await maintenanceApi.getAiModels();
       if (resp && Array.isArray(resp.providers)) {
-        setModelsData(resp);
-        // If current model is not set or doesn't belong to the active provider, set smart default
-        setSettingsState(curr => {
-          const providerInfo = resp.providers.find(p => p.id === curr.provider);
-          if (providerInfo && providerInfo.models.length > 0) {
-            const existsInProvider = providerInfo.models.some(m => m.id === curr.model);
-            if (!curr.model || !existsInProvider) {
-              const defaultModel = providerInfo.models[0].id;
-              const updated = { ...curr, model: defaultModel };
-              saveStoredAiSettings(updated);
-              return updated;
-            }
-          }
-          return curr;
-        });
+        const supported = resp.providers.filter(
+          (item) => item.id === "ollama" || item.id === "aitunnel"
+        );
+        setModelsData({ ...resp, providers: supported });
+        const stored = getPhotoReviewOptions();
+        const defaultProvider =
+          supported.find(item => item.id === resp.current_provider)?.id ??
+          supported.find(item => item.available)?.id ??
+          DEFAULT_AI_SETTINGS.provider;
+        const provider = stored?.provider ?? defaultProvider;
+        const models = supported.find(item => item.id === provider)?.models ?? [];
+        const selected = models.find(item => item.id === stored?.model);
+        const nextSettings = { provider, model: selected?.id ?? models[0]?.id ?? "", apiKey: readAiKey() };
+        if (stored && nextSettings.model && !selected) saveStoredAiSettings(nextSettings);
+        setSettingsState(nextSettings);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Не удалось получить список моделей");

@@ -1,0 +1,20 @@
+{
+  "chrome": "158.0.8127.37",
+  "mode": "offline UI smoke; not the model journey",
+  "roles": {
+    "engineer": {
+      "width": 1440,
+      "auth": 200,
+      "assistantLoads": true,
+      "reload": true,
+      "noHorizontalOverflow": true
+    },
+    "executor": {
+      "width": 390,
+      "auth": 200,
+      "assistantLoads": true,
+      "reload": true,
+      "noHorizontalOverflow": true
+    }
+  }
+}

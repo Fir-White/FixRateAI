@@ -1,0 +1,1044 @@
+{
+  "schema_version": 1,
+  "release_gate": "NO-GO",
+  "scope": "demonstration",
+  "engine": "v4",
+  "requested_model": "deepseek-v4.1-flash-1017",
+  "observed_model": "deepseek-v4.1-flash-1017",
+  "candidate": "c4a44400b190a49218fea28e441841de312d972b",
+  "overlay_manifest": "docs/agent-audit/final-2026-11-25/frozen.json",
+  "corpus_sha256": "411043468a459b3c4c33ce7921242f5c43c58807ccddaecaf1e4d7295c34a43a",
+  "threshold_full_passes_per_role": 23,
+  "main": {
+    "all": {
+      "planned": 50,
+      "evaluated": 48,
+      "full": 33,
+      "partial": 13,
+      "failed": 2,
+      "invalid_fixture": 2,
+      "critical": {
+        "passed": 12,
+        "planned": 14
+      },
+      "factual_accuracy": {
+        "correct": 121,
+        "checked": 140
+      },
+      "hallucinations": {
+        "cases": 5,
+        "evaluated": 48
+      },
+      "context_retention": {
+        "passed": 5,
+        "assessed": 7
+      },
+      "tool_trace": {
+        "successful": 91,
+        "denied": 8,
+        "other": 0,
+        "seen": 99
+      },
+      "logical_model_steps": 131,
+      "terminal_turns": {
+        "completed": 58,
+        "total": 58
+      },
+      "latency_s": {
+        "samples": 58,
+        "mean": 6.707,
+        "p50": 5.36,
+        "p95": 18.203,
+        "p99": 27.813
+      }
+    },
+    "by_role": {
+      "engineer": {
+        "planned": 25,
+        "evaluated": 23,
+        "full": 14,
+        "partial": 9,
+        "failed": 0,
+        "invalid_fixture": 2,
+        "critical": {
+          "passed": 2,
+          "planned": 3
+        },
+        "factual_accuracy": {
+          "correct": 58,
+          "checked": 71
+        },
+        "hallucinations": {
+          "cases": 2,
+          "evaluated": 23
+        },
+        "context_retention": {
+          "passed": 2,
+          "assessed": 4
+        },
+        "tool_trace": {
+          "successful": 60,
+          "denied": 6,
+          "other": 0,
+          "seen": 66
+        },
+        "logical_model_steps": 87,
+        "terminal_turns": {
+          "completed": 29,
+          "total": 29
+        },
+        "latency_s": {
+          "samples": 29,
+          "mean": 7.998,
+          "p50": 6.328,
+          "p95": 24.922,
+          "p99": 27.813
+        },
+        "by_class": {
+          "action": {
+            "planned": 3,
+            "evaluated": 3,
+            "full": 1,
+            "partial": 2,
+            "failed": 0,
+            "invalid_fixture": 0,
+            "critical": {
+              "passed": 1,
+              "planned": 2
+            },
+            "factual_accuracy": {
+              "correct": 5,
+              "checked": 6
+            },
+            "hallucinations": {
+              "cases": 1,
+              "evaluated": 3
+            },
+            "context_retention": {
+              "passed": 0,
+              "assessed": 0
+            },
+            "tool_trace": {
+              "successful": 11,
+              "denied": 1,
+              "other": 0,
+              "seen": 12
+            },
+            "logical_model_steps": 14,
+            "terminal_turns": {
+              "completed": 3,
+              "total": 3
+            },
+            "latency_s": {
+              "samples": 3,
+              "mean": 15.557,
+              "p50": 11.437,
+              "p95": 24.922,
+              "p99": 24.922
+            }
+          },
+          "analytics": {
+            "planned": 15,
+            "evaluated": 13,
+            "full": 8,
+            "partial": 5,
+            "failed": 0,
+            "invalid_fixture": 2,
+            "critical": {
+              "passed": 1,
+              "planned": 1
+            },
+            "factual_accuracy": {
+              "correct": 34,
+              "checked": 42
+            },
+            "hallucinations": {
+              "cases": 1,
+              "evaluated": 13
+            },
+            "context_retention": {
+              "passed": 0,
+              "assessed": 0
+            },
+            "tool_trace": {
+              "successful": 35,
+              "denied": 5,
+              "other": 0,
+              "seen": 40
+            },
+            "logical_model_steps": 48,
+            "terminal_turns": {
+              "completed": 15,
+              "total": 15
+            },
+            "latency_s": {
+              "samples": 15,
+              "mean": 8.366,
+              "p50": 6.859,
+              "p95": 27.813,
+              "p99": 27.813
+            }
+          },
+          "dialogue": {
+            "planned": 4,
+            "evaluated": 4,
+            "full": 2,
+            "partial": 2,
+            "failed": 0,
+            "invalid_fixture": 0,
+            "critical": {
+              "passed": 0,
+              "planned": 0
+            },
+            "factual_accuracy": {
+              "correct": 11,
+              "checked": 15
+            },
+            "hallucinations": {
+              "cases": 0,
+              "evaluated": 4
+            },
+            "context_retention": {
+              "passed": 2,
+              "assessed": 4
+            },
+            "tool_trace": {
+              "successful": 9,
+              "denied": 0,
+              "other": 0,
+              "seen": 9
+            },
+            "logical_model_steps": 17,
+            "terminal_turns": {
+              "completed": 8,
+              "total": 8
+            },
+            "latency_s": {
+              "samples": 8,
+              "mean": 5.526,
+              "p50": 4.079,
+              "p95": 10.313,
+              "p99": 10.313
+            }
+          },
+          "text": {
+            "planned": 3,
+            "evaluated": 3,
+            "full": 3,
+            "partial": 0,
+            "failed": 0,
+            "invalid_fixture": 0,
+            "critical": {
+              "passed": 0,
+              "planned": 0
+            },
+            "factual_accuracy": {
+              "correct": 8,
+              "checked": 8
+            },
+            "hallucinations": {
+              "cases": 0,
+              "evaluated": 3
+            },
+            "context_retention": {
+              "passed": 0,
+              "assessed": 0
+            },
+            "tool_trace": {
+              "successful": 5,
+              "denied": 0,
+              "other": 0,
+              "seen": 5
+            },
+            "logical_model_steps": 8,
+            "terminal_turns": {
+              "completed": 3,
+              "total": 3
+            },
+            "latency_s": {
+              "samples": 3,
+              "mean": 5.198,
+              "p50": 5.203,
+              "p95": 6.328,
+              "p99": 6.328
+            }
+          },
+          "vision": {
+            "planned": 0,
+            "evaluated": 0,
+            "full": 0,
+            "partial": 0,
+            "failed": 0,
+            "invalid_fixture": 0,
+            "critical": {
+              "passed": 0,
+              "planned": 0
+            },
+            "factual_accuracy": {
+              "correct": 0,
+              "checked": 0
+            },
+            "hallucinations": {
+              "cases": 0,
+              "evaluated": 0
+            },
+            "context_retention": {
+              "passed": 0,
+              "assessed": 0
+            },
+            "tool_trace": {
+              "successful": 0,
+              "denied": 0,
+              "other": 0,
+              "seen": 0
+            },
+            "logical_model_steps": 0,
+            "terminal_turns": {
+              "completed": 0,
+              "total": 0
+            },
+            "latency_s": {
+              "samples": 0,
+              "mean": null,
+              "p50": null,
+              "p95": null,
+              "p99": null
+            }
+          }
+        }
+      },
+      "executor": {
+        "planned": 25,
+        "evaluated": 25,
+        "full": 19,
+        "partial": 4,
+        "failed": 2,
+        "invalid_fixture": 0,
+        "critical": {
+          "passed": 10,
+          "planned": 11
+        },
+        "factual_accuracy": {
+          "correct": 63,
+          "checked": 69
+        },
+        "hallucinations": {
+          "cases": 3,
+          "evaluated": 25
+        },
+        "context_retention": {
+          "passed": 3,
+          "assessed": 3
+        },
+        "tool_trace": {
+          "successful": 31,
+          "denied": 2,
+          "other": 0,
+          "seen": 33
+        },
+        "logical_model_steps": 44,
+        "terminal_turns": {
+          "completed": 29,
+          "total": 29
+        },
+        "latency_s": {
+          "samples": 29,
+          "mean": 5.416,
+          "p50": 4.062,
+          "p95": 14.25,
+          "p99": 18.203
+        },
+        "by_class": {
+          "action": {
+            "planned": 5,
+            "evaluated": 5,
+            "full": 5,
+            "partial": 0,
+            "failed": 0,
+            "invalid_fixture": 0,
+            "critical": {
+              "passed": 5,
+              "planned": 5
+            },
+            "factual_accuracy": {
+              "correct": 11,
+              "checked": 11
+            },
+            "hallucinations": {
+              "cases": 0,
+              "evaluated": 5
+            },
+            "context_retention": {
+              "passed": 0,
+              "assessed": 0
+            },
+            "tool_trace": {
+              "successful": 6,
+              "denied": 1,
+              "other": 0,
+              "seen": 7
+            },
+            "logical_model_steps": 4,
+            "terminal_turns": {
+              "completed": 5,
+              "total": 5
+            },
+            "latency_s": {
+              "samples": 5,
+              "mean": 4.044,
+              "p50": 2.344,
+              "p95": 9.703,
+              "p99": 9.703
+            }
+          },
+          "analytics": {
+            "planned": 5,
+            "evaluated": 5,
+            "full": 4,
+            "partial": 1,
+            "failed": 0,
+            "invalid_fixture": 0,
+            "critical": {
+              "passed": 1,
+              "planned": 1
+            },
+            "factual_accuracy": {
+              "correct": 15,
+              "checked": 16
+            },
+            "hallucinations": {
+              "cases": 1,
+              "evaluated": 5
+            },
+            "context_retention": {
+              "passed": 0,
+              "assessed": 0
+            },
+            "tool_trace": {
+              "successful": 8,
+              "denied": 1,
+              "other": 0,
+              "seen": 9
+            },
+            "logical_model_steps": 11,
+            "terminal_turns": {
+              "completed": 5,
+              "total": 5
+            },
+            "latency_s": {
+              "samples": 5,
+              "mean": 6.109,
+              "p50": 5.187,
+              "p95": 9.14,
+              "p99": 9.14
+            }
+          },
+          "dialogue": {
+            "planned": 4,
+            "evaluated": 4,
+            "full": 1,
+            "partial": 2,
+            "failed": 1,
+            "invalid_fixture": 0,
+            "critical": {
+              "passed": 0,
+              "planned": 0
+            },
+            "factual_accuracy": {
+              "correct": 9,
+              "checked": 12
+            },
+            "hallucinations": {
+              "cases": 1,
+              "evaluated": 4
+            },
+            "context_retention": {
+              "passed": 3,
+              "assessed": 3
+            },
+            "tool_trace": {
+              "successful": 7,
+              "denied": 0,
+              "other": 0,
+              "seen": 7
+            },
+            "logical_model_steps": 13,
+            "terminal_turns": {
+              "completed": 8,
+              "total": 8
+            },
+            "latency_s": {
+              "samples": 8,
+              "mean": 5.924,
+              "p50": 3.641,
+              "p95": 18.203,
+              "p99": 18.203
+            }
+          },
+          "text": {
+            "planned": 7,
+            "evaluated": 7,
+            "full": 5,
+            "partial": 1,
+            "failed": 1,
+            "invalid_fixture": 0,
+            "critical": {
+              "passed": 2,
+              "planned": 3
+            },
+            "factual_accuracy": {
+              "correct": 18,
+              "checked": 20
+            },
+            "hallucinations": {
+              "cases": 1,
+              "evaluated": 7
+            },
+            "context_retention": {
+              "passed": 0,
+              "assessed": 0
+            },
+            "tool_trace": {
+              "successful": 9,
+              "denied": 0,
+              "other": 0,
+              "seen": 9
+            },
+            "logical_model_steps": 12,
+            "terminal_turns": {
+              "completed": 7,
+              "total": 7
+            },
+            "latency_s": {
+              "samples": 7,
+              "mean": 5.942,
+              "p50": 4.032,
+              "p95": 14.25,
+              "p99": 14.25
+            }
+          },
+          "vision": {
+            "planned": 4,
+            "evaluated": 4,
+            "full": 4,
+            "partial": 0,
+            "failed": 0,
+            "invalid_fixture": 0,
+            "critical": {
+              "passed": 2,
+              "planned": 2
+            },
+            "factual_accuracy": {
+              "correct": 10,
+              "checked": 10
+            },
+            "hallucinations": {
+              "cases": 0,
+              "evaluated": 4
+            },
+            "context_retention": {
+              "passed": 0,
+              "assessed": 0
+            },
+            "tool_trace": {
+              "successful": 1,
+              "denied": 0,
+              "other": 0,
+              "seen": 1
+            },
+            "logical_model_steps": 4,
+            "terminal_turns": {
+              "completed": 4,
+              "total": 4
+            },
+            "latency_s": {
+              "samples": 4,
+              "mean": 4.329,
+              "p50": 4.047,
+              "p95": 5.75,
+              "p99": 5.75
+            }
+          }
+        }
+      }
+    },
+    "by_class": {
+      "action": {
+        "planned": 8,
+        "evaluated": 8,
+        "full": 6,
+        "partial": 2,
+        "failed": 0,
+        "invalid_fixture": 0,
+        "critical": {
+          "passed": 6,
+          "planned": 7
+        },
+        "factual_accuracy": {
+          "correct": 16,
+          "checked": 17
+        },
+        "hallucinations": {
+          "cases": 1,
+          "evaluated": 8
+        },
+        "context_retention": {
+          "passed": 0,
+          "assessed": 0
+        },
+        "tool_trace": {
+          "successful": 17,
+          "denied": 2,
+          "other": 0,
+          "seen": 19
+        },
+        "logical_model_steps": 18,
+        "terminal_turns": {
+          "completed": 8,
+          "total": 8
+        },
+        "latency_s": {
+          "samples": 8,
+          "mean": 8.361,
+          "p50": 6.859,
+          "p95": 24.922,
+          "p99": 24.922
+        }
+      },
+      "analytics": {
+        "planned": 20,
+        "evaluated": 18,
+        "full": 12,
+        "partial": 6,
+        "failed": 0,
+        "invalid_fixture": 2,
+        "critical": {
+          "passed": 2,
+          "planned": 2
+        },
+        "factual_accuracy": {
+          "correct": 49,
+          "checked": 58
+        },
+        "hallucinations": {
+          "cases": 2,
+          "evaluated": 18
+        },
+        "context_retention": {
+          "passed": 0,
+          "assessed": 0
+        },
+        "tool_trace": {
+          "successful": 43,
+          "denied": 6,
+          "other": 0,
+          "seen": 49
+        },
+        "logical_model_steps": 59,
+        "terminal_turns": {
+          "completed": 20,
+          "total": 20
+        },
+        "latency_s": {
+          "samples": 20,
+          "mean": 7.802,
+          "p50": 6.844,
+          "p95": 11.422,
+          "p99": 27.813
+        }
+      },
+      "dialogue": {
+        "planned": 8,
+        "evaluated": 8,
+        "full": 3,
+        "partial": 4,
+        "failed": 1,
+        "invalid_fixture": 0,
+        "critical": {
+          "passed": 0,
+          "planned": 0
+        },
+        "factual_accuracy": {
+          "correct": 20,
+          "checked": 27
+        },
+        "hallucinations": {
+          "cases": 1,
+          "evaluated": 8
+        },
+        "context_retention": {
+          "passed": 5,
+          "assessed": 7
+        },
+        "tool_trace": {
+          "successful": 16,
+          "denied": 0,
+          "other": 0,
+          "seen": 16
+        },
+        "logical_model_steps": 30,
+        "terminal_turns": {
+          "completed": 16,
+          "total": 16
+        },
+        "latency_s": {
+          "samples": 16,
+          "mean": 5.725,
+          "p50": 4.062,
+          "p95": 18.203,
+          "p99": 18.203
+        }
+      },
+      "text": {
+        "planned": 10,
+        "evaluated": 10,
+        "full": 8,
+        "partial": 1,
+        "failed": 1,
+        "invalid_fixture": 0,
+        "critical": {
+          "passed": 2,
+          "planned": 3
+        },
+        "factual_accuracy": {
+          "correct": 26,
+          "checked": 28
+        },
+        "hallucinations": {
+          "cases": 1,
+          "evaluated": 10
+        },
+        "context_retention": {
+          "passed": 0,
+          "assessed": 0
+        },
+        "tool_trace": {
+          "successful": 14,
+          "denied": 0,
+          "other": 0,
+          "seen": 14
+        },
+        "logical_model_steps": 20,
+        "terminal_turns": {
+          "completed": 10,
+          "total": 10
+        },
+        "latency_s": {
+          "samples": 10,
+          "mean": 5.719,
+          "p50": 4.063,
+          "p95": 14.25,
+          "p99": 14.25
+        }
+      },
+      "vision": {
+        "planned": 4,
+        "evaluated": 4,
+        "full": 4,
+        "partial": 0,
+        "failed": 0,
+        "invalid_fixture": 0,
+        "critical": {
+          "passed": 2,
+          "planned": 2
+        },
+        "factual_accuracy": {
+          "correct": 10,
+          "checked": 10
+        },
+        "hallucinations": {
+          "cases": 0,
+          "evaluated": 4
+        },
+        "context_retention": {
+          "passed": 0,
+          "assessed": 0
+        },
+        "tool_trace": {
+          "successful": 1,
+          "denied": 0,
+          "other": 0,
+          "seen": 1
+        },
+        "logical_model_steps": 4,
+        "terminal_turns": {
+          "completed": 4,
+          "total": 4
+        },
+        "latency_s": {
+          "samples": 4,
+          "mean": 4.329,
+          "p50": 4.047,
+          "p95": 5.75,
+          "p99": 5.75
+        }
+      }
+    },
+    "judge": "Manual against frozen expectations and checked facts",
+    "dialogue_success": {
+      "planned": 8,
+      "evaluated": 8,
+      "full": 3,
+      "partial": 4,
+      "failed": 1,
+      "invalid_fixture": 0,
+      "critical": {
+        "passed": 0,
+        "planned": 0
+      },
+      "factual_accuracy": {
+        "correct": 20,
+        "checked": 27
+      },
+      "hallucinations": {
+        "cases": 1,
+        "evaluated": 8
+      },
+      "context_retention": {
+        "passed": 5,
+        "assessed": 7
+      },
+      "tool_trace": {
+        "successful": 16,
+        "denied": 0,
+        "other": 0,
+        "seen": 16
+      },
+      "logical_model_steps": 30,
+      "terminal_turns": {
+        "completed": 16,
+        "total": 16
+      },
+      "latency_s": {
+        "samples": 16,
+        "mean": 5.725,
+        "p50": 4.062,
+        "p95": 18.203,
+        "p99": 18.203
+      }
+    },
+    "ordinary_text_latency_s": {
+      "samples": 10,
+      "mean": 5.719,
+      "p50": 4.063,
+      "p95": 14.25,
+      "p99": 14.25
+    }
+  },
+  "confirmed_actions": {
+    "verified": 3,
+    "expected": 3,
+    "duplicates": 0,
+    "cross_role_denied": 3,
+    "cross_role_attempts": 3,
+    "false_success": 0
+  },
+  "write_before_confirmation": {
+    "detected": 0,
+    "observed_cases": 50,
+    "business_tables": 7
+  },
+  "meter": {
+    "limit_rub": 60,
+    "tariff_rub_per_million": {
+      "input": 6,
+      "output": 40
+    },
+    "main": {
+      "requests": 131,
+      "responses": 131,
+      "with_usage": 131,
+      "without_usage": 0,
+      "images_requests": 8,
+      "models": {
+        "deepseek-v4.1-flash-1017": 131
+      },
+      "input_tokens": 1185400,
+      "output_tokens": 20926,
+      "estimated_cost_rub": 7.94944
+    },
+    "followup": {
+      "requests": 87,
+      "responses": 87,
+      "with_usage": 87,
+      "without_usage": 0,
+      "images_requests": 3,
+      "models": {
+        "deepseek-v4.1-flash-1017": 87
+      },
+      "input_tokens": 803536,
+      "output_tokens": 13874,
+      "estimated_cost_rub": 5.376176
+    },
+    "aggregate": {
+      "requests": 218,
+      "responses": 218,
+      "with_usage": 218,
+      "without_usage": 0,
+      "images_requests": 11,
+      "models": {
+        "deepseek-v4.1-flash-1017": 218
+      },
+      "input_tokens": 1988936,
+      "output_tokens": 34800,
+      "estimated_cost_rub": 13.325616
+    },
+    "estimate_or_reserved_rub": 13.325616,
+    "attribution": "Tool/model logical steps by role and class; concurrent token usage only by benchmark phase, not by role/class."
+  },
+  "chrome": {
+    "first": {
+      "passed": false,
+      "steps": [
+        "initial_visibility",
+        "full_crew_advice",
+        "insufficient_crew_no_card",
+        "assignment_confirmed",
+        "instruction_and_materials_read",
+        "incomplete_report_blocked"
+      ],
+      "sql": {
+        "browser_exit": 1,
+        "complete_state": false,
+        "task": [
+          "in_progress",
+          3
+        ],
+        "assignees": [
+          [
+            "346221f4-8429-841b-9a0a-8ba2ffa9a9fc"
+          ],
+          [
+            "6f51aa9c-9bba-9774-f66c-9d2c8ddb0c78"
+          ]
+        ],
+        "reports": [
+          [
+            1,
+            "draft",
+            false
+          ]
+        ],
+        "phases": [],
+        "decisions": 0,
+        "audit": [
+          [
+            "assign",
+            1
+          ],
+          [
+            "start",
+            1
+          ]
+        ],
+        "exercise_open_date": "2026-11-25"
+      },
+      "error": null
+    },
+    "retry": {
+      "passed": false,
+      "steps": [
+        "initial_visibility",
+        "full_crew_advice",
+        "insufficient_crew_no_card",
+        "assignment_confirmed",
+        "instruction_and_materials_read",
+        "incomplete_report_blocked",
+        "required_checklist_answer_entered",
+        "missing_after_photo_blocks_submit",
+        "readiness_no_write"
+      ],
+      "sql": {
+        "browser_exit": 1,
+        "complete_state": true,
+        "task": [
+          "in_review",
+          8
+        ],
+        "assignees": [
+          [
+            "346221f4-8429-841b-9a0a-8ba2ffa9a9fc"
+          ],
+          [
+            "6f51aa9c-9bba-9774-f66c-9d2c8ddb0c78"
+          ]
+        ],
+        "reports": [
+          [
+            1,
+            "submitted",
+            true
+          ]
+        ],
+        "phases": [
+          [
+            "after",
+            1
+          ],
+          [
+            "before",
+            1
+          ]
+        ],
+        "decisions": 0,
+        "audit": [
+          [
+            "assign",
+            1
+          ],
+          [
+            "save_report",
+            2
+          ],
+          [
+            "start",
+            1
+          ],
+          [
+            "submit",
+            1
+          ],
+          [
+            "upload_photo",
+            2
+          ]
+        ],
+        "exercise_open_date": "2026-11-25"
+      },
+      "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'submitted'\n- 'in_review'\n"
+    }
+  },
+  "repeats": {
+    "planned_cases": 10,
+    "planned_executions": 30,
+    "completed_executions": 30,
+    "fully_passed_executions": 28,
+    "all_three_passed": 9,
+    "stable_including_primary": 8,
+    "confirmed_sql_actions": 6,
+    "repeat_click_duplicates": 0,
+    "same_initial_state": true
+  },
+  "technical": {
+    "backend_v4": {
+      "passed": 74,
+      "failed": 0
+    },
+    "backend_broad_v2": {
+      "passed": 3262,
+      "failed": 11,
+      "skipped": 65,
+      "xfailed": 1
+    },
+    "frontend": {
+      "passed": 653,
+      "failed": 5
+    },
+    "frontend_navigation_rerun": {
+      "passed": 144,
+      "failed": 4
+    },
+    "offline_faults": "docs/agent-audit/final-2026-11-25/offline-faults.json",
+    "offline_http": "docs/agent-audit/final-2026-11-25/offline-http.json"
+  }
+}

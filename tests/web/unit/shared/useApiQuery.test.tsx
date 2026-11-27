@@ -5,8 +5,22 @@ import { useApiQuery } from "@/shared/lib/useApiQuery";
 import { ApiQueryProvider } from "@/shared/lib/ApiQueryProvider";
 import { invalidateApiQueries } from "@/shared/lib/apiQueryCache";
 
-afterEach(()=>vi.useRealTimers());
+afterEach(()=>{vi.useRealTimers();vi.restoreAllMocks();});
 const wrapper = ({ children }: { children: ReactNode }) => createElement(StrictMode, null, createElement(ApiQueryProvider, { scope: "user:one", children }));
+
+it("pauses analysis polling in a hidden tab and resumes once without duplicate foreground requests", async () => {
+ vi.useFakeTimers();
+ const hidden=vi.spyOn(document,"hidden","get").mockReturnValue(false);
+ const loader=vi.fn().mockResolvedValue({status:"pending"});
+ const {result}=renderHook(()=>useApiQuery<{status:string}>(loader,[],()=>true));
+ await act(async()=>{await Promise.resolve();});expect(result.current.status).toBe("success");
+ hidden.mockReturnValue(true);act(()=>document.dispatchEvent(new Event("visibilitychange")));
+ await act(async()=>{await vi.advanceTimersByTimeAsync(30_000);});expect(loader).toHaveBeenCalledTimes(1);
+ hidden.mockReturnValue(false);
+ await act(async()=>{document.dispatchEvent(new Event("visibilitychange"));window.dispatchEvent(new Event("focus"));});
+ expect(loader).toHaveBeenCalledTimes(2);
+ await act(async()=>{await vi.advanceTimersByTimeAsync(3000);});expect(loader).toHaveBeenCalledTimes(3);
+});
 
 it("reopens a cached tab synchronously, without a loading frame or another request", async () => {
  const loader=vi.fn().mockResolvedValue(["current"]);

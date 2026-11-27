@@ -27,6 +27,7 @@ def migrate(engine, adopt_existing=False):
     """One atomic transaction per migration, with checksum and advisory lock."""
     with engine.connect() as conn:
         raw = conn.connection.driver_connection
+        previous_autocommit = raw.autocommit
         raw.autocommit = True
         raw.execute("SELECT pg_advisory_lock(6813092026)")
         try:
@@ -60,8 +61,13 @@ def migrate(engine, adopt_existing=False):
                     raw.execute(sql)
                     raw.execute("INSERT INTO fixrate_schema_migrations(filename,sha256) VALUES (%s,%s)", (file.name, checksum))
                 print(f"Applied {file.name}")
+            from app.assistant.graph_persistence import migrate as migrate_checkpoints
+            migrate_checkpoints(engine)
         finally:
-            raw.execute("SELECT pg_advisory_unlock(6813092026)")
+            try:
+                raw.execute("SELECT pg_advisory_unlock(6813092026)")
+            finally:
+                raw.autocommit = previous_autocommit
 
 
 def seed_demo(engine, password):
@@ -71,8 +77,13 @@ def seed_demo(engine, password):
     from app.integration.demo import add_runtime_demo
     with engine.connect() as conn:
         raw = conn.connection.driver_connection
+        previous_autocommit = raw.autocommit
         raw.autocommit = True
-        raw.execute((ROOT / "database/seeds/001_customer_schedule_demo.sql").read_text(encoding="utf-8-sig"))
+        try:
+            raw.execute((ROOT / "database/seeds/001_customer_schedule_demo.sql").read_text(encoding="utf-8-sig"))
+        finally:
+            raw.rollback()
+            raw.autocommit = previous_autocommit
     models = map_schema(engine)
     with Session(engine) as session, session.begin():
         repo = MaintenanceRepository(session, models)

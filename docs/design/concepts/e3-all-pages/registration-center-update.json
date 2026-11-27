@@ -1,0 +1,61 @@
+{
+  "revision": 254,
+  "label": "Centered registration confirmation · 2026-11-18",
+  "layout": [
+    {
+      "key": "registration-pending--desktop",
+      "id": "a27ef1c6-05d8-806c-8008-f5cae0f1f2ae",
+      "pageId": "a27ef1c6-05d8-806c-8008-f5cad639421f",
+      "delta": 200,
+      "headingY": 315,
+      "centerY": 450.1328125,
+      "helpY": 803,
+      "target": "a27ef1c6-05d8-806c-8008-f5cad66f1111",
+      "targetHeight": 44
+    },
+    {
+      "key": "registration-pending--mobile",
+      "id": "a27ef1c6-05d8-806c-8008-f5cae1e02e77",
+      "pageId": "a27ef1c6-05d8-806c-8008-f5cad639421f",
+      "delta": 185,
+      "headingY": 282,
+      "centerY": 422.3828125,
+      "helpY": 747,
+      "target": "a27ef1c6-05d8-806c-8008-f5cad7dd5fde",
+      "targetHeight": 44
+    }
+  ],
+  "viewer": [
+    {
+      "device": "desktop",
+      "action": "Регистрация",
+      "destination": "register"
+    },
+    {
+      "device": "desktop",
+      "action": "Зарегистрироваться",
+      "destination": "registration-pending"
+    },
+    {
+      "device": "desktop",
+      "action": "Перейти ко входу",
+      "destination": "login"
+    },
+    {
+      "device": "mobile",
+      "action": "Регистрация",
+      "destination": "register"
+    },
+    {
+      "device": "mobile",
+      "action": "Зарегистрироваться",
+      "destination": "registration-pending"
+    },
+    {
+      "device": "mobile",
+      "action": "Перейти ко входу",
+      "destination": "login"
+    }
+  ],
+  "shellPixelComparison": "PASS"
+}

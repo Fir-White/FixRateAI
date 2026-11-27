@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Outlet,
   NavLink,
+  Link,
   useLocation,
   useNavigationType,
   useNavigate,
@@ -12,39 +13,45 @@ import { IconButton } from "@/shared/ui/Button";
 import { Select } from "@/shared/ui/Form";
 import { Icon } from "@/shared/ui/Icon";
 import { useSession } from "@/shared/session/SessionContext";
-import { ROLE_LABELS, homePathForRole } from "@/shared/lib/roles";
+import { ROLE_LABELS, homePathForRole, hasPermission } from "@/shared/lib/roles";
 import type { Role } from "@/shared/types/domain";
 import { usePageEntry } from "@/shared/motion/usePageEntry";
 import { useScrollBoundary } from "@/shared/lib/useScrollBoundary";
 import { isBoolean, useWorkspaceState } from "@/shared/lib/workspaceState";
 import { isAuthEntryNavigation } from "@/shared/motion/authEntry";
 import { Sidebar } from "./Sidebar";
-import { useWorkspaceBack } from "./WorkspaceNavigation";
 import { NAVIGATION_ITEMS } from "./navigation";
 import "./operations.css";
 import { ContentTheme } from "@/shared/ui/ContentTheme";
+import { preloadPage } from "@/app/pageModules";
+import { SectionNavigation } from "./SectionNavigation";
+import { AccessBrand } from "@/shared/ui/Brand";
+import { useApiQueryCache } from "@/shared/lib/ApiQueryProvider";
+import { warmWorkspacePath } from "@/features/navigation/warmWorkspacePath";
+import { WorkspaceSearch } from "./WorkspaceSearch";
+import { canOpenSection } from "@/shared/lib/roles";
+import "./e3-shell.css";
 
 const ROLES: Role[] = ["director","chief_engineer","dispatcher", "engineer", "executor", "admin"];
 
 export function AppShell({ executor = false }: { executor?: boolean }) {
   const { profile, switchRole } = useSession();
   const navigate = useNavigate();
-  const workspaceBack = useWorkspaceBack();
   const location = useLocation();
   const navigationType = useNavigationType();
+  const cache = useApiQueryCache();
   const contentRef = useRef<HTMLElement>(null);
   const topbarRef = useRef<HTMLElement>(null);
   useScrollBoundary(topbarRef);
   usePageEntry(contentRef, location.key, isAuthEntryNavigation(location.state, navigationType));
   const [menuOpen, setMenuOpen] = useWorkspaceState("sidebar.mobile-open", false, isBoolean);
   const previousPath = useRef(location.pathname);
-  const [sidebarExpanded, setSidebarExpanded] = useWorkspaceState("sidebar.expanded", true, isBoolean);
-  const [isMobile, setIsMobile] = useState(() => window.matchMedia?.("(max-width: 1023px)")?.matches ?? false);
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia?.("(max-width: 1099px)")?.matches ?? false);
   const mobileOpen = isMobile && menuOpen;
 
   useEffect(() => {
     if (typeof window.matchMedia !== "function") return;
-    const media = window.matchMedia("(max-width: 1023px)");
+    const media = window.matchMedia("(max-width: 1099px)");
     const synchronize = () => {
       setIsMobile(media.matches);
       if (!media.matches) setMenuOpen(false);
@@ -66,18 +73,26 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
   }
 
   const items = NAVIGATION_ITEMS.filter(item => item.roles.includes(profile.role)).map(item => {
-    if (item.to === "/dispatcher" && ["director", "chief_engineer", "admin"].includes(profile.role)) return { ...item, to: homePathForRole(profile.role) };
-    if (item.to === "/quality" && profile.role === "engineer") return { ...item, to: homePathForRole(profile.role) };
+    if (item.to === "/dispatcher") return { ...item, to: homePathForRole(profile.role), label: profile.role==='director'?'Обзор объекта':item.label };
     return item;
   });
+  const home = homePathForRole(profile.role);
+  const engineeringHeader = hasPermission(profile,"engineering_workspace");
+  const assistantLabel = "ИИ-помощник";
+  const searchItems = [...items];
+  if(profile.role!=="executor"&&canOpenSection(profile.role,"calendar")) searchItems.push({to:"/calendar",label:"Действующий календарь",icon:"calendar",roles:[profile.role]});
+  if(canOpenSection(profile.role,"service_settings")) searchItems.push({to:"/settings/equipment",label:"Настройка обслуживания",icon:"equipment",roles:[profile.role]});
+  const warm = (path: string) => warmWorkspacePath(cache,path,profile.timezone,profile.role);
+  const initials = profile.name.trim().split(/\s+/).slice(0,2).map(part => [...part][0]).join("").toLocaleUpperCase("ru-RU");
   const handleRoleChange = (role: Role) => {
     switchRole(role);
     navigate(homePathForRole(role));
   };
+  const warmProfile = () => { void preloadPage("/profile")?.catch(() => {}); };
 
 
   return (
-    <div className="ops-shell app-backdrop min-h-screen text-ink" data-sidebar-expanded={sidebarExpanded}>
+    <div className="ops-shell e3-shell min-h-screen text-ink">
       <a
         href={executor ? "#executor-content" : "#main-content"}
         className="sr-only z-[60] rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-canvas focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
@@ -85,33 +100,38 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
         Перейти к содержимому
       </a>
 
-      <Sidebar
+      {isMobile && <Sidebar
+        role={profile.role}
+        timezone={profile.timezone}
         items={items}
-        expanded={sidebarExpanded}
-        mobile={isMobile}
         open={mobileOpen}
         onClose={() => setMenuOpen(false)}
-        onToggle={() => setSidebarExpanded(value => !value)}
-      />
+      />}
 
       <div className="ops-stage" inert={mobileOpen} aria-hidden={mobileOpen || undefined}>
-        <header ref={topbarRef} className="ops-topbar scroll-boundary sticky top-0 z-30 border-b border-line bg-canvas/80 backdrop-blur-xl">
-          <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
-            <div className="flex min-w-0 items-center gap-3">
-              <IconButton
-                label="Открыть меню"
-                variant="ghost"
-                className="lg:hidden"
-                aria-expanded={mobileOpen}
-                aria-controls="application-sidebar"
-                onClick={() => setMenuOpen(true)}
-              >
-                <Icon name="menu" size={20} />
-              </IconButton>
-              {location.pathname.replace(/\/+$/, "") !== homePathForRole(profile.role) && <button type="button" className="workspace-back" onClick={workspaceBack}><Icon name="back" size={17}/>Назад</button>}
-            </div>
-
-              <div className="fr-topbar-actions"><MaintenanceInbox/><NavLink to="/profile" className="profile-trigger" aria-label="Учётная запись"><Icon name="user" size={20}/><span className="topbar-hint" aria-hidden="true">Учётная запись</span></NavLink>
+        <header ref={topbarRef} className={engineeringHeader ? "e3-topbar scroll-boundary e3-topbar--engineering" : "e3-topbar scroll-boundary"}>
+          <div className="e3-topbar-inner">
+            <Link to={home} className="e3-brand" aria-label="FixRate AI" onMouseEnter={()=>warm(home)}><AccessBrand /></Link>
+            {!isMobile && <nav className="e3-navigation" aria-label="Основная навигация">
+              {items.filter(item => item.to !== "/assistant").map(item => {
+                const path = location.pathname.replace(/\/+$/, "");
+                const active = [item.to, ...item.activePaths??[]].some(value=>path===value||(!item.end&&path.startsWith(value+"/")));
+                const label = item.to==="/settings/workforce"?"Команда":item.to==="/quality"?"Приёмка":item.label;
+                return <Link key={item.to} to={item.to} aria-label={item.label} aria-current={active?"page":undefined}
+                  onClick={event=>{if(path===item.to&&event.button===0&&!event.ctrlKey&&!event.metaKey&&!event.shiftKey&&!event.altKey)event.preventDefault();}}
+                  onMouseEnter={()=>warm(item.to)} onFocus={()=>warm(item.to)} onPointerDown={()=>warm(item.to)}><span>{label}</span></Link>;
+              })}
+            </nav>}
+            <div className="fr-topbar-actions">
+              <NavLink to="/assistant" className="e3-assistant-trigger" aria-label={assistantLabel} onMouseEnter={()=>warm("/assistant")} onFocus={()=>warm("/assistant")}>
+                <Icon name="assistant" size={22}/>
+                <span className="topbar-hint" aria-hidden="true">{assistantLabel}</span>
+              </NavLink>
+              <MaintenanceInbox/>
+              <NavLink to="/profile" className="e3-profile-trigger" aria-label="Учётная запись" onMouseEnter={warmProfile} onFocus={warmProfile} onPointerDown={warmProfile}>
+                <span className="e3-profile-initials" aria-hidden="true">{initials}</span>
+                <span className="topbar-hint" aria-hidden="true">Учётная запись</span>
+              </NavLink>
               {DEMO_MODE && (
                 <div className="fr-topbar-actions">
                   <span className="fr-demo-badge">DEMO</span>
@@ -131,18 +151,19 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
                   </Select>
                 </div>
               )}
-              </div>
-
+              {isMobile && <IconButton label="Открыть меню" variant="ghost" aria-expanded={mobileOpen} aria-controls="application-sidebar" onClick={() => setMenuOpen(true)}><Icon name="menu" size={20}/></IconButton>}
+            </div>
           </div>
         </header>
+        <WorkspaceSearch items={searchItems}/>
 
         <main
           ref={contentRef}
           id={executor ? "executor-content" : "main-content"}
           tabIndex={-1}
-          className={`ops-main mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-10 ${profile.role === "executor" ? "workspace-executor-main" : ""}`}
+          className={`ops-main mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-10 ${profile.role === "executor" ? "workspace-executor-main" : ""} ${location.pathname.replace(/\/+$/, "") === "/assistant" ? "ops-main--assistant" : ""}`}
         >
-          {location.pathname.replace(/\/+$/, "") === "/profile" ? <Outlet /> : <ContentTheme><Outlet /></ContentTheme>}
+          <ContentTheme><SectionNavigation/><Outlet /></ContentTheme>
         </main>
 
       </div>

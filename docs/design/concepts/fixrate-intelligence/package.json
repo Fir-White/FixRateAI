@@ -1,0 +1,1 @@
+{"name":"fixrate-intelligence-concept","private":true,"type":"module","scripts":{"dev":"node ../../../../frontend/node_modules/vite/bin/vite.js --config vite.config.mjs","build":"node ../../../../frontend/node_modules/vite/bin/vite.js build --config vite.config.mjs"}}

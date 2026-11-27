@@ -31,8 +31,7 @@ def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--docker',default=docker or 'docker')
     models=parser.add_mutually_exclusive_group()
-    models.add_argument('--ml-cache',type=Path,help='Require real CLIP using an existing read-only host cache')
-    models.add_argument('--bundled-image',help='Use a prebuilt local image containing RF and CLIP weights')
+    models.add_argument('--bundled-image',help='Use a prebuilt local image containing RF weights')
     parser.add_argument('--local-vision',action='store_true',help='Require real prepared Ollama vision alongside --bundled-image')
     parser.add_argument('--cloud-ai',action='store_true',help='Use real AI Tunnel; requires a private key in .env')
     parser.add_argument('--photo-before',type=Path,help='Optional private before photo for the isolated QA task')
@@ -44,8 +43,6 @@ def main():
         parser.error('--local-vision requires --bundled-image')
     if bool(args.photo_before) != bool(args.photo_after):
         parser.error('Provide both --photo-before and --photo-after')
-    if args.ml_cache and not args.ml_cache.resolve().is_dir():
-        parser.error('--ml-cache must point to an existing cache directory')
     output,logs=prepare_run(prefix='compose')
     project='fixrate-qa-'+uuid4().hex[:12]
     with socket.socket() as sock:
@@ -60,9 +57,6 @@ def main():
     compose_file='compose.bundled.yaml' if args.bundled_image else 'compose.yaml'
     base=[args.docker,'compose','--project-name',project,'--file',str(ROOT/compose_file),
           '--env-file',str(envfile),'--project-directory',str(ROOT)]
-    if args.ml_cache:
-        env['CLIP_CACHE_ROOT']=str(args.ml_cache.resolve())
-        base.extend(['--file',str(ROOT/'compose.ml.yaml')])
     if args.local_vision:
         prepared=json.loads((ROOT/'var/local-vision/model.json').read_text(encoding='utf-8'))
         env.update(OLLAMA_IMAGE=prepared['image'],OLLAMA_VISION_MODEL=prepared['model'],
@@ -159,14 +153,20 @@ def main():
         before=command('counts_before','exec','-T','db','psql','-U','fixrate','-d','fixrate','-At','-c',counts_sql).strip()
         command('seed_repeat','exec','-T','-e','FIXRATE_DEMO_PASSWORD','app','python','-m','app.manage','seed-demo')
         after=command('counts_after','exec','-T','db','psql','-U','fixrate','-d','fixrate','-At','-c',counts_sql).strip()
-        assert before==after and before.split('|')[0]=='9'
+        assert before==after and before.split('|')[0]=='28'
         results.append(dict(check='seed_idempotence',passed=True,counts=before))
         prefix='/api/v1/maintenance'
         http('anonymous',plain,prefix+'/ui/equipment',401)
         executor=None; clients={}
         task=str(demo_id('runtime-order'))
-        for role,email in [('director','fixrate-demo-executive@example.test'),('chief_engineer','fixrate-demo-chief_engineer@example.test'),('admin','fixrate-demo-admin@example.test'),('dispatcher','fixrate-demo-dispatcher@example.test'),
-                          ('engineer','fixrate-demo-engineer@example.test'),('executor','fixrate-demo-1@example.test')]:
+        disabled=build_opener(HTTPCookieProcessor(CookieJar()))
+        http('director_login_disabled',disabled,'/api/v1/auth/login',403,method='POST',
+             body=dict(email='fixrate-demo-executive@example.test',password=password))
+        for legacy_role,legacy_email in [('dispatcher','fixrate-demo-dispatcher@example.test'),('engineer','fixrate-demo-engineer@example.test')]:
+            disabled=build_opener(HTTPCookieProcessor(CookieJar()))
+            http(legacy_role+'_login_disabled',disabled,'/api/v1/auth/login',403,method='POST',
+                 body=dict(email=legacy_email,password=password))
+        for role,email in [('chief_engineer','fixrate-demo-chief_engineer@example.test'),('admin','fixrate-demo-admin@example.test'),('executor','fixrate-demo-1@example.test')]:
             client=build_opener(HTTPCookieProcessor(CookieJar()))
             login=http(role+'_login',client,'/api/v1/auth/login',method='POST',body=dict(email=email,password=password))
             assert login['profile']['role']==role
@@ -174,7 +174,7 @@ def main():
             http(role+'_session',client,'/api/v1/auth/session')
             http(role+'_equipment',client,prefix+'/ui/equipment')
             http(role+'_tasks',client,prefix+'/ui/tasks')
-            if role=='dispatcher':
+            if role=='chief_engineer':
                 run=http('real_cloud_forecast' if args.cloud_ai else 'real_rf_forecast',client,prefix+f'/tasks/{task}/forecast',method='POST',csrf=login['csrfToken'],body=dict(expected_revision=1))['run']
                 if args.cloud_ai:
                     assert run['ai']['status'] in ('ok','needs_input') and run['ai']['modelRef'].startswith('aitunnel:')
@@ -203,7 +203,7 @@ def main():
                 bundle,photo_url,photo_blob=upload(client,task,bundle,'before','PNG','png','image/png',login['csrfToken'])
                 bundle,_,_=upload(client,task,bundle,'after','JPEG','jpg','image/jpeg',login['csrfToken'])
                 bundle=http('submit',client,prefix+f'/tasks/{task}/submit',method='POST',csrf=login['csrfToken'],body=dict(expected_revision=bundle['task']['revision']))
-        engineer,csrf=clients['engineer']
+        engineer,csrf=clients['chief_engineer']
         result=http('real_photo_review',engineer,prefix+f'/tasks/{task}/photo-review',method='POST',csrf=csrf,body=dict(expected_revision=bundle['task']['revision'],comparability_confirmed=args.local_vision or args.cloud_ai))
         results.append(dict(check='actual_cv_result',status=result['status'],model_ref=result['modelRef'],error_code=result['errorCode'],items=result['items']))
         print('Real photo review:',result['status'],result['modelRef'],result['errorCode'],flush=True)
@@ -217,19 +217,14 @@ def main():
             assert result['modelRef']==expected and result['status'] in ('completed','uncertain') and result['errorCode'] is None
             assert any(item.get('assessment') for item in result['items'])
             results.append(dict(check='actual_structured_vision',passed=True,model_ref=expected))
-        elif args.ml_cache or args.bundled_image:
-            from ml_service.app.core.config import settings
-            expected=f'{settings.clip_model_name}@{settings.clip_revision}'
-            assert result['modelRef']==expected and result['status'] in ('completed','uncertain') and result['errorCode'] is None
         else:
-            assert result['status']=='unavailable' and result['modelRef'] is None and result['errorCode']=='MODEL_NOT_READY'
+            assert result['status']=='unavailable' and result['modelRef'] is None and result['errorCode'] in ('AITUNNEL_NOT_CONFIGURED','MODEL_NOT_READY')
         saved=command('cv_persistence','exec','-T','db','psql','-U','fixrate','-d','fixrate','-At','-c',
             "SELECT findings->'canonical' FROM ai_quality_checks WHERE ai_quality_check_id='"+result['id']+"';")
         from app.schemas.maintenance import PhotoReviewResult
         canonical=PhotoReviewResult.model_validate_json(saved.strip())
         assert str(canonical.ai_review_id)==result['id'] and canonical.model_ref==result['modelRef']
         if args.local_vision or args.cloud_ai: assert any(item.visual_assessment for item in canonical.item_results)
-        elif args.ml_cache or args.bundled_image: assert any(item.scores for item in canonical.item_results)
         results.append(dict(check='both_canonical_models_persisted',passed=True))
         # Restart while submitted, then call both real tools again through the API.
         saved_run=http('comparison_before_restart',engineer,prefix+'/ui/comparisons/'+run['runId'])['run']
@@ -270,7 +265,7 @@ def main():
             assert saved_error.strip()=='AITUNNEL_NOT_CONFIGURED'
             # The original runtime rule is intentionally a draft. Create a separate
             # explicitly configured rule through the public API, never by SQL edits.
-            admin,admin_csrf=clients['chief_engineer']; dispatcher,dispatcher_csrf=clients['dispatcher']
+            admin,admin_csrf=clients['chief_engineer']; dispatcher,dispatcher_csrf=clients['chief_engineer']
             day=(datetime.now(timezone.utc)+timedelta(days=1)).date()
             configured=http('published_cloud_test_configuration',admin,
                 prefix+f"/equipment/{demo_id('equipment-2')}/service-configurations",expected=201,method='POST',csrf=admin_csrf,
@@ -292,10 +287,10 @@ def main():
             results.append(dict(check='missing_cloud_key_persisted_and_regulatory_fallback',passed=True))
         repeated_cv=http('cv_after_restart',engineer,prefix+f'/tasks/{task}/photo-review',method='POST',csrf=csrf,
             body=dict(expected_revision=bundle['task']['revision']))
-        if args.ml_cache or args.bundled_image or args.cloud_ai:
+        if args.local_vision or args.cloud_ai:
             assert repeated_cv['modelRef']==result['modelRef'] and repeated_cv['errorCode'] is None
         else:
-            assert repeated_cv['status']=='unavailable' and repeated_cv['errorCode']=='MODEL_NOT_READY'
+            assert repeated_cv['status']=='unavailable' and repeated_cv['modelRef'] is None and repeated_cv['errorCode'] in ('AITUNNEL_NOT_CONFIGURED','MODEL_NOT_READY')
         results.append(dict(check='both_ml_tools_invoked_after_restart',passed=True))
         bundle=http('accept',engineer,prefix+f'/tasks/{task}/review',method='POST',csrf=csrf,body=dict(expected_revision=bundle['task']['revision'],execution_id=bundle['execution']['id'],verdict='accepted',reason='Compose smoke acceptance'))
         assert bundle['task']['state']=='accepted'

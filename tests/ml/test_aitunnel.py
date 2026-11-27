@@ -95,6 +95,47 @@ def test_missing_key_does_not_contact_provider(endpoint):
     assert not state["calls"]
 
 
+def test_catalog_alias_accepts_resolved_model_but_records_actual_provenance(endpoint):
+    state, config = endpoint
+    state['payload'] = {'model': 'resolved-real-model', 'choices': [
+        {'finish_reason': 'stop', 'message': {'content': 'Answer'}}]}
+    with pytest.raises(AITunnelFailure):
+        AITunnelClient(config).text([])
+    client = AITunnelClient(replace(config, model='preset-test', allow_model_alias=True))
+    assert client.text([]) == 'Answer'
+    assert client.response_model == 'resolved-real-model'
+    assert state['calls'][-1][2]['model'] == 'preset-test'
+
+
+def test_auto_is_an_explicit_provider_alias():
+    assert AITunnelConfig.from_environment('chat',environment={'AITUNNEL_CHAT_MODEL': 'auto'}).allow_model_alias
+    assert not CONFIG.allow_model_alias
+
+
+def test_text_reply_is_plain_markdown_without_json_constraints_and_keeps_images(endpoint):
+    state,config=endpoint
+    answer='## Разбор таблицы\n\n'+('Подробное объяснение по данным. '*150)
+    state['payload']={'model':config.model,'choices':[{'finish_reason':'stop','message':{'content':answer,'reasoning':'PRIVATE INTERNAL CONTENT'}}]}
+    client=AITunnelClient(config)
+    assert client.text([{'role':'system','content':'Analyse supplied evidence.'},{'role':'user','content':'Workbook and photo','images':['fixture']}],8192)==answer.strip()
+    body=state['calls'][0][2]
+    assert 'response_format' not in body and body['max_tokens']==8192
+    assert 'JSON schema' not in body['messages'][0]['content']
+    assert body['messages'][1]['content'][1]['type']=='image_url'
+    assert 'PRIVATE INTERNAL CONTENT' not in repr(client.response_diagnostics)
+    assert client.response_model==config.model
+
+
+@pytest.mark.parametrize('change',['blank','length','wrong_model','refused'])
+def test_text_reply_keeps_envelope_validation(endpoint,change):
+    state,config=endpoint
+    state['payload']={'model':config.model,'choices':[{'finish_reason':'stop','message':{'content':'  ' if change=='blank' else 'answer'}}]}
+    if change=='length':state['payload']['choices'][0]['finish_reason']='length'
+    if change=='wrong_model':state['payload']['model']='other'
+    if change=='refused':state['payload']['choices'][0]['message']['refusal']='refused'
+    with pytest.raises(AITunnelFailure):AITunnelClient(config).text([])
+
+
 def test_timeout_is_controlled(endpoint):
     state, config = endpoint; state["delay"] = .2
     with pytest.raises(AITunnelFailure, match="AITUNNEL_TIMEOUT"):
@@ -127,9 +168,27 @@ def test_cloud_vision_preserves_guardrails_and_provider_provenance(canonical_pho
         client=VisionFixtureClient(), comparability_confirmed=lambda b,a: True)
     assert result.status == "completed" and result.model_ref == "aitunnel:qwen3.7-flash"
     assert result.item_results[0].verdict == "visible_change" and not result.item_results[0].scores
-    assert "qwen3.7-flash" in result.limitations[-1]
+    assert result.limitations == ["Проверьте фотографии самостоятельно."]
     uncertain = review_cloud_photos(request, photos(request).__getitem__, config=CONFIG, client=VisionFixtureClient())
     assert uncertain.status == "uncertain"
+
+
+def test_cloud_vision_finishes_shared_assessment_after_valid_model_replies(monkeypatch, canonical_photo_review_request):
+    request = canonical_photo_review_request
+    client = AITunnelVisionClient(CONFIG)
+    calls = []
+
+    def chat(messages, schema, tokens):
+        calls.append(schema)
+        if schema is ImageObservation:
+            return ImageObservation(description="Видна лицевая часть прибора.", visible_defects=[], uncertain_features=[])
+        return assessment()
+
+    monkeypatch.setattr(client, "chat", chat)
+    result = review_cloud_photos(request, photos(request).__getitem__, config=CONFIG, client=client)
+    assert calls == [ImageObservation, ImageObservation, type(assessment())]
+    assert result.status == "uncertain" and result.error_code is None
+    assert result.model_ref == CONFIG.model_ref and result.item_results[0].visual_assessment is not None
 
 
 def test_cloud_vision_key_failure_has_no_fake_local_fallback(canonical_photo_review_request):

@@ -4,6 +4,7 @@ import {useDialogFocus} from "@/shared/lib/useDialogFocus";
 import {IconButton} from "./Button";
 import {Icon} from "./Icon";
 import {useContentTheme} from "./ContentTheme";
+import './Drawer.css';
 export function Drawer({open,title,onClose,children,footer}:{open:boolean;title:string;onClose:()=>void;children:ReactNode;footer?:ReactNode}) {
   const contentTheme=useContentTheme();
   const label=useId(),ref=useDialogFocus<HTMLDivElement>(open,onClose);

@@ -1355,7 +1355,10 @@
         "maintenance_type": {
           "enum": [
             "ТО1",
-            "ТО2"
+            "ТО2",
+            "ТО2*",
+            "ТО3",
+            "ТОр"
           ],
           "title": "Maintenance Type",
           "type": "string"
@@ -1729,7 +1732,7 @@
           "items": {
             "$ref": "#/$defs/PhotoReport"
           },
-          "minItems": 2,
+          "minItems": 1,
           "title": "Photos",
           "type": "array"
         },

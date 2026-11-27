@@ -1,4 +1,4 @@
--- Runtime schema contract after ALL migrations 001-009, with or without the CLI ledger.
+-- Runtime schema contract with catalog, assistant and material consumption.
 -- Run only in a disposable database. Every fixture is rolled back.
 \set ON_ERROR_STOP on
 BEGIN;
@@ -6,13 +6,16 @@ DO $$
 DECLARE missing text; amount integer;
 BEGIN
     SELECT string_agg(name,', ') INTO missing FROM unnest(ARRAY[
-        'fixrate_sessions','planning_runs','employee_shift_rules','site_join_codes','employment_applications','maintenance_notifications'
+        'fixrate_sessions','planning_runs','employee_shift_rules','site_join_codes','employment_applications','maintenance_notifications',
+        'source_imports','source_revision_events','catalog_revisions','source_catalog_index',
+        'assistant_conversations','assistant_turns','assistant_actions','assistant_attachments','assistant_model_preferences',
+        'assistant_graph_threads','work_consumptions','source_workbooks','source_workbook_versions','source_workbook_editor_sessions'
     ]) name WHERE NOT EXISTS (
         SELECT 1 FROM pg_constraint c WHERE c.conrelid=to_regclass('public.'||name) AND c.contype='p');
     IF missing IS NOT NULL THEN RAISE EXCEPTION 'Missing runtime table/primary key: %',missing; END IF;
     SELECT count(*) INTO amount FROM pg_constraint c JOIN pg_namespace n ON n.oid=c.connamespace
         WHERE n.nspname='public' AND c.contype='p' AND c.conrelid<>coalesce(to_regclass('public.fixrate_schema_migrations'),0::oid);
-    IF amount<>41 THEN RAISE EXCEPTION 'Expected 41 application primary keys after 009, found %',amount; END IF;
+    IF amount<>67 THEN RAISE EXCEPTION 'Expected 67 application primary keys, found %',amount; END IF;
     SELECT string_agg(expected.rel||'.'||expected.col,', ') INTO missing FROM (VALUES
         ('schedule_entries','source_date'),('work_orders','overdue_since_at'),('work_reports','execution_context'),('work_readings','phase'),('evidence_files','verification_context'),('equipment','revision'),('work_orders','revision'),('work_orders','planned_end_at'),
         ('work_reports','checklist_snapshot'),('acceptance_reviews','decision_context'),
@@ -20,15 +23,40 @@ BEGIN
         ('work_assignments','start_at'),('work_assignments','end_at'),('work_assignments','qualification_snapshot'),
         ('work_assignments','reason'),('work_assignments','released_at'),('schedule_entries','source_occurrence_id'),
         ('site_memberships','revision'),('site_memberships','employed_from'),('site_memberships','employed_until'),
-        ('crews','revision'),('availability_slots','revision'),('availability_slots','is_active'),('user_skills','revision')
+        ('crews','revision'),('availability_slots','revision'),('availability_slots','is_active'),('user_skills','revision'),
+        ('source_imports','system_id'),('source_imports','effective_from'),('source_imports','source_workbook'),
+        ('source_imports','catalog_revision'),('source_catalog_index','search_vector'),
+        ('assistant_turns','worker_claimed_at'),('assistant_turns','execution_engine'),
+        ('assistant_turns','agent_context'),('assistant_conversations','subject_task_id'),
+        ('work_consumptions','idempotency_key'),('equipment_components','replacement_work_report_id'),
+        ('source_workbooks','original_sha256'),('source_workbook_versions','content'),
+        ('source_workbook_versions','size_bytes'),('source_workbook_editor_sessions','snapshot_sha256')
     ) expected(rel,col) WHERE NOT EXISTS(SELECT 1 FROM information_schema.columns c
         WHERE c.table_schema='public' AND c.table_name=expected.rel AND c.column_name=expected.col);
     IF missing IS NOT NULL THEN RAISE EXCEPTION 'Missing runtime columns: %',missing; END IF;
     SELECT string_agg(name,', ') INTO missing FROM unnest(ARRAY[
         'users_email_casefold','work_assignments_current_worker','work_assignments_worker_interval',
-        'schedule_entries_source_occurrence','schedule_entries_binding_source_date','employee_shift_rules_worker'
+        'schedule_entries_source_occurrence','schedule_entries_binding_source_date','employee_shift_rules_worker',
+        'source_catalog_index_vector','assistant_graph_threads_conversation_idx','work_consumptions_attempt',
+        'source_workbooks_site_created','source_workbook_editor_sessions_book'
     ]) name WHERE to_regclass('public.'||name) IS NULL;
     IF missing IS NOT NULL THEN RAISE EXCEPTION 'Missing runtime indexes: %',missing; END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint c WHERE c.contype='f' AND c.confdeltype='c'
+        AND c.conrelid=to_regclass('public.assistant_graph_threads')
+        AND c.confrelid=to_regclass('public.assistant_conversations'))
+        THEN RAISE EXCEPTION 'Graph thread must be deleted with its conversation'; END IF;
+    SELECT string_agg(name,', ') INTO missing FROM unnest(ARRAY[
+        'checkpoint_migrations','checkpoints','checkpoint_blobs','checkpoint_writes'
+    ]) name WHERE NOT EXISTS (
+        SELECT 1 FROM pg_constraint c WHERE c.conrelid=to_regclass('assistant_checkpoints.'||name) AND c.contype='p');
+    IF missing IS NOT NULL THEN RAISE EXCEPTION 'Missing checkpoint table/primary key: %',missing; END IF;
+    SELECT string_agg(name,', ') INTO missing FROM unnest(ARRAY[
+        'checkpoints','checkpoint_blobs','checkpoint_writes'
+    ]) name WHERE NOT EXISTS (SELECT 1 FROM pg_constraint c WHERE c.contype='f' AND c.confdeltype='c'
+        AND c.conrelid=to_regclass('assistant_checkpoints.'||name)
+        AND c.confrelid=to_regclass('public.assistant_graph_threads'));
+    IF missing IS NOT NULL THEN RAISE EXCEPTION 'Checkpoint lifetime is not tied to graph thread: %',missing; END IF;
 END $$;
 
 CREATE FUNCTION pg_temp.expect_sqlstate(label text, statement text, expected text) RETURNS void LANGUAGE plpgsql AS $$
@@ -99,7 +127,7 @@ BEGIN
         ('empty shift label',format('UPDATE employee_shift_rules SET label=%L WHERE shift_rule_id=%L',' ',shift),'23514'),
         ('non-object shift calendar',format('UPDATE employee_shift_rules SET calendar_pattern=%L WHERE shift_rule_id=%L','[]',shift),'23514'),
         ('reversed shift validity',format('UPDATE employee_shift_rules SET valid_until=%L WHERE shift_rule_id=%L','2025-12-31',shift),'23514'),
-        ('zero-length shift',format('UPDATE employee_shift_rules SET ends_local=starts_local WHERE shift_rule_id=%L',shift),'23514'),
+        ('unsupported 24:00 clock',format('UPDATE employee_shift_rules SET ends_local=%L WHERE shift_rule_id=%L','24:00',shift),'23514'),
         ('invalid shift status',format('UPDATE employee_shift_rules SET status=%L WHERE shift_rule_id=%L','broken',shift),'23514'),
         ('cross-site shift worker',format('UPDATE employee_shift_rules SET user_id=%L WHERE shift_rule_id=%L',outsider,shift),'23503'),
         ('duplicate join code',format('INSERT INTO site_join_codes(site_id,code) VALUES (%L,%L)',other_site,key::text),'23505'),
@@ -109,6 +137,9 @@ BEGIN
     ) cases(label,statement,expected) LOOP
         PERFORM pg_temp.expect_sqlstate(scenario.label,scenario.statement,scenario.expected);
     END LOOP;
+    UPDATE employee_shift_rules SET ends_local=starts_local WHERE shift_rule_id=shift;
+    IF NOT (SELECT starts_local=ends_local FROM employee_shift_rules WHERE shift_rule_id=shift)
+        THEN RAISE EXCEPTION 'Full-day shift was not preserved'; END IF;
     -- Reassignment creates a new row; it must never delete the previous assignment.
     UPDATE work_assignments SET status='cancelled',released_at=now() WHERE work_assignment_id=assignment;
     INSERT INTO work_assignments(site_id,work_order_id,user_id,assigned_by) VALUES (s,wo,u,u);

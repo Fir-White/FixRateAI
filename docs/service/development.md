@@ -1,6 +1,14 @@
 # Разработка, контракты и интеграция
 
-[Запуск](runtime.md) · [Проверки](verification.md).
+[Запуск](runtime.md) · [Проверки](verification.md) · [Производительность](performance.md).
+
+## Описание коммитов и завершение итерации
+
+Каждый коммит содержит конкретный заголовок и содержательный body, соответствующий его собственному diff. Описываются задача и причина изменения, итоговое поведение, затронутые компоненты и контракты, миграция/совместимость и сохранность данных, выполненные проверки и известные ограничения. Не заменяйте описание общей фразой «фикс» или перечнем файлов; для небольшого изменения достаточно короткого, но проверяемого объяснения. Пропущенные, неполные и синтетические проверки не называются успешной реальной приёмкой.
+
+При запросе сохранить итерацию сначала устанавливается последний опубликованный SHA и весь накопленный объём после него. Обновляются документы поведения/контрактов, PLAN и verification; для крупной итерации добавляется отдельный срез в `docs/releases/` со ссылками из README и service INDEX. Текст коммита ссылается на срез и перечисляет основные результаты, проверки и остаток. Если изменения разделены на несколько коммитов, каждый получает собственное подробное описание; общая заметка релиза не заменяет body отдельных коммитов.
+
+Рабочие ключи, .env, cookies, БД, фотографии, веса и приватные протоколы/backup не добавляются ради полноты среза. Сохранение исходников, развёртывание, push и merge обозначаются отдельными фактическими действиями; одно не выдаётся за другое. Правила пользователя имеют приоритет, границы MVP и ограничения доказательств сохраняются.
 
 ## Структура репозитория
 
@@ -12,8 +20,9 @@ ml_service/                 ML/CV
 .env                        локальные параметры подключения и приложения
 .env.example                шаблон локальных параметров
 requirements.txt            Python-зависимости backend/ML/CV/тестов
-compose.yaml, Dockerfile    локальный PostgreSQL + FastAPI/SPA, CPU ML
-compose.ml.yaml             дополнительный real-CLIP профиль с read-only cache
+compose.yaml, Dockerfile    локальный PostgreSQL + FastAPI/SPA
+compose.cloud.yaml          профиль AI Tunnel для фотоанализа и рекомендаций
+compose.vision.yaml         дополнительный профиль локального Ollama vision (GPU)
 .dockerignore               исключение секретов и runtime из build context
 contracts/                  экспорт JSON Schema и примеры DTO/API
 database/migrations/        неизменяемая применённая SQL-цепочка
@@ -31,7 +40,7 @@ tests/web/setup.ts          общая настройка UI-тестов
 tests/web/tsconfig.json     проверка TypeScript всех UI/E2E-тестов
 tests/fixtures/             общие scheduling/domain fixtures
 tests/sql/                  исходные SQL assertion и полный schema QA
-scripts/                    проверки, экспорт ER, CLIP и start_local.py для постоянного стенда
+scripts/                    проверки, экспорт ER, сборка образа и start_local.py для постоянного стенда
 docs/                       описание проекта, ADR и docs/assets с иллюстрациями
 docs/analysis/              работа аналитика, исходный пакет и карта интеграции
 logs/                       журналы runtime, SQL и verification
@@ -102,7 +111,7 @@ var/                        локальная БД, PID, фото и private ba
 
 ## Переносимый ML-образ
 
-Dockerfile.bundled, compose.bundled.yaml и scripts/build_bundled_image.py добавляют локальную поставку приложения с закреплёнными весами CLIP внутри image. Экспорт разрешает только MODEL_FILES, проверяет границы snapshot и создаёт новый context без перезаписи. Реквизиты остаются в private runtime.env; cache credentials не экспортируются. tests/backend/test_model_bundle.py проверяет изоляцию модели, целостность manifest, отказ при неполном snapshot/повторном каталоге и совместимость постоянных volumes с обычным Compose. verify_compose.py проверяет API до/после рестарта и сохранённые результаты. [Запуск](runtime.md#готовый-образ-с-rf-и-clip-внутри).
+Dockerfile.bundled, compose.bundled.yaml и scripts/build_bundled_image.py добавляют локальную поставку приложения с артефактами модели прогнозирования RF внутри image (устаревшая упаковка CLIP-весов удалена вместе с удалением CLIP 26.11.2026). Реквизиты остаются в private runtime.env. tests/backend/test_model_bundle.py проверяет отсутствие CLIP/HF-кэша в сборке, сохранность RF-проверки и совместимость постоянных volumes/DB с обычным Compose. verify_compose.py проверяет API до/после рестарта и сохранённые результаты. [Запуск](runtime.md#готовый-образ-с-rf-и-clip-внутри).
 
 ## Настройка демо-доступа
 
@@ -119,9 +128,9 @@ backend/app/demo_accounts.py определяет стабильные UUID де
 
 Ветка feature/frontend-next 8d6935c объединена с dev обычным merge: рабочие экраны, Aurora Workspace, навигация, состояние интерфейса и их тесты. Backend/SQL/ML и настройка демо-доступа сохранены из dev. Указанные выше записи о частичном переносе auth отражают предыдущий этап. Новые результаты текущего merge приводятся в verification.
 
-## Локальный фотоанализ
+## Фотоанализ без CLIP (AI Tunnel / локальная Ollama), обновление от 26.11.2026
 
-VisualAssessment добавлен к общему ItemPhotoReview как необязательное поле; JSON Schema обновлена, ML adapter экспортирует тот же класс. Backend выбирает clip/ollama по RuntimeSettings, сохраняет canonical/UI в существующий JSON findings. PhotoReviewCard показывает наблюдения до/после, замечания и действия; model hash/prompt/сырой legacy note находятся в раскрываемых технических сведениях. Прежние отзывы не переписываются. Проверки локального клиента находятся в tests/ml/test_local_vision.py; UI — tests/web/unit/entities/execution/PhotoReviewCard.test.tsx; реальные GPU/API/БД — scripts/verify_compose.py --local-vision. Обычные release runners принудительно выбирают clip, чтобы личный .env не подменял их провайдер; настоящий локальный профиль проверяется отдельно.
+VisualAssessment добавлен к общему ItemPhotoReview как необязательное поле; JSON Schema обновлена, ML adapter экспортирует тот же класс. Backend выбирает aitunnel/ollama по RuntimeSettings (по умолчанию aitunnel с `qwen3.7-flash`), сохраняет canonical/UI в существующий JSON findings; CLIP и эвристический fallback удалены. PhotoReviewCard показывает краткие русские наблюдения, скрывая технические коды в интерфейсе приёмки и добавляя одно напоминание «Проверьте фотографии самостоятельно.». Прежние исторические CLIP-отзывы не переписываются и помечаются в UI как результат прежней модели. Проверки облачного и локального клиентов находятся в tests/ml/test_aitunnel.py и tests/ml/test_local_vision.py; UI — tests/web/unit/entities/execution/PhotoReviewCard.test.tsx; требования к фото и фотоагент — tests/backend/test_photo_analysis_and_requirements.py; реальные Compose/API/БД — scripts/verify_compose.py (--cloud-ai или --local-vision). Обычные release runners отключают ключ AI Tunnel, чтобы личный .env не тратил облачный баланс и не подменял предсказуемый статус unavailable.
 
 ## Передача аналитики, 04.11.2026
 

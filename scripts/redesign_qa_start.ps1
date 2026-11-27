@@ -17,7 +17,7 @@ for ($taskAttempt=0; $taskAttempt -lt 30; $taskAttempt++) {
   if ($LASTEXITCODE -eq 0) { break }
   Start-Sleep -Seconds 1
 }
-docker run -d --name $taskApi --network $taskNetwork -p 127.0.0.1:18074:8000 --mount "type=bind,source=$taskRoot,target=/src,readonly" -w /src -e PYTHONPATH=/src/backend:/src -e DATABASE_URL=postgresql+psycopg://postgres@fixrate-redesign-qa-db:5432/fixrate_redesign_qa -e FIXRATE_TEST_PASSWORD -e PHOTO_STORAGE_ROOT=/tmp/redesign-photos -e COOKIE_SECURE=false -e MAINTENANCE_SCHEDULER=false -e PHOTO_REVIEW_PROVIDER=clip -e FORECAST_PROVIDER=rf -e AITUNNEL_API_KEY= -e AI_TUNNEL_API_KEY= --entrypoint python fixrate-ai:notice-copy scripts/redesign_qa_api.py | Out-Null
+docker run -d --name $taskApi --network $taskNetwork -p 127.0.0.1:18074:8000 --mount "type=bind,source=$taskRoot,target=/src,readonly" -w /src -e PYTHONPATH=/src/backend:/src -e DATABASE_URL=postgresql+psycopg://postgres@fixrate-redesign-qa-db:5432/fixrate_redesign_qa -e FIXRATE_TEST_PASSWORD -e PHOTO_STORAGE_ROOT=/tmp/redesign-photos -e COOKIE_SECURE=false -e MAINTENANCE_SCHEDULER=false -e PHOTO_REVIEW_PROVIDER=aitunnel -e FORECAST_PROVIDER=rf -e AITUNNEL_API_KEY= -e AI_TUNNEL_API_KEY= --entrypoint python fixrate-ai:notice-copy scripts/redesign_qa_api.py | Out-Null
 if ($LASTEXITCODE) { throw 'Cannot start QA API' }
 # Docker does not publish ports on an internal-only network. Only the API joins
 # this second bridge; the database remains exclusively on the internal network.

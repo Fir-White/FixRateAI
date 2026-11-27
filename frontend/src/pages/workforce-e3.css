@@ -1,0 +1,15 @@
+.e3-staff-directory h2 { margin-block: 0 12px; font-size: 22px; font-weight: 600; }
+.e3-staff-directory > label { margin-block-end: 12px; }
+.e3-staff-row { display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr) minmax(0,.55fr) minmax(0,1fr) 16px; align-items: center; gap: 16px; width: 100%; min-height: 54px; padding: 10px 6px; border-bottom: 1px solid var(--color-line); text-align: start; }
+.e3-staff-row > * { overflow-wrap: anywhere; }
+.e3-staff-labels { min-height: 40px; color: var(--color-muted); font-size: 12px; }
+button.e3-staff-row:hover { background: var(--color-surface); }
+.e3-staff-row [data-tone="success"] { color: var(--color-accent); }
+.e3-staff-row :is(svg,[data-tone="muted"]) { color: var(--color-muted); }
+@media (max-width: 600px) {
+  .e3-staff-labels { display: none; }
+  button.e3-staff-row { grid-template-columns: minmax(0,1fr) minmax(0,1fr) 14px; gap: 6px 12px; padding-block: 14px; }
+  .e3-staff-row strong { grid-column: 1 / -2; }
+  .e3-staff-row > span:nth-child(3) { display: none; }
+  .e3-staff-row svg { grid-column: -2; grid-row: 1 / span 2; }
+}

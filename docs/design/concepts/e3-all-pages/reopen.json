@@ -1,0 +1,75 @@
+{
+  "url": "http://localhost:9001/?screen=workspace&team-id=8b7de69e-e368-81a5-8008-f56e4d02d5b0&project-id=8b7de69e-e368-81a5-8008-f56e5c02ec42&file-id=13ac3151-58c1-801c-8008-f58dd579cd50&page-id=5d5eb894-14d3-80f0-8008-f5c133728c40",
+  "sections": [
+    {
+      "name": "E3 · 01 Вход и доступ",
+      "count": 1
+    },
+    {
+      "name": "E3 · 02 Рабочий день",
+      "count": 2
+    },
+    {
+      "name": "E3 · 03 Файлы и операции",
+      "count": 1
+    },
+    {
+      "name": "E3 · 04 Планирование",
+      "count": 1
+    },
+    {
+      "name": "E3 · 05 Календарь",
+      "count": 1
+    },
+    {
+      "name": "E3 · 06 Оборудование",
+      "count": 1
+    },
+    {
+      "name": "E3 · 07 Регламенты",
+      "count": 1
+    },
+    {
+      "name": "E3 · 08 Задания",
+      "count": 1
+    },
+    {
+      "name": "E3 · 09 Исполнение",
+      "count": 1
+    },
+    {
+      "name": "E3 · 10 Приёмка",
+      "count": 1
+    },
+    {
+      "name": "E3 · 11 Команда",
+      "count": 1
+    },
+    {
+      "name": "E3 · 12 Личный календарь",
+      "count": 1
+    },
+    {
+      "name": "E3 · 13 Прогнозы",
+      "count": 1
+    },
+    {
+      "name": "E3 · 14 Отчёты",
+      "count": 1
+    },
+    {
+      "name": "E3 · 15 AI-помощник",
+      "count": 1
+    },
+    {
+      "name": "E3 · 16 Профиль",
+      "count": 1
+    },
+    {
+      "name": "E3 · 17 Общие панели",
+      "count": 1
+    }
+  ],
+  "body": "MCP\nОбзор объекта · mobile\nРабочее пространство · desktop\nС чего начнём рабочий день? · mobile\nОбзор объекта · desktop\nРабочий день инженера · desktop\nМои задания · desktop\nРабочий день диспетчера · mobile\nРабочий день инженера · mobile\nРабочее пространство · mobile\nРабочий день диспетчера · desktop\nМои задания · mobile\nС чего начнём рабочий день? · desktop\n-3500\n-3000\n-2500\n-2000\n-1500\n-1000\n-500\n0\n500\n1000\n1500\n2000\n2500\n3000\n3500\n4000\n4500\n5000\n5500\n0\n500\n1000\n1500\n2000\n2500\n3000\n3500\n4000\n4500\n5000\n5500\n6000\n6500\n7000\n7500\n8000\n8500\n9000\n9500\n10000\n10500\n11000\n11500\nFIXRATE AI\nFixRate AI — AI-native Concepts\nLAYERS\nASSETS\nTOKENS\nPAGES\n40 · Переход · Motion\nE · Visual Exploration · Chief Engineer\nE3 · Core Workflows\nE3 · 01 Вход и доступ\nE3 · 02 Рабочий день\nE3 · 03 Файлы и операции\nE3 · 04 Планирование\nE3 · 05 Календарь\nE3 · 06 Оборудование\nE3 · 07 Регламенты\nE3 · 08 Задания\nE3 · 09 Исполнение\nE3 · 10 Приёмка\nE3 · 11 Команда\nE3 · 12 Личный календарь\nE3 · 13 Прогнозы\nE3 · 14 Отчёты\nE3 · 15 AI-помощник\nE3 · 16 Профиль\nE3 · 17 Общие панели\nE3 · 02 РАБОЧИЙ ДЕНЬ\nМои задания · mobile\nМои задания · desktop\nРабочее пространство · mobile\nРабочее пространство · desktop\nРабочий день диспетчера · mobile\nРабочий день диспетчера · desktop\nОбзор объекта · mobile\nОбзор объекта · desktop\nРабочий день инженера · desktop\nС чего начнём рабочий день? · desktop\nРабочий день инженера · mobile\nС чего начнём рабочий день? · mobile\n9%\nDESIGN\nPROTOTYPE\nINSPECT\nCANVAS BACKGROUND\nPIXEL GRID COLOR\n%",
+  "mcpConnectActionInvoked": false
+}

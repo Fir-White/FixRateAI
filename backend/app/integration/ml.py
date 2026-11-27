@@ -5,6 +5,7 @@ import hashlib
 import json
 import logging
 import os
+from dataclasses import replace
 from typing import Literal
 from uuid import UUID
 
@@ -34,7 +35,7 @@ class MLCommand(BaseModel):
     model_config = ConfigDict(extra="forbid")
     expected_revision: int = Field(gt=0)
     comparability_confirmed: bool = False
-    provider: Literal["clip", "ollama", "aitunnel"] | None = None
+    provider: Literal["aitunnel", "ollama"] | None = None
     model: str | None = None
     api_key: str | None = None
 
@@ -101,32 +102,58 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
     @app.get("/api/v1/maintenance/ai/models")
     def list_ai_models(v=Depends(views)):
         from ml_service.app.cv.local_vision import scan_local_ollama_models
-        from ml_service.app.core.config import settings as ml_settings
+        from ml_service.app.providers.aitunnel import AITunnelConfig, DEFAULT_MODEL
 
         ollama_ok, ollama_models, ollama_err = scan_local_ollama_models()
         server_aitunnel_key = bool(os.environ.get("AITUNNEL_API_KEY") or os.environ.get("AI_TUNNEL_API_KEY"))
+        try:
+            configured_vision_model = AITunnelConfig.from_environment("vision").model
+        except ValueError:
+            configured_vision_model = DEFAULT_MODEL
+
+        aitunnel_models = [
+            {
+                "id": "qwen3.7-flash",
+                "name": "Qwen3.7 Flash",
+                "description": "Мультимодальная vision-модель по умолчанию для анализа фотографий",
+            },
+            {
+                "id": "qwen3.8-flash",
+                "name": "Qwen3.8 Flash",
+                "description": "Обновлённая мультимодальная vision-модель для сложного визуального анализа",
+            },
+            {
+                "id": "qwen4-max",
+                "name": "Qwen4 Max",
+                "description": "Флагманская мультимодальная модель высокой детализации",
+            },
+        ]
+        if configured_vision_model and all(m["id"] != configured_vision_model for m in aitunnel_models):
+            aitunnel_models.insert(
+                0,
+                {
+                    "id": configured_vision_model,
+                    "name": configured_vision_model,
+                    "description": "Модель, заданная на сервере",
+                },
+            )
 
         return {
             "current_provider": app.state.settings.photo_review_provider,
             "providers": [
                 {
-                    "id": "clip",
-                    "name": "Встроенный CLIP (CPU)",
-                    "description": "Локальная модель openai/clip-vit-base-patch32 на CPU. Быстрый регламентный анализ чистоты узлов без внешних зависимостей.",
-                    "available": True,
-                    "error": None,
-                    "models": [
-                        {
-                            "id": f"{ml_settings.clip_model_name}@{ml_settings.clip_revision}",
-                            "name": "CLIP ViT-B/32 (локально, CPU)",
-                            "description": "Базовый классификатор регламентного обслуживания"
-                        }
-                    ]
+                    "id": "aitunnel",
+                    "name": "Облачный AI Tunnel",
+                    "description": "Облачный анализ фотографий с помощью мультимодальной vision-модели.",
+                    "available": server_aitunnel_key,
+                    "has_server_key": server_aitunnel_key,
+                    "error": None if server_aitunnel_key else "AITUNNEL_NOT_CONFIGURED",
+                    "models": aitunnel_models,
                 },
                 {
                     "id": "ollama",
                     "name": "Локальная Ollama (GPU/CPU)",
-                    "description": "Локальная служба Ollama (127.0.0.1:11434). Содержательный разбор фото и дефектов без отправки данных в интернет.",
+                    "description": "Локальная служба Ollama (127.0.0.1:11434) для анализа фото без внешней сети.",
                     "available": ollama_ok,
                     "error": ollama_err,
                     "models": ollama_models if ollama_ok else [
@@ -137,31 +164,6 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
                         }
                     ]
                 },
-                {
-                    "id": "aitunnel",
-                    "name": "Облачный AI Tunnel",
-                    "description": "Облачные мультимодальные модели через api.aitunnel.ru с поддержкой поиска механических дефектов.",
-                    "available": True,
-                    "has_server_key": server_aitunnel_key,
-                    "error": None,
-                    "models": [
-                        {
-                            "id": "qwen3.7-flash",
-                            "name": "Qwen3.7 Flash",
-                            "description": "Быстрая и точная мультимодальная модель (рекомендуется)"
-                        },
-                        {
-                            "id": "Qwen/Qwen2.5-VL-72B-Instruct",
-                            "name": "Qwen2.5-VL 72B Instruct",
-                            "description": "Флагманская модель дефектоскопии высокой детализации"
-                        },
-                        {
-                            "id": "Qwen/Qwen2.5-VL-7B-Instruct",
-                            "name": "Qwen2.5-VL 7B Instruct",
-                            "description": "Сбалансированная модель средней мощности"
-                        }
-                    ]
-                }
             ]
         }
 
@@ -178,9 +180,11 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
         rule, _, _, _ = v.operation(order)
         op = operation_payload(order, rule, report.checklist_snapshot)
         rows = [p for p in v.rows("evidence_files", work_report_id=report.work_report_id)
-                if p.stage in ("before", "after") and p.checklist_item_id and p.equipment_id and p.view_key]
-        if len(rows) < 2:
+                if p.stage in ("before", "after") and p.checklist_item_id and p.view_key and p.equipment_id]
+        if not rows:
             raise HTTPException(422, "Недостаточно фото с привязками для анализа")
+        if len({p.equipment_id for p in rows}) != 1:
+            raise HTTPException(422, "Фотографии отчёта должны относиться к одной единице оборудования")
         limits = app.state.settings
         if len(rows) > limits.photo_review_max_files or sum(p.file_size for p in rows) > limits.photo_review_max_bytes:
             raise HTTPException(413, "PHOTO_REVIEW_LIMIT_EXCEEDED")
@@ -215,10 +219,6 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
                 uploaded_by=str(p.uploaded_by), content_url=f"/api/v1/maintenance/photos/{p.evidence_file_id}/content"))
         answers = {str(a.checklist_template_id): a.response_value.get("answer") for a in v.rows("checklist_results", work_report_id=report.work_report_id)}
         readings=[dict(parameter_code=r.parameter_code,phase=r.phase,value=str(r.numeric_value),unit=r.unit_code,measured_at=r.measured_at.isoformat()) for r in v.rows("work_readings",work_report_id=report.work_report_id)]
-        provider = None
-        expected_model = f"{ml_settings.clip_model_name}@{ml_settings.clip_revision}"
-        prompt_version = ml_settings.prompt_set_version
-        predictor_family = "clip"
         selected_provider = command.provider or limits.photo_review_provider
         if selected_provider == "ollama":
             from ml_service.app.cv.local_vision import LocalVisionConfig, PROMPT_VERSION, review_local_photos
@@ -227,6 +227,7 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
                     vision_config = LocalVisionConfig.resolve_model(command.model)
                 else:
                     vision_config = LocalVisionConfig.from_environment()
+                vision_config = replace(vision_config, timeout=limits.photo_review_timeout_seconds)
             except ValueError:
                 raise HTTPException(503, "LOCAL_VISION_CONFIGURATION_INVALID") from None
             except Exception as e:
@@ -239,7 +240,6 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
         elif selected_provider == "aitunnel":
             from ml_service.app.cv.aitunnel import PROMPT_VERSION, review_cloud_photos
             from ml_service.app.providers.aitunnel import AITunnelConfig
-            from dataclasses import replace
             env = dict(os.environ)
             if command.api_key:
                 env["AITUNNEL_API_KEY"] = command.api_key
@@ -256,10 +256,7 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
             provider = lambda req, loader: review_cloud_photos(req, loader, config=cloud_config,
                 comparability_confirmed=lambda b, a: command.comparability_confirmed)
         else:
-            predictor_family = "clip"
-            expected_model = f"{ml_settings.clip_model_name}@{ml_settings.clip_revision}"
-            prompt_version = ml_settings.prompt_set_version
-            provider = None
+            raise HTTPException(422, "Недопустимый провайдер фотоанализа; выберите AI Tunnel или Ollama")
         request = dict(schema_version="maintenance-0.1", data_origin=op["data_origin"], execution_id=str(report.work_report_id),
             operation=op, photos=payload_photos, prompt_set_version=prompt_version, report=dict(
                 schema_version="maintenance-0.1", data_origin=op["data_origin"], execution_id=str(report.work_report_id),
@@ -285,11 +282,35 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
         ui["classification"]=classify_evidence(result,manual_evidence_required=bool(order.operation_snapshot.get("required_acts")) or any(i["required"] and i["visualVerifiability"]!="visible" for i in report.checklist_snapshot))
         ui["readingComparison"]=compare_readings(readings,result)
         if any(r["status"]=="mismatch" for r in ui["readingComparison"]): ui["classification"]="manual_review"
+
+        # Wire attempt binding and auxiliary assessment for Chief Engineer decision support
+        from ml_service.app.cv.api import invoke_attempt_review, check_assessment_staleness
+        before_row = next((p for p in rows if p.stage == "before"), None)
+        after_row = next((p for p in rows if p.stage == "after"), None)
+        before_blob = blobs.get(before_row.evidence_file_id) if before_row else None
+        after_blob = blobs.get(after_row.evidence_file_id) if after_row else None
+        vlm_first = result.item_results[0].visual_assessment.model_dump() if (result.item_results and result.item_results[0].visual_assessment) else None
+
+        auxiliary_assessment = invoke_attempt_review(
+            work_order_id=task_id,
+            attempt_no=report.revision_no,
+            equipment_type=str(order.operation_snapshot.get("equipment_type") or order.operation_snapshot.get("code") or "engineering_equipment"),
+            before_photo_id=before_row.evidence_file_id if before_row else None,
+            after_photo_id=after_row.evidence_file_id if after_row else None,
+            before_blob=before_blob,
+            after_blob=after_blob,
+            comparability_confirmed=command.comparability_confirmed,
+            model_ref=result.model_ref,
+            vlm_assessment_dict=vlm_first,
+        )
+        auxiliary_assessment = auxiliary_assessment.with_staleness_check(before_blob, after_blob)
+        ui["auxiliaryAssessment"] = auxiliary_assessment.model_dump(mode="json")
+
         predictor = version(v, "vision", predictor_family, result.model_ref or "unavailable", result.model_ref)
         v.repo.add("ai_quality_checks", ai_quality_check_id=result.ai_review_id, site_id=v.principal.site_id,
             work_order_id=task_id, work_report_id=report.work_report_id, predictor_version_id=predictor.predictor_version_id,
             status="failed" if result.status == "failed" else "ok" if result.status == "completed" else "inconclusive",
-            assessment="inconclusive", findings={"canonical": json.loads(result.model_dump_json()), "ui": ui})
+            assessment="inconclusive", findings={"canonical": json.loads(result.model_dump_json()), "ui": ui, "auxiliary_assessment": auxiliary_assessment.model_dump(mode="json")})
         v.session.commit()
         logger.info("ml_result tool=photo-review task=%s review=%s status=%s model=%s code=%s elapsed_ms=%s",
                     task_id, result.ai_review_id, result.status, result.model_ref or "none",
@@ -299,6 +320,25 @@ def register_ml_routes(app, views, photo_path, require_role, check_revision):
     @app.post("/api/v1/maintenance/tasks/{task_id}/photo-review")
     def photo_review(task_id: UUID,command:MLCommand,v=Depends(views)):
         return analyze_photo_review(task_id,command,v)
+
+    @app.get("/api/v1/maintenance/rag/search")
+    def rag_search(q: str, limit: int = 5, equipment_class: str | None = None, requested_revision: str | None = None, v=Depends(views)):
+        q_str = q.strip()
+        if not 1 <= len(q_str) <= 300:
+            raise HTTPException(422, "Поисковый запрос должен содержать от 1 до 300 символов")
+        limit = min(max(limit, 1), 20)
+        from ml_service.app.rag import get_rag_service, RetrievalQuery
+        session = getattr(v, "session", None)
+        service = get_rag_service(session=session)
+        query_obj = RetrievalQuery(
+            query=q_str,
+            site_id=str(v.principal.site_id),
+            user_role=v.principal.role,
+            equipment_class=equipment_class,
+            requested_revision=requested_revision,
+            top_k=limit,
+        )
+        return service.query(query_obj).model_dump(mode="json")
 
     def automatic_photo_review(task_id,revision,principal):
         from .projections import Views

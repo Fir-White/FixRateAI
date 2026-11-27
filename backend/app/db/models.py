@@ -59,7 +59,7 @@ def map_schema(engine: Engine, schema: str | None = None) -> Mappings:
         raise ValueError("The maintenance schema requires PostgreSQL")
     metadata = MetaData(schema=schema)
     names = list(TABLES)
-    for optional in ("planning_runs", "employee_shift_rules", "site_join_codes", "employment_applications", "maintenance_notifications"):
+    for optional in ("planning_runs", "employee_shift_rules", "site_join_codes", "employment_applications", "maintenance_notifications", "equipment_components", "component_usage_readings"):
         if inspect(engine).has_table(optional, schema=schema):
             names.append(optional)
     metadata.reflect(bind=engine, only=names)

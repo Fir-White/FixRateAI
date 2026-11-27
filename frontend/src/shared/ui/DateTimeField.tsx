@@ -82,7 +82,8 @@ const CalendarGrid = memo(function CalendarGrid({ year, monthIndex, selectedText
   </div>;
 });
 
-const monthNames = Array.from({length:12},(_,index)=>new Intl.DateTimeFormat("ru-RU",{month:"long"}).format(calendarDate(2026,index,1)));
+const monthNameFormatter = new Intl.DateTimeFormat("ru-RU",{month:"long"});
+const monthNames = Array.from({length:12},(_,index)=>monthNameFormatter.format(calendarDate(2026,index,1)));
 
 export function DateTimeField({ label, value, onChange, disabled = false, mode = "datetime-local", min, max, required = false, hideLabel = false, fieldId, triggerProps, description }: {
   label: string; value: string; onChange: (value: string) => void; disabled?: boolean;

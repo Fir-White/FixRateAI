@@ -62,8 +62,8 @@ export function Modal({
           tone === "danger" ? "border-rose-400/30" : "border-line-strong"
         }`}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
-          <div>
+        <div className="ui-dialog-header flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+          <div className="min-w-0">
             <h2 id={titleId} className="text-base font-semibold text-ink">
               {title}
             </h2>
@@ -80,9 +80,9 @@ export function Modal({
             <Icon name="close" size={18} />
           </IconButton>
         </div>
-        <div className="px-5 py-5">{children}</div>
+        <div className="ui-dialog-body px-5 py-5">{children}</div>
         {footer ? (
-          <div className="flex flex-col-reverse gap-2 border-t border-line bg-white/[0.02] px-5 py-4 sm:flex-row sm:justify-end">
+          <div className="ui-dialog-footer flex flex-col-reverse gap-2 border-t border-line px-5 py-4 sm:flex-row sm:flex-wrap sm:justify-end">
             {footer}
           </div>
         ) : null}

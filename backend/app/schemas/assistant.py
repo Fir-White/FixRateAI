@@ -1,0 +1,151 @@
+"""The model proposes calls; only an authenticated person can confirm a stored action."""
+from typing import Literal
+from datetime import date
+import json
+from uuid import UUID
+from pydantic import BaseModel,ConfigDict,Field,field_validator,model_validator
+
+MAX_COLLECTION_PAGE = 200
+
+class Input(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+
+class ConversationCreate(Input):
+    agent:Literal['assistant','planner','photo']='assistant'
+    title:str=Field(default='Новый диалог',min_length=1,max_length=160)
+    subject_task_id:UUID|None=None
+
+class ConversationUpdate(Input):
+    model_config=ConfigDict(extra='forbid',str_strip_whitespace=True)
+    title:str|None=Field(default=None,min_length=1,max_length=160)
+    pinned:bool|None=Field(default=None,strict=True)
+
+    @model_validator(mode='after')
+    def has_changes(self):
+        if not self.model_fields_set or any(getattr(self,key) is None for key in self.model_fields_set):
+            raise ValueError('Укажите название или признак закрепления')
+        return self
+
+class MessageCreate(Input):
+    idempotency_key:UUID
+    content:str=Field(default='',max_length=12000)
+    # None preserves old clients: their first message includes staged files.
+    # An explicit list selects exactly the files the user sent with this turn.
+    attachment_ids:list[UUID]|None=Field(default=None,max_length=20)
+    model_preference_revision:int|None=Field(default=None,ge=0)
+    resume_turn_id:UUID|None=None
+    @model_validator(mode='after')
+    def has_message(self):
+        self.content=self.content.strip()
+        if not self.content and not self.attachment_ids:raise ValueError('Введите сообщение или прикрепите файл')
+        if self.attachment_ids and len(set(self.attachment_ids))!=len(self.attachment_ids):raise ValueError('Вложение указано повторно')
+        return self
+
+class ChatModelPreference(Input):
+    provider:Literal['ollama','aitunnel']
+    model:str=Field(min_length=1,max_length=128,pattern=r'^[A-Za-z0-9._][A-Za-z0-9._:/-]*$')
+    expected_revision:int=Field(ge=0)
+
+class ConfirmAction(Input):
+    payload_sha256:str=Field(pattern=r'^[0-9a-f]{64}$')
+    confirmed:Literal[True]
+    secret_values:dict[str,str]=Field(default_factory=dict,max_length=3)
+
+class ReportPhotoBinding(Input):
+    model_config=ConfigDict(extra='forbid',str_strip_whitespace=True)
+    attachment_id:UUID
+    checklist_item_id:UUID
+    phase:Literal['before','after']
+    view_key:str=Field(min_length=1,max_length=200)
+
+class ReportAttachAndSubmit(Input):
+    expected_revision:int=Field(gt=0)
+    execution_id:UUID
+    photos:list[ReportPhotoBinding]=Field(min_length=1,max_length=4)
+
+    @model_validator(mode='after')
+    def unique_photos(self):
+        if len({item.attachment_id for item in self.photos})!=len(self.photos):
+            raise ValueError('Файл указан повторно')
+        return self
+
+class AgentCall(Input):
+    tool:str=Field(min_length=1,max_length=100)
+    goal_id:str|None=Field(default=None,max_length=40,description='ID of the planned user objective served by this call.')
+    arguments_json:str=Field(max_length=40000,description='JSON object with tool arguments: path, query, body. For describe_tool: {"name":"tool_name"}.')
+    explanation:str=Field(min_length=1,max_length=3000)
+    @field_validator('arguments_json')
+    @classmethod
+    def valid_json(cls,value):
+        if not isinstance(json.loads(value),dict):raise ValueError('Arguments must be a JSON object')
+        return value
+    @property
+    def arguments(self):return json.loads(self.arguments_json)
+
+class AgentStep(Input):
+    answer:str=Field(max_length=12000)
+    calls:list[AgentCall]=Field(max_length=3)
+
+class GoalSelector(Input):
+    equipment_code:str|None=Field(default=None,max_length=128)
+    equipment_id:UUID|None=None
+    user_id:UUID|None=None
+    attachment_ids:list[UUID]=Field(default_factory=list,max_length=20)
+    starts_on:date|None=None
+    ends_on:date|None=None
+    current_only:bool|None=Field(default=None,description='True for the current/selected site. False ONLY if the user explicitly asks for all authorized sites; do not broaden an unspecified scope.')
+    draft_id:UUID|None=None
+    run_id:UUID|None=None
+    proposal_id:UUID|None=None
+    component_id:UUID|None=None
+    operation_id:UUID|None=Field(default=None,description='Exact saved maintenance operation identity stated by the user or resolved by an authorized catalog read. Never a task or equipment ID.')
+    task_id:UUID|None=Field(default=None,description='Exact saved work task identity. Do not substitute the first task or an equipment UUID.')
+    search:str|None=Field(default=None,min_length=1,max_length=200,description='Literal employee or equipment search text requested by the user, such as the exact email. Do not invent a search term.')
+
+ReadOutcome=Literal['current_profile','staff_profile','staff_search','workforce','equipment_inventory','equipment_card','equipment_search','equipment_components','equipment_regulations','maintenance_catalog','maintenance_definition','reference_catalog','personal_notifications','protected_company_code','calendar_obligations','accepted_history','task_card','task_analysis','file_analysis','norm_readiness','other']
+READ_OUTCOME_TOOLS={
+    'current_profile':'profile_read','staff_profile':'staff_read','staff_search':'staff_find',
+    'workforce':'workforce_read','equipment_inventory':'inventory_read','equipment_card':'equipment_read',
+    'equipment_search':'equipment_find','equipment_components':'components_read','maintenance_catalog':'operations_list',
+    'equipment_regulations':'regulations_read',
+    'maintenance_definition':'operation_read','reference_catalog':'catalog_read','personal_notifications':'notifications_list',
+    'protected_company_code':'enrollment_read','calendar_obligations':'calendar_evidence','accepted_history':'equipment_service_history',
+    'task_card':'task_read','task_analysis':'tasks_analyze','file_analysis':'attachment_read','norm_readiness':'workbook_readiness',
+}
+
+class GoalSpec(Input):
+    id:str=Field(min_length=1,max_length=40,pattern=r'^[a-zA-Z0-9_-]+$')
+    title:str=Field(min_length=1,max_length=400,description='One independently verifiable user objective, preserving its exact scope and values.')
+    outcome:ReadOutcome|None=Field(default=None,json_schema_extra={'x-read-outcome-tools':READ_OUTCOME_TOOLS},description='Choose the requested semantic result BEFORE choosing a tool. workforce means crews, crew membership and staff roster, never one employee. current_profile is only the signed-in person; staff_profile is the selected employee; equipment_components means installed parts/resources, not the equipment card; maintenance_catalog/definition means saved operations, not equipment inventory, service history or work tasks. protected_company_code means an authorized protected link, never file content or a code in chat. Use other for changes, conversation or reads without a concrete declared outcome.')
+    tool:str=Field(max_length=100,description='REQUIRED exact final outcome tool name from the authorized catalog, not a prerequisite search. Use empty string ONLY when capability or required user decision is genuinely unavailable.')
+    kind:Literal['read','change','conversation','unavailable']|None=None
+    selector:GoalSelector=Field(default_factory=GoalSelector,description='Business selectors stated by the user. Resolve technical UUIDs on the server; never invent them. Distinguish calendar cycle dates from actual-history year.')
+    changes:dict[str,str|int|float|bool|None]=Field(default_factory=dict,max_length=12,description='Only exact field values requested for this change, e.g. name. Empty for reads. Technical revisions are supplied by server code.')
+    depends_on:list[str]=Field(default_factory=list,max_length=12)
+    requires_full_list:bool=False
+    response_style:Literal['facts','analysis']='facts'
+    workflow_kind:Literal['readiness','calendar','materials','whatif','create','compare','optimize','prepare_approval','approve','publish','publication','impossible','bypass']|None=None
+    required_evidence:Literal['saved_data','calendar_calculation','manufacturer_document','optimizer_result','file_content','user_decision','conversation']|None=None
+
+class ToolSelection(Input):
+    tools:list[str]=Field(max_length=8)
+    goals:list[GoalSpec]=Field(default_factory=list,max_length=12,description='Every objective in the latest request, including unavailable and dependent objectives. Do not omit an objective after selecting a report tool.')
+    workbook_ids:list[UUID]=Field(default_factory=list,max_length=4,description='Previously sent XLSX attachments needed for this question; use only IDs from server context.')
+
+class FinalReply(Input):
+    answer:str=Field(min_length=1,max_length=12000)
+    @field_validator('answer')
+    @classmethod
+    def not_blank(cls,value):
+        if not value.strip():raise ValueError('A final answer is required')
+        return value.strip()
+
+class ResultView(Input):
+    path:list[str]=Field(default_factory=list,max_length=6,description='Последовательный путь по ключам одного JSON-результата, не список полей и не поиск оборудования. Обычно []: сначала прочитайте корневой ответ. Не угадывайте ключи.')
+    offset:int=Field(default=0,ge=0)
+    limit:int=Field(default=25,ge=1,le=25)
+    q:str=Field(default='',max_length=200)
+    text_offset:int=Field(default=0,ge=0)
+    text_limit:int=Field(default=6000,ge=1,le=6000)
+
+ASSISTANT_CONTRACTS=(ConversationCreate,MessageCreate,ChatModelPreference,ConfirmAction,AgentStep,ResultView,ToolSelection,FinalReply)

@@ -1,13 +1,30 @@
 """Computer Vision package for photo review and quality control."""
-from .classifier import CLIPZeroShotClassifier
+from .assessment import (
+    AuxiliaryPhotoAssessment,
+    PairComparabilityAssessment,
+    PairQualityAssessment,
+    WorkOrderAttemptBinding,
+    build_auxiliary_assessment,
+    check_assessment_staleness,
+    review_work_order_attempt,
+)
 from .guardrails import VisualGuardrailPolicy
+from .ocr import BoundedOCRValidator, BoundedReadingCandidate, ReadingValidationStatus
 from .quality import ImageQualityGuard, ImageQualityResult
-from .service import review_photos
 
 __all__ = [
-    "CLIPZeroShotClassifier",
+    "AuxiliaryPhotoAssessment",
+    "BoundedOCRValidator",
+    "BoundedReadingCandidate",
     "ImageQualityGuard",
     "ImageQualityResult",
+    "PairComparabilityAssessment",
+    "PairQualityAssessment",
+    "ReadingValidationStatus",
     "VisualGuardrailPolicy",
-    "review_photos",
+    "WorkOrderAttemptBinding",
+    "build_auxiliary_assessment",
+    "check_assessment_staleness",
+    "review_work_order_attempt",
 ]
+

@@ -1,0 +1,33 @@
+# Инвентарь тестов
+
+Корпус содержит более 300 самостоятельных границ, но **не 300 диалогов с LLM**. Повторные запуски не увеличивают число уникальных случаев.
+
+| Набор | Область/число | Oracle |
+|---|---|---|
+| red_team_cases.json / matrix.py | 619, 167 capability | Реальный MCP, точный вид отказа, fingerprint 18 таблиц, локальные schema refs |
+| controls.py | 20 | 6 ролей, ownership/CSRF, forged role, URL-shaped tools, запрет доменного DELETE директору |
+| provenance.py | 20 | Настоящий положительный контроль, затем конкретное повреждение и точный reason evidence gate |
+| scope.py | 20 | Четыре реальных заказа, независимые ожидаемые когорты/даты, терминальные и неподдержанные фильтры |
+| repairs.py | 10 | Подтверждённое оборудование после ограниченной коррекции; плохие селекторы не исчезают |
+| properties.py | 90 | 60 валидатор + 24 CP-SAT + 6 locks, сохранение объёма/состава/времени |
+| grounding.py | 33 | Пустой router, current-object listing/селекторы/31 против 25, правильные регламенты, точный код за страницей и literal/Unicode/длинные коды |
+| state.py | 6 | Отказ/истечение/чужой владелец/смена роли/удаление/устаревание → новая команда → approval/replay |
+| forecast_provenance.py | 25 | Часовые пояса/overdue, unknown uncertainty, подмена ALG02, серверные ресурс/таймер, unknown empty totals |
+| failed_reads.py | 7 | Пять HTTP-fault состояний при непустой PostgreSQL + настоящие empty/nonempty controls; лживый model prose не считается результатом чтения |
+| staff_preservation.py | 6 | Omission/null/merged dates, rollback, настоящий proposal/approval/replay |
+| photo_reading.py | 31 | Строгие типы наблюдения, unknown != 0, readonly renderer и границы read/write/analysis intents; не live OCR |
+| test_ollama_agent_grammar.py | 20 | Изоляция root name/helper const по структурному set oracle, не полный JSON Schema engine |
+| commit_loss.py | 5 | Настоящий backend commit → потеря ответа HTTP/timeout/connection → uncertain → повтор без второй записи |
+| command_feedback.py | 16 | 5 точных ошибок без raw input + revision control + 5 omission/nullable вариантов + 5 явных запрещённых null |
+| live_mutation_cases.json / live_mutations.py | 8 | Настоящие Ollama proposals: chief equipment rename/component install, admin staff role; SQL before/after и replay |
+| live_red_team_cases.json / live.py | 21 эпизод | Настоящая Ollama 4B → агент → API → PostgreSQL, synthetic XLSX/PNG; guard и typed-counter могут завершиться до inference |
+| production_scenarios.json | 12 | Настоящие версии, solver, allowlist подтверждений; активный план и locks сохранны |
+| прежние assistant/P0/task_analytics/capabilities | Регрессия | Реальные PostgreSQL-проверки отдельно от явно scripted provider/transport faults |
+
+Типы не смешиваются: unit provider использует объявленные HTTP-fixture/fault injection; это проверка parser/retry, а не реального генеративного качества. Sentinel NoInference подтверждает серверный путь вычисления и не выдаётся за модель. Положительные доменные результаты в интеграционных сценариях поступают из настоящего backend.
+
+Группы директивы: A — факты/инвентарь; B — отсутствие данных; C — контракты; D — часы/даты; E — полнота и счётчики; F — контекст; G — RBAC/секреты; H — инъекция через данные; I — идентичность; K — proposal/confirmation/replay; M — границы темы. Планирование, ресурс и state transitions покрываются production/property сценариями. Полная глубина каждого направления, изображений и конкурентных эпизодов ещё не доказана; наличие буквенной группы не означает завершение всей категории.
+
+Запуск: `python scripts/agent_redteam.py --pg-bin "C:\Program Files\PostgreSQL\18\bin" --live`. Без --live выполняются offline/API/solver проверки, live-тесты явно skipped. Каждая round получает собственную БД и неизменяемый каталог отчёта; существующий результат не перезаписывается. --rounds задаёт 1…10 последовательных раундов; сбой останавливает runner с ненулевым кодом и сохранёнными доказательствами. Runner сам не меняет код и не пушит; исправления выполняет разработчик после анализа.
+
+C5 добавляет 30 intent-dispatch случаев (включая пять UUID/code контролей), 11 proposal-source сценариев, 27 explicit-draft/отрицательных/conditional/role/preservation и пять native literal-history проверок. Grammar oracle расширен на mode/tool enum, остаётся ограниченным структурным oracle, не полноценным JSON Schema engine. Восьмёрка live mutations включает пять read-then-rename; вместе с прежними 21 это 29 различных эпизодов, а не 29 гарантированных вызовов inference (typed пути и role guard могут завершиться раньше). Короткий --live-only запускает 41 pytest case = 29 chat + 12 production, но production workflows не считаются свободными LLM-планированиями. Успех проверяется настоящей SQL-записью после approval/replay и неизменностью остальных полей. Отдельно маркированный scripted hesitation проверяет серверную подготовку, не качество реальной модели.

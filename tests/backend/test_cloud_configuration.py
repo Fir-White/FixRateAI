@@ -24,6 +24,6 @@ def test_invalid_cloud_settings_are_rejected(monkeypatch, key, value):
 
 def test_launcher_reads_only_allowlisted_cloud_keys_and_environment_takes_precedence(tmp_path):
     path = tmp_path / ".env"
-    path.write_text("AI_TUNNEL_API_KEY=fixture-token\nDATABASE_URL=do-not-import\nAITUNNEL_VISION_MODEL=qwen3.7-flash\n", encoding="utf-8")
+    path.write_text("AI_TUNNEL_API_KEY=fixture-token\nDATABASE_URL=do-not-import\nAITUNNEL_VISION_MODEL=qwen3.7-flash\nAITUNNEL_CHAT_MODEL=qwen3.5-9b\n", encoding="utf-8")
     values = read_ai_environment(path, {"AITUNNEL_VISION_MODEL": "another-model"})
-    assert values == {"AI_TUNNEL_API_KEY": "fixture-token", "AITUNNEL_VISION_MODEL": "another-model"}
+    assert values == {"AI_TUNNEL_API_KEY": "fixture-token", "AITUNNEL_VISION_MODEL": "another-model", "AITUNNEL_CHAT_MODEL": "qwen3.5-9b"}

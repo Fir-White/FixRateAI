@@ -145,6 +145,10 @@ class ImageQualityGuard:
         after_bytes: bytes,
     ) -> tuple[bool, str | None]:
         """Verify that before and after photos form a valid, non-identical pair."""
+        # 0. Same equipment check
+        if before_report.equipment_id != after_report.equipment_id:
+            return False, "Фотографии относятся к разному оборудованию"
+
         # 1. View key check
         if before_report.view_key != after_report.view_key:
             return False, f"Несовпадающий ракурс съемки: '{before_report.view_key}' != '{after_report.view_key}'"

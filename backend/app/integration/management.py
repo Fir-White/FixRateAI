@@ -1,10 +1,9 @@
-from app.security.sessions import has_role
 """Authenticated catalog, equipment and staff administration on the shared schema.
 
 Equipment CRUD and user/profile/role capabilities adapt new_backend c559d27.
 The existing opaque session, site scope, CSRF and revision protocol remain shared.
 """
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from calendar import monthrange
 from datetime import date, datetime, time, timedelta, timezone
 import json
@@ -15,34 +14,36 @@ from pydantic import ValidationError
 from fastapi import Depends, HTTPException, Request, Response
 from sqlalchemy import select, text, delete
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload
 
 from app.db.session import service_transaction
 from app.schemas.maintenance import CalendarPattern
 from app.schemas.management import (ApplicationDecision,AvailabilityInput,CrewInput,CrewEdit,
     EmploymentEdit,EquipmentCreate,EquipmentEdit,NamedReference,QualificationInput,
     Registration,ServiceConfiguration,ShiftInput,ShiftEdit,SkillInput,Revision,PatternPreview,AccountEmailUpdate,AccountPasswordUpdate)
-from app.security.sessions import SQL_ROLES,hash_password,verify_password,COOKIE,digest
+from app.schemas.registry import SystemCreate
+from app.security.sessions import (
+    COOKIE, SITE_ACCESS_MANAGERS, SQL_ROLES, digest, has_role, hash_password, role_is_enabled, verify_password,
+)
 from app.scheduling.recurrence import pattern_description,occurrence_dates,occurrence_pairs
 from app.scheduling.shifts import expand_shift,employment_availability
+from app.security.permissions import permission_profile, permits
 from .assignments import _lock
 from .calendar import _json_value, configured_pattern, checklist_for_rule
 
 PREFIX='/api/v1/maintenance'
 
 
-def _guard(v,*roles):
-    if not has_role(v.principal.role,roles):
+def _guard(v,*roles,permission=None,exact=False):
+    if not has_role(v.principal.role,roles,permission=permission,exact=exact):
         raise HTTPException(403,'Действие недоступно для текущей роли')
 
 
 @contextmanager
-def _edit(v,workers=(),roles=('admin','dispatcher'),exact_roles=False):
+def _edit(v,workers=(),roles=('admin','dispatcher'),exact_roles=False,*,_owns_transaction=True,permission=None):
     """Use the same global user → membership → metadata lock order as BE05."""
-    if exact_roles:
-        if v.principal.role not in roles:raise HTTPException(403,'Оборудование и структуру изменяет главный инженер')
-    else:
-        _guard(v,*roles)
-    with service_transaction(v.session):
+    _guard(v,*roles,permission=permission,exact=exact_roles)
+    with (service_transaction(v.session) if _owns_transaction else nullcontext()):
         identifiers=set(workers)|{v.principal.user_id}
         for table in ('users','site_memberships'):
             for identity in sorted(identifiers,key=lambda x:x.int):
@@ -50,8 +51,9 @@ def _edit(v,workers=(),roles=('admin','dispatcher'),exact_roles=False):
         v.session.expire_all()
         actor=v.one('users',user_id=v.principal.user_id)
         member=v.one('site_memberships',user_id=v.principal.user_id)
-        permitted = SQL_ROLES.get(member.role) in roles if exact_roles else has_role(SQL_ROLES.get(member.role),roles)
-        if not actor.is_active or not member.is_active or not permitted:
+        current_role = SQL_ROLES.get(member.role)
+        if not actor.is_active or not member.is_active or current_role != v.principal.role or not has_role(
+                current_role,roles,permission=permission,exact=exact_roles):
             raise HTTPException(403,'Права пользователя изменились; обновите сессию')
         yield
 
@@ -63,7 +65,8 @@ def _revision(row,expected):
 
 def _audit(v,table,identity,action,after):
     v.repo.add('audit_events',site_id=v.principal.site_id,actor_type='user',actor_user_id=v.principal.user_id,
-        entity_type=table,entity_id=identity,action=action,after_snapshot=json.loads(json.dumps(after,default=_json_value)))
+        entity_type=table,entity_id=identity,action=action,after_snapshot=json.loads(json.dumps(
+            dict(after, actor_role=v.principal.role),default=_json_value)))
 
 
 def _equipment(v,identity,lock=False):
@@ -78,8 +81,8 @@ def equipment_response(row):
         'equipment_type_id','asset_code','name','serial_number','commissioned_on','location','properties','status','revision')}
 
 
-def save_equipment(v,data,identity=None):
-    with _edit(v,roles=('chief_engineer','admin','dispatcher'),exact_roles=True):
+def save_equipment(v,data,identity=None,*,_locked=False):
+    with (nullcontext() if _locked else _edit(v,roles=('chief_engineer','admin','dispatcher'),exact_roles=True,permission='edit_equipment')):
         # Serializes hierarchy changes and uniqueness checks for this site's catalog.
         v.session.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"),{'key':f'catalog:{v.principal.site_id}'})
         row=_equipment(v,identity,True) if identity else None
@@ -127,6 +130,14 @@ def save_equipment(v,data,identity=None):
             row=v.repo.add('equipment',site_id=v.principal.site_id,**values)
         v.session.flush()
         _audit(v,'equipment',row.equipment_id,'update' if identity else 'create',dict(revision=row.revision,status=row.status))
+        from .source_import import enqueue_revision, next_revision
+        enqueue_revision(
+            v.session, site_id=v.principal.site_id, actor_id=v.principal.user_id,
+            scope='maintenance_catalog',
+            source_revision=next_revision(v.session, site_id=v.principal.site_id, scope='maintenance_catalog'),
+            source_sha256=None, entity_type='equipment', entity_id=row.equipment_id,
+            change_type='text_change', payload=dict(name=row.name, status=row.status),
+        )
         return equipment_response(row)
 
 
@@ -144,13 +155,20 @@ def exposed_pattern(rule):
     except ValidationError:return None
 
 
-def service_configurations(v,equipment_id):
-    _equipment(v,equipment_id)
+def service_configurations(v,equipment_id,*,include_effectivity=False):
+    equipment = _equipment(v,equipment_id)
+    if include_effectivity:
+        binding_model, rule_model = (v.models[name] for name in ('rule_equipment', 'maintenance_rules'))
+        bindings = v.session.scalars(select(binding_model).where(
+            binding_model.site_id == v.principal.site_id, binding_model.equipment_id == equipment_id,
+        ).options(joinedload(binding_model.rule).joinedload(rule_model.edition)))
+    else:
+        bindings = v.rows('rule_equipment',equipment_id=equipment_id)
     rows=[]
-    for binding in v.rows('rule_equipment',equipment_id=equipment_id):
+    for binding in bindings:
         rule=binding.rule
         parameters=rule.schedule_parameters
-        if parameters.get('superseded_binding'):
+        if parameters.get('superseded_binding') or parameters.get('catalog_publication_id'):
             continue
         op=rule.operation
         metadata=parameters.get('operation_metadata',{})
@@ -167,16 +185,23 @@ def service_configurations(v,equipment_id):
                 visual_verifiability=parameters.get('checklist_metadata',{}).get(str(r.checklist_template_id),{}).get('visual_verifiability','not_verifiable'),
                 photo_required=parameters.get('checklist_metadata',{}).get(str(r.checklist_template_id),{}).get('photo_required',r.input_kind=='photo'))
                 for r in checklist_for_rule(v,op.operation_template_id,parameters)],
-            enabled=rule.publication_status=='published',source_text=rule.source_text,methodology_ref=parameters.get('methodology_ref'),measurement_requirements=parameters.get('measurement_requirements',[]),required_acts=parameters.get('required_acts',[])))
+             enabled=rule.publication_status=='published',source_text=rule.source_text,methodology_ref=parameters.get('methodology_ref'),measurement_requirements=parameters.get('measurement_requirements',[]),required_acts=parameters.get('required_acts',[])))
+        if include_effectivity:
+            edition = rule.edition
+            ends = [day for day in (binding.valid_to, rule.active_until, edition.effective_to) if day is not None]
+            rows[-1].update(publication_status=rule.publication_status, edition_approved=edition.is_approved,
+                            operation_available=op.is_active and equipment.status != 'retired',
+                            effective_from=max(binding.valid_from, rule.active_from, edition.effective_from),
+                            effective_until=min(ends, default=None))
     return rows
 
 
-def save_service(v,equipment_id,data,binding_id=None):
-    if v.principal.role not in ("chief_engineer","admin"):
+def save_service(v,equipment_id,data,binding_id=None,*,_locked=False):
+    if not has_role(v.principal.role,("chief_engineer","admin"),exact=True,permission='edit_service'):
         raise HTTPException(403,"Регламент изменяет главный инженер")
-    if data.enabled and v.principal.role!="chief_engineer":
-        raise HTTPException(403,"Публикацию утверждает главный инженер")
-    with _edit(v,roles=("chief_engineer","admin")):
+    if data.enabled and not permits(v.principal.role,'approve_exception'):
+        raise HTTPException(403,"Публикация требует отдельного согласования")
+    with (nullcontext() if _locked else _edit(v,roles=("chief_engineer","admin"),exact_roles=True,permission='edit_service')):
         v.session.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"),{'key':f'catalog:{v.principal.site_id}'})
         eq=_equipment(v,equipment_id,True)
         if data.enabled and data.pattern.frequency=="yearly_count" and data.pattern.annual_policy=="from_anchor" and (not eq.commissioned_on or data.pattern.anchor_date!=eq.commissioned_on):
@@ -185,6 +210,11 @@ def save_service(v,equipment_id,data,binding_id=None):
         if binding_id:
             old=v.one('rule_equipment',binding_id=binding_id,equipment_id=equipment_id)
             _lock(v,'rule_equipment',binding_id=binding_id)
+            if (permission_profile() == 'mvp' and not permits(v.principal.role,'approve_exception')
+                    and old.rule.publication_status == 'published'):
+                raise HTTPException(403,'Утверждённый регламент изменяется только отдельным согласованием')
+            if old.rule.schedule_parameters.get('catalog_publication_id'):
+                raise HTTPException(409,'Утверждённая версия каталога неизменяема; подготовьте новый план')
             if data.expected_revision is None:
                 raise HTTPException(422,'Для изменения нужна ревизия настройки')
             _revision(old,data.expected_revision)
@@ -205,6 +235,8 @@ def save_service(v,equipment_id,data,binding_id=None):
             if data.operation_id:
                 op=v.one('operation_templates',operation_template_id=data.operation_id)
                 _lock(v,'operation_templates',operation_template_id=data.operation_id)
+                if any(r.schedule_parameters.get('catalog_publication_id') for r in v.rows('maintenance_rules',operation_template_id=op.operation_template_id)):
+                    raise HTTPException(409,'Конечная процедура каталога не преобразуется в периодический регламент; подготовьте отдельный источник и план')
                 if op.system_id!=eq.system_id or not op.is_active or data.code!=op.code:
                     raise HTTPException(422,'Выберите активную операцию той же инженерной системы и сохраните её код')
                 version=max((r.rule_version for r in v.rows('maintenance_rules',operation_template_id=op.operation_template_id)),default=0)+1
@@ -261,6 +293,15 @@ def save_service(v,equipment_id,data,binding_id=None):
         eq.revision+=1
         v.session.flush()
         _audit(v,'rule_equipment',new.binding_id,'configure',dict(equipment_id=equipment_id,version=version,previous_binding_id=binding_id))
+        from .source_import import enqueue_revision, next_revision
+        enqueue_revision(
+            v.session, site_id=v.principal.site_id, actor_id=v.principal.user_id,
+            scope='maintenance_catalog',
+            source_revision=next_revision(v.session, site_id=v.principal.site_id, scope='maintenance_catalog'),
+            source_sha256=None, entity_type='rule_equipment', entity_id=new.binding_id,
+            change_type='text_change',
+            payload=dict(title=data.title, instructions=data.instructions, code=data.code),
+        )
         return next(r for r in service_configurations(v,equipment_id) if r['binding_id']==new.binding_id)
 
 
@@ -278,21 +319,25 @@ def register_routes(app,views,db):
     @app.get(PREFIX+'/management/catalog')
     def catalog(v=Depends(views)):
         _guard(v,'director','admin','dispatcher','engineer')
-        return dict(systems=[dict(id=r.system_id,code=r.code,name=r.name) for r in v.rows('engineering_systems') if r.is_active],
+        from .planning import legacy_source_query
+        types={r.maintenance_type_id:r.name for r in v.rows('maintenance_types')}
+        operations=v.session.scalars(legacy_source_query(v,'operation_templates')).all()
+        return dict(systems=[dict(id=r.system_id,code=r.code,name=r.name,system_group=r.system_group,revision=r.revision) for r in v.rows('engineering_systems') if r.is_active],
             equipment_types=[dict(id=r.equipment_type_id,code=r.code,name=r.name) for r in v.rows('equipment_types')],
             operations=[dict(id=r.operation_template_id,system_id=r.system_id,code=r.code,title=r.title,instructions=r.description or r.title,
-                maintenance_type=v.one('maintenance_types',maintenance_type_id=r.maintenance_type_id).name) for r in v.rows('operation_templates') if r.is_active],
+                maintenance_type=types[r.maintenance_type_id]) for r in operations if r.is_active],
             skills=[dict(id=r.skill_id,code=r.code,name=r.name,validity_required=r.validity_required) for r in v.rows('skills')])
 
     @app.post(PREFIX+'/management/systems',status_code=201)
-    def system_create(command:NamedReference,v=Depends(views)):
+    def system_create(command:SystemCreate,v=Depends(views)):
         with _edit(v,roles=('chief_engineer','admin','dispatcher'),exact_roles=True):
+            v.session.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"),{'key':f'catalog:{v.principal.site_id}'})
             row=v.repo.add('engineering_systems',site_id=v.principal.site_id,**command.model_dump())
-            return dict(id=row.system_id,name=row.name,code=row.code)
+            return dict(id=row.system_id,name=row.name,code=row.code,system_group=row.system_group,revision=row.revision)
 
     @app.post(PREFIX+'/management/equipment-types',status_code=201)
     def type_create(command:NamedReference,v=Depends(views)):
-        with _edit(v,roles=('admin',)):
+        with _edit(v,roles=SITE_ACCESS_MANAGERS):
             row=v.repo.add('equipment_types',**command.model_dump())
             return dict(id=row.equipment_type_id,name=row.name,code=row.code)
 
@@ -327,10 +372,10 @@ def register_routes(app,views,db):
             _audit(v,'equipment',equipment_id,'retire',dict(revision=row.revision))
 
     @app.get(PREFIX+'/equipment/{equipment_id}/service-configurations')
-    def configs(equipment_id:UUID,v=Depends(views)):
+    def configs(equipment_id:UUID,include_effectivity:bool=False,v=Depends(views)):
         _guard(v,'director','admin','dispatcher','engineer','executor')
         if v.principal.role=='executor' and equipment_id not in v.visible_equipment_ids():raise HTTPException(404,'Оборудование не найдено')
-        return service_configurations(v,equipment_id)
+        return service_configurations(v,equipment_id,include_effectivity=include_effectivity)
 
     @app.post(PREFIX+'/equipment/{equipment_id}/service-configurations',status_code=201)
     def config_create(equipment_id:UUID,command:ServiceConfiguration,v=Depends(views)):
@@ -385,11 +430,22 @@ def _validate_bookings(v,user_ids):
 
 def workforce_view(v):
     _guard(v,'director','admin','dispatcher','engineer')
+    # Read-only projection: batch rows instead of one query per employee.
+    members=v.prefetch('site_memberships','user_id')
+    manages_access=has_role(v.principal.role,SITE_ACCESS_MANAGERS,exact=True)
+    pending=v.rows('employment_applications',status='pending') if manages_access else []
+    user_ids={m.user_id for m in members}|{a.user_id for a in pending}
+    users=v.models['users']
+    records=v.session.scalars(select(users).where(users.user_id.in_(user_ids))).all()
+    v._task_rows[('users','user_id')]={r.user_id:[r] for r in records}
+    for table,key in (('user_skills','user_id'),('employee_shift_rules','user_id'),('availability_slots','user_id'),('crew_members','crew_id')):v.prefetch(table,key)
+    v.prefetch('crews');v.prefetch('skills')
     staff=[]
     for member in v.rows('site_memberships'):
         user=v.one('users',user_id=member.user_id)
         staff.append(dict(user_id=user.user_id,full_name=user.full_name,email=user.email,
-            role=SQL_ROLES.get(member.role,member.role),is_active=member.is_active and user.is_active,revision=member.revision,
+            role=SQL_ROLES.get(member.role,member.role),is_active=member.is_active and user.is_active,
+            membership_is_active=member.is_active,account_is_active=user.is_active,revision=member.revision,
             employed_from=member.employed_from,employed_until=member.employed_until,
             qualifications=[dict(skill_id=r.skill_id,verified_at=r.verified_at,valid_until=r.valid_until,revision=r.revision) for r in v.rows('user_skills',user_id=user.user_id)],
             shifts=[dict(shift_rule_id=r.shift_rule_id,label=r.label,pattern=r.calendar_pattern,valid_from=r.valid_from,
@@ -398,10 +454,9 @@ def workforce_view(v):
             exceptions=[dict(id=r.availability_id,start_at=r.starts_at,end_at=r.ends_at,status=r.status,reason=r.reason,revision=r.revision)
                 for r in v.rows('availability_slots',user_id=user.user_id) if r.is_active]))
     applications=[]
-    if v.principal.role=='admin':
-        for row in v.rows('employment_applications',status='pending'):
-            user=v.one('users',user_id=row.user_id)
-            applications.append(dict(application_id=row.application_id,user_id=row.user_id,full_name=user.full_name,email=user.email,revision=row.revision))
+    for row in pending:
+        user=v.one('users',user_id=row.user_id)
+        applications.append(dict(application_id=row.application_id,user_id=row.user_id,full_name=user.full_name,email=user.email,revision=row.revision))
     return dict(staff=sorted(staff,key=lambda r:(r['full_name'],str(r['user_id']))),applications=applications,
         crews=[dict(id=r.crew_id,name=r.name,is_active=r.is_active,revision=r.revision,
             members=[dict(user_id=m.user_id,valid_from=m.valid_from,valid_to=m.valid_to) for m in v.rows('crew_members',crew_id=r.crew_id)]) for r in v.rows('crews')],
@@ -421,7 +476,7 @@ def register_workforce_routes(app,views,db):
             session.execute(text('INSERT INTO users(user_id,full_name,email,password_hash) VALUES (:id,:name,:email,:password)'),
                 dict(id=identity,name=command.full_name,email=command.email.lower(),password=hash_password(command.password)))
             session.execute(text('INSERT INTO employment_applications(site_id,user_id) VALUES (:site,:user)'),dict(site=site,user=identity))
-        return dict(status='pending',message='Учётная запись создана. Администратор компании должен выдать роль и доступ к объекту.')
+        return dict(status='pending',message='Учётная запись создана. Главный инженер или администратор выдаст роль и доступ к объекту.')
 
     @app.get(PREFIX+'/users/me')
     def me(v=Depends(views)):
@@ -456,18 +511,18 @@ def register_workforce_routes(app,views,db):
 
     @app.get(PREFIX+'/users')
     def users(v=Depends(views)):
-        _guard(v,'admin')
+        _guard(v,*SITE_ACCESS_MANAGERS)
         return workforce_view(v)['staff']
 
     @app.get(PREFIX+'/users/roles')
     def roles(v=Depends(views)):
-        return [dict(role=role,label=label) for role,label in [('director','Руководитель: просмотр и SLA'),('chief_engineer','Главный инженер: нормативы, планы и исключения'),('admin','Администратор: сотрудники, роли, справочники'),
+        return [dict(role=role,label=label) for role,label in [('director','Руководитель: просмотр и SLA'),('chief_engineer','Главный инженер: регламенты, назначения, приёмка и доступы'),('admin','Администратор: сотрудники, роли, справочники'),
             ('dispatcher','Диспетчер: обслуживание, смены, предложения и подтверждение назначений'),
             ('engineer','Инженер: прогнозы и приёмка'),('executor','Исполнитель: только назначенные работы')]]
 
     @app.get(PREFIX+'/users/{user_id}/roles')
     def user_roles(user_id:UUID,v=Depends(views)):
-        if user_id!=v.principal.user_id: _guard(v,'admin')
+        if user_id!=v.principal.user_id: _guard(v,*SITE_ACCESS_MANAGERS)
         row=v.one('site_memberships',user_id=user_id)
         return [dict(site_id=row.site_id,user_id=user_id,role=SQL_ROLES.get(row.role),is_active=row.is_active)]
 
@@ -477,14 +532,14 @@ def register_workforce_routes(app,views,db):
 
     @app.get(PREFIX+'/management/enrollment')
     def enrollment(v=Depends(views)):
-        _guard(v,'admin')
+        _guard(v,*SITE_ACCESS_MANAGERS)
         rows=v.rows('site_join_codes')
         return dict(code=rows[0].code if rows else None)
 
     @app.post(PREFIX+'/management/enrollment')
     def enrollment_create(v=Depends(views)):
         from sqlalchemy.dialects.postgresql import insert
-        with _edit(v,roles=('admin',)):
+        with _edit(v,roles=SITE_ACCESS_MANAGERS):
             table=v.models['site_join_codes'].__table__
             v.session.execute(insert(table).values(site_id=v.principal.site_id).on_conflict_do_nothing())
             return dict(code=v.one('site_join_codes').code)
@@ -492,12 +547,14 @@ def register_workforce_routes(app,views,db):
     @app.post(PREFIX+'/management/applications/{application_id}/decision')
     def application_decision(application_id:UUID,command:ApplicationDecision,v=Depends(views)):
         row=v.one('employment_applications',application_id=application_id)
-        with _edit(v,{row.user_id},roles=('admin',)):
+        with _edit(v,{row.user_id},roles=SITE_ACCESS_MANAGERS):
             row=_lock(v,'employment_applications',application_id=application_id)[0]
             _revision(row,command.expected_revision)
             if row.status!='pending': raise HTTPException(409,'Заявка уже рассмотрена')
             if command.decision=='accepted':
                 if v.rows('site_memberships',user_id=row.user_id): raise HTTPException(409,'Сотрудник уже добавлен')
+                if not role_is_enabled(command.role):
+                    raise HTTPException(403,'Роль отключена серверным профилем')
                 v.repo.add('site_memberships',site_id=row.site_id,user_id=row.user_id,role=command.role,is_active=command.is_active,
                     employed_from=command.employed_from,employed_until=command.employed_until)
             row.status=command.decision;row.revision+=1;row.decided_at=datetime.now(timezone.utc);row.decided_by=v.principal.user_id
@@ -506,13 +563,34 @@ def register_workforce_routes(app,views,db):
 
     @app.put(PREFIX+'/management/staff/{user_id}')
     def staff_edit(user_id:UUID,command:EmploymentEdit,v=Depends(views)):
-        with _edit(v,{user_id},roles=('admin',)):
+        with _edit(v,{user_id},roles=SITE_ACCESS_MANAGERS):
             row=v.one('site_memberships',user_id=user_id)
             _revision(row,command.expected_revision)
-            if SQL_ROLES.get(row.role)=='admin' and (command.role!='admin' or not command.is_active):
-                others=[m for m in v.rows('site_memberships') if m.user_id!=user_id and m.is_active and SQL_ROLES.get(m.role)=='admin' and v.one('users',user_id=m.user_id).is_active]
-                if not others: raise HTTPException(409,'Нельзя отозвать доступ последнего администратора объекта')
-            for key,value in command.model_dump(exclude={'expected_revision'}).items(): setattr(row,key,value)
+            if not role_is_enabled(command.role):
+                raise HTTPException(403,'Роль отключена серверным профилем')
+            enabled_managers = tuple(role for role in SITE_ACCESS_MANAGERS
+                if role_is_enabled(role) and has_role(role,SITE_ACCESS_MANAGERS,exact=True))
+            if row.is_active and SQL_ROLES.get(row.role) in enabled_managers and (command.role not in enabled_managers or not command.is_active):
+                # Serialize revocations even when two managers change different memberships.
+                v.session.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"),
+                    {"key":f"site-access:{v.principal.site_id}"})
+                members, users = v.models['site_memberships'], v.models['users']
+                other_manager = select(members.user_id).join(users, users.user_id == members.user_id).where(
+                    members.site_id == v.principal.site_id, members.user_id != user_id,
+                    members.role.in_(enabled_managers), members.is_active, users.is_active,
+                ).exists()
+                if not v.session.scalar(select(other_manager)):
+                    raise HTTPException(409,'На объекте должен остаться главный инженер или администратор с доступом')
+            changes=command.model_dump(exclude={'expected_revision'},exclude_unset=True)
+            try:
+                # Validate the effective period, including preserved fields.
+                # A role-only edit must not erase employment metadata.
+                EmploymentEdit.model_validate({**command.model_dump(exclude={'employed_from','employed_until'}),
+                    'employed_from':changes.get('employed_from',row.employed_from),
+                    'employed_until':changes.get('employed_until',row.employed_until)})
+            except ValidationError:
+                raise HTTPException(422,'Дата окончания трудоустройства не может быть раньше даты начала') from None
+            for key,value in changes.items():setattr(row,key,value)
             row.revision+=1;v.session.flush();_validate_bookings(v,{user_id})
             _audit(v,'site_memberships',user_id,'update',dict(role=row.role,is_active=row.is_active,revision=row.revision))
             return dict(revision=row.revision)

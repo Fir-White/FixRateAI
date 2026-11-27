@@ -10,7 +10,7 @@ import { useApiQuery } from "@/shared/lib/useApiQuery";
 import { formatDate, todayAt } from "@/shared/lib/format";
 import { unitLabel } from "@/shared/lib/presentation";
 import { FormErrors, RuleSection, revealField, sectionErrors, type FieldError } from "@/features/settings/SectionForm";
-import { canOpenSection } from "@/shared/lib/roles";
+import { canOpenSection, hasPermission } from "@/shared/lib/roles";
 import { useSession } from "@/shared/session/SessionContext";
 import { patternDefaults } from "@/shared/types/management";
 import type { EquipmentInput, EquipmentRecord, ManagementCatalog, ServiceConfiguration,ChecklistSetting } from "@/shared/types/management";
@@ -32,7 +32,9 @@ function LiveServiceSettingsPage() {
   const [refresh,setRefresh]=useState(0);
   const [notice,setNotice]=useState("");
   const query=useApiQuery(readQueries.serviceIndex.load,[refresh],undefined,readQueries.serviceIndex.key);
-  const mayEdit=profile?.role==="admin"||profile?.role==="chief_engineer";
+  const mayEdit=hasPermission(profile,"edit_equipment");
+  const mayConfigure=hasPermission(profile,"edit_service");
+  const mayPublish=profile?.permissionProfile!=="mvp"||hasPermission(profile,"approve_exception");
   const today=todayAt(profile?.timezone??"Asia/Yekaterinburg");
 
   if(query.status==="loading") return <LoadingState label="Загрузка настроек обслуживания"/>;
@@ -47,10 +49,10 @@ function LiveServiceSettingsPage() {
         {equipment.map(item=><option key={item.id} value={item.id}>{item.inventoryCode} · {item.name}</option>)}
       </Select>
     </label><p className="text-xs text-muted">Время объекта: {profile?.timezone}. Нормативная дата относится к целым местным суткам.</p></Card>
-    {mayEdit&&<ReferenceForms catalog={catalog} mayCreateTypes={profile?.role==="admin"} onSaved={()=>setRefresh(value=>value+1)}/>}
+    {hasPermission(profile,"site_access")&&<details className="fr-rule-section"><summary>Справочники систем и типов оборудования</summary><ReferenceForms catalog={catalog} onSaved={()=>setRefresh(value=>value+1)}/></details>}
     {(selected||mayEdit)&&<details className="fr-rule-section" open={!selected}><summary><span>{selected ? "Паспорт оборудования" : "Новое оборудование"}</span><small>Отдельное сохранение свойств оборудования</small></summary><EquipmentSettings key={selected} equipmentId={selected} catalog={catalog} mayEdit={mayEdit}
       onSaved={key=>{setNotice("Оборудование сохранено");setParams({equipment:key});setRefresh(value=>value+1);}}/></details>}
-    {selected&&<ServiceList key={`${selected}:${refresh}`} equipmentId={selected} catalog={catalog} today={today} mayEdit={mayEdit}/>}
+    {selected&&<ServiceList key={`${selected}:${refresh}`} equipmentId={selected} catalog={catalog} today={today} mayEdit={mayConfigure} mayPublish={mayPublish}/>}
   </div>;
 }
 
@@ -87,7 +89,7 @@ function EquipmentEditor({initial,catalog,mayEdit,onSaved}: {initial:EquipmentRe
   </form></Card>;
 }
 
-function ServiceList({equipmentId,catalog,today,mayEdit}: {equipmentId:string;catalog:ManagementCatalog;today:string;mayEdit:boolean}) {
+function ServiceList({equipmentId,catalog,today,mayEdit,mayPublish}: {equipmentId:string;catalog:ManagementCatalog;today:string;mayEdit:boolean;mayPublish:boolean}) {
   const [refresh,setRefresh]=useState(0);const [editing,setEditing]=useState<ServiceConfiguration|null|undefined>();
   const [notice,setNotice]=useState("");
   const query=useApiQuery(()=>Promise.all([managementApi.services(equipmentId),managementApi.getEquipment(equipmentId)]),[equipmentId,refresh]);
@@ -97,14 +99,14 @@ function ServiceList({equipmentId,catalog,today,mayEdit}: {equipmentId:string;ca
   return <section aria-label="Правила обслуживания" className="space-y-4"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">Правила обслуживания</h2>{mayEdit&&<Button variant="secondary" onClick={()=>{setEditing(null);setNotice("");}}>Добавить обслуживание</Button>}</div>
     {notice&&<Callout tone="success">{notice}</Callout>}
     {!services.length&&<Callout>Для оборудования ещё не задано обслуживание. Добавьте операцию, длительность и периодичность.</Callout>}
-    <details className="fr-rule-section" open={editing===undefined||undefined}><summary><span>Регламенты оборудования · {services.length}</span><small>{editing===undefined ? "Выберите обслуживание для настройки" : "Другие правила доступны без закрытия редактора"}</small></summary><div className="space-y-3 pb-4">{services.map(item=><Card key={item.binding_id} className="space-y-2 p-5"><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-semibold">{item.code} · {item.title}</h3>{mayEdit&&<Button variant="ghost" onClick={()=>{setEditing(item);setNotice("");}}>Настроить</Button>}</div><p className="text-sm text-muted">Версия {item.rule_version} · {item.enabled ? "Действует" : "Отключено"} · {item.crew_size} чел. · {item.duration_minutes??"не задано"} мин.</p><p className="text-sm">{item.source_text}</p></Card>)}</div></details>
-    {editing!==undefined&&<ServiceEditor key={editing?.binding_id??"new"} initial={editing} today={today} catalog={catalog} systemId={equipment.system_id} onClose={()=>setEditing(undefined)} onSave={async body=>{
+    <details className="fr-rule-section" open={editing===undefined||undefined}><summary><span>Регламенты оборудования · {services.length}</span><small>{editing===undefined ? "Выберите обслуживание для настройки" : "Другие правила доступны без закрытия редактора"}</small></summary><div className="space-y-3 pb-4">{services.map(item=><Card key={item.binding_id} className="space-y-2 p-5"><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-semibold">{item.code} · {item.title}</h3>{mayEdit&&(mayPublish||!item.enabled)&&<Button variant="ghost" onClick={()=>{setEditing(item);setNotice("");}}>Настроить</Button>}</div><p className="text-sm text-muted">Версия {item.rule_version} · {item.enabled ? "Действует" : "Отключено"} · {item.crew_size} чел. · {item.duration_minutes??"не задано"} мин.</p><p className="text-sm">{item.source_text}</p></Card>)}</div></details>
+    {editing!==undefined&&<ServiceEditor key={editing?.binding_id??"new"} initial={editing} today={today} catalog={catalog} systemId={equipment.system_id} mayPublish={mayPublish} onClose={()=>setEditing(undefined)} onSave={async body=>{
       await managementApi.saveService(equipmentId,body,editing?.binding_id);setEditing(undefined);setNotice("Правило сохранено. Пересчитайте календарь, чтобы увидеть даты.");setRefresh(n=>n+1);
     }}/>}
   </section>;
 }
 
-function ServiceEditor({initial,today,catalog,systemId,onClose,onSave}: {initial:ServiceConfiguration|null;today:string;catalog:ManagementCatalog;systemId:string;onClose:()=>void;onSave:(value:ServiceConfiguration)=>Promise<void>}) {
+function ServiceEditor({initial,today,catalog,systemId,mayPublish,onClose,onSave}: {initial:ServiceConfiguration|null;today:string;catalog:ManagementCatalog;systemId:string;mayPublish:boolean;onClose:()=>void;onSave:(value:ServiceConfiguration)=>Promise<void>}) {
   const [value,setValue]=useState<ServiceConfiguration>(initial ? {...initial,pattern:initial.pattern??patternDefaults(today),expected_revision:initial.revision} : {
     code:"",title:"",instructions:"",maintenance_type:"ТО2",pattern:{...patternDefaults(today),quarter_policy:"rolling_months",annual_policy:"from_anchor",weekend_policy:"next_workday"},valid_from:today,valid_until:null,crew_size:1,norm_value:null,norm_unit:"unconfirmed",duration_minutes:null,qualification_ids:[],checklist:[newCheck()],allowed_lead_days:0,enabled:false,methodology_ref:"",measurement_requirements:[],required_acts:[],
   });
@@ -129,7 +131,7 @@ function ServiceEditor({initial,today,catalog,systemId,onClose,onSave}: {initial
     <div className="grid gap-4 sm:grid-cols-2">
       <label className="space-y-1 text-sm"><FieldCaption>Код операции</FieldCaption><Input aria-label="Код операции" required readOnly={!!initial||!!value.operation_id} value={value.code} onChange={e=>set({code:e.target.value})}/></label>
       <label className="space-y-1 text-sm"><FieldCaption>Название обслуживания</FieldCaption><Input aria-label="Название обслуживания" required value={value.title} onChange={e=>set({title:e.target.value})}/></label>
-      <label className="space-y-1 text-sm"><FieldCaption>Вид ТО</FieldCaption><Select aria-label="Вид ТО" value={value.maintenance_type} onChange={e=>set({maintenance_type:e.target.value as "ТО1"|"ТО2"})}><option>ТО1</option><option>ТО2</option></Select></label>
+      <label className="space-y-1 text-sm"><FieldCaption>Вид ТО</FieldCaption><Select aria-label="Вид ТО" value={value.maintenance_type} onChange={e=>set({maintenance_type:e.target.value as "ТО1"|"ТО2"|"ТО3"})}><option>ТО1</option><option>ТО2</option><option>ТО3</option></Select></label>
       <label className="space-y-1 text-sm"><FieldCaption>Действует с</FieldCaption><Input aria-label="Действует с" type="date" required value={value.valid_from} onChange={e=>set({valid_from:e.target.value})}/></label>
       <label className="space-y-1 text-sm"><FieldCaption>Действует по</FieldCaption><Input aria-label="Действует по" type="date" value={value.valid_until??""} onChange={e=>set({valid_until:e.target.value||null})}/></label>
     </div></RuleSection>
@@ -156,7 +158,7 @@ function ServiceEditor({initial,today,catalog,systemId,onClose,onSave}: {initial
     <RuleSection title="Допуски работников" summary={`Выбрано: ${value.qualification_ids.length}`} errors={errors}>
     <fieldset className="space-y-2"><legend className="text-sm">Обязательные допуски каждого работника</legend>{catalog.skills.map(skill=><label key={skill.id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={value.qualification_ids.includes(skill.id)} onChange={e=>set({qualification_ids:e.target.checked?[...value.qualification_ids,skill.id]:value.qualification_ids.filter(id=>id!==skill.id)})}/>{skill.name}</label>)}</fieldset>
     </RuleSection></div><aside className="fr-settings-rail" aria-label="Резюме правила"><h4 className="text-lg font-semibold">Резюме правила</h4><p>{periodSummary}</p><dl><div><dt>Норма труда</dt><dd>{value.norm_value??"Не задана"} {unitLabel(value.norm_unit)}</dd></div><div><dt>Длительность и состав</dt><dd>{value.duration_minutes??"Не задана"} мин. · {value.crew_size} чел.</dd></div><div><dt>Требования</dt><dd>{value.checklist.length} пунктов · {value.qualification_ids.length} допусков</dd></div></dl><p className="text-sm text-muted">{dirty ? "Изменения не сохранены" : initial ? "Сохранённая версия регламента" : "Новое правило ещё не сохранено"}</p>
-    <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={value.enabled} onChange={e=>set({enabled:e.target.checked})}/>Утвердить и опубликовать (главный инженер)</label>
+     {mayPublish?<label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={value.enabled} onChange={e=>set({enabled:e.target.checked})}/>Утвердить и опубликовать (главный инженер)</label>:<p className="text-sm text-muted">Сохраняется черновик. Публикация требует отдельного согласования.</p>}
     {error&&<div role="alert"><Callout tone="danger">{error}</Callout></div>}
     <div className="fr-settings-actions"><Button type="submit" disabled={busy}>{busy?"Сохранение…":"Сохранить обслуживание"}</Button><Button variant="ghost" type="button" disabled={busy} onClick={onClose}>Закрыть редактор</Button></div>
   </aside></fieldset></form></section>;
@@ -179,10 +181,10 @@ function ChecklistEditor({value,onChange}:{value:ChecklistSetting[];onChange:(va
   </div></details>)}<Button type="button" variant="secondary" disabled={value.length>=100} onClick={()=>onChange([...value,newCheck()])}>Добавить пункт чек-листа</Button></fieldset>;
 }
 
-function ReferenceForms({catalog,mayCreateTypes,onSaved}: {catalog:ManagementCatalog;mayCreateTypes:boolean;onSaved:()=>void}) {
+function ReferenceForms({catalog,onSaved}: {catalog:ManagementCatalog;onSaved:()=>void}) {
   const [kind,setKind]=useState<"systems"|"equipment-types">("systems");const [code,setCode]=useState("");const [name,setName]=useState("");const [busy,setBusy]=useState(false);const [error,setError]=useState("");
   return <Disclosure title="Добавить систему или тип оборудования"><form className="mt-4 space-y-3" onSubmit={async event=>{event.preventDefault();if(busy)return;setBusy(true);setError("");try{await managementApi.createReference(kind,{code,name});onSaved();}catch(failure){setError(failure instanceof Error?failure.message:"Ошибка справочника");}finally{setBusy(false);}}}>
-    <fieldset disabled={busy} className="grid gap-3 sm:grid-cols-3"><label className="text-sm"><FieldCaption>Справочник</FieldCaption><Select aria-label="Справочник" value={kind} onChange={e=>setKind(e.target.value as "systems"|"equipment-types")}><option value="systems">Инженерная система</option>{mayCreateTypes&&<option value="equipment-types">Тип оборудования</option>}</Select></label><label className="text-sm"><FieldCaption>Код справочника</FieldCaption><Input aria-label="Код справочника" required value={code} onChange={e=>setCode(e.target.value)}/></label><label className="text-sm"><FieldCaption>Название справочника</FieldCaption><Input aria-label="Название справочника" required value={name} onChange={e=>setName(e.target.value)}/></label></fieldset>
+    <fieldset disabled={busy} className="grid gap-3 sm:grid-cols-3"><label className="text-sm"><FieldCaption>Справочник</FieldCaption><Select aria-label="Справочник" value={kind} onChange={e=>setKind(e.target.value as "systems"|"equipment-types")}><option value="systems">Инженерная система</option><option value="equipment-types">Тип оборудования</option></Select></label><label className="text-sm"><FieldCaption>Код справочника</FieldCaption><Input aria-label="Код справочника" required value={code} onChange={e=>setCode(e.target.value)}/></label><label className="text-sm"><FieldCaption>Название справочника</FieldCaption><Input aria-label="Название справочника" required value={name} onChange={e=>setName(e.target.value)}/></label></fieldset>
     {!catalog.systems.length&&<p className="text-sm text-amber-200">Сначала добавьте инженерную систему.</p>}{error&&<div role="alert">{error}</div>}<Button type="submit" variant="secondary" disabled={busy}>Добавить в справочник</Button>
   </form></Disclosure>;
 }

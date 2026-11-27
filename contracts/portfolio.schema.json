@@ -1,0 +1,836 @@
+{
+  "$defs": {
+    "AllowedInterval": {
+      "additionalProperties": false,
+      "properties": {
+        "start_at": {
+          "format": "date-time",
+          "title": "Start At",
+          "type": "string"
+        },
+        "end_at": {
+          "format": "date-time",
+          "title": "End At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start_at",
+        "end_at"
+      ],
+      "title": "AllowedInterval",
+      "type": "object"
+    },
+    "DraftPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "format_version": {
+          "default": 1,
+          "enum": [
+            1,
+            2
+          ],
+          "title": "Format Version",
+          "type": "integer"
+        },
+        "capacity_hours_per_24h": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "maximum": 24.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capacity Hours Per 24H"
+        },
+        "capacity_confirmed": {
+          "default": false,
+          "title": "Capacity Confirmed",
+          "type": "boolean"
+        },
+        "capacity_ref": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Capacity Ref",
+          "type": "string"
+        },
+        "day_start_minute": {
+          "anyOf": [
+            {
+              "maximum": 1439,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Day Start Minute"
+        },
+        "night_start_minute": {
+          "anyOf": [
+            {
+              "maximum": 1439,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Night Start Minute"
+        },
+        "capacity_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "unknown",
+                "provisional",
+                "confirmed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capacity Status"
+        },
+        "access_status": {
+          "default": "unknown",
+          "enum": [
+            "unknown",
+            "provisional",
+            "confirmed"
+          ],
+          "title": "Access Status",
+          "type": "string"
+        },
+        "access_mode": {
+          "anyOf": [
+            {
+              "enum": [
+                "unrestricted",
+                "weekly"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Access Mode"
+        },
+        "access_ref": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Access Ref",
+          "type": "string"
+        },
+        "service_windows": {
+          "items": {
+            "$ref": "#/$defs/ServiceWindow"
+          },
+          "maxItems": 28,
+          "title": "Service Windows",
+          "type": "array"
+        }
+      },
+      "title": "DraftPolicy",
+      "type": "object"
+    },
+    "GenerationInput": {
+      "additionalProperties": false,
+      "properties": {
+        "import_id": {
+          "format": "uuid",
+          "title": "Import Id",
+          "type": "string"
+        },
+        "starts_on": {
+          "format": "date",
+          "title": "Starts On",
+          "type": "string"
+        },
+        "ends_on": {
+          "format": "date",
+          "title": "Ends On",
+          "type": "string"
+        },
+        "row_numbers": {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 1000,
+          "minItems": 1,
+          "title": "Row Numbers",
+          "type": "array"
+        },
+        "expansion": {
+          "default": "source_january",
+          "enum": [
+            "source_january",
+            "confirmed_rule"
+          ],
+          "title": "Expansion",
+          "type": "string"
+        },
+        "policy": {
+          "$ref": "#/$defs/DraftPolicy"
+        }
+      },
+      "required": [
+        "import_id",
+        "starts_on",
+        "ends_on",
+        "row_numbers",
+        "policy"
+      ],
+      "title": "GenerationInput",
+      "type": "object"
+    },
+    "PlanIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "row_number": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Row Number"
+        },
+        "occurrence_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Occurrence Id"
+        },
+        "segment_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Segment Id"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "PlanIssue",
+      "type": "object"
+    },
+    "PortfolioInput": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "portfolio",
+          "default": "portfolio",
+          "title": "Kind",
+          "type": "string"
+        },
+        "requirements": {
+          "$ref": "#/$defs/RequirementsRequest"
+        },
+        "policy": {
+          "$ref": "#/$defs/DraftPolicy"
+        }
+      },
+      "required": [
+        "requirements",
+        "policy"
+      ],
+      "title": "PortfolioInput",
+      "type": "object"
+    },
+    "PortfolioPreview": {
+      "additionalProperties": false,
+      "properties": {
+        "input_sha256": {
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "total_occurrences": {
+          "title": "Total Occurrences",
+          "type": "integer"
+        },
+        "total_segments": {
+          "title": "Total Segments",
+          "type": "integer"
+        },
+        "total_person_hours": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Total Person Hours"
+        },
+        "selected_rows": {
+          "title": "Selected Rows",
+          "type": "integer"
+        },
+        "unselected_rows": {
+          "title": "Unselected Rows",
+          "type": "integer"
+        },
+        "can_save": {
+          "title": "Can Save",
+          "type": "boolean"
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/PlanIssue"
+          },
+          "title": "Issues",
+          "type": "array"
+        },
+        "total_issues": {
+          "title": "Total Issues",
+          "type": "integer"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/WorkOccurrence"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "ready_for_real_plan": {
+          "const": false,
+          "default": false,
+          "title": "Ready For Real Plan",
+          "type": "boolean"
+        },
+        "excluded_occurrences": {
+          "title": "Excluded Occurrences",
+          "type": "integer"
+        },
+        "requirements_sha256": {
+          "title": "Requirements Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "input_sha256",
+        "generator_version",
+        "total_occurrences",
+        "total_segments",
+        "total_person_hours",
+        "selected_rows",
+        "unselected_rows",
+        "can_save",
+        "issues",
+        "total_issues",
+        "items",
+        "excluded_occurrences",
+        "requirements_sha256"
+      ],
+      "title": "PortfolioPreview",
+      "type": "object"
+    },
+    "RequirementsRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "starts_on": {
+          "format": "date",
+          "title": "Starts On",
+          "type": "string"
+        },
+        "ends_on": {
+          "format": "date",
+          "title": "Ends On",
+          "type": "string"
+        },
+        "include_regulations": {
+          "default": true,
+          "title": "Include Regulations",
+          "type": "boolean"
+        },
+        "binding_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 500,
+          "title": "Binding Ids",
+          "type": "array"
+        },
+        "catalog": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GenerationInput"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "offset": {
+          "default": 0,
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
+        "issue_offset": {
+          "default": 0,
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Issue Offset",
+          "type": "integer"
+        },
+        "q": {
+          "default": "",
+          "maxLength": 320,
+          "title": "Q",
+          "type": "string"
+        },
+        "state": {
+          "default": "all",
+          "enum": [
+            "all",
+            "new",
+            "existing",
+            "fulfilled",
+            "review"
+          ],
+          "title": "State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "starts_on",
+        "ends_on"
+      ],
+      "title": "RequirementsRequest",
+      "type": "object"
+    },
+    "SavePortfolio": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "$ref": "#/$defs/PortfolioInput"
+        },
+        "preview_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Preview Sha256",
+          "type": "string"
+        },
+        "idempotency_key": {
+          "format": "uuid",
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "input",
+        "preview_sha256",
+        "idempotency_key",
+        "title",
+        "reason"
+      ],
+      "title": "SavePortfolio",
+      "type": "object"
+    },
+    "ServiceWindow": {
+      "additionalProperties": false,
+      "properties": {
+        "weekday": {
+          "maximum": 7,
+          "minimum": 1,
+          "title": "Weekday",
+          "type": "integer"
+        },
+        "start_minute": {
+          "maximum": 1439,
+          "minimum": 0,
+          "title": "Start Minute",
+          "type": "integer"
+        },
+        "end_minute": {
+          "maximum": 2879,
+          "minimum": 1,
+          "title": "End Minute",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "weekday",
+        "start_minute",
+        "end_minute"
+      ],
+      "title": "ServiceWindow",
+      "type": "object"
+    },
+    "WorkOccurrence": {
+      "additionalProperties": false,
+      "properties": {
+        "occurrence_id": {
+          "format": "uuid",
+          "title": "Occurrence Id",
+          "type": "string"
+        },
+        "site_id": {
+          "format": "uuid",
+          "title": "Site Id",
+          "type": "string"
+        },
+        "import_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Import Id"
+        },
+        "source_sha256": {
+          "title": "Source Sha256",
+          "type": "string"
+        },
+        "parser_version": {
+          "title": "Parser Version",
+          "type": "string"
+        },
+        "source_row": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Row"
+        },
+        "decision_revision": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Decision Revision"
+        },
+        "source_cells": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Cells",
+          "type": "array"
+        },
+        "source_date": {
+          "format": "date",
+          "title": "Source Date",
+          "type": "string"
+        },
+        "source_slot": {
+          "enum": [
+            "whole_day",
+            "day",
+            "night"
+          ],
+          "title": "Source Slot",
+          "type": "string"
+        },
+        "date_basis": {
+          "default": "source_january",
+          "enum": [
+            "source_january",
+            "confirmed_rule",
+            "regulation_rule",
+            "accepted_history"
+          ],
+          "title": "Date Basis",
+          "type": "string"
+        },
+        "source_kind": {
+          "default": "catalog",
+          "enum": [
+            "catalog",
+            "regulation"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "binding_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Binding Id"
+        },
+        "rule_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rule Id"
+        },
+        "regulation_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Regulation Id"
+        },
+        "minimum_duration_minutes": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 46080,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum Duration Minutes"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "operation_code": {
+          "title": "Operation Code",
+          "type": "string"
+        },
+        "maintenance_type": {
+          "title": "Maintenance Type",
+          "type": "string"
+        },
+        "interpretation": {
+          "enum": [
+            "FIXED_EXECUTION",
+            "ALLOWED_WINDOW",
+            "CONTINUOUS_WORK",
+            "EQUIPMENT_BATCH"
+          ],
+          "title": "Interpretation",
+          "type": "string"
+        },
+        "equipment_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Equipment Ids",
+          "type": "array"
+        },
+        "earliest_date": {
+          "format": "date",
+          "title": "Earliest Date",
+          "type": "string"
+        },
+        "latest_date": {
+          "format": "date",
+          "title": "Latest Date",
+          "type": "string"
+        },
+        "allowed_intervals": {
+          "items": {
+            "$ref": "#/$defs/AllowedInterval"
+          },
+          "maxItems": 366,
+          "title": "Allowed Intervals",
+          "type": "array"
+        },
+        "total_person_hours": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Total Person Hours"
+        },
+        "crew_size": {
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Crew Size",
+          "type": "integer"
+        },
+        "splittable": {
+          "title": "Splittable",
+          "type": "boolean"
+        },
+        "min_segment_minutes": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Min Segment Minutes"
+        },
+        "qualification_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": "Qualification Ids",
+          "type": "array"
+        },
+        "qualifications_confirmed": {
+          "title": "Qualifications Confirmed",
+          "type": "boolean"
+        },
+        "included_rows": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Included Rows",
+          "type": "array"
+        },
+        "norm_ref": {
+          "title": "Norm Ref",
+          "type": "string"
+        },
+        "norm_scope": {
+          "enum": [
+            "per_asset",
+            "whole_binding"
+          ],
+          "title": "Norm Scope",
+          "type": "string"
+        },
+        "policy_note": {
+          "title": "Policy Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "occurrence_id",
+        "site_id",
+        "import_id",
+        "source_sha256",
+        "parser_version",
+        "source_row",
+        "decision_revision",
+        "source_cells",
+        "source_date",
+        "source_slot",
+        "title",
+        "operation_code",
+        "maintenance_type",
+        "interpretation",
+        "equipment_ids",
+        "earliest_date",
+        "latest_date",
+        "allowed_intervals",
+        "total_person_hours",
+        "crew_size",
+        "splittable",
+        "min_segment_minutes",
+        "qualification_ids",
+        "qualifications_confirmed",
+        "included_rows",
+        "norm_ref",
+        "norm_scope",
+        "policy_note"
+      ],
+      "title": "WorkOccurrence",
+      "type": "object"
+    }
+  }
+}

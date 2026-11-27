@@ -1,0 +1,121 @@
+[
+  {
+    "section": "Access",
+    "native": 10,
+    "crossPage": 13,
+    "roleContext": 5,
+    "close": 0
+  },
+  {
+    "section": "Workspaces",
+    "native": 0,
+    "crossPage": 64,
+    "roleContext": 121,
+    "close": 0
+  },
+  {
+    "section": "Catalogs",
+    "native": 28,
+    "crossPage": 70,
+    "roleContext": 0,
+    "close": 2
+  },
+  {
+    "section": "Planning",
+    "native": 54,
+    "crossPage": 67,
+    "roleContext": 0,
+    "close": 8
+  },
+  {
+    "section": "Calendar",
+    "native": 92,
+    "crossPage": 69,
+    "roleContext": 0,
+    "close": 2
+  },
+  {
+    "section": "Equipment",
+    "native": 37,
+    "crossPage": 70,
+    "roleContext": 3,
+    "close": 8
+  },
+  {
+    "section": "Regulations",
+    "native": 22,
+    "crossPage": 41,
+    "roleContext": 0,
+    "close": 4
+  },
+  {
+    "section": "Tasks",
+    "native": 22,
+    "crossPage": 40,
+    "roleContext": 0,
+    "close": 4
+  },
+  {
+    "section": "Executor",
+    "native": 42,
+    "crossPage": 39,
+    "roleContext": 15,
+    "close": 6
+  },
+  {
+    "section": "Quality",
+    "native": 32,
+    "crossPage": 38,
+    "roleContext": 4,
+    "close": 10
+  },
+  {
+    "section": "Team",
+    "native": 62,
+    "crossPage": 88,
+    "roleContext": 8,
+    "close": 4
+  },
+  {
+    "section": "Shifts",
+    "native": 2,
+    "crossPage": 28,
+    "roleContext": 6,
+    "close": 0
+  },
+  {
+    "section": "Forecasts",
+    "native": 6,
+    "crossPage": 28,
+    "roleContext": 0,
+    "close": 0
+  },
+  {
+    "section": "Reports",
+    "native": 0,
+    "crossPage": 14,
+    "roleContext": 0,
+    "close": 0
+  },
+  {
+    "section": "Assistant",
+    "native": 62,
+    "crossPage": 46,
+    "roleContext": 0,
+    "close": 10
+  },
+  {
+    "section": "Profile",
+    "native": 22,
+    "crossPage": 14,
+    "roleContext": 0,
+    "close": 6
+  },
+  {
+    "section": "Shared",
+    "native": 3,
+    "crossPage": 53,
+    "roleContext": 4,
+    "close": 12
+  }
+]

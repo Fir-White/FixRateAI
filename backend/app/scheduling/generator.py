@@ -15,7 +15,7 @@ from .schemas import (
 )
 from .recurrence import occurrence_pairs, pattern_description, shifted_date
 
-METHOD_VERSION = "calendar-rules-v3"
+METHOD_VERSION = "calendar-rules-v3.1"
 # Stable identity uses the original obligation date, before weekend transfer.
 OCCURRENCE_NAMESPACE = UUID("e12253b2-143e-5a55-a4c4-875fdb3a7a3f")
 
@@ -71,13 +71,13 @@ def _generate_binding(item: SchedulingBinding, start: date, end: date,
         minutes = [e.planning_person_minutes for e in entries]
         with localcontext() as ctx:
             ctx.prec = max(28, len(str(op.crew_size)) + 16)
-            total_hours = sum(hours, Decimal("0")) if known_dates and all(h is not None for h in hours) else None
+            total_hours = sum(hours, Decimal("0")) if known_dates and _person_hours(item) is not None and all(h is not None for h in hours) else None
         return BindingGenerationResult(
             binding_id=binding.binding_id, status=status, error_code=code,
             explanation=explanation, warnings=warnings.copy(), assumptions=item.assumptions.copy(),
             is_assumption=is_assumption, next_due_date=next_due, occurrences=entries,
             total_person_hours=total_hours,
-            total_planning_person_minutes=sum(minutes) if known_dates and all(m is not None for m in minutes) else None,
+            total_planning_person_minutes=sum(minutes) if known_dates and op.planning_duration_minutes is not None and all(m is not None for m in minutes) else None,
         )
 
     if item.equipment.state == "retired":
@@ -178,6 +178,19 @@ def _generate_binding(item: SchedulingBinding, start: date, end: date,
             required_person_hours=hours, planning_person_minutes=person_minutes,
         ))
     return result(status, code, explanation, entries)
+
+
+def generate_binding_period(item: SchedulingBinding, start: date, end: date, as_of: datetime, tz: ZoneInfo):
+    """Reuse the calendar engine for a bounded horizon without projecting facts.
+
+    Explicit annual lists are checked separately for each year. Rolling rules
+    run once, so crossing a month/year never invents a future completion.
+    """
+    if not start<=end or (end-start).days>365:raise ValueError('Горизонт должен быть от одного дня до 366 дней')
+    if item.rule.kind=='explicit_dates':
+        return [_generate_binding(item,max(start,date(year,1,1)),min(end,date(year,12,31)),as_of,tz)
+            for year in range(start.year,end.year+1)]
+    return [_generate_binding(item,start,end,as_of,tz)]
 
 
 def generate_month(request: CalendarGenerationRequest) -> CalendarGenerationResult:

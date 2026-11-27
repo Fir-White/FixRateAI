@@ -16,6 +16,8 @@ async function fixtures(context: BrowserContext) {
     if (path.endsWith("/auth/session")) return route.fulfill(profile ? { json: { profile } } : { status: 401, json: { detail: "Нет сессии" } });
     if (path.endsWith("/auth/logout")) { profile = null; return route.fulfill({ status: 204 }); }
     if (path.endsWith("/schedule-matrix")) return route.fulfill({ json: { rows: [] } });
+    if (path.endsWith('/auth/sites')) return route.fulfill({json:[{site_id:'site',name:'QA',timezone:'UTC',role:'dispatcher'}]});
+    if (path.endsWith('/registry')) return route.fulfill({json:{site_id:'site',site_name:'QA',timezone:'UTC',systems:[{id:'system',name:'QA',code:'QA',system_group:null,revision:1,is_active:true}],items:[{equipment_id:equipment.id,site_id:'site',system_id:'system',asset_code:equipment.inventoryCode,name:equipment.name,location:equipment.location,status:'active',revision:1,services:[],components:[]}]}});
     if (path.endsWith("/ui/tasks") && delay) await new Promise(resolve => setTimeout(resolve, delay));
     return route.fulfill({ json: path.endsWith("/ui/equipment") ? [equipment] : [] });
   });
@@ -33,27 +35,35 @@ async function login(page: Page, email = "qa@workspace.test") {
   await expect(page.locator(".workspace-root [data-workspace-loading]")).toHaveCount(0);
 }
 
+async function scrollWithinFixture(page: Page) {
+  const offset = await page.evaluate(() => {
+    const available = (document.scrollingElement?.scrollHeight ?? 0) - innerHeight;
+    const y = Math.min(200, Math.floor(available / 2));
+    scrollTo(0, y);
+    return y;
+  });
+  expect(offset).toBeGreaterThan(0);
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(offset);
+  return offset;
+}
+
 test.beforeEach(async () => { test.skip(!process.env.FIXRATE_BASE_URL, "Requires the running local application"); });
 
-test("reload retains sidebar width, page scroll, month and filters without leaking to another account", async ({ page, context }) => {
+test("reload retains page scroll, month and filters without leaking to another account", async ({ page, context }) => {
   await fixtures(context);
   await page.setViewportSize({ width: 1440, height: 500 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await login(page);
-  for (const expanded of [false, true]) {
-    await page.locator(".ops-sidebar-brand-control").click();
-    await page.evaluate(() => scrollTo(0, 300));
-    await expect.poll(() => page.evaluate(() => scrollY)).toBe(300);
-    await page.reload();
-    await expect(page.locator(".ops-shell")).toHaveAttribute("data-sidebar-expanded", String(expanded));
-    await expect.poll(() => page.evaluate(() => scrollY)).toBe(300);
-  }
-  await page.goto("/equipment");
-  await page.locator("#equipment-search").fill("Насос");
-  await page.getByLabel("Состояние", { exact: true }).selectOption("active");
+  const scroll = await scrollWithinFixture(page);
   await page.reload();
-  await expect(page.locator("#equipment-search")).toHaveValue("Насос");
-  await expect(page.getByLabel("Состояние", { exact: true })).toHaveValue("active");
+  await expect(page.getByRole("navigation",{name:"Основная навигация"})).toBeVisible();
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(scroll);
+  await page.goto("/equipment");
+  await page.getByRole('textbox',{name:'Поиск по реестру'}).fill("Насос");
+  await page.getByRole('tab',{name:/Без группы/}).click();
+  await page.reload();
+  await expect(page.getByRole('textbox',{name:'Поиск по реестру'})).toHaveValue("Насос");
+  await expect(page.getByRole('tab',{name:/Без группы/})).toHaveAttribute('aria-selected','true');
   await page.goto("/calendar");
   await page.getByRole("button", { name: "Следующий месяц" }).click();
   const month = await page.getByRole("button", { name: "Следующий месяц" }).evaluate(element => element.previousElementSibling!.textContent);
@@ -64,8 +74,8 @@ test("reload retains sidebar width, page scroll, month and filters without leaki
   await expect(page).toHaveURL(/\/login$/);
   await login(page, "other@workspace.test");
   await page.goto("/equipment");
-  await expect(page.locator("#equipment-search")).toHaveValue("");
-  await expect(page.getByLabel("Состояние", { exact: true })).toHaveValue("all");
+  await expect(page.getByRole('textbox',{name:'Поиск по реестру'})).toHaveValue("");
+  await expect(page.getByRole('tab',{name:/Все системы/})).toHaveAttribute('aria-selected','true');
 });
 
 test("phone reload retains an open menu and shows equipment without document overflow", async ({ page, context }) => {
@@ -74,7 +84,8 @@ test("phone reload retains an open menu and shows equipment without document ove
   await page.emulateMedia({ reducedMotion: "reduce" });
   await login(page);
   await page.goto("/equipment");
-  const table = page.locator(".equipment-register");
+  await page.getByRole('tab',{name:/Без группы/}).click();
+  const table = page.locator(".registry-table");
   await table.waitFor();
   await expect(table.getByText("Насос QA", {exact: true})).toBeVisible();
   await page.reload();
@@ -91,16 +102,18 @@ test("phone reload retains an open menu and shows equipment without document ove
 test("delayed API restores scroll after loading and manual scrolling cancels restoration", async ({ page, context }) => {
   const delay = await fixtures(context);
   await page.setViewportSize({ width: 1440, height: 500 });
-  await page.emulateMedia({ reducedMotion: "reduce" });
   await login(page);
-  await page.evaluate(() => scrollTo(0, 300));
+  const scroll = await scrollWithinFixture(page);
   delay(1000);
   await page.reload({ waitUntil: "domcontentloaded" });
-  await page.locator(".workspace-root [data-workspace-loading]").first().waitFor();
+  const loading = page.locator(".workspace-root [data-workspace-loading]").first();
+  await expect(loading).toHaveCSS("animation-delay", "0.14s");
+  await expect(loading).toHaveCSS("opacity", "1");
   await expect(page.locator(".workspace-root [data-workspace-loading]")).toHaveCount(0);
-  await expect.poll(() => page.evaluate(() => scrollY)).toBe(300);
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(scroll);
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.reload({ waitUntil: "domcontentloaded" });
-  await page.locator(".workspace-root [data-workspace-loading]").first().waitFor();
+  await expect(loading).toHaveCSS("animation-name", "none");
   await page.mouse.move(900, 300); await page.mouse.wheel(0, -1000);
   await expect(page.locator(".workspace-root [data-workspace-loading]")).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => scrollY)).toBe(0);

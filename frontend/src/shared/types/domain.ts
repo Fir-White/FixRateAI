@@ -3,11 +3,14 @@ export type Role = "director" | "chief_engineer" | "admin" | "dispatcher" | "eng
 export type DataOrigin = "customer" | "synthetic_demo" | null;
 
 export interface SessionProfile {
+  workbookEditorOrigin?: string;
   userId: string;
   siteId?: string;
   name: string;
   email: string;
   role: Role;
+  permissionProfile?: "mvp";
+  permissions?: string[];
   siteName: string;
   timezone: string;
 }
@@ -51,7 +54,7 @@ export type TaskState =
   | "accepted"
   | "cancelled";
 
-export type MaintenanceType = "ТО1" | "ТО2";
+export type MaintenanceType = "ТО1" | "ТО2" | "ТО2*" | "ТО3" | "ТОр";
 
 export interface Assignee {
   executorId: string;
@@ -70,7 +73,10 @@ export interface MaintenanceTask {
   state: TaskState;
   isOverdue: boolean;
   deadlineBreached: boolean;
+  lateAcceptanceBlocked?: boolean;
   mandatoryDueDate: string | null;
+  plannedPersonHours?: string | null;
+  planningNote?: string | null;
   sourceDate?:string|null;
   scheduledStart: string | null;
   scheduledEnd: string | null;
@@ -230,6 +236,7 @@ export interface EvidencePhoto {
   capturedAt: string | null;
   uploadedAt: string;
   checklistItemId: string;
+  equipmentId?: string | null;
   status: "uploaded" | "processing" | "rejected";
 }
 

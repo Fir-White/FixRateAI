@@ -1,0 +1,17 @@
+# Private, explicit opt-in. Use the base without this override for offline operation.
+x-model-environment: &cloud
+  ASSISTANT_PROVIDER: aitunnel
+  FIXRATE_LLM_LOCAL_ONLY: '0'
+  AITUNNEL_API_KEY: ${AITUNNEL_API_KEY:?Set a private AI Tunnel key}
+  AITUNNEL_CHAT_MODEL: ${AITUNNEL_CHAT_MODEL:-qwen3.7-flash}
+  AITUNNEL_VISION_MODEL: ${AITUNNEL_VISION_MODEL:-qwen3.7-flash}
+  PHOTO_REVIEW_PROVIDER: aitunnel
+  PHOTO_REVIEW_TIMEOUT_SECONDS: ${PHOTO_REVIEW_TIMEOUT_SECONDS:-90}
+services:
+  api:
+    environment: *cloud
+  web:
+    environment:
+      FIXRATE_ADDRESS: ':8080'
+    ports: !override
+      - '127.0.0.1:${FIXRATE_PORT:-8080}:8080'

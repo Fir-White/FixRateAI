@@ -150,8 +150,9 @@ class ShiftInput(Input):
     def valid_shift(self):
         if self.valid_until and self.valid_until < self.valid_from:
             raise ValueError("shift validity ends before it starts")
-        if self.starts_local == self.ends_local or self.starts_local.tzinfo or self.ends_local.tzinfo:
-            raise ValueError("shift needs two different local times")
+        # Equal local times describe a full-day shift ending on the next date.
+        if self.starts_local.tzinfo or self.ends_local.tzinfo:
+            raise ValueError("shift needs local times without a UTC offset")
         if any(t.second or t.microsecond for t in (self.starts_local,self.ends_local)):
             raise ValueError("shift precision is whole minutes")
         return self
@@ -245,7 +246,7 @@ class ServiceConfiguration(Input):
     code: str = Field(min_length=1,max_length=128)
     title: str = Field(min_length=1,max_length=256)
     instructions: str = Field(min_length=1,max_length=10000)
-    maintenance_type: Literal["ТО1","ТО2"]
+    maintenance_type: Literal["ТО1","ТО2","ТО3"]
     pattern: CalendarPattern
     basis: Literal['fixed_calendar','after_accepted_completion'] = 'fixed_calendar'
     valid_from: date

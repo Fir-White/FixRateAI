@@ -1,7 +1,7 @@
-"""Real API/DB adapters, actual RF and actual CLIP or controlled missing weights.
+"""Real API/DB adapters, actual RF and AI Tunnel/Ollama photo review or controlled unavailable responses.
 
-No successful model response is mocked. The optional real-weights release profile
-is independently required by scripts/verify_compose.py --ml-cache PATH.
+No successful model response is mocked. Real vision checks use scripts/verify_compose.py
+with --cloud-ai or --local-vision.
 """
 from contextlib import closing
 from dataclasses import replace
@@ -72,21 +72,18 @@ def submitted_pair(job,extra=False):
         return response.json()
 
 
-def test_real_cv_adapter_with_missing_local_weights_returns_persisted_unavailable(job,monkeypatch):
-    from ml_service.app.cv.classifier import CLIPZeroShotClassifier
+def test_real_cv_adapter_with_missing_cloud_key_returns_persisted_unavailable(job,monkeypatch):
     _,app,task,report=job
     engine=job[0]
     bundle=submitted_pair(job)
-    # Actual classifier with an intentionally absent LOCAL artifact; no response/provider stub.
-    monkeypatch.setattr('ml_service.app.cv.service._CLASSIFIER',CLIPZeroShotClassifier(model_name='fixrate-missing-local-weights',revision='missing'))
+    monkeypatch.delenv('AITUNNEL_API_KEY',raising=False)
+    monkeypatch.delenv('AI_TUNNEL_API_KEY',raising=False)
     with closing(login(app,'engineer')) as client:
         response=client.post(PREFIX+f'/tasks/{task}/photo-review',json=dict(expected_revision=bundle['task']['revision']))
     assert response.status_code==200,response.text
-    assert response.json()['status']=='unavailable' and response.json()['errorCode']=='MODEL_NOT_READY'
+    assert response.json()['status']=='unavailable' and response.json()['errorCode']=='AITUNNEL_NOT_CONFIGURED'
     assert response.json()['modelRef'] is None
     with engine.connect() as conn:
-        # Submission already stores an automatic review. Check the exact retry
-        # returned by this POST, not an arbitrary earlier review of the report.
         saved=conn.scalar(text('SELECT findings FROM ai_quality_checks WHERE work_report_id=:id AND ai_quality_check_id=:review_id'),dict(id=report,review_id=UUID(response.json()['id'])))['canonical']
         assert conn.scalar(text('SELECT status FROM work_orders WHERE work_order_id=:id'),dict(id=task))=='in_review'
     canonical=PhotoReviewResult.model_validate_json(json.dumps(saved))
@@ -107,7 +104,7 @@ def test_photo_review_batch_limit_rejected_before_model_and_database_write(job,m
     def forbidden(*args,**kwargs):
         calls.append(True)
         raise RuntimeError('Model must not receive oversized batch')
-    monkeypatch.setattr('ml_service.app.cv.api.review_photos',forbidden)
+    monkeypatch.setattr('ml_service.app.cv.aitunnel.review_cloud_photos',forbidden)
     try:
         with closing(login(app,'engineer')) as client:
             response=client.post(PREFIX+f'/tasks/{task}/photo-review',json=dict(expected_revision=bundle['task']['revision']))

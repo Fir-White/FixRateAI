@@ -1,0 +1,86 @@
+import { test, expect } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+
+for(const width of [1440,390]) {
+  test(`real isolated catalog preview, persistence and source lineage at ${width}px`,async({page},testInfo)=>{
+    test.skip(!process.env.FIXRATE_CATALOG_E2E || !process.env.FIXRATE_CATALOG_PASSWORD,'Requires the disposable catalog QA application');
+    expect(['http://127.0.0.1:8875','http://127.0.0.1:8885']).toContain(process.env.FIXRATE_BASE_URL);
+    await expect.poll(async()=>{try{return (await page.request.get('/api/health')).status();}catch{return 0;}},{timeout:30000}).toBe(200);
+    await page.setViewportSize({width,height:900});
+    const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+    await page.goto('/login');
+    await page.getByLabel('Email',{exact:true}).fill('fixrate-demo-chief_engineer@example.test');
+    await page.getByLabel('Пароль',{exact:true}).fill(process.env.FIXRATE_CATALOG_PASSWORD!);
+    await page.getByRole('button',{name:'Войти',exact:true}).click();
+    await expect(page).not.toHaveURL(/\/login$/);
+    await page.goto('/planning');
+    await page.getByRole('button',{name:'Загрузить Excel с регламентами'}).click();
+    await page.getByLabel('Excel каталога СВиК').setInputFiles('reports/anonymous-hvac.xlsx');
+    await page.getByRole('button',{name:'Проверить каталог',exact:true}).click();
+    const preview=page.getByRole('region',{name:'Предпросмотр каталога СВиК'});
+    await expect(preview.getByLabel('Готовность каталога')).toContainText('217');
+    await expect(preview).toContainText('Лист2!I6');
+    await expect(preview.locator('tbody tr')).toHaveCount(25);
+    await preview.getByRole('button',{name:'Сохранить каталог-черновик'}).click();
+    const saved=page.getByRole('region',{name:'Сохранённый каталог СВиК'});
+    await expect(saved).toBeVisible();
+    await expect(saved.locator('tbody tr')).toHaveCount(25);
+    await saved.getByRole('button',{name:'Следующие 25'}).click();
+    await expect(saved.locator('tbody tr').first()).toContainText('0025');
+    await saved.getByRole('textbox',{name:'Поиск операций каталога'}).fill('0216');
+    await expect(saved.locator('tbody tr')).toHaveCount(1);
+    await saved.getByRole('button',{name:/SYNTHETIC OPERATION 0216/}).click();
+    const dialog=page.getByRole('dialog',{name:'Исходная строка каталога'});
+    await expect(dialog).toContainText('Пустая ячейка');
+    await expect(dialog).toContainText('Смысл отметок не подтверждён');
+    await expect(dialog).toContainText('Все 31 исходная ячейка января');
+    // Real isolated HTTP/DB flow: explicit inventory, norms, a draft and a confirmation.
+    const editor=dialog.getByRole('region',{name:'Решение инженера по строке'});
+    await editor.getByLabel('Смысл отметок',{exact:true}).selectOption('ALLOWED_WINDOW');
+    await editor.getByLabel('Год исходного января').fill('2027');
+    await editor.getByLabel('События внутри отметки').selectOption('one_per_mark');
+    await editor.getByLabel('Пояснение смысла отметок').fill('TEST ONLY: synthetic fixture window, no independent daily jobs');
+    await editor.getByLabel('Подтверждённая периодичность').selectOption('month');
+    await editor.getByLabel('Значение N').fill('1');
+    await editor.getByRole('button',{name:'Оборудование и часы',exact:true}).click();
+    await editor.getByRole('button',{name:'Выбрать оборудование'}).click();
+    const options=editor.getByRole('button',{name:/ · /});
+    // The fixture inventory is read from the current building, never inferred from marks.
+    const firstOption=options.filter({hasNotText:'Убрать'}).first();
+    if(await firstOption.isEnabled())await firstOption.click();
+    await editor.getByLabel('Норма времени',{exact:true}).fill('3');
+    await editor.getByLabel('Единица нормы').selectOption('person_hour');
+    await editor.getByLabel('База нормы').selectOption('per_asset');
+    await editor.getByLabel('Человек в бригаде').fill('1');
+    await editor.getByLabel('Источник и методика нормы').fill('TEST ONLY: synthetic methodology, not customer norms');
+    await editor.getByRole('button',{name:'Условия и допуски',exact:true}).click();
+    await editor.getByLabel('Можно разделять работу на сегменты').selectOption('false');
+    await editor.getByLabel('Правила и ограничения выполнения').fill('TEST ONLY: uninterrupted fixture operation');
+    await editor.getByRole('button',{name:'Подтверждение',exact:true}).click();
+    await editor.getByLabel('Причина новой версии').fill('TEST ONLY: fullstack draft review');
+    await editor.getByRole('button',{name:'Сохранить решение-черновик'}).click();
+    await expect(editor.getByRole('status')).toContainText('Новая версия черновика сохранена');
+    await editor.getByLabel('Причина новой версии').fill('TEST ONLY: engineer confirmation');
+    await editor.getByRole('button',{name:'Подтвердить решение строки'}).click();
+    await expect(editor).toContainText('Решение подтверждено для подготовки планирования');
+    await expect(editor.getByLabel('Расчёт трудозатрат')).toContainText(/3(?:\.0+)? чел\.-ч/);
+    await editor.getByRole('button',{name:'История решений строки'}).click();
+    await expect(editor).toContainText('TEST ONLY: fullstack draft review');
+    expect(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+    await page.getByRole('button',{name:'Закрыть подробности'}).click();
+    const [download]=await Promise.all([page.waitForEvent('download'),saved.getByRole('link',{name:'Скачать исходный Excel'}).click()]);
+    const original=await readFile('reports/anonymous-hvac.xlsx'),returned=await readFile((await download.path())!);
+    expect(createHash('sha256').update(returned).digest('hex')).toBe(createHash('sha256').update(original).digest('hex'));
+    await page.reload();
+
+    await expect(saved.locator('tbody tr')).toHaveCount(25);
+    await saved.getByRole('textbox',{name:'Поиск операций каталога'}).fill('0216');
+    await expect(saved.locator('tbody tr')).toHaveCount(1);
+    await expect(saved.locator('tbody tr')).toContainText('Подготовлено');
+    await saved.getByRole('textbox',{name:'Поиск операций каталога'}).scrollIntoViewIfNeeded();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+    await page.screenshot({path:testInfo.outputPath(`catalog-${width}.png`)});
+    expect(errors).toEqual([]);
+  });
+}

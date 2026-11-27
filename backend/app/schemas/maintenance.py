@@ -106,7 +106,7 @@ class OperationVersion(Contract):
     version: PositiveInt
     code: Text
     title: Text
-    maintenance_type: Literal["ТО1", "ТО2"]
+    maintenance_type: Literal["ТО1", "ТО2", "ТО2*", "ТО3", "ТОр"]
     instructions: Text
     crew_size: PositiveInt
     raw_norm_value: Hours | None
@@ -444,7 +444,7 @@ class PhotoReport(Contract):
 class PhotoReviewRequest(Contract):
     execution_id: UUID
     operation: OperationVersion
-    photos: Annotated[list[PhotoReport], Field(min_length=2)]
+    photos: Annotated[list[PhotoReport], Field(min_length=1)]
     report: ExecutionReport
     prompt_set_version: Text
 

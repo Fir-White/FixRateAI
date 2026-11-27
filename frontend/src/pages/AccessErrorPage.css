@@ -1,0 +1,82 @@
+html:has(.access-error-page) {
+  scrollbar-gutter: auto;
+  background: #050d12;
+  color-scheme: dark;
+}
+
+.access-error-page {
+  display: grid;
+  place-items: center;
+  min-block-size: 100svh;
+  padding: max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
+    max(24px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  background: linear-gradient(180deg, var(--auth-bg), var(--auth-surface) 46%, var(--auth-bg));
+  color: var(--auth-text);
+}
+
+.access-error-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  inline-size: 100%;
+  max-inline-size: 680px;
+  text-align: center;
+}
+
+.access-error-code {
+  margin: 24px 0 0;
+  padding-inline-end: 0.055em;
+  color: #70ddd3;
+  font-size: clamp(76px, 26.66vw, 132px);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.055em;
+}
+
+.access-error-page h1 {
+  margin: 16px 0 0;
+  font-size: clamp(25px, 4vw, 32px);
+  font-weight: 500;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.access-error-page h1:focus { outline: none; }
+
+.access-error-description {
+  margin-block-start: 20px;
+  color: var(--auth-muted);
+  font-size: 15px;
+  line-height: 23px;
+  text-wrap: balance;
+}
+
+.access-error-description p { margin: 0; }
+
+.access-error-page .access-error-action {
+  min-block-size: 48px;
+  block-size: auto;
+  min-inline-size: 156px;
+  max-inline-size: 100%;
+  margin-block-start: 24px;
+  padding: 10px 24px;
+  border-radius: 11px;
+  background: var(--auth-action-bg);
+  color: var(--auth-action-ink);
+}
+
+.access-error-page .access-error-action:hover { background: var(--auth-action-hover); }
+.access-error-page .access-error-action:active { background: var(--auth-action-active); }
+.access-error-page .access-error-action:focus-visible { outline: 2px solid var(--auth-accent); outline-offset: 4px; }
+.access-error-page[data-code="403"] .access-error-action { min-inline-size: min(186px, 100%); }
+
+@media (max-width: 820px) {
+  .access-error-code { font-size: clamp(76px, 26.66vw, 104px); }
+  .access-error-description { max-inline-size: 310px; font-size: 14px; }
+}
+
+@media (max-height: 560px) {
+  .access-error-code { margin-block-start: 12px; font-size: clamp(64px, 19vw, 92px); }
+  .access-error-description { margin-block-start: 12px; }
+  .access-error-page .access-error-action { margin-block-start: 16px; }
+}

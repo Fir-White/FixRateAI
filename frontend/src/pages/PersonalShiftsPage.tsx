@@ -2,7 +2,7 @@ import { readQueries } from "@/shared/api/readQueries";
 import { useSession } from "@/shared/session/SessionContext";
 import { todayAt } from "@/shared/lib/format";
 import { PageHeader } from "@/shared/ui/PageHeader";
-import { EmployeeCalendar } from "./WorkforceSettingsPage";
+import { EmployeeCalendar } from "@/features/workforce/EmployeeCalendar";
 import { DEMO_MODE } from "@/shared/api/request";
 import { Callout } from "@/shared/ui/Callout";
 import { maintenanceApi } from "@/shared/api/maintenance";

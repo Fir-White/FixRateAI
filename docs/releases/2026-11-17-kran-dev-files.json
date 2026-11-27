@@ -1,0 +1,751 @@
+{
+  "format_version": 1,
+  "base_published_sha": "13841cd3c3fb047a6bfe8de55c70de2de818aed5",
+  "pre_checkpoint_head": "1ef11e7d34579686a07236bba25a0095ad9c6db3",
+  "branch": "kran_dev",
+  "date": "2026-11-17",
+  "hash_definition": "SHA-256 of Git-normalized staged blob bytes; self-manifest excluded",
+  "file_count_excluding_self": 148,
+  "files": [
+    {
+      "path": ".github/workflows/release.yml",
+      "bytes": 6962,
+      "sha256": "dd47515aabad5e72206dffb96165f8ebcfec63fb50b2356bf65c0603d2928765"
+    },
+    {
+      "path": "README.md",
+      "bytes": 21771,
+      "sha256": "4531ec127e66ede80e883623335ec6ed1d7fddf0ab17976278f615264f4d0530"
+    },
+    {
+      "path": "backend/app/assistant/action_outcomes.py",
+      "bytes": 20090,
+      "sha256": "42f1e856e2f9144f5838fd24bc07c617d97050b36b85af7757915b1fc2ed8c94"
+    },
+    {
+      "path": "backend/app/assistant/analysis_evidence.py",
+      "bytes": 9974,
+      "sha256": "3f51d4a4e15b787bc54d442872a65d428c8f39ced1e0cd8bb1a27d59fe6a76f5"
+    },
+    {
+      "path": "backend/app/assistant/calendar_evidence.py",
+      "bytes": 8760,
+      "sha256": "8ef38c6184049c8f11bc7fb5ae4d2c8eb8145338585c585f12e2e4495c37f42b"
+    },
+    {
+      "path": "backend/app/assistant/capabilities.py",
+      "bytes": 15649,
+      "sha256": "cabf3b6c3bbef1708cc256a8e65e4bcec8a0e9cf0da0546422b21bcac4a3e8a0"
+    },
+    {
+      "path": "backend/app/assistant/domain_adapters.py",
+      "bytes": 9708,
+      "sha256": "e2493aef261af4254ed19dc2feb9dc56e63209263f0a7e5fd22dd77d100dd1d8"
+    },
+    {
+      "path": "backend/app/assistant/evidence_cache.py",
+      "bytes": 10301,
+      "sha256": "c9384b343902ff80d7166be88d9cc3f599bc1d5c0a52e00f200ce62fcb96a035"
+    },
+    {
+      "path": "backend/app/assistant/fact_presenter.py",
+      "bytes": 11841,
+      "sha256": "10252e347a53ba32a0afbae944760bd3cb9eb13a2123fb9e7d5873477150a205"
+    },
+    {
+      "path": "backend/app/assistant/grounding.py",
+      "bytes": 8946,
+      "sha256": "32ad9f254c05c884c183cb9c0282cfb286f3dbb1dc7a54015ba8e978eded0b53"
+    },
+    {
+      "path": "backend/app/assistant/intents.py",
+      "bytes": 4290,
+      "sha256": "1a784407a08cc5b3ae13880dd4886ad68b8aa65cf28a5df7c61ee06b74a5218f"
+    },
+    {
+      "path": "backend/app/assistant/model_catalog.py",
+      "bytes": 8046,
+      "sha256": "a63e1ec400f971f2d1b66f2dbb137b62a15c76866d7e32d87a1a94371eb9e227"
+    },
+    {
+      "path": "backend/app/assistant/model_preferences.py",
+      "bytes": 3596,
+      "sha256": "2fd60b6fdcc171c3a022ee01edf11940e794d9ef26dda00aa993165b3b9892ca"
+    },
+    {
+      "path": "backend/app/assistant/objective_scope.py",
+      "bytes": 5267,
+      "sha256": "83decefacf0915e637392b8a1b7f53d984ae8654288c5f5c214ca073bf79a21b"
+    },
+    {
+      "path": "backend/app/assistant/orchestrator.py",
+      "bytes": 54092,
+      "sha256": "55e8c4e072d25f9da149277d465341be7e16ba1621bcebeafa893b7d9afe5f4e"
+    },
+    {
+      "path": "backend/app/assistant/outcome_contracts.py",
+      "bytes": 15805,
+      "sha256": "9f5c591414969c13b6965e96fb0a7d9d31a864f926399785c7970f92b471e316"
+    },
+    {
+      "path": "backend/app/assistant/production_workflow.py",
+      "bytes": 40191,
+      "sha256": "e743eba510e4fee1e53f06adb79ca469f26de22740be44f19d7295c663f7e3f8"
+    },
+    {
+      "path": "backend/app/assistant/prompts/executor.md",
+      "bytes": 2717,
+      "sha256": "cacdc2060318045b733f26d6a33cf00f9be99ad7dad4dce03ac5737c69db85be"
+    },
+    {
+      "path": "backend/app/assistant/prompts/orchestrator.md",
+      "bytes": 14256,
+      "sha256": "64b5bc711a21bd0737b7d1120340efeed4220f7b5955dd76c9a20403af5456fe"
+    },
+    {
+      "path": "backend/app/assistant/read_transport.py",
+      "bytes": 6288,
+      "sha256": "a164ee643afd0cacadd9080d985efc2dab96fd4b2c2e914b9fdc016d52be6aa5"
+    },
+    {
+      "path": "backend/app/assistant/service.py",
+      "bytes": 27538,
+      "sha256": "92d03e6914171df0980ed78b31216c211f30568bf096ba4572987a01c689575b"
+    },
+    {
+      "path": "backend/app/assistant/tools.py",
+      "bytes": 34897,
+      "sha256": "94e78787025c243cdee6301c02e2efc0430e360805c74d007bf0a956fb28f350"
+    },
+    {
+      "path": "backend/app/assistant/workflow.py",
+      "bytes": 28344,
+      "sha256": "16a5050413677c17e56faadfadc1011b90a53437310c6fd0bd402b77bbd07a0c"
+    },
+    {
+      "path": "backend/app/installation.py",
+      "bytes": 5431,
+      "sha256": "2edfe512e24b5232f373c130fa5a0cb102a8b810a2a9f22b49ebfed3dd107793"
+    },
+    {
+      "path": "backend/app/integration/assistant.py",
+      "bytes": 29538,
+      "sha256": "9246f3440a6de5a151ca3794614015a388c101d74f322deeebd1142cc122ea36"
+    },
+    {
+      "path": "backend/app/integration/assistant_models.py",
+      "bytes": 1673,
+      "sha256": "acd6e7770b31a077004dbae6cc7e40ba0688e733df75789615b938632ed934c6"
+    },
+    {
+      "path": "backend/app/integration/assistant_workspace.py",
+      "bytes": 27171,
+      "sha256": "92f5a67129862111d1ef7a655ee1a77bf3cdf53bf9cbcad48551075ba43bc616"
+    },
+    {
+      "path": "backend/app/main.py",
+      "bytes": 44074,
+      "sha256": "1654205aeb60d69f2b3005f54901952bfb3bc35637215061c377923c98ea8c6a"
+    },
+    {
+      "path": "backend/app/manage.py",
+      "bytes": 6896,
+      "sha256": "08e43c07f34ad7c14cac829bf39bc4758c12c7e6c435c25afcac8554bb5c90e6"
+    },
+    {
+      "path": "backend/app/schemas/assistant.py",
+      "bytes": 8619,
+      "sha256": "b3838f882e22a238db534618ef63107bad3be8f8f4d923a73718cd9b5957a8dc"
+    },
+    {
+      "path": "contracts/assistant-acceptance-evidence.json",
+      "bytes": 207222,
+      "sha256": "43f596ad365ea34bf150e39433cfd992260ab478554a5f04ff4c91128a86ccd9"
+    },
+    {
+      "path": "contracts/assistant-acceptance.json",
+      "bytes": 1177910,
+      "sha256": "e6be1ce3665ded68977e96eef1024993e08491595757f2e68a8ffb5fef10b1d1"
+    },
+    {
+      "path": "contracts/assistant-tools.json",
+      "bytes": 95331,
+      "sha256": "3e2ab7ae53ad0b3bd363541852f79396340e9b255e710ec044fbbd28824b12e9"
+    },
+    {
+      "path": "contracts/assistant.schema.json",
+      "bytes": 19228,
+      "sha256": "206f399400a2b275a6d74a14c92a9b486011cd56f713051696710bafcaee5e1f"
+    },
+    {
+      "path": "database/migrations/022_assistant_model_preferences.sql",
+      "bytes": 1052,
+      "sha256": "a529b8860fa7d77848175bb8795f2b594950fa5125aefd46ebdf20f698ab1c09"
+    },
+    {
+      "path": "database/migrations/023_assistant_workflows.sql",
+      "bytes": 829,
+      "sha256": "089ffd90639374990f716091b1e4d056d00157f65445ac656bb8b0930283991a"
+    },
+    {
+      "path": "database/migrations/024_installation_bootstrap.sql",
+      "bytes": 683,
+      "sha256": "d2a7d394439b834fd7cdc7ef572f97834180c23d24ff915b07dbc60466d4d114"
+    },
+    {
+      "path": "deploy/Caddyfile",
+      "bytes": 368,
+      "sha256": "cfc5d6a0900991e7761785f4ecf3635d8e4fe6824056a1281358c9d88879421e"
+    },
+    {
+      "path": "deploy/Dockerfile",
+      "bytes": 1733,
+      "sha256": "f69562d52e2d66afb9f1c70a332814ac3382f68db0995ed09f1ef55be90faf20"
+    },
+    {
+      "path": "deploy/FixRateAI-Setup.ps1.in",
+      "bytes": 15016,
+      "sha256": "374e7a65271f692f55eb31a9474b064eb2f4e107fd0b957b50f1e21b96dbf164"
+    },
+    {
+      "path": "deploy/compose.yaml",
+      "bytes": 4113,
+      "sha256": "d386a7df7c3aa6be32e1d795a3510721c4baa77738d92f13339950b5af7cfdd0"
+    },
+    {
+      "path": "deploy/fixrate-install.sh.in",
+      "bytes": 10316,
+      "sha256": "a23f4eb910a8ffd67a68f8ff0487cc9b36905d831be4d64a90b2b3c87adb6104"
+    },
+    {
+      "path": "deploy/images.lock.json",
+      "bytes": 526,
+      "sha256": "10125d4e99aadc5dd9d4d254908ccf90963a14e090a3920d3738f5bfeb7614ab"
+    },
+    {
+      "path": "deploy/release-policy.json",
+      "bytes": 179,
+      "sha256": "72d8286b2cd88ff7cc0ed62cfebcb519956842f7e821da7dfda4b1fd376745b8"
+    },
+    {
+      "path": "deploy/requirements-core.lock",
+      "bytes": 814,
+      "sha256": "104e04bed050391b9ff11a926180f665ba7d3fbf718e98cb81223ee0d9b9e0e7"
+    },
+    {
+      "path": "docs/FixRateAI_Complete_Product_Dossier_2026-11-16.html",
+      "bytes": 7124845,
+      "sha256": "b60876f2e136dbe800cd184caaee6f4bc77befbe931a7a1b648bd4ff8500ff29"
+    },
+    {
+      "path": "docs/PLAN.md",
+      "bytes": 91546,
+      "sha256": "1e8dc8d587c58d953c02e7a3df2cc78456685ac6b3019b6e58cfcaa6eb5c0797"
+    },
+    {
+      "path": "docs/agent-audit/README.md",
+      "bytes": 7781,
+      "sha256": "dfd30c608e49ac07e1ee3e9b496350334bc2d0e341c8e340e6bc2abd9bf76f63"
+    },
+    {
+      "path": "docs/agent-audit/architecture-review-2026-11-16.md",
+      "bytes": 35872,
+      "sha256": "2b094cacd744e80350b7a600989de7490e0ec73b84415e1c7655cd5c40e79442"
+    },
+    {
+      "path": "docs/agent-audit/operation-acceptance-2026-11-16.md",
+      "bytes": 15279,
+      "sha256": "ce135e357403cf7f0fd16cdf074ef29e4107df80cf25d717dd432d4e26650919"
+    },
+    {
+      "path": "docs/agent-audit/orchestrator-2026-11-16.md",
+      "bytes": 42198,
+      "sha256": "06d2031759c6857acc136d7e3dfcecfed71a7d19c6e7d8eee3ba9781f09f8311"
+    },
+    {
+      "path": "docs/agent-audit/orchestrator-final-2026-11-16.md",
+      "bytes": 26283,
+      "sha256": "26423a8460c3080596ca2e3434c84f8b2a22e7147607bfbbeebdafabca1d4f19"
+    },
+    {
+      "path": "docs/agent-audit/orchestrator-state-2026-11-16.json",
+      "bytes": 8001,
+      "sha256": "0604dd70df8fdd6b3b068d68765a2013574837004d551eebbccdb124cf540db8"
+    },
+    {
+      "path": "docs/plans/2026-11-17-team-delivery-plan.md",
+      "bytes": 168208,
+      "sha256": "daf80fa17e7606526aec23df54d5d0277c2439029e1d67d2dadfa453d6378db0"
+    },
+    {
+      "path": "docs/releases/2026-11-16-assistant-model-selection.md",
+      "bytes": 5625,
+      "sha256": "75864dd72cff08448b4b0778f7232791958ab6bcc605c104fcc2a077a14a8750"
+    },
+    {
+      "path": "docs/releases/2026-11-16-durable-assistant.md",
+      "bytes": 3281,
+      "sha256": "386915644d1fa6927ceeb5cabb5ea3b06a9ef5b7953f9ba34a0f705ddf42ae69"
+    },
+    {
+      "path": "docs/releases/2026-11-17-agent-integration-kran-dev.md",
+      "bytes": 13808,
+      "sha256": "b16099101bb0883180143c14dc3a534f1314876b7ef783e05bad8d4ceba398fb"
+    },
+    {
+      "path": "docs/releases/2026-11-17-installation-candidate.md",
+      "bytes": 7833,
+      "sha256": "19b6620c6517558e130832e347a5b28b4925c38464fee086ea844708204a1eae"
+    },
+    {
+      "path": "docs/releases/2026-11-17-kran-dev-publication.md",
+      "bytes": 38966,
+      "sha256": "377f517fd82f0e47827cf488056724ea9a58a3381941805328b472838a01165d"
+    },
+    {
+      "path": "docs/service/INDEX.md",
+      "bytes": 6436,
+      "sha256": "b03ed885e918880704070a0b08e50cc3c3297b80b76a8128f155b92949bfacf2"
+    },
+    {
+      "path": "docs/service/assistant.md",
+      "bytes": 53538,
+      "sha256": "de74ebbd5d6f1bf9983659e447828ac98a0505c840cbc1a2d16fb96780e6faa9"
+    },
+    {
+      "path": "docs/service/database.md",
+      "bytes": 56837,
+      "sha256": "71f037a9ec34815b7924d434a899f6a579236df27e9022f254ada22fb6a8e7fe"
+    },
+    {
+      "path": "docs/service/first-run.md",
+      "bytes": 5807,
+      "sha256": "5ebefa0312a95e84294bf187bbb97df24b390b12fc46a1c889223c6fa9e3bbfe"
+    },
+    {
+      "path": "docs/service/git-hosting.md",
+      "bytes": 27289,
+      "sha256": "3a54d66fbfad8c6db1f6182cd7a8f8db85374a5e05cf937240fc28bfe2e2e3bf"
+    },
+    {
+      "path": "docs/service/installation.md",
+      "bytes": 22627,
+      "sha256": "ee17f34854bea7d4d7f33d5464fa3dccb96b52a68b876da8fa92b4416b7f26f5"
+    },
+    {
+      "path": "docs/service/performance.md",
+      "bytes": 16565,
+      "sha256": "98eed5f15e89541b2cf213e8738e326cb9604f535d1bcbcab3d8260c88750989"
+    },
+    {
+      "path": "docs/service/runtime.md",
+      "bytes": 110621,
+      "sha256": "f3c58d0709ef08d221f79117fbbe224439ad14a6dbc02548718f9b72fd431ebd"
+    },
+    {
+      "path": "docs/service/user-experience.md",
+      "bytes": 30792,
+      "sha256": "1ac9a0449214cbd1de0b007b6c14acd878b4446c679af840afbbdd349f76d548"
+    },
+    {
+      "path": "docs/service/verification.md",
+      "bytes": 466670,
+      "sha256": "e33a79797d2c5066268ec3eed98b0b51bc037cf4a47f3011df6bf7a84891298a"
+    },
+    {
+      "path": "frontend/src/app/router.tsx",
+      "bytes": 6496,
+      "sha256": "6b5701ef77867956c73468ecdc7b7c17d39a1308db6a0f228438873117ceda19"
+    },
+    {
+      "path": "frontend/src/features/assistant/ActionCard.tsx",
+      "bytes": 10554,
+      "sha256": "fd8407353355ea087f27cf733956dfb47bbbd335ff4470c23e9e1e974f517058"
+    },
+    {
+      "path": "frontend/src/features/assistant/ChatModelPicker.tsx",
+      "bytes": 7179,
+      "sha256": "887b89e25cea3b6b0837415336673e0b48debfe0f8a21506576937f6eb314ea0"
+    },
+    {
+      "path": "frontend/src/features/assistant/FactsAnswer.tsx",
+      "bytes": 3355,
+      "sha256": "eb272d572b0b457b2f20045bbfba30dc06909a1c1e82864e7e74c7649080a09a"
+    },
+    {
+      "path": "frontend/src/features/assistant/SavedAnswer.tsx",
+      "bytes": 1783,
+      "sha256": "ac1923cedd361280b38246c6119f033ffd25ebb85b121f2f3ad2ece65489b354"
+    },
+    {
+      "path": "frontend/src/features/assistant/WorkflowStatus.tsx",
+      "bytes": 4814,
+      "sha256": "e82aedb900f95dfcd34d748578e69247981ed340f54fc90f2850082907f3a21a"
+    },
+    {
+      "path": "frontend/src/features/assistant/assistant.css",
+      "bytes": 18590,
+      "sha256": "6e050f98d3ea10e53cc280848015380465e854ef5268cf9a492ed6f82dda4369"
+    },
+    {
+      "path": "frontend/src/pages/AssistantPage.tsx",
+      "bytes": 31948,
+      "sha256": "0955cc6921fdfed9305aa49549dda0925387fcaa2f4d00819bb3793bfa0ddd91"
+    },
+    {
+      "path": "frontend/src/pages/AuthLayout.tsx",
+      "bytes": 3147,
+      "sha256": "6614a670b5beb01d0783f09eb8cb89e83ecc3dddf72fa4f3435259853920bb08"
+    },
+    {
+      "path": "frontend/src/pages/SetupPage.tsx",
+      "bytes": 4118,
+      "sha256": "ad6184bfeab22112e05d5002561447d7ab3415121e5e9da8c64ce75d0dc37379"
+    },
+    {
+      "path": "frontend/src/shared/api/assistant.ts",
+      "bytes": 4787,
+      "sha256": "c97c3284fd307d1ec4796da355fe039552d2adb4221fc376e075f3e3c0ab87be"
+    },
+    {
+      "path": "ml_service/app/providers/aitunnel.py",
+      "bytes": 9657,
+      "sha256": "3963f9970f7bd4866645211ff06b460ea9249a8ee339dc6347855b2adf2b02d3"
+    },
+    {
+      "path": "ml_service/app/providers/ollama.py",
+      "bytes": 18926,
+      "sha256": "d96608aaad364c62b307a5a9b091197b9b18c2861ed1d2c33844b24d6d2af7eb"
+    },
+    {
+      "path": "scripts/assistant_acceptance_matrix.py",
+      "bytes": 50754,
+      "sha256": "2177f65346ecb7ba3591d54a59412577b851e40924777007dcba9e29ddba0125"
+    },
+    {
+      "path": "scripts/release_checks.py",
+      "bytes": 1785,
+      "sha256": "1335786c01a8f105057b7c33eba8fd6bd2fdf9821d091ef18929d29a9d59c27e"
+    },
+    {
+      "path": "scripts/release_package.py",
+      "bytes": 6441,
+      "sha256": "b0ce80deee9032614b52c726b752e51197804bfff97acb80c48e7046fce938d6"
+    },
+    {
+      "path": "scripts/release_publish.py",
+      "bytes": 6360,
+      "sha256": "f48d7872e5f9593b85a532c48f01fec038e72580151246ba36fd7393539da447"
+    },
+    {
+      "path": "scripts/release_runtime.py",
+      "bytes": 8650,
+      "sha256": "c3f3c04df4a8c4bbb91f0c3df68f50058cd613f78555b361c0a59c11bb205c7d"
+    },
+    {
+      "path": "scripts/release_smoke.py",
+      "bytes": 9569,
+      "sha256": "1747ca124315e557d98339e0b196a940fffb21e8d41986313f28be4e29e45328"
+    },
+    {
+      "path": "scripts/summarize_orchestrator_eval.py",
+      "bytes": 33306,
+      "sha256": "48d2ae12d800da58943099c2d0b7f716ad5c109f273c1dbe7ed04e7cdc9b0ba4"
+    },
+    {
+      "path": "scripts/sync_git_hosts.py",
+      "bytes": 9922,
+      "sha256": "38cc45b24deff55b752bb1f0675b65ce8b3e59cc8cece1b7c7be2df7b15ae143"
+    },
+    {
+      "path": "scripts/verify_agent_local.py",
+      "bytes": 17018,
+      "sha256": "977d7a72369025dc59b8419ef64293455f626f9d3ccb7e34da73a5acb4dd23aa"
+    },
+    {
+      "path": "tests/automation/test_git_host_sync.py",
+      "bytes": 12608,
+      "sha256": "9fffe170be196da5e91aebe06cf9b9f400591f803f251b68bf0b2b9175b251d6"
+    },
+    {
+      "path": "tests/backend/test_agent_redteam_explicit_draft.py",
+      "bytes": 10840,
+      "sha256": "b35208e5e7244796faa4934059c83caaab5dc1a09ffacd5fff0b470677e0f0d1"
+    },
+    {
+      "path": "tests/backend/test_agent_redteam_failed_reads.py",
+      "bytes": 4131,
+      "sha256": "c690fb4137d420d45a5b215aa645bb234b88eec0d6728efc5d8848540d83890f"
+    },
+    {
+      "path": "tests/backend/test_agent_redteam_grounding.py",
+      "bytes": 14709,
+      "sha256": "de1c35ec39df8de132b90d0a194f299e9c780c749dd4e737c0ee40c12c53ba34"
+    },
+    {
+      "path": "tests/backend/test_agent_redteam_intent_dispatch.py",
+      "bytes": 5433,
+      "sha256": "2861ccc72ecff74cb70e379a7dbd31ad2679d4c0775d757d05d1d079318d6864"
+    },
+    {
+      "path": "tests/backend/test_agent_redteam_proposal_sources.py",
+      "bytes": 8816,
+      "sha256": "b75203b91b90dc2d9d5f1868211319d055be9ffa2777d47319af4084d97cc93f"
+    },
+    {
+      "path": "tests/backend/test_agent_redteam_scope.py",
+      "bytes": 5964,
+      "sha256": "3ad7e0adc36ea0412620b6520f2aff2e9edc4b5dee4a7df1b514df0a46f598a2"
+    },
+    {
+      "path": "tests/backend/test_agent_redteam_workbook_readiness.py",
+      "bytes": 9801,
+      "sha256": "d614f76595b2d1b4190038e18db1d7adf668a99c96ca4eda8ec19095271bb3c3"
+    },
+    {
+      "path": "tests/backend/test_assistant.py",
+      "bytes": 35337,
+      "sha256": "e7fa713f4637550c5af40a0e9045a5cbaa3fe040787a4de7775976453716f19c"
+    },
+    {
+      "path": "tests/backend/test_assistant_acceptance_matrix.py",
+      "bytes": 5476,
+      "sha256": "c62dd3781db9e78675cbbfa1507888e1d6be5d573d9ce5e453c9645747ee41b6"
+    },
+    {
+      "path": "tests/backend/test_assistant_action_outcomes.py",
+      "bytes": 12403,
+      "sha256": "f5348fd4429497ca69a0dfeba8baf19d0377500fbda3ae425943fc19b40938d0"
+    },
+    {
+      "path": "tests/backend/test_assistant_analysis_evidence.py",
+      "bytes": 15519,
+      "sha256": "0a4300f43384721f8146e0da675ffb719a0242e7b00baa56462e99ef24f16e32"
+    },
+    {
+      "path": "tests/backend/test_assistant_assignment_endtoend.py",
+      "bytes": 5189,
+      "sha256": "41b6619ae377effda0b0b3f19b10561a97e1ad9d2ec11114a8ca713b9e618aaf"
+    },
+    {
+      "path": "tests/backend/test_assistant_calendar_evidence.py",
+      "bytes": 7375,
+      "sha256": "2e45ce22c0827cb8f3b79d97f5d3e3d75a5a36c04fd660be91069e41cae541a0"
+    },
+    {
+      "path": "tests/backend/test_assistant_capabilities.py",
+      "bytes": 29104,
+      "sha256": "01921681dce863e37102b22f2b9608135246e78e3de70f8f3493c814c4530ed2"
+    },
+    {
+      "path": "tests/backend/test_assistant_domain_adapters.py",
+      "bytes": 15344,
+      "sha256": "40163e876c40a89ee265dbefc083cc793c9bbc86776099e97cc62727b43b4490"
+    },
+    {
+      "path": "tests/backend/test_assistant_equipment_history.py",
+      "bytes": 12769,
+      "sha256": "10cc7b18c568b9f8c1a651b0821b1d52c69fbbf67532814db3718dc1ce63d844"
+    },
+    {
+      "path": "tests/backend/test_assistant_equipment_snapshot.py",
+      "bytes": 6851,
+      "sha256": "06b6bd61e46bc46da377db27d06ba958fa8d07f49729946e5a89861c4c034e0c"
+    },
+    {
+      "path": "tests/backend/test_assistant_evidence_cache.py",
+      "bytes": 10904,
+      "sha256": "1f2cae6dd63f9e193846cdb0cabcff886273271f01d3adf227f2c47e7a686fb3"
+    },
+    {
+      "path": "tests/backend/test_assistant_fact_presenter.py",
+      "bytes": 12319,
+      "sha256": "5f37c7d06ec762ff7e97093e0746d18b67ad296569cf300147179e5e1e0e33b1"
+    },
+    {
+      "path": "tests/backend/test_assistant_inference_deadline.py",
+      "bytes": 2720,
+      "sha256": "154abb8b1a0d8a5eedb67732cfb68b8675f7afe76621917126178cac29f30183"
+    },
+    {
+      "path": "tests/backend/test_assistant_message_files.py",
+      "bytes": 11421,
+      "sha256": "2ab9d65419bb1c1074f828755fc096eb6a6b0223d1d9ad60582099f009332732"
+    },
+    {
+      "path": "tests/backend/test_assistant_models.py",
+      "bytes": 16231,
+      "sha256": "88fa4d55fd479f285104dfae15267bdc2ee5a06064d9bea66ed0177a6ce4016d"
+    },
+    {
+      "path": "tests/backend/test_assistant_objective_scope.py",
+      "bytes": 11684,
+      "sha256": "3b026ccdb3d0c611ca58e254d8c9e8a24e6c8c5bba5ac24cdfafc6f3153fd042"
+    },
+    {
+      "path": "tests/backend/test_assistant_orchestrator.py",
+      "bytes": 9940,
+      "sha256": "2e94c3604807715392316acf23fa3e56e041c3e8ea2a2512b4092a570e2728eb"
+    },
+    {
+      "path": "tests/backend/test_assistant_orchestrator_live.py",
+      "bytes": 21680,
+      "sha256": "a982831325716d4515b60f9e572ba5600bc157be12c5345721208f712dd7b5c7"
+    },
+    {
+      "path": "tests/backend/test_assistant_orchestrator_live_reads.py",
+      "bytes": 26804,
+      "sha256": "5431b9637836bfbdb1eaac9be163e95904c32d1c53c03cffa85b2b69d748b81f"
+    },
+    {
+      "path": "tests/backend/test_assistant_orchestrator_live_writes.py",
+      "bytes": 7503,
+      "sha256": "57a2434817d32e10c6a7c700e25f84d8974500a8c70df4b6a9b27f554a17282a"
+    },
+    {
+      "path": "tests/backend/test_assistant_orchestrator_render.py",
+      "bytes": 4110,
+      "sha256": "cdd4eecffcb0198a1d724b45aefcd18a4e15ce58a98e3ce34e39cf0a5709b631"
+    },
+    {
+      "path": "tests/backend/test_assistant_outcome_contracts.py",
+      "bytes": 11763,
+      "sha256": "8323f12991dd90fce62044108e75c5c0c8cacd9ab52117817075079f61f7f99e"
+    },
+    {
+      "path": "tests/backend/test_assistant_outcome_wire.py",
+      "bytes": 9250,
+      "sha256": "e44396a44038aa359d9305b8e052d570e391e3de9162dbce6b9e53e1b611a921"
+    },
+    {
+      "path": "tests/backend/test_assistant_p0.py",
+      "bytes": 10567,
+      "sha256": "479852b78169e5856eef5461c9642276ad8369b82196eb0a9184e77ddc269121"
+    },
+    {
+      "path": "tests/backend/test_assistant_pagination_evidence.py",
+      "bytes": 9036,
+      "sha256": "0aceac811503841677ed2b662e9e934bde0e82738d4dbe9576217fef6bcbdc67"
+    },
+    {
+      "path": "tests/backend/test_assistant_production_scenarios.py",
+      "bytes": 11737,
+      "sha256": "7cefaf5f08c6f9f11cabfe2493b671482e36b3188ba432a6bfacd4d25253a175"
+    },
+    {
+      "path": "tests/backend/test_assistant_production_workflows.py",
+      "bytes": 8815,
+      "sha256": "d8d41e75162b47d902991208e391b7a35a215b479470bb45a3825d4e23b52a40"
+    },
+    {
+      "path": "tests/backend/test_assistant_protected_outputs.py",
+      "bytes": 10724,
+      "sha256": "69cef83db3b563905d21be60c25301b65b4aac3ab31933a43d153ab67874d150"
+    },
+    {
+      "path": "tests/backend/test_assistant_staff_postconditions.py",
+      "bytes": 8703,
+      "sha256": "50de0500dc9ec58a0186f5e66038c863c1aca966c3605faed237361b9896381a"
+    },
+    {
+      "path": "tests/backend/test_assistant_task_analytics.py",
+      "bytes": 21534,
+      "sha256": "4d4b8bbec633a546f8ba8ada9bd5261373be2debbe37816a82bdd60dfe01a31d"
+    },
+    {
+      "path": "tests/backend/test_assistant_workbooks.py",
+      "bytes": 14191,
+      "sha256": "244fba6dcf1ed0a6d6c4346f67db5b8bcae0407bc5a91e9fbbf20f7b6b60184b"
+    },
+    {
+      "path": "tests/backend/test_assistant_workflow_phases.py",
+      "bytes": 21512,
+      "sha256": "88e00f7dc08f5dfd59eb1bbb374f33775d29f84cb943bf02ddd7bae22999c195"
+    },
+    {
+      "path": "tests/backend/test_assistant_workflow_security.py",
+      "bytes": 14441,
+      "sha256": "720b47c2bb53dc370fc9a5e521f6018c2fa2b9f679e4f52432aeaa5fdffcf5ff"
+    },
+    {
+      "path": "tests/backend/test_installation_bootstrap.py",
+      "bytes": 11500,
+      "sha256": "1b33bf239a94ade5cdb7a9a3ce7764791ebe065c65f8251e3485ad9954d055b7"
+    },
+    {
+      "path": "tests/backend/test_orchestrator_eval_summary.py",
+      "bytes": 14780,
+      "sha256": "4ed42cb0677771d669d0523e95946eea2772a6ae12848d08bc4e9bbfbb612e5e"
+    },
+    {
+      "path": "tests/backend/test_release_distribution.py",
+      "bytes": 3416,
+      "sha256": "b57df7e2ec764d8ba2debb6c953b73277499c393802aec64f86171fb3c2565e5"
+    },
+    {
+      "path": "tests/fixtures/assistant/red_team_cases.json",
+      "bytes": 318154,
+      "sha256": "0e0d20d60a7514b0099b4b37cc2f820b0046e7cc417a971364b2cb82797462cf"
+    },
+    {
+      "path": "tests/ml/test_agent_local_policy.py",
+      "bytes": 8037,
+      "sha256": "7acb8824cb8ca3c8a12c40def482c7f63ce0612ec27dce53a4736cd89a7c536d"
+    },
+    {
+      "path": "tests/ml/test_aitunnel.py",
+      "bytes": 16858,
+      "sha256": "48e194e69cadab80be16b040704838c697117bdad72e18421c17a60777e25067"
+    },
+    {
+      "path": "tests/web/e2e/assistant-saved-history.spec.ts",
+      "bytes": 6478,
+      "sha256": "20a3e86185988260d4b99e25ccc0f3d0856e0a3c88cfc71f9f0ef49b54e792a8"
+    },
+    {
+      "path": "tests/web/unit/features/assistant/ActionCard.test.tsx",
+      "bytes": 4555,
+      "sha256": "1928c2e666b6f95c7b1488c398a39e09b5a173c6dd241bf9edfa4d48faf075f4"
+    },
+    {
+      "path": "tests/web/unit/features/assistant/ActionCardProtectedResource.test.tsx",
+      "bytes": 3870,
+      "sha256": "c8fe7dad1a48d83f4404752bca9454432929e45d642f16dcec8b39746d50ed1b"
+    },
+    {
+      "path": "tests/web/unit/features/assistant/ChatModelPicker.test.tsx",
+      "bytes": 5878,
+      "sha256": "6915b3c69155c485a992bae7d9dabc37ce6edc487773cd3c762b7549e87cd28e"
+    },
+    {
+      "path": "tests/web/unit/features/assistant/FactsAnswer.test.tsx",
+      "bytes": 3855,
+      "sha256": "b1c0b936bde96cc6e6bac13aba6381cf87c599b57b207b8958d2645294e0d86e"
+    },
+    {
+      "path": "tests/web/unit/features/assistant/SavedAnswer.test.tsx",
+      "bytes": 4147,
+      "sha256": "cdff76c630a12936979a420b90d50fee424c9ea4e7f8a89f3effd8d02fea587b"
+    },
+    {
+      "path": "tests/web/unit/features/assistant/WorkflowPhases.test.tsx",
+      "bytes": 14204,
+      "sha256": "87e98b2db737bc47399f19ac8ceeba5dd1e4f19dd5bc987dc5001c362531effa"
+    },
+    {
+      "path": "tests/web/unit/features/assistant/WorkflowStatus.test.tsx",
+      "bytes": 6635,
+      "sha256": "500f879153cfd2fede3e8e6ba44a8cfd026ea3988dde8727738064347bd3367b"
+    },
+    {
+      "path": "tests/web/unit/pages/AssistantPage.test.tsx",
+      "bytes": 19445,
+      "sha256": "00f857ad2c63d0eb13358be16c75054c137aae05e036e4212e6d9da07ac37cad"
+    },
+    {
+      "path": "tests/web/unit/pages/SetupPage.test.tsx",
+      "bytes": 2281,
+      "sha256": "4daef161f353ae6d46717a9ee0727a7a177e1b92974b5b7a39c7f34119c8eca4"
+    }
+  ]
+}

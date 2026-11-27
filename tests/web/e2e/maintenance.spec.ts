@@ -36,8 +36,10 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
   await executor.getByRole("button", {name: "Приступить к работе"}).click();
   await executor.getByRole("checkbox", {name: /Поверхность очищена/}).check();
   await checkpoint(executor,'executor-active');
+  await executor.getByRole('button',{name:'Итоговый отчёт',exact:true}).click();
   await executor.getByLabel("Что выполнено и какие замечания остались").fill("Проверка полного процесса в браузере");
   // Upload must preserve the currently edited checklist and narrative without a manual save.
+  await executor.getByRole('button',{name:'Добавить фотографии',exact:true}).click();
   const photo = path.resolve(test.info().project.testDir, "../../../data/demo/demo-photo.png");
   for (const phase of ["before", "after"]) {
     const reply = executor.waitForResponse(r => r.url().endsWith("/photos") && r.request().method() === "POST");
@@ -45,17 +47,25 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
     expect((await reply).status()).toBe(200);
     await expect(executor.locator(".evidence-photo img")).toHaveCount(phase === "before" ? 1 : 2);
     await expect(executor.getByLabel("Что выполнено и какие замечания остались")).toHaveValue("Проверка полного процесса в браузере");
+    await executor.getByRole('button',{name:'Выполнить чек-лист',exact:true}).click();
     await expect(executor.getByRole("checkbox", {name: /Поверхность очищена/})).toBeChecked();
+    await executor.getByRole('button',{name:'Добавить фотографии',exact:true}).click();
   }
   await expect(executor.locator(".evidence-photo img")).toHaveCount(2);
   await executor.locator('.evidence-photo').first().scrollIntoViewIfNeeded();
   await checkpoint(executor,'executor-uploaded');
+  await executor.getByRole('button',{name:'Итоговый отчёт',exact:true}).click();
   const submit = executor.waitForResponse(r => r.url().endsWith("/submit"));
   await executor.getByLabel("Что выполнено и какие замечания остались").fill("Последние изменения перед сдачей");
   await executor.getByRole("button", {name: "Сдать работу"}).click();
   await executor.getByRole("dialog", {name: "Передать отчёт инженеру?"}).getByRole("button", {name: "Подтвердить сдачу"}).click();
   expect((await submit).status()).toBe(200);
   await expect(executor.getByRole("button", {name: "Сдать работу"})).toHaveCount(0);
+  await executor.goto("/executor/reports");
+  const savedReport = executor.locator(`a[href="/executor/tasks/${demoId("runtime-order")}"]`);
+  await expect(savedReport).toBeVisible();
+  await savedReport.click();
+  await expect(executor.getByText("На проверке", {exact: true}).first()).toBeVisible();
   const engineerContext = await browser.newContext(contextOptions);
   const engineer = await engineerContext.newPage();
   engineer.on("pageerror", error => errors.push(error.message));
@@ -63,7 +73,9 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
   if(configuredViewport)expect(await engineer.evaluate(()=>innerWidth)).toBe(configuredViewport.width);
   await engineer.goto(`/quality/${demoId("runtime-order")}`);
   await expect(engineer.locator(".evidence-photo img")).toHaveCount(2);
-  await expect(engineer.getByText("Последние изменения перед сдачей", {exact: true})).toBeVisible();
+  await engineer.getByRole("button", {name: "Факты и документы", exact: true}).click();
+  await expect(engineer.getByRole("dialog").getByText("Последние изменения перед сдачей", {exact: true})).toBeVisible();
+  await engineer.keyboard.press("Escape");
   await checkpoint(engineer,'engineer-submitted');
   // No engineer POST or comparability confirmation: submission queues the analysis.
   await expect.poll(async()=> (await (await engineer.request.get(`/api/v1/maintenance/ui/tasks/${demoId("runtime-order")}`)).json()).photoAnalysisStatus,{timeout:30000}).toBe("ready");
@@ -71,11 +83,19 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
   expect(automaticallyReviewed.review.status).toBe("uncertain");
   expect(automaticallyReviewed.review.id).toBeTruthy();
   await expect(engineer.getByRole("checkbox", {name: /Подтверждаю, что фото/})).toHaveCount(0);
-  await expect(engineer.getByText("Разбор фотоотчёта",{exact:true})).toBeVisible();
-  await engineer.getByLabel(/Причина решения/).fill("Одинаковые учебные фото проверены; это синтетический E2E сценарий.");
-  await engineer.getByRole("button", {name: "Вернуть на доработку", exact: true}).click();
-  const reject = engineer.waitForResponse(r => r.url().endsWith("/review") && r.request().method() === "POST");
-  await engineer.getByRole("dialog").getByRole("button", {name: "Вернуть на доработку", exact: true}).click();
+  await expect(engineer.getByRole("heading", {name: "Анализ фотографий", exact: true})).toBeVisible();
+  await expect(engineer.getByText("Проверьте фотографии самостоятельно.", {exact: true})).toHaveCount(1);
+  await expect(engineer.getByRole("button", {name: "Принять работу", exact: true})).toHaveCount(0);
+  await expect(engineer.getByRole("button", {name: "Вернуть на доработку", exact: true})).toHaveCount(0);
+  const chiefContext = await browser.newContext(contextOptions);
+  const chief = await chiefContext.newPage();
+  chief.on("pageerror", error => errors.push(error.message));
+  await signIn(chief, "fixrate-demo-chief_engineer@example.test");
+  await chief.goto(`/quality/${demoId("runtime-order")}`);
+  await chief.getByLabel(/Причина решения/).fill("Одинаковые учебные фото проверены в синтетическом сценарии.");
+  await chief.getByRole("button", {name: "Вернуть на доработку", exact: true}).click();
+  const reject = chief.waitForResponse(r => r.url().endsWith("/review") && r.request().method() === "POST");
+  await chief.getByRole("dialog").getByRole("button", {name: "Вернуть на доработку", exact: true}).click();
   const rejected = await reject;
   expect(rejected.status()).toBe(200);
   const firstAttempt = (await rejected.json()).execution.id;
@@ -84,27 +104,31 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
   await expect(executor.getByRole("heading", {name: "Чек-лист"})).toBeVisible();
   await expect(executor.getByText("Попытка №2", {exact: true})).toBeVisible();
   await executor.getByRole("checkbox", {name: /Поверхность очищена/}).check();
+  await executor.getByRole('button',{name:'Добавить фотографии',exact:true}).click();
   for (const phase of ["before", "after"]) {
     const uploaded = executor.waitForResponse(r => r.url().endsWith("/photos") && r.request().method() === "POST");
     await executor.getByLabel(new RegExp(`^Фото ${phase === "before" ? "до" : "после"}: `)).setInputFiles(photo);
     expect((await uploaded).status()).toBe(200);
     await expect(executor.locator(".evidence-photo img")).toHaveCount(phase === "before" ? 1 : 2);
   }
+  await executor.getByRole('button',{name:'Итоговый отчёт',exact:true}).click();
   const resubmit = executor.waitForResponse(r => r.url().endsWith("/submit"));
   await executor.getByRole("button", {name: "Сдать работу"}).click();
   await executor.getByRole("dialog", {name: "Передать отчёт инженеру?"}).getByRole("button", {name: "Подтвердить сдачу"}).click();
   const submittedAgain = await resubmit;
   expect(submittedAgain.status()).toBe(200);
   expect((await submittedAgain.json()).execution.id).not.toBe(firstAttempt);
-  await engineer.reload();
-  await expect(engineer.getByText("Попытка №2", {exact: true})).toBeVisible();
-  await engineer.getByLabel(/Причина решения/).fill("Повторная попытка проверена инженером.");
-  await engineer.getByRole("button", {name: "Принять работу", exact: true}).click();
-  const accept = engineer.waitForResponse(r => r.url().endsWith("/review") && r.request().method() === "POST");
-  await engineer.getByRole("button", {name: "Подтвердить приёмку"}).click();
+  await chief.reload();
+  await expect(chief.getByText("Попытка №2", {exact: true})).toBeVisible();
+  const acceptedReason = "Повторная попытка проверена главным инженером.";
+  await chief.getByLabel(/Причина решения/).fill(acceptedReason);
+  await chief.getByRole("button", {name: "Принять работу", exact: true}).click();
+  const accept = chief.waitForResponse(r => r.url().endsWith("/review") && r.request().method() === "POST");
+  await chief.getByRole("button", {name: "Подтвердить приёмку"}).click();
   const accepted = await accept;
   expect(accepted.status()).toBe(200);
   expect((await accepted.json()).task.state).toBe("accepted");
+  await chiefContext.close();
   await engineer.goto(`/tasks/${demoId("runtime-order")}`);
   await engineer.getByRole("button", {name: "Сравнить прогнозы", exact: true}).click();
   await expect(engineer).toHaveURL(/\/comparisons\//);
@@ -124,10 +148,11 @@ test("real SPA → API → PostgreSQL → photos → ML guardrails → engineer 
   if(configuredViewport)expect(await director.evaluate(()=>innerWidth)).toBe(configuredViewport.width);
   await director.goto(`/tasks/${demoId('runtime-order')}`);
   await expect(director.getByRole('heading',{name:'Решение инженера',exact:true})).toBeVisible();
-  await expect(director.getByText('Повторная попытка проверена инженером.',{exact:true})).toBeVisible();
+  await expect(director.getByText(acceptedReason, {exact: true})).toBeVisible();
   for(const name of ['Подобрать бригаду','Принять работу','Вернуть на доработку','Сдать работу','Отменить задание']){
     await expect(director.getByRole('button',{name,exact:true})).toHaveCount(0);
   }
+  await director.locator('summary').filter({hasText:'История задания и предыдущие попытки'}).click();
   await director.locator('summary').filter({hasText:'История попыток и доказательств'}).click();
   await expect(director.getByRole('heading',{name:/Попытка 1 ·/})).toBeVisible();
   await expect(director.getByRole('heading',{name:/Попытка 2 ·/})).toBeVisible();

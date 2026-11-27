@@ -24,8 +24,24 @@ def digest(value):
     return sha256(json.dumps(value, sort_keys=True, default=_json_value, ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
 
 
+def legacy_source_query(v,name):
+    """Finite catalog publications own their consent; they are not recurrence edits."""
+    cls=v.models[name];rule=v.models['maintenance_rules']
+    finite=select(rule.maintenance_rule_id).where(rule.site_id==v.principal.site_id,rule.schedule_parameters['catalog_publication_id'].astext.is_not(None))
+    query=select(cls).where(cls.site_id==v.principal.site_id)
+    if name=='maintenance_rules':query=query.where(cls.maintenance_rule_id.not_in(finite))
+    elif name in ('rule_equipment','rule_required_skills'):query=query.where(cls.maintenance_rule_id.not_in(finite))
+    elif name in ('operation_templates','checklist_templates'):
+        ops=select(rule.operation_template_id).where(rule.maintenance_rule_id.in_(finite))
+        query=query.where(cls.operation_template_id.not_in(ops))
+    elif name=='regulation_editions':
+        editions=select(rule.regulation_edition_id).where(rule.maintenance_rule_id.in_(finite))
+        query=query.where(cls.regulation_edition_id.not_in(editions))
+    return query
+
+
 def catalog_token(v):
-    return digest({name:sorted([{column.name:getattr(row,column.name) for column in v.models[name].__table__.columns} for row in v.rows(name)],key=digest) for name in SOURCE_TABLES})
+    return digest({name:sorted([{column.name:getattr(row,column.name) for column in v.models[name].__table__.columns} for row in v.session.scalars(legacy_source_query(v,name))],key=digest) for name in SOURCE_TABLES})
 
 
 def source_token(v, year, month, now):
@@ -34,7 +50,7 @@ def source_token(v, year, month, now):
                  site=str(site.site_id), name=site.name, address=site.address, active=site.is_active)
     for name in SOURCE_TABLES:
         cls = v.models[name]
-        rows = v.rows(name)
+        rows = v.session.scalars(legacy_source_query(v,name)).all()
         facts[name] = sorted([{column.name: getattr(row, column.name) for column in cls.__table__.columns} for row in rows], key=digest)
     reviews = [row for row in v.rows("acceptance_reviews") if row.decision == "accepted" and row.reviewed_at <= now]
     ids = {row.work_order_id for row in reviews}
@@ -57,7 +73,7 @@ def _stored(v, key, request_hash):
 def _lock_sources(v):
     for name in SOURCE_TABLES:
         cls = v.models[name]
-        v.session.scalars(select(cls).where(cls.site_id == v.principal.site_id)
+        v.session.scalars(legacy_source_query(v,name)
             .order_by(*cls.__table__.primary_key.columns).with_for_update(read=True)
             .execution_options(populate_existing=True)).all()
 
@@ -145,7 +161,7 @@ def generate_tasks(v, year, month, key, token, forecaster, *, forecast_timeout_s
                 if plan is None:
                     revision = max((p.revision for p in v.rows("schedule_plans", period_year=year, period_month=month)), default=0)+1
                     plan = v.repo.add("schedule_plans", site_id=site.site_id, period_year=year, period_month=month, revision=revision,
-                        created_by=actor.user_id, source_snapshot={"planning_run_id":str(run_id), "token":token, "policy":"maintenance-orchestrator-v1"})
+                        created_by=actor.user_id, source_snapshot={"planning_run_id":str(run_id), "token":token, "policy":decision.policy_version})
                 occurrence_id = UUID(row["id"])
                 entry = v.repo.add("schedule_entries", schedule_entry_id=occurrence_id, source_occurrence_id=occurrence_id,
                     site_id=site.site_id, system_id=binding_row.system_id, schedule_plan_id=plan.schedule_plan_id,

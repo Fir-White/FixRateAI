@@ -1,0 +1,11 @@
+{
+  "migrations": {
+    "count": 33,
+    "tree_sha256": "e8c46868b03202c5b15f8872b51d0aa918031aa7c7de0b47cc623b6b7618d834"
+  },
+  "build": {
+    "count": 89,
+    "tree_sha256": "8b6dc15da49f3e1c762bf2221ab60e6955a384aeed09316613f5544f484e8fb0"
+  },
+  "algorithm": "sha256(concat(sorted(relative-posix-path + space + lowercase sha256 + LF)))"
+}

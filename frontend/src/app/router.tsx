@@ -1,141 +1,105 @@
 import { lazy, Suspense } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { pageLoaders } from "./pageModules";
+import { lazyPage, pageModule } from "./pageModule";
+import { createRoutesFromElements, matchRoutes, Navigate, Route, useLocation, useRoutes } from "react-router-dom";
 import { RequireRole, RequireSession } from "@/app/guards";
 import { LoadingState } from "@/shared/ui/States";
 import { AppShell } from "@/layouts/AppShell";
 import { ExecutorLayout } from "@/layouts/ExecutorLayout";
 import { LoginPage } from "@/pages/LoginPage";
-import { AuthLayout } from "@/pages/AuthLayout";
-import { HomeRedirect } from "@/pages/HomeRedirect";
-import { DispatcherPage } from "@/pages/DispatcherPage";
-import { EquipmentPage } from "@/pages/EquipmentPage";
-import { EquipmentDetailPage } from "@/pages/EquipmentDetailPage";
-import { CalendarPage } from "@/pages/CalendarPage";
-import { TasksPage } from "@/pages/TasksPage";
-import { TaskDetailPage } from "@/pages/TaskDetailPage";
-import { ComparisonsPage } from "@/pages/ComparisonsPage";
-import { ReportsPage } from "@/pages/ReportsPage";
-import { ComparisonDetailPage } from "@/pages/ComparisonDetailPage";
-import { ExecutorPage } from "@/pages/ExecutorPage";
-import { ExecutorTaskPage } from "@/pages/ExecutorTaskPage";
-import { QualityPage } from "@/pages/QualityPage";
-import { QualityTaskPage } from "@/pages/QualityTaskPage";
-import { NotFoundPage } from "@/pages/NotFoundPage";
-import { ServiceSettingsPage } from "@/pages/ServiceSettingsPage";
-import { WorkforceSettingsPage } from "@/pages/WorkforceSettingsPage";
 import { RegistrationPage } from "@/pages/RegistrationPage";
-import { ProfilePage } from "@/pages/ProfilePage";
-import { PersonalShiftsPage } from "@/pages/PersonalShiftsPage";
+const SetupPage = lazy(() => import("@/pages/SetupPage").then(module => ({ default: module.SetupPage })));
+import { HomeRedirect } from "@/pages/HomeRedirect";
+import { NotFoundPage } from "@/pages/NotFoundPage";
 import { SECTION_ROLES } from "@/shared/lib/roles";
+import type { Role } from "@/shared/types/domain";
 
-const WorkspaceLayout = lazy(() => import("@/layouts/WorkspaceLayout").then(module => ({ default: module.WorkspaceLayout })));
+const DispatcherPage = lazyPage(pageLoaders.DispatcherPage);
+const AssistantPage = lazyPage(pageLoaders.AssistantPage);
+const PlanningPage = lazyPage(pageLoaders.PlanningPage);
+const EquipmentPage = lazyPage(pageLoaders.EquipmentPage);
+const EquipmentDetailPage = lazyPage(pageLoaders.EquipmentDetailPage);
+const CalendarPage = lazyPage(pageLoaders.CalendarPage);
+const TasksPage = lazyPage(pageLoaders.TasksPage);
+const TaskDetailPage = lazyPage(pageLoaders.TaskDetailPage);
+const ComparisonsPage = lazyPage(pageLoaders.ComparisonsPage);
+const ReportsPage = lazyPage(pageLoaders.ReportsPage);
+const ComparisonDetailPage = lazyPage(pageLoaders.ComparisonDetailPage);
+const ExecutorPage = lazyPage(pageLoaders.ExecutorPage);
+const ExecutorTaskPage = lazyPage(pageLoaders.ExecutorTaskPage);
+const QualityPage = lazyPage(pageLoaders.QualityPage);
+const QualityTaskPage = lazyPage(pageLoaders.QualityTaskPage);
+const ServiceSettingsPage = lazyPage(pageLoaders.ServiceSettingsPage);
+const WorkforceSettingsPage = lazyPage(pageLoaders.WorkforceSettingsPage);
+const ProfilePage = lazyPage(pageLoaders.ProfilePage);
+const PersonalShiftsPage = lazyPage(pageLoaders.PersonalShiftsPage);
 
-export function AppRouter() {
+const WorkspaceLayout = lazyPage(pageModule(() => import("@/layouts/WorkspaceLayout").then(module => ({ default: module.WorkspaceLayout }))), "Загрузка рабочего пространства");
+const AuthLayout = lazy(() => import("@/pages/AuthLayout").then(module => ({ default: module.AuthLayout })));
+
+function WorkspaceAccess() {
+  const location = useLocation();
+  // Nested executor routes inherit the restriction declared on their parent.
+  const match = matchRoutes(routes, location)?.find(({ route }) => route.handle?.roles);
+  const roles: readonly Role[] | undefined = match?.route.handle?.roles;
+
   return (
-    <Routes>
-      <Route element={<AuthLayout />}>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegistrationPage />} />
-      </Route>
+    <RequireRole roles={roles}>
+      <WorkspaceLayout />
+    </RequireRole>
+  );
+}
 
-      <Route element={<RequireSession />}>
-        <Route element={<Suspense fallback={<LoadingState label="Загрузка рабочего пространства" />}><WorkspaceLayout /></Suspense>}>
+const routes = createRoutesFromElements(
+  <>
+    <Route element={<Suspense fallback={<div className="auth-pending"><LoadingState label="Загрузка входа" /></div>}><AuthLayout /></Suspense>}>
+      <Route path="/setup" element={<Suspense fallback={<LoadingState />}><SetupPage /></Suspense>} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegistrationPage />} />
+    </Route>
+
+    <Route element={<RequireSession />}>
+      <Route element={<WorkspaceAccess />}>
         <Route path="/" element={<HomeRedirect />} />
 
         <Route element={<AppShell />}>
+          <Route path="/assistant" element={<AssistantPage />} />
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/director" element={<RequireRole roles={["director"]}><DispatcherPage /></RequireRole>} />
+          <Route path="/director" handle={{ roles: ["director"] }} element={<DispatcherPage />} />
           <Route path="/executive" element={<Navigate to="/director" replace />} />
-          <Route path="/chief-engineer" element={<RequireRole roles={["chief_engineer"]}><DispatcherPage /></RequireRole>} />
-          <Route path="/engineer" element={<RequireRole roles={["engineer"]}><QualityPage /></RequireRole>} />
-          <Route path="/admin" element={<RequireRole roles={["admin"]}><DispatcherPage /></RequireRole>} />
-          <Route
-            path="/dispatcher"
-            element={
-              <RequireRole roles={SECTION_ROLES.dispatcher}>
-                <DispatcherPage />
-              </RequireRole>
-            }
-          />
+          <Route path="/chief-engineer" handle={{ roles: ["chief_engineer"] }} element={<DispatcherPage />} />
+          <Route path="/engineer" handle={{ roles: ["engineer"] }} element={<DispatcherPage />} />
+          <Route path="/admin" handle={{ roles: ["admin"] }} element={<DispatcherPage />} />
+          <Route path="/dispatcher" handle={{ roles: SECTION_ROLES.dispatcher }} element={<DispatcherPage />} />
           <Route path="/equipment" element={<EquipmentPage />} />
+          <Route path="/planning" handle={{ roles: SECTION_ROLES.planning }} element={<PlanningPage />} />
           <Route path="/equipment/:equipmentId" element={<EquipmentDetailPage />} />
-          <Route path="/settings/equipment" element={<RequireRole roles={SECTION_ROLES.service_settings}><ServiceSettingsPage /></RequireRole>} />
-          <Route path="/settings/workforce" element={<RequireRole roles={SECTION_ROLES.workforce_settings}><WorkforceSettingsPage /></RequireRole>} />
-          <Route path="/my-shifts" element={<RequireRole roles={SECTION_ROLES.executor}><PersonalShiftsPage /></RequireRole>} />
-          <Route
-            path="/calendar"
-            element={
-              <RequireRole roles={SECTION_ROLES.calendar}>
-                <CalendarPage />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/tasks"
-            element={
-              <RequireRole roles={SECTION_ROLES.tasks}>
-                <TasksPage />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/tasks/:taskId"
-            element={
-              <RequireRole roles={SECTION_ROLES.tasks}>
-                <TaskDetailPage />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/comparisons"
-            element={
-              <RequireRole roles={SECTION_ROLES.comparisons}>
-                <ComparisonsPage />
-              </RequireRole>
-            }
-          />
-          <Route path="/reports" element={<RequireRole roles={SECTION_ROLES.reports}><ReportsPage /></RequireRole>} />
-          <Route
-            path="/comparisons/:runId"
-            element={
-              <RequireRole roles={SECTION_ROLES.comparisons}>
-                <ComparisonDetailPage />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/quality"
-            element={
-              <RequireRole roles={SECTION_ROLES.quality}>
-                <QualityPage />
-              </RequireRole>
-            }
-          />
-          <Route
-            path="/quality/:taskId"
-            element={
-              <RequireRole roles={SECTION_ROLES.quality}>
-                <QualityTaskPage />
-              </RequireRole>
-            }
-          />
+          <Route path="/settings/equipment" handle={{ roles: SECTION_ROLES.service_settings }} element={<ServiceSettingsPage />} />
+          <Route path="/settings/workforce" handle={{ roles: SECTION_ROLES.workforce_settings }} element={<WorkforceSettingsPage />} />
+          <Route path="/my-shifts" handle={{ roles: SECTION_ROLES.executor }} element={<PersonalShiftsPage />} />
+          <Route path="/calendar" handle={{ roles: SECTION_ROLES.calendar }} element={<CalendarPage />} />
+          <Route path="/tasks" handle={{ roles: SECTION_ROLES.tasks }} element={<TasksPage />} />
+          <Route path="/tasks/:taskId" handle={{ roles: SECTION_ROLES.tasks }} element={<TaskDetailPage />} />
+          <Route path="/comparisons" handle={{ roles: SECTION_ROLES.comparisons }} element={<ComparisonsPage />} />
+          <Route path="/reports" handle={{ roles: SECTION_ROLES.reports }} element={<ReportsPage />} />
+          <Route path="/comparisons/:runId" handle={{ roles: SECTION_ROLES.comparisons }} element={<ComparisonDetailPage />} />
+          <Route path="/quality" handle={{ roles: SECTION_ROLES.quality }} element={<QualityPage />} />
+          <Route path="/quality/:taskId" handle={{ roles: SECTION_ROLES.quality }} element={<QualityTaskPage />} />
         </Route>
 
-        <Route
-          path="/executor"
-          element={
-            <RequireRole roles={SECTION_ROLES.executor}>
-              <ExecutorLayout />
-            </RequireRole>
-          }
-        >
+        <Route path="/executor" handle={{ roles: SECTION_ROLES.executor }} element={<ExecutorLayout />} >
           <Route index element={<ExecutorPage />} />
+          <Route path="tasks" element={<ExecutorPage />} />
+          <Route path="reports" element={<ExecutorPage />} />
           <Route path="tasks/:taskId" element={<ExecutorTaskPage />} />
         </Route>
         </Route>
-      </Route>
+    </Route>
 
-      <Route path="*" element={<NotFoundPage />} />
-    </Routes>
-  );
+    <Route path="*" element={<NotFoundPage />} />
+  </>,
+);
+
+export function AppRouter() {
+  return useRoutes(routes);
 }

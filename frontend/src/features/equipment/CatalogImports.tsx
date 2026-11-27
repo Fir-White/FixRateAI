@@ -1,0 +1,151 @@
+import { lazy,Suspense,useDeferredValue, useRef, useState, type ReactNode } from 'react';
+import { catalogImportsApi as api, type CatalogPreview, type CatalogSummary, type CatalogOperation, type CatalogIssue, type RawCatalogCell } from '@/shared/api/catalogImports';
+import { useApiQuery } from '@/shared/lib/useApiQuery';
+import { Button } from '@/shared/ui/Button';
+import { Card } from '@/shared/ui/Card';
+import { Input, Select, FieldCaption } from '@/shared/ui/Form';
+import { FileInput } from '@/shared/ui/FileInput';
+import { LoadingState, ErrorState, EmptyState } from '@/shared/ui/States';
+import { Callout } from '@/shared/ui/Callout';
+import { Drawer } from '@/shared/ui/Drawer';
+import { dateTimeFormatter } from '@/shared/lib/dateTimeFormatter';
+import './catalog-imports.css';
+import { CatalogDecisionEditor, decisionBlockers } from './CatalogDecisionEditor';
+import type { CatalogPreparation } from '@/shared/api/catalogImports';
+import type { DraftRecord } from '@/shared/api/draftPlans';
+import { JourneySteps } from '@/shared/ui/JourneySteps';
+
+const message=(error:unknown)=>error instanceof Error?error.message:'Не удалось обработать каталог';
+const flags:Record<string,string>={NEEDS_SEMANTICS:'Уточнить смысл отметок',NEEDS_DURATION:'Подтвердить норму времени',NEEDS_ASSET_BINDING:'Привязать оборудование',NEEDS_POLICY:'Подтвердить правила планирования'};
+const CatalogPlans=lazy(()=>import('@/features/planning/CatalogPlans').then(m=>({default:m.CatalogPlans})));
+
+export interface CatalogWorkspace {
+  catalogId:string;stage:'prepare'|'plan';draftId:string;draftRevision:number|null;planView:string;
+  selectCatalog:(id:string)=>void;selectStage:(stage:'prepare'|'plan')=>void;
+  selectDraft:(record:DraftRecord|null)=>void;selectPlanView:(view:string)=>void;
+  loadMonth?:string;selectLoadMonth?:(month:string)=>void;
+}
+export function CatalogImports({mayImport,mayConfirm=false,mayPlan=mayImport,siteName,timezone='UTC',workspace,onOpenWorkbook,onWarmWorkbook,openWorkbookId,keptWorkbookId,primeWorkbook,renderWorkbookEditor}:{mayImport:boolean;mayConfirm?:boolean;mayPlan?:boolean;siteName?:string;timezone?:string;workspace?:CatalogWorkspace;onOpenWorkbook?:(id:string,opener:HTMLButtonElement)=>void;onWarmWorkbook?:()=>void;openWorkbookId?:string;keptWorkbookId?:string;primeWorkbook?:boolean;renderWorkbookEditor?:(id:string,filename:string)=>ReactNode}) {
+  const [file,setFile]=useState<File|null>(null),[preview,setPreview]=useState<CatalogPreview|null>(null);
+  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
+  const [localSelected,setLocalSelected]=useState(''),[refresh,setRefresh]=useState(0),[offset,setOffset]=useState(0),[uploadOpen,setUploadOpen]=useState(false);
+  const selected=workspace?.catalogId??localSelected;
+  const setSelected=(id:string)=>{if(workspace)workspace.selectCatalog(id);else setLocalSelected(id);};
+  const version=useRef(0);
+  const list=useApiQuery(()=>api.list(offset),[offset,refresh],undefined,`catalog-imports:${offset}`);
+  const showFiles = !workspace || !selected;
+  const showUpload = mayImport && (!workspace || (!selected && uploadOpen));
+  const empty = list.status === 'success' && list.data.total === 0;
+  const [preferredWorkbook,setPreferredWorkbook]=useState<string>();
+  const rows=list.data?.items;
+  const editorId=keptWorkbookId??(primeWorkbook
+    ? rows?.find(item=>item.import_id===preferredWorkbook)?.import_id??rows?.[0]?.import_id
+    : undefined);
+  const warmWorkbook=(id:string)=>{
+    if (!onWarmWorkbook||keptWorkbookId) return;
+    setPreferredWorkbook(id);
+    onWarmWorkbook();
+  };
+  return <div className="catalog-imports space-y-4">
+    {siteName&&<p className="text-sm text-muted">Здание: {siteName}</p>}
+    {workspace&&selected&&<Button variant="ghost" onClick={()=>setSelected('')}>← Все файлы и планы</Button>}
+    {!workspace&&<Callout>Каталог содержит шаблоны работ. Смысл календарных отметок, оборудование и нормы подтверждаются отдельно. Сохранение черновика не создаёт наряды и назначения.</Callout>}
+    {showFiles && <div className="catalog-files-heading">
+      <h2>Файлы регламентов</h2>
+      {workspace && mayImport && <Button variant={empty && !uploadOpen ? 'primary' : 'secondary'}
+        aria-expanded={uploadOpen} onClick={()=>setUploadOpen(value=>!value)}>
+        {uploadOpen ? 'Свернуть загрузку' : 'Загрузить Excel с регламентами'}
+      </Button>}
+    </div>}
+    {showUpload && <Card className="catalog-upload space-y-3 p-4 sm:p-5"><h3 className="font-semibold">Новый файл регламентов</h3><p className="text-sm text-muted">Загрузите Excel СВиК с листом «Лист1»: операции A:G и дни января H:AL. Реестр оборудования загружается в разделе «Оборудование».</p>
+      <FileInput aria-label="Excel каталога СВиК" accept=".xlsx" disabled={busy} onChange={e=>{version.current++;setFile(e.target.files?.[0]??null);setPreview(null);setError('');setNotice('');}}/>
+      <Button variant="secondary" disabled={busy||!file} onClick={async()=>{if(!file||busy)return;const current=version.current;setBusy(true);setError('');setPreview(null);try{const result=await api.preview(file);if(current===version.current)setPreview(result);}catch(e){setError(message(e));}finally{setBusy(false);}}}>{busy?'Обработка…':'Проверить каталог'}</Button>
+      {preview&&<section className="space-y-4" aria-label="Предпросмотр каталога СВиК"><Summary value={preview.summary}/><Issues issues={preview.issues}/><Diagnostics cells={preview.sheet2_diagnostic}/>
+        <p className="text-sm text-muted">Первые {preview.operations.length} из {preview.total} операций. После сохранения черновика доступны все строки, поиск и исходные ячейки.</p>
+        <Operations items={preview.operations}/>
+        <Button disabled={busy||!preview.can_save_draft} onClick={async()=>{if(!file||busy)return;setBusy(true);setError('');try{const result=await api.save(file,preview.preview_token);setSelected(result.import_id);setNotice(result.already_saved?'Этот источник уже сохранён. Открыт прежний черновик.':'Каталог сохранён как черновик. Действующий план не изменён.');setPreview(null);setOffset(0);setRefresh(n=>n+1);}catch(e){setError(message(e));}finally{setBusy(false);}}}>Сохранить каталог-черновик</Button>
+      </section>}
+    </Card>}
+    {error&&<p role="alert"><Callout tone="danger">{error}</Callout></p>}{notice&&<p role="status">{notice}</p>}
+    {list.status==='loading'&&<LoadingState/>}{list.status==='error'&&<ErrorState description={list.error}/>}
+    {list.status==='success' && showFiles && (empty
+      ? !showUpload && <EmptyState title="Файлов пока нет" description={mayImport
+        ? 'Загрузите Excel с регламентами, чтобы проверить операции и подготовить план.'
+        : 'Сохранённые файлы появятся после загрузки главным инженером.'}/>
+       : <><ul className={`space-y-2${workspace?' planning-catalog-list':''}`}>{list.data.items.map(item=><li key={item.import_id} className={onOpenWorkbook?'grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]':''}>
+         <Button variant={selected===item.import_id?'primary':'secondary'} disabled={!!openWorkbookId} aria-expanded={onOpenWorkbook?openWorkbookId===item.import_id:undefined}
+            onFocus={()=>warmWorkbook(item.import_id)} onPointerEnter={()=>warmWorkbook(item.import_id)}
+            onClick={event=>onOpenWorkbook?onOpenWorkbook(item.import_id,event.currentTarget):setSelected(item.import_id)}>
+           <span>{item.filename} · {item.summary.operation_count} операций · Черновик<small className="block text-xs font-normal">Загружен: {dateTimeFormatter('ru-RU',{timeZone:timezone,dateStyle:'short',timeStyle:'medium'}).format(new Date(item.created_at))}</small></span>
+           {onOpenWorkbook&&<span aria-hidden="true" className="ml-auto text-xs text-accent">Открыть Excel ↗</span>}
+         </Button>
+         {onOpenWorkbook&&<Button variant="ghost" disabled={!!openWorkbookId} onClick={()=>setSelected(item.import_id)}>Регламент и план</Button>}
+          {editorId===item.import_id&&<div hidden={openWorkbookId!==item.import_id} inert={openWorkbookId!==item.import_id} className="min-w-0 sm:col-span-2">{renderWorkbookEditor?.(item.import_id,item.filename)}</div>}
+        </li>)}</ul>{!openWorkbookId&&<Pager offset={offset} total={list.data.total} onChange={setOffset}/>}</>)}
+    {selected&&<SavedCatalog key={selected} id={selected} mayEdit={mayImport} mayConfirm={mayConfirm} mayPlan={mayPlan} timezone={timezone} workspace={workspace}/>}
+  </div>;
+}
+
+function Summary({value}:{value:CatalogSummary}) {
+  return <div className="space-y-2" aria-label="Готовность каталога"><p><strong>{value.operation_count}</strong> шаблонов · {value.top_level_group_count} разделов · {value.mark_count} исходных отметок</p>
+    <p>Нормы времени отсутствуют: <strong>{value.empty_duration_count}</strong>. Готово к реальному плану: <strong>{value.ready_count}</strong>.</p>
+    <p className="text-sm text-muted">{Object.entries(value.maintenance_types).map(([kind,count])=>`${kind}: ${count}`).join(' · ')}</p>
+    <ul className="text-sm text-muted">{Object.entries(value.readiness_counts).map(([flag,count])=><li key={flag}>{flags[flag]??flag}: {count}</li>)}</ul></div>;
+}
+function Issues({issues}:{issues:CatalogIssue[]}) {
+  const [offset,setOffset]=useState(0);
+  return <div className="space-y-2">{issues.slice(offset,offset+25).map((issue,index)=><Callout tone="warning" key={index}>{issue.sheet}!{issue.cell}: {issue.message}</Callout>)}<Pager offset={offset} total={issues.length} onChange={setOffset}/></div>;
+}
+function Diagnostics({cells}:{cells:RawCatalogCell[]}) {return cells.length>0&&<details><summary className="cursor-pointer text-sm">Сверка расчётного листа</summary><dl className="mt-3 space-y-2 text-sm">{cells.map(cell=><div key={cell.address}><dt>Лист2!{cell.address}</dt><dd className="break-words whitespace-pre-wrap">{cell.text??'Нет значения'}{cell.formula&&` · Формула: ${cell.formula}. Показан сохранённый результат Excel.`}</dd></div>)}</dl></details>;}
+function Pager({offset,total,onChange}:{offset:number;total:number;onChange:(next:number)=>void}) {return total>25&&<nav className="flex flex-wrap items-center justify-between gap-3" aria-label="Страницы каталога"><span className="text-sm text-muted">{offset+1}–{Math.min(offset+25,total)} из {total}</span><div className="flex gap-2"><Button variant="secondary" disabled={!offset} onClick={()=>onChange(offset-25)}>Предыдущие 25</Button><Button variant="secondary" disabled={offset+25>=total} onClick={()=>onChange(offset+25)}>Следующие 25</Button></div></nav>;}
+function Operations({items,onSelect,preparation}:{items:CatalogOperation[];onSelect?:(row:number)=>void;preparation?:CatalogPreparation}) {
+  const states=new Map(preparation?.items.map(item=>[item.row_number,item]));
+  return <div className="registry-scroll"><table className="registry-table catalog-import-table" aria-label="Операции каталога СВиК"><thead><tr><th>Код и операция</th><th>Вид ТО / частота</th><th>Исходные данные</th><th>Уточнения</th></tr></thead><tbody>{items.map(row=>{
+    const state=states.get(row.row);
+    return <tr key={row.row}><td data-label="Операция">{onSelect?<Button variant="ghost" onClick={()=>onSelect(row.row)}>{row.code} · {row.title}</Button>:<span>{row.code} · {row.title}</span>}</td><td data-label="Вид ТО / частота">{row.maintenance_type}<br/>{row.frequency_raw}</td><td data-label="Источник">Лист1!{row.source_cells.B}<br/>{row.mark_count} отметок января</td><td data-label="Уточнения">{state&&<small>{state.prepared?'Подготовлено':state.confirmed?'Требует повторной проверки':'Черновик'} · v{state.revision}</small>}{(state?.blockers??row.quality_flags).map(flag=><small key={flag}>{decisionBlockers[flag]??flags[flag]??flag}</small>)}</td></tr>;
+  })}</tbody></table>{!items.length&&<p className="p-4 text-sm">Операции не найдены.</p>}</div>;
+}
+
+function SavedCatalog({id,mayEdit,mayConfirm,mayPlan,timezone,workspace}:{id:string;mayEdit:boolean;mayConfirm:boolean;mayPlan:boolean;timezone:string;workspace?:CatalogWorkspace}) {
+  const detail=useApiQuery(()=>api.detail(id),[id],undefined,`catalog:${id}`);
+  if(!workspace)return <CatalogSource id={id} mayEdit={mayEdit} mayConfirm={mayConfirm} mayPlan={mayPlan} timezone={timezone}/>;
+  return <section className="space-y-5" aria-label="Сохранённый каталог СВиК">{detail.status==='success'&&<h2 className="text-lg font-semibold break-words">{detail.data.filename}</h2>}<JourneySteps label="Подготовка плана из файла" numbered={false} hideNavigation={!!workspace.draftId&&workspace.stage==='plan'} value={workspace.stage} onChange={stage=>workspace.selectStage(stage as 'prepare'|'plan')} steps={[
+    {id:'prepare',title:'Операции и нормы',description:'Подтвердите оборудование, норму времени и смысл отметок для тех операций, которые войдут в план.',content:()=> <><CatalogSource id={id} mayEdit={mayEdit} mayConfirm={mayConfirm} mayPlan={mayPlan} timezone={timezone} guided/><div className="journey-footer"><p className="text-sm text-muted">Операции подготовлены? Перейдите к составу работ и расчёту.</p><Button onClick={()=>workspace.selectStage('plan')}>Перейти к плану →</Button></div></>},
+    {id:'plan',title:'Планы этого файла',content:()=> <Suspense fallback={<LoadingState/>}><CatalogPlans id={id} mayEdit={mayPlan} mayApprove={mayConfirm} timezone={timezone} workspace={workspace}/></Suspense>},
+  ]}/></section>;
+}
+function CatalogSource({id,mayEdit,mayConfirm,mayPlan,timezone,guided=false}:{id:string;mayEdit:boolean;mayConfirm:boolean;mayPlan:boolean;timezone:string;guided?:boolean}) {
+  const [plans,setPlans]=useState(false);
+  const [refresh,setRefresh]=useState(0);
+  const preparation=useApiQuery(()=>api.preparation(id),[id,refresh],undefined,`catalog-preparation:${id}`);
+  const [search,setSearch]=useState(''),[group,setGroup]=useState(''),[kind,setKind]=useState(''),[offset,setOffset]=useState(0),[row,setRow]=useState<number|null>(null);
+  const needle=useDeferredValue(search);
+  const detail=useApiQuery(()=>api.detail(id),[id],undefined,`catalog:${id}`);
+  const rows=useApiQuery(()=>api.operations(id,offset,needle,group,kind),[id,offset,needle,group,kind],undefined,`catalog-rows:${JSON.stringify([id,offset,needle,group,kind])}`);
+  return <section className="space-y-4 border-t border-line pt-5" aria-label={guided?'Операции и нормы каталога':'Сохранённый каталог СВиК'}>
+    {!guided&&<Button variant="secondary" aria-expanded={plans} onClick={()=>setPlans(v=>!v)}>Черновики планов этого каталога</Button>}
+    {plans&&<Suspense fallback={<LoadingState/>}><CatalogPlans id={id} mayEdit={mayPlan} mayApprove={mayConfirm} timezone={timezone}/></Suspense>}
+    {detail.status==='loading'&&<LoadingState/>}{detail.status==='error'&&<ErrorState description={detail.error}/>}
+    {detail.status==='success'&&<><div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-semibold">{detail.data.filename}</h3><a className="text-accent underline" href={api.source(id)}>Скачать исходный Excel</a></div>
+      <details><summary>Проверка исходного Excel и замечания</summary><div className="mt-3 space-y-3"><Summary value={detail.data.summary}/><Issues issues={detail.data.issues}/><Diagnostics cells={detail.data.sheet2_diagnostic}/></div></details>
+      {preparation.status==='loading'&&<LoadingState/>}{preparation.status==='error'&&<ErrorState description={preparation.error}/>}
+      {preparation.status==='success'&&<div className="space-y-2" aria-label="Подготовка к планированию"><p>Подготовлено строк: <strong>{preparation.data.prepared_count} из {preparation.data.total}</strong>. Подтверждений: {preparation.data.confirmed_count}.</p><p className="text-sm text-muted">Откройте операцию, чтобы уточнить смысл отметок, оборудование и норму. Назначения появятся после отдельного этапа планирования.</p><ul className="text-sm text-muted">{Object.entries(preparation.data.blocker_counts).map(([flag,count])=><li key={flag}>{decisionBlockers[flag]??flag}: {count}</li>)}</ul></div>}
+      <details><summary className="cursor-pointer text-sm">Иерархия и источник</summary><p className="mt-3 break-all text-xs text-muted">SHA-256: {detail.data.source_sha256}</p><ul className="mt-3 space-y-1 text-sm">{detail.data.groups.map(item=><li key={item.id} className={item.parent_id?'pl-5':''}>{item.code} · {item.title} · Лист1!B{item.row}</li>)}</ul><p className="mt-4 text-sm">Дополнительные заголовки исходника</p><ul className="mt-2 space-y-1 text-sm">{detail.data.header_context.map(cell=><li key={cell.address}>{cell.address} · {cell.text}</li>)}</ul></details>
+      <div className="grid gap-3 sm:grid-cols-3"><label><FieldCaption>Поиск операций каталога</FieldCaption><Input aria-label="Поиск операций каталога" value={search} onChange={e=>{setSearch(e.target.value);setOffset(0);}}/></label>
+        <label><FieldCaption>Раздел каталога</FieldCaption><Select aria-label="Раздел каталога" value={group} onChange={e=>{setGroup(e.target.value);setOffset(0);}}><option value="">Все разделы</option>{detail.data.groups.map(item=><option key={item.id} value={item.id}>{item.code} · {item.title}</option>)}</Select></label>
+        <label><FieldCaption>Вид ТО каталога</FieldCaption><Select aria-label="Вид ТО каталога" value={kind} onChange={e=>{setKind(e.target.value);setOffset(0);}}><option value="">Все виды</option>{Object.keys(detail.data.summary.maintenance_types).map(item=><option key={item}>{item}</option>)}</Select></label></div>
+    </>}
+    {rows.status==='loading'&&<LoadingState/>}{rows.status==='error'&&<ErrorState description={rows.error}/>}{rows.status==='success'&&<><Operations items={rows.data.items} onSelect={setRow} preparation={preparation.status==='success'?preparation.data:undefined}/><Pager offset={offset} total={rows.data.total} onChange={setOffset}/></>}
+    <Drawer open={row!==null} onClose={()=>setRow(null)} title="Исходная строка каталога">{row!==null&&<div className="space-y-6" key={row}><CatalogDecisionEditor guided={guided} id={id} row={row} mayEdit={mayEdit} mayConfirm={mayConfirm} onSaved={()=>setRefresh(n=>n+1)}/><details open={!guided}><summary className="font-semibold">Исходные ячейки Excel</summary><SourceRow id={id} row={row}/></details></div>}</Drawer>
+  </section>;
+}
+function SourceRow({id,row}:{id:string;row:number}) {
+  const query=useApiQuery(()=>api.operation(id,row),[id,row],undefined,`catalog-source:${id}:${row}`);
+  if(query.status==='loading')return <LoadingState/>;if(query.status==='error')return <ErrorState description={query.error}/>;
+  const data=query.data;
+  const cellText=(cell:RawCatalogCell)=>!cell.present?'Ячейка отсутствует':cell.text===''?'Пустая ячейка':cell.text??'Неизвестно';
+  return <div className="space-y-4"><h3 className="font-semibold">{data.code} · {data.title}</h3><Callout>Данные исходного Excel: Смысл отметок не подтверждён. Месяц — январь, год не задан. Нормы и численность не рассчитаны. Уточнения инженера показаны отдельно выше.</Callout>
+    <dl className="space-y-3 text-sm">{Object.values(data.raw_cells).map(cell=><div key={cell.address}><dt className="text-muted">Лист1!{cell.address}</dt><dd className="whitespace-pre-wrap break-words">{cellText(cell)}</dd>{cell.formula&&<dd>Формула исходника: {cell.formula}; не исполнялась</dd>}</div>)}</dl>
+    <h4 className="font-semibold">Все 31 исходная ячейка января</h4><ul className="space-y-2 text-sm">{data.calendar_marks.map(cell=><li key={cell.address} className="whitespace-pre-wrap break-words">{cell.address} · день {cell.day}: {cellText(cell)}</li>)}</ul>
+  </div>;
+}

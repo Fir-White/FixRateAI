@@ -1,0 +1,824 @@
+{
+  "benchmark_id": "bm-cv-1795337321",
+  "schema_version": "1.0.0",
+  "timestamp": "2026-11-22T08:48:41.915116+00:00",
+  "purpose": "Evaluation and selection of baseline photo analysis model for MVP (MVP1-ML03)",
+  "models_evaluated": [
+    {
+      "id": "heuristic_baseline",
+      "name": "Heuristic Quality & Guardrail Baseline",
+      "type": "heuristic",
+      "compute": "CPU only (< 50MB RAM)",
+      "cost_per_1000": "$0.00",
+      "tl04_compliance": "100% on-device (zero egress)"
+    },
+    {
+      "id": "local_clip",
+      "name": "Local CLIP Zero-Shot (ViT-B/32)",
+      "type": "neural_embedding",
+      "compute": "CPU / GPU (~350MB RAM)",
+      "cost_per_1000": "$0.00",
+      "tl04_compliance": "100% on-device (zero egress)"
+    },
+    {
+      "id": "naive_vlm",
+      "name": "Naive Autonomous VLM (Unconstrained)",
+      "type": "multimodal_llm",
+      "compute": "Cloud API / Local Heavy GPU",
+      "cost_per_1000": "~$4.00",
+      "tl04_compliance": "Fails safety: attempts auto-acceptance without non-visual proof"
+    },
+    {
+      "id": "guarded_vlm",
+      "name": "Conservative Guarded VLM (AN07 / TL04)",
+      "type": "multimodal_llm",
+      "compute": "Ollama local GPU (8GB+) or AI Tunnel Cloud",
+      "cost_per_1000": "$0.00 (local) / ~$4.00 (cloud)",
+      "tl04_compliance": "Local: 100% compliant / Cloud: requires TL04 approval"
+    }
+  ],
+  "summary": {
+    "heuristic_baseline": {
+      "model_info": {
+        "id": "heuristic_baseline",
+        "name": "Heuristic Quality & Guardrail Baseline",
+        "type": "heuristic",
+        "compute": "CPU only (< 50MB RAM)",
+        "cost_per_1000": "$0.00",
+        "tl04_compliance": "100% on-device (zero egress)"
+      },
+      "total_cases": 9,
+      "policy_compliant_cases": 5,
+      "overall_compliance_rate_pct": 55.6,
+      "false_reassurance_count": 0,
+      "false_reassurance_rate_pct": 0.0,
+      "latency_p50_ms": 14.85,
+      "latency_p95_ms": 53.68,
+      "partitions": {
+        "development": {
+          "total": 4,
+          "policy_compliant": 2,
+          "compliance_pct": 50.0,
+          "false_reassurance_count": 0
+        },
+        "holdout": {
+          "total": 4,
+          "policy_compliant": 3,
+          "compliance_pct": 75.0,
+          "false_reassurance_count": 0
+        },
+        "cross_evaluation": {
+          "total": 1,
+          "policy_compliant": 0,
+          "compliance_pct": 0.0,
+          "false_reassurance_count": 0
+        }
+      }
+    },
+    "local_clip": {
+      "model_info": {
+        "id": "local_clip",
+        "name": "Local CLIP Zero-Shot (ViT-B/32)",
+        "type": "neural_embedding",
+        "compute": "CPU / GPU (~350MB RAM)",
+        "cost_per_1000": "$0.00",
+        "tl04_compliance": "100% on-device (zero egress)"
+      },
+      "total_cases": 9,
+      "policy_compliant_cases": 5,
+      "overall_compliance_rate_pct": 55.6,
+      "false_reassurance_count": 0,
+      "false_reassurance_rate_pct": 0.0,
+      "latency_p50_ms": 15.46,
+      "latency_p95_ms": 52.33,
+      "partitions": {
+        "development": {
+          "total": 4,
+          "policy_compliant": 2,
+          "compliance_pct": 50.0,
+          "false_reassurance_count": 0
+        },
+        "holdout": {
+          "total": 4,
+          "policy_compliant": 3,
+          "compliance_pct": 75.0,
+          "false_reassurance_count": 0
+        },
+        "cross_evaluation": {
+          "total": 1,
+          "policy_compliant": 0,
+          "compliance_pct": 0.0,
+          "false_reassurance_count": 0
+        }
+      }
+    },
+    "naive_vlm": {
+      "model_info": {
+        "id": "naive_vlm",
+        "name": "Naive Autonomous VLM (Unconstrained)",
+        "type": "multimodal_llm",
+        "compute": "Cloud API / Local Heavy GPU",
+        "cost_per_1000": "~$4.00",
+        "tl04_compliance": "Fails safety: attempts auto-acceptance without non-visual proof"
+      },
+      "total_cases": 9,
+      "policy_compliant_cases": 0,
+      "overall_compliance_rate_pct": 0.0,
+      "false_reassurance_count": 6,
+      "false_reassurance_rate_pct": 66.7,
+      "latency_p50_ms": 14.64,
+      "latency_p95_ms": 53.3,
+      "partitions": {
+        "development": {
+          "total": 4,
+          "policy_compliant": 0,
+          "compliance_pct": 0.0,
+          "false_reassurance_count": 3
+        },
+        "holdout": {
+          "total": 4,
+          "policy_compliant": 0,
+          "compliance_pct": 0.0,
+          "false_reassurance_count": 3
+        },
+        "cross_evaluation": {
+          "total": 1,
+          "policy_compliant": 0,
+          "compliance_pct": 0.0,
+          "false_reassurance_count": 0
+        }
+      }
+    },
+    "guarded_vlm": {
+      "model_info": {
+        "id": "guarded_vlm",
+        "name": "Conservative Guarded VLM (AN07 / TL04)",
+        "type": "multimodal_llm",
+        "compute": "Ollama local GPU (8GB+) or AI Tunnel Cloud",
+        "cost_per_1000": "$0.00 (local) / ~$4.00 (cloud)",
+        "tl04_compliance": "Local: 100% compliant / Cloud: requires TL04 approval"
+      },
+      "total_cases": 9,
+      "policy_compliant_cases": 6,
+      "overall_compliance_rate_pct": 66.7,
+      "false_reassurance_count": 0,
+      "false_reassurance_rate_pct": 0.0,
+      "latency_p50_ms": 14.53,
+      "latency_p95_ms": 51.6,
+      "partitions": {
+        "development": {
+          "total": 4,
+          "policy_compliant": 3,
+          "compliance_pct": 75.0,
+          "false_reassurance_count": 0
+        },
+        "holdout": {
+          "total": 4,
+          "policy_compliant": 3,
+          "compliance_pct": 75.0,
+          "false_reassurance_count": 0
+        },
+        "cross_evaluation": {
+          "total": 1,
+          "policy_compliant": 0,
+          "compliance_pct": 0.0,
+          "false_reassurance_count": 0
+        }
+      }
+    }
+  },
+  "detailed_results": [
+    {
+      "case_id": "CASE-01",
+      "operation_id": "1.1",
+      "equipment_id": "eq-item-991",
+      "equipment_class": "pressure_gauge",
+      "model_type": "heuristic_baseline",
+      "latency_ms": 45.95,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "rejected"
+      ],
+      "policy_compliant": false,
+      "is_false_reassurance": false,
+      "observation": "Сопоставимость объекта и ракурса не подтверждена человеком; Эвристический baseline: техническое качество допустимо, требуется ручная приёмка инженером.",
+      "partition": "development"
+    },
+    {
+      "case_id": "CASE-03",
+      "operation_id": "1.3",
+      "equipment_id": "eq-item-995",
+      "equipment_class": "control_cabinet",
+      "model_type": "heuristic_baseline",
+      "latency_ms": 31.38,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "manual_review",
+        "rejected"
+      ],
+      "policy_compliant": true,
+      "is_false_reassurance": false,
+      "observation": "Сопоставимость объекта и ракурса не подтверждена человеком; Эвристический baseline: техническое качество допустимо, требуется ручная приёмка инженером.",
+      "partition": "development"
+    },
+    {
+      "case_id": "CASE-05",
+      "operation_id": "1.5",
+      "equipment_id": "eq-item-992",
+      "equipment_class": "pressure_gauge",
+      "model_type": "heuristic_baseline",
+      "latency_ms": 12.21,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "manual_review",
+        "rejected"
+      ],
+      "policy_compliant": true,
+      "is_false_reassurance": false,
+      "observation": "Сопоставимость объекта и ракурса не подтверждена человеком; Эвристический baseline: техническое качество допустимо, требуется ручная приёмка инженером.",
+      "partition": "development"
+    },
+    {
+      "case_id": "CASE-NEG-02",
+      "operation_id": "1.3",
+      "equipment_id": "eq-item-995",
+      "equipment_class": "control_cabinet",
+      "model_type": "heuristic_baseline",
+      "latency_ms": 53.68,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "rejected"
+      ],
+      "policy_compliant": false,
+      "is_false_reassurance": false,
+      "observation": "Брак фото 'ПОСЛЕ': Блик в центральной области (4.1%); измените ракурс и переснимите",
+      "partition": "development"
+    },
+    {
+      "case_id": "CASE-02",
+      "operation_id": "1.2",
+      "equipment_id": "eq-item-994",
+      "equipment_class": "heat_meter",
+      "model_type": "heuristic_baseline",
+      "latency_ms": 12.35,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "manual_review",
+        "rejected"
+      ],
+      "policy_compliant": true,
+      "is_false_reassurance": false,
+      "observation": "Сопоставимость объекта и ракурса не подтверждена человеком; Эвристический baseline: техническое качество допустимо, требуется ручная приёмка инженером.",
+      "partition": "holdout"
+    },
+    {
+      "case_id": "CASE-04",
+      "operation_id": "1.4",
+      "equipment_id": "eq-item-996",
+      "equipment_class": "mesh_filter",
+      "model_type": "heuristic_baseline",
+      "latency_ms": 13.91,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "manual_review",
+        "rejected"
+      ],
+      "policy_compliant": true,
+      "is_false_reassurance": false,
+      "observation": "Сопоставимость объекта и ракурса не подтверждена человеком; Эвристический baseline: техническое качество допустимо, требуется ручная приёмка инженером.",
+      "partition": "holdout"
+    },
+    {
+      "case_id": "CASE-06",
+      "operation_id": "1.6",
+      "equipment_id": "eq-item-997",
+      "equipment_class": "heating_manifold",
+      "model_type": "heuristic_baseline",
+      "latency_ms": 14.85,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "manual_review",
+        "rejected"
+      ],
+      "policy_compliant": true,
+      "is_false_reassurance": false,
+      "observation": "Сопоставимость объекта и ракурса не подтверждена человеком; Эвристический baseline: техническое качество допустимо, требуется ручная приёмка инженером.",
+      "partition": "holdout"
+    },
+    {
+      "case_id": "CASE-NEG-01",
+      "operation_id": "1.2",
+      "equipment_id": "eq-item-994",
+      "equipment_class": "heat_meter",
+      "model_type": "heuristic_baseline",
+      "latency_ms": 32.3,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "rejected"
+      ],
+      "policy_compliant": false,
+      "is_false_reassurance": false,
+      "observation": "Брак фото 'ПОСЛЕ': Блик в центральной области (3.3%); измените ракурс и переснимите",
+      "partition": "holdout"
+    },
+    {
+      "case_id": "CASE-NEG-03",
+      "operation_id": "1.1",
+      "equipment_id": "eq-item-991",
+      "equipment_class": "pressure_gauge",
+      "model_type": "heuristic_baseline",
+      "latency_ms": 0.05,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "rejected"
+      ],
+      "policy_compliant": false,
+      "is_false_reassurance": false,
+      "observation": "Нарушение согласованности пары фото: Несовпадающий ракурс съемки: 'view_1' != 'view_2'",
+      "partition": "cross_evaluation"
+    },
+    {
+      "case_id": "CASE-01",
+      "operation_id": "1.1",
+      "equipment_id": "eq-item-991",
+      "equipment_class": "pressure_gauge",
+      "model_type": "local_clip",
+      "latency_ms": 17.28,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "rejected"
+      ],
+      "policy_compliant": false,
+      "is_false_reassurance": false,
+      "observation": "Анализ недоступен (MODEL_NOT_READY); предусмотрен обязательный fallback на ручную приёмку инженером.",
+      "partition": "development"
+    },
+    {
+      "case_id": "CASE-03",
+      "operation_id": "1.3",
+      "equipment_id": "eq-item-995",
+      "equipment_class": "control_cabinet",
+      "model_type": "local_clip",
+      "latency_ms": 30.81,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "manual_review",
+        "rejected"
+      ],
+      "policy_compliant": true,
+      "is_false_reassurance": false,
+      "observation": "Анализ недоступен (MODEL_NOT_READY); предусмотрен обязательный fallback на ручную приёмку инженером.",
+      "partition": "development"
+    },
+    {
+      "case_id": "CASE-05",
+      "operation_id": "1.5",
+      "equipment_id": "eq-item-992",
+      "equipment_class": "pressure_gauge",
+      "model_type": "local_clip",
+      "latency_ms": 11.93,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "manual_review",
+        "rejected"
+      ],
+      "policy_compliant": true,
+      "is_false_reassurance": false,
+      "observation": "Анализ недоступен (MODEL_NOT_READY); предусмотрен обязательный fallback на ручную приёмку инженером.",
+      "partition": "development"
+    },
+    {
+      "case_id": "CASE-NEG-02",
+      "operation_id": "1.3",
+      "equipment_id": "eq-item-995",
+      "equipment_class": "control_cabinet",
+      "model_type": "local_clip",
+      "latency_ms": 52.33,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "rejected"
+      ],
+      "policy_compliant": false,
+      "is_false_reassurance": false,
+      "observation": "Брак фото 'ПОСЛЕ': Блик в центральной области (4.1%); измените ракурс и переснимите",
+      "partition": "development"
+    },
+    {
+      "case_id": "CASE-02",
+      "operation_id": "1.2",
+      "equipment_id": "eq-item-994",
+      "equipment_class": "heat_meter",
+      "model_type": "local_clip",
+      "latency_ms": 12.77,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "manual_review",
+        "rejected"
+      ],
+      "policy_compliant": true,
+      "is_false_reassurance": false,
+      "observation": "Анализ недоступен (MODEL_NOT_READY); предусмотрен обязательный fallback на ручную приёмку инженером.",
+      "partition": "holdout"
+    },
+    {
+      "case_id": "CASE-04",
+      "operation_id": "1.4",
+      "equipment_id": "eq-item-996",
+      "equipment_class": "mesh_filter",
+      "model_type": "local_clip",
+      "latency_ms": 13.5,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "manual_review",
+        "rejected"
+      ],
+      "policy_compliant": true,
+      "is_false_reassurance": false,
+      "observation": "Анализ недоступен (MODEL_NOT_READY); предусмотрен обязательный fallback на ручную приёмку инженером.",
+      "partition": "holdout"
+    },
+    {
+      "case_id": "CASE-06",
+      "operation_id": "1.6",
+      "equipment_id": "eq-item-997",
+      "equipment_class": "heating_manifold",
+      "model_type": "local_clip",
+      "latency_ms": 15.46,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "manual_review",
+        "rejected"
+      ],
+      "policy_compliant": true,
+      "is_false_reassurance": false,
+      "observation": "Анализ недоступен (MODEL_NOT_READY); предусмотрен обязательный fallback на ручную приёмку инженером.",
+      "partition": "holdout"
+    },
+    {
+      "case_id": "CASE-NEG-01",
+      "operation_id": "1.2",
+      "equipment_id": "eq-item-994",
+      "equipment_class": "heat_meter",
+      "model_type": "local_clip",
+      "latency_ms": 31.36,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "rejected"
+      ],
+      "policy_compliant": false,
+      "is_false_reassurance": false,
+      "observation": "Брак фото 'ПОСЛЕ': Блик в центральной области (3.3%); измените ракурс и переснимите",
+      "partition": "holdout"
+    },
+    {
+      "case_id": "CASE-NEG-03",
+      "operation_id": "1.1",
+      "equipment_id": "eq-item-991",
+      "equipment_class": "pressure_gauge",
+      "model_type": "local_clip",
+      "latency_ms": 0.07,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "rejected"
+      ],
+      "policy_compliant": false,
+      "is_false_reassurance": false,
+      "observation": "Нарушение согласованности пары фото: Несовпадающий ракурс съемки: 'view_1' != 'view_2'",
+      "partition": "cross_evaluation"
+    },
+    {
+      "case_id": "CASE-01",
+      "operation_id": "1.1",
+      "equipment_id": "eq-item-991",
+      "equipment_class": "pressure_gauge",
+      "model_type": "naive_vlm",
+      "latency_ms": 15.5,
+      "item_verdict": "visible_change",
+      "evidence_status": "approved",
+      "allowed_policy": [
+        "rejected"
+      ],
+      "policy_compliant": false,
+      "is_false_reassurance": true,
+      "observation": "Давление изменилось.",
+      "partition": "development"
+    },
+    {
+      "case_id": "CASE-03",
+      "operation_id": "1.3",
+      "equipment_id": "eq-item-995",
+      "equipment_class": "control_cabinet",
+      "model_type": "naive_vlm",
+      "latency_ms": 30.76,
+      "item_verdict": "visible_change",
+      "evidence_status": "approved",
+      "allowed_policy": [
+        "manual_review",
+        "rejected"
+      ],
+      "policy_compliant": false,
+      "is_false_reassurance": true,
+      "observation": "Работа выполнена.",
+      "partition": "development"
+    },
+    {
+      "case_id": "CASE-05",
+      "operation_id": "1.5",
+      "equipment_id": "eq-item-992",
+      "equipment_class": "pressure_gauge",
+      "model_type": "naive_vlm",
+      "latency_ms": 11.07,
+      "item_verdict": "visible_change",
+      "evidence_status": "approved",
+      "allowed_policy": [
+        "manual_review",
+        "rejected"
+      ],
+      "policy_compliant": false,
+      "is_false_reassurance": true,
+      "observation": "Работа выполнена.",
+      "partition": "development"
+    },
+    {
+      "case_id": "CASE-NEG-02",
+      "operation_id": "1.3",
+      "equipment_id": "eq-item-995",
+      "equipment_class": "control_cabinet",
+      "model_type": "naive_vlm",
+      "latency_ms": 53.3,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "rejected"
+      ],
+      "policy_compliant": false,
+      "is_false_reassurance": false,
+      "observation": "Брак изображения: Блик в центральной области (4.1%); измените ракурс и переснимите",
+      "partition": "development"
+    },
+    {
+      "case_id": "CASE-02",
+      "operation_id": "1.2",
+      "equipment_id": "eq-item-994",
+      "equipment_class": "heat_meter",
+      "model_type": "naive_vlm",
+      "latency_ms": 12.58,
+      "item_verdict": "visible_change",
+      "evidence_status": "approved",
+      "allowed_policy": [
+        "manual_review",
+        "rejected"
+      ],
+      "policy_compliant": false,
+      "is_false_reassurance": true,
+      "observation": "Работа выполнена.",
+      "partition": "holdout"
+    },
+    {
+      "case_id": "CASE-04",
+      "operation_id": "1.4",
+      "equipment_id": "eq-item-996",
+      "equipment_class": "mesh_filter",
+      "model_type": "naive_vlm",
+      "latency_ms": 13.46,
+      "item_verdict": "visible_change",
+      "evidence_status": "approved",
+      "allowed_policy": [
+        "manual_review",
+        "rejected"
+      ],
+      "policy_compliant": false,
+      "is_false_reassurance": true,
+      "observation": "Работа выполнена.",
+      "partition": "holdout"
+    },
+    {
+      "case_id": "CASE-06",
+      "operation_id": "1.6",
+      "equipment_id": "eq-item-997",
+      "equipment_class": "heating_manifold",
+      "model_type": "naive_vlm",
+      "latency_ms": 14.64,
+      "item_verdict": "no_visible_change",
+      "evidence_status": "approved",
+      "allowed_policy": [
+        "manual_review",
+        "rejected"
+      ],
+      "policy_compliant": false,
+      "is_false_reassurance": true,
+      "observation": "Работа выполнена.",
+      "partition": "holdout"
+    },
+    {
+      "case_id": "CASE-NEG-01",
+      "operation_id": "1.2",
+      "equipment_id": "eq-item-994",
+      "equipment_class": "heat_meter",
+      "model_type": "naive_vlm",
+      "latency_ms": 30.63,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "rejected"
+      ],
+      "policy_compliant": false,
+      "is_false_reassurance": false,
+      "observation": "Брак изображения: Блик в центральной области (3.3%); измените ракурс и переснимите",
+      "partition": "holdout"
+    },
+    {
+      "case_id": "CASE-NEG-03",
+      "operation_id": "1.1",
+      "equipment_id": "eq-item-991",
+      "equipment_class": "pressure_gauge",
+      "model_type": "naive_vlm",
+      "latency_ms": 13.54,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "rejected"
+      ],
+      "policy_compliant": false,
+      "is_false_reassurance": false,
+      "observation": "Несоответствие ракурса и физического объекта: на фото ДО теплосчетчик, ПОСЛЕ смеситель.",
+      "partition": "cross_evaluation"
+    },
+    {
+      "case_id": "CASE-01",
+      "operation_id": "1.1",
+      "equipment_id": "eq-item-991",
+      "equipment_class": "pressure_gauge",
+      "model_type": "guarded_vlm",
+      "latency_ms": 14.53,
+      "item_verdict": "uncertain",
+      "evidence_status": "rejected",
+      "allowed_policy": [
+        "rejected"
+      ],
+      "policy_compliant": true,
+      "is_false_reassurance": false,
+      "observation": "Разные приборы на фото До и После; отказ в приёмке.",
+      "partition": "development"
+    },
+    {
+      "case_id": "CASE-03",
+      "operation_id": "1.3",
+      "equipment_id": "eq-item-995",
+      "equipment_class": "control_cabinet",
+      "model_type": "guarded_vlm",
+      "latency_ms": 30.37,
+      "item_verdict": "visible_change",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "manual_review",
+        "rejected"
+      ],
+      "policy_compliant": true,
+      "is_false_reassurance": false,
+      "observation": "Визуальные изменения подтверждены; требуется решение инженера.",
+      "partition": "development"
+    },
+    {
+      "case_id": "CASE-05",
+      "operation_id": "1.5",
+      "equipment_id": "eq-item-992",
+      "equipment_class": "pressure_gauge",
+      "model_type": "guarded_vlm",
+      "latency_ms": 11.64,
+      "item_verdict": "visible_change",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "manual_review",
+        "rejected"
+      ],
+      "policy_compliant": true,
+      "is_false_reassurance": false,
+      "observation": "Визуальные изменения подтверждены; требуется решение инженера.",
+      "partition": "development"
+    },
+    {
+      "case_id": "CASE-NEG-02",
+      "operation_id": "1.3",
+      "equipment_id": "eq-item-995",
+      "equipment_class": "control_cabinet",
+      "model_type": "guarded_vlm",
+      "latency_ms": 51.6,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "rejected"
+      ],
+      "policy_compliant": false,
+      "is_false_reassurance": false,
+      "observation": "Брак изображения: Блик в центральной области (4.1%); измените ракурс и переснимите",
+      "partition": "development"
+    },
+    {
+      "case_id": "CASE-02",
+      "operation_id": "1.2",
+      "equipment_id": "eq-item-994",
+      "equipment_class": "heat_meter",
+      "model_type": "guarded_vlm",
+      "latency_ms": 12.84,
+      "item_verdict": "visible_change",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "manual_review",
+        "rejected"
+      ],
+      "policy_compliant": true,
+      "is_false_reassurance": false,
+      "observation": "Визуальные изменения подтверждены; требуется решение инженера.",
+      "partition": "holdout"
+    },
+    {
+      "case_id": "CASE-04",
+      "operation_id": "1.4",
+      "equipment_id": "eq-item-996",
+      "equipment_class": "mesh_filter",
+      "model_type": "guarded_vlm",
+      "latency_ms": 13.33,
+      "item_verdict": "visible_change",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "manual_review",
+        "rejected"
+      ],
+      "policy_compliant": true,
+      "is_false_reassurance": false,
+      "observation": "Визуальные изменения подтверждены; требуется решение инженера.",
+      "partition": "holdout"
+    },
+    {
+      "case_id": "CASE-06",
+      "operation_id": "1.6",
+      "equipment_id": "eq-item-997",
+      "equipment_class": "heating_manifold",
+      "model_type": "guarded_vlm",
+      "latency_ms": 14.86,
+      "item_verdict": "no_visible_change",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "manual_review",
+        "rejected"
+      ],
+      "policy_compliant": true,
+      "is_false_reassurance": false,
+      "observation": "Визуальные изменения подтверждены; требуется решение инженера.",
+      "partition": "holdout"
+    },
+    {
+      "case_id": "CASE-NEG-01",
+      "operation_id": "1.2",
+      "equipment_id": "eq-item-994",
+      "equipment_class": "heat_meter",
+      "model_type": "guarded_vlm",
+      "latency_ms": 32.27,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "rejected"
+      ],
+      "policy_compliant": false,
+      "is_false_reassurance": false,
+      "observation": "Брак изображения: Блик в центральной области (3.3%); измените ракурс и переснимите",
+      "partition": "holdout"
+    },
+    {
+      "case_id": "CASE-NEG-03",
+      "operation_id": "1.1",
+      "equipment_id": "eq-item-991",
+      "equipment_class": "pressure_gauge",
+      "model_type": "guarded_vlm",
+      "latency_ms": 13.31,
+      "item_verdict": "uncertain",
+      "evidence_status": "manual_review",
+      "allowed_policy": [
+        "rejected"
+      ],
+      "policy_compliant": false,
+      "is_false_reassurance": false,
+      "observation": "Несоответствие ракурса и физического объекта: на фото ДО теплосчетчик, ПОСЛЕ смеситель.",
+      "partition": "cross_evaluation"
+    }
+  ]
+}

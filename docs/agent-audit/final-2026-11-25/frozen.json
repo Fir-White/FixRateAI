@@ -1,0 +1,23 @@
+{
+    "created":  "2026-11-25T11:24:23.2390444+05:00",
+    "commit":  "c4a44400b190a49218fea28e441841de312d972b",
+    "tracking_branch":  "integration/dev-full-20261125",
+    "origin_dev":  "1d2e9c5cc4c9b3a925ed6b704f7a17d55100a81b",
+    "dirty_overlay_sha256":  {
+                                 "backend/app/assistant/grounding.py":  "af7d3542c33affe538f73f225a670ac9f03f6a8483d5cf26fdda8bfe229ff74e",
+                                 "backend/app/assistant/prompts/tool-agent.md":  "65a18d94816c593273dca0b709e4c23055ac52e5499728071302faa68cda0eab",
+                                 "backend/app/assistant/tool_agent.py":  "12a0ccb21d4799d4cd1e32b982429bcb1dc9e2851aa0f6046ddfbbae516f4664",
+                                 "backend/app/assistant/tool_agent_tools.py":  "c619468f02bce0f5c4ac66eb5aa7daa60f8420e2f7c3f29a5528c9d6898d2b14",
+                                 "backend/app/integration/management.py":  "da283574738cfab5989c5fadd18e81a49a6d3e96a1403d3997ac7fc1af4660c7",
+                                 "contracts/assistant-tools.json":  "6f13ddccdf609c9b03e1405e0046a0e196ea2d501f5df3415ae4231ad1775897",
+                                 "tests/backend/test_assistant_tool_agent.py":  "36a274f255a3dbd39a05e7b0a69bb2d8b6f8f2592201aa31ac4180aa8f960a04",
+                                 "tests/backend/test_v4_reliable_answers.py":  "a6fff3d7e37190f7a1a90c5e502530d1a26ed8f557185e076d72d03d175eb73a",
+                                 "tests/backend/test_v4_report_photos_submit.py":  "ab80cf023bdcdf7e3eb1355e0ddcf374eaa277a26bbabd743b256d00cc2647fb"
+                             },
+    "prompt_sha256":  "65a18d94816c593273dca0b709e4c23055ac52e5499728071302faa68cda0eab",
+    "git_archive_sha256":  "fd9ad95076b893effc594ea315ef4fc5840a012486b90bd3dd13c43f67f8eb27",
+    "assistant_engine":  "v4",
+    "provider":  "aitunnel",
+    "model":  "deepseek-v4.1-flash-1017",
+    "briefing":  "synthetic-only; no runtime or user data copied"
+}

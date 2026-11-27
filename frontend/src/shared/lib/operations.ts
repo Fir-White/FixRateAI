@@ -3,9 +3,9 @@ import { dateTimeFormatter } from "./dateTimeFormatter";
 
 /** The shipped fixture snapshot is October 2026, not the user's live clock. */
 export const DEMO_DATE = "2026-10-30";
-export type TaskFilter = "all" | "attention" | "unassigned" | "overdue" | TaskState;
+export type TaskFilter = "all" | "open" | "attention" | "unassigned" | "overdue" | TaskState;
 export const TASK_FILTERS: readonly {value: TaskFilter; label: string}[] = [
-  {value:"all",label:"Все наряды"}, {value:"attention",label:"Требуют внимания"},
+  {value:"all",label:"Все наряды"}, {value:"open",label:"Незавершённые работы"}, {value:"attention",label:"Требуют внимания"},
   {value:"unassigned",label:"Без исполнителя"}, {value:"overdue",label:"Просрочено"},
   {value:"draft",label:"Черновик"}, {value:"assigned",label:"Назначено"},
   {value:"in_progress",label:"В работе"}, {value:"submitted",label:"На проверке"},
@@ -19,6 +19,7 @@ export const isTaskOverdue = (task: MaintenanceTask) => isOpenTask(task) && (tas
 export function matchesTaskFilter(task: MaintenanceTask, filter: TaskFilter): boolean {
   switch(filter) {
     case "all": return true;
+    case "open": return isOpenTask(task);
     case "unassigned": return isUnassigned(task);
     case "overdue": return isTaskOverdue(task);
     case "attention": return isTaskOverdue(task) || isUnassigned(task) || task.state==="submitted" || task.state==="rework_required";
