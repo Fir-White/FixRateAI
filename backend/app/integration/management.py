@@ -39,13 +39,13 @@ def _guard(v,*roles):
 
 
 @contextmanager
-def _edit(v,workers=(),roles=('admin','dispatcher'),exact_roles=False):
+def _edit(v,workers=(),roles=('admin','dispatcher'),exact_roles=False,*,_owns_transaction=True):
     """Use the same global user → membership → metadata lock order as BE05."""
     if exact_roles:
         if v.principal.role not in roles:raise HTTPException(403,'Оборудование и структуру изменяет главный инженер')
     else:
         _guard(v,*roles)
-    with service_transaction(v.session):
+    with (service_transaction(v.session) if _owns_transaction else nullcontext()):
         identifiers=set(workers)|{v.principal.user_id}
         for table in ('users','site_memberships'):
             for identity in sorted(identifiers,key=lambda x:x.int):

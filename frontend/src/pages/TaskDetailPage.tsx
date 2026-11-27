@@ -161,6 +161,8 @@ export function TaskDetailPage() {
                 value={`${formatDateTime(task.scheduledStart)} — ${formatDateTime(task.scheduledEnd)}`}
               />
               <InfoItem label="Размер бригады" value={`${task.crewSize} чел.`} />
+              {task.plannedPersonHours&&<InfoItem label="Плановые трудозатраты" value={`${task.plannedPersonHours} чел.-ч`} />}
+              {task.planningNote&&<InfoItem label="Примечание планирования" value={task.planningNote} />}
               <InfoItem
                 label="Приёмка после срока"
                 value={task.deadlineBreached ? "Зафиксирована" : "Не зафиксирована"}

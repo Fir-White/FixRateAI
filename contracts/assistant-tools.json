@@ -7435,6 +7435,239 @@
       "operator": "unavailable"
     },
     {
+      "name": "order_table_read",
+      "title": "Читать рабочую таблицу ТО за месяц",
+      "method": "GET",
+      "path": "/api/v1/maintenance/planning/order-table",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.order_table:register_routes.<locals>.rows",
+      "operation_id": "rows_api_v1_maintenance_planning_order_table_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "month",
+          "offset",
+          "q"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
+    },
+    {
+      "name": "order_table_bindings",
+      "title": "Найти утверждённый регламент и оборудование для нового разового наряда",
+      "method": "GET",
+      "path": "/api/v1/maintenance/planning/order-table/bindings",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.order_table:register_routes.<locals>.bindings",
+      "operation_id": "bindings_api_v1_maintenance_planning_order_table_bindings_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "offset",
+          "q"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
+    },
+    {
+      "name": "order_table_preview",
+      "title": "Проверить правки и добавления таблицы ТО без записи; перенос назначенного проверять отдельно",
+      "method": "POST",
+      "path": "/api/v1/maintenance/planning/order-table/preview",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.order_table:register_routes.<locals>.preview",
+      "operation_id": "preview_api_v1_maintenance_planning_order_table_preview_post",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [],
+        "body": [
+          "changes",
+          "reason"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
+    },
+    {
+      "name": "order_table_apply",
+      "title": "Применить проверенные правки таблицы ТО; для переноса назначенного наряда показать отдельное подтверждение",
+      "method": "POST",
+      "path": "/api/v1/maintenance/planning/order-table/apply",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.order_table:register_routes.<locals>.apply",
+      "operation_id": "apply_api_v1_maintenance_planning_order_table_apply_post",
+      "argument_fields": {
+        "path": [],
+        "query": [],
+        "body": [
+          "changes",
+          "confirm_assigned",
+          "idempotency_key",
+          "preview_digest",
+          "reason"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
+    },
+    {
+      "name": "order_table_export",
+      "title": "Выгрузить сохранённую рабочую таблицу ТО за месяц в XLSX",
+      "method": "GET",
+      "path": "/api/v1/maintenance/planning/order-table/export.xlsx",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "administration",
+      "handler": "app.integration.order_table:register_routes.<locals>.export",
+      "operation_id": "export_api_v1_maintenance_planning_order_table_export_xlsx_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "month",
+          "q"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
+    },
+    {
       "name": "calendar_generate",
       "title": "Сформировать задания нормативного календаря",
       "method": "POST",

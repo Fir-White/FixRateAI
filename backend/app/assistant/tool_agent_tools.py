@@ -3,7 +3,7 @@ import re
 from datetime import date, datetime, time, timedelta
 from html import escape
 from typing import Annotated, Literal
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import httpx
 from fastapi import HTTPException
@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, NaiveDatetime, ValidationErro
 from sqlalchemy import text
 
 from app.schemas.assistant import ReportAttachAndSubmit
+from app.integration.order_table import Preview as WorksheetPreview
 from . import service
 from .attachments import MAX_FILE, jpeg_input, owned, content as attachment_content
 from .inventory_report import label
@@ -21,6 +22,29 @@ from .tools import available, invoke, validate_arguments
 
 class Arguments(BaseModel):
     model_config = ConfigDict(extra='forbid')
+
+
+class WorksheetSearch(Arguments):
+    q: str = Field(default='', max_length=120)
+    offset: int = Field(default=0, ge=0, le=1_000_000)
+
+
+class WorksheetMonth(Arguments):
+    month: str = Field(pattern=r'^20[0-9]{2}-(0[1-9]|1[0-2])$')
+    q: str = Field(default='', max_length=120)
+
+
+class WorksheetRows(WorksheetMonth):
+    offset: int = Field(default=0, ge=0, le=1_000_000)
+
+
+WORKSHEET = {
+    'order_table_read': (WorksheetRows, 'Прочитать оперативную таблицу нарядов ТО за указанный месяц объекта; offset — номер первой строки.'),
+    'order_table_bindings': (WorksheetSearch, 'Найти привязки действующих регламентов к оборудованию для нового разового наряда.'),
+    'order_table_preview': (WorksheetPreview, 'Показать правки и блокировки без записи и без карточки. Для назначенного наряда передайте одну правку начала. Время местное, без Z. Не угадывайте UUID, ревизию, дату, часы или примечание.'),
+    'propose_order_table_apply': (WorksheetPreview, 'Только по просьбе изменить наряды: проверить точные правки и подготовить карточку подтверждения. Не вызывает запись. Перенос назначенного наряда передавайте отдельно, с одним изменением планового начала.'),
+    'order_table_export': (WorksheetMonth, 'Сформировать ссылку на XLSX сохранённых нарядов за месяц. Не выгружает несохранённые изменения.'),
+}
 
 
 RelativeDay = Literal['today', 'tomorrow', 'yesterday', 'day_after_tomorrow']
@@ -342,6 +366,8 @@ class ToolSession:
             self.report_files = {row['attachment_id']: row for row in earlier_photos}
         self.registry = available(app, principal.role, 'assistant')
         self.definition = dict(COMMON) if principal.role in ('engineer', 'executor') else {}
+        if principal.role == 'chief_engineer':
+            self.definition.update(WORKSHEET)
         if not any(row['mime_type'] == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                    for row in files):
             self.definition.pop('read_workbook', None)
@@ -441,6 +467,40 @@ class ToolSession:
         if 'planned_start_summary' in page:
             result['planned_start_summary'] = page['planned_start_summary']
         return result
+
+    async def order_table_read(self, args):
+        result = await self.backend('order_table_read', query=args.model_dump(mode='json'))
+        if len(service.dump(result)) > 10000:
+            result['items'] = [{**item, 'note': (item.get('note') or '')[:120]} for item in result['items']]
+        return result
+
+    async def order_table_bindings(self, args):
+        return await self.backend('order_table_bindings', query=args.model_dump(mode='json'))
+
+    async def order_table_preview(self, args):
+        return await self.backend('order_table_preview', body=args.model_dump(mode='json', exclude_unset=True))
+
+    async def propose_order_table_apply(self, args):
+        if self.proposal:
+            raise HTTPException(409, 'В этом ответе уже подготовлена карточка. Другие изменения запросите отдельно.')
+        preview = await self.order_table_preview(args)
+        if not preview['can_apply']:
+            return dict(ok=False, **preview)
+        tool = self.registry['order_table_apply']
+        arguments = dict(body={**args.model_dump(mode='json', exclude_unset=True),
+            'preview_digest': preview['preview_digest'], 'idempotency_key': str(uuid4()),
+            'confirm_assigned': preview['requires_assigned_confirmation']})
+        with self.app.state.factory() as session:
+            action = await service.propose(self.app, session, self.principal, self.thread, tool,
+                arguments, '', self.headers, self.turn_id)
+        self.proposal = action['action_id']
+        answer = 'Подготовлено отдельное подтверждение переноса. Наряд ещё не перенесён.' if preview['requires_assigned_confirmation'] else (
+            'Подготовлена карточка изменений таблицы ТО. Наряды ещё не изменены.')
+        return Observation(dict(status='awaiting_confirmation', action_id=str(self.proposal)), final_answer=answer)
+
+    async def order_table_export(self, args):
+        result = await self.backend('order_table_export', query=args.model_dump(mode='json'))
+        return Observation(result, resources=(result['resource'],), final_answer='XLSX сохранённых нарядов доступен по ссылке.')
 
     async def read_work_order(self, args):
         data = await self.backend('task_read', path=dict(task_id=args.task_id))

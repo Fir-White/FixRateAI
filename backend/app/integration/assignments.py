@@ -1,5 +1,6 @@
 from app.security.sessions import has_role
 """BE05 transaction: lock, revalidate the exact proposal, reserve and audit."""
+from contextlib import nullcontext
 from datetime import datetime, timedelta, timezone
 import json
 
@@ -40,7 +41,7 @@ def lock_workers(v, worker_ids, *, actor=False):
                 raise HTTPException(404, "Работник не найден в объекте")
 
 
-def _lock_context(v, order, worker_ids, crew_id):
+def _lock_context(v, order, worker_ids, crew_id, *, worksheet_move=False):
     _lock(v, "work_order_equipment", work_order_id=order.work_order_id)
     for link in v.rows("work_order_equipment", work_order_id=order.work_order_id):
         _lock(v, "equipment", read=True, equipment_id=link.equipment_id)
@@ -50,9 +51,11 @@ def _lock_context(v, order, worker_ids, crew_id):
         _lock(v, "operation_templates", read=True, operation_template_id=rule.operation_template_id)
         _lock(v, "rule_required_skills", read=True, maintenance_rule_id=rule.maintenance_rule_id)
     if order.schedule_entry_id:
-        entry = _lock(v, "schedule_entries", read=True, schedule_entry_id=order.schedule_entry_id)[0]
+        entry = _lock(v, "schedule_entries", read=not worksheet_move, schedule_entry_id=order.schedule_entry_id)[0]
         if entry.binding_id:
             _lock(v, "rule_equipment", read=True, binding_id=entry.binding_id)
+    elif binding_id := order.operation_snapshot.get("table_binding_id"):
+        _lock(v, "rule_equipment", read=True, binding_id=binding_id)
     if crew_id:
         if not _lock(v, "crews", crew_id=crew_id):
             raise HTTPException(404, "Бригада не найдена")
@@ -106,11 +109,11 @@ def cancel_task(v,task_id,revision,reason):
         return v.bundle(order)
 
 
-def save_assignment(v, task_id, command, crew_id=None):
+def save_assignment(v, task_id, command, crew_id=None, *, worksheet_move=False):
     """Own the auth-started transaction; never return success before commit."""
     if not has_role(v.principal.role,("dispatcher",)):
         raise HTTPException(403, "Действие недоступно для текущей роли")
-    with service_transaction(v.session):
+    with (nullcontext() if worksheet_move else service_transaction(v.session)):
         order = v.task(task_id, lock=True)
         if order.operation_snapshot.get('catalog_publication_id'):
             raise HTTPException(409,'Перенос утверждённого назначения требует нового предложения на утверждение')
@@ -134,7 +137,15 @@ def save_assignment(v, task_id, command, crew_id=None):
         membership = v.one("site_memberships", user_id=v.principal.user_id)
         if not actor.is_active or not membership.is_active or not has_role(membership.role,("dispatcher",)) or not v.one("sites").is_active:
             raise HTTPException(403, "Доступ диспетчера отозван")
-        _lock_context(v, order, ids, crew_id)
+        if worksheet_move:
+            if (v.principal.role != "chief_engineer" or membership.role != "chief_engineer"
+                    or v.one("sites").timezone != v.principal.timezone):
+                raise HTTPException(403, "Перенос в таблице подтверждает главный инженер")
+            if (order.status != "assigned" or order.started_at or v.rows("work_reports", work_order_id=task_id)
+                    or {row.user_id for row in active} != ids
+                    or any(row.crew_id != crew_id or row.status != "assigned" for row in active)):
+                raise HTTPException(409, "Наряд, состав или его выполнение изменились. Проверьте перенос заново")
+        _lock_context(v, order, ids, crew_id, worksheet_move=worksheet_move)
         # Reads after potentially waiting for locks must not reuse ORM identity-cache facts.
         v.session.expire_all()
         handoff=order.status in ("in_progress","rework")
@@ -193,6 +204,6 @@ def save_assignment(v, task_id, command, crew_id=None):
             after_snapshot=dict(status=order.status, revision=order.revision, assignments=assignments,
                                 crew_id=str(crew_id) if crew_id else None, reason=command.reason.strip()))
         from .analyst import notify_event
-        notify_event(v,order,"assigned",("executor","technician"))
+        notify_event(v,order,"rescheduled" if worksheet_move else "assigned",("executor","technician"))
         result = dict(**v.bundle(order), assignments=assignments)
     return result

@@ -1082,6 +1082,8 @@ def create_app(engine=None):
     register_optimization(app, views)
     from app.integration.publication import register_routes as register_publication
     register_publication(app, views)
+    from app.integration.order_table import register_routes as register_order_table
+    register_order_table(app, views)
     from app.integration.analyst import register_analyst_routes
     register_analyst_routes(app,views,photo_path,editable)
     from app.integration.incidents import register_incident_routes

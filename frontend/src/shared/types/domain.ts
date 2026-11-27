@@ -71,6 +71,8 @@ export interface MaintenanceTask {
   isOverdue: boolean;
   deadlineBreached: boolean;
   mandatoryDueDate: string | null;
+  plannedPersonHours?: string | null;
+  planningNote?: string | null;
   sourceDate?:string|null;
   scheduledStart: string | null;
   scheduledEnd: string | null;

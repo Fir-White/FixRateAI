@@ -1,14 +1,14 @@
 {
   "format_version": 1,
-  "catalog_sha256": "d0db4d9e55ee1d767de75840c70785b13561e765e8176210b232e090cf63cbbf",
+  "catalog_sha256": "9e0b0fb380544b0bf75d5f3af2cf326a92d76e85930b85d9cd0c67519662a6d5",
   "acceptance_rule": "A finished response, registered tool, HTTP 200, negative boundary test, mocked completion or successful individual call does not prove the user goal. Positive acceptance requires an independently verified final result and data state for this exact role/operation.",
   "generative_policy": "Installed local Ollama only; no external LLM/fallback, weight downloads or runtime user preference changes.",
   "summary": {
-    "operations": 190,
-    "role_operation_cells": 769,
+    "operations": 195,
+    "role_operation_cells": 774,
     "by_role": {
       "director": 97,
-      "chief_engineer": 183,
+      "chief_engineer": 188,
       "engineer": 131,
       "dispatcher": 143,
       "admin": 153,
@@ -19,31 +19,31 @@
         "passed": 17,
         "failed": 0,
         "skipped": 0,
-        "not_run": 752
+        "not_run": 757
       },
       "positive_e2e": {
         "passed": 17,
         "failed": 0,
         "skipped": 0,
-        "not_run": 752
+        "not_run": 757
       },
       "negative": {
         "passed": 1,
         "failed": 0,
         "skipped": 0,
-        "not_run": 768
+        "not_run": 773
       },
       "mocked": {
         "passed": 0,
         "failed": 0,
         "skipped": 0,
-        "not_run": 769
+        "not_run": 774
       },
       "api_domain": {
         "passed": 0,
         "failed": 0,
         "skipped": 0,
-        "not_run": 769
+        "not_run": 774
       }
     }
   },
@@ -9633,6 +9633,337 @@
         ]
       },
       "candidate_test_mentions": [],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "order_table_read",
+      "title": "Читать рабочую таблицу ТО за месяц",
+      "method": "GET",
+      "path": "/api/v1/maintenance/planning/order-table",
+      "roles": [
+        "chief_engineer"
+      ],
+      "denied_roles": [
+        "director",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "requires_confirmation": false,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Read the worksheet for the selected month and object",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Do not confirm any unrelated mutation; this operation has a read-only outcome.",
+        "postconditions": [
+          "Return scoped paginated task rows, normative deadline and operational planning fields; no business write.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "Business state is unchanged by this read/preview."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_order_table.py::test_v4_worksheet_tools_prepare_real_card_without_writing"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "order_table_bindings",
+      "title": "Найти утверждённый регламент и оборудование для нового разового наряда",
+      "method": "GET",
+      "path": "/api/v1/maintenance/planning/order-table/bindings",
+      "roles": [
+        "chief_engineer"
+      ],
+      "denied_roles": [
+        "director",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "requires_confirmation": false,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Find an approved regulation and asset for a new one-time work order",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Do not confirm any unrelated mutation; this operation has a read-only outcome.",
+        "postconditions": [
+          "Return binding IDs authorized in the current site, with active asset and approved regulation; apply rechecks the requested day.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "Business state is unchanged by this read/preview."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_order_table.py::test_v4_worksheet_tools_prepare_real_card_without_writing"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "order_table_preview",
+      "title": "Проверить правки и добавления таблицы ТО без записи; перенос назначенного проверять отдельно",
+      "method": "POST",
+      "path": "/api/v1/maintenance/planning/order-table/preview",
+      "roles": [
+        "chief_engineer"
+      ],
+      "denied_roles": [
+        "director",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "requires_confirmation": false,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Preview proposed changes or check one assigned order move separately",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Do not confirm any unrelated mutation; this operation has a read-only outcome.",
+        "postconditions": [
+          "Server shows exact changes and blockers; no orders, reservations or notifications are written.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "Business state is unchanged by this read/preview."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_order_table.py::test_v4_worksheet_tools_prepare_real_card_without_writing"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "order_table_apply",
+      "title": "Применить проверенные правки таблицы ТО; для переноса назначенного наряда показать отдельное подтверждение",
+      "method": "POST",
+      "path": "/api/v1/maintenance/planning/order-table/apply",
+      "roles": [
+        "chief_engineer"
+      ],
+      "denied_roles": [
+        "director",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "requires_confirmation": true,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Apply the exact preview after confirmation or separately confirm an assigned order move",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Review the exact target/diff and confirm only the intended action with its own payload hash.",
+        "postconditions": [
+          "Exactly the confirmed changes are committed once; history, normative constraints, stale or foreign data and absent explicit confirmations are protected.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "No business mutation before the concrete human confirmation; repeated confirmation cannot duplicate the result."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_order_table.py::test_assistant_prepares_then_confirms_same_order_table_api",
+        "tests/backend/test_order_table.py::test_v4_worksheet_tools_prepare_real_card_without_writing"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "order_table_export",
+      "title": "Выгрузить сохранённую рабочую таблицу ТО за месяц в XLSX",
+      "method": "GET",
+      "path": "/api/v1/maintenance/planning/order-table/export.xlsx",
+      "roles": [
+        "chief_engineer"
+      ],
+      "denied_roles": [
+        "director",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "requires_confirmation": false,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Download the saved order worksheet for the selected month",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Do not confirm any unrelated mutation; this operation has a read-only outcome.",
+        "postconditions": [
+          "Return a real XLSX file scoped to the current site and filter, with formula-like text stored as text.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "Business state is unchanged by this read/preview."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_order_table.py::test_v4_worksheet_tools_prepare_real_card_without_writing"
+      ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
     {
@@ -31373,6 +31704,141 @@
     {
       "operation": "workload_read",
       "role": "director",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "order_table_read",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "order_table_bindings",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "order_table_preview",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "order_table_apply",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "order_table_export",
+      "role": "chief_engineer",
       "registered": true,
       "verification": {
         "reachability": {

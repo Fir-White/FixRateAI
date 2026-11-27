@@ -211,7 +211,8 @@ class Views:
         # A calendar deadline_at is the exclusive end of the due day, often
         # midnight on the following date. Display the persisted normative day.
         entry = self.one("schedule_entries", schedule_entry_id=order.schedule_entry_id) if order.schedule_entry_id else None
-        due_date = entry.regulatory_deadline_on if entry else (deadline.astimezone(tz).date() if deadline else None)
+        due_date = entry.regulatory_deadline_on if entry else (
+            order.operation_snapshot.get("worksheet_due_date") or (deadline.astimezone(tz).date() if deadline else None))
         now = checked_at or datetime.now(timezone.utc)
         open_order = order.status not in ("completed", "cancelled")
         overdue = bool(open_order and deadline is not None and deadline <= now)
@@ -234,7 +235,10 @@ class Views:
              activeExecutionId=str(latest.work_report_id) if latest else None,
             revision=order.revision, dataOrigin=order.operation_snapshot.get("data_origin") or (rule.data_origin if rule else None),
             summary=order.operation_snapshot.get("label", ""),instructions=order.operation_snapshot.get("instructions") or (rule.operation.description if rule else None),
-            normHours=str(order.norm_hours_snapshot),normUnit=order.operation_snapshot.get("norm_unit","unconfirmed"),
+             normHours=str(order.norm_hours_snapshot),normUnit=order.operation_snapshot.get("norm_unit","unconfirmed"),
+             **{field: order.operation_snapshot[key] for field, key in (
+                 ("plannedPersonHours", "planned_person_hours"), ("planningNote", "worksheet_note"))
+                 if key in order.operation_snapshot},
             durationMinutes=order.operation_snapshot.get("planning_duration_minutes"),overdueSince=iso(order.overdue_since_at),
             requiredActs=order.operation_snapshot.get("required_acts",[]),measurementRequirements=order.operation_snapshot.get("measurement_requirements",[]))
 

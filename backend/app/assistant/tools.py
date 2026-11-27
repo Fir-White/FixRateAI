@@ -413,6 +413,16 @@ async def invoke(app,tool,args,headers):
     return payload
 
 async def preflight(app,tool,args,headers):
+    if tool.name=='order_table_apply':
+        body=args['body']
+        preview_tool=next(t for t in TOOLS if t.name=='order_table_preview')
+        snapshot=await invoke(app,preview_tool,validate_arguments(app,preview_tool,
+            dict(body={key:body[key] for key in ('changes','reason')})),headers)
+        if not snapshot['can_apply'] or snapshot['preview_digest']!=body['preview_digest']:
+            raise HTTPException(409,'Предпросмотр таблицы устарел или содержит блокировки')
+        if snapshot['requires_assigned_confirmation']!=body.get('confirm_assigned',False):
+            raise HTTPException(409,'Перенос назначенного наряда требует отдельного подтверждения')
+        return snapshot
     if not tool.before:return None
     before=next(t for t in TOOLS if t.name==tool.before)
     fields={f.name for f in route_for(app,before).dependant.path_params}

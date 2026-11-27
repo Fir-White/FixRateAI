@@ -9,10 +9,18 @@ import { canOpenSection } from '@/shared/lib/roles';
 import { JourneySteps } from '@/shared/ui/JourneySteps';
 import { LoadingState } from '@/shared/ui/States';
 const RequirementsPanel=lazy(()=>import('@/features/planning/RequirementsPanel'));
+const OrderTable=lazy(()=>import('@/features/planning/OrderTable').then(module=>({default:module.OrderTable})));
+
+function currentMonth(timeZone:string){
+  const parts=new Intl.DateTimeFormat('en-CA',{timeZone,year:'numeric',month:'2-digit'}).formatToParts();
+  return `${parts.find(part=>part.type==='year')?.value}-${parts.find(part=>part.type==='month')?.value}`;
+}
 
 export function PlanningPage() {
   const {profile}=useSession(),[params,setParams]=useSearchParams();
   const mayImport=['chief_engineer','admin','dispatcher'].includes(profile?.role??'');
+  const mayEditOrders=profile?.role==='chief_engineer';
+  const mode=params.get('mode'),requestedMonth=params.get('order_month')??'';
   const update=(values:Record<string,string|null>)=>setParams(previous=>{const next=new URLSearchParams(previous);for(const [key,value] of Object.entries(values)){if(value)next.set(key,value);else next.delete(key);}return next;});
   const workspace:CatalogWorkspace={
     catalogId:params.get('catalog')??'',stage:params.get('stage')==='plan'?'plan':'prepare',
@@ -30,9 +38,10 @@ export function PlanningPage() {
     loadMonth:params.get('portfolio_month')??'',selectLoadMonth:month=>update({portfolio_month:month||null}),
   };
   return <div className="space-y-6"><PageHeader title="Планирование ТО" description="Проверьте обязательные работы по регламентам или подготовьте план из сохранённого Excel."/>
-    {DEMO_MODE?<Callout>Планы из Excel доступны при подключении к рабочему серверу.{canOpenSection(profile?.role,'calendar')&&<> В демонстрационном режиме можно посмотреть <Link className="text-accent underline" to="/calendar">пример календаря</Link>.</>}</Callout>:<JourneySteps key={`${profile?.siteId}:${profile?.role}`} label="Представления планирования" numbered={false} value={params.get('mode')==='requirements'?'requirements':'catalog'} onChange={id=>update({mode:id==='requirements'?'requirements':null})} steps={[
+    {DEMO_MODE?<Callout>Планы из Excel доступны при подключении к рабочему серверу.{canOpenSection(profile?.role,'calendar')&&<> В демонстрационном режиме можно посмотреть <Link className="text-accent underline" to="/calendar">пример календаря</Link>.</>}</Callout>:<JourneySteps key={`${profile?.userId}:${profile?.siteId}:${profile?.role}`} label="Представления планирования" numbered={false} value={mode==='requirements'||(mode==='orders'&&mayEditOrders)?mode:'catalog'} onChange={id=>update({mode:id==='catalog'?null:id})} steps={[
       {id:'catalog',title:'Планы из Excel',content:()=> <CatalogImports mayImport={mayImport} mayConfirm={profile?.role==='chief_engineer'} mayPlan={mayImport} siteName={profile?.siteName} timezone={profile?.timezone} workspace={workspace}/>},
       {id:'requirements',title:'Общий состав обязательств',content:()=> <Suspense fallback={<LoadingState/>}><RequirementsPanel mayApprove={profile?.role==='chief_engineer'} mayEdit={mayImport} workspace={portfolioWorkspace} timezone={profile?.timezone??'UTC'} catalogId={params.get('requirements_catalog')??''} initialStart={params.get('requirements_start')??undefined} initialEnd={params.get('requirements_end')??undefined} mayConfigure={canOpenSection(profile?.role,'service_settings')} mayViewTasks={canOpenSection(profile?.role,'tasks')} onCatalog={id=>update({requirements_catalog:id})} onCalculate={(start,end)=>update({requirements_start:start,requirements_end:end})} onPrepare={()=>update({mode:null,catalog:params.get('requirements_catalog'),stage:'prepare',draft:null,revision:null,view:null})}/></Suspense>},
+      ...(mayEditOrders?[{id:'orders',title:'Таблица нарядов ТО',content:()=> <Suspense fallback={<LoadingState/>}><OrderTable month={/^20[0-9]{2}-(0[1-9]|1[0-2])$/.test(requestedMonth)?requestedMonth:currentMonth(profile?.timezone??'UTC')} timezone={profile?.timezone??'UTC'} onMonth={month=>update({order_month:month})}/></Suspense>}]:[]),
     ]}/>}
     <div className="journey-context-links"><Link to="/equipment">Проверить оборудование →</Link>{canOpenSection(profile?.role,'workforce_settings')&&<Link to="/settings/workforce">Проверить сотрудников и смены →</Link>}</div>
   </div>;

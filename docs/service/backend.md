@@ -186,6 +186,9 @@ ServiceConfiguration.checklist содержит объекты text/answer_kind/
 | `POST …/tasks/{id}/assignment-preview` | `{expected_revision,start_local,end_local,crew_id?,executor_ids?,individual_only:false}`; диспетчер, CSRF; рекомендация состава/времени, диагностика и каноническая команда без сохранения |
 | `POST …/tasks/{id}/assign` | `AssignmentCommand` + `crew_id?`; диспетчер, CSRF; повторная проверка под блокировками, сохранение полного состава/времени/снимков/ревизии/аудита одной транзакцией |
 | `POST …/calendar/generate` | Диспетчер, CSRF; `{year,month,preview_token,idempotency_key}` → оба прогноза, решение, draft-задания и предложения бригад. Атомарная запись, повтор без дублирования |
+| `GET …/planning/order-table`, `GET …/planning/order-table/bindings` | Только главный инженер, объект из сессии. Наряды (`month`, `q`, `offset`) и привязки (`q`, `offset`), по 25 строк |
+| `POST …/planning/order-table/preview`, `POST …/planning/order-table/apply` | `preview` возвращает правки и блокировки без записи; `apply` требует `preview_digest` и `idempotency_key`, перенос назначенного дополнительно требует `confirm_assigned`. Уже начатые и выпущенные наряды защищены |
+| `GET …/planning/order-table/export.xlsx` | Только главный инженер. Новый XLSX из сохранённых нарядов объекта за месяц (`month`, `q`), до 1000 строк. Исходная книга не используется |
 | `GET …/ui/comparisons[/{run_id}]` | Интегрированные сохранённые сравнения |
 | `GET …/ui/quality` | Задания на приёмке или доработке |
 | `POST …/tasks/{id}/start` | `{expected_revision}`; новая попытка из назначенного задания или доработки |

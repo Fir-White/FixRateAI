@@ -178,6 +178,10 @@ async def propose(app,session,principal,thread,tool,args,explanation,headers,tur
     for name in file_fields(app,tool):
         if args.get('body',{}).get(name):owned(app,args['body'][name])
     before=await preflight(app,tool,args,headers)
+    if tool.name=='order_table_apply':
+        explanation=('Отдельное подтверждение переноса назначенного наряда. Состав бригады не меняется; исполнители получат уведомление.'
+                     if before['requires_assigned_confirmation'] else
+                     'Проверьте перечисленные изменения и новые разовые наряды. До подтверждения данные нарядов не меняются.')
     if legacy_turn and tool.name == 'equipment_edit':
         from .semantic_plan import QUOTED, UUID, asset_references, equipment_changes
         changes, incomplete = equipment_changes(question)

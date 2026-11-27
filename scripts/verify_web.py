@@ -30,15 +30,26 @@ def main():
     parser.add_argument("--pg-bin", type=Path, required=True)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--grep", help="Optional Playwright test name filter")
+    parser.add_argument("--order-table", action="store_true", help="Enable the synthetic one-time order fixture and worksheet E2E")
     args = parser.parse_args()
     output, logs = prepare_run(args.output)
     env = dict(os.environ, PYTHONPATH=os.pathsep.join([str(ROOT / "backend"), str(ROOT)]), PYTHONUTF8="1")
     for key in ("DATABASE_URL", "TEST_DATABASE_URL", "INTEGRATION_DATABASE_URL", "VITE_DEMO_MODE"):
         env.pop(key, None)
     env["PHOTO_REVIEW_PROVIDER"] = "aitunnel"  # Without AITUNNEL_API_KEY, cloud photo review reports unavailable.
+    env.pop("FIXRATE_ORDER_TABLE_E2E", None)
+    if args.order_table:
+        env.update(FIXRATE_ORDER_TABLE_E2E="1", FIXRATE_LLM_LOCAL_ONLY="1", FIXRATE_AGENT_LIVE="0",
+                   AITUNNEL_API_KEY="", AI_TUNNEL_API_KEY="", MAINTENANCE_SCHEDULER="false", OPTIMIZATION_WORKER="false")
     scratch = Path(tempfile.mkdtemp(prefix="fixrate-web-"))
     cluster = scratch / "postgres"
     hidden = {"creationflags": subprocess.CREATE_NO_WINDOW} if os.name == "nt" else {}
+    postgres_hidden = hidden
+    if os.name == "nt":
+        startup = subprocess.STARTUPINFO()
+        startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startup.wShowWindow = subprocess.SW_HIDE
+        postgres_hidden = dict(creationflags=subprocess.CREATE_NEW_CONSOLE, startupinfo=startup, stdin=subprocess.DEVNULL)
     api = postgres = None
     results = []
 
@@ -60,7 +71,7 @@ def main():
         run("initdb", [executable("initdb"), "-D", str(cluster), "-U", "postgres", "-A", "trust", "--encoding=UTF8", "--locale=C"])
         pg_port = unused_port()
         with (logs / "postgres.log").open("w", encoding="utf-8") as pg_log, (logs / "api.log").open("w", encoding="utf-8") as api_log:
-            postgres = subprocess.Popen([executable("postgres"), "-D", str(cluster), "-p", str(pg_port), "-h", "127.0.0.1"], stdout=pg_log, stderr=subprocess.STDOUT, **hidden)
+            postgres = subprocess.Popen([executable("postgres"), "-D", str(cluster), "-p", str(pg_port), "-h", "127.0.0.1"], stdout=pg_log, stderr=subprocess.STDOUT, **postgres_hidden)
             import psycopg
             for _ in range(100):
                 try:
@@ -81,6 +92,14 @@ def main():
             try:
                 migrate(engine)
                 seed_demo(engine, password)
+                if args.order_table:
+                    from app.integration.demo import demo_id
+                    from sqlalchemy import text
+
+                    with engine.begin() as conn:
+                        conn.execute(text("""UPDATE maintenance_rules SET schedule_parameters =
+                            schedule_parameters || '{"methodology_ref":"TEST: учебный регламент"}'::jsonb
+                            WHERE maintenance_rule_id=:id"""), dict(id=demo_id("assignment-rule")))
             finally:
                 engine.dispose()
             api_port = unused_port()
