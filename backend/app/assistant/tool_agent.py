@@ -16,6 +16,7 @@ from starlette.datastructures import Headers
 from starlette.requests import Request
 
 from app.security.sessions import authenticate
+from app.security.permissions import permission_profile, permits
 from . import service
 from .attachments import SCOPE, image_inputs, public
 from .grounding import regulation_effectivity_answer
@@ -38,11 +39,12 @@ _EXPLICIT_REVIEW = re.compile(
 
 
 def _review_role_answer(question, role):
-    if role not in ('engineer', 'executor') or not _EXPLICIT_REVIEW.match(question.lstrip()):
+    if permits(role,'review_report') or role not in ('engineer', 'executor') or not _EXPLICIT_REVIEW.match(question.lstrip()):
         return None
     next_step = ('Могу проверить комплектность отчёта и материалы, но не выдумывать причину решения.' if role == 'engineer'
                  else 'Вы можете проверить свой отчёт и передать его на проверку.')
-    return f'Принять отчёт или вернуть его на доработку может только главный инженер. {next_step}'
+    owner = 'инженер с правом приёмки' if permission_profile() == 'mvp' else 'главный инженер'
+    return f'Принять отчёт или вернуть его на доработку может только {owner}. {next_step}'
 
 
 def _empty_named_order_answer(question, evidence):

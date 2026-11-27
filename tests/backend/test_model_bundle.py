@@ -39,7 +39,14 @@ def test_bundled_runtime_keeps_database_and_photo_storage_contract():
     deploy = yaml.safe_load((ROOT / "deploy/compose.yaml").read_text(encoding="utf-8"))
     deploy_env = deploy["x-application"]["environment"]
     assert deploy_env["PHOTO_REVIEW_PROVIDER"] == "${PHOTO_REVIEW_PROVIDER:-aitunnel}"
-    assert deploy_env["AITUNNEL_API_KEY"] == "${AITUNNEL_API_KEY:-}"
-    assert deploy_env["AI_TUNNEL_API_KEY"] == "${AI_TUNNEL_API_KEY:-}"
-    assert deploy_env["AITUNNEL_VISION_MODEL"] == "${AITUNNEL_VISION_MODEL:-qwen3.7-flash}"
+    assert deploy_env["FIXRATE_LLM_LOCAL_ONLY"] == "1"
+    assert "AITUNNEL_API_KEY" not in deploy_env and "AI_TUNNEL_API_KEY" not in deploy_env
+    class ComposeLoader(yaml.SafeLoader):
+        pass
+    ComposeLoader.add_constructor("!override", lambda parser, node: parser.construct_sequence(node))
+    services = yaml.load((ROOT / "deploy/compose.cloud.yaml").read_text(encoding="utf-8"), Loader=ComposeLoader)["services"]
+    cloud = services["api"]["environment"]
+    assert cloud["AITUNNEL_API_KEY"] == "${AITUNNEL_API_KEY:?Set a private AI Tunnel key}"
+    assert cloud["AITUNNEL_VISION_MODEL"] == "${AITUNNEL_VISION_MODEL:-qwen3.7-flash}"
+    assert services["web"]["ports"] == ["127.0.0.1:${FIXRATE_PORT:-8080}:8080"]
     assert "HF_HUB_OFFLINE" not in deploy_env and "TRANSFORMERS_OFFLINE" not in deploy_env

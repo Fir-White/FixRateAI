@@ -12,11 +12,12 @@ from hashlib import sha256
 import json
 from uuid import UUID
 
+from pydantic import ValidationError
 from sqlalchemy import text
 
 EQUIPMENT = {'equipment_create', 'equipment_edit'}
 TASKS = {'task_assign', 'task_cancel', 'task_start', 'report_save', 'report_submit', 'report_review', 'report_attach_and_submit'}
-SUPPORTED = EQUIPMENT | TASKS | {'staff_edit'}
+SUPPORTED = EQUIPMENT | TASKS | {'staff_edit', 'catalog_decision'}
 _SUMMARIES = {
     'confirmed': 'Изменение проверено по сохранённому состоянию.',
     'failed': 'Сохранённое состояние не подтверждает запрошенное изменение.',
@@ -298,6 +299,27 @@ def verify_postcondition(tool_name, arguments, receipt, before=None, after=None)
     if tool_name == 'staff_edit':
         return _staff_postcondition(arguments, receipt, before, after)
     body = arguments['body']
+    if tool_name == 'catalog_decision':
+        from app.schemas.catalog_decisions import DecisionCommand
+
+        try:
+            expected = DecisionCommand.model_validate(body).model_dump(mode='json')
+        except ValidationError:
+            return result('unverified', 'invalid_command')
+        revision = expected['expected_revision']
+        row = arguments.get('path', {}).get('number')
+        if type(row) is not int or row < 1:
+            return result('unverified', 'invalid_command')
+        if after.get('revision') != revision + 1:
+            return result('unverified', 'readback_revision_changed')
+        checks = [bool(before) and before.get('revision') == revision]
+        for value in (receipt, after):
+            checks.extend((value.get('row_number') == row, value.get('revision') == revision + 1,
+                           value.get('confirmed') is expected['confirm'],
+                           value.get('decision') == expected['decision'],
+                           value.get('reason') == expected['reason']))
+        return result('confirmed' if all(checks) else 'failed',
+                      'postcondition_verified' if all(checks) else 'postcondition_mismatch', checks)
     equipment = tool_name in EQUIPMENT
     key = 'equipment_id' if equipment else 'task_id'
     identity = receipt.get(key) if equipment else receipt.get('task', {}).get('id') if isinstance(receipt.get('task'), dict) else None
@@ -373,6 +395,8 @@ async def verify_action(app, tool, arguments, receipt, headers, before=None):
             name, path = 'equipment_read', {'equipment_id': identity}
         elif tool.name == 'staff_edit':
             name, path = 'staff_read', arguments.get('path', {})
+        elif tool.name == 'catalog_decision':
+            name, path = 'catalog_decision_read', arguments.get('path', {})
         else:
             name, path = 'task_read', arguments.get('path', {})
         read = next(item for item in TOOLS if item.name == name)

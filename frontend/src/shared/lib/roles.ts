@@ -1,4 +1,4 @@
-import type { Role } from "@/shared/types/domain";
+import type { Role, SessionProfile } from "@/shared/types/domain";
 
 export const SECTION_ROLES: Record<string, Role[]> = {
   dispatcher: ["director", "chief_engineer", "engineer", "admin", "dispatcher"],
@@ -18,8 +18,22 @@ export function canOpenSection(role: Role | undefined, section: string): boolean
   return !!role && !!SECTION_ROLES[section]?.includes(role);
 }
 
-export function canManageSiteAccess(role: Role | undefined): boolean {
-  return role === "chief_engineer" || role === "admin";
+const legacyPermissions = {
+  engineering_workspace: ["chief_engineer"],
+  order_table: ["chief_engineer"],
+  review_report: ["chief_engineer"],
+  edit_plan: ["chief_engineer","dispatcher","admin"],
+  edit_equipment: ["chief_engineer","admin"],
+  edit_service: ["chief_engineer","admin"],
+  prepare_catalog: ["chief_engineer","admin"],
+  site_access: ["chief_engineer","admin"],
+  approve_exception: ["chief_engineer"],
+} satisfies Record<string, Role[]>;
+
+export function hasPermission(profile: SessionProfile | null | undefined, permission: keyof typeof legacyPermissions): boolean {
+  if (!profile) return false;
+  if (profile.permissionProfile === "mvp") return profile.permissions?.includes(permission) === true;
+  return (legacyPermissions[permission] as readonly Role[]).includes(profile.role);
 }
 
 export function taskPathForRole(role: Role | undefined, taskId: string): string | null {

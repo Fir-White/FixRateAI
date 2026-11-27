@@ -14,6 +14,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.db.session import service_transaction
 from app.schemas.maintenance import AssignmentCommand
+from app.security.permissions import permits
 from .analyst import workbook
 from .assignment import _job, assignment_preview, local_time
 from .assignments import _lock, save_assignment
@@ -70,8 +71,8 @@ class Apply(Preview):
 
 
 def _guard(v):
-    if v.principal.role != "chief_engineer":
-        raise HTTPException(403, "Рабочую таблицу ТО изменяет главный инженер")
+    if not permits(v.principal.role, "order_table"):
+        raise HTTPException(403, "Нет права работы с таблицей нарядов ТО")
 
 
 def _locked(order, has_report):
@@ -350,7 +351,7 @@ def _plan(v, request):
 def _event(v, identity, action, reason, before, after):
     v.repo.add("audit_events", site_id=v.principal.site_id, actor_type="user", actor_user_id=v.principal.user_id,
                entity_type="work_orders", entity_id=identity, action=action, before_snapshot=before,
-               after_snapshot=dict(after, reason=reason))
+               after_snapshot=dict(after, reason=reason, actor_role=v.principal.role))
 
 
 def _materialize(v, data, facts, reason, tz):
@@ -397,20 +398,20 @@ def _apply(v, command):
         orders = _lock(v, "work_orders", work_order_id=ids) if ids else []
         assigned = command.confirm_assigned and len(command.changes) == 1 and bool(ids)
         # _edit normally owns the transaction; its actor check is factored out for this transaction.
-        with _edit(v, roles=("chief_engineer",), exact_roles=True, _owns_transaction=False) if not assigned else nullcontext():
+        with _edit(v, roles=("chief_engineer",), exact_roles=True, _owns_transaction=False, permission="order_table") if not assigned else nullcontext():
             if assigned:
                 # Worker/membership locks must still be acquired in the assignment service's order.
                 # The read below is for replay only; a new operation rechecks the actor under those locks.
                 actor = v.one("users", user_id=v.principal.user_id)
                 member = v.one("site_memberships", user_id=v.principal.user_id)
-                if not actor.is_active or not member.is_active or member.role != "chief_engineer":
+                if not actor.is_active or not member.is_active or member.role != v.principal.role or not permits(member.role, "order_table"):
                     raise HTTPException(403, "Доступ главного инженера изменился")
             site = v.one("sites") if assigned else _lock(v, "sites", site_id=v.principal.site_id, read=True)[0]
             if not site.is_active or site.timezone != v.principal.timezone:
                 raise HTTPException(403, "Объект недоступен")
             stored = v.rows("audit_events", audit_event_id=key)
             if stored:
-                with _edit(v, roles=("chief_engineer",), exact_roles=True, _owns_transaction=False) if assigned else nullcontext():
+                with _edit(v, roles=("chief_engineer",), exact_roles=True, _owns_transaction=False, permission="order_table") if assigned else nullcontext():
                     if assigned and not _lock(v, "sites", site_id=v.principal.site_id, read=True)[0].is_active:
                         raise HTTPException(403, "Объект недоступен")
                     saved = stored[0].after_snapshot

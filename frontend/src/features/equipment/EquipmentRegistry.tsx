@@ -5,7 +5,7 @@ import { readQueries } from '@/shared/api/readQueries';
 import { isShortString, useWorkspaceState } from '@/shared/lib/workspaceState';
 import { useApiQuery } from '@/shared/lib/useApiQuery';
 import { useSession } from '@/shared/session/SessionContext';
-import { canOpenSection } from '@/shared/lib/roles';
+import { canOpenSection, hasPermission } from '@/shared/lib/roles';
 import { Button, buttonClassName } from '@/shared/ui/Button';
 import { Card } from '@/shared/ui/Card';
 import { PageHeader } from '@/shared/ui/PageHeader';
@@ -26,7 +26,8 @@ export function EquipmentRegistry() {
   const [page, setPage] = useWorkspaceState('registry.page', 1, (value): value is number => Number.isSafeInteger(value) && Number(value) > 0 && Number(value) <= 100_000);
   const [search, setSearch] = useWorkspaceState('registry.search', '', isShortString); const [selected, setSelected] = useState('');
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
-  const mayEdit = profile?.role === 'chief_engineer' || profile?.role === 'admin';
+  const mayEdit = hasPermission(profile,'edit_equipment');
+  const mayManage = hasPermission(profile,'site_access');
   const query = useApiQuery(readQueries.registry.load, [profile?.siteId, refresh], undefined, readQueries.registry.key);
   const systems = query.data?.registry.systems ?? [];
   const all = query.data?.registry.items ?? [];
@@ -53,11 +54,11 @@ export function EquipmentRegistry() {
     {query.status === 'loading' && <LoadingState/>}{query.status === 'error' && <ErrorState description={query.error}/>}
     {query.status === 'success' && <>
       <Card className="space-y-4 p-5"><div className="registry-tools"><label className="space-y-1 text-sm"><FieldCaption>Здание</FieldCaption><Select aria-label="Здание" value={query.data.registry.site_id} disabled={busy} onChange={async e => {setBusy(true); setError(''); try{await switchSite(e.target.value);}catch(error){setError(failure(error));setBusy(false);}}}>{query.data.sites.map(site => <option key={site.site_id} value={site.site_id}>{site.name}</option>)}</Select></label><label className="space-y-1 text-sm"><FieldCaption>Поиск оборудования, работы или детали</FieldCaption><Input aria-label="Поиск по реестру" value={search} onChange={e => {setSearch(e.target.value);setPage(1);setSelected('');}} placeholder="Название, номер или расположение"/></label></div>
-        {mayEdit && <BuildingForm timezone={profile?.timezone ?? 'Asia/Yekaterinburg'} onSaved={() => setRefresh(n => n+1)}/>}
+        {mayManage && <BuildingForm timezone={profile?.timezone ?? 'Asia/Yekaterinburg'} onSaved={() => setRefresh(n => n+1)}/>}
         <div className="registry-tabs" role="tablist" aria-label="Инженерные системы"><Button role="tab" id="registry-tab-all" aria-controls="registry-table-panel" aria-selected={group==='all'} variant={group==='all'?'primary':'ghost'} onClick={()=>{setGroup('all');setPage(1);setSelected('');}}>Все системы <span>{all.length}</span></Button>{(Object.entries(systemGroups) as [SystemGroup, string][]).map(([key, label]) => <Button key={key} role="tab" id={`registry-tab-${key}`} aria-controls="registry-table-panel" aria-selected={group === key} variant={group === key ? 'primary' : 'ghost'} onClick={() => {setGroup(key);setPage(1);setSelected('');}}>{label} <span>{counts[key]}</span></Button>)}<Button role="tab" id="registry-tab-unclassified" aria-controls="registry-table-panel" aria-selected={group === 'unclassified'} variant={group === 'unclassified' ? 'primary' : 'ghost'} onClick={() => {setGroup('unclassified');setPage(1);setSelected('');}}>Без группы <span>{counts.unclassified}</span></Button></div>
       </Card>
-      {systems.some(system => !system.system_group) && <Callout>Есть системы без группы. Их оборудование сохранено во вкладке «Без группы». {mayEdit ? 'Укажите группу ниже, чтобы распределить его по таблицам.' : 'Главный инженер может указать группу системы.'}</Callout>}
-      {mayEdit && <SystemGroups systems={systems} onSaved={() => setRefresh(n => n+1)}/>}
+      {systems.some(system => !system.system_group) && <Callout>Есть системы без группы. Их оборудование сохранено во вкладке «Без группы». {mayManage ? 'Укажите группу ниже, чтобы распределить его по таблицам.' : 'Группировку меняет ответственный за справочник.'}</Callout>}
+      {mayManage && <SystemGroups systems={systems} onSaved={() => setRefresh(n => n+1)}/>}
       <div id="registry-table-panel" role="tabpanel" aria-labelledby={`registry-tab-${group}`}>
         {!items.length ? <EmptyState title="В этой таблице пока нет оборудования" description={search ? 'Измените поисковый запрос.' : 'Добавьте оборудование или укажите группу существующей системы.'}/> : <Card className="overflow-hidden"><div className="registry-scroll"><table className="registry-table" aria-label={`${group === 'all' ? 'Все системы' : group === 'unclassified' ? 'Без группы' : systemGroups[group]} — работы и оборудование`}><thead><tr><th>Оборудование</th><th>Работы и периодичность</th><th>Трудозатраты на одно ТО</th><th>Детали и наработка</th><th><span className="sr-only">Действия</span></th></tr></thead><tbody>{visible.map(item => <RegistryRow key={item.equipment_id} item={item} system={systemIndex.get(item.system_id)} selected={selected === item.equipment_id} canConfigure={canOpenSection(profile?.role,'service_settings')} onSelect={toggleSelected}/>)}</tbody></table></div></Card>}
       </div>
@@ -66,7 +67,7 @@ export function EquipmentRegistry() {
         <div className="flex gap-2"><Button variant="secondary" disabled={currentPage === 1} onClick={() => {setPage(currentPage-1);setSelected('');}}>Предыдущая страница оборудования</Button><Button variant="secondary" disabled={currentPage === pages} onClick={() => {setPage(currentPage+1);setSelected('');}}>Следующая страница оборудования</Button></div>
       </nav>}
       {active && <section className="space-y-4" aria-label={`Детали: ${active.name}`}><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-semibold">{active.name} · {active.asset_code}</h2>{mayEdit && <Link to={`/settings/equipment?equipment=${encodeURIComponent(active.equipment_id)}`} className={buttonClassName('secondary')}>Настроить оборудование и работы</Link>}</div><ComponentPanel equipmentId={active.equipment_id} onChanged={() => setRefresh(n => n+1)}/></section>}
-      <RegistryExcel mayImport={mayEdit} onSaved={() => setRefresh(n => n+1)}/>
+      <RegistryExcel mayImport={mayManage} onSaved={() => setRefresh(n => n+1)}/>
       {canOpenSection(profile?.role,"planning")&&<Link to="/planning" className={buttonClassName('ghost')}>Перейти в планирование →</Link>}
     </>}
   </div>;

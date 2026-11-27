@@ -86,6 +86,7 @@ export function QualityTaskPage() {
   const hasDocuments = !!task.requiredActs?.length || !!execution?.acts?.length;
   const canReview = !DEMO_MODE && !!query.data.allowedActions?.includes("review");
   const canAnalyze = !DEMO_MODE && !!query.data.allowedActions?.includes("photo_review");
+  const lateMvp = profile?.permissionProfile === "mvp" && task.lateAcceptanceBlocked;
 
   const handleDecision = async (verdict: "accepted" | "rejected") => {
     setPendingDecision(null);
@@ -241,10 +242,11 @@ export function QualityTaskPage() {
               {notice ? (
                 <div role="alert"><Callout tone="danger" className="mt-3 text-xs">{notice}</Callout></div>
               ) : null}
+              {lateMvp && <Callout tone="neutral">Просроченная приёмка требует отдельного согласования вне оперативного профиля MVP.</Callout>}
 
               <div className="mt-4 grid gap-2">
                 <Button
-                  disabled={!reason.trim() || busy || !canReview}
+                  disabled={!reason.trim() || busy || !canReview || lateMvp}
                   onClick={() => setPendingDecision("accepted")}
                 >
                   <Icon name="check" size={18} />

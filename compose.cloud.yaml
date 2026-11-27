@@ -2,6 +2,8 @@
 services:
   app:
     environment:
+      ASSISTANT_PROVIDER: aitunnel
+      FIXRATE_LLM_LOCAL_ONLY: '0'
       PHOTO_REVIEW_PROVIDER: aitunnel
       FORECAST_PROVIDER: aitunnel
       AITUNNEL_API_KEY: ${AITUNNEL_API_KEY:-${AI_TUNNEL_API_KEY:-}}

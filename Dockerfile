@@ -1,14 +1,14 @@
-FROM node:24-bookworm-slim AS web
+FROM node:24-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54 AS web
 WORKDIR /build/frontend
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm npm ci --ignore-scripts
 COPY frontend/ ./
 COPY tests/web/ /build/tests/web/
 COPY tests/fixtures/web/ /build/tests/fixtures/web/
 ENV VITE_DEMO_MODE=false
 RUN npm run build
 
-FROM python:3.12-slim-bookworm
+FROM python:3.12-slim-bookworm@sha256:935c3c5b12357a7e10caa9c1e6ca5692344d97cf229832ef584be2cec9fc03df
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/app/backend:/app
 ENV PIP_DEFAULT_TIMEOUT=300 PIP_RETRIES=20
 WORKDIR /app

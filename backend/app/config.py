@@ -25,6 +25,8 @@ class RuntimeSettings:
 
     @classmethod
     def from_environment(cls):
+        from app.security.permissions import permission_profile
+        permission_profile()
         secure = os.environ.get("COOKIE_SECURE", "false").strip().lower()
         if secure not in ("true", "false"):
             raise ValueError("COOKIE_SECURE must be true or false")

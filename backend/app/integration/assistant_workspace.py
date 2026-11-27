@@ -400,7 +400,8 @@ def register_routes(app,views):
         from .assignment import assignment_context,assignment_preview
         if not has_role(v.principal.role,('dispatcher',)):raise HTTPException(403,'Действие недоступно для текущей роли')
         order=v.task(task_id);context=assignment_context(v,order)
-        if command.use_planned_day and order.status in ('in_progress','rework') and v.principal.role!='chief_engineer':
+        from app.security.permissions import permits
+        if command.use_planned_day and order.status in ('in_progress','rework') and not permits(v.principal.role,'approve_exception'):
             return dict(status='needs_input',code='CHIEF_HANDOFF_REQUIRED',command=None,context=context,
                         explanation='Переназначение начатой работы подтверждает главный инженер.')
         if context.get('status')!='ready':return dict(status='needs_input',explanation=context.get('explanation'),context=context,command=None)

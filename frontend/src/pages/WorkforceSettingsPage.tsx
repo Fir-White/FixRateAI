@@ -9,7 +9,7 @@ import { managementApi } from "@/shared/api/management";
 import { DEMO_MODE } from "@/shared/api/request";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
 import { formatDate,todayAt } from "@/shared/lib/format";
-import { canManageSiteAccess, ROLE_LABELS } from "@/shared/lib/roles";
+import { hasPermission, ROLE_LABELS } from "@/shared/lib/roles";
 import { useSession } from "@/shared/session/SessionContext";
 import type { Role } from "@/shared/types/domain";
 import type { CrewRecord,ShiftRule,StaffMember,Workforce } from "@/shared/types/management";
@@ -38,7 +38,7 @@ function LiveWorkforceSettingsPage() {
   const [search,setSearch]=useState("");
   const [busy,setBusy]=useState(false);const [error,setError]=useState("");const [notice,setNotice]=useState("");
   const query=useApiQuery(readQueries.workforce.load,[refresh],undefined,readQueries.workforce.key);
-  const managesAccess=canManageSiteAccess(profile?.role);
+  const managesAccess=hasPermission(profile,"site_access");
   const sections: [string,string][] = [["staff","Сотрудники"],["crews","Бригады"],["skills","Виды допусков"]];
   if (managesAccess) sections.push(["access","Регистрация и доступ"]);
   const area = sections.find(([key])=>key===params.get("view"))?.[0]??"staff";

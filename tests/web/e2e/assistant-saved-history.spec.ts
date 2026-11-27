@@ -34,10 +34,22 @@ for (const facts of [false,true]) for (const width of [1440, 390]) for (const re
       if (url.pathname.includes('/registry')) return route.fulfill({json: {items: [], systems: []}});
       return route.fulfill({json: []}); // Empty bounded workspace warm-up lists.
     });
+    const delayedLayout = width === 1440 && reducedMotion === 'reduce' && !facts;
+    if (delayedLayout) await page.addInitScript(() => {
+      const growAfterInitialScroll = (event: Event) => {
+        if (!(event.target instanceof HTMLElement) || !event.target.matches('.assistant-transcript')) return;
+        document.removeEventListener('scroll', growAfterInitialScroll, true);
+        // Emulate content reflow (e.g. after fonts arrive) before the queued scroll event is handled.
+        const content = event.target.querySelector<HTMLElement>('.assistant-transcript-inner');
+        if (content) content.style.paddingBottom = '512px';
+      };
+      document.addEventListener('scroll', growAfterInitialScroll, true);
+    });
     await page.goto('/assistant?chat=' + id);
     const region = page.getByRole('region', {name: 'Сообщения'}), articles = region.locator('article');
     await expect(articles).toHaveCount(21);
     await expect(articles.last().locator('.assistant-answer')).toContainText('Последнее поле записи 34');
+    if (delayedLayout) await expect(region.locator('.assistant-transcript-inner')).toHaveCSS('padding-bottom', '512px');
     await expect.poll(() => region.evaluate(el => el.scrollHeight - el.scrollTop - el.clientHeight)).toBeLessThan(3);
     expect(await region.locator('.assistant-answer').count()).toBe(1);
     expect(await region.locator('.assistant-saved-plain').count()).toBe(20);

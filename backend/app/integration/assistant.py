@@ -54,7 +54,9 @@ def register_routes(app,views):
     def create(command:ConversationCreate,v=Depends(views)):
         identity=uuid4()
         if command.subject_task_id is not None:
-            if app.state.settings.assistant_agent_version!='v4' or v.principal.role not in ('engineer','executor'):
+            from app.security.permissions import has_role
+            if app.state.settings.assistant_agent_version!='v4' or not has_role(
+                    v.principal.role,('engineer','executor'),exact=True):
                 raise HTTPException(403,'Привязка чата к наряду недоступна.')
             v.task(command.subject_task_id)
         v.session.execute(text('INSERT INTO assistant_conversations(conversation_id,site_id,user_id,role,title,agent,subject_task_id) VALUES (:id,:site,:user,:role,:title,:agent,:task)'),

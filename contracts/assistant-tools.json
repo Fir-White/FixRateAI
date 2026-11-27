@@ -6746,7 +6746,7 @@
         }
       },
       "before_read": "catalog_decision_read",
-      "operator": "unavailable"
+      "operator": "confirmation"
     },
     {
       "name": "catalog_decision_history",

@@ -1,4 +1,3 @@
-from app.security.sessions import has_role
 """BE05 transaction: lock, revalidate the exact proposal, reserve and audit."""
 from contextlib import nullcontext
 from datetime import datetime, timedelta, timezone
@@ -11,6 +10,8 @@ from sqlalchemy import select
 from app.assignment import AssignmentRequest, select_crew
 from app.db.session import service_transaction
 from app.schemas.maintenance import Assignment
+from app.security.permissions import has_role, permits
+from app.security.sessions import SQL_ROLES
 from .assignment import _job, _workers
 from .calendar import _json_value
 
@@ -92,7 +93,8 @@ def cancel_task(v,task_id,revision,reason):
         lock_workers(v,{row.user_id for row in active},actor=True)
         actor=v.one('users',user_id=v.principal.user_id)
         member=v.one('site_memberships',user_id=v.principal.user_id)
-        if not actor.is_active or not member.is_active or not has_role(member.role,('dispatcher',)):
+        role=SQL_ROLES.get(member.role)
+        if not actor.is_active or not member.is_active or role!=v.principal.role or not has_role(role,('dispatcher',)):
             raise HTTPException(403,'Права диспетчера изменились')
         previous=dict(status=order.status,revision=order.revision)
         now=datetime.now(timezone.utc)
@@ -105,7 +107,8 @@ def cancel_task(v,task_id,revision,reason):
         v.session.flush()
         v.repo.add('audit_events',site_id=order.site_id,actor_type='user',actor_user_id=v.principal.user_id,
             entity_type='work_orders',entity_id=task_id,action='cancel',before_snapshot=previous,
-            after_snapshot=dict(status=order.status,revision=order.revision,reason=reason,released_assignment_ids=[str(a.work_assignment_id) for a in active]))
+            after_snapshot=dict(status=order.status,revision=order.revision,reason=reason,actor_role=role,
+                                released_assignment_ids=[str(a.work_assignment_id) for a in active]))
         return v.bundle(order)
 
 
@@ -135,11 +138,12 @@ def save_assignment(v, task_id, command, crew_id=None, *, worksheet_move=False):
         _lock(v, "sites", read=True, site_id=v.principal.site_id)
         actor = v.one("users", user_id=v.principal.user_id)
         membership = v.one("site_memberships", user_id=v.principal.user_id)
-        if not actor.is_active or not membership.is_active or not has_role(membership.role,("dispatcher",)) or not v.one("sites").is_active:
+        role = SQL_ROLES.get(membership.role)
+        if (not actor.is_active or not membership.is_active or role != v.principal.role
+                or not has_role(role, ("dispatcher",)) or not v.one("sites").is_active):
             raise HTTPException(403, "Доступ диспетчера отозван")
         if worksheet_move:
-            if (v.principal.role != "chief_engineer" or membership.role != "chief_engineer"
-                    or v.one("sites").timezone != v.principal.timezone):
+            if not permits(role, "order_table") or v.one("sites").timezone != v.principal.timezone:
                 raise HTTPException(403, "Перенос в таблице подтверждает главный инженер")
             if (order.status != "assigned" or order.started_at or v.rows("work_reports", work_order_id=task_id)
                     or {row.user_id for row in active} != ids
@@ -149,8 +153,8 @@ def save_assignment(v, task_id, command, crew_id=None, *, worksheet_move=False):
         # Reads after potentially waiting for locks must not reuse ORM identity-cache facts.
         v.session.expire_all()
         handoff=order.status in ("in_progress","rework")
-        if handoff and v.principal.role!="chief_engineer":
-            raise HTTPException(403,"Переназначение начатой работы подтверждает главный инженер")
+        if handoff and not permits(role, "approve_exception"):
+            raise HTTPException(403,"Переназначение начатой работы требует отдельного согласования")
         context = _job(v, order)
         if context["status"] != "ready":
             raise HTTPException(409, f"{context['code']}: {context['explanation']}")
@@ -202,7 +206,7 @@ def save_assignment(v, task_id, command, crew_id=None, *, worksheet_move=False):
         v.repo.add("audit_events", site_id=order.site_id, actor_type="user", actor_user_id=v.principal.user_id,
             entity_type="work_orders", entity_id=task_id, action="assign", before_snapshot=before,
             after_snapshot=dict(status=order.status, revision=order.revision, assignments=assignments,
-                                crew_id=str(crew_id) if crew_id else None, reason=command.reason.strip()))
+                                crew_id=str(crew_id) if crew_id else None, reason=command.reason.strip(), actor_role=v.principal.role))
         from .analyst import notify_event
         notify_event(v,order,"rescheduled" if worksheet_move else "assigned",("executor","technician"))
         result = dict(**v.bundle(order), assignments=assignments)

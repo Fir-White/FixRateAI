@@ -1,5 +1,5 @@
 """Analyst corrections: real HTTP/PostgreSQL, isolated TEST fixtures only."""
-from datetime import date,datetime,timedelta,timezone
+from datetime import date,datetime,time,timedelta,timezone
 from contextlib import closing
 from decimal import Decimal
 from io import BytesIO
@@ -391,6 +391,14 @@ def test_contract_stub_early_ai_requires_chief_and_keeps_original_obligation(man
     assert admin.chief.post(PREFIX+f'/comparisons/{run_id}/confirm',json=body|dict(selected_date=(due+timedelta(days=1)).isoformat())).status_code==422
     confirmed=admin.chief.post(PREFIX+f'/comparisons/{run_id}/confirm',json=body)
     assert confirmed.status_code==200 and confirmed.json()['extra_maintenance'],confirmed.text
+    import app.integration.analyst as analyst_routes
+
+    class NextDay(datetime):
+        @classmethod
+        def now(cls,tz=None):
+            return datetime.combine(due,time(12),tz)
+
+    monkeypatch.setattr(analyst_routes,'datetime',NextDay)
     repeat=admin.chief.post(PREFIX+f'/comparisons/{run_id}/confirm',json=body)
     assert repeat.status_code==200 and repeat.json()['replayed'],repeat.text
     with engine.connect() as c:

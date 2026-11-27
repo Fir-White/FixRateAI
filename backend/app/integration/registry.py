@@ -148,13 +148,13 @@ def register_routes(app, views, storage, runtime_settings):
 
     @app.post(PREFIX + '/equipment/{equipment_id}/components', status_code=201)
     def install(equipment_id: UUID, command: ComponentCreate, v=Depends(views)):
-        with _edit(v, roles=('chief_engineer', 'admin'), exact_roles=True):
+        with _edit(v, roles=('chief_engineer', 'admin'), exact_roles=True, permission='edit_equipment'):
             catalog_lock(v)
             return component_response(v, add_component(v, equipment_id, command))
 
     @app.patch(PREFIX + '/registry/components/{component_id}')
     def edit_component(component_id: UUID, command: ComponentMetadata, v=Depends(views)):
-        with _edit(v, roles=('chief_engineer','admin'), exact_roles=True):
+        with _edit(v, roles=('chief_engineer','admin'), exact_roles=True, permission='edit_equipment'):
             catalog_lock(v)
             part=component(v,component_id)
             visible_equipment(v,part.equipment_id,True)
@@ -168,7 +168,7 @@ def register_routes(app, views, storage, runtime_settings):
 
     @app.post(PREFIX + '/registry/components/{component_id}/replace')
     def replace(component_id: UUID, command: ComponentReplacement, v=Depends(views)):
-        with _edit(v, roles=('chief_engineer', 'admin'), exact_roles=True):
+        with _edit(v, roles=('chief_engineer', 'admin'), exact_roles=True, permission='edit_equipment'):
             catalog_lock(v)
             part = component(v, component_id)
             visible_equipment(v, part.equipment_id, True)

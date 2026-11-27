@@ -27,24 +27,22 @@ from app.security.sessions import (
 )
 from app.scheduling.recurrence import pattern_description,occurrence_dates,occurrence_pairs
 from app.scheduling.shifts import expand_shift,employment_availability
+from app.security.permissions import permission_profile, permits
 from .assignments import _lock
 from .calendar import _json_value, configured_pattern, checklist_for_rule
 
 PREFIX='/api/v1/maintenance'
 
 
-def _guard(v,*roles):
-    if not has_role(v.principal.role,roles):
+def _guard(v,*roles,permission=None,exact=False):
+    if not has_role(v.principal.role,roles,permission=permission,exact=exact):
         raise HTTPException(403,'Действие недоступно для текущей роли')
 
 
 @contextmanager
-def _edit(v,workers=(),roles=('admin','dispatcher'),exact_roles=False,*,_owns_transaction=True):
+def _edit(v,workers=(),roles=('admin','dispatcher'),exact_roles=False,*,_owns_transaction=True,permission=None):
     """Use the same global user → membership → metadata lock order as BE05."""
-    if exact_roles:
-        if v.principal.role not in roles:raise HTTPException(403,'Оборудование и структуру изменяет главный инженер')
-    else:
-        _guard(v,*roles)
+    _guard(v,*roles,permission=permission,exact=exact_roles)
     with (service_transaction(v.session) if _owns_transaction else nullcontext()):
         identifiers=set(workers)|{v.principal.user_id}
         for table in ('users','site_memberships'):
@@ -53,8 +51,9 @@ def _edit(v,workers=(),roles=('admin','dispatcher'),exact_roles=False,*,_owns_tr
         v.session.expire_all()
         actor=v.one('users',user_id=v.principal.user_id)
         member=v.one('site_memberships',user_id=v.principal.user_id)
-        permitted = SQL_ROLES.get(member.role) in roles if exact_roles else has_role(SQL_ROLES.get(member.role),roles)
-        if not actor.is_active or not member.is_active or not permitted:
+        current_role = SQL_ROLES.get(member.role)
+        if not actor.is_active or not member.is_active or current_role != v.principal.role or not has_role(
+                current_role,roles,permission=permission,exact=exact_roles):
             raise HTTPException(403,'Права пользователя изменились; обновите сессию')
         yield
 
@@ -66,7 +65,8 @@ def _revision(row,expected):
 
 def _audit(v,table,identity,action,after):
     v.repo.add('audit_events',site_id=v.principal.site_id,actor_type='user',actor_user_id=v.principal.user_id,
-        entity_type=table,entity_id=identity,action=action,after_snapshot=json.loads(json.dumps(after,default=_json_value)))
+        entity_type=table,entity_id=identity,action=action,after_snapshot=json.loads(json.dumps(
+            dict(after, actor_role=v.principal.role),default=_json_value)))
 
 
 def _equipment(v,identity,lock=False):
@@ -82,7 +82,7 @@ def equipment_response(row):
 
 
 def save_equipment(v,data,identity=None,*,_locked=False):
-    with (nullcontext() if _locked else _edit(v,roles=('chief_engineer','admin','dispatcher'),exact_roles=True)):
+    with (nullcontext() if _locked else _edit(v,roles=('chief_engineer','admin','dispatcher'),exact_roles=True,permission='edit_equipment')):
         # Serializes hierarchy changes and uniqueness checks for this site's catalog.
         v.session.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"),{'key':f'catalog:{v.principal.site_id}'})
         row=_equipment(v,identity,True) if identity else None
@@ -197,22 +197,24 @@ def service_configurations(v,equipment_id,*,include_effectivity=False):
 
 
 def save_service(v,equipment_id,data,binding_id=None,*,_locked=False):
-    if v.principal.role not in ("chief_engineer","admin"):
+    if not has_role(v.principal.role,("chief_engineer","admin"),exact=True,permission='edit_service'):
         raise HTTPException(403,"Регламент изменяет главный инженер")
-    if data.enabled and v.principal.role!="chief_engineer":
-        raise HTTPException(403,"Публикацию утверждает главный инженер")
-    with (nullcontext() if _locked else _edit(v,roles=("chief_engineer","admin"))):
+    if data.enabled and not permits(v.principal.role,'approve_exception'):
+        raise HTTPException(403,"Публикация требует отдельного согласования")
+    with (nullcontext() if _locked else _edit(v,roles=("chief_engineer","admin"),exact_roles=True,permission='edit_service')):
         v.session.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"),{'key':f'catalog:{v.principal.site_id}'})
         eq=_equipment(v,equipment_id,True)
         if data.enabled and data.pattern.frequency=="yearly_count" and data.pattern.annual_policy=="from_anchor" and (not eq.commissioned_on or data.pattern.anchor_date!=eq.commissioned_on):
             raise HTTPException(422,"Для отсчёта от ввода нужна подтверждённая дата ввода, совпадающая с опорной датой")
         old=None
         if binding_id:
-            existing=v.one('rule_equipment',binding_id=binding_id,equipment_id=equipment_id)
-            if existing.rule.schedule_parameters.get('catalog_publication_id'):
-                raise HTTPException(409,'Утверждённая версия каталога неизменяема; подготовьте новый план')
             old=v.one('rule_equipment',binding_id=binding_id,equipment_id=equipment_id)
             _lock(v,'rule_equipment',binding_id=binding_id)
+            if (permission_profile() == 'mvp' and not permits(v.principal.role,'approve_exception')
+                    and old.rule.publication_status == 'published'):
+                raise HTTPException(403,'Утверждённый регламент изменяется только отдельным согласованием')
+            if old.rule.schedule_parameters.get('catalog_publication_id'):
+                raise HTTPException(409,'Утверждённая версия каталога неизменяема; подготовьте новый план')
             if data.expected_revision is None:
                 raise HTTPException(422,'Для изменения нужна ревизия настройки')
             _revision(old,data.expected_revision)
@@ -430,7 +432,7 @@ def workforce_view(v):
     _guard(v,'director','admin','dispatcher','engineer')
     # Read-only projection: batch rows instead of one query per employee.
     members=v.prefetch('site_memberships','user_id')
-    manages_access=v.principal.role in SITE_ACCESS_MANAGERS
+    manages_access=has_role(v.principal.role,SITE_ACCESS_MANAGERS,exact=True)
     pending=v.rows('employment_applications',status='pending') if manages_access else []
     user_ids={m.user_id for m in members}|{a.user_id for a in pending}
     users=v.models['users']
@@ -566,7 +568,8 @@ def register_workforce_routes(app,views,db):
             _revision(row,command.expected_revision)
             if not role_is_enabled(command.role):
                 raise HTTPException(403,'Роль отключена серверным профилем')
-            enabled_managers = tuple(role for role in SITE_ACCESS_MANAGERS if role_is_enabled(role))
+            enabled_managers = tuple(role for role in SITE_ACCESS_MANAGERS
+                if role_is_enabled(role) and has_role(role,SITE_ACCESS_MANAGERS,exact=True))
             if row.is_active and SQL_ROLES.get(row.role) in enabled_managers and (command.role not in enabled_managers or not command.is_active):
                 # Serialize revocations even when two managers change different memberships.
                 v.session.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"),

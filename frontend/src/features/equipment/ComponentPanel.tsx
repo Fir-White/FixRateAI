@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { registryApi } from '@/shared/api/registry';
 import { useApiQuery } from '@/shared/lib/useApiQuery';
 import { useSession } from '@/shared/session/SessionContext';
+import { hasPermission } from '@/shared/lib/roles';
 import { todayAt, formatDate } from '@/shared/lib/format';
 import { Button } from '@/shared/ui/Button';
 import { Card, CardHeader } from '@/shared/ui/Card';
@@ -20,7 +21,7 @@ export function ComponentPanel({equipmentId, onChanged}: {equipmentId: string; o
   const [adding, setAdding] = useState(false);
   const [notice, setNotice] = useState('');
   const query = useApiQuery(() => registryApi.components(equipmentId), [equipmentId, refresh]);
-  const mayEdit = profile?.role === 'chief_engineer' || profile?.role === 'admin';
+  const mayEdit = hasPermission(profile,'edit_equipment');
   const saved = () => { setRefresh(n => n + 1); setAdding(false); setNotice('Изменения сохранены'); onChanged?.(); };
   const today = todayAt(profile?.timezone ?? 'Asia/Yekaterinburg');
   return <section aria-label="Детали и наработка" className="space-y-4">

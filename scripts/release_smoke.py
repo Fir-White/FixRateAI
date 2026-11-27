@@ -14,8 +14,9 @@ import tempfile
 import time
 from urllib.error import HTTPError, URLError
 from urllib.request import HTTPCookieProcessor,build_opener,Request
+from zipfile import ZipFile
 
-from scripts.release_package import build
+from scripts.release_package import build, verify
 
 
 def port():
@@ -56,14 +57,57 @@ def ready(base):
     raise RuntimeError('Stack did not become ready')
 
 
+def quick_start(pkg, directory, cleanup):
+    manifest=json.loads((pkg/'release-manifest.json').read_text(encoding='utf-8'))
+    directory.mkdir()
+    with ZipFile(pkg/manifest['quick_start']) as archive:
+        expected={'compose.yaml','compose.cloud.yaml','images.env','release.json','README.md','.env.example','SHA256SUMS'}
+        assert set(archive.namelist())==expected and len(archive.namelist())==len(expected)
+        archive.extractall(directory)
+    entries=(directory/'SHA256SUMS').read_text(encoding='ascii').splitlines()
+    assert set(line.split('  ',1)[1] for line in entries)==expected-{'SHA256SUMS'}
+    for line in entries:
+        digest,name=line.split('  ',1)
+        assert hashlib.sha256((directory/name).read_bytes()).hexdigest()==digest
+    project='fixrate_quickstart_ci_'+secrets.token_hex(8)
+    token=secrets.token_hex(32);password=secrets.token_hex(24);listen=port()
+    values=dict(FIXRATE_PROJECT=project,FIXRATE_BIND='127.0.0.1',FIXRATE_PORT=listen,
+                POSTGRES_PASSWORD=secrets.token_hex(32),FIXRATE_BOOTSTRAP_TOKEN_SHA256=hashlib.sha256(token.encode()).hexdigest(),
+                COOKIE_SECURE='false')
+    envfile=directory/'.env'
+    with os.fdopen(os.open(envfile,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600),'w',encoding='utf-8') as stream:
+        stream.writelines(f'{key}={value}\n' for key,value in values.items())
+    dc=['docker','compose','--project-name',project,'--env-file',str(directory/'images.env'),'--env-file',str(envfile),
+        '-f',str(directory/'compose.yaml')]
+    env={key:value for key,value in os.environ.items() if key not in values and key not in {
+        'FIXRATE_APP_IMAGE','FIXRATE_WEB_IMAGE','FIXRATE_DB_IMAGE','FIXRATE_ADDRESS','FIXRATE_PERMISSION_PROFILE',
+        'FIXRATE_HTTPS_PORT','FIXRATE_HTTP_PORT','COMPOSE_PROFILES'}}
+    cleanup.append((dc,env))
+    run([*dc,'config','--quiet'],env=env)
+    run([*dc,'up','-d','--wait','--wait-timeout','180','--pull','never'],env=env)
+    base=f'http://127.0.0.1:{listen}';ready(base)
+    opener=build_opener(HTTPCookieProcessor(http.cookiejar.CookieJar()))
+    with opener.open(base+'/setup',timeout=15) as response:
+        assert response.status==200 and response.headers.get_content_type()=='text/html'
+    admin={'organization_name':'TEST Quick Start','site_name':'TEST Quick Start site','full_name':'TEST administrator',
+           'email':'quickstart@example.test','password':password}
+    request(opener,base,'/api/setup',admin,{'X-FixRate-Setup-Token':token},201)
+    auth=request(opener,base,'/api/v1/auth/login',{'email':admin['email'],'password':password})
+    assert auth['profile']['role']=='admin' and auth['profile']['permissionProfile']=='mvp'
+    assert request(opener,base,'/api/v1/maintenance/ui/equipment')==[]
+
+
 def main():
     p=argparse.ArgumentParser();p.add_argument('--app-image',required=True);p.add_argument('--web-image',required=True);p.add_argument('--sha',required=True);p.add_argument('--output',type=Path,required=True)
     args=p.parse_args();args.output.mkdir(parents=True,exist_ok=False)
     scratch=Path(tempfile.mkdtemp(prefix='fixrate-release-ci-')).resolve()
-    installations=[];results=[]
+    installations=[];quick_projects=[];results=[]
     try:
         pkg=scratch/'package'
         build(pkg,version='0.1.0',source_sha=args.sha,app_image=args.app_image,web_image=args.web_image,channel='test',allow_dirty=True)
+        verify(pkg)
+        quick_start(pkg,scratch/'quick-start',quick_projects)
+        results.append({'test':'QUICK-START','status':'PASS','scope':'Extracted ZIP, Core without seed, /setup and first login'})
         installer=pkg/'fixrate-install.sh'
         directory=scratch/'first';installations.append(directory);first_port=port();base=f'http://127.0.0.1:{first_port}'
         common=['bash',installer,'install','--install-dir',directory,'--port',first_port,'--local-images']
@@ -127,6 +171,8 @@ def main():
         request(build_opener(),base,'/api/v1/auth/login',{'email':admin['email'],'password':password})
     finally:
         (args.output/'results.json').write_text(json.dumps(results,indent=2),encoding='utf-8')
+        for dc,env in quick_projects:
+            subprocess.run([*dc,'down','--volumes','--remove-orphans'],stdout=subprocess.DEVNULL,env=env)
         for directory in installations:
             if (directory/'infrastructure.env').is_file() and (directory/'compose.yaml').is_file():
                 assert directory.resolve().is_relative_to(scratch)

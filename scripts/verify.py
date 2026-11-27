@@ -54,6 +54,12 @@ def main():
     scratch = Path(tempfile.mkdtemp(prefix="fixrate-verify-"))
     pg_data = scratch / "postgres"
     hidden = {"creationflags": subprocess.CREATE_NO_WINDOW} if os.name == "nt" else {}
+    postgres_hidden = hidden
+    if os.name == "nt":
+        startup = subprocess.STARTUPINFO()
+        startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startup.wShowWindow = subprocess.SW_HIDE
+        postgres_hidden = dict(creationflags=subprocess.CREATE_NEW_CONSOLE, startupinfo=startup, stdin=subprocess.DEVNULL)
     server = api = None
     pg_log = api_log = None
 
@@ -96,11 +102,13 @@ def main():
         run("initdb", [exe("initdb"), "-D", str(pg_data), "-U", "postgres", "-A", "trust", "--encoding=UTF8", "--locale=C"])
         pg_log = (log_output / "postgres.log").open("w", encoding="utf-8")
         server = subprocess.Popen([exe("postgres"), "-D", str(pg_data), "-p", str(pg_port), "-h", "127.0.0.1"],
-                                  stdout=pg_log, stderr=subprocess.STDOUT, **hidden)
+                                  stdout=pg_log, stderr=subprocess.STDOUT, **postgres_hidden)
         import psycopg
         for attempt in range(100):
             try:
                 with psycopg.connect(host="127.0.0.1", port=pg_port, user="postgres", dbname="postgres", connect_timeout=1) as conn:
+                    if Path(conn.execute("SHOW data_directory").fetchone()[0]).resolve() != pg_data.resolve():
+                        raise RuntimeError("PostgreSQL port belongs to another cluster; no database was created")
                     pg_version = conn.execute("SELECT version()").fetchone()[0]
                 break
             except psycopg.OperationalError:
@@ -147,6 +155,8 @@ def main():
         results.append(dict(check="fresh_current_schema_and_seed_rerun", command="app.manage.migrate(); seed_demo(); seed_demo()", status="Пройдено"))
         test_env = dict(env, TEST_DATABASE_URL=orm_url, INTEGRATION_DATABASE_URL=runtime_url, FIXRATE_TEST_PASSWORD=password,
                         PHOTO_STORAGE_ROOT=str(scratch / "photos"))
+        test_env.setdefault("FIXRATE_ASSISTANT_AGENT_VERSION", "v2")
+        test_env.setdefault("FIXRATE_PERMISSION_PROFILE", "legacy")
         if args.agent_only:
             test_env['FIXRATE_AGENT_AUDIT_OUTPUT']=str(output/'agent-audit')
         run("pytest", [sys.executable, "-B", "-m", "pytest", "-q",*(args.pytest_target or [])], variables=test_env)

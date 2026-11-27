@@ -293,7 +293,7 @@ class Views:
                 if canonical_elapsed is not None:
                     review["elapsedMs"] = canonical_elapsed
         actions = []
-        if self.principal.role=="chief_engineer" and order.status=="completed": actions.append("reopen")
+        if has_role(self.principal.role,("chief_engineer",),exact=True) and order.status=="completed": actions.append("reopen")
         role = self.principal.role
         if has_role(role,("dispatcher", "engineer")) and not order.operation_snapshot.get('catalog_publication_id'):
             actions.append("forecast")
@@ -308,7 +308,7 @@ class Views:
                 actions.extend(("edit_report", "upload_photo", "submit"))
         if has_role(role,("engineer",)) and order.status == "in_review" and report and report.status == "submitted":
             actions.append("photo_review")
-            if role == 'chief_engineer' and report.submitted_by != self.principal.user_id and not any(
+            if has_role(role,('chief_engineer',),exact=True,permission='review_report') and report.submitted_by != self.principal.user_id and not any(
                     a.user_id == self.principal.user_id for a in self.rows("work_assignments", work_order_id=order.work_order_id)):
                 actions.append("review")
         analysis_status=("failed" if review.get("status") in ("failed","unavailable") else "ready") if review else (

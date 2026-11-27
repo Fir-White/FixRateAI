@@ -51,7 +51,7 @@ def register_routes(app, views):
 
     @app.post(base+'/preview', response_model=CatalogPreview)
     def preview(response:Response, file:UploadFile=File(...),v=Depends(views)):
-        _guard(v,'chief_engineer','admin')
+        _guard(v,'chief_engineer','admin',permission='prepare_catalog')
         data=inspect(file.file.read(MAX_FILE+1))
         response.headers['Cache-Control']='private, no-store'
         return dict(format='hvac_catalog',preview_token=token(v,data),can_save_draft=True,
@@ -64,11 +64,11 @@ def register_routes(app, views):
     @app.post(base, status_code=201, response_model=CatalogSaved)
     def save(response:Response,preview_token:str=Form(...,min_length=64,max_length=64,pattern='^[0-9a-f]{64}$'),file:UploadFile=File(...),v=Depends(views)):
         content=file.file.read(MAX_FILE+1)
-        _guard(v,'chief_engineer','admin')
+        _guard(v,'chief_engineer','admin',permission='prepare_catalog')
         data=inspect(content)
         if not hmac.compare_digest(preview_token,token(v,data)):
             raise HTTPException(409,'Файл или контекст изменился. Повторите предпросмотр каталога')
-        with _edit(v,roles=('chief_engineer','admin'),exact_roles=True):
+        with _edit(v,roles=('chief_engineer','admin'),exact_roles=True,permission='prepare_catalog'):
             identity=uuid4()
             name=''.join(c for c in PureWindowsPath(file.filename or 'catalog.xlsx').name if ord(c)>=32)[:256] or 'catalog.xlsx'
             inserted=v.session.scalar(text('''INSERT INTO regulation_catalog_imports

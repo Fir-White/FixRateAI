@@ -17,6 +17,7 @@ from sqlalchemy import select, text, delete, update
 from sqlalchemy.dialects.postgresql import insert
 from app.db.session import service_transaction
 from app.security.sessions import Principal, has_role
+from app.security.permissions import permission_profile, permits
 
 PREFIX='/api/v1/maintenance'
 
@@ -126,11 +127,13 @@ def validate_acceptance(v,order,report,payload):
     if set(payload.additional_evidence_refs)-valid_refs: raise HTTPException(422,'Акт относится к другой попытке')
     now=datetime.now(timezone.utc)
     if order.regulatory_deadline_at and now>=order.regulatory_deadline_at:
-        if v.principal.role=='chief_engineer' and payload.late_reason:
+        if permits(v.principal.role,'approve_exception') and payload.late_reason:
             order.exception_context=dict(order.exception_context,late_acceptance=dict(report_id=str(report.work_report_id),
                 approved_by=str(v.principal.user_id),reason=payload.late_reason,approved_at=now.isoformat()))
         elif late_acceptance_needs_chief(order, report.work_report_id, now):
-            raise HTTPException(409,'LATE_ACCEPTANCE_REQUIRES_CHIEF: нужно разрешение главного инженера с причиной задержки')
+            reason = ('просроченная приёмка требует отдельного согласования вне оперативного профиля MVP'
+                      if permission_profile() == 'mvp' else 'нужно разрешение главного инженера с причиной задержки')
+            raise HTTPException(409, f'LATE_ACCEPTANCE_REQUIRES_CHIEF: {reason}')
 
 
 def workbook(rows):
@@ -155,13 +158,14 @@ def workbook(rows):
 
 def register_analyst_routes(app,views,photo_path,editable):
     def chief(v):
-        if v.principal.role!='chief_engineer':raise HTTPException(403,'Нужна роль главного инженера')
+        if not permits(v.principal.role,'approve_exception'):
+            raise HTTPException(403,'Действие требует отдельного полномочия на согласование')
     def revise(order,payload):
         if order.revision!=payload.expected_revision:raise HTTPException(409,'REVISION_CONFLICT: обновите данные')
 
     @app.post(PREFIX+'/source/xlsx/preview')
     async def source_preview(file: UploadFile = File(...), v=Depends(views)):
-        if v.principal.role not in ('chief_engineer', 'admin'):
+        if not has_role(v.principal.role,('chief_engineer','admin'),exact=True):
             raise HTTPException(403, 'Импорт источника доступен главному инженеру')
         data = await file.read(10_485_761)
         if len(data) > 10_485_760:
@@ -179,7 +183,7 @@ def register_analyst_routes(app,views,photo_path,editable):
         file: UploadFile = File(...),
         v=Depends(views),
     ):
-        if v.principal.role != 'chief_engineer':
+        if not permits(v.principal.role,'approve_exception'):
             raise HTTPException(403, 'Импорт источника выполняет главный инженер')
         from .source_import import import_workbook, read_upload
         _, workbook = await read_upload(file)
@@ -193,7 +197,7 @@ def register_analyst_routes(app,views,photo_path,editable):
 
     @app.get(PREFIX+'/source/xlsx/export')
     def source_export(source_sha256: str, v=Depends(views)):
-        if v.principal.role not in ('chief_engineer', 'admin'):
+        if not has_role(v.principal.role,('chief_engineer','admin'),exact=True):
             raise HTTPException(403, 'Экспорт источника доступен главному инженеру')
         source = v.session.execute(text("""
             SELECT source_name, source_rows, source_workbook
@@ -218,7 +222,7 @@ def register_analyst_routes(app,views,photo_path,editable):
 
     @app.get(PREFIX+'/source/revisions')
     def source_revisions(status: Literal['pending','published','failed']='pending', v=Depends(views)):
-        if v.principal.role not in ('chief_engineer', 'admin'):
+        if not has_role(v.principal.role,('chief_engineer','admin'),exact=True):
             raise HTTPException(403, 'Очередь индексации доступна главному инженеру')
         rows = v.session.execute(text("""
             SELECT event_id,scope,source_revision,source_sha256,entity_type,entity_id,
@@ -231,7 +235,7 @@ def register_analyst_routes(app,views,photo_path,editable):
 
     @app.get(PREFIX+'/source/search')
     def source_search(q: str, limit: int=25, v=Depends(views)):
-        if v.principal.role not in ('chief_engineer', 'admin'):
+        if not has_role(v.principal.role,('chief_engineer','admin'),exact=True):
             raise HTTPException(403, 'Поиск по исходному каталогу доступен главному инженеру')
         q = q.strip()
         if not 1 <= len(q) <= 200:
@@ -250,7 +254,7 @@ def register_analyst_routes(app,views,photo_path,editable):
 
     @app.post(PREFIX+'/source/revisions/{event_id}/published')
     def publish_source_revision(event_id: UUID, v=Depends(views)):
-        if v.principal.role not in ('chief_engineer', 'admin'):
+        if not has_role(v.principal.role,('chief_engineer','admin'),exact=True):
             raise HTTPException(403, 'Подтверждение индексации доступно главному инженеру')
         event = v.session.execute(text("""
             SELECT event_id,site_id,source_sha256,source_revision,entity_type
@@ -458,34 +462,69 @@ def register_analyst_routes(app,views,photo_path,editable):
     @app.post(PREFIX+'/comparisons/{run_id}/confirm')
     def confirm_forecast(run_id:UUID,command:ForecastSelection,v=Depends(views)):
         if not has_role(v.principal.role,('engineer','dispatcher')):raise HTTPException(403,'Решение подтверждает инженер')
+        from zoneinfo import ZoneInfo
+        from app.schemas.maintenance import ForecastSnapshot
+        from .assignments import _lock
+        from .forecasting import binding_input,make_snapshot
+        from .management import _edit
+
         decisions=[d for d in v.rows('orchestration_decisions') if d.comparison_snapshot.get('ui',{}).get('runId')==str(run_id)]
         if not decisions:raise HTTPException(404,'Сравнение не найдено')
-        decision=decisions[0];ui=decision.comparison_snapshot['ui']
-        from .projections import Views
-        from zoneinfo import ZoneInfo
-        day=command.selected_date;today=datetime.now(ZoneInfo(v.principal.timezone)).date()
+        decision_id=decisions[0].orchestration_decision_id
+        rows=_lock(v,'orchestration_decisions',orchestration_decision_id=decision_id)
+        if not rows:raise HTTPException(404,'Сравнение не найдено')
+        decision=rows[0];ui=decision.comparison_snapshot['ui']
+        roles=('engineer','dispatcher')
+        tz=ZoneInfo(v.principal.timezone)
+        day=command.selected_date
         due=date.fromisoformat(ui['mandatoryDueDate']) if ui.get('mandatoryDueDate') else None
-        if due is None or day>due or day<today:raise HTTPException(422,'Нельзя выбрать дату позже обязательного срока или в прошлом')
-        early=day<due
-        if early and v.principal.role!='chief_engineer':raise HTTPException(403,'Раннюю некалиброванную рекомендацию утверждает главный инженер')
+        early=due is not None and day<due
+        if early and not permits(v.principal.role,'approve_exception'):raise HTTPException(403,'Ранняя некалиброванная рекомендация требует отдельного согласования')
+        existing=[a for a in v.rows('audit_events',entity_id=decision_id) if a.action=='confirm_forecast']
+        if existing:
+            with _edit(v,roles=roles,_owns_transaction=False):
+                saved=existing[-1].after_snapshot
+                if saved['selected_date']!=str(day) or saved['reason']!=command.reason:raise HTTPException(409,'Решение уже подтверждено; для нового решения повторите прогноз')
+                return dict({key:value for key,value in saved.items() if key!='actor_role'},replayed=True)
+        if due is None or day>due or day<datetime.now(tz).date():raise HTTPException(422,'Нельзя выбрать дату позже обязательного срока или в прошлом')
         if early and (ui['ai']['status']!='ok' or ui['ai'].get('recommendedDate')!=str(day)):
             raise HTTPException(422,'У AI нет такой подтверждаемой рекомендации')
         inputrow=v.one('forecast_runs',forecast_run_id=decision.rule_forecast_id)
-        snapshot=inputrow.input_snapshot;binding=v.one('rule_equipment',binding_id=UUID(snapshot['binding_id']))
-        from .forecasting import binding_input,make_snapshot
-        original=__import__('app.schemas.maintenance',fromlist=['ForecastSnapshot']).ForecastSnapshot.model_validate_json(json.dumps(snapshot))
-        current=make_snapshot(v,binding_input(v,binding,as_of=original.as_of),original.earliest_date,original.mandatory_due_date,as_of=original.as_of,snapshot_id=original.snapshot_id,source_day=original.source_occurrence_date)
-        if current.content_sha256!=original.content_sha256:raise HTTPException(409,'STALE_SNAPSHOT: пересчитайте рекомендации на актуальных данных')
-        cls=v.models['orchestration_decisions']
-        v.session.scalar(select(cls).where(cls.orchestration_decision_id==decision.orchestration_decision_id).with_for_update())
-        existing=[a for a in v.rows('audit_events',entity_id=decision.orchestration_decision_id) if a.action=='confirm_forecast']
-        if existing:
-            saved=existing[-1].after_snapshot
-            if saved['selected_date']!=str(day) or saved['reason']!=command.reason:raise HTTPException(409,'Решение уже подтверждено; для нового решения повторите прогноз')
-            return dict(**saved,replayed=True)
+        original=ForecastSnapshot.model_validate_json(json.dumps(inputrow.input_snapshot))
+
+        def lock_and_recheck_snapshot():
+            for table, column, identity in (
+                    ('sites','site_id',v.principal.site_id),
+                    ('equipment','equipment_id',original.equipment.equipment_id),
+                    ('maintenance_rules','maintenance_rule_id',original.rule.rule_version_id),
+                    ('regulation_editions','regulation_edition_id',original.rule.regulation_version_id),
+                    ('operation_templates','operation_template_id',original.operation.operation_id)):
+                if not _lock(v,table,read=True,**{column:identity}):
+                    raise HTTPException(409,'STALE_SNAPSHOT: источник прогноза изменился')
+            bindings=_lock(v,'rule_equipment',binding_id=original.binding_id,read=True)
+            if not bindings or bindings[0].equipment_id!=original.equipment.equipment_id or bindings[0].maintenance_rule_id!=original.rule.rule_version_id:
+                raise HTTPException(409,'STALE_SNAPSHOT: привязка изменилась')
+            binding=bindings[0]
+            # Review can change a report from another order on the same equipment without
+            # updating the equipment row. Lock those report rows before re-reading history.
+            links=v.models['work_order_equipment']
+            reports=v.models['work_reports']
+            order_ids=select(links.work_order_id).where(links.site_id==v.principal.site_id,
+                                                       links.equipment_id==binding.equipment_id)
+            v.session.scalars(select(reports.work_report_id).where(reports.site_id==v.principal.site_id,
+                reports.work_order_id.in_(order_ids)).order_by(reports.work_report_id).with_for_update(read=True)).all()
+            current=make_snapshot(v,binding_input(v,binding,as_of=original.as_of),original.earliest_date,
+                                  original.mandatory_due_date,as_of=original.as_of,snapshot_id=original.snapshot_id,
+                                  source_day=original.source_occurrence_date)
+            if current.content_sha256!=original.content_sha256:
+                raise HTTPException(409,'STALE_SNAPSHOT: пересчитайте рекомендации на актуальных данных')
+            return binding
         task_id=None
         earliest=date.fromisoformat(ui['earliestDate']) if ui.get('earliestDate') else due
         if early and day<earliest:
+            with _edit(v,roles=roles,_owns_transaction=False):
+                pass
+            binding=lock_and_recheck_snapshot()
             # An extra approved inspection must not discharge tomorrow's daily obligation.
             from .incidents import IncidentSelection
             incident=v.repo.add('incident_reports',site_id=v.principal.site_id,system_id=binding.system_id,equipment_id=binding.equipment_id,
@@ -495,17 +534,35 @@ def register_analyst_routes(app,views,photo_path,editable):
             # Reuse the same fully validated chief approval path as manual incidents.
             task_id=app.state.create_incident_task(incident.incident_report_id,IncidentSelection(binding_id=binding.binding_id,planned_date=day,reason=command.reason),v,commit=False)['taskId']
         else:
-            entries=[e for e in v.rows('schedule_entries',binding_id=binding.binding_id) if e.regulatory_deadline_on==due and e.status=='planned' and (original.source_occurrence_date is None or e.source_date==original.source_occurrence_date)]
+            entries=[e for e in v.rows('schedule_entries',binding_id=original.binding_id) if e.regulatory_deadline_on==due and e.status=='planned' and (original.source_occurrence_date is None or e.source_date==original.source_occurrence_date)]
             if len(entries)!=1:raise HTTPException(409,'Создайте единственное регламентное задание перед подтверждением')
-            entry=entries[0];orders=v.rows('work_orders',schedule_entry_id=entry.schedule_entry_id)
-            if not orders or orders[0].status not in ('draft','assigned'):raise HTTPException(409,'Работа уже начата или завершена')
-            order=v.task(orders[0].work_order_id,lock=True)
+            entry_id=entries[0].schedule_entry_id
+            orders=v.models['work_orders']
+            order_ids=v.session.scalars(select(orders.work_order_id).where(
+                orders.site_id==v.principal.site_id,orders.schedule_entry_id==entry_id).limit(2)).all()
+            if len(order_ids)!=1:raise HTTPException(409,'Не найден единственный наряд для подтверждения')
+            order=v.task(order_ids[0],lock=True)
+            with _edit(v,roles=roles,_owns_transaction=False):
+                pass
+            if order.status not in ('draft','assigned') or order.schedule_entry_id!=entry_id:
+                raise HTTPException(409,'Работа уже начата, завершена или отвязана от графика')
+            binding=lock_and_recheck_snapshot()
+            calendar=v.models['schedule_entries']
+            entry=v.session.scalar(select(calendar).where(calendar.site_id==v.principal.site_id,
+                calendar.schedule_entry_id==entry_id).with_for_update().execution_options(populate_existing=True))
+            if (entry is None or entry.binding_id!=binding.binding_id or entry.regulatory_deadline_on!=due
+                    or entry.status!='planned' or (original.source_occurrence_date is not None
+                        and entry.source_date!=original.source_occurrence_date)):
+                raise HTTPException(409,'Календарное вхождение изменилось, пересчитайте сравнение')
             if order.status=='assigned' and entry.planned_date!=day:raise HTTPException(409,'Перед изменением даты снимите назначение и повторите подбор')
+            if any(moment and moment.astimezone(tz).date()!=day for moment in (order.planned_start_at,entry.planned_at)):
+                raise HTTPException(409,'У наряда уже есть плановый интервал. Измените дату через таблицу нарядов ТО.')
             entry.planned_date=day;task_id=str(order.work_order_id);order.revision+=1
             order.exception_context=dict(order.exception_context,confirmed_forecast=dict(run_id=str(run_id),selected_date=str(day),reason=command.reason,by=str(v.principal.user_id)))
         saved=dict(selected_date=str(day),reason=command.reason,approved_by=str(v.principal.user_id),taskId=task_id,extra_maintenance=bool(early and day<earliest))
         v.repo.add('audit_events',site_id=v.principal.site_id,actor_type='user',actor_user_id=v.principal.user_id,
-            entity_type='orchestration_decisions',entity_id=decision.orchestration_decision_id,action='confirm_forecast',after_snapshot=saved)
+            entity_type='orchestration_decisions',entity_id=decision.orchestration_decision_id,action='confirm_forecast',
+            after_snapshot=dict(saved,actor_role=v.principal.role))
         v.session.commit();return saved
 
     @app.post(PREFIX+'/tasks/{task_id}/late-execution')

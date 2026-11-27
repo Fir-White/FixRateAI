@@ -32,6 +32,7 @@ playwright-report/
 *.env
 *.env.*
 !/.env.example
+!/quick_start/.env.example
 
 # Runtime data, logs and generated reports
 /var/

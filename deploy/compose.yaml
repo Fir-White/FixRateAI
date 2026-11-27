@@ -11,9 +11,10 @@ x-application: &application
     FIXRATE_BOOTSTRAP_TOKEN_SHA256: ${FIXRATE_BOOTSTRAP_TOKEN_SHA256:?Set installation secret hash}
     OPTIMIZATION_WORKER: 'false'
     MAINTENANCE_SCHEDULER: 'false'
-    FIXRATE_TRUSTED_PROXIES: '*'
+    FIXRATE_TRUSTED_PROXIES: ${FIXRATE_TRUSTED_PROXIES:-127.0.0.1}
     ASSISTANT_PROVIDER: ollama
-    FIXRATE_ASSISTANT_AGENT_VERSION: ${FIXRATE_ASSISTANT_AGENT_VERSION:-v2}
+    FIXRATE_ASSISTANT_AGENT_VERSION: ${FIXRATE_ASSISTANT_AGENT_VERSION:-v4}
+    FIXRATE_PERMISSION_PROFILE: ${FIXRATE_PERMISSION_PROFILE:-mvp}
     OLLAMA_CHAT_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
     OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
     OLLAMA_CHAT_MODEL: ${OLLAMA_CHAT_MODEL:-not-configured}
@@ -23,9 +24,6 @@ x-application: &application
     PHOTO_REVIEW_PROVIDER: ${PHOTO_REVIEW_PROVIDER:-aitunnel}
     FORECAST_PROVIDER: rf
     FIXRATE_LLM_LOCAL_ONLY: '1'
-    AITUNNEL_API_KEY: ${AITUNNEL_API_KEY:-}
-    AI_TUNNEL_API_KEY: ${AI_TUNNEL_API_KEY:-}
-    AITUNNEL_VISION_MODEL: ${AITUNNEL_VISION_MODEL:-qwen3.7-flash}
   extra_hosts: ['host.docker.internal:host-gateway']
   volumes: ['files:/app/var/photos']
   networks: [internal, egress]

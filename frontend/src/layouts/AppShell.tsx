@@ -13,7 +13,7 @@ import { IconButton } from "@/shared/ui/Button";
 import { Select } from "@/shared/ui/Form";
 import { Icon } from "@/shared/ui/Icon";
 import { useSession } from "@/shared/session/SessionContext";
-import { ROLE_LABELS, homePathForRole } from "@/shared/lib/roles";
+import { ROLE_LABELS, homePathForRole, hasPermission } from "@/shared/lib/roles";
 import type { Role } from "@/shared/types/domain";
 import { usePageEntry } from "@/shared/motion/usePageEntry";
 import { useScrollBoundary } from "@/shared/lib/useScrollBoundary";
@@ -77,7 +77,7 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
     return item;
   });
   const home = homePathForRole(profile.role);
-  const chiefWorkday = profile.role === "chief_engineer" && location.pathname.replace(/\/+$/, "") === home;
+  const chiefWorkday = hasPermission(profile,"engineering_workspace") && location.pathname.replace(/\/+$/, "") === home;
   const assistantLabel = chiefWorkday ? "Открыть ИИ-диалоги" : "ИИ-помощник";
   const searchItems = [...items];
   if(profile.role!=="executor"&&canOpenSection(profile.role,"calendar")) searchItems.push({to:"/calendar",label:"Действующий календарь",icon:"calendar",roles:[profile.role]});

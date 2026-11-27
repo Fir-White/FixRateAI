@@ -146,7 +146,8 @@ def public_action(row):
 def audit(session,principal,identity,event,details):
     session.execute(text('''INSERT INTO audit_events(site_id,actor_type,actor_user_id,entity_type,entity_id,action,after_snapshot)
         VALUES (:site,'user',:user,'assistant_action',:id,:event,CAST(:details AS jsonb))'''),
-        dict(site=principal.site_id,user=principal.user_id,id=identity,event=event,details=dump(details)))
+        dict(site=principal.site_id,user=principal.user_id,id=identity,event=event,
+             details=dump(dict(details,actor_role=principal.role))))
 
 async def propose(app,session,principal,thread,tool,args,explanation,headers,turn_id=None,workflow_goal_id=None,workflow_root_turn_id=None):
     question=''
@@ -168,6 +169,10 @@ async def propose(app,session,principal,thread,tool,args,explanation,headers,tur
     if tool.name=='report_attach_and_submit' and (not turn_id or legacy_turn):
         raise HTTPException(403,'Подготовьте действие в диалоге v4.')
     args=validate_arguments(app,tool,args)
+    if tool.name=='catalog_decision' and args['body'].get('confirm'):
+        from app.security.permissions import permits
+        if not permits(principal.role,'approve_exception'):
+            raise HTTPException(403,'Подтверждение строки каталога требует отдельного согласования.')
     explicit=None
     if legacy_turn:
         from .explicit_draft import specification,arguments as explicit_arguments
@@ -421,7 +426,8 @@ async def confirm(app,session,principal,row,headers,secret_values=None):
         verification=await verify_action(app,tool,arguments,value,headers,before=before)
         if tool.name=='profile_email' or (tool.name=='staff_edit' and str(arguments.get('path',{}).get('user_id'))==str(principal.user_id)):
             value=dict(data=value,navigate_to='/assistant')
-        status='succeeded';result=dict(data=bounded(value),verification=verification)
+        status='uncertain' if tool.name=='catalog_decision' and verification['status']!='confirmed' else 'succeeded'
+        result=dict(data=bounded(value),verification=verification)
     except HTTPException as exc:
         status='uncertain' if exc.status_code>=500 or exc.status_code==413 else 'failed'
         result=dict(message=str(exc.detail)[:2000],status_code=exc.status_code)

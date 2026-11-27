@@ -23,6 +23,12 @@ from scripts.verification_paths import log_reference, prepare_run
 from scripts.verify import unused_port
 
 
+def verification_app():
+    from app.main import create_app
+
+    return create_app(frontend_dist=Path(os.environ["FIXRATE_VERIFY_WEB_DIST"]))
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
     sys.stderr.reconfigure(encoding="utf-8")
@@ -31,6 +37,10 @@ def main():
     parser.add_argument("--output", type=Path)
     parser.add_argument("--grep", help="Optional Playwright test name filter")
     parser.add_argument("--order-table", action="store_true", help="Enable the synthetic one-time order fixture and worksheet E2E")
+    parser.add_argument("--documentation", action="store_true", help="Capture the release gallery on a new local test database")
+    parser.add_argument("--documentation-local-ai", action="store_true",
+                        help="Also capture grounded v4 replies using an already pinned local Ollama model")
+    parser.add_argument("--documentation-video", action="store_true", help="Also record the two main role journeys")
     args = parser.parse_args()
     output, logs = prepare_run(args.output)
     env = dict(os.environ, PYTHONPATH=os.pathsep.join([str(ROOT / "backend"), str(ROOT)]), PYTHONUTF8="1")
@@ -38,11 +48,31 @@ def main():
         env.pop(key, None)
     env["PHOTO_REVIEW_PROVIDER"] = "aitunnel"  # Without AITUNNEL_API_KEY, cloud photo review reports unavailable.
     env.pop("FIXRATE_ORDER_TABLE_E2E", None)
+    env.pop("FIXRATE_DOCUMENTATION_CAPTURE", None)
+    if args.documentation:
+        if args.order_table:
+            parser.error("Documentation and worksheet E2E mutate the same fixture; run them separately")
+        env.update(FIXRATE_DOCUMENTATION_CAPTURE="1", FIXRATE_PERMISSION_PROFILE="mvp", ASSISTANT_PROVIDER="ollama",
+                   FIXRATE_ACTIVE_ROLES="chief_engineer,engineer,executor", FIXRATE_ASSISTANT_AGENT_VERSION="v4",
+                   FIXRATE_LLM_LOCAL_ONLY="1", FIXRATE_AGENT_LIVE="0", AITUNNEL_API_KEY="", AI_TUNNEL_API_KEY="",
+                   MAINTENANCE_SCHEDULER="false", OPTIMIZATION_WORKER="false")
+        args.grep = args.grep or "documentation gallery"
+    env.pop("FIXRATE_DOCS_LOCAL_AI", None)
+    env.pop("FIXRATE_DOCS_VIDEO", None)
+    if args.documentation_local_ai:
+        if not args.documentation or not env.get("OLLAMA_CHAT_DIGEST") or not env.get("OLLAMA_CHAT_MODEL"):
+            parser.error("Local AI capture requires --documentation and a pinned OLLAMA_CHAT_MODEL / OLLAMA_CHAT_DIGEST")
+        env.update(FIXRATE_DOCS_LOCAL_AI="1", OLLAMA_CHAT_BASE_URL="http://127.0.0.1:11434")
+    if args.documentation_video:
+        if not args.documentation:
+            parser.error("Video capture requires --documentation")
+        env["FIXRATE_DOCS_VIDEO"] = "1"
     if args.order_table:
         env.update(FIXRATE_ORDER_TABLE_E2E="1", FIXRATE_LLM_LOCAL_ONLY="1", FIXRATE_AGENT_LIVE="0",
                    AITUNNEL_API_KEY="", AI_TUNNEL_API_KEY="", MAINTENANCE_SCHEDULER="false", OPTIMIZATION_WORKER="false")
     scratch = Path(tempfile.mkdtemp(prefix="fixrate-web-"))
     cluster = scratch / "postgres"
+    dist = scratch / "dist"
     hidden = {"creationflags": subprocess.CREATE_NO_WINDOW} if os.name == "nt" else {}
     postgres_hidden = hidden
     if os.name == "nt":
@@ -67,7 +97,8 @@ def main():
             raise RuntimeError(f"{name} failed; see {log_path}")
 
     try:
-        run("frontend_build", [shutil.which("npm.cmd" if os.name == "nt" else "npm"), "run", "build"], cwd=ROOT / "frontend")
+        run("frontend_build", [shutil.which("npm.cmd" if os.name == "nt" else "npm"), "run", "build", "--",
+                              "--outDir", str(dist)], cwd=ROOT / "frontend")
         run("initdb", [executable("initdb"), "-D", str(cluster), "-U", "postgres", "-A", "trust", "--encoding=UTF8", "--locale=C"])
         pg_port = unused_port()
         with (logs / "postgres.log").open("w", encoding="utf-8") as pg_log, (logs / "api.log").open("w", encoding="utf-8") as api_log:
@@ -75,7 +106,9 @@ def main():
             import psycopg
             for _ in range(100):
                 try:
-                    with psycopg.connect(host="127.0.0.1", port=pg_port, user="postgres", dbname="postgres", connect_timeout=1):
+                    with psycopg.connect(host="127.0.0.1", port=pg_port, user="postgres", dbname="postgres", connect_timeout=1) as conn:
+                        if Path(conn.execute("SHOW data_directory").fetchone()[0]).resolve() != cluster.resolve():
+                            raise RuntimeError("PostgreSQL port belongs to another cluster; no database was created")
                         break
                 except psycopg.OperationalError:
                     if postgres.poll() is not None:
@@ -92,7 +125,13 @@ def main():
             try:
                 migrate(engine)
                 seed_demo(engine, password)
-                if args.order_table:
+                if args.documentation:
+                    from tests.fixtures.catalog_source import catalog_book
+
+                    workbook = scratch / "Учебный каталог СВиК.xlsx"
+                    workbook.write_bytes(catalog_book(8))
+                    env["FIXRATE_DOCS_CATALOG"] = str(workbook)
+                if args.order_table or args.documentation:
                     from app.integration.demo import demo_id
                     from sqlalchemy import text
 
@@ -100,10 +139,20 @@ def main():
                         conn.execute(text("""UPDATE maintenance_rules SET schedule_parameters =
                             schedule_parameters || '{"methodology_ref":"TEST: учебный регламент"}'::jsonb
                             WHERE maintenance_rule_id=:id"""), dict(id=demo_id("assignment-rule")))
+                        if args.documentation:
+                            # Forecast input, from the already typed synthetic planning fixture.
+                            conn.execute(text("""UPDATE equipment AS target SET equipment_type_id=source.equipment_type_id
+                                FROM equipment AS source WHERE target.equipment_id=:target AND source.equipment_id=:source
+                                AND target.site_id=source.site_id"""), dict(target=demo_id("assignment-equipment"),
+                                source=demo_id("planning-equipment")))
             finally:
                 engine.dispose()
             api_port = unused_port()
-            api = subprocess.Popen([sys.executable, "-m", "uvicorn", "app.main:app", "--app-dir", "backend", "--host", "127.0.0.1", "--port", str(api_port)], cwd=ROOT, env=dict(env, DATABASE_URL=url, PHOTO_STORAGE_ROOT=str(scratch / "photos")), stdout=api_log, stderr=subprocess.STDOUT, **hidden)
+            api = subprocess.Popen(
+                [sys.executable, "-m", "uvicorn", "scripts.verify_web:verification_app", "--factory",
+                 "--host", "127.0.0.1", "--port", str(api_port)], cwd=ROOT,
+                env=dict(env, DATABASE_URL=url, PHOTO_STORAGE_ROOT=str(scratch / "photos"),
+                         FIXRATE_VERIFY_WEB_DIST=str(dist)), stdout=api_log, stderr=subprocess.STDOUT, **hidden)
             for _ in range(100):
                 try:
                     with urllib.request.urlopen(f"http://127.0.0.1:{api_port}/api/health", timeout=1):

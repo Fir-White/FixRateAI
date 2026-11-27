@@ -313,7 +313,7 @@ def register_routes(app,views):
     @app.post(BASE+'/{identity}/publication-proposals',response_model=PublicationProposal,status_code=201)
     def create(identity:UUID,command:PreparePublication|PreparePortfolioPublication,response:Response,v=Depends(views)):
         response.headers['Cache-Control']='private, no-store'
-        with _edit(v,roles=EDIT_ROLES,exact_roles=True):_lock_catalog(v);result=prepare(v,identity,command)
+        with _edit(v,roles=EDIT_ROLES,exact_roles=True,permission='edit_plan'):_lock_catalog(v);result=prepare(v,identity,command)
         return result
 
     @app.get(BASE+'/{identity}/publication-proposals',response_model=PublicationProposalList)
