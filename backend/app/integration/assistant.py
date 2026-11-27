@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse,FileResponse
 from sqlalchemy import text
 from starlette.concurrency import run_in_threadpool
 from app.schemas.assistant import ConversationCreate,ConversationUpdate,MessageCreate,ConfirmAction
+from app.security.sessions import authenticate
 from app.assistant import service as svc
 from app.assistant.tools import available,catalog,describe,validate_arguments,invoke,bounded,EXPECTED_PRINCIPAL
 from app.assistant.attachments import SCOPE,COOKIE_EFFECTS,MAX_FILE,public as public_file,content as file_content
@@ -20,6 +21,12 @@ AGENTS=[dict(id='assistant',title='Ассистент',description='Оборуд
 def forwarded(request):
     # Secrets remain only in memory and never enter prompts, DB records or tool results.
     return {key:request.headers[key] for key in ('cookie','x-csrf-token') if key in request.headers}
+
+def recheck_chat_scope(request,v):
+    current=authenticate(request,v.session,lock=True)
+    expected=v.principal
+    if (current.user_id,current.site_id,current.role)!=(expected.user_id,expected.site_id,expected.role):
+        raise HTTPException(403,'Контекст доступа изменился')
 
 def register_routes(app,views):
     from .assistant_workspace import register_routes as register_workspace
@@ -65,7 +72,8 @@ def register_routes(app,views):
         return svc.conversation(v.session,v.principal,identity)
 
     @app.patch(BASE+'/conversations/{identity}')
-    def update_conversation(identity:UUID,command:ConversationUpdate,v=Depends(views)):
+    def update_conversation(identity:UUID,command:ConversationUpdate,request:Request,v=Depends(views)):
+        recheck_chat_scope(request,v)
         row=v.session.execute(text('''UPDATE assistant_conversations
             SET title=coalesce(:title,title), title_manually_set=(:has_title OR title_manually_set),
                 pinned_at=CASE WHEN :pinned IS TRUE THEN coalesce(pinned_at,now())
@@ -143,8 +151,9 @@ def register_routes(app,views):
         return dict(stopped=bool(row))
 
     @app.delete(BASE+'/conversations/{identity}')
-    def delete_conversation(identity:UUID,v=Depends(views)):
+    def delete_conversation(identity:UUID,request:Request,v=Depends(views)):
         from app.storage import safe_storage_path
+        recheck_chat_scope(request,v)
         svc.conversation(v.session,v.principal,identity)
         # Lock turns before the conversation, matching the proposal lock order.
         v.session.execute(text('SELECT turn_id FROM assistant_turns WHERE conversation_id=:id FOR UPDATE'),dict(id=identity)).all()

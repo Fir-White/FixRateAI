@@ -223,6 +223,8 @@ function Workspace(){
   const starters = executor ? EXECUTOR_STARTERS : DEFAULT_STARTERS;
   const cache=useApiQueryCache();
   const [params,setParams]=useSearchParams(),[refresh,setRefresh]=useState(0),[listOffset,setListOffset]=useState(0),[historyOpen,setHistoryOpen]=useState(false);
+  const currentParams=useRef(params);
+  useLayoutEffect(()=>{currentParams.current=params;},[params]);
   const identity=params.get('chat')??'';
   const subjectTaskId=identity?undefined:params.get('task')??undefined;
   const showActions=params.get('view')==='actions';
@@ -239,8 +241,10 @@ function Workspace(){
   const welcomeDraft = useRef('');
   const welcomeComposer = useRef<ComposerHandle>(null);
   const [deleting,setDeleting]=useState<{items:Conversation[];batch:boolean}|null>(null),[deleteBusy,setDeleteBusy]=useState(false),[deleteError,setDeleteError]=useState('');
-  const deleteLock=useRef(false);
+  const deleteRequest=useRef<AbortController|null>(null);
+  useLayoutEffect(()=>()=>deleteRequest.current?.abort(),[]);
   const [selected,setSelected]=useState<Map<string,Conversation>|null>(null);
+  const focusSelection=useRef('');
   const [renaming,setRenaming]=useState<{chat:Conversation;title:string}|null>(null),[editBusy,setEditBusy]=useState(false),[editError,setEditError]=useState('');
   const editLock=useRef(false);
   const [historyVisible,setHistoryVisible]=useWorkspaceState('assistant.history.visible',true,isBoolean);
@@ -283,30 +287,50 @@ function Workspace(){
     setDeleteError('');setHistoryOpen(false);setDeleting({items,batch});
   };
   const remove=async()=>{
-    if(!deleting||deleteLock.current)return;
-    deleteLock.current=true;setDeleteBusy(true);setDeleteError('');
+    if(!deleting?.items.length||deleteRequest.current)return;
+    const request=new AbortController();
+    deleteRequest.current=request;setDeleteBusy(true);setDeleteError('');
+    const removed=new Set<string>();
     const failed:Conversation[]=[],errors=new Set<string>();
-    let removedCurrent=false;
+    let selectionStale=false;
     try{
-      for(const chat of deleting.items){
+      for(const [index,chat] of deleting.items.entries()){
+        if(request.signal.aborted)return;
         const id=chat.conversation_id;
-        try{await api.remove(id);}
+        try{await api.remove(id,request.signal);}
         catch(e){
-          if(!(e instanceof ApiError&&e.status===404)){
-            failed.push(chat);errors.add(e instanceof Error?e.message:'Не удалось удалить чат');continue;
+          if(request.signal.aborted)return;
+          errors.add(e instanceof Error?e.message:'Не удалось удалить чат');
+          if(e instanceof ApiError&&[401,403,404].includes(e.status)){
+            failed.push(...deleting.items.slice(index));selectionStale=true;
+            break;
           }
+          failed.push(chat);continue;
         }
-        if(identity===id)removedCurrent=true;
-        drafts.delete(id);
+        if(request.signal.aborted)return;
+        removed.add(id);drafts.delete(id);
       }
-      if(removedCurrent)fresh();
+      const latest=currentParams.current;
+      if(removed.has(latest.get('chat')??'')){
+        const next=new URLSearchParams(latest);next.delete('chat');
+        setParams(next,{replace:true});
+      }
+      if(selectionStale){
+        setDeleting({...deleting,items:[]});setSelected(null);
+        setDeleteError(`Не удалено: ${failed.length} из ${deleting.items.length}. ${[...errors].join(' ')} Закройте окно и выберите чаты заново по обновлённому списку.`);
+        cache?.clear();setListOffset(0);refreshList();
+        return;
+      }
       if(failed.length){
         setDeleting({...deleting,items:failed});
         setDeleteError(`${deleting.batch?`Не удалено: ${failed.length} из ${deleting.items.length}. `:''}${[...errors].join(' ')}`);
       }else setDeleting(null);
       if(deleting.batch)setSelected(failed.length?new Map(failed.map(chat=>[chat.conversation_id,chat])):null);
-      if(failed.length!==deleting.items.length){setListOffset(0);refreshList();}
-    }finally{deleteLock.current=false;setDeleteBusy(false);}
+      if(removed.size){setListOffset(0);refreshList();}
+    }finally{
+      deleteRequest.current=null;
+      if(!request.signal.aborted)setDeleteBusy(false);
+    }
   };
   const updateChat=async(chat:Conversation,changes:{title?:string;pinned?:boolean})=>{
     if(editLock.current)return;
@@ -339,14 +363,18 @@ function Workspace(){
         const summary=<><span className="assistant-history-title">{chat.pinned_at&&<span title="Закреплённый чат" aria-label="Закреплённый чат"><Icon name="pin" size={13}/></span>}<span title={chat.title}>{chat.title}</span></span><Timestamp at={chat.updated_at} timezone={timezone}/></>;
         return <div className={`assistant-history-row${active?' is-active':''}`} key={id}>
           {selected?<label className="assistant-history-select">
-            <input type="checkbox" aria-label={`Выбрать чат: ${chat.title}`} checked={selected.has(id)} onChange={()=>toggleSelected(chat)}/>
+            <input type="checkbox" aria-label={`Выбрать чат: ${chat.title}`} checked={selected.has(id)} onChange={()=>toggleSelected(chat)} ref={element=>{
+              if(element&&focusSelection.current===id&&!element.closest('[inert]')){
+                focusSelection.current='';element.focus({preventScroll:true});
+              }
+            }}/>
             <span className="assistant-history-item">{summary}</span>
           </label>:<>
             <button type="button" aria-current={active?'true':undefined} className="assistant-history-item" onClick={()=>select(id)}>{summary}</button>
             <HistoryChatMenu title={chat.title} pinned={!!chat.pinned_at} busy={editBusy}
               onRename={()=>{setEditError('');setHistoryOpen(false);setRenaming({chat,title:chat.title});}}
               onPin={()=>void updateChat(chat,{pinned:!chat.pinned_at})}
-              onMultiSelect={()=>setSelected(new Map([[id,chat]]))}
+              onMultiSelect={()=>{focusSelection.current=id;setSelected(new Map([[id,chat]]));}}
               onDelete={()=>beginDelete([chat])}/>
           </>}
         </div>;
@@ -403,8 +431,8 @@ function Workspace(){
    </Modal>
    <Modal open={!!deleting&&!showActions} title={deleting?.batch?'Удалить выбранные чаты?':'Удалить чат?'} description="Переписка и прикреплённые файлы будут удалены без возможности восстановления."
      onClose={()=>{if(!deleteBusy)setDeleting(null);}} tone="danger" instant footer={<><Button variant="secondary" disabled={deleteBusy} onClick={()=>setDeleting(null)}>Отмена</Button>
-       <Button disabled={deleteBusy} onClick={()=>void remove()}>{deleteBusy?'Удаление…':deleting?.batch?'Удалить выбранные':'Удалить чат'}</Button></>}>
-     {deleting&&<ul className="assistant-delete-title">{deleting.items.map(chat=><li key={chat.conversation_id}>{chat.title}</li>)}</ul>}
+        {!!deleting?.items.length&&<Button disabled={deleteBusy} onClick={()=>void remove()}>{deleteBusy?'Удаление…':deleting.batch?'Удалить выбранные':'Удалить чат'}</Button>}</>}>
+      {!!deleting?.items.length&&<ul className="assistant-delete-title">{deleting.items.map(chat=><li key={chat.conversation_id}>{chat.title}</li>)}</ul>}
      {deleteError&&<Callout tone="danger">{deleteError}</Callout>}
    </Modal></div>;
 }

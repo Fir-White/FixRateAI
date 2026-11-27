@@ -1,15 +1,17 @@
 import {beforeEach,expect,it,vi} from 'vitest';
-import {fireEvent,render,screen,waitFor,within} from '@testing-library/react';
+import {act,fireEvent,render,screen,waitFor,within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {MemoryRouter} from 'react-router-dom';
+import {MemoryRouter,useLocation,useNavigate} from 'react-router-dom';
 import {AssistantPage} from '@/pages/AssistantPage';
 import {assistantApi as api,type ChatCapabilities,type ChatView} from '@/shared/api/assistant';
+import {ApiError} from '@/shared/api/request';
 import {WorkspaceStateScope} from '@/shared/lib/workspaceState';
-vi.mock('@/shared/session/SessionContext',()=>({useSession:()=>({profile:{userId:'TEST',siteId:'TEST-SITE',role:'chief_engineer'}})}));
+const mockSession=vi.hoisted(()=>({role:'chief_engineer'}));
+vi.mock('@/shared/session/SessionContext',()=>({useSession:()=>({profile:{userId:'TEST',siteId:'TEST-SITE',role:mockSession.role}})}));
 const caps:ChatCapabilities={available:true,model_ref:'TEST',prompt_version:'TEST',agents:[{id:'assistant',title:'Ассистент',description:'Работа'},{id:'planner',title:'Планирование',description:'Планы'},{id:'photo',title:'Фотоанализ',description:'Фото'}],tools:{assistant:[],planner:[],photo:[]}};
 const chat={conversation_id:'chat',title:'Мой диалог',agent:'assistant' as const,created_at:'2026-11-14',updated_at:'2026-11-14'};
 const view:ChatView={conversation:chat,turns:[],total:0,actions:[]};
-beforeEach(()=>{vi.restoreAllMocks();vi.spyOn(api,'capabilities').mockResolvedValue(caps);vi.spyOn(api,'list').mockResolvedValue({items:[chat],total:1});vi.spyOn(api,'read').mockResolvedValue(view);vi.spyOn(api,'send').mockResolvedValue({turn_id:'new',status:'running'});});
+beforeEach(()=>{mockSession.role='chief_engineer';vi.restoreAllMocks();vi.spyOn(api,'capabilities').mockResolvedValue(caps);vi.spyOn(api,'list').mockResolvedValue({items:[chat],total:1});vi.spyOn(api,'read').mockResolvedValue(view);vi.spyOn(api,'send').mockResolvedValue({turn_id:'new',status:'running'});});
 function show(path='/assistant?chat=chat'){return render(<WorkspaceStateScope.Provider value="TEST:TEST-SITE:chief_engineer"><MemoryRouter initialEntries={[path]}><AssistantPage/></MemoryRouter></WorkspaceStateScope.Provider>);}
 it.each([true,false])('stages a dropped workbook without submitting (open chat: %s)',async(existing)=>{
   const user=userEvent.setup();
@@ -165,7 +167,7 @@ it('requires confirmation before deleting a chat',async()=>{
   await open();expect(remove).not.toHaveBeenCalled();
   await user.click(screen.getByRole('button',{name:'Отмена'}));expect(remove).not.toHaveBeenCalled();
   await open();await user.click(screen.getByRole('button',{name:'Удалить чат'}));
-  await waitFor(()=>expect(remove).toHaveBeenCalledWith('chat'));
+  await waitFor(()=>expect(remove).toHaveBeenCalledWith('chat',expect.any(AbortSignal)));
 });
 it('deletes only checked chats after explicit approval and reports any failed deletion',async()=>{
   const user=userEvent.setup();
@@ -183,7 +185,65 @@ it('deletes only checked chats after explicit approval and reports any failed de
   expect(remove).not.toHaveBeenCalled();
   await user.click(within(screen.getByRole('dialog',{name:'Удалить выбранные чаты?'})).getByRole('button',{name:'Удалить выбранные'}));
   expect(await screen.findByText(/Дождитесь завершения действия/)).toBeVisible();
-  expect(remove.mock.calls).toEqual([['chat'],['two']]);
+  expect(remove.mock.calls.map(([id])=>id)).toEqual(['chat','two']);
+});
+it.each(['Back','смена роли'])('не продолжает устаревший сценарий удаления после: %s',async(kind)=>{
+  const user=userEvent.setup();
+  vi.mocked(api.list).mockResolvedValue({items:[chat,{...chat,conversation_id:'two',title:'Второй'}],total:2});
+  let resolve!: (value:{deleted:boolean})=>void;
+  const first=new Promise<{deleted:boolean}>(done=>{resolve=done;});
+  const remove=vi.spyOn(api,'remove').mockImplementation(async id=>{
+    if(id==='chat')return first;
+    throw Error('Второй чат не удалён');
+  });
+  let back!:()=>void;
+  function Address(){
+    const navigate=useNavigate();back=()=>navigate(-1);
+    return <output aria-label="Текущий адрес">{useLocation().search}</output>;
+  }
+  const tree=()=> <WorkspaceStateScope.Provider value="TEST:TEST-SITE:chief_engineer">
+    <MemoryRouter initialEntries={['/assistant?chat=two','/assistant?chat=chat']}><Address/><AssistantPage/></MemoryRouter>
+  </WorkspaceStateScope.Provider>;
+  const screenView=render(tree());
+  await user.click(await screen.findByRole('button',{name:'Действия чата: Мой диалог'}));
+  await user.click(screen.getByRole('button',{name:'Выбрать несколько'}));
+  await user.click(screen.getByRole('checkbox',{name:'Выбрать чат: Второй'}));
+  await user.click(screen.getByRole('button',{name:'Удалить выбранные (2)'}));
+  await user.click(within(screen.getByRole('dialog',{name:'Удалить выбранные чаты?'})).getByRole('button',{name:'Удалить выбранные'}));
+  expect(remove).toHaveBeenCalledTimes(1);
+  if(kind==='Back')await act(()=>back());
+  else {mockSession.role='executor';screenView.rerender(tree());}
+  await act(async()=>{resolve({deleted:true});await first;});
+  if(kind==='Back'){
+    expect(await screen.findByText(/Второй чат не удалён/)).toBeVisible();
+    expect(screen.getByLabelText('Текущий адрес')).toHaveTextContent('?chat=two');
+  }else{
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText('Текущий адрес')).toHaveTextContent('?chat=chat');
+  }
+});
+it('moves focus from the chat menu to the selected checkbox',async()=>{
+  const user=userEvent.setup();show();
+  await user.click(await screen.findByRole('button',{name:'Действия чата: Мой диалог'}));
+  await user.click(screen.getByRole('button',{name:'Выбрать несколько'}));
+  expect(screen.getByRole('checkbox',{name:'Выбрать чат: Мой диалог'})).toHaveFocus();
+});
+it('reloads the history and requires a new selection after a chat is no longer accessible',async()=>{
+  const user=userEvent.setup(), second={...chat,conversation_id:'two',title:'Второй'};
+  vi.mocked(api.list).mockResolvedValueOnce({items:[chat,second],total:2}).mockResolvedValue({items:[second],total:1});
+  const remove=vi.spyOn(api,'remove').mockRejectedValue(new ApiError(404,'Диалог не найден'));
+  show();
+  await user.click(await screen.findByRole('button',{name:'Действия чата: Мой диалог'}));
+  await user.click(screen.getByRole('button',{name:'Выбрать несколько'}));
+  await user.click(screen.getByRole('checkbox',{name:'Выбрать чат: Второй'}));
+  await user.click(screen.getByRole('button',{name:'Удалить выбранные (2)'}));
+  const decision=within(screen.getByRole('dialog',{name:'Удалить выбранные чаты?'}));
+  await user.click(decision.getByRole('button',{name:'Удалить выбранные'}));
+  await waitFor(()=>expect(api.list).toHaveBeenCalledTimes(2));
+  expect(remove.mock.calls.map(([id])=>id)).toEqual(['chat']);
+  expect(decision.queryByRole('button',{name:'Удалить выбранные'})).not.toBeInTheDocument();
+  await user.click(decision.getByRole('button',{name:'Отмена'}));
+  expect(await screen.findByRole('button',{name:'Действия чата: Второй'})).toBeVisible();
 });
 it('offers rename and pin, closes with Escape, and does not offer sharing',async()=>{
   const user=userEvent.setup();show();

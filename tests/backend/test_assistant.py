@@ -84,6 +84,33 @@ def test_rename_and_pin_are_private_and_pinned_chats_precede_newer_chats(assista
     assert admin.get(url).json()['conversation']['title']=='Контроль приборов'
     assert admin.get(B+'/conversations').json()['items'][0]['conversation_id']==new
 
+@pytest.mark.parametrize("method", ["PATCH", "DELETE"])
+def test_chat_mutation_rechecks_membership_after_initial_authentication(assistant_case, method):
+    from sqlalchemy import event
+    engine,_,admin,_,ids=assistant_case
+    chat=thread(admin)
+    params=dict(site=ids['site'],user=ids['user'])
+    changed=False
+
+    def change_role_after_first_auth(conn,cursor,statement,parameters,context,many):
+        nonlocal changed
+        if not changed and 'FROM fixrate_sessions x JOIN users u' in statement and 'FOR SHARE' not in statement:
+            changed=True
+            with engine.begin() as writer:
+                writer.execute(text("UPDATE site_memberships SET role='technician' WHERE site_id=:site AND user_id=:user"),params)
+
+    event.listen(engine,'after_cursor_execute',change_role_after_first_auth)
+    try:
+        options=dict(json={'title':'STILL PRIVATE'}) if method=='PATCH' else {}
+        response=admin.request(method,B+'/conversations/'+chat,**options)
+        assert changed and response.status_code==403
+    finally:
+        event.remove(engine,'after_cursor_execute',change_role_after_first_auth)
+        with engine.begin() as writer:
+            writer.execute(text("UPDATE site_memberships SET role='admin' WHERE site_id=:site AND user_id=:user"),params)
+    data=admin.get(B+'/conversations/'+chat).json()
+    assert data['conversation']['title']=='Новый диалог'
+
 @pytest.mark.parametrize('question',['ГОТОВ!','Да','Согласна.','Подтверждаю','назначай его'])
 def test_short_followup_keeps_conversation_context(question):
     from app.assistant.service import needs_history
@@ -349,6 +376,20 @@ def test_director_can_chat_but_only_personal_mutations_are_exposed(runtime):
         personal={'site_switch','session_logout','profile_email','notifications_read_all','notifications_clear','notification_delete','notification_read','chat_model_select'}
         assert tools and all(t['annotations']['readOnlyHint'] or t['name'] in personal for t in tools)
         assert rpc(client,'tools/call',dict(name='equipment_create',arguments={})).json()['error']['code']==-32602
+
+def test_director_can_rename_and_pin_own_chat_without_granting_operational_writes(assistant_case):
+    _,app,admin,_,_=assistant_case
+    own=thread(admin)
+    with closing(login(app,'director')) as client:
+        chat=thread(client)
+        try:
+            response=client.patch(B+'/conversations/'+chat,json={'title':'Мой личный чат','pinned':True})
+            assert response.status_code==200
+            assert response.json()['title']=='Мой личный чат' and response.json()['pinned_at']
+            assert client.patch(B+'/conversations/'+own,json={'pinned':True}).status_code==404
+            assert client.patch('/api/v1/maintenance/operations/'+str(uuid4()),json={'title':'Нельзя менять'}).status_code==403
+        finally:
+            assert client.delete(B+'/conversations/'+chat).status_code==200
 
 def test_confirmation_rechecks_role_and_never_accepts_a_client_supplied_body(assistant_case):
     engine,_,admin,_,ids=assistant_case;t=thread(admin)

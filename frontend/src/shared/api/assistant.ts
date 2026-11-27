@@ -37,7 +37,7 @@ export const assistantApi={
   read:(id:string,offset=0)=>request<ChatView>(`${base}/conversations/${encodeURIComponent(id)}?offset=${offset}`),
   update:(id:string,changes:{title?:string;pinned?:boolean})=>request<Conversation>(`${base}/conversations/${encodeURIComponent(id)}`,{method:'PATCH',body:JSON.stringify(changes)}),
   stop:(id:string,turn:string)=>request<{stopped:boolean}>(`${base}/conversations/${encodeURIComponent(id)}/turns/${encodeURIComponent(turn)}/stop`,{method:'POST'}),
-  remove:(id:string)=>request<{deleted:boolean}>(`${base}/conversations/${encodeURIComponent(id)}`,{method:'DELETE'}),
+  remove:(id:string,signal?:AbortSignal)=>request<{deleted:boolean}>(`${base}/conversations/${encodeURIComponent(id)}`,{method:'DELETE',signal}),
   send:(id:string,content:string,idempotency_key:string,attachment_ids:string[]=[],model_preference_revision?:number,resume_turn_id?:string)=>request<{turn_id:string;status:string}>(`${base}/conversations/${encodeURIComponent(id)}/messages`,{method:'POST',body:JSON.stringify({content,idempotency_key,attachment_ids,...(model_preference_revision!==undefined?{model_preference_revision}:{}),...(resume_turn_id?{resume_turn_id}:{})})}),
   upload:(id:string,file:File)=>{const body=new FormData();body.set('file',file);return request<ChatAttachment>(`${base}/conversations/${encodeURIComponent(id)}/attachments`,{method:'POST',body});},
   confirm:(action:ChatAction,secret_values?:Record<string,string>)=>request<ChatAction>(`${base}/actions/${encodeURIComponent(action.action_id)}/confirm`,{method:'POST',body:JSON.stringify({payload_sha256:action.payload_sha256,confirmed:true,...(secret_values?{secret_values}:{})})}),

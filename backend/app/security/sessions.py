@@ -99,9 +99,9 @@ def authenticate(request: Request, session, *, lock: bool = False) -> Principal:
     # Personal chat lifecycle is not a write to the operational domain. Ownership
     # and CSRF are still checked by the ordinary auth/assistant dependencies.
     chat_prefix='/api/v1/assistant/conversations/'
-    private_chat_delete=(request.method=='DELETE' and request.url.path.startswith(chat_prefix)
-                         and bool(request.url.path[len(chat_prefix):]) and '/' not in request.url.path[len(chat_prefix):])
-    if SQL_ROLES[row["role"]] == "director" and not private_chat_delete and request.method not in ("GET", "HEAD", "OPTIONS") and not (((request.method == "PATCH" and request.url.path == "/api/v1/maintenance/users/me/email") or (request.method == "POST" and request.url.path == "/api/v1/maintenance/users/me/password")) or request.url.path in ("/api/v1/auth/logout", "/api/v1/auth/site", "/api/v1/maintenance/notifications/read-all", "/api/v1/maintenance/notifications/clear") or (request.method == 'POST' and request.url.path.startswith('/api/v1/assistant/')) or (request.url.path.startswith("/api/v1/maintenance/notifications/") and request.url.path.endswith(("/read", "/delete")))):
+    private_chat_mutation=(request.method in ('PATCH','DELETE') and request.url.path.startswith(chat_prefix)
+                           and bool(request.url.path[len(chat_prefix):]) and '/' not in request.url.path[len(chat_prefix):])
+    if SQL_ROLES[row["role"]] == "director" and not private_chat_mutation and request.method not in ("GET", "HEAD", "OPTIONS") and not (((request.method == "PATCH" and request.url.path == "/api/v1/maintenance/users/me/email") or (request.method == "POST" and request.url.path == "/api/v1/maintenance/users/me/password")) or request.url.path in ("/api/v1/auth/logout", "/api/v1/auth/site", "/api/v1/maintenance/notifications/read-all", "/api/v1/maintenance/notifications/clear") or (request.method == 'POST' and request.url.path.startswith('/api/v1/assistant/')) or (request.url.path.startswith("/api/v1/maintenance/notifications/") and request.url.path.endswith(("/read", "/delete")))):
         raise HTTPException(403, "Руководитель имеет доступ только для чтения")
     if request.method not in ("GET", "HEAD", "OPTIONS"):
         csrf = request.headers.get("x-csrf-token", "")
