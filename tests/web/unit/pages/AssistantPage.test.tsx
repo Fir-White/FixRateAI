@@ -24,7 +24,7 @@ it.each([true,false])('stages a dropped workbook without submitting (open chat: 
   show(existing?'/assistant?chat=chat':'/assistant');
   const input=await screen.findByLabelText('Сообщение помощнику');
   await user.type(input,'Проверь план');
-  const target=existing?screen.getByRole('region',{name:'Сообщения'}):screen.getByRole('heading',{name:'С чего начнём?'});
+  const target=screen.getByRole('region',{name:existing?'Сообщения':'Новый чат'});
   const dataTransfer={types:['Files'],files:[book],dropEffect:'none'};
   fireEvent.dragEnter(target,{dataTransfer});
   expect(fireEvent.dragOver(target,{dataTransfer})).toBe(false);
@@ -146,7 +146,7 @@ it('keeps the draft while changing model and sends the saved preference revision
   await user.click(screen.getByRole('button',{name:'Отправить'}));
   await waitFor(()=>expect(api.send).toHaveBeenCalledWith('chat','Мой запрос',expect.any(String),[],8));
 });
-it('retains the composer when opening a new chat and returning through right-hand history',async()=>{
+it('retains the composer when opening a new chat and returning through history',async()=>{
   const user=userEvent.setup();show();const input=await screen.findByLabelText('Сообщение помощнику');await user.type(input,'Сохранённый вопрос');
   await user.click(screen.getAllByRole('button',{name:/Новый чат/})[0]);await user.click(screen.getByRole('button',{name:/^Мой диалог/}));
   expect(await screen.findByLabelText('Сообщение помощнику')).toHaveValue('Сохранённый вопрос');
@@ -158,10 +158,43 @@ it('stops the active response without sending a new message',async()=>{
 });
 it('requires confirmation before deleting a chat',async()=>{
   const user=userEvent.setup();const remove=vi.spyOn(api,'remove').mockResolvedValue({deleted:true});show();
-  await user.click(await screen.findByRole('button',{name:'Удалить чат Мой диалог'}));expect(remove).not.toHaveBeenCalled();
+  const open=async()=>{
+    await user.click(await screen.findByRole('button',{name:'Действия чата: Мой диалог'}));
+    await user.click(screen.getByRole('button',{name:/^Удалить$/}));
+  };
+  await open();expect(remove).not.toHaveBeenCalled();
   await user.click(screen.getByRole('button',{name:'Отмена'}));expect(remove).not.toHaveBeenCalled();
-  await user.click(screen.getByRole('button',{name:'Удалить чат Мой диалог'}));await user.click(screen.getByRole('button',{name:'Удалить чат'}));
+  await open();await user.click(screen.getByRole('button',{name:'Удалить чат'}));
   await waitFor(()=>expect(remove).toHaveBeenCalledWith('chat'));
+});
+it('deletes only checked chats after explicit approval and reports any failed deletion',async()=>{
+  const user=userEvent.setup();
+  vi.mocked(api.list).mockResolvedValue({items:[chat,{...chat,conversation_id:'two',title:'Второй'},{...chat,conversation_id:'three',title:'Третий'}],total:3});
+  const remove=vi.spyOn(api,'remove').mockImplementation(async id=>{
+    if(id==='two')throw Error('Дождитесь завершения действия');
+    return {deleted:true};
+  });
+  show();
+  await user.click(await screen.findByRole('button',{name:'Действия чата: Мой диалог'}));
+  await user.click(screen.getByRole('button',{name:'Выбрать несколько'}));
+  expect(screen.getByRole('checkbox',{name:'Выбрать чат: Мой диалог'})).toBeChecked();
+  await user.click(screen.getByRole('checkbox',{name:'Выбрать чат: Второй'}));
+  await user.click(screen.getByRole('button',{name:'Удалить выбранные (2)'}));
+  expect(remove).not.toHaveBeenCalled();
+  await user.click(within(screen.getByRole('dialog',{name:'Удалить выбранные чаты?'})).getByRole('button',{name:'Удалить выбранные'}));
+  expect(await screen.findByText(/Дождитесь завершения действия/)).toBeVisible();
+  expect(remove.mock.calls).toEqual([['chat'],['two']]);
+});
+it('offers rename and pin, closes with Escape, and does not offer sharing',async()=>{
+  const user=userEvent.setup();show();
+  const trigger=await screen.findByRole('button',{name:'Действия чата: Мой диалог'});
+  await user.click(trigger);
+  expect(screen.getByRole('button',{name:'Переименовать'})).toBeVisible();
+  expect(screen.getByRole('button',{name:'Закрепить'})).toBeVisible();
+  expect(screen.queryByRole('button',{name:'Поделиться'})).not.toBeInTheDocument();
+  await user.keyboard('{Escape}');
+  expect(screen.queryByRole('button',{name:'Переименовать'})).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
 });
 it('opens a blank composer without creating a conversation and always starts the unified agent',async()=>{
   const user=userEvent.setup();vi.spyOn(api,'create').mockResolvedValue(chat);show('/assistant');

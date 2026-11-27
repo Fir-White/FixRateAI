@@ -67,9 +67,19 @@ class Principal:
     timezone: str
 
     def profile(self):
-        return dict(userId=str(self.user_id), siteId=str(self.site_id), role=self.role,
-                    name=self.name, email=self.email, siteName=self.site_name, timezone=self.timezone,
-                    **public_permissions(self.role))
+        payload = dict(userId=str(self.user_id), siteId=str(self.site_id), role=self.role,
+                       name=self.name, email=self.email, siteName=self.site_name, timezone=self.timezone,
+                       **public_permissions(self.role))
+        if self.role == "chief_engineer":
+            from app.onlyoffice import OfficeSettings
+
+            try:
+                office = OfficeSettings.configured()
+            except ValueError:
+                office = None
+            if office and office.browser_origin.partition("//")[2].split(":")[0].lower() == "localhost":
+                payload["workbookEditorOrigin"] = office.browser_origin
+        return payload
 
 
 def authenticate(request: Request, session, *, lock: bool = False) -> Principal:

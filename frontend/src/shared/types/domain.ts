@@ -3,6 +3,7 @@ export type Role = "director" | "chief_engineer" | "admin" | "dispatcher" | "eng
 export type DataOrigin = "customer" | "synthetic_demo" | null;
 
 export interface SessionProfile {
+  workbookEditorOrigin?: string;
   userId: string;
   siteId?: string;
   name: string;

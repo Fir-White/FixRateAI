@@ -182,11 +182,14 @@ async def propose(app,session,principal,thread,tool,args,explanation,headers,tur
     from .tools import file_fields
     for name in file_fields(app,tool):
         if args.get('body',{}).get(name):owned(app,args['body'][name])
-    before=await preflight(app,tool,args,headers)
-    if tool.name=='order_table_apply':
+    assignment_summary={} if tool.name=='task_assign' else None
+    before=await preflight(app,tool,args,headers,assignment_summary=assignment_summary)
+    if tool.name in ('order_table_apply','workbook_order_apply'):
         explanation=('Отдельное подтверждение переноса назначенного наряда. Состав бригады не меняется; исполнители получат уведомление.'
-                     if before['requires_assigned_confirmation'] else
-                     'Проверьте перечисленные изменения и новые разовые наряды. До подтверждения данные нарядов не меняются.')
+                      if before['requires_assigned_confirmation'] else
+                      'Проверьте перечисленные изменения и новые разовые наряды. До подтверждения данные нарядов не меняются.'
+                      if tool.name=='order_table_apply' else
+                      'Проверьте перечисленные изменения. До подтверждения данные нарядов не меняются.')
     if legacy_turn and tool.name == 'equipment_edit':
         from .semantic_plan import QUOTED, UUID, asset_references, equipment_changes
         changes, incomplete = equipment_changes(question)
@@ -227,6 +230,8 @@ async def propose(app,session,principal,thread,tool,args,explanation,headers,tur
                 if requested_name is not None:body['name']=requested_name
             args=validate_arguments(app,tool,{**args,'body':body})
     snapshot=None if before is None else dict(sha256=fingerprint(before),preview=bounded(before))
+    if assignment_summary:
+        snapshot['assignment']=assignment_summary
     identity=uuid4();expires=now()+timedelta(minutes=15)
     sha=fingerprint(dict(tool=tool.name,arguments=args,before=snapshot,actor=str(principal.user_id),site=str(principal.site_id)))
     session.execute(text('''INSERT INTO assistant_actions(action_id,conversation_id,turn_id,tool_name,arguments,payload_sha256,before_snapshot,explanation,status,expires_at,workflow_goal_id,workflow_root_turn_id)

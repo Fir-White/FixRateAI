@@ -77,8 +77,8 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
     return item;
   });
   const home = homePathForRole(profile.role);
-  const chiefWorkday = hasPermission(profile,"engineering_workspace") && location.pathname.replace(/\/+$/, "") === home;
-  const assistantLabel = chiefWorkday ? "Открыть ИИ-диалоги" : "ИИ-помощник";
+  const engineeringHeader = hasPermission(profile,"engineering_workspace");
+  const assistantLabel = "ИИ-помощник";
   const searchItems = [...items];
   if(profile.role!=="executor"&&canOpenSection(profile.role,"calendar")) searchItems.push({to:"/calendar",label:"Действующий календарь",icon:"calendar",roles:[profile.role]});
   if(canOpenSection(profile.role,"service_settings")) searchItems.push({to:"/settings/equipment",label:"Настройка обслуживания",icon:"equipment",roles:[profile.role]});
@@ -109,7 +109,7 @@ export function AppShell({ executor = false }: { executor?: boolean }) {
       />}
 
       <div className="ops-stage" inert={mobileOpen} aria-hidden={mobileOpen || undefined}>
-        <header ref={topbarRef} className={chiefWorkday ? "e3-topbar scroll-boundary e3-topbar--chief-workday" : "e3-topbar scroll-boundary"}>
+        <header ref={topbarRef} className={engineeringHeader ? "e3-topbar scroll-boundary e3-topbar--engineering" : "e3-topbar scroll-boundary"}>
           <div className="e3-topbar-inner">
             <Link to={home} className="e3-brand" aria-label="FixRate AI" onMouseEnter={()=>warm(home)}><AccessBrand /></Link>
             {!isMobile && <nav className="e3-navigation" aria-label="Основная навигация">

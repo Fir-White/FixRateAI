@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, type ComponentType } from "react";
+import { Suspense, useEffect, useState, type ComponentType } from "react";
 import { LoadingState } from "@/shared/ui/States";
 
 export type PageLoader = (() => Promise<{ default: ComponentType }>) & { peek: () => ComponentType | undefined };
@@ -15,12 +15,23 @@ export function pageModule(load: () => Promise<{ default: ComponentType }>): Pag
   return loader;
 }
 
-export function lazyPage(load: PageLoader) {
-  const Page = lazy(load);
+export function lazyPage(load: PageLoader, label = "Загрузка страницы") {
+  const fallback = <LoadingState label={label} />;
   return function RoutePage() {
-    // Freeze the selected type for this mount: finishing a preload must never
-    // remount an active editor and erase its draft.
-    const [Ready] = useState(() => load.peek() ?? Page);
-    return <Suspense fallback={<LoadingState label="Загрузка страницы" />}><Ready /></Suspense>;
+    const [Ready, setReady] = useState(() => load.peek());
+    const [failure, setFailure] = useState<{ error: unknown }>();
+    useEffect(() => {
+      if (Ready) return;
+      let active = true;
+      void load().then(
+        module => { if (active) setReady(() => module.default); },
+        error => { if (active) setFailure({ error }); },
+      );
+      return () => { active = false; };
+    }, [Ready]);
+    if (failure) throw failure.error;
+    // Commit the loaded route directly; the initial Suspense fallback would
+    // otherwise hold back even a module that has already arrived.
+    return Ready ? <Suspense fallback={fallback}><Ready /></Suspense> : fallback;
   };
 }

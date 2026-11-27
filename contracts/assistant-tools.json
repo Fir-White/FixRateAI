@@ -6541,6 +6541,568 @@
       "operator": "unavailable"
     },
     {
+      "name": "workbooks_list",
+      "title": "Найти сохранённую исходную книгу Excel",
+      "method": "GET",
+      "path": "/api/v1/maintenance/workbooks",
+      "roles": [
+        "chief_engineer",
+        "engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.workbooks:register_routes.<locals>.list_workbooks",
+      "operation_id": "list_workbooks_api_v1_maintenance_workbooks_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "offset"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/WorkbookPage"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
+    },
+    {
+      "name": "workbook_versions",
+      "title": "Получить историю версий исходной книги Excel",
+      "method": "GET",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/versions",
+      "roles": [
+        "chief_engineer",
+        "engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.workbooks:register_routes.<locals>.list_versions",
+      "operation_id": "list_versions_api_v1_maintenance_workbooks__book_id__versions_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "book_id"
+        ],
+        "query": [
+          "offset"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/WorkbookPage"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
+    },
+    {
+      "name": "workbook_version",
+      "title": "Проверить метаданные указанной версии книги",
+      "method": "GET",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/versions/{version}",
+      "roles": [
+        "chief_engineer",
+        "engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.workbooks:register_routes.<locals>.version_details",
+      "operation_id": "version_details_api_v1_maintenance_workbooks__book_id__versions__version__get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "book_id",
+          "version"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {
+            "$ref": "#/components/schemas/WorkbookVersion"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
+    },
+    {
+      "name": "workbook_download",
+      "title": "Скачать указанную версию книги Excel",
+      "method": "GET",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/versions/{version}/xlsx",
+      "roles": [
+        "chief_engineer",
+        "engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.workbooks:register_routes.<locals>.download_workbook",
+      "operation_id": "download_workbook_api_v1_maintenance_workbooks__book_id__versions__version__xlsx_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "book_id",
+          "version"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
+    },
+    {
+      "name": "workbook_upload",
+      "title": "Сохранить оригинал XLSX из личного вложения",
+      "method": "POST",
+      "path": "/api/v1/maintenance/workbooks",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [
+        "file"
+      ],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.workbooks:register_routes.<locals>.upload_workbook",
+      "operation_id": "upload_workbook_api_v1_maintenance_workbooks_post",
+      "argument_fields": {
+        "path": [],
+        "query": [],
+        "body": [
+          "file"
+        ]
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {
+            "$ref": "#/components/schemas/WorkbookVersion"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
+    },
+    {
+      "name": "workbook_from_catalog",
+      "title": "Сохранить исходный XLSX существующего каталога как редактируемую книгу",
+      "method": "POST",
+      "path": "/api/v1/maintenance/workbooks/from-catalog/{catalog_id}",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.workbooks:register_routes.<locals>.open_catalog",
+      "operation_id": "open_catalog_api_v1_maintenance_workbooks_from_catalog__catalog_id__post",
+      "argument_fields": {
+        "path": [
+          "catalog_id"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {
+            "$ref": "#/components/schemas/WorkbookVersion"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
+    },
+    {
+      "name": "workbook_version_from_file",
+      "title": "Сохранить отредактированное личное XLSX-вложение как следующую версию книги",
+      "method": "POST",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/versions/from-file",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [
+        "file"
+      ],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.workbooks:register_routes.<locals>.append_file",
+      "operation_id": "append_file_api_v1_maintenance_workbooks__book_id__versions_from_file_post",
+      "argument_fields": {
+        "path": [
+          "book_id"
+        ],
+        "query": [],
+        "body": [
+          "expected_version",
+          "file",
+          "idempotency_key"
+        ]
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {
+            "$ref": "#/components/schemas/WorkbookVersion"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
+    },
+    {
+      "name": "workbook_catalog",
+      "title": "Подготовить черновик каталога из указанной версии книги",
+      "method": "POST",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/versions/{version}/catalog",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.workbooks:register_routes.<locals>.catalog_from_version",
+      "operation_id": "catalog_from_version_api_v1_maintenance_workbooks__book_id__versions__version__catalog_post",
+      "argument_fields": {
+        "path": [
+          "book_id",
+          "version"
+        ],
+        "query": []
+      },
+      "response_schemas": {
+        "201": {
+          "application/json": {
+            "$ref": "#/components/schemas/CatalogSaved"
+          }
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
+    },
+    {
+      "name": "workbook_issued_orders",
+      "title": "Найти выпущенные наряды для подготовки строк Excel",
+      "method": "GET",
+      "path": "/api/v1/maintenance/workbooks/issued-orders",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.workbook_order_changes:register_routes.<locals>.issued_orders",
+      "operation_id": "issued_orders_api_v1_maintenance_workbooks_issued_orders_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [],
+        "query": [
+          "offset",
+          "q"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
+    },
+    {
+      "name": "workbook_order_rows",
+      "title": "Найти строки правок нарядов в указанной сохранённой версии книги",
+      "method": "GET",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/versions/{version}/order-changes",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.workbook_order_changes:register_routes.<locals>.candidate_rows",
+      "operation_id": "candidate_rows_api_v1_maintenance_workbooks__book_id__versions__version__order_changes_get",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "book_id",
+          "version"
+        ],
+        "query": [
+          "offset"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
+    },
+    {
+      "name": "workbook_order_preview",
+      "title": "Проверить правки выпущенного наряда на указанной строке листа «Изменения нарядов»",
+      "method": "POST",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/versions/{version}/order-changes/preview",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": false,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.workbook_order_changes:register_routes.<locals>.preview",
+      "operation_id": "preview_api_v1_maintenance_workbooks__book_id__versions__version__order_changes_preview_post",
+      "argument_fields": {
+        "view": [
+          "limit",
+          "offset",
+          "path",
+          "q",
+          "text_limit",
+          "text_offset"
+        ],
+        "path": [
+          "book_id",
+          "version"
+        ],
+        "query": [],
+        "body": [
+          "reason",
+          "row_number"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
+    },
+    {
+      "name": "workbook_order_apply",
+      "title": "Подтвердить и применить проверенные изменения выпущенного наряда из указанной версии книги",
+      "method": "POST",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/versions/{version}/order-changes/apply",
+      "roles": [
+        "chief_engineer"
+      ],
+      "agents": [
+        "assistant",
+        "planner"
+      ],
+      "requires_confirmation": true,
+      "file_fields": [],
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "domain": "documents",
+      "handler": "app.integration.workbook_order_changes:register_routes.<locals>.apply",
+      "operation_id": "apply_api_v1_maintenance_workbooks__book_id__versions__version__order_changes_apply_post",
+      "argument_fields": {
+        "path": [
+          "book_id",
+          "version"
+        ],
+        "query": [],
+        "body": [
+          "confirm_assigned",
+          "idempotency_key",
+          "preview_digest",
+          "reason",
+          "row_number"
+        ]
+      },
+      "response_schemas": {
+        "200": {
+          "application/json": {}
+        },
+        "422": {
+          "application/json": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      },
+      "before_read": null,
+      "operator": "unavailable"
+    },
+    {
       "name": "catalog_binding_options",
       "title": "Доступные привязки операций",
       "method": "GET",
@@ -9588,6 +10150,11 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/editor-sessions/{session_id}",
+      "reason": "interactive ONLYOFFICE iframe transport; use workbook_version_from_file for assistant writes"
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/maintenance_jobs",
       "reason": "compatibility alias"
     },
@@ -9600,6 +10167,11 @@
       "method": "GET",
       "path": "/api/v1/maintenance_jobs/{job_id}/history",
       "reason": "compatibility alias"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/assistant/conversations/{identity}",
+      "reason": "human chat workspace metadata; deliberately not callable as a model tool"
     },
     {
       "method": "PATCH",
@@ -9670,6 +10242,21 @@
       "method": "POST",
       "path": "/api/v1/maintenance/users/me/password",
       "reason": "password changes explicitly excluded by owner"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/editor-sessions",
+      "reason": "interactive ONLYOFFICE iframe transport; use workbook_version_from_file for assistant writes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/editor-sessions/{session_id}/snapshot",
+      "reason": "interactive ONLYOFFICE iframe transport; use workbook_version_from_file for assistant writes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/versions",
+      "reason": "interactive ONLYOFFICE iframe transport; use workbook_version_from_file for assistant writes"
     },
     {
       "method": "POST",

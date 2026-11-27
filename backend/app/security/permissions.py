@@ -12,6 +12,7 @@ GATES = {
     "edit_equipment": ("chief_engineer", "admin"),
     "edit_service": ("chief_engineer", "admin"),
     "prepare_catalog": ("chief_engineer", "admin"),
+    "edit_source_workbook": ("chief_engineer",),
     "site_access": ("chief_engineer", "admin"),
     "approve_exception": ("chief_engineer",),
 }
@@ -27,6 +28,9 @@ TOOL_PERMISSIONS = {
                      "component_edit", "component_replace"), "edit_equipment"),
     **dict.fromkeys(("regulation_create", "regulation_edit"), "edit_service"),
     **dict.fromkeys(("catalog_import_preview", "catalog_import", "catalog_decision"), "prepare_catalog"),
+    **dict.fromkeys(("workbook_upload", "workbook_from_catalog", "workbook_version_from_file", "workbook_catalog",
+                     "workbook_issued_orders", "workbook_order_rows", "workbook_order_preview", "workbook_order_apply"),
+                    "edit_source_workbook"),
 }
 
 
@@ -39,6 +43,8 @@ def permission_profile():
 
 def has_role(role, roles, *, exact=False, permission=None):
     """Keep compatibility by default; grant MVP extras only by explicit gate."""
+    if permission == "edit_source_workbook":
+        return role in GATES[permission]
     if permission_profile() == "mvp" and role in ENGINEERING_ROLES:
         if permission is not None:
             return permission in MVP_ENGINEERING

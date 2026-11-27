@@ -413,12 +413,14 @@ async def invoke(app,tool,args,headers):
         payload=dict(profile=payload.get('profile') if isinstance(payload,dict) else None,navigate_to='/login' if tool.name=='session_logout' else '/assistant')
     return payload
 
-async def preflight(app,tool,args,headers):
-    if tool.name=='order_table_apply':
+async def preflight(app,tool,args,headers,*,assignment_summary=None):
+    if tool.name in ('order_table_apply','workbook_order_apply'):
         body=args['body']
-        preview_tool=next(t for t in TOOLS if t.name=='order_table_preview')
+        workbook=tool.name=='workbook_order_apply'
+        target='workbook_order_preview' if workbook else 'order_table_preview'
+        preview_tool=next(t for t in TOOLS if t.name==target)
         snapshot=await invoke(app,preview_tool,validate_arguments(app,preview_tool,
-            dict(body={key:body[key] for key in ('changes','reason')})),headers)
+            dict(path=args.get('path',{}),body={key:body[key] for key in (('row_number' if workbook else 'changes'),'reason')})),headers)
         if not snapshot['can_apply'] or snapshot['preview_digest']!=body['preview_digest']:
             raise HTTPException(409,'Предпросмотр таблицы устарел или содержит блокировки')
         if snapshot['requires_assigned_confirmation']!=body.get('confirm_assigned',False):
@@ -466,4 +468,10 @@ async def preflight(app,tool,args,headers):
         if not command:raise HTTPException(422,preview.get('explanation') or 'Нет допустимого состава и времени назначения')
         if set(command['executor_ids'])!=set(body['executor_ids']) or datetime.fromisoformat(command['start_at'])!=start or datetime.fromisoformat(command['end_at'])!=end:
             raise HTTPException(422,'Используйте точные состав и время из успешного assignment_preview')
+        if assignment_summary is not None:
+            names={worker['executorId']:worker['name'] for worker in preview['selectedWorkers']}
+            task=snapshot['task']
+            assignment_summary.update(taskTitle=task['title'],taskCode=task['code'],timezone=context['timezone'],
+                workers=[names[identity] for identity in body['executor_ids']],
+                crewName=preview['crewName'] if preview['crewId']==body.get('crew_id') else None)
     return snapshot

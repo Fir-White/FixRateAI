@@ -7,7 +7,7 @@ from fastapi import BackgroundTasks,Depends,HTTPException,Query,Request,Response
 from fastapi.responses import JSONResponse,FileResponse
 from sqlalchemy import text
 from starlette.concurrency import run_in_threadpool
-from app.schemas.assistant import ConversationCreate,MessageCreate,ConfirmAction
+from app.schemas.assistant import ConversationCreate,ConversationUpdate,MessageCreate,ConfirmAction
 from app.assistant import service as svc
 from app.assistant.tools import available,catalog,describe,validate_arguments,invoke,bounded,EXPECTED_PRINCIPAL
 from app.assistant.attachments import SCOPE,COOKIE_EFFECTS,MAX_FILE,public as public_file,content as file_content
@@ -40,7 +40,7 @@ def register_routes(app,views):
         response.headers['Cache-Control']='private, no-store'
         params=dict(site=v.principal.site_id,user=v.principal.user_id,role=v.principal.role,offset=offset)
         rows=v.session.execute(text('''SELECT * FROM assistant_conversations WHERE site_id=:site AND user_id=:user AND role=:role
-            ORDER BY updated_at DESC,conversation_id LIMIT 25 OFFSET :offset'''),params).mappings().all()
+            ORDER BY pinned_at DESC NULLS LAST,updated_at DESC,conversation_id LIMIT 25 OFFSET :offset'''),params).mappings().all()
         count=v.session.scalar(text('SELECT count(*) FROM assistant_conversations WHERE site_id=:site AND user_id=:user AND role=:role'),params)
         return dict(items=[dict(r) for r in rows],total=count)
 
@@ -63,6 +63,20 @@ def register_routes(app,views):
             dict(id=identity,site=v.principal.site_id,user=v.principal.user_id,role=v.principal.role,title=command.title,agent=command.agent,task=command.subject_task_id))
         v.session.commit()
         return svc.conversation(v.session,v.principal,identity)
+
+    @app.patch(BASE+'/conversations/{identity}')
+    def update_conversation(identity:UUID,command:ConversationUpdate,v=Depends(views)):
+        row=v.session.execute(text('''UPDATE assistant_conversations
+            SET title=coalesce(:title,title), title_manually_set=(:has_title OR title_manually_set),
+                pinned_at=CASE WHEN :pinned IS TRUE THEN coalesce(pinned_at,now())
+                               WHEN :pinned IS FALSE THEN NULL ELSE pinned_at END
+            WHERE conversation_id=:id AND site_id=:site AND user_id=:user AND role=:role
+            RETURNING *'''),dict(id=identity,site=v.principal.site_id,user=v.principal.user_id,role=v.principal.role,
+                                 title=command.title,has_title=command.title is not None,pinned=command.pinned)).mappings().one_or_none()
+        if row is None:
+            raise HTTPException(404,'Диалог не найден')
+        v.session.commit()
+        return dict(row)
 
     @app.get(BASE+'/conversations/{identity}')
     def read(identity:UUID,response:Response,offset:int=Query(0,ge=0),v=Depends(views)):
@@ -273,7 +287,7 @@ def register_routes(app,views):
                 v.session.execute(text('INSERT INTO assistant_turn_attachments(turn_id,attachment_id,conversation_id,position) VALUES (:turn,:file,:conversation,:position)'),
                     [dict(turn=turn,file=file_id,conversation=identity,position=position) for position,file_id in enumerate(selected)])
             title=command.content or ('Файл: '+files[0]['original_name'])
-            v.session.execute(text("UPDATE assistant_conversations SET updated_at=now(),title=CASE WHEN title='Новый диалог' THEN :title ELSE title END WHERE conversation_id=:id"),dict(id=identity,title=title[:100]))
+            v.session.execute(text("UPDATE assistant_conversations SET updated_at=now(),title=CASE WHEN NOT title_manually_set AND title='Новый диалог' THEN :title ELSE title END WHERE conversation_id=:id"),dict(id=identity,title=title[:100]))
             v.session.commit()
         except BaseException:svc.SLOTS.release();raise
         background.add_task(svc.run_turn,app,v.principal,identity,turn,forwarded(request))

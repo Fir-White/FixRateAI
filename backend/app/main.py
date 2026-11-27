@@ -20,6 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.datastructures import Headers
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -159,12 +160,37 @@ def check_revision(order, revision):
 class FrontendAssets(StaticFiles):
     """Keep versioned build assets in the browser across workspace visits."""
 
+    def __init__(self, dist: Path):
+        super().__init__(directory=dist / "assets")
+        compressed = dist / "compressed"
+        self.compressed = StaticFiles(directory=compressed) if compressed.is_dir() else None
+
     async def get_response(self, path, scope):
-        response = await super().get_response(path, scope)
-        if response.status_code in (200, 206, 304) and re.fullmatch(
-            r"[^/\\]+-[A-Za-z0-9_-]{8}\.(?:js|css|woff2|ttf|svg|png|ico|webp)", path
-        ):
+        versioned = re.fullmatch(r"[^/\\]+-[A-Za-z0-9_-]{8}\.(js|css|woff2|ttf|svg|png|ico|webp)", path)
+        extension = versioned[1] if versioned else ""
+        can_compress = self.compressed is not None and extension in ("js", "css")
+        headers = Headers(scope=scope) if can_compress else None
+        response = None
+        accepts_gzip = headers is not None and "range" not in headers and any(
+            match and (match[1] is None or float(match[1]) > 0)
+            for value in headers.getlist("accept-encoding") for item in value.split(",")
+            if (match := re.fullmatch(r"gzip(?:\s*;\s*q\s*=\s*(1(?:\.0{0,3})?|0(?:\.[0-9]{0,3})?))?", item.strip(), re.I))
+        )
+        if accepts_gzip:
+            try:
+                response = await self.compressed.get_response(path + ".gz", scope)
+            except StarletteHTTPException as error:
+                if error.status_code != 404:
+                    raise
+            if response is not None and response.status_code == 200:
+                response.headers["Content-Type"] = f"text/{'javascript' if extension == 'js' else 'css'}; charset=utf-8"
+                response.headers["Content-Encoding"] = "gzip"
+        if response is None:
+            response = await super().get_response(path, scope)
+        if response.status_code in (200, 206, 304) and versioned:
             response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            if can_compress:
+                response.headers.add_vary_header("Accept-Encoding")
         return response
 
 
@@ -1068,6 +1094,12 @@ def create_app(engine=None, *, frontend_dist: Path | None = None):
     register_registry_excel(app, views)
     from app.integration.catalog_imports import register_routes as register_catalog_imports
     register_catalog_imports(app, views)
+    from app.integration.workbooks import register_routes as register_workbooks
+    register_workbooks(app, views)
+    from app.integration.workbook_editor import register_routes as register_workbook_editor
+    register_workbook_editor(app, views, db)
+    from app.integration.workbook_order_changes import register_routes as register_workbook_order_changes
+    register_workbook_order_changes(app, views)
     from app.integration.catalog_decisions import register_routes as register_catalog_decisions
     register_catalog_decisions(app, views)
     from app.integration.draft_plans import register_routes as register_draft_plans
@@ -1097,7 +1129,7 @@ def create_app(engine=None, *, frontend_dist: Path | None = None):
 
     dist = frontend_dist if frontend_dist is not None else ROOT / "frontend/dist"
     if dist.is_dir():
-        app.mount("/assets", FrontendAssets(directory=dist / "assets"), name="assets")
+        app.mount("/assets", FrontendAssets(dist), name="assets")
 
         @app.get("/{path:path}", include_in_schema=False)
         def spa(path: str):

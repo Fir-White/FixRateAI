@@ -28,8 +28,8 @@ def local_time(value, tz):
     return next(iter(possible.values()))
 
 
-def _job(v, order):
-    if order.operation_snapshot.get('catalog_publication_id'):
+def _job(v, order, *, workbook_move=False):
+    if order.operation_snapshot.get('catalog_publication_id') and not workbook_move:
         return dict(taskId=str(order.work_order_id),expectedRevision=order.revision,timezone=v.principal.timezone,
             status='needs_input',code='PUBLISHED_PLAN_IMMUTABLE',explanation='Назначение утверждено в составе плана. Перенос требует нового предложения.',
             crewSize=order.required_people_snapshot,durationMinutes=order.operation_snapshot.get('planning_duration_minutes'),
@@ -332,8 +332,8 @@ def workforce_load(v, day, window_start, window_end, offset, limit):
 
 
 def assignment_preview(v, order, start_local, end_local, crew_id=None, executor_ids=None, individual_only=False,
-                       prefer_low_load=False):
-    context = _job(v, order)
+                       prefer_low_load=False, *, workbook_move=False):
+    context = _job(v, order, workbook_move=workbook_move)
     base = dict(context=context, status="needs_input", code=context["code"], explanation=context["explanation"],
                 recommendationMode='manual' if executor_ids is not None else 'automatic',
                 selectedWorkers=[], workers=[], crews=[], startAt=None, endAt=None, crewId=None,

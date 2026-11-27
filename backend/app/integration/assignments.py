@@ -42,10 +42,11 @@ def lock_workers(v, worker_ids, *, actor=False):
                 raise HTTPException(404, "Работник не найден в объекте")
 
 
-def _lock_context(v, order, worker_ids, crew_id, *, worksheet_move=False):
+def _lock_context(v, order, worker_ids, crew_id, *, worksheet_move=False, exclusive_equipment=False):
     _lock(v, "work_order_equipment", work_order_id=order.work_order_id)
-    for link in v.rows("work_order_equipment", work_order_id=order.work_order_id):
-        _lock(v, "equipment", read=True, equipment_id=link.equipment_id)
+    assets={link.equipment_id for link in v.rows("work_order_equipment", work_order_id=order.work_order_id)}
+    if assets:
+        _lock(v, "equipment", read=not exclusive_equipment, equipment_id=assets)
     if order.maintenance_rule_id:
         rule = _lock(v, "maintenance_rules", maintenance_rule_id=order.maintenance_rule_id)[0]
         _lock(v, "regulation_editions", read=True, regulation_edition_id=rule.regulation_edition_id)
@@ -112,13 +113,13 @@ def cancel_task(v,task_id,revision,reason):
         return v.bundle(order)
 
 
-def save_assignment(v, task_id, command, crew_id=None, *, worksheet_move=False):
+def save_assignment(v, task_id, command, crew_id=None, *, worksheet_move=False, workbook_move=False):
     """Own the auth-started transaction; never return success before commit."""
     if not has_role(v.principal.role,("dispatcher",)):
         raise HTTPException(403, "Действие недоступно для текущей роли")
     with (nullcontext() if worksheet_move else service_transaction(v.session)):
         order = v.task(task_id, lock=True)
-        if order.operation_snapshot.get('catalog_publication_id'):
+        if order.operation_snapshot.get('catalog_publication_id') and not (worksheet_move and workbook_move):
             raise HTTPException(409,'Перенос утверждённого назначения требует нового предложения на утверждение')
         if order.revision != command.expected_revision:
             raise HTTPException(409, "REVISION_CONFLICT: обновите данные и повторите подбор")
@@ -143,24 +144,26 @@ def save_assignment(v, task_id, command, crew_id=None, *, worksheet_move=False):
                 or not has_role(role, ("dispatcher",)) or not v.one("sites").is_active):
             raise HTTPException(403, "Доступ диспетчера отозван")
         if worksheet_move:
-            if not permits(role, "order_table") or v.one("sites").timezone != v.principal.timezone:
+            if not permits(role, "order_table") or (workbook_move and role != "chief_engineer") or v.one("sites").timezone != v.principal.timezone:
                 raise HTTPException(403, "Перенос в таблице подтверждает главный инженер")
             if (order.status != "assigned" or order.started_at or v.rows("work_reports", work_order_id=task_id)
                     or {row.user_id for row in active} != ids
                     or any(row.crew_id != crew_id or row.status != "assigned" for row in active)):
                 raise HTTPException(409, "Наряд, состав или его выполнение изменились. Проверьте перенос заново")
-        _lock_context(v, order, ids, crew_id, worksheet_move=worksheet_move)
+        _lock_context(v, order, ids, crew_id, worksheet_move=worksheet_move, exclusive_equipment=True)
         # Reads after potentially waiting for locks must not reuse ORM identity-cache facts.
         v.session.expire_all()
         handoff=order.status in ("in_progress","rework")
         if handoff and not permits(role, "approve_exception"):
             raise HTTPException(403,"Переназначение начатой работы требует отдельного согласования")
-        context = _job(v, order)
+        context = _job(v, order, workbook_move=workbook_move)
         if context["status"] != "ready":
             raise HTTPException(409, f"{context['code']}: {context['explanation']}")
         if end - begin != timedelta(minutes=context["durationMinutes"]):
             raise HTTPException(409, "DURATION_CONFLICT: длительность предложения расходится с заданием")
         now = datetime.now(timezone.utc)
+        from .draft_resources import ensure_equipment_free
+        ensure_equipment_free(v, order, begin, end, now, published_only=not workbook_move)
         workers = _workers(v, order, begin, end, now, ids)
         crews = []
         if crew_id:

@@ -27,12 +27,20 @@ export type IconName =
   | "sidebar"
   | "close"
   | "bell"
-  | "trash";
+  | "trash"
+  | "more"
+  | "edit"
+  | "pin"
+  | "unpin";
 
 const PATHS: Record<IconName, ReactNode> = {
   assistant: <path d="M12 2.5c1.5 5.9 3.6 8 9.5 9.5-5.9 1.5-8 3.6-9.5 9.5-1.5-5.9-3.6-8-9.5-9.5 5.9-1.5 8-3.6 9.5-9.5Z"/>,
   sidebar: <><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></>,
   trash: <><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5"/></>,
+  more: <><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/></>,
+  edit: <path d="M13.5 6.5l4 4M4 20l4.6-1 11-11a2.8 2.8 0 0 0-4-4l-11 11L4 20Z"/>,
+  pin: <path d="m8 14-4 6m3-9 6-2 4-6 4 4-6 4-2 6-6-6Z"/>,
+  unpin: <path d="m8 14-4 6M6 10l3 3m4 4 1-3m-3-5 2-.5 4-5.5 4 4-5.5 4M3 3l18 18"/>,
   bell: <><path d="M5 17.5h14l-1.2-1.7a4 4 0 0 1-.8-2.4V10a5 5 0 0 0-10 0v3.4a4 4 0 0 1-.8 2.4L5 17.5Z"/><path d="M10 20a2.2 2.2 0 0 0 4 0M12 3v2"/></>,
   dashboard: (
     <>

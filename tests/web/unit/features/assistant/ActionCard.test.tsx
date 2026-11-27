@@ -1,5 +1,5 @@
 import {beforeEach,expect,it,vi} from 'vitest';
-import {render,screen} from '@testing-library/react';
+import {render,screen,within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {MemoryRouter} from 'react-router-dom';
 import {ActionCard} from '@/features/assistant/ActionCard';
@@ -18,6 +18,40 @@ it('shows exact parameters and requires human consent before confirming the stor
   const button=screen.getByRole('button',{name:'Подтвердить и выполнить'});expect(button).toBeDisabled();expect(api.confirm).not.toHaveBeenCalled();
   await user.click(screen.getByRole('checkbox'));await user.click(button);
   expect(api.confirm).toHaveBeenCalledExactlyOnceWith(record);expect(changed).toHaveBeenCalledOnce();
+});
+const assignment={
+  ...record,tool_name:'task_assign',
+  arguments:{path:{task_id:'assignment-task-id'},body:{expected_revision:17,executor_ids:['worker-id-1','worker-id-2'],start_at:'2026-12-01T06:00:00Z',end_at:'2026-12-01T06:45:00Z',reason:'У обоих есть допуск.'}},
+  before_snapshot:{sha256:'b'.repeat(64),preview:{task:{title:'Осмотр насосной'}},
+    assignment:{taskTitle:'Осмотр насосной',taskCode:'ТО-104',timezone:'Asia/Yekaterinburg',workers:['Тестовый Иван','Тестовая Анна'],crewName:null}},
+  explanation:'Старая техническая строка',
+};
+it('leads with verified workers and site time, leaving exact identifiers in the native disclosure',async()=>{
+  const user=userEvent.setup();show(assignment);
+  const card=screen.getByRole('region');
+  const workers=within(card).getByRole('list',{name:'Исполнители'});
+  expect(within(workers).getAllByRole('listitem').map(item=>item.textContent)).toEqual(['Тестовый Иван','Тестовая Анна']);
+  expect(within(card).getByText('Осмотр насосной')).toBeVisible();
+  expect(within(card).getByText('ТО-104')).toBeVisible();
+  expect(within(card).getByText(/1 декабря 2026 г\./)).toBeVisible();
+  expect(within(card).getByText(/11:00–11:45/)).toBeVisible();
+  expect(within(card).getByText('У обоих есть допуск.')).toBeVisible();
+  const raw=within(card).getByText(/worker-id-1/);
+  expect(raw.closest('details')).not.toHaveAttribute('open');
+  expect(within(card).getByText('Старая техническая строка').closest('details')).not.toHaveAttribute('open');
+  await user.click(within(card).getByText('Технические детали'));
+  expect(raw.closest('details')).toHaveAttribute('open');
+  const button=within(card).getByRole('button',{name:'Подтвердить и выполнить'});
+  expect(button).toBeDisabled();
+  await user.click(within(card).getByRole('checkbox'));
+  await user.click(button);
+  expect(api.confirm).toHaveBeenCalledExactlyOnceWith(assignment);
+});
+it('keeps the saved explanation when an older assignment has no verified worker names',()=>{
+  show({...assignment,before_snapshot:{sha256:assignment.before_snapshot.sha256,preview:assignment.before_snapshot.preview}});
+  expect(screen.getByText(assignment.explanation)).toBeVisible();
+  expect(screen.queryByRole('list',{name:'Исполнители'})).not.toBeInTheDocument();
+  expect(screen.getByText(/worker-id-1/).closest('details')).not.toHaveAttribute('open');
 });
 it('confirms report photos in one explicit click and shows when submission was blocked',async()=>{
   const user=userEvent.setup();

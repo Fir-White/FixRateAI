@@ -86,19 +86,36 @@ def resources(v,start,end,now,asset_ids=(),*,exclude_order_ids=()):
                     w['bookings'].append(dict(task_id=row['work_order_id'],start_at=left,end_at=right,blocks_time=blocks))
     if sum(len(w['availability'])+len(w['bookings']) for w in workers.values())>100000:
         raise HTTPException(422,'Слишком много развёрнутых смен: сократите расчёт')
+    equipment,unknown=equipment_reservations(v,start,end,now,asset_ids,exclude_order_ids=exclude_order_ids)
+    parsed=[Worker.model_validate_json(json.dumps(w,default=str)) for w in workers.values()]
+    return parsed,equipment,unknown
+
+
+def equipment_reservations(v,start,end,now,asset_ids,*,exclude_order_ids=(),published_only=False):
     equipment=defaultdict(list);unknown=set()
     if asset_ids:
-        params['assets']=list(asset_ids)
+        params=dict(site=v.principal.site_id,assets=list(asset_ids),exclude=list(exclude_order_ids),published_only=published_only)
         rows=v.session.execute(text('''SELECT e.equipment_id,a.status AS assignment_status,a.start_at,a.end_at,
             o.work_order_id,o.status AS order_status,o.started_at,o.completed_at,o.planned_start_at,o.operation_snapshot
             FROM work_order_equipment e JOIN work_orders o USING(work_order_id)
             LEFT JOIN work_assignments a ON a.work_order_id=o.work_order_id AND a.status NOT IN ('declined','cancelled','finished')
             WHERE e.site_id=:site AND e.equipment_id=ANY(CAST(:assets AS uuid[])) AND o.status IN ('assigned','in_progress','rework')
-            AND o.work_order_id<>ALL(CAST(:exclude AS uuid[])) LIMIT 100001'''),params).mappings().all()
+            AND o.work_order_id<>ALL(CAST(:exclude AS uuid[]))
+            AND (NOT :published_only OR EXISTS (SELECT 1 FROM published_catalog_tasks p
+                         WHERE p.site_id=e.site_id AND p.work_order_id=o.work_order_id))
+            LIMIT 100001'''),params).mappings().all()
         if len(rows)>100000: raise HTTPException(422,'Слишком много резервов оборудования: сократите расчёт')
         for row in rows:
             left,right,_,complete=_job_interval(row,now)
             if not complete and (left is None or left<end): unknown.add(row['equipment_id'])
             if left and right and right>left and right>start and left<end: equipment[row['equipment_id']].append((left,right))
-    parsed=[Worker.model_validate_json(json.dumps(w,default=str)) for w in workers.values()]
-    return parsed,dict(equipment),unknown
+    return dict(equipment),unknown
+
+
+def ensure_equipment_free(v,order,start,end,now,*,published_only=False):
+    assets={link.equipment_id for link in v.rows('work_order_equipment',work_order_id=order.work_order_id)}
+    booked,unknown=equipment_reservations(v,start,end,now,assets,exclude_order_ids=[order.work_order_id],published_only=published_only)
+    if not assets or unknown:
+        raise HTTPException(409,'Недостаточно подтверждённых данных о занятости оборудования')
+    if booked:
+        raise HTTPException(409,'Оборудование уже занято другим нарядом в выбранном интервале')

@@ -78,7 +78,7 @@
   max-width: var(--e3-content-width);
   padding: clamp(18px, 2vw, 30px) var(--e3-gutter) 48px;
 }
-.e3-shell .ops-main--assistant { padding-block: 0; }
+.e3-shell .ops-main--assistant { max-width: none; padding: 0 24px; }
 .e3-shell:has(.ops-main--assistant) .e3-context { min-height: 0; }
 .e3-shell:has(.ops-main--assistant) .e3-context > :is(.e3-context-date, .e3-context-role) { display: none; }
 
@@ -99,12 +99,11 @@
   .e3-site-name { font-size: 13px; }
 }
 
-.e3-topbar--chief-workday .e3-navigation > a { font-weight: 500; }
-.e3-topbar--chief-workday .e3-navigation > a > span::after { inset-block-end: 10px; }
-.e3-topbar--chief-workday .e3-navigation > a:focus-visible { outline-offset: -4px; border-radius: 6px; }
-.e3-topbar--chief-workday .e3-assistant-trigger .topbar-hint { white-space: nowrap; }
+.e3-topbar--engineering .e3-navigation > a { font-weight: 500; }
+.e3-topbar--engineering .e3-navigation > a > span::after { inset-block-end: 10px; }
+.e3-topbar--engineering .e3-navigation > a:focus-visible { outline-offset: -4px; border-radius: 6px; }
 @media (min-width: 1100px) {
-  .e3-topbar--chief-workday .e3-topbar-inner { gap: clamp(16px, 2.4vw, 44px); padding-inline: var(--e3-gutter); }
-  .e3-topbar--chief-workday .e3-brand .auth-brand__mark { width: 32px; height: 32px; }
-  .e3-topbar--chief-workday .e3-brand .auth-brand__wordmark { width: 123px; }
+  .e3-topbar--engineering .e3-topbar-inner { gap: clamp(16px, 2.4vw, 44px); padding-inline: var(--e3-gutter); }
+  .e3-topbar--engineering .e3-brand .auth-brand__mark { width: 32px; height: 32px; }
+  .e3-topbar--engineering .e3-brand .auth-brand__wordmark { width: 123px; }
 }

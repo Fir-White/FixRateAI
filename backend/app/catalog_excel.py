@@ -27,7 +27,7 @@ def column(index):
     return result
 
 
-def read_workbook(data, *, provenance=False, max_file=MAX_FILE):
+def read_workbook(data, *, provenance=False, max_file=MAX_FILE, datetime_cells=False):
     if not data or len(data) > max_file: raise ValueError(f'Размер Excel должен быть от 1 байта до {max_file//1048576} МиБ')
     try:
         with ZipFile(BytesIO(data)) as archive:
@@ -85,7 +85,8 @@ def read_workbook(data, *, provenance=False, max_file=MAX_FILE):
                             if not serial.is_finite() or serial<0:raise ValueError('Некорректная дата Excel')
                             if not calendar1904 and int(serial)==60:raise ValueError('Excel содержит несуществующую дату 1900-02-29')
                             base=datetime(1904,1,1) if calendar1904 else datetime(1899,12,31) if serial<60 else datetime(1899,12,30)
-                            value=(base+timedelta(days=float(serial))).date().isoformat()
+                            value=((base+timedelta(seconds=round(serial*86400))).isoformat() if datetime_cells
+                                   else (base+timedelta(days=float(serial))).date().isoformat())
                         if len(value) > 32767: raise ValueError('Слишком длинное значение в Excel')
                         cells[key] = dict(value=value.strip(), formula=cell.find(f'{{{NS}}}f') is not None)
                         if provenance:

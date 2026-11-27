@@ -204,11 +204,13 @@ for(const width of [1440,390,320])test(`history controls and message attachments
   await page.goBack();
   await expect(input).toHaveValue('QA draft for another conversation');
   if(width<1280)await page.getByRole('button',{name:'Открыть историю чатов'}).click();
-  await page.getByRole('button',{name:'Удалить чат QA long history'}).click();
+   await page.getByRole('button',{name:'Действия чата: QA long history'}).click();
+   await page.getByRole('button',{name:'Удалить',exact:true}).click();
   await expect(page.getByRole('dialog',{name:'Удалить чат?'})).toBeVisible();
   await page.getByRole('button',{name:'Отмена'}).click();
   if(width<1280)await page.getByRole('button',{name:'Открыть историю чатов'}).click();
-  await page.getByRole('button',{name:'Удалить чат QA long history'}).click();
+   await page.getByRole('button',{name:'Действия чата: QA long history'}).click();
+   await page.getByRole('button',{name:'Удалить',exact:true}).click();
   await page.getByRole('dialog',{name:'Удалить чат?'}).getByRole('button',{name:'Удалить чат'}).click();
   await expect(page).not.toHaveURL(new RegExp(`chat=${oldId}`));
   // A starter sends immediately and hands the emphasis to the dock once.

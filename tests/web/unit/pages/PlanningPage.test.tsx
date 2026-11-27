@@ -54,7 +54,7 @@ it('starts with saved files and follows one visible path while preserving the ch
   expect(await screen.findByRole('button',{name:/TEST_HVAC.xlsx · 217/})).toBeVisible();
   expect(screen.queryByLabelText('Excel каталога СВиК')).not.toBeInTheDocument();
   expect(catalogs.operations).not.toHaveBeenCalled();
-  await user.click(screen.getByRole('button',{name:/TEST_HVAC.xlsx · 217/}));
+  await user.click(screen.getByRole('button',{name:'Регламент и план'}));
   const search=await screen.findByRole('textbox',{name:'Поиск операций каталога'});await user.type(search,'Фильтр');
   await user.click(screen.getByRole('button',{name:'Перейти к плану →'}));
   await user.click(await screen.findByRole('button',{name:'План кондиционера · версия 2 · 3 чел.-ч'}));

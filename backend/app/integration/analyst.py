@@ -72,7 +72,8 @@ def notify_event(v,order,event,roles):
         v.session.execute(insert(table).values(site_id=order.site_id,user_id=member.user_id,
             work_order_id=order.work_order_id,event_key=f'{order.work_order_id}:{order.revision}:{event}',
             message={'overdue':'Просрочено ТО','assigned':'Вам назначено ТО','rescheduled':'Изменено время назначенного ТО','rework':'Отчёт возвращён на доработку',
-                     'submitted':'Фотоотчёт ожидает приёмки','accepted':'Работа принята'}.get(event,event))
+                      'submitted':'Фотоотчёт ожидает приёмки','accepted':'Работа принята',
+                      'order_updated':'Обновлены плановые данные назначенного ТО'}.get(event,event))
             .on_conflict_do_nothing(index_elements=['site_id','user_id','event_key']))
 
 

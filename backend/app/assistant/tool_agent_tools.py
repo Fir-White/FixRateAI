@@ -49,6 +49,51 @@ WORKSHEET = {
 }
 
 
+class StoredWorkbook(Arguments):
+    book_id: UUID
+
+
+class StoredWorkbookVersion(StoredWorkbook):
+    version: int = Field(ge=1, le=2_147_483_647)
+
+
+class StoredWorkbookRow(StoredWorkbookVersion):
+    row_number: int = Field(ge=2, le=1_048_576)
+    reason: str = Field(min_length=1, max_length=1000)
+
+
+class WorkbookLookup(Arguments):
+    book_id: UUID | None = None
+    offset: int = Field(default=0, ge=0, le=1_000_000)
+
+
+class WorkbookOrderRows(StoredWorkbookVersion):
+    offset: int = Field(default=0, ge=0, le=1_000_000)
+
+
+class WorkbookUpload(Arguments):
+    operation: Literal['upload']
+    attachment_id: UUID
+
+
+class WorkbookOpenCatalog(Arguments):
+    operation: Literal['from_catalog']
+    catalog_id: UUID
+
+
+class WorkbookVersionFromFile(StoredWorkbookVersion):
+    operation: Literal['append_version']
+    attachment_id: UUID
+
+
+class WorkbookImportCatalog(StoredWorkbookVersion):
+    operation: Literal['prepare_catalog']
+
+
+class WorkbookWrite(Arguments):
+    command: WorkbookUpload | WorkbookOpenCatalog | WorkbookVersionFromFile | WorkbookImportCatalog = Field(discriminator='operation')
+
+
 RelativeDay = Literal['today', 'tomorrow', 'yesterday', 'day_after_tomorrow']
 DAY_SHIFTS = {'yesterday': -1, 'today': 0, 'tomorrow': 1, 'day_after_tomorrow': 2}
 
@@ -385,6 +430,19 @@ class ToolSession:
         self.definition = dict(COMMON) if engineer or principal.role == 'executor' else {}
         if permits(principal.role, 'order_table'):
             self.definition.update(WORKSHEET)
+        if 'workbooks_list' in self.registry:
+            self.definition.update({
+                'find_source_workbooks': (WorkbookLookup, 'Найти исходные XLSX или, с точным book_id, версии одной книги; только чтение.'),
+                'download_source_workbook': (StoredWorkbookVersion, 'Выдать защищённую ссылку на конкретную сохранённую версию XLSX.'),
+            })
+        if 'workbook_upload' in self.registry:
+            self.definition.update({
+                'propose_workbook_write': (WorkbookWrite, 'Только по явной просьбе подготовить карточку. upload — новый оригинал; from_catalog — открыть оригинал сохранённого каталога; append_version — новая версия из указанного личного XLSX текущего сообщения, version — последняя сохранённая версия; prepare_catalog — черновик каталога из указанной версии. Не изменяет наряды.'),
+                'find_workbook_issued_orders': (WorksheetSearch, 'Найти выпущенные наряды по номеру, работе или оборудованию для заготовки строки Excel.'),
+                'find_workbook_order_rows': (WorkbookOrderRows, 'Найти строки листа изменений в сохранённой версии и увидеть, к каким нарядам они относятся.'),
+                'preview_workbook_order': (StoredWorkbookRow, 'Проверить изменения указанной строки листа «Изменения нарядов» сохранённой версии. Не изменяет наряд.'),
+                'propose_workbook_order': (StoredWorkbookRow, 'Только по явной просьбе применить изменения к выпущенному наряду. Передайте точные книгу, версию, строку и основание. Создаёт карточку с проверенным diff, а не меняет данные.'),
+            })
         if not any(row['mime_type'] == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                    for row in files):
             self.definition.pop('read_workbook', None)
@@ -528,6 +586,65 @@ class ToolSession:
     async def order_table_export(self, args):
         result = await self.backend('order_table_export', query=args.model_dump(mode='json'))
         return Observation(result, resources=(result['resource'],), final_answer='XLSX сохранённых нарядов доступен по ссылке.')
+
+    async def find_source_workbooks(self, args):
+        if args.book_id:
+            return await self.backend('workbook_versions', path=dict(book_id=str(args.book_id)), query=dict(offset=args.offset))
+        return await self.backend('workbooks_list', query=dict(offset=args.offset))
+
+    async def download_source_workbook(self, args):
+        result = await self.backend('workbook_download', path=args.model_dump(mode='json'))
+        return Observation(result, resources=(result['resource'],), final_answer='Указанная версия XLSX доступна по ссылке.')
+
+    async def _propose_workbook(self, name, arguments, note):
+        if self.proposal:
+            raise HTTPException(409, 'В этом ответе уже подготовлена карточка. Другие изменения запросите отдельно.')
+        with self.app.state.factory() as session:
+            action = await service.propose(self.app, session, self.principal, self.thread, self.registry[name],
+                                           arguments, note, self.headers, self.turn_id)
+        self.proposal = action['action_id']
+        return Observation(dict(status='awaiting_confirmation', action_id=str(self.proposal)),
+                           final_answer='Подготовлена карточка. До её подтверждения данные не меняются.')
+
+    async def propose_workbook_write(self, args):
+        command = args.command
+        path, body = {}, {}
+        if isinstance(command, (WorkbookUpload, WorkbookVersionFromFile)):
+            file = self.files.get(command.attachment_id) or self.files.get(str(command.attachment_id))
+            if not file or file['mime_type'] != 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+                raise HTTPException(422, 'Приложите нужный файл XLSX к текущему сообщению.')
+            body = dict(file=str(command.attachment_id))
+        if isinstance(command, WorkbookUpload):
+            tool = 'workbook_upload'
+        elif isinstance(command, WorkbookOpenCatalog):
+            tool, path = 'workbook_from_catalog', dict(catalog_id=str(command.catalog_id))
+        elif isinstance(command, WorkbookVersionFromFile):
+            tool, path = 'workbook_version_from_file', dict(book_id=str(command.book_id))
+            body.update(expected_version=command.version, idempotency_key=str(uuid4()))
+        else:
+            tool, path = 'workbook_catalog', dict(book_id=str(command.book_id), version=command.version)
+        return await self._propose_workbook(tool, dict(path=path, body=body), 'Сверьте книгу, версию и приложенный файл.')
+
+    async def preview_workbook_order(self, args):
+        return await self.backend('workbook_order_preview',
+            path=args.model_dump(mode='json', include={'book_id', 'version'}),
+            body=args.model_dump(mode='json', include={'row_number', 'reason'}))
+
+    async def find_workbook_issued_orders(self, args):
+        return await self.backend('workbook_issued_orders', query=args.model_dump(mode='json'))
+
+    async def find_workbook_order_rows(self, args):
+        return await self.backend('workbook_order_rows', path=args.model_dump(mode='json', exclude={'offset'}),
+                                  query=dict(offset=args.offset))
+
+    async def propose_workbook_order(self, args):
+        preview = await self.preview_workbook_order(args)
+        if not preview['can_apply']:
+            return preview
+        return await self._propose_workbook('workbook_order_apply', dict(
+            path=args.model_dump(mode='json', include={'book_id', 'version'}),
+            body=dict(row_number=args.row_number, reason=args.reason, preview_digest=preview['preview_digest'],
+                      idempotency_key=str(uuid4()), confirm_assigned=preview['requires_assigned_confirmation'])), '')
 
     async def read_work_order(self, args):
         data = await self.backend('task_read', path=dict(task_id=args.task_id))

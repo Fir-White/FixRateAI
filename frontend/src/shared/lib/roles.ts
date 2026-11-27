@@ -26,6 +26,7 @@ const legacyPermissions = {
   edit_equipment: ["chief_engineer","admin"],
   edit_service: ["chief_engineer","admin"],
   prepare_catalog: ["chief_engineer","admin"],
+  edit_source_workbook: ["chief_engineer"],
   site_access: ["chief_engineer","admin"],
   approve_exception: ["chief_engineer"],
 } satisfies Record<string, Role[]>;

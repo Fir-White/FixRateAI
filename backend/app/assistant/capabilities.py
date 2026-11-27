@@ -4,6 +4,7 @@ from app.security.sessions import SITE_ACCESS_MANAGERS
 
 def extra_tools(T,P,ALL,PLAN,EDIT,OPERATE):
     READ=(*PLAN,'director');CHIEF=('chief_engineer',);CAT=('chief_engineer','admin');STAFF=(*OPERATE,'admin');WORKER=('executor',)
+    BOOK=P+'/workbooks';VERSIONS=BOOK+'/{book_id}/versions';VERSION=VERSIONS+'/{version}'
     return (
       T('source_xlsx_preview','Проверить согласованный исходный XLSX без записи','POST',P+'/source/xlsx/preview',CAT),
       T('source_xlsx_import','Атомарно импортировать согласованный исходный XLSX','POST',P+'/source/xlsx/import',CHIEF,'write'),
@@ -54,6 +55,18 @@ def extra_tools(T,P,ALL,PLAN,EDIT,OPERATE):
       T('catalog_import','Сохранить исходный каталог Excel','POST',P+'/catalog-imports',CAT,'write'),
       T('catalog_operation_source','Исходные ячейки операции','GET',P+'/catalog-imports/{identity}/operations/{row_number}',READ),
       T('catalog_source_file','Скачать сохранённый исходный Excel','GET',P+'/catalog-imports/{identity}/source',READ),
+      T('workbooks_list','Найти сохранённую исходную книгу Excel','GET',BOOK,('chief_engineer','engineer')),
+      T('workbook_versions','Получить историю версий исходной книги Excel','GET',VERSIONS,('chief_engineer','engineer')),
+      T('workbook_version','Проверить метаданные указанной версии книги','GET',VERSION,('chief_engineer','engineer')),
+      T('workbook_download','Скачать указанную версию книги Excel','GET',VERSION+'/xlsx',('chief_engineer','engineer')),
+      T('workbook_upload','Сохранить оригинал XLSX из личного вложения','POST',BOOK,CHIEF,'write'),
+      T('workbook_from_catalog','Сохранить исходный XLSX существующего каталога как редактируемую книгу','POST',BOOK+'/from-catalog/{catalog_id}',CHIEF,'write'),
+      T('workbook_version_from_file','Сохранить отредактированное личное XLSX-вложение как следующую версию книги','POST',VERSIONS+'/from-file',CHIEF,'write'),
+      T('workbook_catalog','Подготовить черновик каталога из указанной версии книги','POST',VERSION+'/catalog',CHIEF,'write'),
+      T('workbook_issued_orders','Найти выпущенные наряды для подготовки строк Excel','GET',BOOK+'/issued-orders',CHIEF),
+      T('workbook_order_rows','Найти строки правок нарядов в указанной сохранённой версии книги','GET',VERSION+'/order-changes',CHIEF),
+      T('workbook_order_preview','Проверить правки выпущенного наряда на указанной строке листа «Изменения нарядов»','POST',VERSION+'/order-changes/preview',CHIEF),
+      T('workbook_order_apply','Подтвердить и применить проверенные изменения выпущенного наряда из указанной версии книги','POST',VERSION+'/order-changes/apply',CHIEF,'write'),
       T('catalog_binding_options','Доступные привязки операций','GET',P+'/catalog-imports/{identity}/binding-options',READ),
       T('catalog_preparation','Готовность каталога к планированию','GET',P+'/catalog-imports/{identity}/preparation',READ),
       T('catalog_decision_read','Решение о норме и датах операции','GET',P+'/catalog-imports/{identity}/operations/{number}/decision',READ),
@@ -128,6 +141,7 @@ def excluded_routes():
         ('GET','/conversations/{identity}'),('DELETE','/conversations/{identity}'),('POST','/conversations/{identity}/messages'),('POST','/conversations/{identity}/turns/{turn_id}/stop'),
         ('POST','/conversations/{identity}/attachments'),('GET','/attachments/{identity}'),
         ('POST','/actions/{identity}/reject'),('POST','/actions/{identity}/confirm'),('POST','/mcp'))},
+      ('PATCH','/api/v1/assistant/conversations/{identity}'):'human chat workspace metadata; deliberately not callable as a model tool',
       ('GET','/api/health'):'service health',
       ('GET','/api/setup'):'installation infrastructure before the first authenticated user',
       ('POST','/api/setup'):'one-time installation infrastructure; requires OS-provisioned secret and has no authenticated model principal',
@@ -138,6 +152,9 @@ def excluded_routes():
       ('POST','/api/v1/maintenance/users/me/password'):'password changes explicitly excluded by owner',
       ('GET','/api/v1/maintenance/photos/{photo_id}/content'):'alias of photo_read',
       ('PATCH','/api/v1/maintenance/jobs/{job_id}'):'alias of job_transition',
+      **{(m,'/api/v1/maintenance/workbooks/{book_id}'+p):'interactive ONLYOFFICE iframe transport; use workbook_version_from_file for assistant writes' for m,p in (
+        ('POST','/editor-sessions'),('GET','/editor-sessions/{session_id}'),
+        ('POST','/editor-sessions/{session_id}/snapshot'),('POST','/versions'))},
       **{(m,p.replace('/maintenance/jobs','/maintenance_jobs')):'compatibility alias' for m,p in (
         ('GET','/api/v1/maintenance/jobs'),('POST','/api/v1/maintenance/jobs'),
         ('GET','/api/v1/maintenance/jobs/{job_id}'),('PATCH','/api/v1/maintenance/jobs/{job_id}'),

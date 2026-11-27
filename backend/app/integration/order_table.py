@@ -13,12 +13,15 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
 from app.db.session import service_transaction
+from app.schemas.draft_plans import DraftPolicy
 from app.schemas.maintenance import AssignmentCommand
+from app.scheduling.planning_policy import access_intervals
 from app.security.permissions import permits
 from .analyst import workbook
 from .assignment import _job, assignment_preview, local_time
 from .assignments import _lock, save_assignment
 from .calendar import checklist_for_rule
+from .draft_resources import ensure_equipment_free
 from .management import _edit
 from .planning import digest
 
@@ -75,8 +78,8 @@ def _guard(v):
         raise HTTPException(403, "Нет права работы с таблицей нарядов ТО")
 
 
-def _locked(order, has_report):
-    if order.operation_snapshot.get("catalog_publication_id"):
+def _locked(order, has_report, *, workbook=False):
+    if order.operation_snapshot.get("catalog_publication_id") and not workbook:
         return "Выпущенный план: изменение требует нового предложения на утверждение"
     if order.status not in ("draft", "assigned") or order.started_at or has_report:
         return "Работа уже начата, закрыта или имеет историю выполнения"
@@ -172,34 +175,81 @@ def _future_window(begin, minutes, earliest, deadline, now):
     return end
 
 
-def _existing(v, change, now, tz):
+def _issued_entry(v, order):
+    registered = v.session.execute(text("""
+        SELECT t.publication_id,p.input_snapshot->'policy' AS policy,p.input_snapshot#>>'{source,timezone}' AS timezone
+        FROM published_catalog_tasks t JOIN draft_publications d USING(site_id,publication_id)
+        JOIN draft_publication_proposals p USING(site_id,proposal_id)
+        WHERE t.site_id=:site AND t.work_order_id=:task AND p.state='published'
+    """), dict(site=v.principal.site_id, task=order.work_order_id)).mappings().first()
+    if not registered or str(registered["publication_id"]) != order.operation_snapshot.get("catalog_publication_id") or not order.schedule_entry_id:
+        raise HTTPException(409, "Наряд не найден в журнале выпущенного плана")
+    if registered["timezone"] != v.principal.timezone:
+        raise HTTPException(409, "Часовой пояс изменился после выпуска плана; требуется пересогласование")
+    return v.one("schedule_entries", schedule_entry_id=order.schedule_entry_id), registered["policy"]
+
+
+def _check_issued_window(v, order, entry, policy, begin, end, tz, now):
+    # Never move out of the approved period, nor reinterpret an ordered chain as independent work.
+    if begin.astimezone(tz).date() != entry.planned_date:
+        raise HTTPException(409, "Из книги можно перенести выпущенный наряд только внутри его календарного дня")
+    intervals = entry.rule_snapshot.get("occurrence", {}).get("allowed_intervals", [])
+    try:
+        in_scope = any(datetime.fromisoformat(slot["start_at"]) <= begin < end <= datetime.fromisoformat(slot["end_at"])
+                       for slot in intervals)
+    except (KeyError, TypeError, ValueError):
+        in_scope = False
+    if not in_scope:
+        raise HTTPException(409, "Новое окно выходит за пределы утверждённого интервала")
+    try:
+        access=access_intervals(DraftPolicy.model_validate(policy),entry.planned_date,entry.planned_date,tz,allow_legacy=True)
+        if access is None or not any(a <= begin < end <= b for a,b in access):
+            raise ValueError()
+    except ValueError:
+        raise HTTPException(409, "Новое время выходит за пределы подтверждённого доступа на объект") from None
+    if order.operation_snapshot.get("depends_on_task_ids") or v.session.scalar(text("""
+        SELECT EXISTS (SELECT 1 FROM work_orders
+          WHERE site_id=:site AND jsonb_exists(operation_snapshot->'depends_on_task_ids',:task))
+    """), dict(site=v.principal.site_id, task=str(order.work_order_id))):
+        raise HTTPException(409, "У наряда есть зависимые работы. Требуется отдельное перепланирование")
+    ensure_equipment_free(v, order, begin, end, now)
+
+
+def _existing(v, change, now, tz, *, workbook=False):
     order = v.task(change.task_id)
     if order.revision != change.expected_revision:
         raise HTTPException(409, "Наряд изменился. Обновите таблицу и повторите проверку")
-    if reason := _locked(order, bool(v.rows("work_reports", work_order_id=change.task_id))):
+    if reason := _locked(order, bool(v.rows("work_reports", work_order_id=change.task_id)), workbook=workbook):
         raise HTTPException(409, reason)
     if order.regulatory_deadline_at is None or order.regulatory_deadline_at <= now:
         raise HTTPException(409, "У наряда нет будущего подтверждённого срока")
+    issued, policy = _issued_entry(v, order) if workbook else (None, None)
+    if issued and issued.status != "planned":
+        raise HTTPException(409, "Календарное вхождение закрыто")
     data = dict(order=order, start=order.planned_start_at, end=order.planned_end_at, entry=None, selection=None)
     if change.planned_start is not None:
-        context = _job(v, order)
+        context = _job(v, order, workbook_move=workbook)
         if context["status"] != "ready":
             raise HTTPException(409, context["explanation"])
         begin = _moment(change.planned_start, tz)
         end = _future_window(begin, context["durationMinutes"], datetime.fromisoformat(context["earliestAt"]),
                              min(order.regulatory_deadline_at, datetime.fromisoformat(context["deadlineAt"])), now)
         if order.schedule_entry_id:
-            entry = v.one("schedule_entries", schedule_entry_id=order.schedule_entry_id)
+            entry = issued or v.one("schedule_entries", schedule_entry_id=order.schedule_entry_id)
             if entry.status != "planned":
                 raise HTTPException(409, "Календарное вхождение закрыто")
             target_day = begin.astimezone(tz).date()
             if target_day != entry.planned_date and v.rows("schedule_entries", schedule_plan_id=entry.schedule_plan_id,
                     binding_id=entry.binding_id, planned_date=target_day, sequence_no=entry.sequence_no):
                 raise HTTPException(409, "Календарное вхождение с тем же номером уже занимает этот день")
-            data["entry"] = entry
+            if not workbook or begin != order.planned_start_at or end != order.planned_end_at:
+                data["entry"] = entry
+            if workbook and data["entry"] is not None:
+                _check_issued_window(v, order, entry, policy, begin, end, tz, now)
         data.update(start=begin, end=end)
-    if order.status == "assigned":
-        if change.planned_start is None or {"planned_person_hours", "note"} & change.model_fields_set:
+    moving = data["start"] != order.planned_start_at or data["end"] != order.planned_end_at
+    if order.status == "assigned" and (not workbook or moving):
+        if change.planned_start is None or (not workbook and {"planned_person_hours", "note"} & change.model_fields_set):
             raise HTTPException(422, "Для назначенного наряда отдельно подтверждается только перенос времени")
         if data["start"] == order.planned_start_at:
             raise HTTPException(422, "Новое время совпадает с текущим")
@@ -211,8 +261,8 @@ def _existing(v, change, now, tz):
             raise HTTPException(409, "Состав назначения больше не подходит для переноса")
         crew = next(iter(crews))
         result = assignment_preview(v, order, datetime.fromisoformat(_local(data["start"], tz)),
-                                    datetime.fromisoformat(_local(data["end"], tz)), crew, ids,
-                                    individual_only=crew is None)
+                                     datetime.fromisoformat(_local(data["end"], tz)), crew, ids,
+                                     individual_only=crew is None, workbook_move=workbook)
         selected = result.get("command")
         if not selected or datetime.fromisoformat(selected["start_at"]) != data["start"] or datetime.fromisoformat(selected["end_at"]) != data["end"]:
             raise HTTPException(409, "Прежняя бригада недоступна в новом интервале: " + result["explanation"])
@@ -222,7 +272,7 @@ def _existing(v, change, now, tz):
         change.planned_start is None and not ({"planned_person_hours", "note"} & change.model_fields_set)
     ):
         raise HTTPException(422, "Укажите хотя бы одну правку")
-    elif any(row.status not in ("cancelled", "declined") for row in v.rows("work_assignments", work_order_id=change.task_id)):
+    elif order.status == "draft" and any(row.status not in ("cancelled", "declined") for row in v.rows("work_assignments", work_order_id=change.task_id)):
         raise HTTPException(409, "У черновика есть назначения, требуется сверка")
     snapshot = order.operation_snapshot
     entry = data["entry"] or (v.one("schedule_entries", schedule_entry_id=order.schedule_entry_id)
@@ -318,13 +368,14 @@ def _new(v, change, now, tz):
     return dict(binding=binding, snapshot=snapshot, start=begin, end=end, deadline=deadline), facts
 
 
-def _plan(v, request):
+def _plan(v, request, *, workbook_source=None):
     now = datetime.now(timezone.utc)
     tz = ZoneInfo(v.principal.timezone)
     seen, slots, operations, result = set(), set(), [], []
     for index, change in enumerate(request.changes):
         try:
-            data, facts = (_existing if isinstance(change, ExistingRow) else _new)(v, change, now, tz)
+            data, facts = (_existing(v, change, now, tz, workbook=workbook_source is not None)
+                           if isinstance(change, ExistingRow) else _new(v, change, now, tz))
             if facts["task_id"] in seen:
                 raise HTTPException(422, "Один наряд не должен встречаться в пакете дважды")
             seen.add(facts["task_id"])
@@ -345,7 +396,7 @@ def _plan(v, request):
         requires_assigned_confirmation=any(row["action"] == "reschedule" for row in result),
         preview_digest=None if blocked else digest(dict(site=v.principal.site_id, actor=v.principal.user_id,
             timezone=tz.key, reason=request.reason, changes=[c.model_dump(mode="json", exclude_unset=True) for c in request.changes],
-            results=result)))
+             results=result, **({"workbook": workbook_source} if workbook_source is not None else {}))))
 
 
 def _event(v, identity, action, reason, before, after):
@@ -354,7 +405,7 @@ def _event(v, identity, action, reason, before, after):
                after_snapshot=dict(after, reason=reason, actor_role=v.principal.role))
 
 
-def _materialize(v, data, facts, reason, tz):
+def _materialize(v, data, facts, reason, tz, *, workbook_source=None):
     identity = UUID(facts["task_id"])
     if facts["action"] == "create":
         binding = data["binding"]
@@ -372,25 +423,38 @@ def _materialize(v, data, facts, reason, tz):
         if data["selection"]:
             command, crew = data["selection"]
             command = AssignmentCommand.model_validate_json(json.dumps(dict(command, reason=reason)))
-            save_assignment(v, identity, command, crew, worksheet_move=True)
+            save_assignment(v, identity, command, crew, worksheet_move=True, workbook_move=workbook_source is not None)
         else:
+            if workbook_source is not None and data["entry"]:
+                assets={link.equipment_id for link in v.rows("work_order_equipment",work_order_id=identity)}
+                if assets:
+                    _lock(v, "equipment", equipment_id=assets)
+                ensure_equipment_free(v, order, data["start"], data["end"], datetime.now(timezone.utc))
             order.planned_start_at, order.planned_end_at = data["start"], data["end"]
+            order.revision += 1
+        if not data["selection"] or workbook_source is not None:
             order.operation_snapshot = dict(order.operation_snapshot, planned_person_hours=facts["planned_person_hours"],
                                             worksheet_note=facts["note"])
-            order.revision += 1
+        if workbook_source is not None and not data["selection"] and order.status == "assigned":
+            from .analyst import notify_event
+            notify_event(v, order, "order_updated", ("executor", "technician"))
         if entry := data["entry"]:
             if entry.revision != facts["entry_revision"] or entry.status != "planned":
                 raise HTTPException(409, "Календарное вхождение изменилось. Повторите проверку")
             entry.planned_date, entry.planned_at = data["start"].astimezone(tz).date(), data["start"]
             entry.revision += 1
     before = {k: value for k, value in facts.items() if k.startswith("before_")}
-    _event(v, identity, "worksheet_" + facts["action"], reason, before, dict(facts, revision=order.revision))
+    provenance = {"workbook": workbook_source} if workbook_source is not None else {}
+    _event(v, identity, ("workbook_" if provenance else "worksheet_") + facts["action"], reason,
+           before, dict(facts, revision=order.revision, **provenance))
     return dict(task_id=str(identity), revision=order.revision, action=facts["action"])
 
 
-def _apply(v, command):
-    request_hash = digest(command.model_dump(mode="json", exclude_unset=True))
-    key = uuid5(NAMESPACE_URL, f"fixrate:worksheet:{v.principal.site_id}:{v.principal.user_id}:{command.idempotency_key}")
+def _apply(v, command, *, workbook_source=None, workbook_request=None):
+    request_hash = digest(command.model_dump(mode="json", exclude_unset=True) if workbook_source is None
+                          else {"workbook": workbook_source, "request": workbook_request})
+    namespace = "worksheet" if workbook_source is None else "workbook"
+    key = uuid5(NAMESPACE_URL, f"fixrate:{namespace}:{v.principal.site_id}:{v.principal.user_id}:{command.idempotency_key}")
     # Lock in the same order as assignment writers (order before worker/membership).
     with service_transaction(v.session):
         v.session.execute(text("SELECT pg_advisory_xact_lock(hashtextextended(:key,0))"), {"key": str(key)})
@@ -426,17 +490,17 @@ def _apply(v, command):
             # Assigned orders take the schedule entry lock after worker locks in the existing service.
             if entries and not assigned:
                 _lock(v, "schedule_entries", schedule_entry_id=entries)
-            operations, plan = _plan(v, command)
+            operations, plan = _plan(v, command, workbook_source=workbook_source)
             if not plan["can_apply"] or plan["preview_digest"] != command.preview_digest:
                 raise HTTPException(409, "Предпросмотр устарел или содержит блокировки. Проверьте изменения снова")
             if plan["requires_assigned_confirmation"] != assigned or command.confirm_assigned != assigned:
                 raise HTTPException(409, "Назначенный наряд требует отдельного подтверждения переноса")
             tz = ZoneInfo(v.principal.timezone)
-            result = dict(replayed=False, items=[_materialize(v, data, row, command.reason, tz)
+            result = dict(replayed=False, items=[_materialize(v, data, row, command.reason, tz, workbook_source=workbook_source)
                           for data, row in zip(operations, plan["items"], strict=True)])
             v.repo.add("audit_events", audit_event_id=key, site_id=v.principal.site_id, actor_type="user",
                 actor_user_id=v.principal.user_id, entity_type="work_orders", entity_id=UUID(result["items"][0]["task_id"]),
-                action="worksheet_apply", after_snapshot=dict(request_hash=request_hash, response=result))
+                action=namespace+"_apply", after_snapshot=dict(request_hash=request_hash, response=result))
             return result
 
 

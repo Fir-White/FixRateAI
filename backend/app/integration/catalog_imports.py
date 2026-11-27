@@ -3,7 +3,7 @@ import hashlib
 import hmac
 import json
 from pathlib import PureWindowsPath
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import Depends, File, Form, HTTPException, Path, Query, Response, UploadFile
 from sqlalchemy import text
@@ -33,6 +33,26 @@ def inspect(content):
 
 def operation_summary(row):
     return {key:value for key,value in row.items() if key not in ('raw_cells','calendar_marks')}
+
+
+def persist_draft(v, filename, content, data):
+    """Persist a checked workbook within the caller's authorized write transaction."""
+    name=''.join(c for c in PureWindowsPath(filename or 'catalog.xlsx').name if ord(c)>=32)[:256] or 'catalog.xlsx'
+    params = dict(site=v.principal.site_id, actor=v.principal.user_id, name=name, sha=data['source_sha256'],
+                  parser=PARSER_VERSION, kind=data['source_kind'], file=content,
+                  summary=json.dumps(data['summary'],ensure_ascii=False), data=json.dumps(data,ensure_ascii=False))
+    identity = v.session.scalar(text('''INSERT INTO regulation_catalog_imports
+        (site_id,created_by,filename,source_sha256,parser_version,source_kind,source_file,summary,catalog_data)
+        VALUES (:site,:actor,:name,:sha,:parser,:kind,:file,CAST(:summary AS jsonb),CAST(:data AS jsonb))
+        ON CONFLICT (site_id,source_sha256,parser_version) DO NOTHING RETURNING import_id'''), params)
+    inserted = identity is not None
+    if inserted:
+        _audit(v,'regulation_catalog_imports',identity,'save_draft',dict(
+            sha256=data['source_sha256'],parser_version=PARSER_VERSION,operation_count=len(data['operations'])))
+    else:
+        identity=v.session.scalar(text('''SELECT import_id FROM regulation_catalog_imports
+            WHERE site_id=:site AND source_sha256=:sha AND parser_version=:parser'''),params)
+    return dict(import_id=identity,status='draft',already_saved=not inserted,summary=data['summary'],ready_for_real_plan=False)
 
 
 def header(v, identity):
@@ -69,24 +89,11 @@ def register_routes(app, views):
         if not hmac.compare_digest(preview_token,token(v,data)):
             raise HTTPException(409,'Файл или контекст изменился. Повторите предпросмотр каталога')
         with _edit(v,roles=('chief_engineer','admin'),exact_roles=True,permission='prepare_catalog'):
-            identity=uuid4()
-            name=''.join(c for c in PureWindowsPath(file.filename or 'catalog.xlsx').name if ord(c)>=32)[:256] or 'catalog.xlsx'
-            inserted=v.session.scalar(text('''INSERT INTO regulation_catalog_imports
-                (import_id,site_id,created_by,filename,source_sha256,parser_version,source_kind,source_file,summary,catalog_data)
-                VALUES (:id,:site,:actor,:name,:sha,:parser,:kind,:file,CAST(:summary AS jsonb),CAST(:data AS jsonb))
-                ON CONFLICT (site_id,source_sha256,parser_version) DO NOTHING RETURNING import_id'''),
-                dict(id=identity,site=v.principal.site_id,actor=v.principal.user_id,name=name,
-                     sha=data['source_sha256'],parser=PARSER_VERSION,kind=data['source_kind'],file=content,
-                     summary=json.dumps(data['summary'],ensure_ascii=False),data=json.dumps(data,ensure_ascii=False)))
-            if inserted:
-                _audit(v,'regulation_catalog_imports',identity,'save_draft',dict(sha256=data['source_sha256'],parser_version=PARSER_VERSION,operation_count=len(data['operations'])))
-            else:
-                identity=v.session.scalar(text('''SELECT import_id FROM regulation_catalog_imports
-                    WHERE site_id=:site AND source_sha256=:sha AND parser_version=:parser'''),
-                    dict(site=v.principal.site_id,sha=data['source_sha256'],parser=PARSER_VERSION))
-                response.status_code=200
+            result = persist_draft(v, file.filename, content, data)
+        if result['already_saved']:
+            response.status_code=200
         response.headers['Cache-Control']='private, no-store'
-        return dict(import_id=identity,status='draft',already_saved=not bool(inserted),summary=data['summary'],ready_for_real_plan=False)
+        return result
 
     @app.get(base, response_model=CatalogList)
     def list_imports(response:Response,offset:int=Query(0,ge=0,le=1000000),limit:int=Query(25,ge=1,le=25),v=Depends(views)):

@@ -139,6 +139,13 @@ def test_assignment_proposal_is_rechecked_by_real_preview_without_writing_assign
         with engine.connect() as c:before=c.scalar(text('SELECT count(*) FROM work_assignments WHERE work_order_id=:id'),dict(id=ASSIGNMENT_TASK))
         record=proposal(client,chat,'task_assign',dict(path=dict(task_id=ASSIGNMENT_TASK),body=command))
         assert record['status']=='proposed'
+        stored=client.get(B+f'/conversations/{chat}').json()['actions'][0]['before_snapshot']
+        names={worker['executorId']:worker['name'] for worker in preview['selectedWorkers']}
+        assert stored['assignment'] == dict(taskTitle=stored['preview']['task']['title'],
+            taskCode=stored['preview']['task']['code'], timezone=context['timezone'],
+            workers=[names[identity] for identity in command['executor_ids']], crewName=None)
+        from app.assistant.service import fingerprint
+        assert stored['sha256']==fingerprint(stored['preview'])
         bad=dict(command,executor_ids=[str(uuid4()),str(uuid4())])
         result=rpc(client,'tools/call',dict(name='task_assign',arguments=dict(conversation_id=chat,path=dict(task_id=ASSIGNMENT_TASK),body=bad))).json()['result']
         assert result['isError']

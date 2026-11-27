@@ -37,6 +37,17 @@ const review: PhotoReview = {
 };
 
 describe("photo assessment", () => {
+  it.each([
+    ["manual_review", "Нужна ручная проверка"],
+    ["rejected", "Фото не подходят"],
+  ] as const)("shows %s as photo evidence, not as a decision on the work", (classification, label) => {
+    render(<PhotoReviewCard review={{ ...review, classification }} formatDateTime={(value) => value} />);
+    const result = screen.getByRole("group", { name: "Оценка фотодоказательств" });
+    expect(result).toHaveTextContent(label);
+    expect(result).toHaveTextContent(classification);
+    expect(result).toHaveTextContent("Работу принимает инженер");
+    expect(screen.getByText(visual.summary, { exact: false })).toBeVisible();
+  });
   it("shows concise Russian observations and only one reminder without internal codes", () => {
     render(<PhotoReviewCard review={review} formatDateTime={(value) => value} />);
     expect(screen.getByText(/На показанном участке корпуса после работы отсутствует прежний налёт/)).toBeVisible();
@@ -67,13 +78,14 @@ describe("photo assessment", () => {
   it("never invents observations or leaks system error codes on unavailability", () => {
     render(
       <PhotoReviewCard
-        review={{ ...review, status: "unavailable", modelRef: null, errorCode: "AITUNNEL_AUTH_FAILED", items: [] }}
+        review={{ ...review, classification: "manual_review", status: "unavailable", modelRef: null, errorCode: "AITUNNEL_AUTH_FAILED", items: [] }}
         formatDateTime={(value) => value}
       />
     );
     expect(screen.getByText(/Анализ фотографий не настроен на сервере/)).toBeVisible();
     expect(screen.queryByText("AITUNNEL_AUTH_FAILED")).not.toBeInTheDocument();
     expect(screen.queryByText(visual.summary)).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Оценка фотодоказательств" })).not.toBeInTheDocument();
   });
 
   it("shows timeout message without leaking TIMEOUT error code", () => {

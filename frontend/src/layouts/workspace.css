@@ -46,6 +46,10 @@ body:has(.workspace-root) { font-family: "IBM Plex Sans", var(--font-sans); }
   --glow-level: var(--glow-lower);
   --glow-entry-level: .24;
 }
+/* The lower glow must not jump from the skeleton to the bottom of a long list. */
+.workspace-root:has(.ops-main [data-workspace-loading])::after {
+  visibility: hidden;
+}
 .workspace-root:has(.e3-workday-assistant, .assistant-workspace) {
   --glow-upper: .96;
   --glow-lower: .24;

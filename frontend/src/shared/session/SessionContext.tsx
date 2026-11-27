@@ -22,7 +22,8 @@ export function notifyOtherTabs() {
 
 function sameSession(a: SessionProfile | null, b: SessionProfile | null) {
   return a?.userId === b?.userId && a?.role === b?.role && a?.siteId === b?.siteId
-    && a?.permissionProfile === b?.permissionProfile;
+    && a?.permissionProfile === b?.permissionProfile
+    && a?.workbookEditorOrigin === b?.workbookEditorOrigin;
 }
 
 const DEMO_PROFILES: Record<Role, SessionProfile> = {

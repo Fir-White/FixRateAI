@@ -1,4 +1,4 @@
-import { lazy,Suspense,useDeferredValue, useRef, useState } from 'react';
+import { lazy,Suspense,useDeferredValue, useRef, useState, type ReactNode } from 'react';
 import { catalogImportsApi as api, type CatalogPreview, type CatalogSummary, type CatalogOperation, type CatalogIssue, type RawCatalogCell } from '@/shared/api/catalogImports';
 import { useApiQuery } from '@/shared/lib/useApiQuery';
 import { Button } from '@/shared/ui/Button';
@@ -25,7 +25,7 @@ export interface CatalogWorkspace {
   selectDraft:(record:DraftRecord|null)=>void;selectPlanView:(view:string)=>void;
   loadMonth?:string;selectLoadMonth?:(month:string)=>void;
 }
-export function CatalogImports({mayImport,mayConfirm=false,mayPlan=mayImport,siteName,timezone='UTC',workspace}:{mayImport:boolean;mayConfirm?:boolean;mayPlan?:boolean;siteName?:string;timezone?:string;workspace?:CatalogWorkspace}) {
+export function CatalogImports({mayImport,mayConfirm=false,mayPlan=mayImport,siteName,timezone='UTC',workspace,onOpenWorkbook,onWarmWorkbook,openWorkbookId,keptWorkbookId,primeWorkbook,renderWorkbookEditor}:{mayImport:boolean;mayConfirm?:boolean;mayPlan?:boolean;siteName?:string;timezone?:string;workspace?:CatalogWorkspace;onOpenWorkbook?:(id:string,opener:HTMLButtonElement)=>void;onWarmWorkbook?:()=>void;openWorkbookId?:string;keptWorkbookId?:string;primeWorkbook?:boolean;renderWorkbookEditor?:(id:string,filename:string)=>ReactNode}) {
   const [file,setFile]=useState<File|null>(null),[preview,setPreview]=useState<CatalogPreview|null>(null);
   const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
   const [localSelected,setLocalSelected]=useState(''),[refresh,setRefresh]=useState(0),[offset,setOffset]=useState(0),[uploadOpen,setUploadOpen]=useState(false);
@@ -36,6 +36,16 @@ export function CatalogImports({mayImport,mayConfirm=false,mayPlan=mayImport,sit
   const showFiles = !workspace || !selected;
   const showUpload = mayImport && (!workspace || (!selected && uploadOpen));
   const empty = list.status === 'success' && list.data.total === 0;
+  const [preferredWorkbook,setPreferredWorkbook]=useState<string>();
+  const rows=list.data?.items;
+  const editorId=keptWorkbookId??(primeWorkbook
+    ? rows?.find(item=>item.import_id===preferredWorkbook)?.import_id??rows?.[0]?.import_id
+    : undefined);
+  const warmWorkbook=(id:string)=>{
+    if (!onWarmWorkbook||keptWorkbookId) return;
+    setPreferredWorkbook(id);
+    onWarmWorkbook();
+  };
   return <div className="catalog-imports space-y-4">
     {siteName&&<p className="text-sm text-muted">Здание: {siteName}</p>}
     {workspace&&selected&&<Button variant="ghost" onClick={()=>setSelected('')}>← Все файлы и планы</Button>}
@@ -62,7 +72,16 @@ export function CatalogImports({mayImport,mayConfirm=false,mayPlan=mayImport,sit
       ? !showUpload && <EmptyState title="Файлов пока нет" description={mayImport
         ? 'Загрузите Excel с регламентами, чтобы проверить операции и подготовить план.'
         : 'Сохранённые файлы появятся после загрузки главным инженером.'}/>
-      : <><ul className={`space-y-2${workspace?' planning-catalog-list':''}`}>{list.data.items.map(item=><li key={item.import_id}><Button variant={selected===item.import_id?'primary':'secondary'} onClick={()=>setSelected(item.import_id)}><span>{item.filename} · {item.summary.operation_count} операций · Черновик<small className="block text-xs font-normal">Загружен: {dateTimeFormatter('ru-RU',{timeZone:timezone,dateStyle:'short',timeStyle:'medium'}).format(new Date(item.created_at))}</small></span></Button></li>)}</ul><Pager offset={offset} total={list.data.total} onChange={setOffset}/></>)}
+       : <><ul className={`space-y-2${workspace?' planning-catalog-list':''}`}>{list.data.items.map(item=><li key={item.import_id} className={onOpenWorkbook?'grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]':''}>
+         <Button variant={selected===item.import_id?'primary':'secondary'} disabled={!!openWorkbookId} aria-expanded={onOpenWorkbook?openWorkbookId===item.import_id:undefined}
+            onFocus={()=>warmWorkbook(item.import_id)} onPointerEnter={()=>warmWorkbook(item.import_id)}
+            onClick={event=>onOpenWorkbook?onOpenWorkbook(item.import_id,event.currentTarget):setSelected(item.import_id)}>
+           <span>{item.filename} · {item.summary.operation_count} операций · Черновик<small className="block text-xs font-normal">Загружен: {dateTimeFormatter('ru-RU',{timeZone:timezone,dateStyle:'short',timeStyle:'medium'}).format(new Date(item.created_at))}</small></span>
+           {onOpenWorkbook&&<span aria-hidden="true" className="ml-auto text-xs text-accent">Открыть Excel ↗</span>}
+         </Button>
+         {onOpenWorkbook&&<Button variant="ghost" disabled={!!openWorkbookId} onClick={()=>setSelected(item.import_id)}>Регламент и план</Button>}
+          {editorId===item.import_id&&<div hidden={openWorkbookId!==item.import_id} inert={openWorkbookId!==item.import_id} className="min-w-0 sm:col-span-2">{renderWorkbookEditor?.(item.import_id,item.filename)}</div>}
+        </li>)}</ul>{!openWorkbookId&&<Pager offset={offset} total={list.data.total} onChange={setOffset}/>}</>)}
     {selected&&<SavedCatalog key={selected} id={selected} mayEdit={mayImport} mayConfirm={mayConfirm} mayPlan={mayPlan} timezone={timezone} workspace={workspace}/>}
   </div>;
 }

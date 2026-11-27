@@ -34,7 +34,10 @@ for(const width of [1440,390]) {
     await page.getByRole('tab',{name:/Вода/}).click();
     const row=page.getByRole('row').filter({hasText:asset});
     await expect(row).toContainText('ТО3');await expect(row).toContainText('4 чел.-ч');
-    await row.getByRole('button',{name:'Детали и наработка',exact:true}).click();
+    await expect(row.getByRole('button',{name:'Детали и наработка',exact:true})).toHaveCount(0);
+    await expect(row.getByRole('link',{name:'Работы и регламенты',exact:true})).toBeVisible();
+    await row.getByRole('link',{name,exact:true}).click();
+    await page.getByRole('button',{name:'Детали',exact:true}).click();
     const panel=page.getByRole('region',{name:'Детали и наработка',exact:true});
     await panel.getByRole('button',{name:'Установить деталь',exact:true}).click();
     await panel.getByLabel('Позиция в оборудовании',{exact:true}).fill('bearing-1');
@@ -49,8 +52,7 @@ for(const width of [1440,390]) {
     await panel.getByLabel('Примечание к показанию',{exact:true}).fill('Ручная сверка журнала');
     await panel.getByRole('button',{name:'Сохранить показание',exact:true}).click();
     await expect(panel.getByText('75 ч',{exact:true})).toBeVisible();
-    await page.reload();await page.getByRole('tab',{name:/Вода/}).click();
-    await page.getByRole('row').filter({hasText:asset}).getByRole('button',{name:'Детали и наработка',exact:true}).click();
+    await page.reload();
     await expect(panel.getByText('75 ч',{exact:true})).toBeVisible();
     await panel.getByRole('button',{name:'Заменить деталь',exact:true}).click();
     await panel.getByLabel('Причина замены',{exact:true}).fill('Учебная замена');
@@ -58,6 +60,7 @@ for(const width of [1440,390]) {
     await panel.getByRole('button',{name:'Сохранить деталь',exact:true}).click();
     await expect(panel.getByRole('heading',{name:'Подшипник тестовый',exact:true})).toHaveCount(2);
     await expect(panel.getByText('75 ч',{exact:true})).toBeVisible();await expect(panel.getByText('0 ч',{exact:true})).toBeVisible();
+    await page.goto('/equipment');
     const downloadEvent=page.waitForEvent('download');await page.getByRole('button',{name:'Экспорт реестра',exact:true}).click();
     const download=await downloadEvent;expect(download.suggestedFilename()).toBe('fixrate-registry.xlsx');
     const exported=await readFile((await download.path())!);expect(exported.subarray(0,2).toString()).toBe('PK');

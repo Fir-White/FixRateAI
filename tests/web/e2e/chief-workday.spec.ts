@@ -168,7 +168,7 @@ test('chief composer keeps a long draft after failure and sends a quick action i
   expect((await form.boundingBox())!.height).toBe(height);
   await page.keyboard.press('Escape');
   await expect(trigger).toBeFocused();
-  await expect(page.getByRole('link', { name: 'Открыть ИИ-диалоги' })).toHaveAttribute('href', '/assistant');
+  await expect(page.getByRole('link', { name: 'ИИ-помощник' })).toHaveAttribute('href', '/assistant');
   await expect(page.getByRole('link', { name: 'Открыть диалоги', exact: true })).toHaveAttribute('href', '/assistant');
   await field.fill('Первая строка');
   await field.press('Shift+Enter');

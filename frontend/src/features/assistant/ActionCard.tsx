@@ -1,21 +1,37 @@
 import {memo,useState} from 'react';
 import {Link} from 'react-router-dom';
 import {assistantApi,type ChatAction,type ChatAttachment} from '@/shared/api/assistant';
+import {dateTimeFormatter} from '@/shared/lib/dateTimeFormatter';
 import {Button} from '@/shared/ui/Button';
 import {Callout} from '@/shared/ui/Callout';
+import {Icon} from '@/shared/ui/Icon';
 import {OrderTablePreview} from '@/shared/ui/OrderTablePreview';
 import type {WorksheetPreview} from '@/shared/api/orderTable';
 import {notifyOtherTabs} from '@/shared/session/SessionContext';
 import {attachmentUrl,ChatPhoto} from './ChatPhoto';
+import './action-card.css';
 const labels:Record<string,string>={role:'Роль',user_id:'Сотрудник',is_active:'Доступ активен',file:'Файл',photo:'Фотография',payload:'Показание и основание',email:'Новый email',site_id:'Здание',preview_token:'Контроль предпросмотра',name:'Название',asset_code:'Инвентарный код',location:'Расположение',status:'Состояние',reason:'Причина',title:'Название плана',expected_revision:'Исходная версия',system_id:'Система',equipment_type_id:'Тип оборудования',equipment_id:'Оборудование',task_id:'Задание',identity:'План',serial_number:'Серийный номер',commissioned_on:'Дата ввода',start_at:'Начало',end_at:'Окончание',start_local:'Начало (время объекта)',end_local:'Окончание (время объекта)',executor_ids:'Исполнители',worker_ids:'Исполнители',comparability_confirmed:'Сопоставимость фото подтверждена',locked:'Закрепить',unlock:'Разрешить снятие закрепления',narrative:'Описание выполнения',verdict:'Решение',policy:'Условия расчёта',input:'Исходные данные',answers:'Ответы чек-листа',readings:'Показания',actual:'Фактическое выполнение',parent_equipment_id:'Родительское оборудование',properties:'Свойства',data_origin:'Происхождение',idempotency_key:'Ключ защиты от повтора'};
 const states:Record<ChatAction['status'],string>={proposed:'Нужно ваше подтверждение',rejected:'Отклонено',executing:'Выполняется',succeeded:'Выполнено',failed:'Действие отклонено системой',uncertain:'Результат требует проверки',stale:'Предложение устарело'};
 const executorActions = new Set(['task_start', 'report_save', 'report_submit', 'report_attach_and_submit']);
+const technicalFields = new Set(['expected_revision','preview_token','schema_version']);
 const values:Record<string,string>={director:'Руководитель',chief_engineer:'Главный инженер',admin:'Администратор',dispatcher:'Диспетчер',engineer:'Инженер',executor:'Исполнитель',before:'До работы',after:'После работы',active:'В работе',under_repair:'На ремонте',retired:'Выведено из эксплуатации',customer:'Данные заказчика',synthetic_demo:'Тестовые данные',accepted:'Принять',rejected:'Вернуть на доработку',draft:'Черновик',assigned:'Назначено',in_progress:'В работе',submitted:'На проверке',rework:'На доработке',rework_required:'На доработке',cancelled:'Отменено'};
 function formatWhen(raw:unknown):string|null{
   if(typeof raw!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(raw))return null;
   const ms=Date.parse(raw);
   if(Number.isNaN(ms))return null;
-  return new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(ms);
+  return dateTimeFormatter('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(ms);
+}
+function assignmentWindow(body:ChatAction['arguments']['body'],timezone:string|undefined){
+  const start=typeof body?.start_at==='string'?Date.parse(body.start_at):NaN;
+  const end=typeof body?.end_at==='string'?Date.parse(body.end_at):NaN;
+  if(!timezone||!Number.isFinite(start)||!Number.isFinite(end))return null;
+  try{
+    const date=dateTimeFormatter('ru-RU',{day:'numeric',month:'long',year:'numeric',timeZone:timezone});
+    const clock=dateTimeFormatter('ru-RU',{hour:'2-digit',minute:'2-digit',timeZone:timezone});
+    const first=date.format(start),last=date.format(end);
+    return first===last?`${first} · ${clock.format(start)}–${clock.format(end)}`:
+      `${first}, ${clock.format(start)} — ${last}, ${clock.format(end)}`;
+  }catch{return null;}
 }
 function value(v:unknown){return v===null?'Не задано':typeof v==='boolean'?v?'Да':'Нет':typeof v==='object'?JSON.stringify(v,null,2):formatWhen(v)??values[String(v)]??String(v);}
 function resultSummaryRows(data:unknown):Array<[string,string]>{
@@ -64,7 +80,7 @@ function protectedResource(data:unknown):{url:string;title:string}|null{
   }catch{return null;}
   return {url,title:typeof title==='string'&&title.trim()?title.trim().slice(0,200):'Открыть защищённый просмотр'};
 }
-export const ActionCard=memo(function ActionCard({action:original,title,onChanged,attachments=[]}:{action:ChatAction;title:string;onChanged:()=>void;attachments?:ChatAttachment[]}){
+export const ActionCard=memo(function ActionCard({action:original,title,onChanged,attachments=[],timezone}:{action:ChatAction;title:string;onChanged:()=>void;attachments?:ChatAttachment[];timezone?:string}){
   const [resolved,setResolved]=useState<ChatAction|null>(null);
   const phase=(status:ChatAction['status'])=>status==='proposed'?0:status==='executing'?1:2;
   const action=resolved?.action_id===original.action_id&&phase(resolved.status)>phase(original.status)?resolved:original;
@@ -80,9 +96,14 @@ export const ActionCard=memo(function ActionCard({action:original,title,onChange
   const [consent,setConsent]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
   const expired=Date.parse(action.expires_at)<Date.now();
   const before=action.before_snapshot?.preview;
-  const worksheet=action.tool_name==='order_table_apply'?before as WorksheetPreview|undefined:null;
+  const isAssignment=action.tool_name==='task_assign';
+  const assignment=isAssignment?action.before_snapshot?.assignment:undefined;
+  const assignmentBody=isAssignment?action.arguments.body:undefined;
+  const assignmentTime=isAssignment?assignmentWindow(assignmentBody,assignment?.timezone??timezone):null;
+  const assignmentReason=typeof assignmentBody?.reason==='string'?assignmentBody.reason:null;
+  const worksheet=['order_table_apply','workbook_order_apply'].includes(action.tool_name)?before as WorksheetPreview|undefined:null;
   const move=worksheet?.requires_assigned_confirmation===true;
-  const fields=Object.entries({...action.arguments.path,...action.arguments.query,...action.arguments.body}).filter(([k,v])=>!action.secret_fields?.includes(k)&&k!=='idempotency_key'&&
+  const fields=isAssignment?[]:Object.entries({...action.arguments.path,...action.arguments.query,...action.arguments.body}).filter(([k,v])=>!action.secret_fields?.includes(k)&&k!=='idempotency_key'&&!technicalFields.has(k)&&
     !(executorActions.has(action.tool_name)&&['task_id','expected_revision'].includes(k))&&
     !(worksheet&&['changes','preview_digest','confirm_assigned'].includes(k))&&
     !(reportPhotos&&['execution_id','photos'].includes(k))&&v!==null&&v!==undefined&&!(typeof v==='object'&&Object.keys(v).length===0));
@@ -97,34 +118,68 @@ export const ActionCard=memo(function ActionCard({action:original,title,onChange
     verification.status!=='confirmed'?'Действие завершилось. Результат требует проверки':
       reportPhotos&&resultData?.submission==='draft_incomplete'?'Отчёт не отправлен':
       reportPhotos&&resultData?.submission==='submitted'?'Отчёт на проверке':'Выполнено и проверено':
-    states[action.status];
-  return <section className="min-w-0 space-y-4 rounded-2xl border border-accent/30 bg-surface p-4 sm:p-5" aria-label={`Предложение: ${title}`}>
-    <div className="flex flex-wrap items-start justify-between gap-2"><h3 className="font-semibold">{title}</h3><span role="status" className="text-xs text-muted">{stateLabel}</span></div>
+    action.status==='proposed'&&expired?'Срок подтверждения истёк':states[action.status];
+  const tone=action.status==='failed'?'danger':action.status==='stale'||action.status==='uncertain'||action.status==='proposed'&&expired||
+    action.status==='succeeded'&&verification&&verification.status!=='confirmed'?'warning':
+    action.status==='succeeded'?'success':action.status==='proposed'||action.status==='executing'?'accent':'muted';
+  const detailsPresent=Object.keys(action.arguments).length>0||!worksheet&&before!=null||action.result?.data!==undefined||assignment&&action.explanation;
+  return <section className="assistant-action-card" data-wide={worksheet?true:undefined} aria-label={`Предложение: ${title}`}>
+    <header className="assistant-action-header">
+      <div className="assistant-action-heading"><span className="assistant-action-icon"><Icon name={isAssignment?'workforce':'tasks'} size={19}/></span><h3>{title}</h3></div>
+      <span role="status" className="assistant-action-status" data-tone={tone}>{stateLabel}</span>
+    </header>
+    <div className="assistant-action-body">
     {verification&&<p className="text-sm whitespace-pre-wrap">{verification.summary}</p>}
-    {reportPhotos&&action.status==='succeeded'?
+    {assignment?<div className="assistant-action-task">
+      <span className="assistant-action-caption">Наряд</span>
+      <p className="assistant-action-title">{assignment.taskTitle}</p>
+      {assignment.taskCode&&<span className="assistant-action-code">{assignment.taskCode}</span>}
+    </div>:reportPhotos&&action.status==='succeeded'?
       <details className="text-sm"><summary className="cursor-pointer text-muted">Привязка снимков</summary><p className="mt-2 whitespace-pre-wrap">{action.explanation}</p></details>:
-      <p className="whitespace-pre-wrap text-sm">{action.explanation}</p>}
+      action.explanation&&<p className="whitespace-pre-wrap text-sm text-ink-soft">{action.explanation}</p>}
+    {isAssignment&&<div className="assistant-action-facts">
+      {assignment&&<div className="assistant-action-fact">
+        <span className="assistant-action-caption"><Icon name="user" size={16}/>Исполнители</span>
+        {assignment.crewName&&<span className="text-sm text-muted">{assignment.crewName}</span>}
+        <ul aria-label="Исполнители" role="list">{assignment.workers.map((name,index)=><li key={index}>{name}</li>)}</ul>
+      </div>}
+      <div className="assistant-action-fact">
+        <span className="assistant-action-caption"><Icon name="clock" size={16}/>{assignmentTime?'Время объекта':'Время из предложения'}</span>
+        <p>{assignmentTime??[assignmentBody?.start_at,assignmentBody?.end_at].filter(time=>typeof time==='string').join(' — ')}</p>
+      </div>
+    </div>}
+    {assignmentReason&&<p className="text-sm whitespace-pre-wrap text-ink-soft"><strong className="text-ink">Основание:</strong> {assignmentReason}</p>}
     {previewPhotos.length>0&&<div className="assistant-chat-resources" aria-label="Снимки в этом предложении">
       {previewPhotos.map(({id,title})=><ChatPhoto key={id} url={attachmentUrl(id)} title={title}/>)}
     </div>}
     {worksheet&&<OrderTablePreview items={worksheet.items}/>}
-    <div className="flex flex-wrap gap-3">
-      {typeof target==='string'&&<Link className="text-sm text-accent underline" to={`/equipment/${encodeURIComponent(target)}`}>Открыть оборудование</Link>}
-      {taskTarget&&<Link className="text-sm text-accent underline" to={`${executorActions.has(action.tool_name)?'/executor':''}/tasks/${encodeURIComponent(taskTarget)}`}>Открыть задание</Link>}
-    </div>
-    <dl className="space-y-2 text-sm">{fields.map(([key,v])=><div key={key} className="grid min-w-0 gap-1 border-t border-line pt-2 sm:grid-cols-[160px_minmax(0,1fr)]"><dt className="text-muted">{labels[key]??key}</dt><dd className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{attachments.find(a=>a.attachment_id===v)?.original_name??value(v)}</dd></div>)}</dl>
-    <details className="text-sm"><summary className="cursor-pointer text-muted">Все параметры команды</summary><pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs [overflow-wrap:anywhere]">{JSON.stringify(action.arguments,null,2)}</pre></details>
-    {!worksheet&&before!==null&&before!==undefined&&<details className="text-sm"><summary className="cursor-pointer text-muted">Данные до изменения</summary><pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs [overflow-wrap:anywhere]">{JSON.stringify(before,null,2)}</pre></details>}
-    {action.status==='proposed'&&<><p className="text-xs text-muted">Проверьте параметры. Подтверждение относится только к этому предложению; срок действия — 15 минут.</p>{expired?<Callout>Предложение истекло. Попросите подготовить новое.</Callout>:<fieldset disabled={busy} className="space-y-3">
-      {action.secret_fields?.map(field=><label key={field} className="block text-sm">{field==='current_password'?'Текущий пароль':field==='api_key'?'Ключ провайдера':field}<input type="password" autoComplete={field==='current_password'?'current-password':'off'} className="mt-2 block w-full rounded-lg border border-line bg-transparent p-2" value={secrets[field]??''} onChange={e=>setSecrets(v=>({...v,[field]:e.target.value}))}/><span className="mt-1 block text-xs text-muted">Ввод передаётся только при подтверждении, без записи в историю и передачи ИИ.</span></label>)}
-      {!reportPhotos&&<label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)} className="mt-1"/>{move?'Подтверждаю перенос прежней бригады в указанный интервал':'Я проверил параметры и подтверждаю это изменение'}</label>}
-      <div className="flex flex-wrap gap-2"><Button disabled={(!reportPhotos&&!consent)||action.secret_fields?.some(field=>!secrets[field])} onClick={()=>void run(true)}>{busy?'Выполнение…':move?'Подтвердить перенос':reportPhotos?'Подтвердить прикрепление и сдачу':'Подтвердить и выполнить'}</Button><Button variant="secondary" onClick={()=>void run(false)}>Отклонить</Button></div>
-    </fieldset>}</>}
+    {fields.length>0&&<dl className="assistant-action-fields">{fields.map(([key,v])=><div key={key}><dt>{labels[key]??key}</dt><dd>{attachments.find(a=>a.attachment_id===v)?.original_name??value(v)}</dd></div>)}</dl>}
+    {(typeof target==='string'||taskTarget)&&<div className="assistant-action-links">
+      {typeof target==='string'&&<Link to={`/equipment/${encodeURIComponent(target)}`}>Открыть оборудование</Link>}
+      {taskTarget&&<Link to={`${executorActions.has(action.tool_name)?'/executor':''}/tasks/${encodeURIComponent(taskTarget)}`}>Открыть задание</Link>}
+    </div>}
     {action.status==='uncertain'&&<Callout tone="warning">Ответ после выполнения потерян. Проверьте состояние в системе перед новой командой. Повторное подтверждение не запустит действие ещё раз.</Callout>}
     {action.result?.message&&<p className="text-sm whitespace-pre-wrap">{action.result.message}</p>}
     {resource&&<a className="assistant-resource" href={resource.url} target="_blank" rel="noopener noreferrer">{resource.title}<span className="block text-xs text-muted">Защищённый просмотр · доступ проверяется при открытии</span></a>}
     {summaryRows.length>0&&<dl className="space-y-2 rounded-xl border border-line/70 bg-surface-elevated/40 p-3 text-sm">{summaryRows.map(([k,v])=><div key={k} className="grid min-w-0 gap-1 sm:grid-cols-[160px_minmax(0,1fr)]"><dt className="text-muted">{k}</dt><dd className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{v}</dd></div>)}</dl>}
-    {action.result?.data!==undefined&&<details className="text-sm"><summary className="cursor-pointer text-muted">Результат действия</summary><pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words text-xs [overflow-wrap:anywhere]">{JSON.stringify(action.result.data,null,2)}</pre></details>}
-    {error&&<div role="alert"><Callout tone="danger">{error}</Callout></div>}
+    {detailsPresent&&<details className="assistant-action-details">
+      <summary>Технические детали</summary>
+      <div>
+        {Object.keys(action.arguments).length>0&&<><h4>Все параметры команды</h4><pre>{JSON.stringify(action.arguments,null,2)}</pre></>}
+        {!worksheet&&before!=null&&<><h4>Данные до изменения</h4><pre>{JSON.stringify(before,null,2)}</pre></>}
+        {assignment&&action.explanation&&<><h4>Текст предложения</h4><p className="whitespace-pre-wrap">{action.explanation}</p></>}
+        {action.result?.data!==undefined&&<><h4>Результат действия</h4><pre>{JSON.stringify(action.result.data,null,2)}</pre></>}
+      </div>
+    </details>}
+    </div>
+    {(action.status==='proposed'||error)&&<div className="assistant-action-footer">
+      {error&&<div role="alert"><Callout tone="danger">{error}</Callout></div>}
+      {action.status==='proposed'&&(expired?<Callout>Предложение истекло. Попросите подготовить новое.</Callout>:<fieldset disabled={busy}>
+        {action.secret_fields?.map(field=><label key={field} className="block text-sm">{field==='current_password'?'Текущий пароль':field==='api_key'?'Ключ провайдера':field}<input type="password" autoComplete={field==='current_password'?'current-password':'off'} className="mt-2 block w-full rounded-lg border border-line bg-transparent p-2" value={secrets[field]??''} onChange={e=>setSecrets(v=>({...v,[field]:e.target.value}))}/><span className="mt-1 block text-xs text-muted">Ввод передаётся только при подтверждении, без записи в историю и передачи ИИ.</span></label>)}
+        {!reportPhotos&&<label className="assistant-action-consent"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/>{move?'Подтверждаю перенос прежней бригады в указанный интервал':'Я проверил параметры и подтверждаю это изменение'}</label>}
+        <p className="text-xs text-muted">На подтверждение этой карточки — 15 минут с момента создания.</p>
+        <div className="assistant-action-buttons"><Button disabled={(!reportPhotos&&!consent)||action.secret_fields?.some(field=>!secrets[field])} onClick={()=>void run(true)}>{busy?'Выполнение…':move?'Подтвердить перенос':reportPhotos?'Подтвердить прикрепление и сдачу':'Подтвердить и выполнить'}</Button><Button variant="ghost" onClick={()=>void run(false)}>Отклонить</Button></div>
+      </fieldset>)}
+    </div>}
   </section>;
 });

@@ -15,6 +15,17 @@ class ConversationCreate(Input):
     title:str=Field(default='Новый диалог',min_length=1,max_length=160)
     subject_task_id:UUID|None=None
 
+class ConversationUpdate(Input):
+    model_config=ConfigDict(extra='forbid',str_strip_whitespace=True)
+    title:str|None=Field(default=None,min_length=1,max_length=160)
+    pinned:bool|None=Field(default=None,strict=True)
+
+    @model_validator(mode='after')
+    def has_changes(self):
+        if not self.model_fields_set or any(getattr(self,key) is None for key in self.model_fields_set):
+            raise ValueError('Укажите название или признак закрепления')
+        return self
+
 class MessageCreate(Input):
     idempotency_key:UUID
     content:str=Field(default='',max_length=12000)

@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { pageLoaders } from "./pageModules";
-import { lazyPage } from "./pageModule";
+import { lazyPage, pageModule } from "./pageModule";
 import { createRoutesFromElements, matchRoutes, Navigate, Route, useLocation, useRoutes } from "react-router-dom";
 import { RequireRole, RequireSession } from "@/app/guards";
 import { LoadingState } from "@/shared/ui/States";
@@ -34,7 +34,7 @@ const WorkforceSettingsPage = lazyPage(pageLoaders.WorkforceSettingsPage);
 const ProfilePage = lazyPage(pageLoaders.ProfilePage);
 const PersonalShiftsPage = lazyPage(pageLoaders.PersonalShiftsPage);
 
-const WorkspaceLayout = lazy(() => import("@/layouts/WorkspaceLayout").then(module => ({ default: module.WorkspaceLayout })));
+const WorkspaceLayout = lazyPage(pageModule(() => import("@/layouts/WorkspaceLayout").then(module => ({ default: module.WorkspaceLayout }))), "Загрузка рабочего пространства");
 const AuthLayout = lazy(() => import("@/pages/AuthLayout").then(module => ({ default: module.AuthLayout })));
 
 function WorkspaceAccess() {
@@ -45,9 +45,7 @@ function WorkspaceAccess() {
 
   return (
     <RequireRole roles={roles}>
-      <Suspense fallback={<LoadingState label="Загрузка рабочего пространства" />}>
-        <WorkspaceLayout />
-      </Suspense>
+      <WorkspaceLayout />
     </RequireRole>
   );
 }

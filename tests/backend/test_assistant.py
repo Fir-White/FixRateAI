@@ -63,6 +63,27 @@ def test_delete_conversation_removes_owned_files_and_blocks_executing_action(ass
     assert admin.get(B+'/conversations/'+chat).status_code==404 and not path.exists()
     assert admin.get(B+'/attachments/'+file_id).status_code==404
 
+def test_rename_and_pin_are_private_and_pinned_chats_precede_newer_chats(assistant_case):
+    engine,_,admin,_,_=assistant_case
+    old,new=thread(admin),thread(admin)
+    url=B+'/conversations/'+old
+    with engine.begin() as conn:
+        conn.execute(text("UPDATE assistant_conversations SET updated_at=now()-interval '1 day' WHERE conversation_id=:id"),dict(id=old))
+    assert admin.chief.patch(url,json={'pinned':True}).status_code==404
+    assert admin.patch(url,json={'title':'  '}).status_code==422
+    assert admin.patch(url,json={}).status_code==422
+    assert admin.patch(url,json={'pinned':None}).status_code==422
+    result=admin.patch(url,json={'title':'  Контроль приборов  ','pinned':True})
+    assert result.status_code==200
+    saved=result.json()
+    assert saved['title']=='Контроль приборов' and saved['pinned_at']
+    assert admin.patch(url,json={'pinned':True}).json()['pinned_at']==saved['pinned_at']
+    items=admin.get(B+'/conversations').json()['items']
+    assert [row['conversation_id'] for row in items[:2]]==[old,new]
+    assert admin.patch(url,json={'pinned':False}).json()['pinned_at'] is None
+    assert admin.get(url).json()['conversation']['title']=='Контроль приборов'
+    assert admin.get(B+'/conversations').json()['items'][0]['conversation_id']==new
+
 @pytest.mark.parametrize('question',['ГОТОВ!','Да','Согласна.','Подтверждаю','назначай его'])
 def test_short_followup_keeps_conversation_context(question):
     from app.assistant.service import needs_history

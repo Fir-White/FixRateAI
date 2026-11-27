@@ -9,6 +9,11 @@ import { EmptyState } from "@/shared/ui/States";
 import { ReviewStatusBadge } from "@/shared/ui/StatusBadge";
 
 const LEGACY_CLIP_RE = /(?:clip|demo-clean-pairs)/i;
+const EVIDENCE_CLASS = {
+  approved: { label: "Фото подходят", tone: "success" },
+  manual_review: { label: "Нужна ручная проверка", tone: "warning" },
+  rejected: { label: "Фото не подходят", tone: "danger" },
+} as const;
 
 export function AnalysisTimerBadge({ active }: { active: boolean }) {
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -115,6 +120,8 @@ export function PhotoReviewCard({
   const durationLabel = measuredMs !== null && measuredMs > 0 ? formatDurationMs(measuredMs) : null;
   const timeText = durationLabel ? `Время анализа: ${durationLabel}` : null;
   const failed = review.status === "failed" || review.status === "unavailable";
+  const classification = !failed && !legacyClip ? review.classification : undefined;
+  const evidence = classification ? EVIDENCE_CLASS[classification] : undefined;
 
   return (
     <Card>
@@ -127,6 +134,13 @@ export function PhotoReviewCard({
       />
       <CardBody>
         <div className="space-y-3">
+          {evidence && <div role="group" aria-label="Оценка фотодоказательств" className="rounded-lg border border-line bg-surface-raised p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone={evidence.tone}>{evidence.label}</Badge>
+              <code className="text-xs text-muted">{classification}</code>
+            </div>
+            <p className="mt-1 text-xs text-muted">Это оценка фотографий. Работу принимает инженер.</p>
+          </div>}
           {failed ? (
             <p className="text-sm text-ink-soft">{userSafeErrorMessage(review.errorCode)}</p>
           ) : (
