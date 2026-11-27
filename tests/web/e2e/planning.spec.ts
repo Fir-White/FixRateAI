@@ -43,6 +43,6 @@ test("calendar → two forecasts → single task → confirmed crew → persiste
   await page.goto(`/comparisons/${row.comparison.runId}`);
   await page.locator(".forecast-snapshot summary").click();
   await expect(page.getByText(row.comparison.snapshotHash,{exact:true})).toBeVisible();
-  await expect(page.getByText("Решение оркестратора",{exact:true})).toBeVisible();
+  await expect(page.getByText("Обоснование решения",{exact:true})).toBeVisible();
   expect(errors).toEqual([]);
 });

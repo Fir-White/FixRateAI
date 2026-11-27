@@ -6,6 +6,7 @@ import { request,DEMO_MODE } from "@/shared/api/request";
 import { managementApi } from "@/shared/api/management";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
 import { useSession } from "@/shared/session/SessionContext";
+import { hasPermission } from "@/shared/lib/roles";
 import { Button } from "@/shared/ui/Button";
 import { Icon } from "@/shared/ui/Icon";
 import { Card } from "@/shared/ui/Card";
@@ -73,7 +74,7 @@ export function ActsPanel({task,execution,editable,onSaved,disabled=false,onBusy
 export function ChiefActions({task,onSaved}:{task:MaintenanceTask;onSaved:()=>void}){
  const {profile}=useSession();const [reason,setReason]=useState("");const [until,setUntil]=useState("");const [notice,setNotice]=useState("");const [busy,setBusy]=useState(false);
  const openLate=task.isOverdue&&["draft","assigned","in_progress","rework_required"].includes(task.state);
- if(DEMO_MODE||profile?.role!=="chief_engineer"||(!openLate&&!["accepted","submitted"].includes(task.state)))return null;
+  if(DEMO_MODE||!hasPermission(profile,"approve_exception")||(!openLate&&!["accepted","submitted"].includes(task.state)))return null;
  return <details className="fr-rule-section"><summary>Исключения и решения главного инженера</summary><Card className="space-y-3 p-5"><h2>Решение главного инженера</h2><label>Причина и основание<Textarea value={reason} onChange={e=>setReason(e.target.value)}/></label>{openLate&&<><label>Разрешить выполнение до (время устройства)<Input type="datetime-local" value={until} onChange={e=>setUntil(e.target.value)}/></label><p>Обязательный срок и нарушение SLA сохраняются. Назначение бригады и поздняя приёмка проверяются отдельно.</p></>}<Button disabled={busy||!reason.trim()||(openLate&&!until)} onClick={async()=>{setBusy(true);try{await post(`/tasks/${task.id}/${openLate?"late-execution":task.state==="accepted"?"reopen":"late-authorization"}`,{expected_revision:task.revision,reason,...(openLate?{until:new Date(until).toISOString()}:{})});onSaved();}catch(e){setNotice(e instanceof Error?e.message:"Ошибка");}finally{setBusy(false);}}}>{openLate?"Разрешить выполнение с сохранением просрочки":task.state==="accepted"?"Открыть новую попытку с сохранением истории":"Разрешить позднюю приёмку"}</Button>{notice&&<p role="alert">{notice}</p>}</Card></details>;
 }
 
@@ -82,7 +83,7 @@ export { PerformanceOverview } from "./PerformanceOverview";
 
 export function PlanApproval({year,month,onSaved}:{year:number;month:number;onSaved:()=>void}){
  const {profile}=useSession();
- return profile?.role==="chief_engineer"?<DraftPlanApproval year={year} month={month} onSaved={onSaved}/>:null;
+  return hasPermission(profile,"approve_exception")?<DraftPlanApproval year={year} month={month} onSaved={onSaved}/>:null;
 }
 
 function DraftPlanApproval({year,month,onSaved}:{year:number;month:number;onSaved:()=>void}){
@@ -121,8 +122,9 @@ export function ScheduleMatrix({year,month}:{year:number;month:number}){
 export function ForecastConfirmation({run}:{run:import("@/shared/types/domain").ComparisonRun}){
  const {profile}=useSession();const [day,setDay]=useState(run.decision.selectedDate??run.mandatoryDueDate??"");const [reason,setReason]=useState("");const [notice,setNotice]=useState("");const [busy,setBusy]=useState(false);
  if(DEMO_MODE||!["chief_engineer","engineer","dispatcher"].includes(profile?.role??""))return null;
- const early=!!run.mandatoryDueDate&&day<run.mandatoryDueDate;
- return <Card className="space-y-3 p-5"><h2>Подтверждение решения человеком</h2><p>Исходные рекомендации и решение оркестратора сохраняются. Досрочное ТО по некалиброванному AI разрешает главный инженер; оно не заменяет обязательную ежедневную работу будущего дня.</p><label>Выбранная дата<Input type="date" max={run.mandatoryDueDate??undefined} value={day} onChange={e=>setDay(e.target.value)}/></label><label>Основание выбора<Textarea value={reason} onChange={e=>setReason(e.target.value)}/></label>{early&&profile?.role!=="chief_engineer"&&<p>Запросите согласование главного инженера.</p>}<Button disabled={busy||!day||!reason.trim()||(early&&profile?.role!=="chief_engineer")} onClick={async()=>{setBusy(true);try{const result=await post<{taskId:string;extra_maintenance:boolean}>(`/comparisons/${run.runId}/confirm`,{selected_date:day,reason});setNotice(result.extra_maintenance?"Создано отдельное досрочное ТО. Исходное обязательство сохранено.":"Выбор сохранён; назначьте бригаду на выбранную дату.");}catch(e){setNotice(e instanceof Error?e.message:"Ошибка");}finally{setBusy(false);}}}>Подтвердить выбранную дату</Button>{notice&&<p role="status">{notice}</p>}</Card>;
+  const early=!!run.mandatoryDueDate&&day<run.mandatoryDueDate;
+  const restricted=early&&!hasPermission(profile,"approve_exception");
+  return <Card className="space-y-3 p-5"><h2>Подтверждение решения человеком</h2><p>Исходные рекомендации и решение оркестратора сохраняются. Досрочное ТО по некалиброванному AI требует отдельного согласования и не заменяет обязательную работу будущего дня.</p><label>Выбранная дата<Input type="date" max={run.mandatoryDueDate??undefined} value={day} onChange={e=>setDay(e.target.value)}/></label><label>Основание выбора<Textarea value={reason} onChange={e=>setReason(e.target.value)}/></label>{restricted&&<p>Эта дата требует отдельного полномочия на согласование.</p>}<Button disabled={busy||!day||!reason.trim()||restricted} onClick={async()=>{setBusy(true);try{const result=await post<{taskId:string;extra_maintenance:boolean}>(`/comparisons/${run.runId}/confirm`,{selected_date:day,reason});setNotice(result.extra_maintenance?"Создано отдельное досрочное ТО. Исходное обязательство сохранено.":"Выбор сохранён; назначьте бригаду на выбранную дату.");}catch(e){setNotice(e instanceof Error?e.message:"Ошибка");}finally{setBusy(false);}}}>Подтвердить выбранную дату</Button>{notice&&<p role="status">{notice}</p>}</Card>;
 }
 
 interface Incident {id:string;equipmentId:string;description:string;status:string;attachmentUrl:string|null;analysis?:{status:string;observed_problem?:string;explanation?:string;suggested_binding_id?:string|null;missing_data?:string[];error_code?:string};selection?:{binding_id:string;reason:string};}

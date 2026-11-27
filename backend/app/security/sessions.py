@@ -11,6 +11,7 @@ from uuid import UUID
 
 from fastapi import HTTPException, Request
 from sqlalchemy import text
+from .permissions import has_role, public_permissions
 
 SQL_ROLES = {role: role for role in ('director','chief_engineer','engineer','admin','dispatcher','executor')}
 SQL_ROLES['technician'] = 'executor'
@@ -27,14 +28,6 @@ def role_is_enabled(role: str) -> bool:
         if value.strip()
     }
     return not configured or role in configured
-
-
-def has_role(role, roles):
-    """Business hierarchy; technical administration is a separate capability."""
-    effective = {role}
-    if role == 'chief_engineer': effective.update(('engineer','dispatcher'))
-    if role == 'engineer': effective.add('dispatcher')
-    return bool(effective.intersection(roles))
 
 
 COOKIE = "fixrate_session"
@@ -75,7 +68,8 @@ class Principal:
 
     def profile(self):
         return dict(userId=str(self.user_id), siteId=str(self.site_id), role=self.role,
-                    name=self.name, email=self.email, siteName=self.site_name, timezone=self.timezone)
+                    name=self.name, email=self.email, siteName=self.site_name, timezone=self.timezone,
+                    **public_permissions(self.role))
 
 
 def authenticate(request: Request, session, *, lock: bool = False) -> Principal:

@@ -29,7 +29,7 @@ def register_routes(app,views):
     @app.post(BASE+'/{identity}/optimization-runs',response_model=OptimizationRun,status_code=202)
     def start(identity:UUID,command:StartOptimization,response:Response,request:Request,v=Depends(views)):
         response.headers['Cache-Control']='private, no-store'
-        with _edit(v,roles=EDIT_ROLES,exact_roles=True):
+        with _edit(v,roles=EDIT_ROLES,exact_roles=True,permission='edit_plan'):
             _lock_catalog(v)
             request_sha=digest(dict(draft_id=str(identity),actor=str(v.principal.user_id),command=command.model_dump(mode='json')))
             existing=v.session.execute(text('SELECT '+PUBLIC+',result,request_sha256 FROM draft_optimization_runs WHERE site_id=:site AND idempotency_key=:key'),dict(site=v.principal.site_id,key=command.idempotency_key)).mappings().first()
@@ -81,7 +81,7 @@ def register_routes(app,views):
 
     @app.post(path+'/cancel',response_model=OptimizationRun)
     def cancel(run_id:UUID,response:Response,v=Depends(views)):
-        with _edit(v,roles=EDIT_ROLES,exact_roles=True):
+        with _edit(v,roles=EDIT_ROLES,exact_roles=True,permission='edit_plan'):
             row=get_run(v,run_id,lock=True)
             state='cancelled' if row['state']=='queued' else 'cancel_requested' if row['state']=='running' else row['state']
             if state!=row['state']:
@@ -111,7 +111,7 @@ def register_routes(app,views):
     @app.post(path+'/apply',response_model=DraftRecord)
     def apply(run_id:UUID,command:ApplyOptimization,response:Response,v=Depends(views)):
         response.headers['Cache-Control']='private, no-store'
-        with _edit(v,roles=EDIT_ROLES,exact_roles=True):
+        with _edit(v,roles=EDIT_ROLES,exact_roles=True,permission='edit_plan'):
             _lock_catalog(v);run=get_run(v,run_id,full=True,lock=True)
             if run['applied_revision'] is not None:
                 if run['applied_kind']!=command.kind: raise HTTPException(409,'Этот расчёт уже применён с другим вариантом')

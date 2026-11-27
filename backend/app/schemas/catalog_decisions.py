@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator, field_valida
 import json
 from app.schemas.maintenance import CalendarPattern
 
-class DecisionInput(BaseModel):
+class DecisionPatch(BaseModel):
     model_config = ConfigDict(extra='forbid', str_strip_whitespace=True)
     interpretation: Literal['UNKNOWN','FIXED_EXECUTION','ALLOWED_WINDOW','CONTINUOUS_WORK','EQUIPMENT_BATCH'] = 'UNKNOWN'
     calendar_year: int | None = Field(default=None, ge=2000, le=2200)
@@ -36,6 +36,8 @@ class DecisionInput(BaseModel):
     def calendar_json(cls,value):
         return CalendarPattern.model_validate_json(json.dumps(value)) if isinstance(value,dict) else value
 
+
+class DecisionInput(DecisionPatch):
     @model_validator(mode='after')
     def coherent(self):
         if len(self.equipment_ids) != len(set(self.equipment_ids)):

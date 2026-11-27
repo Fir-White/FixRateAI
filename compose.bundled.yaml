@@ -1,7 +1,8 @@
 # Standalone runtime for a prebuilt image with RF model artifacts inside.
 services:
   db:
-    image: postgres:18
+    image: postgres:18@sha256:2ea8630df176ad090ec92136dee850397c5af8781e4bcf2e4162593691c61bbc
+    networks: [private]
     environment:
       POSTGRES_DB: fixrate
       POSTGRES_USER: fixrate
@@ -15,11 +16,15 @@ services:
       retries: 20
   app:
     image: ${FIXRATE_IMAGE:-fixrate-ai:bundled}
+    init: true
+    networks: [default, private]
     environment:
       DATABASE_URL: postgresql+psycopg://fixrate:${POSTGRES_PASSWORD:?Set a unique URL-safe database password}@db:5432/fixrate
       PHOTO_STORAGE_ROOT: /app/var/photos
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       FIXRATE_ACTIVE_ROLES: ${FIXRATE_ACTIVE_ROLES:-chief_engineer,executor,admin}
+      FIXRATE_PERMISSION_PROFILE: ${FIXRATE_PERMISSION_PROFILE:-legacy}
+      FIXRATE_ASSISTANT_AGENT_VERSION: ${FIXRATE_ASSISTANT_AGENT_VERSION:-v4}
       MAINTENANCE_SCHEDULER: ${MAINTENANCE_SCHEDULER:-true}
       PHOTO_REVIEW_TIMEOUT_SECONDS: ${PHOTO_REVIEW_TIMEOUT_SECONDS:-20}
       FORECAST_TIMEOUT_SECONDS: ${FORECAST_TIMEOUT_SECONDS:-2}
@@ -41,3 +46,6 @@ services:
 volumes:
   postgres_data:
   photos:
+networks:
+  default: {}
+  private: {internal: true}

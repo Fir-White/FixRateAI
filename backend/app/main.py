@@ -143,9 +143,9 @@ class Review(Revision):
     late_reason: str | None = Field(default=None,max_length=2000)
 
 
-def require_role(principal: Principal, *roles):
+def require_role(principal: Principal, *roles, permission=None):
     try:
-        if not has_role(principal.role, roles):
+        if not has_role(principal.role, roles, permission=permission):
             raise AuthorizationError()
     except AuthorizationError:
         raise HTTPException(403, "Действие недоступно для текущей роли") from None
@@ -168,7 +168,7 @@ class FrontendAssets(StaticFiles):
         return response
 
 
-def create_app(engine=None):
+def create_app(engine=None, *, frontend_dist: Path | None = None):
     runtime_settings = RuntimeSettings.from_environment()
     @asynccontextmanager
     async def lifespan(app):
@@ -308,10 +308,11 @@ def create_app(engine=None):
                       actor_user_id=view.principal.user_id, entity_type="work_orders",
                       entity_id=order.work_order_id, action=action,
                       after_snapshot={
-                          "status": order.status,
-                          "revision": order.revision,
-                          **(details or {}),
-                      })
+                           "status": order.status,
+                           "revision": order.revision,
+                           **(details or {}),
+                           "actor_role": view.principal.role,
+                       })
 
     @app.exception_handler(IntegrityError)
     async def integrity_error(request, exc):
@@ -460,7 +461,7 @@ def create_app(engine=None):
         elif command.status == "submitted":
             submit(job_id, revision, v, background_tasks)
         else:
-            require_role(v.principal, "chief_engineer")
+            require_role(v.principal, "chief_engineer", permission="review_report")
             report = max(v.rows("work_reports", work_order_id=job_id),
                          key=lambda item: item.revision_no, default=None)
             if report is None:
@@ -1016,10 +1017,11 @@ def create_app(engine=None):
 
     @app.post(prefix + "/tasks/{task_id}/review")
     def review(task_id: UUID, payload: Review, v=Depends(views)):
-        # The chief engineer is the accountable human decision-maker. Engineers
-        # may inspect evidence and verify acts, but cannot change the lifecycle.
-        require_role(v.principal, "chief_engineer")
+        require_role(v.principal, "chief_engineer", permission="review_report")
         order = v.task(task_id, lock=True)
+        from app.integration.management import _edit
+        with _edit(v, roles=("chief_engineer",), exact_roles=True, permission="review_report", _owns_transaction=False):
+            pass  # Keep the verified actor locks through this transaction's commit.
         check_revision(order, payload.expected_revision)
         reports = v.rows("work_reports", work_order_id=task_id)
         report = max(reports, key=lambda r: r.revision_no) if reports else None
@@ -1040,7 +1042,7 @@ def create_app(engine=None):
                                      "additional_evidence_refs": payload.additional_evidence_refs,
                                      "performed_at": report.execution_context.get("performed_at"),
                                      "actual_person_hours": report.execution_context.get("person_hours"),
-                                     "late_reason": payload.late_reason,
+                                      "late_reason": payload.late_reason, "actor_role": v.principal.role,
                                      "exception":order.exception_context})
         report.status = "reviewed"
         order.status = "completed" if payload.verdict == "accepted" else "rework"
@@ -1082,6 +1084,8 @@ def create_app(engine=None):
     register_optimization(app, views)
     from app.integration.publication import register_routes as register_publication
     register_publication(app, views)
+    from app.integration.order_table import register_routes as register_order_table
+    register_order_table(app, views)
     from app.integration.analyst import register_analyst_routes
     register_analyst_routes(app,views,photo_path,editable)
     from app.integration.incidents import register_incident_routes
@@ -1091,7 +1095,7 @@ def create_app(engine=None):
     from app.integration.ml import register_ml_routes
     register_ml_routes(app, views, photo_path, require_role, check_revision)
 
-    dist = ROOT / "frontend/dist"
+    dist = frontend_dist if frontend_dist is not None else ROOT / "frontend/dist"
     if dist.is_dir():
         app.mount("/assets", FrontendAssets(directory=dist / "assets"), name="assets")
 

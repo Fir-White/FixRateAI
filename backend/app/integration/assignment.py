@@ -129,6 +129,17 @@ def _job(v, order):
                 if day is not None:
                     ends.append(datetime.combine(day + timedelta(days=1), time.min, tz))
             result["deadlineAt"] = min(ends).isoformat() if ends else None
+        if binding_id := snapshot.get("table_binding_id"):
+            bindings = v.rows("rule_equipment", binding_id=UUID(binding_id))
+            binding = bindings[0] if bindings else None
+            if (not binding or not rule or binding.maintenance_rule_id != rule.maintenance_rule_id
+                    or binding.equipment_id != equipment.equipment_id):
+                return stop("MAINTENANCE_CONTEXT_CONFLICT", "Привязка разового наряда больше не соответствует регламенту и оборудованию.")
+            earliest = max(earliest, binding.valid_from)
+            if binding.valid_to is not None:
+                bound = datetime.combine(binding.valid_to + timedelta(days=1), time.min, tz)
+                deadline = result["deadlineAt"]
+                result["deadlineAt"] = min(datetime.fromisoformat(deadline), bound).isoformat() if deadline else bound.isoformat()
         result["earliestAt"] = datetime.combine(earliest, time.min, tz).isoformat()
     if result["deadlineAt"] is None:
         return stop("MAINTENANCE_WINDOW_UNCONFIRMED", "Не задан обязательный срок завершения работы.")

@@ -21,7 +21,8 @@ export function notifyOtherTabs() {
 }
 
 function sameSession(a: SessionProfile | null, b: SessionProfile | null) {
-  return a?.userId === b?.userId && a?.role === b?.role && a?.siteId === b?.siteId;
+  return a?.userId === b?.userId && a?.role === b?.role && a?.siteId === b?.siteId
+    && a?.permissionProfile === b?.permissionProfile;
 }
 
 const DEMO_PROFILES: Record<Role, SessionProfile> = {

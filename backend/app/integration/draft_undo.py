@@ -32,13 +32,13 @@ def state(v,identity,revision=None):
 def register_routes(app,views):
     @app.get(BASE+'/{identity}/undo',response_model=UndoDraftView)
     def preview(identity:UUID,response:Response,revision:int|None=Query(None,ge=1),v=Depends(views)):
-        _guard(v,*EDIT_ROLES);response.headers['Cache-Control']='private, no-store'
+        _guard(v,*EDIT_ROLES,permission='edit_plan');response.headers['Cache-Control']='private, no-store'
         return state(v,identity,revision)
 
     @app.post(BASE+'/{identity}/undo',response_model=DraftRecord)
     def undo(identity:UUID,command:UndoDraft,response:Response,v=Depends(views)):
         response.headers['Cache-Control']='private, no-store'
-        with _edit(v,roles=EDIT_ROLES,exact_roles=True):
+        with _edit(v,roles=EDIT_ROLES,exact_roles=True,permission='edit_plan'):
             _lock_catalog(v)
             sha=digest(dict(action='undo',actor=str(v.principal.user_id),draft_id=str(identity),command=command.model_dump(mode='json')))
             old=v.session.execute(text('SELECT draft_id,revision,request_sha256 FROM planning_draft_versions WHERE site_id=:site AND idempotency_key=:key'),dict(site=v.principal.site_id,key=command.idempotency_key)).mappings().first()

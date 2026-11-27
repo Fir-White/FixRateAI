@@ -111,14 +111,25 @@ function Chat({identity,capabilities,initialDraft,initialAttachments,onDraftChan
   const attempt=useRef({signature:'',key:crypto.randomUUID()}),last=useRef<ChatView|null>(null);
   const resumeAttempts=useRef(new Map<string,string>());
   const scroll=useRef<HTMLDivElement>(null),transcript=useRef<HTMLDivElement>(null),pinned=useRef(true),jumpVisible=useRef(false),openedOffset=useRef<number|null>(null),followNext=useRef(false);
+  const followedTop=useRef<number|null>(null);
   const query=useApiQuery(()=>api.read(identity,offset),[identity,offset,refresh],data=>data.turns.some(t=>t.status==='running')||data.actions.some(a=>a.status==='executing'),`assistant:thread:${identity}:${offset}`);
   const names=useMemo(()=>Object.fromEntries(capabilities.tools.assistant.map(t=>[t.name,t.title])),[capabilities.tools.assistant]);
   if(query.status==='success')last.current=query.data;
   const data=query.status==='success'?query.data:last.current;
   const updateJump=(el:HTMLDivElement)=>{const distance=el.scrollHeight-el.scrollTop-el.clientHeight,visible=distance>Math.max(240,Math.min(480,el.clientHeight*.7));if(jumpVisible.current!==visible){jumpVisible.current=visible;setShowJump(visible);}};
-  const toBottom=useCallback(()=>{const el=scroll.current;if(el){el.scrollTop=el.scrollHeight;pinned.current=true;jumpVisible.current=false;setShowJump(false);}},[]);
-  useLayoutEffect(()=>{const el=scroll.current;if(!el||!data)return;if(openedOffset.current!==offset){el.scrollTop=offset===0?el.scrollHeight:0;openedOffset.current=offset;pinned.current=offset===0;updateJump(el);}else if(pinned.current||followNext.current){toBottom();followNext.current=false;}else updateJump(el);},[data,offset]);
-  useEffect(()=>{const el=transcript.current;if(!el||typeof ResizeObserver==='undefined')return;const observer=new ResizeObserver(()=>{const region=scroll.current;if(!region)return;if(pinned.current)region.scrollTop=region.scrollHeight;else updateJump(region);});observer.observe(el);return()=>observer.disconnect();},[!!data]);
+  const toBottom=useCallback(()=>{const el=scroll.current;if(el){el.scrollTop=el.scrollHeight;followedTop.current=el.scrollTop;pinned.current=true;if(jumpVisible.current){jumpVisible.current=false;setShowJump(false);}}},[]);
+  const handleScroll=(el:HTMLDivElement)=>{
+    const top=el.scrollTop;
+    const nearEnd=el.scrollHeight-top-el.clientHeight<72;
+    // Layout can grow before a queued programmatic scroll event is delivered.
+    if(nearEnd||followedTop.current===null||Math.abs(top-followedTop.current)>1){
+      pinned.current=nearEnd;
+      followedTop.current=null;
+    }
+    updateJump(el);
+  };
+  useLayoutEffect(()=>{const el=scroll.current;if(!el||!data)return;if(openedOffset.current!==offset){openedOffset.current=offset;if(offset===0)toBottom();else{el.scrollTop=0;pinned.current=false;followedTop.current=null;updateJump(el);}}else if(pinned.current||followNext.current){toBottom();followNext.current=false;}else updateJump(el);},[data,offset,toBottom]);
+  useEffect(()=>{const el=transcript.current,region=scroll.current;if(!el||!region||typeof ResizeObserver==='undefined')return;const observer=new ResizeObserver(()=>{if(pinned.current)toBottom();else updateJump(region);});observer.observe(el);observer.observe(region);return()=>observer.disconnect();},[!!data,toBottom]);
   const running=data?.turns.some(t=>t.status==='running')??false;
   const refreshAll=useCallback(()=>{setRefresh(n=>n+1);onRefreshList();},[onRefreshList]);
   const resume=useCallback(async(turn:ChatTurn)=>{if(sending||running||uploading)return;const key=resumeAttempts.current.get(turn.turn_id)??crypto.randomUUID();resumeAttempts.current.set(turn.turn_id,key);setSending(true);setError('');try{await api.send(identity,'Продолжить сохранённое поручение.',key,[],modelPreference?.revision,turn.turn_id);resumeAttempts.current.delete(turn.turn_id);setOffset(0);followNext.current=true;refreshAll();}catch(e){setError(e instanceof Error?e.message:'Не удалось продолжить поручение');}finally{setSending(false);}},[sending,running,uploading,identity,modelPreference?.revision,refreshAll]);
@@ -182,7 +193,7 @@ function Chat({identity,capabilities,initialDraft,initialAttachments,onDraftChan
       setRefresh(n=>n+1);
     }finally{setSending(false);}
   };
-  return <ChatFileDrop className="assistant-chat" data-composer-entry={entryRect ? "" : undefined} aria-label="Диалог с ИИ" blocked={sending||running||uploading} onFiles={batch=>void upload(batch)}><div className="assistant-body"><div className="assistant-transcript" ref={scroll} role="region" aria-label="Сообщения" tabIndex={0} onScroll={()=>{const el=scroll.current;if(el){pinned.current=el.scrollHeight-el.scrollTop-el.clientHeight<72;updateJump(el);}}}><div className="assistant-transcript-inner" ref={transcript}>
+  return <ChatFileDrop className="assistant-chat" data-composer-entry={entryRect ? "" : undefined} aria-label="Диалог с ИИ" blocked={sending||running||uploading} onFiles={batch=>void upload(batch)}><div className="assistant-body"><div className="assistant-transcript" ref={scroll} role="region" aria-label="Сообщения" tabIndex={0} onScroll={event=>handleScroll(event.currentTarget)}><div className="assistant-transcript-inner" ref={transcript}>
     {data.total>25&&<div className="assistant-pagination"><Button size="sm" variant="ghost" disabled={offset+25>=data.total} onClick={()=>{last.current=null;setOffset(n=>n+25);}}>Ранее</Button><span>{offset+1}–{Math.min(offset+25,data.total)} из {data.total}</span><Button size="sm" variant="ghost" disabled={offset===0} onClick={()=>{last.current=null;setOffset(0);}}>К последним</Button></div>}
     {!data.turns.length&&<div className="assistant-thread-empty"><Icon name="assistant" size={28}/><h2>{data.conversation.subject_task_id?'Вопрос по выбранному наряду':'С чего начнём?'}</h2><p>Опишите задачу или прикрепите файл.</p></div>}
     <ChatMessages turns={data.turns} actions={data.actions} attachments={data.attachments} names={names}

@@ -8,6 +8,8 @@ export interface SessionProfile {
   name: string;
   email: string;
   role: Role;
+  permissionProfile?: "mvp";
+  permissions?: string[];
   siteName: string;
   timezone: string;
 }
@@ -70,7 +72,10 @@ export interface MaintenanceTask {
   state: TaskState;
   isOverdue: boolean;
   deadlineBreached: boolean;
+  lateAcceptanceBlocked?: boolean;
   mandatoryDueDate: string | null;
+  plannedPersonHours?: string | null;
+  planningNote?: string | null;
   sourceDate?:string|null;
   scheduledStart: string | null;
   scheduledEnd: string | null;

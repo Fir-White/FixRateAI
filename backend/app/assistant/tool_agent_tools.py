@@ -3,7 +3,7 @@ import re
 from datetime import date, datetime, time, timedelta
 from html import escape
 from typing import Annotated, Literal
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import httpx
 from fastapi import HTTPException
@@ -11,6 +11,9 @@ from pydantic import BaseModel, ConfigDict, Field, NaiveDatetime, ValidationErro
 from sqlalchemy import text
 
 from app.schemas.assistant import ReportAttachAndSubmit
+from app.schemas.catalog_decisions import DecisionPatch
+from app.integration.order_table import Preview as WorksheetPreview
+from app.security.permissions import has_role, permission_profile, permits
 from . import service
 from .attachments import MAX_FILE, jpeg_input, owned, content as attachment_content
 from .inventory_report import label
@@ -21,6 +24,29 @@ from .tools import available, invoke, validate_arguments
 
 class Arguments(BaseModel):
     model_config = ConfigDict(extra='forbid')
+
+
+class WorksheetSearch(Arguments):
+    q: str = Field(default='', max_length=120)
+    offset: int = Field(default=0, ge=0, le=1_000_000)
+
+
+class WorksheetMonth(Arguments):
+    month: str = Field(pattern=r'^20[0-9]{2}-(0[1-9]|1[0-2])$')
+    q: str = Field(default='', max_length=120)
+
+
+class WorksheetRows(WorksheetMonth):
+    offset: int = Field(default=0, ge=0, le=1_000_000)
+
+
+WORKSHEET = {
+    'order_table_read': (WorksheetRows, 'Прочитать оперативную таблицу нарядов ТО за указанный месяц объекта; offset — номер первой строки.'),
+    'order_table_bindings': (WorksheetSearch, 'Найти привязки действующих регламентов к оборудованию для нового разового наряда.'),
+    'order_table_preview': (WorksheetPreview, 'Показать правки и блокировки без записи и без карточки. Для назначенного наряда передайте одну правку начала. Время местное, без Z. Не угадывайте UUID, ревизию, дату, часы или примечание.'),
+    'propose_order_table_apply': (WorksheetPreview, 'Только по просьбе изменить наряды: проверить точные правки и подготовить карточку подтверждения. Не вызывает запись. Перенос назначенного наряда передавайте отдельно, с одним изменением планового начала.'),
+    'order_table_export': (WorksheetMonth, 'Сформировать ссылку на XLSX сохранённых нарядов за месяц. Не выгружает несохранённые изменения.'),
+}
 
 
 RelativeDay = Literal['today', 'tomorrow', 'yesterday', 'day_after_tomorrow']
@@ -99,6 +125,20 @@ class PhotoAgentObservation(BaseModel):
 class AcceptanceReadiness(WorkOrder):
     expected_revision: int = Field(ge=1)
     execution_id: UUID | None = None
+
+
+class ProposedReportReview(WorkOrder):
+    expected_revision: int = Field(ge=1)
+    execution_id: UUID
+    verdict: Literal['accepted', 'rejected']
+    reason: str = Field(min_length=1, max_length=10000, description='Явно указанное пользователем основание. Не домысливайте его.')
+
+
+class ProposedCatalogDraft(Arguments):
+    catalog_id: UUID
+    row_number: int = Field(ge=1, le=1048576)
+    reason: str = Field(min_length=1, max_length=2000)
+    decision: DecisionPatch = Field(description='Только явно запрошенные поля; остальные текущие значения сохраняются.')
 
 
 class Equipment(Arguments):
@@ -341,14 +381,27 @@ class ToolSession:
         if not self.report_files:
             self.report_files = {row['attachment_id']: row for row in earlier_photos}
         self.registry = available(app, principal.role, 'assistant')
-        self.definition = dict(COMMON) if principal.role in ('engineer', 'executor') else {}
+        engineer = has_role(principal.role, ('engineer',), exact=True)
+        self.definition = dict(COMMON) if engineer or principal.role == 'executor' else {}
+        if permits(principal.role, 'order_table'):
+            self.definition.update(WORKSHEET)
         if not any(row['mime_type'] == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                    for row in files):
             self.definition.pop('read_workbook', None)
-        if principal.role == 'engineer':
+        if engineer:
             self.definition.update(ENGINEER)
             if files:
                 self.definition.pop('propose_assignment')
+        if permission_profile() == 'mvp' and permits(principal.role, 'review_report'):
+            self.definition['propose_report_review'] = (ProposedReportReview,
+                'По явной просьбе инженера подготовить решение о приёмке или возврате текущего отчёта. '
+                'Сначала прочитайте наряд, попытку и ревизию. Не додумывайте основание или результат проверки. '
+                'Не согласует просрочку. Запись возможна только после клика человека.')
+        if permission_profile() == 'mvp' and permits(principal.role, 'prepare_catalog'):
+            self.definition['propose_catalog_draft'] = (ProposedCatalogDraft,
+                'Только по явной просьбе подготовить изменение черновика конкретной строки Excel. '
+                'Возьмите идентификатор каталога из ссылки /planning?catalog=… и точный номер исходной строки. '
+                'Не угадывайте идентификаторы и нормы. Не утверждает строку и не меняет план.')
         if principal.role == 'executor' and self.report_files:
             self.definition['propose_report_attach_and_submit'] = (ProposedReport,
                 'Подготовить одно подтверждение прикрепления явно отправленных фото и передачи отчёта при полном комплекте. '
@@ -441,6 +494,40 @@ class ToolSession:
         if 'planned_start_summary' in page:
             result['planned_start_summary'] = page['planned_start_summary']
         return result
+
+    async def order_table_read(self, args):
+        result = await self.backend('order_table_read', query=args.model_dump(mode='json'))
+        if len(service.dump(result)) > 10000:
+            result['items'] = [{**item, 'note': (item.get('note') or '')[:120]} for item in result['items']]
+        return result
+
+    async def order_table_bindings(self, args):
+        return await self.backend('order_table_bindings', query=args.model_dump(mode='json'))
+
+    async def order_table_preview(self, args):
+        return await self.backend('order_table_preview', body=args.model_dump(mode='json', exclude_unset=True))
+
+    async def propose_order_table_apply(self, args):
+        if self.proposal:
+            raise HTTPException(409, 'В этом ответе уже подготовлена карточка. Другие изменения запросите отдельно.')
+        preview = await self.order_table_preview(args)
+        if not preview['can_apply']:
+            return dict(ok=False, **preview)
+        tool = self.registry['order_table_apply']
+        arguments = dict(body={**args.model_dump(mode='json', exclude_unset=True),
+            'preview_digest': preview['preview_digest'], 'idempotency_key': str(uuid4()),
+            'confirm_assigned': preview['requires_assigned_confirmation']})
+        with self.app.state.factory() as session:
+            action = await service.propose(self.app, session, self.principal, self.thread, tool,
+                arguments, '', self.headers, self.turn_id)
+        self.proposal = action['action_id']
+        answer = 'Подготовлено отдельное подтверждение переноса. Наряд ещё не перенесён.' if preview['requires_assigned_confirmation'] else (
+            'Подготовлена карточка изменений таблицы ТО. Наряды ещё не изменены.')
+        return Observation(dict(status='awaiting_confirmation', action_id=str(self.proposal)), final_answer=answer)
+
+    async def order_table_export(self, args):
+        result = await self.backend('order_table_export', query=args.model_dump(mode='json'))
+        return Observation(result, resources=(result['resource'],), final_answer='XLSX сохранённых нарядов доступен по ссылке.')
 
     async def read_work_order(self, args):
         data = await self.backend('task_read', path=dict(task_id=args.task_id))
@@ -546,6 +633,61 @@ class ToolSession:
         self.scope['tasks'].add(str(args.task_id))
         return data
 
+    async def propose_report_review(self, args):
+        if self.proposal:
+            raise HTTPException(409, 'В этом ответе уже подготовлена карточка.')
+        if args.task_id not in self.read_tasks or not args.reason.strip():
+            raise HTTPException(422, 'Сначала прочитайте наряд и уточните основание решения.')
+        subject = self.thread.get('subject_task_id')
+        if subject and str(args.task_id) != str(subject):
+            raise HTTPException(409, 'Решение не относится к наряду текущего диалога.')
+        tool = self.registry.get('report_review')
+        if tool is None:
+            raise HTTPException(403, 'Приёмка недоступна для текущей роли.')
+        identity = dict(task_id=args.task_id)
+        data = await self.backend('task_read', path=identity)
+        task, report = data['task'], data.get('execution')
+        if not report or str(args.execution_id) != report['id'] or args.expected_revision != task['revision']:
+            raise HTTPException(409, 'Наряд или попытка изменились. Прочитайте актуальный отчёт.')
+        if 'review' not in data['allowedActions']:
+            raise HTTPException(403, 'Решение по этой попытке недоступно.')
+        if args.verdict == 'accepted':
+            readiness = await self.check_acceptance_readiness(AcceptanceReadiness(
+                task_id=args.task_id, expected_revision=args.expected_revision, execution_id=args.execution_id))
+            if not readiness['ready']:
+                return dict(ok=False, missing_materials=readiness['missing_materials'],
+                            acceptance_blocks=readiness['acceptance_blocks'])
+        arguments = dict(path=identity, body=args.model_dump(mode='json', exclude={'task_id'}))
+        with self.app.state.factory() as session:
+            action = await service.propose(self.app, session, self.principal, self.thread, tool,
+                arguments, f"{task['title']} · {task['code']}. Сверьте попытку, решение и основание.", self.headers, self.turn_id)
+        self.proposal = action['action_id']
+        return Observation(dict(status='awaiting_confirmation', action_id=str(self.proposal)),
+            final_answer='Решение подготовлено. Отчёт не изменён: проверьте материалы и подтвердите карточку вручную.')
+
+    async def propose_catalog_draft(self, args):
+        if self.proposal:
+            raise HTTPException(409, 'В этом ответе уже подготовлена карточка.')
+        tool = self.registry.get('catalog_decision')
+        if tool is None:
+            raise HTTPException(403, 'Подготовка строки каталога недоступна.')
+        patch = args.decision.model_dump(mode='json', exclude_unset=True)
+        if not patch or not args.reason.strip():
+            raise HTTPException(422, 'Укажите поля, которые нужно изменить, и причину.')
+        path = dict(identity=args.catalog_id, number=args.row_number)
+        current = await self.backend('catalog_decision_read', path=path)
+        if current['confirmed']:
+            raise HTTPException(403, 'Изменение подтверждённой строки требует отдельного согласования.')
+        body = dict(confirm=False, expected_revision=current['revision'], reason=args.reason,
+                    decision={**current['decision'], **patch})
+        with self.app.state.factory() as session:
+            action = await service.propose(self.app, session, self.principal, self.thread, tool,
+                dict(path=path,body=body), f'Строка {args.row_number}: сохранить только черновик.',
+                self.headers,self.turn_id)
+        self.proposal = action['action_id']
+        return Observation(dict(status='awaiting_confirmation', action_id=str(self.proposal)),
+            final_answer='Черновик подготовлен, но не сохранён. Проверьте и подтвердите карточку.')
+
     async def find_equipment(self, args):
         data = await self.backend('equipment_find', query={**args.model_dump(mode='json', exclude_none=True), 'limit': 8})
         self.scope['equipment'].update(str(row['equipment_id']) for row in data['items'])
@@ -554,7 +696,7 @@ class ToolSession:
     async def read_equipment(self, args):
         data = await self.backend('equipment_read', path=dict(equipment_id=args.equipment_id))
         self.scope['equipment'].add(str(args.equipment_id))
-        if self.principal.role == 'engineer':
+        if has_role(self.principal.role, ('engineer',), exact=True):
             data['latestAcceptedService'] = await self.read_equipment_service_history(args)
         return data
 

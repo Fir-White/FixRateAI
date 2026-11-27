@@ -88,7 +88,7 @@ jobs:
           docker build -f deploy/Dockerfile --target app --build-arg SOURCE_REVISION="$GITHUB_SHA" -t "fixrate-ci-app:$GITHUB_SHA" .
           docker build -f deploy/Dockerfile --target web --build-arg SOURCE_REVISION="$GITHUB_SHA" -t "fixrate-ci-web:$GITHUB_SHA" .
           docker pull "$(python -c 'import json;print(json.load(open("deploy/images.lock.json"))["postgres"])')"
-      - name: Real generated-installer, persistence, upgrade and restore acceptance
+      - name: Real Quick Start, installer, persistence, upgrade and restore acceptance
         run: python -m scripts.release_smoke --app-image "fixrate-ci-app:$GITHUB_SHA" --web-image "fixrate-ci-web:$GITHUB_SHA" --sha "$GITHUB_SHA" --output reports/release-smoke
       - name: Save the tested images, not a later rebuild
         run: |
@@ -124,10 +124,10 @@ jobs:
 
   publish:
     needs: [backend, frontend, build, windows-package]
-    if: github.repository == 'Fir-White/FixRateAI' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+    if: github.repository == 'Fir-White/FixRateAI' && github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/tags/v') && vars.FIXRATE_RELEASES_ENABLED == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    environment: ${{ startsWith(github.ref, 'refs/tags/') && 'release' || 'ci-images' }}
+    environment: release
     permissions:
       contents: write
       packages: write

@@ -104,7 +104,7 @@ function DecisionForm({id,row,record,mayEdit,mayConfirm,onSaved,reload,guided}:{
       {id:'rules',title:'Условия и допуски',content:()=> <>{controls(ruleFields)}<div className="journey-footer"><Button variant="secondary" onClick={()=>setStep('confirm')}> Далее: проверить и подтвердить →</Button></div></>},
       {id:'confirm',title:'Подтверждение',content:()=> <>{controls(confirmationFields)}</>},
     ]}/>:<fieldset disabled={!mayEdit||busy} className="min-w-0 space-y-4">{datesFields}{assetFields}{ruleFields}{confirmationFields}</fieldset>}
-    {mayEdit&&!mayConfirm&&<p className="text-sm text-muted">Подтверждение доступно главному инженеру.</p>}
+    {mayEdit&&!mayConfirm&&<p className="text-sm text-muted">Подтверждение требует отдельного полномочия.</p>}
     {error&&<div role="alert"><Callout tone="danger">{error}</Callout><p className="text-sm">Введённые значения остаются в форме. Загрузка актуальной версии заменит их серверными данными.</p><Button variant="secondary" onClick={reload}>Загрузить актуальную версию</Button></div>}
     {notice&&<p role="status">{notice}</p>}
     <Button variant="ghost" aria-expanded={history} onClick={()=>setHistory(value=>!value)}>История решений строки</Button>

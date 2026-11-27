@@ -211,7 +211,8 @@ class Views:
         # A calendar deadline_at is the exclusive end of the due day, often
         # midnight on the following date. Display the persisted normative day.
         entry = self.one("schedule_entries", schedule_entry_id=order.schedule_entry_id) if order.schedule_entry_id else None
-        due_date = entry.regulatory_deadline_on if entry else (deadline.astimezone(tz).date() if deadline else None)
+        due_date = entry.regulatory_deadline_on if entry else (
+            order.operation_snapshot.get("worksheet_due_date") or (deadline.astimezone(tz).date() if deadline else None))
         now = checked_at or datetime.now(timezone.utc)
         open_order = order.status not in ("completed", "cancelled")
         overdue = bool(open_order and deadline is not None and deadline <= now)
@@ -234,7 +235,10 @@ class Views:
              activeExecutionId=str(latest.work_report_id) if latest else None,
             revision=order.revision, dataOrigin=order.operation_snapshot.get("data_origin") or (rule.data_origin if rule else None),
             summary=order.operation_snapshot.get("label", ""),instructions=order.operation_snapshot.get("instructions") or (rule.operation.description if rule else None),
-            normHours=str(order.norm_hours_snapshot),normUnit=order.operation_snapshot.get("norm_unit","unconfirmed"),
+             normHours=str(order.norm_hours_snapshot),normUnit=order.operation_snapshot.get("norm_unit","unconfirmed"),
+             **{field: order.operation_snapshot[key] for field, key in (
+                 ("plannedPersonHours", "planned_person_hours"), ("planningNote", "worksheet_note"))
+                 if key in order.operation_snapshot},
             durationMinutes=order.operation_snapshot.get("planning_duration_minutes"),overdueSince=iso(order.overdue_since_at),
             requiredActs=order.operation_snapshot.get("required_acts",[]),measurementRequirements=order.operation_snapshot.get("measurement_requirements",[]))
 
@@ -289,7 +293,7 @@ class Views:
                 if canonical_elapsed is not None:
                     review["elapsedMs"] = canonical_elapsed
         actions = []
-        if self.principal.role=="chief_engineer" and order.status=="completed": actions.append("reopen")
+        if has_role(self.principal.role,("chief_engineer",),exact=True) and order.status=="completed": actions.append("reopen")
         role = self.principal.role
         if has_role(role,("dispatcher", "engineer")) and not order.operation_snapshot.get('catalog_publication_id'):
             actions.append("forecast")
@@ -304,7 +308,7 @@ class Views:
                 actions.extend(("edit_report", "upload_photo", "submit"))
         if has_role(role,("engineer",)) and order.status == "in_review" and report and report.status == "submitted":
             actions.append("photo_review")
-            if role == 'chief_engineer' and report.submitted_by != self.principal.user_id and not any(
+            if has_role(role,('chief_engineer',),exact=True,permission='review_report') and report.submitted_by != self.principal.user_id and not any(
                     a.user_id == self.principal.user_id for a in self.rows("work_assignments", work_order_id=order.work_order_id)):
                 actions.append("review")
         analysis_status=("failed" if review.get("status") in ("failed","unavailable") else "ready") if review else (

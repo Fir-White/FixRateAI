@@ -103,17 +103,16 @@ for (const width of [1440, 390]) {
     await page.setViewportSize({width, height: 900});
     await page.emulateMedia({reducedMotion: "reduce"});
     await signIn(page, "dispatcher@workspace.test");
-    if (width >= 1024) {
-      await page.getByRole("link", {name:"Учётная запись",exact:true}).click();
-      await expect(page.getByRole("heading", {name:"Мой профиль"})).toBeVisible();
-    }
+    // This test compares controls on one page, not the glow transition from the workday.
+    await page.goto("/profile");
+    await expect(page.locator(".profile-page")).toContainText("dispatcher@workspace.test");
     const workspace = page.locator(".workspace-root");
     const background = (element: Element) => ["::before", "::after"].map(pseudo => {
       const layer = getComputedStyle(element, pseudo);
       return { image: layer.backgroundImage, opacity: layer.opacity };
     });
     expect((await workspace.evaluate(background)).every(layer => layer.image.includes("radial-gradient"))).toBe(true);
-    // Force a scrolling document, including the mobile case with a normally short overview.
+    // Force a scrolling document even when the fixture has little content.
     await page.locator(".workspace-root").evaluate(root => {
       const spacer = document.createElement("div");
       spacer.style.height = "2000px";

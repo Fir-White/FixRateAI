@@ -1,0 +1,240 @@
+{
+  "fixture": "seed-demo; disposable PostgreSQL",
+  "source": "ea97765 + release-readiness worktree; isolated web build",
+  "cloud": false,
+  "images": [
+    {
+      "file": "executor/assigned.jpg",
+      "role": "executor",
+      "title": "Назначенные работы и обязательные сроки",
+      "route": "/executor",
+      "viewport": "1440×1000",
+      "sha256": "a96c8bdf2e9e915852ad580c1a448a6305ab826e3c8091513137bdd313a11b36"
+    },
+    {
+      "file": "executor/queue.jpg",
+      "role": "executor",
+      "title": "Очередь собственных заданий",
+      "route": "/executor/tasks",
+      "viewport": "1440×1000",
+      "sha256": "9b53bc4b9276043da0ceb23d2639582d0a4be27807d5dcd097d85ca9f27cfd60"
+    },
+    {
+      "file": "executor/calendar.jpg",
+      "role": "executor",
+      "title": "Календарь исполнителя без команд планирования",
+      "route": "/calendar",
+      "viewport": "1440×1000",
+      "sha256": "52564510af884e36e98ee9a79b30025e20d25a0533e1d2464e65399666dd45ef"
+    },
+    {
+      "file": "chief_engineer/workday.jpg",
+      "role": "chief_engineer",
+      "title": "Рабочий день главного инженера",
+      "route": "/chief-engineer",
+      "viewport": "1440×1000",
+      "sha256": "fdcaa5ac03503c47b1a878255a71945956bf1624819958d558b9d51118d82c5b"
+    },
+    {
+      "file": "chief_engineer/equipment.jpg",
+      "role": "chief_engineer",
+      "title": "Реестр оборудования",
+      "route": "/equipment",
+      "viewport": "1440×1000",
+      "sha256": "fca8cd28a7eb10b13b2f6257949e985985236310f73916127a39b4f3d64810fd"
+    },
+    {
+      "file": "chief_engineer/equipment-card.jpg",
+      "role": "chief_engineer",
+      "title": "Паспорт и обслуживание учебного узла",
+      "route": "/equipment/21d9b253-9ea2-cabf-7de8-284b37d0e707",
+      "viewport": "1440×1000",
+      "sha256": "514dc53935ad5d729a8d162f4a0a2bfac888b8c88a1f14170c76b354f74c6f31"
+    },
+    {
+      "file": "chief_engineer/service-settings.jpg",
+      "role": "chief_engineer",
+      "title": "Настройка обслуживания и действующие регламенты",
+      "route": "/settings/equipment?equipment=21d9b253-9ea2-cabf-7de8-284b37d0e707",
+      "viewport": "1440×1000",
+      "sha256": "f98a3eb7d2a3ee5f0f02e0667ac12970a56b6372b0fa71acf06710b9b0053328"
+    },
+    {
+      "file": "chief_engineer/work-orders.jpg",
+      "role": "chief_engineer",
+      "title": "Реестр нарядов и назначений",
+      "route": "/tasks",
+      "viewport": "1440×1000",
+      "sha256": "f6127d6c1e623009b4c5a02965ee7f341c74d55bbc1aac3e686d190c4d20618a"
+    },
+    {
+      "file": "chief_engineer/calendar.jpg",
+      "role": "chief_engineer",
+      "title": "Нормативный график ТО",
+      "route": "/calendar",
+      "viewport": "1440×1000",
+      "sha256": "04975d8d18ebfb312914c96e42d6db97686919250f8f0aac7c972bd11d27e1d7"
+    },
+    {
+      "file": "chief_engineer/planning.jpg",
+      "role": "chief_engineer",
+      "title": "Оперативная таблица планирования",
+      "route": "/planning?mode=orders",
+      "viewport": "1440×1000",
+      "sha256": "1fba33b4e1744811e3036a95b097da8aedd4a06a7b810c42f5311b10b2ff3c34"
+    },
+    {
+      "file": "chief_engineer/catalog-preview.jpg",
+      "role": "chief_engineer",
+      "title": "Предпросмотр учебного XLSX до сохранения",
+      "route": "/planning",
+      "viewport": "1440×1000",
+      "sha256": "77a220daa417d8e9f360c29993dd74054e4cfb57daabdc704e51c42d6643864f"
+    },
+    {
+      "file": "chief_engineer/catalog-draft.jpg",
+      "role": "chief_engineer",
+      "title": "Сохранённый каталог с исходными операциями",
+      "route": "/planning?catalog=1265db75-f291-4fc1-86d4-abd3b1b3d4c2",
+      "viewport": "1440×1000",
+      "sha256": "66b97220376a1c8ee3101cd88a0df08a11afd5f4de7ea9956e4fb914d3e952b4"
+    },
+    {
+      "file": "chief_engineer/analytics.jpg",
+      "role": "chief_engineer",
+      "title": "Аналитика объекта",
+      "route": "/reports",
+      "viewport": "1440×1000",
+      "sha256": "edeb649b3ca8683242bdb35bdbf28cf9d161c98b031cd39a0c1a11006d274de2"
+    },
+    {
+      "file": "chief_engineer/forecast.jpg",
+      "role": "chief_engineer",
+      "title": "Сравнение на одном снимке; результат локального расчёта",
+      "route": "/comparisons/93769635-d599-4a74-ba08-e30e0464f9d4",
+      "viewport": "1440×1000",
+      "sha256": "8dc3bd061af8dc1966fd0dbbc21588363308c64a4e5615d296470193f7985fa6"
+    },
+    {
+      "file": "chief_engineer/workforce.jpg",
+      "role": "chief_engineer",
+      "title": "Команда, смены и бригады",
+      "route": "/settings/workforce",
+      "viewport": "1440×1000",
+      "sha256": "d07ca0c581dbd0c7d87e80f33ea8b042e88e530656d5fa6faa62e2905e998fa5"
+    },
+    {
+      "file": "chief_engineer/crew-preview.jpg",
+      "role": "chief_engineer",
+      "title": "Подбор бригады и загрузка до записи",
+      "route": "/tasks/092af5c7-75f4-91c9-71a6-16d503f94125",
+      "viewport": "1440×1000",
+      "sha256": "4efc82c13d75a10d3ca241ff60c06d82c8e4aba737b9997e85099a67fa76a779"
+    },
+    {
+      "file": "executor/work-order.jpg",
+      "role": "executor",
+      "title": "Карточка наряда перед выполнением",
+      "route": "/executor/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014",
+      "viewport": "1440×1000",
+      "sha256": "71e727f7253d200b90c3c9e86cb902ff709608f0003030fe1499377a8915dbe0"
+    },
+    {
+      "file": "executor/checklist.jpg",
+      "role": "executor",
+      "title": "Обязательный чек-лист",
+      "route": "/executor/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014",
+      "viewport": "1440×1000",
+      "sha256": "e3806e909b22c48608dc4b2a2b69a04d2d5d3006c3a7e52b1ae2a59a62898a76"
+    },
+    {
+      "file": "executor/photos.jpg",
+      "role": "executor",
+      "title": "Прикреплённые учебные снимки до и после",
+      "route": "/executor/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014",
+      "viewport": "1440×1000",
+      "sha256": "292469755d712822cffaf0f4ea71d8eaf44c2daf0ce573a9beb28f71ed4e8913"
+    },
+    {
+      "file": "executor/submit-review.jpg",
+      "role": "executor",
+      "title": "Отдельное подтверждение сдачи отчёта",
+      "route": "/executor/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014",
+      "viewport": "1440×1000",
+      "sha256": "7fdb8bd7172c403fcd0edc0d24e56c7fec0bbcec7c268e2b138b6fc28de4c41f"
+    },
+    {
+      "file": "executor/reports.jpg",
+      "role": "executor",
+      "title": "Сохранённые отчёты исполнителя",
+      "route": "/executor/reports",
+      "viewport": "1440×1000",
+      "sha256": "33f4a5cb36cffbb244cd68c4bc289d9ae2dee557cee8ce048b860e2c294759b6"
+    },
+    {
+      "file": "executor/shifts.jpg",
+      "role": "executor",
+      "title": "Смены и исключения; пустой период",
+      "route": "/my-shifts",
+      "viewport": "1440×1000",
+      "sha256": "26c0fb4482916fc33dd3c55075907e088a0771e4093e195f466d7652e9149334"
+    },
+    {
+      "file": "chief_engineer/review-inbox.jpg",
+      "role": "chief_engineer",
+      "title": "Очередь инженерной проверки",
+      "route": "/quality",
+      "viewport": "1440×1000",
+      "sha256": "1d2fdb63a4ca3744a8b7a638cb602299ab48a57f51dcfd2cdce2b9d0855c0ceb"
+    },
+    {
+      "file": "chief_engineer/photo-review.jpg",
+      "role": "chief_engineer",
+      "title": "Фотографии и предварительная оценка; без облачного ключа",
+      "route": "/quality/33e95b39-5a97-5aa9-4923-126ce24c9014",
+      "viewport": "1440×1000",
+      "sha256": "479f15540f94095801423416ad07876a53fb0415f2fc6b5d6a1fecf8e1f751ef"
+    },
+    {
+      "file": "mobile/work-order.jpg",
+      "role": "executor",
+      "title": "Мобильная карточка отправленного наряда",
+      "route": "/executor/tasks/33e95b39-5a97-5aa9-4923-126ce24c9014",
+      "viewport": "390×844",
+      "sha256": "c5b94da75b08dc33b4e740b3485805506277176b3a3a090d7959a9c405ab96b0"
+    },
+    {
+      "file": "mobile/workday.jpg",
+      "role": "chief_engineer",
+      "title": "Рабочий день на мобильном экране",
+      "route": "/chief-engineer",
+      "viewport": "390×844",
+      "sha256": "147361876ce6bc61c529bf4392941054904c8cc3e7b288006605c7a441b7c35b"
+    },
+    {
+      "file": "chief_engineer/acceptance.jpg",
+      "role": "chief_engineer",
+      "title": "Приёмка требует решения человека",
+      "route": "/quality/33e95b39-5a97-5aa9-4923-126ce24c9014",
+      "viewport": "1440×1000",
+      "sha256": "6e7080fcf15bce96ac31d994559bc1fdf31533bd3e148842a1c1eaf176f09f2d"
+    },
+    {
+      "file": "chief_engineer/assistant.jpg",
+      "role": "chief_engineer",
+      "title": "Ответ v4 по данным объекта, проверенный через API (локальная Ollama)",
+      "route": "/assistant",
+      "viewport": "1440×1000",
+      "sha256": "d3e1fad19f2b1614ff29506ab3cab71c6f74547aa0eac704c41d271f796994f4"
+    },
+    {
+      "file": "executor/assistant.jpg",
+      "role": "executor",
+      "title": "Ответ v4 по данным объекта, проверенный через API (локальная Ollama)",
+      "route": "/assistant",
+      "viewport": "1440×1000",
+      "sha256": "a4ac8c1b5521614f1d81c9ae3302c7aed03d4793bbc1693b98cb465a4e225813"
+    }
+  ],
+  "omissions": []
+}

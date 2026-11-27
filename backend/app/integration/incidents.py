@@ -13,6 +13,7 @@ from sqlalchemy import select,text
 from app.files import validate_upload
 from app.storage import safe_storage_path
 from app.security.sessions import has_role
+from app.security.permissions import permits
 from .analyst import audit,Reason
 
 class IncidentAnalysis(BaseModel):
@@ -130,7 +131,7 @@ def register_incident_routes(app,views):
         row.ai_result_snapshot=dict(row.ai_result_snapshot or {},analysis=analysis);v.session.commit();return output(row)
 
     def create_task_internal(identity,command,v,commit=True):
-        if v.principal.role!='chief_engineer':raise HTTPException(403,'Создание внеплановой работы утверждает главный инженер')
+        if not permits(v.principal.role,'approve_exception'):raise HTTPException(403,'Создание внеплановой работы требует отдельного согласования')
         row=get(v,identity,True)
         command_hash=hashlib.sha256(command.model_dump_json().encode()).hexdigest()
         existing=v.rows('work_orders',incident_report_id=identity)

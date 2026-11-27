@@ -120,11 +120,12 @@ TOOLS=(
 )
 
 from .capabilities import extra_tools
+from app.security.permissions import tool_allowed
 TOOLS=(*TOOLS,*extra_tools(Tool,P,ALL,PLAN,EDIT,OPERATE))
 
 def available(app,role,agent='assistant'):
     routes={(r.path,m):r for r in app.routes if isinstance(r,APIRoute) for m in r.methods}
-    return {t.name:t for t in TOOLS if role in t.roles and agent in t.agents and (t.path,t.method) in routes}
+    return {t.name:t for t in TOOLS if tool_allowed(role,t) and agent in t.agents and (t.path,t.method) in routes}
 
 def route_for(app,tool):
     return next(r for r in app.routes if isinstance(r,APIRoute) and r.path==tool.path and tool.method in r.methods)
@@ -413,6 +414,16 @@ async def invoke(app,tool,args,headers):
     return payload
 
 async def preflight(app,tool,args,headers):
+    if tool.name=='order_table_apply':
+        body=args['body']
+        preview_tool=next(t for t in TOOLS if t.name=='order_table_preview')
+        snapshot=await invoke(app,preview_tool,validate_arguments(app,preview_tool,
+            dict(body={key:body[key] for key in ('changes','reason')})),headers)
+        if not snapshot['can_apply'] or snapshot['preview_digest']!=body['preview_digest']:
+            raise HTTPException(409,'Предпросмотр таблицы устарел или содержит блокировки')
+        if snapshot['requires_assigned_confirmation']!=body.get('confirm_assigned',False):
+            raise HTTPException(409,'Перенос назначенного наряда требует отдельного подтверждения')
+        return snapshot
     if not tool.before:return None
     before=next(t for t in TOOLS if t.name==tool.before)
     fields={f.name for f in route_for(app,before).dependant.path_params}
@@ -426,8 +437,20 @@ async def preflight(app,tool,args,headers):
         snapshot.pop('timingCheckedAt',None)
         snapshot.pop('plannedChecklist',None)
         for key in ('mandatoryDeadlineAt','plannedWindowEnded','deadlineRemainingMinutes','equipmentIds','lateAcceptanceBlocked',
-                    'maintenanceRuleId'):
+                     'maintenanceRuleId'):
             task.pop(key,None)
+        if tool.name=='report_review':
+            from app.security.permissions import permission_profile
+
+            if permission_profile()=='mvp':
+                # A different SQL row order does not change the attempt or its evidence.
+                task['assignees'].sort(key=lambda row: row['executorId'])
+                for row in task['assignees']:
+                    row['qualifications'].sort()
+                if execution:=snapshot.get('execution'):
+                    for key in ('photos','acts'):
+                        execution[key].sort(key=lambda row: row['id'])
+                    execution['readings'].sort(key=lambda row: json.dumps(row,sort_keys=True))
     if tool.name=='task_assign':
         from datetime import datetime
         from zoneinfo import ZoneInfo

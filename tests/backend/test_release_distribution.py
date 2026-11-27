@@ -3,6 +3,7 @@ import io
 import json
 from pathlib import Path
 import tarfile
+from zipfile import ZipFile
 
 import pytest
 
@@ -26,17 +27,41 @@ def test_single_file_payloads_are_deterministic_and_verify(tmp_path):
         assert (a/name).read_bytes()==(b/name).read_bytes()
 
 
+def test_quick_start_contains_only_verified_public_inputs(tmp_path):
+    package(tmp_path)
+    archive=tmp_path/'FixRateAI-QuickStart-0.1.0.zip'
+    with ZipFile(archive) as bundle:
+        assert set(bundle.namelist())=={'README.md','.env.example','compose.yaml','compose.cloud.yaml','images.env',
+                                      'release.json','SHA256SUMS'}
+        sample=bundle.read('.env.example').decode()
+        assert 'POSTGRES_PASSWORD=\n' in sample and 'FIXRATE_BOOTSTRAP_TOKEN_SHA256=\n' in sample
+        assert 'FIXRATE_BIND=127.0.0.1' in sample
+        assert b'@sha256:' in bundle.read('images.env')
+        assert b'FIXRATE_ASSISTANT_AGENT_VERSION:-v4' in bundle.read('compose.yaml')
+        assert b'${AITUNNEL_API_KEY:?' in bundle.read('compose.cloud.yaml')
+        assert b'compose.cloud.yaml' in bundle.read('SHA256SUMS')
+        assert b'.env.example' in bundle.read('SHA256SUMS')
+    assert archive.name in (tmp_path/'SHA256SUMS').read_text()
+    archive.write_bytes(archive.read_bytes()+b'unexpected')
+    with pytest.raises(ValueError,match='checksum'):
+        verify(tmp_path)
+
+
 def test_package_tampering_and_unsafe_image_metadata_are_rejected(tmp_path):
     package(tmp_path)
     (tmp_path/'fixrate-install.sh').write_text('tampered',encoding='utf-8')
     with pytest.raises(ValueError):verify(tmp_path)
     with pytest.raises(ValueError):package(tmp_path/'other',version='../../release')
     with pytest.raises(ValueError):package(tmp_path/'tags',channel='release',app_image='app:latest')
+    with pytest.raises(ValueError,match='Dirty source'):
+        package(tmp_path/'dirty',channel='release')
+    assert 'Test package only' in (tmp_path/'RELEASE-NOTES.md').read_text(encoding='utf-8')
 
 
 def test_database_major_and_upgrade_allowlist_are_explicit(tmp_path):
     result=package(tmp_path,compatible_from=['0.0.9'])
     assert result['database_major']==18 and result['compatible_from']==['0.0.9']
+    assert result['schema_migration']==max(path.name for path in Path('database/migrations').glob('*.sql'))
     assert json.loads((tmp_path/'release-manifest.json').read_text())['images_pinned']
 
 

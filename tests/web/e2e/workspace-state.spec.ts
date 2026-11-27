@@ -35,6 +35,18 @@ async function login(page: Page, email = "qa@workspace.test") {
   await expect(page.locator(".workspace-root [data-workspace-loading]")).toHaveCount(0);
 }
 
+async function scrollWithinFixture(page: Page) {
+  const offset = await page.evaluate(() => {
+    const available = (document.scrollingElement?.scrollHeight ?? 0) - innerHeight;
+    const y = Math.min(200, Math.floor(available / 2));
+    scrollTo(0, y);
+    return y;
+  });
+  expect(offset).toBeGreaterThan(0);
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(offset);
+  return offset;
+}
+
 test.beforeEach(async () => { test.skip(!process.env.FIXRATE_BASE_URL, "Requires the running local application"); });
 
 test("reload retains page scroll, month and filters without leaking to another account", async ({ page, context }) => {
@@ -42,11 +54,10 @@ test("reload retains page scroll, month and filters without leaking to another a
   await page.setViewportSize({ width: 1440, height: 500 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await login(page);
-  await page.evaluate(() => scrollTo(0, 300));
-  await expect.poll(() => page.evaluate(() => scrollY)).toBe(300);
+  const scroll = await scrollWithinFixture(page);
   await page.reload();
   await expect(page.getByRole("navigation",{name:"Основная навигация"})).toBeVisible();
-  await expect.poll(() => page.evaluate(() => scrollY)).toBe(300);
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(scroll);
   await page.goto("/equipment");
   await page.getByRole('textbox',{name:'Поиск по реестру'}).fill("Насос");
   await page.getByRole('tab',{name:/Без группы/}).click();
@@ -92,14 +103,14 @@ test("delayed API restores scroll after loading and manual scrolling cancels res
   const delay = await fixtures(context);
   await page.setViewportSize({ width: 1440, height: 500 });
   await login(page);
-  await page.evaluate(() => scrollTo(0, 300));
+  const scroll = await scrollWithinFixture(page);
   delay(1000);
   await page.reload({ waitUntil: "domcontentloaded" });
   const loading = page.locator(".workspace-root [data-workspace-loading]").first();
   await expect(loading).toHaveCSS("animation-delay", "0.14s");
   await expect(loading).toHaveCSS("opacity", "1");
   await expect(page.locator(".workspace-root [data-workspace-loading]")).toHaveCount(0);
-  await expect.poll(() => page.evaluate(() => scrollY)).toBe(300);
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(scroll);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(loading).toHaveCSS("animation-name", "none");

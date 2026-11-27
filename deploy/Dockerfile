@@ -1,7 +1,7 @@
 FROM node:24-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54 AS web-build
 WORKDIR /build/frontend
 COPY frontend/package*.json ./
-RUN npm ci --ignore-scripts
+RUN --mount=type=cache,target=/root/.npm npm ci --ignore-scripts
 COPY frontend/ ./
 COPY tests/web/ /build/tests/web/
 COPY tests/fixtures/web/ /build/tests/fixtures/web/
@@ -21,7 +21,7 @@ COPY deploy/requirements-core.lock ./requirements-core.lock
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libstdc++6=12.2.0-14+deb12u1 libgomp1=12.2.0-14+deb12u1 \
     && rm -rf /var/lib/apt/lists/*
-RUN pip install --only-binary=:all: --no-cache-dir -r requirements-core.lock && pip check \
+RUN --mount=type=cache,target=/root/.cache/pip pip install --only-binary=:all: -r requirements-core.lock && pip check \
     && python -c "from ortools.sat.python import cp_model; import sklearn, PIL, psycopg"
 COPY backend/ backend/
 COPY ml_service/app/ ml_service/app/

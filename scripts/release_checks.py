@@ -21,6 +21,8 @@ def main():
     output=ROOT/'reports/release-checks';output.mkdir(parents=True,exist_ok=True)
     guard=output/'policy';guard.mkdir(exist_ok=True);(guard/'sitecustomize.py').write_text(LOCAL_GUARD,encoding='utf-8')
     env=environment(dict(os.environ),guard,dict(model='__generation_disabled__',digest='',base_url='http://127.0.0.1:11434'),live=False)
+    # Legacy scripted providers use the v2 protocol; v4 and MVP tests explicitly switch in their fixtures.
+    env.update(FIXRATE_ASSISTANT_AGENT_VERSION='v2',FIXRATE_PERMISSION_PROFILE='legacy')
     env['INTEGRATION_DATABASE_URL']=url
     env['PHOTO_STORAGE_ROOT']=str(output/'test-files')
     env['FIXRATE_TEST_PASSWORD']='Release-test-fixture-only-2026'

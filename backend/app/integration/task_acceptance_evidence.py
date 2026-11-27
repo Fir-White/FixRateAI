@@ -3,6 +3,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 
 from app.assistant.task_execution import missing_report
+from app.security.permissions import permission_profile
 from app.storage import safe_storage_path
 
 
@@ -58,7 +59,8 @@ def inspect(views, task_id, revision, execution_id, storage_root):
     acceptance.extend(f'Контролёр ещё не проверил акт «{kind}»'
                       for kind in sorted((set(task['requiredActs']) & present) - verified))
     if task['lateAcceptanceBlocked']:
-        acceptance.append('Для просроченной приёмки требуется разрешение главного инженера с причиной')
+        acceptance.append('Просроченная приёмка требует отдельного согласования вне оперативного профиля MVP'
+                          if permission_profile() == 'mvp' else 'Для просроченной приёмки требуется разрешение главного инженера с причиной')
     orders = views.models['work_orders']
     current = views.session.scalar(select(orders.revision).where(
         orders.site_id==views.principal.site_id,orders.work_order_id==task_id))

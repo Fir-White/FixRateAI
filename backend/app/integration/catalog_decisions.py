@@ -7,6 +7,7 @@ from sqlalchemy import text
 from app.catalog_decisions import assess
 from app.schemas.catalog_decisions import (DecisionCommand, DecisionInput, DecisionRecord,
     DecisionProgress, DecisionHistory, BindingOptions)
+from app.security.permissions import permission_profile, permits
 from .catalog_imports import READ_ROLES
 from .management import PREFIX, _guard, _edit, _audit
 
@@ -109,7 +110,8 @@ def register_routes(app,views):
     @app.post(base+'/operations/{number}/decision',response_model=DecisionRecord)
     def write(identity:UUID,command:DecisionCommand,response:Response,number:int=Path(ge=1,le=1048576),v=Depends(views)):
         roles=('chief_engineer',) if command.confirm else ('chief_engineer','admin')
-        with _edit(v,roles=roles,exact_roles=True):
+        gate='approve_exception' if command.confirm else 'prepare_catalog'
+        with _edit(v,roles=roles,exact_roles=True,permission=gate):
             # Same lock order as equipment administration; membership was rechecked in _edit.
             v.session.execute(text('SELECT pg_advisory_xact_lock(hashtextextended(:key,0))'),dict(key=f'catalog:{v.principal.site_id}'))
             rows=sources(v,identity)
@@ -119,6 +121,9 @@ def register_routes(app,views):
             revision=old['revision'] if old else 0
             if command.expected_revision != revision:
                 raise HTTPException(409,'REVISION_CONFLICT: строка изменена. Откройте актуальную версию; введённые значения сохранены в форме')
+            if (old and old['confirmed'] and permission_profile() == 'mvp'
+                    and not permits(v.principal.role,'approve_exception')):
+                raise HTTPException(403,'Подтверждённая строка изменяется только отдельным согласованием')
             payload=command.decision.model_dump(mode='json')
             proposed=dict(payload=payload,confirmed=False,revision=revision+1,created_by=v.principal.user_id,
                           author_name=v.one('users',user_id=v.principal.user_id).full_name,

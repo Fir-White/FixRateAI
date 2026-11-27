@@ -148,7 +148,7 @@ def register_routes(app,views):
     @app.post(BASE+'/{identity}/policy',response_model=DraftRecord)
     def change_policy(identity:UUID,command:ChangeDraftPolicy,response:Response,v=Depends(views)):
         response.headers['Cache-Control']='private, no-store'
-        with _edit(v,roles=EDIT_ROLES,exact_roles=True):
+        with _edit(v,roles=EDIT_ROLES,exact_roles=True,permission='edit_plan'):
             _lock_catalog(v)
             request_sha=digest(dict(actor=str(v.principal.user_id),draft_id=str(identity),command=command.model_dump(mode='json')))
             old=v.session.execute(text('SELECT draft_id,revision,request_sha256 FROM planning_draft_versions WHERE site_id=:site AND idempotency_key=:key'),
@@ -189,13 +189,13 @@ def register_routes(app,views):
 
     @app.post(BASE+'/preview',response_model=GenerationPreview)
     def preview(command:GenerationInput,response:Response,v=Depends(views)):
-        _guard(v,*EDIT_ROLES);response.headers['Cache-Control']='private, no-store'
+        _guard(v,*EDIT_ROLES,permission='edit_plan');response.headers['Cache-Control']='private, no-store'
         return generate(v,command)[0]
 
     @app.post(BASE,response_model=DraftRecord,status_code=201)
     def create(command:SaveDraft,response:Response,v=Depends(views)):
         response.headers['Cache-Control']='private, no-store'
-        with _edit(v,roles=EDIT_ROLES,exact_roles=True):
+        with _edit(v,roles=EDIT_ROLES,exact_roles=True,permission='edit_plan'):
             _lock_catalog(v)
             request_sha=digest(dict(actor=str(v.principal.user_id),command=command.model_dump(mode='json')))
             old=v.session.execute(text('SELECT draft_id,revision,request_sha256 FROM planning_draft_versions WHERE site_id=:site AND idempotency_key=:key'),
@@ -300,7 +300,7 @@ def register_routes(app,views):
 
     @app.post(BASE+'/{identity}/segments',response_model=DraftRecord)
     def edit(identity:UUID,command:EditSegments,response:Response,v=Depends(views)):
-        with _edit(v,roles=EDIT_ROLES,exact_roles=True):
+        with _edit(v,roles=EDIT_ROLES,exact_roles=True,permission='edit_plan'):
             _lock_catalog(v);row=get_version(v,identity)
             if row['revision']!=command.expected_revision: raise HTTPException(409,'Версия плана изменилась; обновите её перед записью. Введённые значения не применены')
             snapshot=row['source_snapshot'];request=planning_input(snapshot['input'])
@@ -325,7 +325,7 @@ def register_routes(app,views):
 
     @app.post(BASE+'/{identity}/placements',response_model=DraftRecord)
     def place(identity:UUID,command:LocalPlacement,response:Response,v=Depends(views)):
-        _guard(v,*EDIT_ROLES)
+        _guard(v,*EDIT_ROLES,permission='edit_plan')
         row=get_version(v,identity)
         segment=next((s for s in row['segments'] if s['segment_id']==str(command.segment_id)),None)
         if segment is None: raise HTTPException(404,'Сегмент не найден')

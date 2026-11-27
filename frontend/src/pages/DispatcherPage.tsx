@@ -3,7 +3,7 @@ import { readQueries } from "@/shared/api/readQueries";
 import { DEMO_MODE } from "@/shared/api/request";
 import { useApiQuery } from "@/shared/lib/useApiQuery";
 import { todayAt, pluralize } from "@/shared/lib/format";
-import { canOpenSection } from "@/shared/lib/roles";
+import { canOpenSection, hasPermission } from "@/shared/lib/roles";
 import { useSession } from "@/shared/session/SessionContext";
 import { ErrorState, LoadingState } from "@/shared/ui/States";
 import { DEMO_DATE, isOpenTask, isTaskOverdue, isUnassigned, taskWorkDate } from "@/shared/lib/operations";
@@ -17,7 +17,7 @@ export function DispatcherPage() {
   const timezone=profile?.timezone??"Asia/Yekaterinburg";
   const today=DEMO_MODE?DEMO_DATE:todayAt(timezone);
   const admin=profile?.role==="admin";
-  const chief=profile?.role==="chief_engineer";
+  const chief=hasPermission(profile,"engineering_workspace");
   const [taskAttempt, setTaskAttempt] = useState(0);
   const canTasks=canOpenSection(profile?.role,"tasks"), canCalendar=canOpenSection(profile?.role,"calendar");
   const query=useApiQuery(readQueries.tasks.load,[taskAttempt],undefined,readQueries.tasks.key);
