@@ -64,10 +64,10 @@ FIXRATE_ASSISTANT_OPERATOR_OUTPUT_TOKENS=6000
 
 ```powershell
 python scripts/assistant_capabilities.py
-python scripts/verify.py --pg-bin 'C:/Program Files/PostgreSQL/18/bin' --agent-only --pytest-target agent_reliability_lab/evals/test_erp_operator.py agent_reliability_lab/evals/test_dynamic_boundaries.py tests/backend/test_assistant_graph_v3.py tests/backend/test_assistant_capabilities.py
-python -m agent_reliability_lab.run_pipeline_comparison --output reports/operator-comparison --variants D
-python -m agent_reliability_lab.run_pipeline_comparison --output reports/operator-cloud-comparison --variants EC --cloud-config <private-test-config>
-python -m agent_reliability_lab.run_pipeline_comparison --output reports/operator-holdout --operator-holdout --variants EC --cloud-config <private-test-config>
+python scripts/verify.py --pg-bin 'C:/Program Files/PostgreSQL/18/bin' --agent-only --pytest-target tests/agent_reliability_lab/evals/test_erp_operator.py tests/agent_reliability_lab/evals/test_dynamic_boundaries.py tests/backend/test_assistant_graph_v3.py tests/backend/test_assistant_capabilities.py
+python -m tests.agent_reliability_lab.run_pipeline_comparison --output reports/operator-comparison --variants D
+python -m tests.agent_reliability_lab.run_pipeline_comparison --output reports/operator-cloud-comparison --variants EC --cloud-config <private-test-config>
+python -m tests.agent_reliability_lab.run_pipeline_comparison --output reports/operator-holdout --operator-holdout --variants EC --cloud-config <private-test-config>
 ```
 
 Для сквозной проверки назначьте `FIXRATE_ASSISTANT_AGENT_VERSION=v3`. Варианты A и B используют локальную Qwen и соответствуют штатному v3 и `llm_dynamic`. Вариант C — `llm_dynamic` на DeepSeek V4 Flash, D — новый контур на Qwen, E — новый контур на DeepSeek. Облачный стенд допускает только синтетический корпус и сетевой адрес настроенного провайдера. Факты и изменения сверяются с PostgreSQL. Тесты с управляемыми ответами планировщика проверяют сохранение области и дат в пяти репликах, отказ при расширении области, начало новой задачи, ограничение видимости исполнителя и подтверждаемое назначение. Они измеряют контракт исполнения. Отдельный набор включает 10 диалогов по 5–6 сообщений на двух фиксированных seed. Ожидания рассчитаны по SQL-данным и сохранены до первого прогона набора.

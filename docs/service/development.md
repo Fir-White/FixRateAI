@@ -34,6 +34,7 @@ data/models/                RF-модель и её manifest
 data/provenance/            исходные ветки, SHA и карта адаптации
 tests/backend/              Python-тесты backend и HTTP/PostgreSQL
 tests/ml/                   Python-тесты ML/CV и их pytest fixtures
+tests/agent_reliability_lab/ отдельный стенд испытаний ассистента (явный запуск)
 tests/web/unit/             UI unit-тесты с зеркалом структуры frontend/src
 tests/web/e2e/              браузерные сценарии SPA/API
 tests/web/setup.ts          общая настройка UI-тестов
@@ -43,6 +44,8 @@ tests/sql/                  исходные SQL assertion и полный schem
 scripts/                    проверки, экспорт ER, сборка образа и start_local.py для постоянного стенда
 docs/                       описание проекта, ADR и docs/assets с иллюстрациями
 docs/analysis/              работа аналитика, исходный пакет и карта интеграции
+docs/agent-audit/           протоколы и опубликованные доказательства работы ассистента
+docs/archive/               исторические материалы, не текущие инструкции
 logs/                       журналы runtime, SQL и verification
 reports/                    результаты, метрики, screenshots и audits
 var/                        локальная БД, PID, фото и private backup

@@ -1,6 +1,6 @@
 # Узлы сервиса
 
-[Демонстрационный кандидат](../releases/2026-11-27-release-readiness.md) · [Журнал проверок](../../REPOSITORY_REFACTOR_REPORT.md) · [Галерея Playwright](demo-gallery.md) · [Профили выпуска](release-profiles.md) · [Changelog](../../CHANGELOG.md).
+[Демонстрационный кандидат](../releases/2026-11-27-release-readiness.md) · [Журнал проверок](../releases/2026-11-27-demonstration-checklist.md) · [Галерея Playwright](demo-gallery.md) · [Профили выпуска](release-profiles.md) · [Changelog](../../CHANGELOG.md).
 
 [Локальный срез Excel, фотоанализа и истории чатов, 28.11.2026](../releases/2026-11-28-xlsx-onlyoffice-checkpoint.md) — что сохранено в отдельной ветке и что блокирует слияние.
 
@@ -16,13 +16,13 @@
 
 [Обновление CR‑17 в dev, 23.11.2026](../releases/2026-11-23-dev-cr17-catalog-and-acceptance.md) — слияние ветки Яны, исходный каталог, миграции и приёмка главным инженером.
 
-[ИИ-агент v4](../../AI_AGENT_ARCHITECTURE.md) — основной dev-контур tool calling, приватный контекст и подтверждения. [Срез итерации](../releases/2026-11-24-assistant-tool-agent-v4.md) · [Приёмка](../../AI_AGENT_MVP_READINESS.md).
+[ИИ-агент v4](../architecture/assistant-architecture-v4.md) — основной dev-контур tool calling, приватный контекст и подтверждения. [Срез итерации](../releases/2026-11-24-assistant-tool-agent-v4.md) · [Приёмка](../agent-audit/v4-mvp-readiness.md).
 
 [Демонстрационный срез v4](../releases/2026-11-24-v4-demo-stability.md) — предметная стабилизация, инвентаризация исполнителя и условия отката.
 
 [Фото и сдача отчёта из чата v4](../releases/2026-11-24-v4-report-photos-submit.md) — защищённый просмотр, подтверждение и результаты проверки.
 
-[Надёжность ERP-оператора](../../agent_reliability_lab/OPERATOR_RELIABILITY.md) — причины провалов длинных диалогов, проверяемые цели и повторные испытания.
+[Надёжность ERP-оператора](../../tests/agent_reliability_lab/OPERATOR_RELIABILITY.md) — причины провалов длинных диалогов, проверяемые цели и повторные испытания.
 
 [Экспериментальный ERP-оператор](../releases/2026-11-23-erp-operator.md) — контур LangGraph, карта возможностей, сравнительные испытания и переключение.
 
@@ -31,7 +31,7 @@
 [Инженерные чтения ассистента v2, 22.11.2026](../releases/2026-11-22-assistant-architecture-v2.md) — контракт запроса, источники, миграция и проверка.
 
 [Ассистент v3 на LangGraph, 23.11.2026](../releases/2026-11-23-assistant-architecture-v3.md) — checkpoint PostgreSQL, подтверждения и порядок включения.
-[Стенд надёжности Agent v3](../../agent_reliability_lab/README.md) — независимый SQL-oracle, прогоны на локальной модели и воспроизводимые проверки RBAC, подтверждений и отказов.
+[Стенд надёжности Agent v3](../../tests/agent_reliability_lab/README.md) — независимый SQL-oracle, прогоны на локальной модели и воспроизводимые проверки RBAC, подтверждений и отказов.
 [Изменения Agent v3](../releases/2026-11-23-agent-v3-reliability.md) — подтверждённые исправления маршрутизации, контекста и проверки фактов.
 [Сравнение пайплайнов ассистента](../releases/2026-11-23-assistant-pipeline-experiment.md) — синтетический корпус, опциональный цикл и права.
 
