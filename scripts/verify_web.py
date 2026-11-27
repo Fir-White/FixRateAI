@@ -38,6 +38,7 @@ def main():
     parser.add_argument("--grep", help="Optional Playwright test name filter")
     parser.add_argument("--order-table", action="store_true", help="Enable the synthetic one-time order fixture and worksheet E2E")
     parser.add_argument("--documentation", action="store_true", help="Capture the release gallery on a new local test database")
+    parser.add_argument("--readme", action="store_true", help="Capture the public README walkthrough with pinned local Ollama")
     parser.add_argument("--documentation-local-ai", action="store_true",
                         help="Also capture grounded v4 replies using an already pinned local Ollama model")
     parser.add_argument("--documentation-video", action="store_true", help="Also record the two main role journeys")
@@ -49,6 +50,11 @@ def main():
     env["PHOTO_REVIEW_PROVIDER"] = "aitunnel"  # Without AITUNNEL_API_KEY, cloud photo review reports unavailable.
     env.pop("FIXRATE_ORDER_TABLE_E2E", None)
     env.pop("FIXRATE_DOCUMENTATION_CAPTURE", None)
+    env.pop("FIXRATE_README_CAPTURE", None)
+    if args.readme:
+        args.documentation = args.documentation_local_ai = True
+        args.grep = args.grep or "README product walkthrough"
+        env["FIXRATE_README_CAPTURE"] = "1"
     if args.documentation:
         if args.order_table:
             parser.error("Documentation and worksheet E2E mutate the same fixture; run them separately")
@@ -125,6 +131,12 @@ def main():
             try:
                 migrate(engine)
                 seed_demo(engine, password)
+                if args.readme:
+                    from tests.fixtures.readme_capture import prepare_readme_capture
+
+                    public_fixture = scratch / "readme"
+                    prepare_readme_capture(engine, public_fixture)
+                    env["FIXRATE_README_FIXTURE"] = str(public_fixture)
                 if args.documentation:
                     from tests.fixtures.catalog_source import catalog_book
 
