@@ -43,8 +43,20 @@ def test_mvp_shares_work_and_agent_scope_but_not_administration(mvp, lab):
             assert client.get(API + "/management/enrollment").status_code == 403
             principal = Principal(uuid4(), uuid4(), role, "TEST", "test@example.test", "TEST", tz.key)
             scopes.append(ToolSession(app, principal, {}, uuid4(), {}, [], local_date=day))
-        assert scopes[0].definition.keys() == scopes[1].definition.keys()
-        assert scopes[0].registry.keys() == scopes[1].registry.keys()
+        chief_definitions, engineer_definitions = (scope.definition.keys() for scope in scopes)
+        assert chief_definitions - engineer_definitions == {
+            "find_workbook_issued_orders", "find_workbook_order_rows", "preview_workbook_order",
+            "propose_workbook_order", "propose_workbook_write",
+        }
+        assert engineer_definitions <= chief_definitions
+        assert {"find_source_workbooks", "download_source_workbook"} <= engineer_definitions
+        chief_registry, engineer_registry = (scope.registry.keys() for scope in scopes)
+        assert chief_registry - engineer_registry == {
+            "workbook_catalog", "workbook_from_catalog", "workbook_issued_orders", "workbook_order_apply",
+            "workbook_order_preview", "workbook_order_rows", "workbook_upload", "workbook_version_from_file",
+        }
+        assert engineer_registry <= chief_registry
+        assert {"workbooks_list", "workbook_versions", "workbook_version", "workbook_download"} <= engineer_registry
         assert {"order_table_apply", "report_review", "task_assign"} <= set(scopes[0].registry)
         assert not ({"late_authorize", "publication_approve", "staff_edit"} & set(scopes[0].registry))
         assert executor.get(BASE, params={"month": str(day)[:7]}).status_code == 403

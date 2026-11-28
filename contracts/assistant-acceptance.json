@@ -1,15 +1,15 @@
 {
   "format_version": 1,
-  "catalog_sha256": "f524ea75144dc18462cb0e7793d2e445b8145d260dbb94ffc386949c12866805",
+  "catalog_sha256": "b7eb2cbd598fe6f80934fb76605a44851d510755ca290fd792e30ccea2b7997b",
   "acceptance_rule": "A finished response, registered tool, HTTP 200, negative boundary test, mocked completion or successful individual call does not prove the user goal. Positive acceptance requires an independently verified final result and data state for this exact role/operation.",
   "generative_policy": "Installed local Ollama only; no external LLM/fallback, weight downloads or runtime user preference changes.",
   "summary": {
-    "operations": 195,
-    "role_operation_cells": 774,
+    "operations": 207,
+    "role_operation_cells": 790,
     "by_role": {
       "director": 97,
-      "chief_engineer": 188,
-      "engineer": 131,
+      "chief_engineer": 200,
+      "engineer": 135,
       "dispatcher": 143,
       "admin": 153,
       "executor": 62
@@ -19,31 +19,31 @@
         "passed": 17,
         "failed": 0,
         "skipped": 0,
-        "not_run": 757
+        "not_run": 773
       },
       "positive_e2e": {
         "passed": 17,
         "failed": 0,
         "skipped": 0,
-        "not_run": 757
+        "not_run": 773
       },
       "negative": {
         "passed": 1,
         "failed": 0,
         "skipped": 0,
-        "not_run": 773
+        "not_run": 789
       },
       "mocked": {
         "passed": 0,
         "failed": 0,
         "skipped": 0,
-        "not_run": 774
+        "not_run": 790
       },
       "api_domain": {
         "passed": 0,
         "failed": 0,
         "skipped": 0,
-        "not_run": 774
+        "not_run": 790
       }
     }
   },
@@ -8600,6 +8600,810 @@
         ]
       },
       "candidate_test_mentions": [],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "workbooks_list",
+      "title": "Найти сохранённую исходную книгу Excel",
+      "method": "GET",
+      "path": "/api/v1/maintenance/workbooks",
+      "roles": [
+        "chief_engineer",
+        "engineer"
+      ],
+      "denied_roles": [
+        "director",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "requires_confirmation": false,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Find my saved source books and their latest versions",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Do not confirm any unrelated mutation; this operation has a read-only outcome.",
+        "postconditions": [
+          "Across all pages, book IDs, names, latest version numbers, hashes and total equal the current site's saved books; another site's books are absent.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "Business state is unchanged by this read/preview."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_assistant_source_workbooks.py::test_workbook_assistant_cannot_bypass_role_or_confirmation",
+        "tests/backend/test_mvp_permissions.py::test_mvp_shares_work_and_agent_scope_but_not_administration"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "workbook_versions",
+      "title": "Получить историю версий исходной книги Excel",
+      "method": "GET",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/versions",
+      "roles": [
+        "chief_engineer",
+        "engineer"
+      ],
+      "denied_roles": [
+        "director",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "requires_confirmation": false,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Show the saved version history of this source workbook",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Do not confirm any unrelated mutation; this operation has a read-only outcome.",
+        "postconditions": [
+          "Complete history contains the selected book's immutable versions in descending order with their exact byte hashes, authors and sizes; reading it does not add a version.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "Business state is unchanged by this read/preview."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_mvp_permissions.py::test_mvp_shares_work_and_agent_scope_but_not_administration"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "workbook_version",
+      "title": "Проверить метаданные указанной версии книги",
+      "method": "GET",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/versions/{version}",
+      "roles": [
+        "chief_engineer",
+        "engineer"
+      ],
+      "denied_roles": [
+        "director",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "requires_confirmation": false,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Show metadata for this exact saved workbook version",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Do not confirm any unrelated mutation; this operation has a read-only outcome.",
+        "postconditions": [
+          "Book ID, requested version, author, byte length and SHA-256 match that stored version rather than the latest; an inaccessible or missing version is not substituted.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "Business state is unchanged by this read/preview."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_mvp_permissions.py::test_mvp_shares_work_and_agent_scope_but_not_administration"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "workbook_download",
+      "title": "Скачать указанную версию книги Excel",
+      "method": "GET",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/versions/{version}/xlsx",
+      "roles": [
+        "chief_engineer",
+        "engineer"
+      ],
+      "denied_roles": [
+        "director",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "requires_confirmation": false,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Download this exact saved workbook version",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Do not confirm any unrelated mutation; this operation has a read-only outcome.",
+        "postconditions": [
+          "The authorized link serves XLSX bytes whose SHA-256 equals the selected version, including when a newer version exists; a different site cannot download it.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "Business state is unchanged by this read/preview."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_assistant_source_workbooks.py::test_mvp_exposes_workbook_writes_only_to_chief_engineer",
+        "tests/backend/test_assistant_source_workbooks.py::test_workbook_assistant_cannot_bypass_role_or_confirmation",
+        "tests/backend/test_mvp_permissions.py::test_mvp_shares_work_and_agent_scope_but_not_administration"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "workbook_upload",
+      "title": "Сохранить оригинал XLSX из личного вложения",
+      "method": "POST",
+      "path": "/api/v1/maintenance/workbooks",
+      "roles": [
+        "chief_engineer"
+      ],
+      "denied_roles": [
+        "director",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "requires_confirmation": true,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [
+        "file"
+      ],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Save the XLSX from my private attachment as an original workbook",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Review the exact target/diff and confirm only the intended action with its own payload hash.",
+        "postconditions": [
+          "After confirmation its exact bytes and SHA-256 become version 1 on the current site; replay creates no duplicate and neither a draft catalog nor a work order is created.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "No business mutation before the concrete human confirmation; repeated confirmation cannot duplicate the result."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_assistant_source_workbooks.py::test_mvp_exposes_workbook_writes_only_to_chief_engineer",
+        "tests/backend/test_assistant_source_workbooks.py::test_workbook_assistant_cannot_bypass_role_or_confirmation",
+        "tests/backend/test_mvp_permissions.py::test_mvp_shares_work_and_agent_scope_but_not_administration"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "workbook_from_catalog",
+      "title": "Сохранить исходный XLSX существующего каталога как редактируемую книгу",
+      "method": "POST",
+      "path": "/api/v1/maintenance/workbooks/from-catalog/{catalog_id}",
+      "roles": [
+        "chief_engineer"
+      ],
+      "denied_roles": [
+        "director",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "requires_confirmation": true,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Open the original XLSX of this saved catalog as a versioned workbook",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Review the exact target/diff and confirm only the intended action with its own payload hash.",
+        "postconditions": [
+          "After confirmation the workbook's first version matches the catalog's original bytes; reopening an existing workbook returns its latest version without duplicating or editing the catalog.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "No business mutation before the concrete human confirmation; repeated confirmation cannot duplicate the result."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_mvp_permissions.py::test_mvp_shares_work_and_agent_scope_but_not_administration"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "workbook_version_from_file",
+      "title": "Сохранить отредактированное личное XLSX-вложение как следующую версию книги",
+      "method": "POST",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/versions/from-file",
+      "roles": [
+        "chief_engineer"
+      ],
+      "denied_roles": [
+        "director",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "requires_confirmation": true,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [
+        "file"
+      ],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Save my edited private XLSX as the next version of this workbook",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Review the exact target/diff and confirm only the intended action with its own payload hash.",
+        "postconditions": [
+          "With a current base and confirmation the changed attachment creates one next version with its exact bytes and hash; the original remains intact, stale versions fail and replay adds no second version.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "No business mutation before the concrete human confirmation; repeated confirmation cannot duplicate the result."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_assistant_source_workbooks.py::test_mvp_exposes_workbook_writes_only_to_chief_engineer",
+        "tests/backend/test_assistant_source_workbooks.py::test_workbook_assistant_cannot_bypass_role_or_confirmation",
+        "tests/backend/test_mvp_permissions.py::test_mvp_shares_work_and_agent_scope_but_not_administration"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "workbook_catalog",
+      "title": "Подготовить черновик каталога из указанной версии книги",
+      "method": "POST",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/versions/{version}/catalog",
+      "roles": [
+        "chief_engineer"
+      ],
+      "denied_roles": [
+        "director",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "requires_confirmation": true,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Prepare a draft catalog from this specified workbook version",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Review the exact target/diff and confirm only the intended action with its own payload hash.",
+        "postconditions": [
+          "After confirmation the persisted draft uses the selected version's source bytes and parsed rows; using that source again does not duplicate it and no catalog approval or work order follows.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "No business mutation before the concrete human confirmation; repeated confirmation cannot duplicate the result."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_mvp_permissions.py::test_mvp_shares_work_and_agent_scope_but_not_administration"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "workbook_issued_orders",
+      "title": "Найти выпущенные наряды для подготовки строк Excel",
+      "method": "GET",
+      "path": "/api/v1/maintenance/workbooks/issued-orders",
+      "roles": [
+        "chief_engineer"
+      ],
+      "denied_roles": [
+        "director",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "requires_confirmation": false,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Find issued work orders eligible for an Excel change row",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Do not confirm any unrelated mutation; this operation has a read-only outcome.",
+        "postconditions": [
+          "Matching IDs, titles and planned starts equal the current site's eligible issued orders for the query, including later pages; started work, orders with reports and expired deadlines are excluded.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "Business state is unchanged by this read/preview."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_mvp_permissions.py::test_mvp_shares_work_and_agent_scope_but_not_administration"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "workbook_order_rows",
+      "title": "Найти строки правок нарядов в указанной сохранённой версии книги",
+      "method": "GET",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/versions/{version}/order-changes",
+      "roles": [
+        "chief_engineer"
+      ],
+      "denied_roles": [
+        "director",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "requires_confirmation": false,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Show the change rows in the selected saved workbook version",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Do not confirm any unrelated mutation; this operation has a read-only outcome.",
+        "postconditions": [
+          "Reported row numbers and linked issued orders match that version's worksheet; missing links, duplicates, formulas and ineligible orders are explicit and no order is edited.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "Business state is unchanged by this read/preview."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_mvp_permissions.py::test_mvp_shares_work_and_agent_scope_but_not_administration"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "workbook_order_preview",
+      "title": "Проверить правки выпущенного наряда на указанной строке листа «Изменения нарядов»",
+      "method": "POST",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/versions/{version}/order-changes/preview",
+      "roles": [
+        "chief_engineer"
+      ],
+      "denied_roles": [
+        "director",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "requires_confirmation": false,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Preview the change to one issued order from this exact saved row",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Do not confirm any unrelated mutation; this operation has a read-only outcome.",
+        "postconditions": [
+          "The preview binds the book/version/hash and row to the exact order and current revision; it reports only supported field changes and conflicts without writing the order.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "Business state is unchanged by this read/preview."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_mvp_permissions.py::test_mvp_shares_work_and_agent_scope_but_not_administration"
+      ],
+      "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
+    },
+    {
+      "operation": "workbook_order_apply",
+      "title": "Подтвердить и применить проверенные изменения выпущенного наряда из указанной версии книги",
+      "method": "POST",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/versions/{version}/order-changes/apply",
+      "roles": [
+        "chief_engineer"
+      ],
+      "denied_roles": [
+        "director",
+        "engineer",
+        "dispatcher",
+        "admin",
+        "executor"
+      ],
+      "requires_confirmation": true,
+      "protected_inputs": [],
+      "optional_protected_inputs": [],
+      "file_fields": [],
+      "domain": "excel",
+      "traceability": {
+        "mvp_blocks": [
+          "MVP-03",
+          "MVP-11"
+        ],
+        "source_requirements": [
+          "PLN-04",
+          "PLN-23",
+          "PLN-24",
+          "PLN-25",
+          "PLN-26",
+          "PLN-27",
+          "PLN-28",
+          "PLN-29",
+          "AT-01",
+          "AT-18",
+          "AT-30"
+        ],
+        "scope": "Product-level mapping from docs/MVP_SCOPE.md section 7; not proof of complete requirement implementation.",
+        "customer_decision_dependencies": [
+          "D-02",
+          "D-03"
+        ]
+      },
+      "positive_scenario": {
+        "user_goal": "Apply the reviewed change from this exact saved workbook row",
+        "fixture": "Versioned synthetic XLSX with source hashes, confirmed and unconfirmed rows, formula/text traps and a repeated import.",
+        "first_visible_action": "Open a fresh private conversation as the specified role and state this goal in natural language.",
+        "execution": "Let the orchestrator resolve entities and choose any correct authorized tools; provide only missing user decisions. Review the exact target/diff and confirm only the intended action with its own payload hash.",
+        "postconditions": [
+          "After explicit confirmation the approved start, labor or note changes once on the target revision with workbook provenance; mandatory deadline, unrelated orders and workbook versions are unchanged, and stale previews or replay cannot apply a second change.",
+          "Verify the goal against an independent authorized API/database/file oracle, not answer keywords or an exact tool sequence.",
+          "Reopen the conversation/resource after reload and verify persisted outcome and explicitly outstanding goals."
+        ],
+        "next_action": "Open the verified resource/result; if a dependency remains unresolved it stays explicitly pending/blocked.",
+        "forbidden_effects": [
+          "No cross-user/site/role data or rights expansion.",
+          "No unrequested writes or unsupported engineering/manufacturer claims.",
+          "No business mutation before the concrete human confirmation; repeated confirmation cannot duplicate the result."
+        ]
+      },
+      "candidate_test_mentions": [
+        "tests/backend/test_assistant_source_workbooks.py::test_mvp_exposes_workbook_writes_only_to_chief_engineer",
+        "tests/backend/test_mvp_permissions.py::test_mvp_shares_work_and_agent_scope_but_not_administration"
+      ],
       "candidate_test_note": "Static string references only; may be negative, mocked, incomplete or unexecuted. Never counted as passed."
     },
     {
@@ -29499,6 +30303,438 @@
       }
     },
     {
+      "operation": "workbooks_list",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "workbooks_list",
+      "role": "engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "workbook_versions",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "workbook_versions",
+      "role": "engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "workbook_version",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "workbook_version",
+      "role": "engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "workbook_download",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "workbook_download",
+      "role": "engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "workbook_upload",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "workbook_from_catalog",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "workbook_version_from_file",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "workbook_catalog",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "workbook_issued_orders",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "workbook_order_rows",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "workbook_order_preview",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
+      "operation": "workbook_order_apply",
+      "role": "chief_engineer",
+      "registered": true,
+      "verification": {
+        "reachability": {
+          "status": "not_run",
+          "records": []
+        },
+        "positive_e2e": {
+          "status": "not_run",
+          "records": []
+        },
+        "negative": {
+          "status": "not_run",
+          "records": []
+        },
+        "mocked": {
+          "status": "not_run",
+          "records": []
+        },
+        "api_domain": {
+          "status": "not_run",
+          "records": []
+        }
+      }
+    },
+    {
       "operation": "catalog_binding_options",
       "role": "chief_engineer",
       "registered": true,
@@ -36804,6 +38040,11 @@
     },
     {
       "method": "GET",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/editor-sessions/{session_id}",
+      "reason": "interactive ONLYOFFICE iframe transport; use workbook_version_from_file for assistant writes"
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/maintenance_jobs",
       "reason": "compatibility alias"
     },
@@ -36816,6 +38057,11 @@
       "method": "GET",
       "path": "/api/v1/maintenance_jobs/{job_id}/history",
       "reason": "compatibility alias"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/assistant/conversations/{identity}",
+      "reason": "human chat workspace metadata; deliberately not callable as a model tool"
     },
     {
       "method": "PATCH",
@@ -36886,6 +38132,21 @@
       "method": "POST",
       "path": "/api/v1/maintenance/users/me/password",
       "reason": "password changes explicitly excluded by owner"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/editor-sessions",
+      "reason": "interactive ONLYOFFICE iframe transport; use workbook_version_from_file for assistant writes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/editor-sessions/{session_id}/snapshot",
+      "reason": "interactive ONLYOFFICE iframe transport; use workbook_version_from_file for assistant writes"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/maintenance/workbooks/{book_id}/versions",
+      "reason": "interactive ONLYOFFICE iframe transport; use workbook_version_from_file for assistant writes"
     },
     {
       "method": "POST",
