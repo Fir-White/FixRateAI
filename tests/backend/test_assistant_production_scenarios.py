@@ -30,6 +30,11 @@ def production_case(managed,monkeypatch):
         app.state.assistant_provider_factory=NoInference
     admin,eq,import_id,row,decision,request=prepare(managed)
     request['ends_on']='2027-01-31'
+    if not live:
+        # Keep real CP-SAT and 24-hour shifts, but bound the synthetic object's
+        # access windows so the confirmation regression does not benchmark CPU speed.
+        request['policy'].update(access_mode='weekly', access_ref='TEST ONLY confirmed 09:00–15:00 access',
+            service_windows=[dict(weekday=day,start_minute=540,end_minute=900) for day in range(1,8)])
     workers=[worker(managed,'SCENARIO worker '+str(i)) for i in (1,2)]
     for code,pattern in [('MONTHLY',dict(frequency='month',anchor_date='2027-01-01',month_days=[15])),('SEMIANNUAL',dict(frequency='yearly_count',anchor_date='2027-01-01',count_per_year=2,annual_policy='calendar_year'))]:
         body=config(date(2027,1,1),code='SCENARIO-'+code,title='SCENARIO '+code,pattern=pattern)
